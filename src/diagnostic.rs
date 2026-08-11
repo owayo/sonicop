@@ -179,11 +179,29 @@ impl Offense {
             start_column,
             last_line,
             last_column,
-            length: self.end.saturating_sub(self.start),
+            length: character_length(source, self.start, self.end),
             line: start_line,
             column: start_column,
         }
     }
+}
+
+/// The span's length in characters, which is the unit RuboCop reports.
+///
+/// Its parser addresses source by character, so a range over `なまえ` is 3 there and 9 here if the
+/// byte length is handed out instead. Offsets that a cop derived by arithmetic can land inside a
+/// character, so both ends are pulled back to a boundary rather than slicing and panicking.
+fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
+    let text = source.text();
+    let mut start = start.min(text.len());
+    let mut end = end.clamp(start, text.len());
+    while start > 0 && !text.is_char_boundary(start) {
+        start -= 1;
+    }
+    while end > start && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    text[start..end].chars().count()
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]

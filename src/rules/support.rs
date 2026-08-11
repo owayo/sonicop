@@ -18,14 +18,3 @@ pub(crate) fn walk_named(node: Node<'_>, callback: &mut impl FnMut(Node<'_>)) {
         push_named_children(current, &mut stack);
     }
 }
-
-pub(crate) fn first_identifier(node: Node<'_>) -> Option<Node<'_>> {
-    let mut stack = vec![node];
-    while let Some(current) = stack.pop() {
-        if current.kind() == "identifier" {
-            return Some(current);
-        }
-        push_named_children(current, &mut stack);
-    }
-    None
-}

@@ -191,6 +191,72 @@ mod layout {
             .run();
     }
 
+    /// URI と修飾名の免除は「上限より前で始まり、行末で終わる」ことが条件で、
+    /// 行末で終わらないものは超過部分の**直後**から報告される。`]` を巻き込んだ
+    /// YARD リンクは `URI.parse` が弾くので URI 扱いされず、上限の位置から始まる。
+    /// cop ディレクティブのある行はディレクティブを除いた長さで測り直す。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/LineLength --format json` 実測。
+    #[test]
+    fn line_length_exempts_only_what_runs_to_the_end_of_the_line() {
+        let source = concat!(
+            "# see https://example.com/aaaaaaaaaaaaaaaaaaaa\n",
+            "# see https://example.com/aaaaaaaaaaaaaaaaaaaaaaaa word\n",
+            "# {Guide}[https://example.com/aaaaaaaaaaaa#sec]\n",
+            "# note Foo::BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB and more\n",
+            "value = RuboCop::Cop::Layout::LineLength.new(1)\n",
+            "x = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 # rubocop:disable Style/Lambda\n",
+        );
+        CopCase::new(
+            "Layout/LineLength",
+            source,
+            vec![
+                Annotation::new(2, 51, 5, "Line is too long. [55/40]"),
+                Annotation::new(3, 41, 7, "Line is too long. [47/40]"),
+                Annotation::new(4, 51, 9, "Line is too long. [59/40]"),
+                Annotation::new(6, 41, 2, "Line is too long. [42/40]"),
+            ],
+        )
+        .config("Layout/LineLength:\n  Max: 40\n")
+        .run();
+    }
+
+    /// エンドレスメソッドは通常のメソッドへ書き直せば短くできるので、本家は
+    /// 免除の判定より先に報告する。行末で終わる修飾名があっても、長さの原因が
+    /// cop ディレクティブでも関係なく、行全体の長さで出る。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/LineLength --format json` 実測。
+    #[test]
+    fn line_length_reports_endless_methods_before_any_exemption() {
+        let source = concat!(
+            "def opts = RuboCop::Cop::Layout::LineLen.new\n",
+            "def self.o = RuboCop::Cop::Layout::LineL.new\n",
+            "value = RuboCop::Cop::Layout::LineLength.new(1)\n",
+            "def opts2 = 1 + 2 + 3 + 4 # rubocop:disable Style/Lambda\n",
+        );
+        CopCase::new(
+            "Layout/LineLength",
+            source,
+            vec![
+                Annotation::new(1, 41, 4, "Line is too long. [44/40]"),
+                Annotation::new(2, 41, 4, "Line is too long. [44/40]"),
+                Annotation::new(4, 41, 16, "Line is too long. [56/40]"),
+            ],
+        )
+        .target_ruby("3.0")
+        .config("Layout/LineLength:\n  Max: 40\n")
+        .run();
+    }
+
+    /// 本家は `String#length` で数えるので、全角 5 文字の行も 7 文字でしかない。
+    /// 表示幅で数えると本家が見逃す行を報告してしまう。
+    #[test]
+    fn line_length_counts_characters_not_display_width() {
+        CopCase::new("Layout/LineLength", "# あああああ\n", Vec::new())
+            .config("Layout/LineLength:\n  Max: 7\n")
+            .run();
+    }
+
     #[test]
     fn space_after_comma() {
         expect_offense(
@@ -427,6 +493,72 @@ mod naming {
         expect_no_offenses("Naming/ConstantName", "FOO = 1\n");
     }
 
+    /// 本家 `allowed_assignment?` が見逃すのは「クラスかもしれない値」だけで、
+    /// リテラルを受け手にした呼び出しはそこに入らない。既定を「報告しない」側に
+    /// 倒して `{}.freeze` を許していたのが、Rails コーパスで 85 件の取りこぼしだった。
+    #[test]
+    fn constant_name_reports_a_call_on_a_literal_receiver() {
+        expect_offense(
+            "Naming/ConstantName",
+            r#"
+            Foo = {}.freeze
+            ^^^ Use SCREAMING_SNAKE_CASE for constants.
+            "#,
+        );
+        // 受け手がリテラルでなければ、返る値がクラスかどうかは分からない。
+        expect_no_offenses("Naming/ConstantName", "Foo = [1].freeze.dup\n");
+        expect_no_offenses("Naming/ConstantName", "Foo = Class.new\n");
+        expect_no_offenses("Naming/ConstantName", "Foo = Struct.new(:a)\n");
+        expect_no_offenses("Naming/ConstantName", "Foo = something\n");
+        expect_no_offenses("Naming/ConstantName", "Foo = Other\n");
+    }
+
+    /// 裸の識別子は、その名前が先に束縛されていればローカル変数の読み出しで、
+    /// そうでなければレシーバ無しのメソッド呼び出しになる。本家はこの型の違いで
+    /// 判定を変えるので、スコープを追わないと `Routes = routes` を落とす。
+    #[test]
+    fn constant_name_separates_a_local_read_from_a_method_call() {
+        expect_offense(
+            "Naming/ConstantName",
+            r#"
+            stub do |routes|
+              Routes = routes
+              ^^^^^^ Use SCREAMING_SNAKE_CASE for constants.
+              Paths = paths
+            end
+            "#,
+        );
+    }
+
+    /// 右辺が読めるのは or_asgn 越しの `||=` だけ。ほかの演算子代入では casgn に
+    /// 式が残らず値は不明になるが、不明は「許す」ではないので綴りが問われる。
+    #[test]
+    fn constant_name_reads_the_value_only_through_or_assign() {
+        expect_offense(
+            "Naming/ConstantName",
+            r#"
+            Foo ||= Other
+            Bar ||= 1
+            ^^^ Use SCREAMING_SNAKE_CASE for constants.
+            Baz += Other
+            ^^^ Use SCREAMING_SNAKE_CASE for constants.
+            "#,
+        );
+    }
+
+    /// 多重代入の各ターゲットも式を持たない casgn なので、右辺では免れない。
+    #[test]
+    fn constant_name_reports_every_multiple_assignment_target() {
+        expect_offense(
+            "Naming/ConstantName",
+            r#"
+            Qux, Quux = Other, Another
+            ^^^ Use SCREAMING_SNAKE_CASE for constants.
+                 ^^^^ Use SCREAMING_SNAKE_CASE for constants.
+            "#,
+        );
+    }
+
     #[test]
     fn method_name() {
         expect_offense(
@@ -440,6 +572,64 @@ mod naming {
         expect_no_offenses("Naming/MethodName", "def foo_bar\nend\n");
     }
 
+    /// 本家 `operator_method?` が見る一覧には `=~` も単項の `-@` `~@` `!` も入って
+    /// いるので、演算子の定義はどの綴り規約でも報告されない。
+    #[test]
+    fn method_name_leaves_operator_definitions_alone() {
+        for source in [
+            "def =~(other)\nend\n",
+            "def -@\nend\n",
+            "def ~@\nend\n",
+            "def !\nend\n",
+        ] {
+            expect_no_offenses("Naming/MethodName", source);
+        }
+    }
+
+    /// `def` 以外にもメソッド名を決める書き方があり、本家はそのすべてを見る。
+    /// レンジはセレクタの 1 文字後ろから始まるので、括弧の有無に関わらず
+    /// 最初の引数を指す。
+    #[test]
+    fn method_name_checks_the_other_ways_a_method_gets_named() {
+        expect_offense(
+            "Naming/MethodName",
+            r#"
+            class C
+              alias :fooBar :baz
+                    ^^^^^^^ Use snake_case for method names.
+              alias_method :barBaz, :baz
+                           ^^^^^^^ Use snake_case for method names.
+              attr_accessor :bazQux, :other
+                            ^^^^^^^^^^^^^^^ Use snake_case for method names.
+              define_method :quxQuux do
+                            ^^^^^^^^ Use snake_case for method names.
+              end
+            end
+            "#,
+        );
+        expect_offense(
+            "Naming/MethodName",
+            r#"
+            Corge = Struct.new(:corgeGrault)
+                               ^^^^^^^^^^^^ Use snake_case for method names.
+            "#,
+        );
+    }
+
+    /// 既定の設定が `ForbiddenIdentifiers` に `__id__` と `__send__` を積んでいるので、
+    /// 綴りが snake_case でも別の文面で報告される。
+    #[test]
+    fn method_name_reports_the_forbidden_identifiers_of_the_default_config() {
+        expect_offense(
+            "Naming/MethodName",
+            r#"
+            def __send__
+                ^^^^^^^^ `__send__` is forbidden, use another method name instead.
+            end
+            "#,
+        );
+    }
+
     #[test]
     fn variable_name() {
         expect_offense(
@@ -451,6 +641,66 @@ mod naming {
             "#,
         );
         expect_no_offenses("Naming/VariableName", "def foo(bar_baz)\nend\n");
+    }
+
+    /// 本家は `on_lvar` も見るので、綴りの悪いローカル変数は代入だけでなく
+    /// 読み出しのたびに報告される。同じ綴りでもメソッド呼び出しは対象外。
+    #[test]
+    fn variable_name_reports_reads_of_a_local_but_not_method_calls() {
+        expect_offense(
+            "Naming/VariableName",
+            r#"
+            fooBar = 1
+            ^^^^^^ Use snake_case for variable names.
+            puts fooBar
+                 ^^^^^^ Use snake_case for variable names.
+            puts bazQux
+            "#,
+        );
+    }
+
+    /// インスタンス変数とクラス変数は代入だけが対象。グローバル変数は
+    /// `on_gvasgn` が ForbiddenIdentifiers しか見ないので綴りを問われない。
+    #[test]
+    fn variable_name_checks_instance_and_class_variables_but_not_globals() {
+        expect_offense(
+            "Naming/VariableName",
+            r#"
+            @fooBar = 1
+            ^^^^^^^ Use snake_case for variable names.
+            @@bazQux = 1
+            ^^^^^^^^ Use snake_case for variable names.
+            $quxQuux = 1
+            "#,
+        );
+    }
+
+    /// ブロックローカル (`shadowarg`) とパターンマッチの束縛 (`match_var`) には
+    /// 本家にハンドラが無いので、束縛そのものは報告されない。それでも名前は
+    /// スコープに入るため、後続の読み出しはローカル変数として報告される。
+    #[test]
+    fn variable_name_skips_bindings_without_a_handler_but_still_scopes_them() {
+        expect_offense(
+            "Naming/VariableName",
+            r#"
+            [1].each do |aA; shadowB|
+                         ^^ Use snake_case for variable names.
+              shadowB = aA
+              ^^^^^^^ Use snake_case for variable names.
+                        ^^ Use snake_case for variable names.
+            end
+            "#,
+        );
+        expect_offense(
+            "Naming/VariableName",
+            r#"
+            case value
+            in [pX]
+              pX
+              ^^ Use snake_case for variable names.
+            end
+            "#,
+        );
     }
 }
 
@@ -519,6 +769,55 @@ mod style {
         );
         expect_no_offenses("Style/NumericLiterals", "puts 1234\n");
         expect_correction("Style/NumericLiterals", "puts 12345\n", "puts 12_345\n");
+    }
+
+    /// 桁区切りの検査は整数リテラルだけの話ではない。小数の整数部も対象で、
+    /// 既に `_` の入った数も区切り方が狂っていれば咎める。逆に末尾だけ短い
+    /// `10_000_00` はセント表記として許され、`r` / `i` 付きは別のリテラル
+    /// (rational / complex) なので対象外。符号は数の一部として範囲に入る。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Style/NumericLiterals --format json` と
+    /// `-a` の実測。
+    #[test]
+    fn numeric_literals_checks_floats_regrouping_and_signed_literals() {
+        const MSG: &str =
+            "Use underscores(_) as thousands separator and separate every 3 digits with them.";
+        let source = concat!(
+            "a = 1234567890.50\n",
+            "b = 2018_02_12_164506\n",
+            "c = 18_00_00\n",
+            "d = 10_000_00\n",
+            "e = -9223372036854775808\n",
+            "f = 1_000_000\n",
+            "g = 1000000r\n",
+            "h = 1000000i\n",
+            "i = 0xFFFFF\n",
+            "j = 1_0000\n",
+        );
+        CopCase::new(
+            "Style/NumericLiterals",
+            source,
+            vec![
+                Annotation::new(1, 5, 13, MSG),
+                Annotation::new(2, 5, 17, MSG),
+                Annotation::new(3, 5, 8, MSG),
+                Annotation::new(5, 5, 20, MSG),
+                Annotation::new(10, 5, 6, MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = 1_234_567_890.50\n",
+            "b = 20_180_212_164_506\n",
+            "c = 180_000\n",
+            "d = 10_000_00\n",
+            "e = -9_223_372_036_854_775_808\n",
+            "f = 1_000_000\n",
+            "g = 1000000r\n",
+            "h = 1000000i\n",
+            "i = 0xFFFFF\n",
+            "j = 10_000\n",
+        ))
+        .run();
     }
 
     #[test]

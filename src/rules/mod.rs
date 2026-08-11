@@ -39,7 +39,7 @@ mod security;
 mod style;
 mod support;
 
-pub(crate) use support::{first_identifier, push_named_children, walk_named};
+pub(crate) use support::{push_named_children, walk_named};
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that
 /// inspects one file.

@@ -28,7 +28,6 @@ shell-words = "1.1.1"
 tempfile = "3.27.0"
 tree-sitter = "0.26.11"
 tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", rev = "88a64c6c37c4c23d8d4d804c4ef9c4eca3c88b96" }
-unicode-width = "0.2.2"
 ureq = { version = "3.4", default-features = false, features = ["native-tls"] }
 
 [dev-dependencies]

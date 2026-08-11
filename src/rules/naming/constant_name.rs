@@ -239,7 +239,11 @@ fn branches(node: Node<'_>) -> Vec<Node<'_>> {
 }
 
 fn only_child(node: Node<'_>) -> Option<Node<'_>> {
-    (node.named_child_count() == 1).then(|| node.named_child(0))?
+    if node.named_child_count() == 1 {
+        node.named_child(0)
+    } else {
+        None
+    }
 }
 
 /// The operator token of a node whose operands tree-sitter names but whose operator it does not.
