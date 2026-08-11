@@ -122,21 +122,20 @@ impl<'a> Tracker<'a> {
                 }
                 self.on_attr(node, accessor, &arguments, offenses);
             }
-            "def_delegator" | "def_instance_delegator" => {
-                // `def_delegator :target, :method` or `def_delegator :target, :method, :alias`;
-                // the defined name is the last argument either way.
-                if arguments.len() >= 2
-                    && !has_if_ancestor(node)
-                    && let Some(name) = arguments.last().cloned()
-                {
-                    self.found_instance_method(node, &name, offenses);
-                }
+            // `def_delegator :target, :method` or `def_delegator :target, :method, :alias`;
+            // the defined name is the last argument either way.
+            "def_delegator" | "def_instance_delegator"
+                if arguments.len() >= 2 && !has_if_ancestor(node) =>
+            {
+                let name = arguments[arguments.len() - 1].clone();
+                self.found_instance_method(node, &name, offenses);
             }
-            "def_delegators" | "def_instance_delegators" => {
-                if arguments.len() >= 2 && !has_if_ancestor(node) {
-                    for name in arguments[1..].to_vec() {
-                        self.found_instance_method(node, &name, offenses);
-                    }
+            // `def_delegators :target, :one, :two` defines every name after the target.
+            "def_delegators" | "def_instance_delegators"
+                if arguments.len() >= 2 && !has_if_ancestor(node) =>
+            {
+                for name in arguments.iter().skip(1) {
+                    self.found_instance_method(node, name, offenses);
                 }
             }
             _ => {}
@@ -587,66 +586,139 @@ fn anonymous_class_block<'tree>(
     Some(block)
 }
 
+/// What upstream sees above an anonymous-class block, once tree-sitter's statement lists have been
+/// folded away. The distinction matters because the scope id is derived from it, and a `None` id
+/// pools every such block in the file into one scope.
+enum AnonParent<'tree> {
+    /// Upstream's implicit `begin`. It only names a scope when it is a block's body.
+    Begin { under_block: bool },
+    /// A block, whose scope id comes from the receiver of the call it belongs to.
+    Block { call: Option<Node<'tree>> },
+    /// A plain call the block was passed to, or whose receiver it is.
+    Send { call: Node<'tree> },
+    /// A constant assignment or a method definition: accepted, but naming no receiver.
+    Plain,
+    /// Something upstream does not accept, which leaves the block without a scope id.
+    Rejected,
+}
+
 /// What distinguishes one anonymous class from another. `None` pools every such block in the file
 /// together, which is upstream's behaviour for a block whose surroundings say nothing about where
 /// the class ends up.
 fn anon_block_scope_id(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
-    let parent = block.parent()?;
-    // tree-sitter always interposes a statement list; upstream sees a `begin` only when the list
-    // holds more than one statement, and the enclosing construct directly otherwise.
-    let (parent, begin_body) = if matches!(parent.kind(), "body_statement" | "block_body") {
-        if parent.named_child_count() > 1 {
-            (parent, true)
-        } else {
-            (parent.parent()?, false)
+    match anon_parent(block) {
+        AnonParent::Rejected => None,
+        AnonParent::Begin { under_block } => {
+            under_block.then(|| anon_block_identity(context, block))
         }
-    } else {
-        (parent, false)
+        AnonParent::Plain => Some(anon_block_identity(context, block)),
+        // A block parent hands over its call's receiver whatever the block constructs.
+        AnonParent::Block { call } => {
+            Some(match call.and_then(|call| named_receiver(context, call)) {
+                Some((receiver, method)) => format!("{receiver}.{method}"),
+                None => anon_block_identity(context, block),
+            })
+        }
+        // A `Class.new` passed to a named method is excluded: the receiver is the same at every
+        // call site, which would merge classes that have nothing to do with each other.
+        AnonParent::Send { call } => {
+            let receiver = if is_class_new_block(context, block) {
+                None
+            } else {
+                named_receiver(context, call)
+            };
+            Some(match receiver {
+                Some((receiver, method)) => format!("{receiver}.{method}"),
+                None => anon_block_identity(context, block),
+            })
+        }
+    }
+}
+
+/// Folds tree-sitter's statement lists away to reach the node upstream would call the block's
+/// parent. A list of several statements is upstream's `begin`; a single statement attaches
+/// straight to the construct owning the body; and a body with a `rescue`/`ensure` clause is
+/// wrapped in a node of that name, which upstream does not accept as a scope.
+fn anon_parent(block: Node<'_>) -> AnonParent<'_> {
+    let Some(parent) = block.parent() else {
+        return AnonParent::Rejected;
     };
-    if !begin_body
-        && !matches!(
-            parent.kind(),
-            "call" | "block" | "do_block" | "assignment" | "method" | "singleton_method" | "begin"
-        )
-    {
-        return None;
+    match parent.kind() {
+        "body_statement" | "block_body" => {
+            let (statements, clause) = statement_shape(parent);
+            if statements > 1 {
+                return AnonParent::Begin {
+                    under_block: !clause
+                        && parent
+                            .parent()
+                            .is_some_and(|owner| matches!(owner.kind(), "block" | "do_block")),
+                };
+            }
+            if clause {
+                return AnonParent::Rejected;
+            }
+            match parent.parent() {
+                Some(owner) => owner_parent(owner),
+                None => AnonParent::Rejected,
+            }
+        }
+        // `begin ... end` is upstream's `kwbegin`, which is not among the accepted kinds.
+        "begin" => AnonParent::Rejected,
+        _ => owner_parent(parent),
     }
-    if !begin_body && let Some(receiver) = scope_receiver(context, parent, block) {
-        let method = parent.child_by_field_name("method")?;
-        return Some(format!(
-            "{}.{}",
-            context.source.node_text(receiver),
-            context.source.node_text(method)
-        ));
-    }
-    // A `begin` only names a scope when it is a block's body; otherwise every block in the file
-    // would share one, so each keeps its own source position as its identity.
-    if begin_body && !parent.parent().is_some_and(is_block_body_owner) {
-        return None;
-    }
-    Some(anon_block_identity(context, block))
 }
 
-fn is_block_body_owner(node: Node<'_>) -> bool {
-    matches!(node.kind(), "block" | "do_block")
+fn owner_parent(owner: Node<'_>) -> AnonParent<'_> {
+    match owner.kind() {
+        "block" | "do_block" => AnonParent::Block {
+            call: owner.parent().filter(|call| call.kind() == "call"),
+        },
+        "lambda" => AnonParent::Block { call: None },
+        "method" | "singleton_method" => AnonParent::Plain,
+        "assignment" => match owner.child_by_field_name("left") {
+            Some(left) if matches!(left.kind(), "constant" | "scope_resolution") => {
+                AnonParent::Plain
+            }
+            _ => AnonParent::Rejected,
+        },
+        "argument_list" => match owner.parent() {
+            Some(call) if call.kind() == "call" => AnonParent::Send { call },
+            _ => AnonParent::Rejected,
+        },
+        // `Class.new do ... end.new` -- the block is the receiver of a further call, which is a
+        // plain send to upstream.
+        "call" => AnonParent::Send { call: owner },
+        _ => AnonParent::Rejected,
+    }
 }
 
-/// The receiver of the call the block was handed to, when that call names the scope. A `Class.new`
-/// passed to a named method is excluded: the receiver would be the same for every call site, which
-/// would merge classes that have nothing to do with each other.
-fn scope_receiver<'tree>(
-    context: &RuleContext<'_>,
-    parent: Node<'tree>,
-    block: Node<'tree>,
-) -> Option<Node<'tree>> {
-    if parent.kind() != "call" || parent.child_by_field_name("block").is_some() {
+/// How many statements a body holds and whether it carries a `rescue`/`ensure`/`else` clause.
+fn statement_shape(body: Node<'_>) -> (usize, bool) {
+    let mut cursor = body.walk();
+    let mut statements = 0;
+    let mut clause = false;
+    for child in body.named_children(&mut cursor) {
+        if matches!(child.kind(), "rescue" | "ensure" | "else") {
+            clause = true;
+        } else {
+            statements += 1;
+        }
+    }
+    (statements, clause)
+}
+
+/// The receiver and method of a call, unless the receiver is itself a `Class.new`/`Module.new`
+/// block -- naming one anonymous class after another would say nothing about where it lands.
+fn named_receiver<'a>(context: &'a RuleContext<'_>, call: Node<'_>) -> Option<(&'a str, &'a str)> {
+    let receiver = call.child_by_field_name("receiver")?;
+    let method = call.child_by_field_name("method")?;
+    if is_class_or_module_new(context, receiver, false) {
         return None;
     }
-    if is_class_new_block(context, block) {
-        return None;
-    }
-    let receiver = parent.child_by_field_name("receiver")?;
-    (!is_class_or_module_new(context, receiver, false)).then_some(receiver)
+    Some((
+        context.source.node_text(receiver),
+        context.source.node_text(method),
+    ))
 }
 
 fn is_class_new_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {

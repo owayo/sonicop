@@ -346,6 +346,79 @@ mod lint {
         expect_no_offenses("Lint/DuplicateMethods", "def foo\nend\n");
     }
 
+    /// 本家は名前空間付きのメソッド名とファイルパスを文言に出し、`def` キーワードから
+    /// メソッド名の末尾までを指す。
+    #[test]
+    fn duplicate_methods_names_the_scope_and_points_from_the_def_keyword() {
+        CopCase::annotated(
+            "Lint/DuplicateMethods",
+            r#"
+            def foo
+            end
+            def foo
+            ^^^^^^^ Method `Object#foo` is defined at both example.rb:1 and example.rb:3.
+            end
+            "#,
+        )
+        .locations(&[(3, 1, 3, 7)])
+        .run();
+    }
+
+    /// `attr_reader` は本家では読み取りメソッドの定義として数えられるので、同名の `def`
+    /// と衝突する。`alias foo foo` の自己 alias は再定義を意図的と宣言する印なので免除。
+    #[test]
+    fn duplicate_methods_counts_attr_readers_and_honours_the_self_alias_trick() {
+        CopCase::annotated(
+            "Lint/DuplicateMethods",
+            r#"
+            class Klass
+              attr_reader :ra
+              def ra; end
+              ^^^^^^ Method `Klass#ra` is defined at both example.rb:2 and example.rb:3.
+              alias same same
+              def same; end
+            end
+            "#,
+        )
+        .locations(&[(3, 3, 3, 8)])
+        .run();
+    }
+
+    /// `Class.new` ブロック内の定義は無名クラスに載る。本家はブロックの置かれ方から
+    /// スコープ ID を作り、それが決まらないブロック同士は同じスコープに寄せる。裸で並べた
+    /// 2 つは寄せられて衝突し、`.new` を続けて値にしたものは別スコープになる。
+    #[test]
+    fn duplicate_methods_scopes_anonymous_class_blocks_by_their_surroundings() {
+        CopCase::annotated(
+            "Lint/DuplicateMethods",
+            r#"
+            Class.new do
+              def m; end
+            end
+            Class.new do
+              def m; end
+              ^^^^^ Method `Object#m` is defined at both example.rb:2 and example.rb:5.
+            end
+            "#,
+        )
+        .locations(&[(5, 3, 5, 7)])
+        .run();
+        expect_no_offenses(
+            "Lint/DuplicateMethods",
+            "a = Class.new do\n  def m; end\nend.new\nb = Class.new do\n  def m; end\nend.new\n",
+        );
+    }
+
+    /// `if` の下の定義はプラットフォーム別の出し分けである可能性が高く、本家は両方とも
+    /// 見逃す。
+    #[test]
+    fn duplicate_methods_ignores_definitions_under_a_condition() {
+        expect_no_offenses(
+            "Lint/DuplicateMethods",
+            "if RUBY_PLATFORM\n  def m; end\nelse\n  def m; end\nend\n",
+        );
+    }
+
     #[test]
     fn syntax_accepts_valid_source() {
         expect_no_offenses("Lint/Syntax", "puts 1\n");
@@ -354,6 +427,73 @@ mod lint {
     #[test]
     fn unused_block_argument_accepts_a_referenced_argument() {
         expect_no_offenses("Lint/UnusedBlockArgument", "[1].each { |x| puts x }\n");
+    }
+
+    /// 引数がどれも参照されていないブロックには「省略できる」側の文面が出る。複数あるときは
+    /// 「全部省略できる」に変わる。
+    #[test]
+    fn unused_block_argument_suggests_omitting_unreferenced_arguments() {
+        expect_offense(
+            "Lint/UnusedBlockArgument",
+            r#"
+            [1].each { |x, y| puts 1 }
+                        ^ Unused block argument - `x`. You can omit all the arguments if you don't care about them.
+                           ^ Unused block argument - `y`. You can omit all the arguments if you don't care about them.
+            "#,
+        );
+    }
+
+    /// lambda はアリティが呼び出し側に効くので「省略できる」とは言えず、`_` 前置の案内に
+    /// proc への言い換えが足される。`->` リテラルは block/do_block とは別ノードなので、
+    /// ここを取りこぼすと lambda の引数が丸ごと検査対象から外れる。
+    #[test]
+    fn unused_block_argument_covers_lambda_literals() {
+        expect_offense(
+            "Lint/UnusedBlockArgument",
+            r#"
+            ->(env) { [200, {}, []] }
+               ^^^ Unused block argument - `env`. If it's necessary, use `_` or `_env` as an argument name to indicate that it won't be used. Also consider using a proc without arguments instead of a lambda if you want it to accept any arguments but don't care about them.
+            "#,
+        );
+    }
+
+    /// `binding` はスコープ全体を呼び出し側へ渡すので、本家は届く変数を全部「参照済み」に
+    /// する。
+    #[test]
+    fn unused_block_argument_treats_a_binding_call_as_referencing_everything() {
+        expect_no_offenses(
+            "Lint/UnusedBlockArgument",
+            "lambda { |message, callstack| bindings << binding }\n",
+        );
+    }
+
+    /// `|x; y|` の `y` はブロックローカル変数で、文面も別。代入されていれば役目を
+    /// 果たしているので報告しない。
+    #[test]
+    fn unused_block_argument_reports_untouched_block_locals() {
+        expect_offense(
+            "Lint/UnusedBlockArgument",
+            r#"
+            [1].each { |x; y| puts x }
+                           ^ Unused block local variable - `y`.
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/UnusedBlockArgument",
+            "[1].each { |x; y| y = 1; puts x }\n",
+        );
+    }
+
+    /// 代入は参照ではない。`x = 1` しかしていないブロック引数は未使用のまま。
+    #[test]
+    fn unused_block_argument_does_not_count_an_assignment_as_a_reference() {
+        expect_offense(
+            "Lint/UnusedBlockArgument",
+            r#"
+            [1].each { |x| x = 1 }
+                        ^ Unused block argument - `x`. You can omit the argument if you don't care about it.
+            "#,
+        );
     }
 
     #[test]
@@ -392,6 +532,35 @@ mod metrics {
             Vec::new(),
         )
         .config("Metrics/BlockLength:\n  Max: 1\n")
+        .run();
+    }
+
+    /// `Class.new`/`Module.new`/`Struct.new`/`Data.define` の中身はクラス定義そのものなので、
+    /// 本家は Metrics/ClassLength に任せてここでは数えない。名前空間付きの定数は別物なので
+    /// 免除されない。
+    #[test]
+    fn block_length_skips_class_constructors() {
+        for constructor in ["Class.new", "Module.new", "Struct.new", "Data.define"] {
+            CopCase::new(
+                "Metrics/BlockLength",
+                format!("{constructor} do\n  puts 1\n  puts 2\nend\n"),
+                Vec::new(),
+            )
+            .config("Metrics/BlockLength:\n  Max: 1\n")
+            .run();
+        }
+        CopCase::annotated(
+            "Metrics/BlockLength",
+            r#"
+            Foo::Struct.new do
+            ^^^^^^^^^^^^^^^^^^ Block has too many lines. [2/1]
+              puts 1
+              puts 2
+            end
+            "#,
+        )
+        .config("Metrics/BlockLength:\n  Max: 1\n")
+        .locations(&[(1, 1, 4, 3)])
         .run();
     }
 
@@ -436,6 +605,69 @@ mod metrics {
             .run();
     }
 
+    /// `define_method` のブロックも本家はメソッドとして数え、`define_method` の呼び出しから
+    /// 報告する。
+    #[test]
+    fn method_length_measures_define_method_blocks() {
+        CopCase::annotated(
+            "Metrics/MethodLength",
+            r#"
+            define_method(:foo) do
+            ^^^^^^^^^^^^^^^^^^^^^^ Method has too many lines. [2/1]
+              puts 1
+              puts 2
+            end
+            "#,
+        )
+        .config("Metrics/MethodLength:\n  Max: 1\n")
+        .locations(&[(1, 1, 4, 3)])
+        .run();
+    }
+
+    /// 本家はメソッド本体の *ノードのソース* を数える。ヒアドキュメントのノードは開始札しか
+    /// 持たないので、本体がヒアドキュメント 1 個だけなら中身が何行あっても 1 行。
+    #[test]
+    fn method_length_counts_a_bare_heredoc_body_as_one_line() {
+        CopCase::new(
+            "Metrics/MethodLength",
+            "def configs\n  <<-YAML\n    a: 1\n    b: 2\n    c: 3\n  YAML\nend\n",
+            Vec::new(),
+        )
+        .config("Metrics/MethodLength:\n  Max: 2\n")
+        .run();
+    }
+
+    /// 本体にヒアドキュメントが混じるときだけ、本家は行範囲を「本体の子孫が触れた最後の行」
+    /// まで (ヒアドキュメントは終了札まで) に切り替える。閉じる `end` の行は本体ノード自身の
+    /// ものなので範囲から落ちる。ここでは 2..6 行目の 5 行が数えられ、7 行目の `end` は入らない。
+    #[test]
+    fn method_length_stops_at_the_last_descendant_when_a_heredoc_is_present() {
+        CopCase::new(
+            "Metrics/MethodLength",
+            "def report\n  if flag\n    text = <<~MSG\n      hello\n    MSG\n    puts text\n  end\nend\n",
+            Vec::new(),
+        )
+        .config("Metrics/MethodLength:\n  Max: 5\n")
+        .run();
+        CopCase::annotated(
+            "Metrics/MethodLength",
+            r#"
+            def report
+            ^^^^^^^^^^ Method has too many lines. [5/4]
+              if flag
+                text = <<~MSG
+                  hello
+                MSG
+                puts text
+              end
+            end
+            "#,
+        )
+        .config("Metrics/MethodLength:\n  Max: 4\n")
+        .locations(&[(1, 1, 8, 3)])
+        .run();
+    }
+
     #[test]
     fn module_length() {
         CopCase::annotated(
@@ -466,6 +698,109 @@ mod metrics {
             "#,
         );
         expect_no_offenses("Metrics/ParameterLists", "def foo(a, b, c, d, e)\nend\n");
+    }
+
+    /// 明示的なブロック引数は数えない。暗黙化すれば済む話なので、数えると本家が望まない
+    /// 変更へ誘導してしまう。`**options` は対象外ではないので数える。
+    #[test]
+    fn parameter_lists_excludes_the_explicit_block_argument() {
+        expect_no_offenses(
+            "Metrics/ParameterLists",
+            "def foo(a, b, c, d, e, &block)\nend\n",
+        );
+        expect_offense(
+            "Metrics/ParameterLists",
+            r#"
+            def foo(a, b, c, d, e, **options, &block)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid parameter lists longer than 5 parameters. [6/5]
+            end
+            "#,
+        );
+    }
+
+    /// `MaxOptionalParameters` (既定 3) は Max とは別の検査で、`def` ノード全体を指す。
+    /// キーワード引数の既定値は省略可能引数には数えない。
+    #[test]
+    fn parameter_lists_reports_too_many_optional_parameters() {
+        CopCase::annotated(
+            "Metrics/ParameterLists",
+            r#"
+            def foo(a = 1, b = 2, c = 3, d = 4)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Method has too many optional parameters. [4/3]
+            end
+            "#,
+        )
+        .locations(&[(1, 1, 2, 3)])
+        .run();
+        expect_no_offenses(
+            "Metrics/ParameterLists",
+            "def foo(a: 1, b: 2, c: 3, d: 4)\nend\n",
+        );
+    }
+
+    /// tree-sitter-ruby は既定値が `nil`/`true`/`false` の並びを 1 個の `optional_parameter`
+    /// (多重代入の連鎖) に畳んでしまう。畳まれた分を数え直さないと丸ごと見落とす。
+    #[test]
+    fn parameter_lists_unfolds_keyword_literal_defaults() {
+        CopCase::annotated(
+            "Metrics/ParameterLists",
+            r#"
+            def tag(name = nil, options = nil, open = false, escape = true)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Method has too many optional parameters. [4/3]
+            end
+            "#,
+        )
+        .locations(&[(1, 1, 2, 3)])
+        .run();
+    }
+
+    /// ブロックの引数リストも `on_args` に届くので数えられる。ただし lambda / proc は
+    /// アリティが呼び出し側の都合なので免除。
+    #[test]
+    fn parameter_lists_covers_blocks_but_not_lambdas_or_procs() {
+        expect_offense(
+            "Metrics/ParameterLists",
+            r#"
+            each do |a, b, c, d, e, f|
+                    ^^^^^^^^^^^^^^^^^^ Avoid parameter lists longer than 5 parameters. [6/5]
+            end
+            "#,
+        );
+        for source in [
+            "lambda { |a, b, c, d, e, f| 1 }\n",
+            "->(a, b, c, d, e, f) { 1 }\n",
+            "proc { |a, b, c, d, e, f| 1 }\n",
+            "Proc.new { |a, b, c, d, e, f| 1 }\n",
+        ] {
+            expect_no_offenses("Metrics/ParameterLists", source);
+        }
+    }
+
+    /// `Struct.new`/`Data.define` の `initialize` はメンバ一覧の写しなので数えない。本家は
+    /// ブロックの *直接の* 子である `def` だけを免除するため、文が 2 つ以上あると外れる。
+    #[test]
+    fn parameter_lists_exempts_struct_and_data_initialize() {
+        expect_no_offenses(
+            "Metrics/ParameterLists",
+            "Struct.new(:a) do\n  def initialize(a:, b:, c:, d:, e:, f:)\n  end\nend\n",
+        );
+        expect_no_offenses(
+            "Metrics/ParameterLists",
+            "Data.define(:a) do\n  def initialize(a:, b:, c:, d:, e:, f:)\n  end\nend\n",
+        );
+        expect_offense(
+            "Metrics/ParameterLists",
+            r#"
+            Struct.new(:a) do
+              def initialize(a:, b:, c:, d:, e:, f:)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^ Avoid parameter lists longer than 5 parameters. [6/5]
+              end
+              def other(a:, b:, c:, d:, e:, f:)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^ Avoid parameter lists longer than 5 parameters. [6/5]
+              end
+            end
+            "#,
+        );
     }
 }
 
