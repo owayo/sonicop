@@ -169,6 +169,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_syntax_recovery_cascade")
         .severity(Severity::Fatal),
+        // 本家の parser gem はソースを UTF-8 へ再符号化してから、補間の無い正規表現
+        // リテラルを `Regexp.new` に通す。`\xdf` は UTF-8 として不完全なので Onigmo の
+        // RegexpError がそのまま診断になる。実測 (rubocop 1.89.0): 1:1 6 文字。
+        CopCase::new(
+            "Lint/Syntax",
+            "/\\xdf/\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                1,
+                6,
+                format!("too short escaped multibyte character: /\\xdf/\n{SYNTAX_HINT}"),
+            )],
+        )
+        .id("lint_syntax_static_regexp_validation"),
         CopCase::annotated(
             "Lint/UnusedBlockArgument",
             r#"

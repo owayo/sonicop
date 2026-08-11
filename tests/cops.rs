@@ -3345,3 +3345,218 @@ mod line_length_visit_order {
         .run();
     }
 }
+
+/// 版に無い構文と、それを踏んだ本家の parser がどこまで読み直せるか。
+///
+/// 本家は `TargetRubyVersion` で固定した parser gem を動かすので、その版の文法に
+/// 無い構文はすべて構文エラーになる。tree-sitter は版に関係なく最新の文法で受理
+/// するため、版ごとのゲートと、誤りのあとに parser が何を読むかを手で持つ。
+///
+/// 期待値はすべて rubocop 1.89.0 の `--only Lint/Syntax --format json` 実測。
+mod syntax_version_gates {
+    use super::*;
+
+    const HINT: &str =
+        "(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)";
+
+    fn unexpected(line: usize, column: usize, length: usize, token: &str) -> Annotation {
+        Annotation::new(
+            line,
+            column,
+            length,
+            format!("unexpected token {token}\n{HINT}"),
+        )
+    }
+
+    fn at_2_7(source: &str, expected: Vec<Annotation>) -> CopCase {
+        CopCase::new("Lint/Syntax", source, expected).target_ruby("2.7")
+    }
+
+    fn accepted(source: &str, version: &str) -> CopCase {
+        CopCase::new("Lint/Syntax", source, Vec::new()).target_ruby(version)
+    }
+
+    /// 検索パターン `[*, x, *]` は 3.0 から。2.7 の配列パターンに入る splat は 1 つ
+    /// なので、2 つ目が読めなくなった位置になる。
+    ///
+    /// 実測: `case x / in [*, 1, *]` → 2:11 tSTAR / `x in [*a, 1, *b]` → 1:14 tSTAR
+    #[test]
+    fn a_find_pattern_needs_ruby_3_0() {
+        at_2_7(
+            "case x\nin [*, 1, *]\n  y\nend\n",
+            vec![unexpected(2, 11, 1, "tSTAR")],
+        )
+        .run();
+        at_2_7("x in [*a, 1, *b]\n", vec![unexpected(1, 14, 1, "tSTAR")]).run();
+        accepted("case x\nin [*, 1, *]\n  y\nend\n", "3.0").run();
+    }
+
+    /// 一行のパターンマッチは自分の文で終わるので、parser は次の文を読み直せる。
+    ///
+    /// 実測: `w = z in [*, 1, *]` と `s = z in [*, 2, *]` の 2 件とも報告される
+    #[test]
+    fn a_one_line_pattern_match_lets_the_parser_pick_the_next_statement_up() {
+        at_2_7(
+            "z = [1]\nw = z in [*, 1, *]\ns = z in [*, 2, *]\n",
+            vec![unexpected(2, 17, 1, "tSTAR"), unexpected(3, 17, 1, "tSTAR")],
+        )
+        .run();
+    }
+
+    /// 右代入は矢印で止まるので、そのうしろに書いたパターンは読まれない。
+    ///
+    /// 実測: `[1] => [*, 1, *]` → 1:5 tASSOC の 1 件のみ
+    #[test]
+    fn a_rightward_assignment_hides_the_pattern_written_after_it() {
+        at_2_7(
+            "[1] => [*, 1, *]\n",
+            vec![Annotation::new(
+                1,
+                5,
+                2,
+                format!("unexpected token tASSOC\n{HINT}"),
+            )],
+        )
+        .run();
+    }
+
+    /// `case`/`in` の中で行き詰まると、それを閉じる `end` まで持っていかれるので、
+    /// parser はファイルの残りを読む足場を失う。
+    ///
+    /// 実測: 2 つ目の `case`/`in` も、あとに書いた endless メソッドも報告されない
+    #[test]
+    fn a_case_expression_takes_the_rest_of_the_file_with_it() {
+        at_2_7(
+            "case x\nin [*, 1, *]\n  y\nend\ncase x\nin [*, 2, *]\n  z\nend\n",
+            vec![unexpected(2, 11, 1, "tSTAR")],
+        )
+        .run();
+        at_2_7(
+            "case x\nin [*, 1, *]\n  y\nend\ndef c = 1\n",
+            vec![unexpected(2, 11, 1, "tSTAR")],
+        )
+        .run();
+    }
+
+    /// 空白のあとに書いた `(` は引数の始まりとして読まれ、3.3 より前は文を 1 つと
+    /// 改行 1 つしか入らない。`;` も 2 つ目の改行も 2 つ目の文も、そこで止まる。
+    ///
+    /// 実測: `p (;x)` → 1:4 tSEMI / `p (x;)` → 1:5 tSEMI /
+    /// `assert_equal("x", defined? (;x))` → 1:29 tSEMI /
+    /// `p (x\n\n)` → 2:1 tNL / `p (x\ny)` → 2:1 tIDENTIFIER
+    #[test]
+    fn statements_in_a_command_argument_parenthesis_need_ruby_3_3() {
+        at_2_7("p (;x)\n", vec![unexpected(1, 4, 1, "tSEMI")]).run();
+        at_2_7("p (x;)\n", vec![unexpected(1, 5, 1, "tSEMI")]).run();
+        at_2_7(
+            "assert_equal(\"x\", defined? (;x))\n",
+            vec![unexpected(1, 29, 1, "tSEMI")],
+        )
+        .run();
+        at_2_7("p (x\ny)\n", vec![unexpected(2, 1, 1, "tIDENTIFIER")]).run();
+        accepted("p (;x)\n", "3.3").run();
+    }
+
+    /// 文のうしろに置ける改行は 1 つだけで、2 つ目がその位置になる。行をまたぐ
+    /// レンジなので、注記ではなく `locations` と `lengths` で固定する。
+    ///
+    /// 実測: `p (x\n\n)` → 2:1-3:1 (1 文字) tNL
+    #[test]
+    fn only_one_newline_fits_before_the_closing_parenthesis() {
+        at_2_7(
+            "p (x\n\n)\n",
+            vec![Annotation::new(
+                2,
+                1,
+                0,
+                format!("unexpected token tNL\n{HINT}"),
+            )],
+        )
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .run();
+    }
+
+    /// 引数の始まりではない `(` は、どの版でも文をいくつでも受ける。ヒアドキュメント
+    /// の本体は、それを開いたトークンのものであって文ではない。
+    #[test]
+    fn a_parenthesis_the_lexer_reads_as_an_expression_takes_a_whole_body() {
+        accepted(
+            "p (x)\np (\n  y\n)\np ()\na = (;x)\nfoo bar, (;x)\nreturn (;x)\n[(;x)]\n",
+            "2.7",
+        )
+        .run();
+        accepted("p (<<~E\n  a\nE\n)\n", "2.7").run();
+    }
+
+    /// メソッド定義の中で行き詰まると、その定義は最後まで還元されない。本家は以降の
+    /// `class` / `module` 定義をメソッド本体に書かれたものとして報告し続け、`class <<`
+    /// は同じ検査を持たないので対象にならない。
+    ///
+    /// 実測: `class Bar` → 6:3 class definition in method body /
+    /// `class << self` は報告されず、代わりに 8:4 $end
+    #[test]
+    fn losing_a_method_definition_blames_every_later_class_definition() {
+        CopCase::new(
+            "Lint/Syntax",
+            "class Foo\n  def a\n    p (;x)\n  end\n\n  class Bar\n  end\nend\n",
+            vec![
+                unexpected(3, 8, 1, "tSEMI"),
+                Annotation::new(6, 3, 5, format!("class definition in method body\n{HINT}")),
+            ],
+        )
+        .target_ruby("2.7")
+        .run();
+        at_2_7(
+            "class Foo\n  def a\n    p (;x)\n  end\n\n  class << self\n  end\nend\n",
+            vec![
+                unexpected(3, 8, 1, "tSEMI"),
+                Annotation::new(8, 4, 0, format!("unexpected token $end\n{HINT}")),
+            ],
+        )
+        .locations(&[(3, 8, 3, 8), (8, 4, 9, 1)])
+        .lengths(&[1, 1])
+        .run();
+    }
+
+    /// 最後に読んだものが `class` / `module` 定義でなければ、ファイルはキーワードを
+    /// 1 つ欠いたまま終わる。
+    ///
+    /// 実測: `x = 1` で終わる → 7:4 $end
+    #[test]
+    fn a_file_that_does_not_end_on_a_definition_runs_out_of_input() {
+        at_2_7(
+            "class Foo\n  def a\n    p (;x)\n  end\n\n  x = 1\nend\n",
+            vec![
+                unexpected(3, 8, 1, "tSEMI"),
+                Annotation::new(7, 4, 0, format!("unexpected token $end\n{HINT}")),
+            ],
+        )
+        .locations(&[(3, 8, 3, 8), (7, 4, 8, 1)])
+        .lengths(&[1, 1])
+        .run();
+    }
+
+    /// `Lint/Syntax` はどのディレクティブでも止められない。本家は `DirectiveComment`
+    /// の cop 一覧からこの cop を必ず落とすので、名前でも部門でも `all` でも消えない。
+    ///
+    /// 実測: `# rubocop:disable Lint/Syntax` を書いたファイルでも 2:4 tEQL が出る
+    #[test]
+    fn a_directive_cannot_turn_off_the_report_that_a_file_does_not_parse() {
+        at_2_7(
+            "# rubocop:disable Lint/Syntax\n1+1=2\n# rubocop:enable Lint/Syntax\n",
+            vec![unexpected(2, 4, 1, "tEQL")],
+        )
+        .run();
+        at_2_7(
+            "# rubocop:disable all\n1+1=2\n",
+            vec![unexpected(2, 4, 1, "tEQL")],
+        )
+        .run();
+        at_2_7(
+            "# rubocop:disable Lint\n1+1=2\n",
+            vec![unexpected(2, 4, 1, "tEQL")],
+        )
+        .run();
+    }
+}

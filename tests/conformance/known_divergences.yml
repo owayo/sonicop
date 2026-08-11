@@ -65,3 +65,17 @@ divergences:
       (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
     sonicop: (検出なし)
     note: endless メソッドの誤りが parser の def 文脈を開いたままにするため、本家は class の還元でこれを出す。回復後の状態は tree-sitter からは再現できない
+  # 本家は解析前にソースを UTF-8 へ再符号化し、補間の無い正規表現リテラルを
+  # `Regexp.new` に通す (parser gem `Builders::Default#static_regexp`)。診断の文面は
+  # Ruby の正規表現エンジン (Onigmo) の例外そのままなので、再現するには Onigmo の
+  # 検証とその文面を移植することになる。ここだけ通しても他の RegexpError
+  # (unmatched close parenthesis / invalid quantifier など) は出せないままで、
+  # コーパスが踏んだ 1 種類だけを実装するのは件数合わせにしかならない。
+  - cop: Lint/Syntax
+    case: lint_syntax_static_regexp_validation
+    kind: false_negative
+    upstream: |-
+      1:1-7 (6 chars) too short escaped multibyte character: /\xdf/
+      (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
+    sonicop: (検出なし)
+    note: 本家は正規表現リテラルを Ruby の Regexp.new に通し、Onigmo の例外文面をそのまま診断にする。移植には Onigmo の検証とメッセージ生成が要る (実コーパスでは ruby/ruby の test/ruby/enc/test_windows_1252.rb だけが踏む)

@@ -155,7 +155,11 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
     let mut recovered_through = 0;
     let mut resumed_at = None;
     let mut lost_its_definition = false;
+    let mut abandoned = false;
     for (node, gate) in gates {
+        if abandoned {
+            continue;
+        }
         if let Some(region) = gate.recovery {
             if node.start_byte() < recovered_through {
                 continue;
@@ -164,6 +168,7 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
         }
         if gate.abandons_file {
             // The parser reads nothing more, so it never reaches the end of the input either.
+            abandoned = true;
         } else if gate.in_method_body {
             // The parser never gets the definition it was in back, so only the first such error
             // decides how the rest of the file is read.
@@ -327,15 +332,19 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
                 equals.byte_range(),
             ))
         }
+        // The parser stops at the arrow, so the pattern written after it is never read.
         "match_pattern" => {
             let arrow = direct_children(node)
                 .into_iter()
                 .find(|child| !child.is_named() && child.kind() == "=>")?;
-            Some(Gate::new(
-                RIGHTWARD_ASSIGNMENT_SINCE,
-                "unexpected token tASSOC".to_owned(),
-                arrow.byte_range(),
-            ))
+            Some(
+                Gate::new(
+                    RIGHTWARD_ASSIGNMENT_SINCE,
+                    "unexpected token tASSOC".to_owned(),
+                    arrow.byte_range(),
+                )
+                .recovers_through(node.end_byte()),
+            )
         }
         // `in [*, x, *]` -- an array pattern before 3.0 has room for one splat, so the second one
         // is where the parser stops.
@@ -442,14 +451,33 @@ fn opens_command_argument(parent: Node<'_>, child: Node<'_>) -> bool {
                 && parent
                     .named_child(0)
                     .is_some_and(|first| first.id() == child.id())
-                && parent
-                    .parent()
-                    .is_some_and(|owner| matches!(owner.kind(), "call" | "yield"))
+                && parent.parent().is_some_and(|owner| {
+                    matches!(owner.kind(), "call" | "yield") && command_stands_here(owner)
+                })
         }
         "unary" => parent
             .child_by_field_name("operator")
             .is_some_and(|operator| matches!(operator.kind(), "defined?" | "not")),
         _ => false,
+    }
+}
+
+/// Whether a command call is allowed where `call` is written.
+///
+/// `call_args` accepts a command only in place of a whole argument list, which it then swallows
+/// the rest of, so a command written after another argument -- or inside an array or a hash -- is
+/// what the parser rejects, at the parenthesis and whatever Ruby version it runs as. Nothing
+/// inside those parentheses is ever reached.
+fn command_stands_here(call: Node<'_>) -> bool {
+    let Some(parent) = call.parent() else {
+        return true;
+    };
+    match parent.kind() {
+        "argument_list" => parent
+            .named_child(0)
+            .is_some_and(|first| first.id() == call.id()),
+        "array" | "hash" | "pair" => false,
+        _ => true,
     }
 }
 
