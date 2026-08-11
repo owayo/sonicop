@@ -3309,10 +3309,13 @@ mod line_length_visit_order {
             format!("class A\n  def self.call\n{long}\n  end\nend\n"),
             vec![Annotation::new(3, 121, 34, "Line is too long. [154/120]")],
         )
-        .corrected(&format!(
-            "class A\n  def self.call\n    field(:text, type: 'text', analyzer: 'verbatim', \
-             value: ->(account) {{\n account.searchable_text }}) \
-             {{ field :stemmed, type: 'text', analyzer: 'natural' }}\n  end\nend\n"
+        .corrected(concat!(
+            "class A\n",
+            "  def self.call\n",
+            "    field(:text, type: 'text', analyzer: 'verbatim', value: ->(account) {\n",
+            " account.searchable_text }) { field :stemmed, type: 'text', analyzer: 'natural' }\n",
+            "  end\n",
+            "end\n",
         ))
         .run();
     }
