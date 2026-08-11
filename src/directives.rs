@@ -3,6 +3,7 @@ use std::ops::Range;
 
 use crate::cop_name::department;
 use crate::diagnostic::Offense;
+use crate::engine::is_mandatory_cop;
 use crate::source::SourceFile;
 
 #[derive(Clone, Debug, Default)]
@@ -70,6 +71,12 @@ impl DirectiveState {
     }
 
     pub fn suppression(&self, offense: &Offense, source: &SourceFile) -> Option<Option<String>> {
+        // `DirectiveComment` drops `Lint/Syntax` from the cop list of every directive -- named,
+        // by department and by `all` (`#parsed_cop_names`, `#exclude_lint_department_cops`) -- so
+        // a file cannot turn off the report that it does not parse.
+        if is_mandatory_cop(offense.cop_name) {
+            return None;
+        }
         let (line, _) = source.line_column(offense.start);
         let state = self.line_states.get(line.saturating_sub(1))?;
         if let Some(reason) = state.cops.get(offense.cop_name) {

@@ -15,9 +15,11 @@ const BEGINLESS_RANGE_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ARGUMENT_FORWARDING_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ENDLESS_METHOD_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const RIGHTWARD_ASSIGNMENT_SINCE: RubyVersion = RubyVersion::new(3, 0);
+const FIND_PATTERN_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const HASH_VALUE_OMISSION_SINCE: RubyVersion = RubyVersion::new(3, 1);
 const ANONYMOUS_BLOCK_FORWARDING_SINCE: RubyVersion = RubyVersion::new(3, 1);
 const ANONYMOUS_REST_FORWARDING_SINCE: RubyVersion = RubyVersion::new(3, 2);
+const COMMAND_ARGUMENT_STATEMENTS_SINCE: RubyVersion = RubyVersion::new(3, 3);
 
 /// The nodes an error inside a hash or an argument list is recovered out of. After the parser
 /// reports one omitted value it discards the rest of the surrounding literal, so climbing to the
@@ -136,25 +138,40 @@ fn opens_without_closing(error: Node<'_>) -> bool {
 }
 
 fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mut Vec<Diagnostic>) {
+    // The parser blames tokens in the order it reads them, and one error takes the rest of the
+    // construct it was found in with it, so the gates have to be weighed in the order of the
+    // tokens they blame rather than the order their nodes are walked in: a nested pattern reaches
+    // its offending token before the pattern holding it reaches its own.
+    let mut gates: Vec<(Node<'_>, Gate)> = context
+        .nodes()
+        .filter_map(|node| feature_use(node, context).map(|gate| (node, gate)))
+        .filter(|(_, gate)| target < gate.since)
+        .collect();
+    gates.sort_by_key(|(_, gate)| gate.range.start);
+
     // One omitted hash value takes the rest of its literal down with it: the parser discards
     // tokens until it can resume, which is past the end of the construct the error was found in.
     // This is the end of the region whose later omissions upstream therefore never reports.
     let mut recovered_through = 0;
     let mut resumed_at = None;
-    for node in context.nodes() {
-        let Some(gate) = feature_use(node, context) else {
-            continue;
-        };
-        if target >= gate.since {
-            continue;
-        }
-        if gate.recovers {
+    let mut lost_its_definition = false;
+    for (node, gate) in gates {
+        if let Some(region) = gate.recovery {
             if node.start_byte() < recovered_through {
                 continue;
             }
-            recovered_through = recovery_region(node).end_byte();
+            recovered_through = region;
         }
-        if let Some(statement) = statement_closing_its_body(node) {
+        if gate.abandons_file {
+            // The parser reads nothing more, so it never reaches the end of the input either.
+        } else if gate.in_method_body {
+            // The parser never gets the definition it was in back, so only the first such error
+            // decides how the rest of the file is read.
+            if !lost_its_definition {
+                lost_its_definition = true;
+                method_body_recovery(node, context, out);
+            }
+        } else if let Some(statement) = statement_closing_its_body(node) {
             resumed_at = Some(statement.end_byte().max(resumed_at.unwrap_or(0)));
         }
         out.push(Diagnostic {
@@ -178,25 +195,32 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
     }
 }
 
-/// The statement holding `node` when it is the last one of a body that a keyword closes, which is
-/// what makes the recovery consume that keyword.
-fn statement_closing_its_body(node: Node<'_>) -> Option<Node<'_>> {
+/// The statement holding `node`: the ancestor whose own parent holds a sequence of statements.
+fn enclosing_statement(node: Node<'_>) -> Option<Node<'_>> {
     let mut statement = node;
     while let Some(parent) = statement.parent() {
         if BODY_KINDS.contains(&parent.kind()) {
-            let closed = parent.parent().is_some_and(|owner| {
-                direct_children(owner)
-                    .iter()
-                    .any(|child| child.kind() == "end")
-            });
-            let last = significant_named_children(parent)
-                .last()
-                .is_some_and(|last| last.id() == statement.id());
-            return (closed && last).then_some(statement);
+            return Some(statement);
         }
         statement = parent;
     }
     None
+}
+
+/// The statement holding `node` when it is the last one of a body that a keyword closes, which is
+/// what makes the recovery consume that keyword.
+fn statement_closing_its_body(node: Node<'_>) -> Option<Node<'_>> {
+    let statement = enclosing_statement(node)?;
+    let body = statement.parent()?;
+    let closed = body.parent().is_some_and(|owner| {
+        direct_children(owner)
+            .iter()
+            .any(|child| child.kind() == "end")
+    });
+    let last = significant_named_children(body)
+        .last()
+        .is_some_and(|last| last.id() == statement.id());
+    (closed && last).then_some(statement)
 }
 
 /// Whether anything but block terminators and comments is left after `offset`.
@@ -213,8 +237,16 @@ struct Gate {
     since: RubyVersion,
     reason: String,
     range: Range<usize>,
-    /// Set when reporting this use makes the parser discard the rest of the construct around it.
-    recovers: bool,
+    /// The end of the region the parser discards after reporting this use, set when reporting it
+    /// makes the parser give up on the construct around it. Uses starting inside that region are
+    /// never reached.
+    recovery: Option<usize>,
+    /// Set when the parser loses the method definition it was in, which changes how it reads the
+    /// rest of the file.
+    in_method_body: bool,
+    /// Set when the parser has nothing left to read the rest of the file against, so that neither
+    /// a later use nor the end of the input is ever reached.
+    abandons_file: bool,
     legacy_forwarding: bool,
 }
 
@@ -224,13 +256,25 @@ impl Gate {
             since,
             reason,
             range,
-            recovers: false,
+            recovery: None,
+            in_method_body: false,
+            abandons_file: false,
             legacy_forwarding: false,
         }
     }
 
-    fn recovers(mut self) -> Self {
-        self.recovers = true;
+    fn recovers_through(mut self, end: usize) -> Self {
+        self.recovery = Some(end);
+        self
+    }
+
+    fn abandons_file(mut self) -> Self {
+        self.abandons_file = true;
+        self.recovers_through(usize::MAX)
+    }
+
+    fn in_method_body(mut self) -> Self {
+        self.in_method_body = true;
         self
     }
 
@@ -293,10 +337,48 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
                 arrow.byte_range(),
             ))
         }
+        // `in [*, x, *]` -- an array pattern before 3.0 has room for one splat, so the second one
+        // is where the parser stops.
+        "find_pattern" => {
+            let splat = direct_children(node)
+                .into_iter()
+                .filter(|child| child.kind() == "splat_parameter")
+                .nth(1)?;
+            let start = splat.start_byte();
+            let gate = Gate::new(
+                FIND_PATTERN_SINCE,
+                "unexpected token tSTAR".to_owned(),
+                start..start + 1,
+            );
+            // Giving up inside a `case`/`in` consumes the `end` that closes it, and the keyword
+            // the parser then trips over leaves it with nothing to read the rest of the file
+            // against. A one-line `in` or `=>` ends at its own statement, which the parser picks
+            // the next one up after.
+            let in_case_expression = ancestor_matching(node, |ancestor| {
+                matches!(
+                    ancestor.kind(),
+                    "case_match" | "test_pattern" | "match_pattern"
+                )
+            })
+            .is_some_and(|owner| owner.kind() == "case_match");
+            Some(match in_case_expression {
+                true => gate.abandons_file(),
+                false => {
+                    gate.recovers_through(enclosing_statement(node).unwrap_or(node).end_byte())
+                }
+            })
+        }
+        "parenthesized_statements"
+            if !node.has_error() && command_argument_parentheses(node, context) =>
+        {
+            let (reason, range) = command_argument_error(node, context)?;
+            Some(Gate::new(COMMAND_ARGUMENT_STATEMENTS_SINCE, reason, range).in_method_body())
+        }
         // The omitted value leaves the parser looking at whatever follows the label.
         "pair" if node.child_by_field_name("value").is_none() => {
             let (reason, range) = unexpected_token_after(node, context);
-            Some(Gate::new(HASH_VALUE_OMISSION_SINCE, reason, range).recovers())
+            let discarded = recovery_region(node).end_byte();
+            Some(Gate::new(HASH_VALUE_OMISSION_SINCE, reason, range).recovers_through(discarded))
         }
         "block_parameter" | "block_argument" if node.named_child_count() == 0 => {
             let (reason, range) = unexpected_token_after(node, context);
@@ -322,6 +404,228 @@ fn recovery_region(node: Node<'_>) -> Node<'_> {
         region = parent;
     }
     region
+}
+
+/// Whether `paren` is where the lexer reads the `(` as `tLPAREN_ARG`: the start of a command's
+/// first argument, or the operand of `defined?` and `not`, all of which leave it expecting an
+/// argument with a space in front of the parenthesis. A `(` that opens an argument list (`p(x)`)
+/// or one the lexer meets with a fresh expression expected (`a = (x)`, `foo bar, (x)`) is an
+/// ordinary `tLPAREN` and takes a whole `compstmt`.
+fn command_argument_parentheses(paren: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if !preceded_by_space(paren, context) {
+        return false;
+    }
+    let mut current = paren;
+    loop {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        if opens_command_argument(parent, current) {
+            return true;
+        }
+        // Climbing past a node the parenthesis does not begin would ask about a `(` the lexer was
+        // no longer looking at when it chose between the two tokens.
+        if parent.start_byte() != paren.start_byte() {
+            return false;
+        }
+        current = parent;
+    }
+}
+
+fn opens_command_argument(parent: Node<'_>, child: Node<'_>) -> bool {
+    match parent.kind() {
+        // An argument list written without parentheses of its own belongs to a command call, and
+        // only its first argument stands where the method name has just been read. `return`,
+        // `break` and `next` leave the lexer expecting a fresh expression instead.
+        "argument_list" => {
+            parent.child(0).is_some_and(|first| first.kind() != "(")
+                && parent
+                    .named_child(0)
+                    .is_some_and(|first| first.id() == child.id())
+                && parent
+                    .parent()
+                    .is_some_and(|owner| matches!(owner.kind(), "call" | "yield"))
+        }
+        "unary" => parent
+            .child_by_field_name("operator")
+            .is_some_and(|operator| matches!(operator.kind(), "defined?" | "not")),
+        _ => false,
+    }
+}
+
+/// Whether whitespace sits in front of `node`, which is what makes the lexer read a parenthesis as
+/// the start of an argument rather than as the argument list of the call it follows.
+fn preceded_by_space(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let start = node.start_byte();
+    start > 0
+        && context
+            .source
+            .text()
+            .as_bytes()
+            .get(start - 1)
+            .is_some_and(|byte| matches!(byte, b' ' | b'\t'))
+}
+
+/// One thing a parser older than 3.3 reads between the parentheses of a command argument.
+#[derive(Clone, Copy)]
+enum Interior<'tree> {
+    Statement(Node<'tree>),
+    Semicolon(usize),
+    Newline(usize),
+}
+
+/// The token a parser older than 3.3 trips over inside a `(...)` written as a command argument.
+///
+/// `tLPAREN_ARG` takes one statement and one optional newline before the `)`, where the `tLPAREN`
+/// of an ordinary parenthesised expression takes a whole `compstmt`. Newlines in front of the
+/// statement are not tokens at all -- the lexer is still expecting the beginning of an expression
+/// there -- but the action that runs once the statement is reduced puts it back in a state where
+/// they are, which is why the second of two trailing newlines is what gets blamed.
+fn command_argument_error(
+    paren: Node<'_>,
+    context: &RuleContext<'_>,
+) -> Option<(String, Range<usize>)> {
+    let items = paren_interior(paren, context);
+    let first = items
+        .iter()
+        .position(|item| !matches!(item, Interior::Newline(_)))?;
+    let offending = match items[first] {
+        Interior::Statement(_) => {
+            let after = first + 1;
+            let after = after + usize::from(matches!(items.get(after), Some(Interior::Newline(_))));
+            *items.get(after)?
+        }
+        item => item,
+    };
+    Some(match offending {
+        Interior::Semicolon(at) => ("unexpected token tSEMI".to_owned(), at..at + 1),
+        Interior::Newline(at) => ("unexpected token tNL".to_owned(), at..at + 1),
+        Interior::Statement(statement) => {
+            let token = leftmost_token(statement);
+            (
+                format!("unexpected token {}", token_name(token)),
+                token.byte_range(),
+            )
+        }
+    })
+}
+
+/// What the parser reads between the parentheses of `paren`, in order.
+///
+/// Comments and the body of a heredoc are invisible to it: a comment is dropped by the lexer, and
+/// a heredoc body belongs to the token that opened it however far down the file it is written.
+fn paren_interior<'tree>(paren: Node<'tree>, context: &RuleContext<'_>) -> Vec<Interior<'tree>> {
+    let mut items = Vec::new();
+    let mut offset = paren.start_byte() + 1;
+    let mut closing = paren.end_byte();
+    for child in direct_children(paren) {
+        if !child.is_named() {
+            if child.kind() == ")" {
+                closing = child.start_byte();
+            }
+            continue;
+        }
+        push_separators(&mut items, context, offset..child.start_byte());
+        match child.kind() {
+            "comment" | "heredoc_body" => {}
+            "empty_statement" => items.push(Interior::Semicolon(child.start_byte())),
+            _ => items.push(Interior::Statement(child)),
+        }
+        offset = child.end_byte();
+    }
+    push_separators(&mut items, context, offset..closing.max(offset));
+    items
+}
+
+/// The statement separators written in a stretch of source that holds nothing else.
+fn push_separators(items: &mut Vec<Interior<'_>>, context: &RuleContext<'_>, range: Range<usize>) {
+    let start = range.start;
+    let mut continued = false;
+    for (index, character) in context.source.slice(range).char_indices() {
+        match character {
+            // A backslash takes the newline after it out of the token stream.
+            '\n' if continued => {}
+            '\n' => items.push(Interior::Newline(start + index)),
+            ';' => items.push(Interior::Semicolon(start + index)),
+            _ => {}
+        }
+        continued = character == '\\';
+    }
+}
+
+/// What the parser reports for the rest of a file after an error inside a method body.
+///
+/// Recovering from it never finishes the definition the error was found in, so the flag `parse.y`
+/// keeps for being inside one stays set for good: every later `class` or `module` definition that
+/// is not itself written inside one is reported as being written in a method body. `class << obj`
+/// carries no such check and is left alone. The file then ends a keyword short as well, unless the
+/// last thing the parser read was one of those definitions.
+fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
+    if !inside_method_body(node) {
+        return;
+    }
+    let Some(statement) = enclosing_statement(node) else {
+        return;
+    };
+    let resumed_at = statement.end_byte();
+    for definition in context.nodes().filter(|candidate| {
+        candidate.is_named()
+            && matches!(candidate.kind(), "class" | "module")
+            && candidate.start_byte() >= resumed_at
+            && ancestor_matching(*candidate, |ancestor| {
+                matches!(ancestor.kind(), "class" | "module" | "singleton_class")
+            })
+            .is_none_or(|ancestor| ancestor.start_byte() < resumed_at)
+    }) {
+        let (keyword, reason) = match definition.kind() {
+            "module" => ("module", "module definition in method body"),
+            _ => ("class", "class definition in method body"),
+        };
+        out.push(Diagnostic {
+            reason: reason.to_owned(),
+            range: definition.start_byte()..definition.start_byte() + keyword.len(),
+        });
+    }
+    if last_statement_after(statement)
+        .is_some_and(|last| !matches!(last.kind(), "class" | "module"))
+    {
+        let (reason, range) = end_of_input(context);
+        out.push(Diagnostic { reason, range });
+    }
+}
+
+/// Whether the parser is inside a method definition where `node` is written. Entering a class or
+/// module body clears the flag `parse.y` keeps for that, and a block leaves it alone.
+fn inside_method_body(node: Node<'_>) -> bool {
+    ancestor_matching(node, |ancestor| {
+        matches!(
+            ancestor.kind(),
+            "method" | "singleton_method" | "class" | "module" | "singleton_class"
+        )
+    })
+    .is_some_and(|owner| matches!(owner.kind(), "method" | "singleton_method"))
+}
+
+/// The last statement the parser reads after the one holding `statement`, at the outermost level
+/// that has anything left after it. Statements written inside that one are read as part of it.
+fn last_statement_after(statement: Node<'_>) -> Option<Node<'_>> {
+    let mut last = None;
+    let mut current = statement;
+    loop {
+        if let Some(body) = current.parent() {
+            last = significant_named_children(body)
+                .filter(|sibling| sibling.start_byte() >= current.end_byte())
+                .last()
+                .or(last);
+        }
+        let Some(owner) = current.parent().and_then(|body| body.parent()) else {
+            return last;
+        };
+        let Some(next) = enclosing_statement(owner) else {
+            return last;
+        };
+        current = next;
+    }
 }
 
 /// How the parser names the token that follows `node`, which is where it notices the omission.
