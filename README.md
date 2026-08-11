@@ -32,7 +32,8 @@ existing editor and CI integrations with minimal changes.
 
 ## Features
 
-Sonicop implements cops in the Layout, Lint, Metrics, Naming, Security, and Style departments.
+Sonicop implements cops in the Bundler, Gemspec, Layout, Lint, Metrics, Migration, Naming,
+Security, and Style departments.
 The implemented set grows with each release, so the binary itself is the authoritative list:
 
 ```bash

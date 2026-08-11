@@ -19,7 +19,7 @@ use crate::ruby_version::{
 
 use inheritance::{load_with_inheritance, merge_config};
 use loader::{find_config, find_project_root};
-use paths::{PathPatterns, compile_excludes, cop_patterns, has_hidden_component};
+use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
 pub use store::ConfigStore;
@@ -40,6 +40,7 @@ pub struct Config {
     unrecognized_cops: Vec<String>,
     includes: PathPatterns,
     excludes: HashMap<String, PathPatterns>,
+    cop_includes: HashMap<String, PathPatterns>,
 }
 
 impl Config {
@@ -106,6 +107,7 @@ impl Config {
 
         let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
         let excludes = compile_excludes(&raw);
+        let cop_includes = compile_includes(&raw);
 
         Ok(Self {
             raw,
@@ -118,6 +120,7 @@ impl Config {
             unrecognized_cops,
             includes,
             excludes,
+            cop_includes,
         })
     }
 
@@ -267,6 +270,18 @@ impl Config {
 
     pub fn rule_excluded(&self, name: &str, path: &Path) -> bool {
         self.excluded_by(name, path)
+    }
+
+    /// Whether `name`'s own `Include` list reaches `path`.
+    ///
+    /// This is the `Include` half of RuboCop's `Cop::Base#relevant_file?`, which is what keeps the
+    /// `Bundler` and `Gemspec` cops on the files their configuration names -- `**/Gemfile`,
+    /// `**/*.gemspec` -- rather than on every Ruby file the run targets. A cop that names no
+    /// `Include` applies to all of them, and one whose list is empty to none.
+    pub fn rule_included(&self, name: &str, path: &Path) -> bool {
+        self.cop_includes
+            .get(name)
+            .is_none_or(|patterns| patterns.matches_includes(path, &self.project_root))
     }
 
     fn excluded_by(&self, name: &str, path: &Path) -> bool {

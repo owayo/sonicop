@@ -3560,3 +3560,2474 @@ mod syntax_version_gates {
         .run();
     }
 }
+
+/// `Lint/UnusedMethodArgument`。本家は `UnusedArgument` mixin と `VariableForce` の上に
+/// 乗る。ここで固定するのは 2 つ: メッセージの継ぎ足し 3 通り (下線の助言はキーワード
+/// 引数には付かない、引数が 1 つも読まれていなければ `名前(*)` の案内が付く) と、
+/// 「読んだことにする」例外 (`raise NotImplementedError` / `yield` / 引数無し `super`)。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/UnusedMethodArgument --format json` 実測。
+mod unused_method_argument {
+    use super::*;
+
+    const COP: &str = "Lint/UnusedMethodArgument";
+
+    /// 読まれている引数が 1 つでもあれば `名前(*)` の案内は付かない。
+    #[test]
+    fn an_argument_nothing_reads_is_reported_beside_one_that_is_read() {
+        expect_offense(
+            COP,
+            r#"
+            def m(used, unused, _skipped)
+                        ^^^^^^ Unused method argument - `unused`. If it's necessary, use `_` or `_unused` as an argument name to indicate that it won't be used. If it's unnecessary, remove it.
+              used
+            end
+            "#,
+        );
+    }
+
+    /// どの引数も読まれていなければ `m(*)` の案内が付く。キーワード引数には下線の助言が
+    /// 付かない -- 下線を足すとキーワードそのものが変わってしまうため。
+    #[test]
+    fn a_keyword_argument_is_not_told_to_take_an_underscore() {
+        expect_offense(
+            COP,
+            r#"
+            def m(a, b: 1)
+                  ^ Unused method argument - `a`. If it's necessary, use `_` or `_a` as an argument name to indicate that it won't be used. If it's unnecessary, remove it. You can also write as `m(*)` if you want the method to accept any arguments but don't care about them.
+                     ^ Unused method argument - `b`. You can also write as `m(*)` if you want the method to accept any arguments but don't care about them.
+              1
+            end
+            "#,
+        );
+    }
+
+    /// 同じ理由でキーワード引数は autocorrect できない。
+    #[test]
+    fn a_keyword_argument_offense_is_not_correctable() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def m(b: 1)
+                  ^ Unused method argument - `b`. [...]
+              1
+            end
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// `IgnoreNotImplementedMethods` の既定。本体が `raise NotImplementedError` 1 文だけ
+    /// なら引数は署名のためのもの。行末コメントは文ではないので、これがあっても 1 文。
+    #[test]
+    fn a_method_that_only_announces_it_is_unimplemented_keeps_its_arguments() {
+        expect_no_offenses(
+            COP,
+            "def m(x)\n  raise NotImplementedError # not yet\nend\n",
+        );
+    }
+
+    /// `fail` は引数を取らなくても同じ扱い。`NotImplementedExceptions` に無い例外を
+    /// 上げるだけのメソッドは対象のまま。
+    #[test]
+    fn a_bare_fail_counts_but_another_exception_class_does_not() {
+        expect_no_offenses(COP, "def m(x)\n  fail\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def o(x)
+                  ^ Unused method argument - `x`. [...]
+              raise ArgumentError
+            end
+            "#,
+        );
+    }
+
+    /// 明示した `&block` を `yield` で呼ぶメソッドは、その引数を名前で読まなくても
+    /// 使っている。
+    #[test]
+    fn a_block_argument_reached_through_yield_is_used() {
+        expect_no_offenses(COP, "def m(&block)\n  yield\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def n(&block)
+                   ^^^^^ Unused method argument - `block`. [...]
+              1
+            end
+            "#,
+        );
+    }
+
+    /// 引数無しの `super` はメソッドの引数をそのまま渡すので全部読む。ブロック付きで
+    /// 書いても同じ (本家は `zsuper` にブロックが乗った形として読む) が、`super()` は
+    /// 空の引数リストを渡す別物。
+    #[test]
+    fn a_zero_arity_super_reads_every_argument_even_with_a_block() {
+        expect_no_offenses(
+            COP,
+            "class A\n  def m(a, b)\n    super do |x|\n      x\n    end\n  end\nend\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            class A
+              def n(c)
+                    ^ Unused method argument - `c`. [...]
+                super()
+              end
+            end
+            "#,
+        );
+    }
+
+    /// `IgnoreEmptyMethods` の既定。本体が無いメソッドは署名だけを書いたもの。
+    #[test]
+    fn an_empty_method_keeps_its_arguments() {
+        expect_no_offenses(COP, "def m(a, b)\nend\n");
+    }
+
+    /// autocorrect は名前に `_` を足す。ブロック引数だけは足すのではなく消す -- 読まれない
+    /// `&blk` は名前が悪いのではなく余分だから。
+    #[test]
+    fn correction_prefixes_an_underscore_but_deletes_a_block_argument() {
+        expect_correction(
+            COP,
+            "def m(x, *rest, &blk)\n  1\nend\n",
+            "def m(_x, *_rest)\n  1\nend\n",
+        );
+    }
+}
+
+/// `Lint/AssignmentInCondition`。本家は条件式を前順に歩き、`send` に当たったところで
+/// 子を打ち切る。ここで固定するのは、その打ち切りが起きる形と、括弧付き代入
+/// (`AllowSafeAssignment` の既定) の見逃し、そして tree-sitter が本家と違う木を作る
+/// 3 箇所 -- `defined?(x = 1)` の括弧、`a[i] =~ re`、`/re/ =~ x = y`。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/AssignmentInCondition --format json` 実測。
+mod assignment_in_condition {
+    use super::*;
+
+    const COP: &str = "Lint/AssignmentInCondition";
+    const MSG: &str = "Use `==` if you meant to do a comparison or wrap the expression in \
+                       parentheses to indicate you meant to assign in a condition.";
+
+    /// offense は代入式全体ではなく `=` 1 文字に付く。
+    #[test]
+    fn the_offense_covers_the_equals_sign_only() {
+        CopCase::annotated_with(COP, "if x = 1\n     ^ %{msg}\n  1\nend\n", &[("msg", MSG)]).run();
+    }
+
+    /// `if` / `unless` / `while` / `until` と後置形、`elsif`、三項演算子まで同じ扱い。
+    /// ただし `begin ... end while` は本家では `while_post` で、この cop は見ない。
+    #[test]
+    fn every_conditional_form_is_inspected_except_a_post_condition_loop() {
+        expect_offense(
+            COP,
+            r#"
+            a = 1 if b = 2
+                       ^ Use `==` [...]
+            puts 1 while c = 3
+                           ^ Use `==` [...]
+            d = 4 unless e = 5
+                           ^ Use `==` [...]
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            if aa = 1
+                  ^ Use `==` [...]
+              1
+            elsif bb = 2
+                     ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "begin\n  1\nend while xx = 1\n");
+    }
+
+    /// 括弧で囲んだ代入は「分かって書いている」の印なので既定では見逃す。中身が 2 文
+    /// あれば代入の値は捨てられるので、これも条件ではない。
+    #[test]
+    fn parentheses_around_the_assignment_excuse_it() {
+        expect_no_offenses(COP, "if (x = 1)\n  1\nend\n");
+        expect_no_offenses(COP, "if (s = 1; t)\n  1\nend\n");
+        expect_no_offenses(COP, "if \"#{cc = 1}\"\n  1\nend\n");
+    }
+
+    /// メソッド呼び出しに当たったら、その引数の中は条件ではないので歩かない。
+    /// ブロックも同じ。一方 `super` と `yield` は呼び出しではないので歩く。
+    #[test]
+    fn the_walk_stops_at_a_call_but_not_at_super() {
+        expect_no_offenses(COP, "if foo(i = 1)\n  1\nend\n");
+        expect_no_offenses(COP, "if foo { |q| u = 1 }\n  1\nend\n");
+        expect_no_offenses(COP, "if ->(q) { hh = 1 }\n  1\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            if super(ii = 1)
+                        ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+    }
+
+    /// セッター呼び出しと添字代入も本家では代入メソッドの `send`。添字の中は歩くが、
+    /// 値として読むだけの `a[i]` は歩かない。
+    #[test]
+    fn a_setter_and_a_subscript_assignment_are_assignments() {
+        expect_offense(
+            COP,
+            r#"
+            if self.j = 1
+                      ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            if k2[kk = 1] = 2
+                     ^ Use `==` [...]
+                          ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "if a[jj = 1]\n  1\nend\n");
+    }
+
+    /// `||=` の類は本家の対象型に入っていない。
+    #[test]
+    fn a_shorthand_assignment_is_not_reported() {
+        expect_no_offenses(COP, "if r ||= 1\n  1\nend\n");
+    }
+
+    /// `defined?(x = 1)` の括弧は演算子のもので、本家の木には括弧のノードが無い。
+    /// 空白を空ければただの括弧に戻る。
+    #[test]
+    fn the_parentheses_of_defined_belong_to_the_operator() {
+        expect_offense(
+            COP,
+            r#"
+            if defined?(ee = 1)
+                           ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "if defined? (ff = 1)\n  1\nend\n");
+        expect_no_offenses(COP, "if defined?((hh = 1))\n  1\nend\n");
+    }
+
+    /// tree-sitter は `a[i] =~ re` を「`~re` の代入」と読むが、Ruby は `=` に付けて
+    /// 書かれた `~` を `=~` の後半と読む。逆に `/re/ =~ x = y` は本家では
+    /// `match_with_lvasgn` で、右辺の代入は条件のまま。
+    #[test]
+    fn a_match_operator_is_not_an_assignment() {
+        expect_no_offenses(COP, "if a['k'] =~ /re/\n  1\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            if /re/ =~ commonmk = File.read("c")
+                                ^ Use `==` [...]
+              1
+            end
+            "#,
+        );
+    }
+
+    /// autocorrect は代入を括弧で囲む。`SafeAutoCorrect: false` なので `-a` では
+    /// 適用されない。
+    #[test]
+    fn correction_wraps_the_assignment_in_parentheses() {
+        expect_correction(COP, "if x = 1\n  1\nend\n", "if (x = 1)\n  1\nend\n");
+        CopCase::annotated(COP, "if x = 1\n     ^ Use `==` [...]\n  1\nend\n")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected("if x = 1\n  1\nend\n")
+            .run();
+    }
+}
+/// `Security` 部門の残り 4 cop。期待値は本家 1.89.0 の `--only <cop> --format json` 実測。
+mod security_load_and_open {
+    use super::*;
+
+    /// `(send (const {nil? cbase} :Marshal) {:load :restore} !(send ... :dump ...) _?)`。
+    /// `::` 越しの呼び出しも本家 AST では同じ `send`。
+    #[test]
+    fn marshal_load_flags_loading_from_an_untrusted_payload() {
+        expect_offense(
+            "Security/MarshalLoad",
+            r#"
+            Marshal.load("{}")
+                    ^^^^ Avoid using `Marshal.load`.
+            Marshal.restore("{}")
+                    ^^^^^^^ Avoid using `Marshal.restore`.
+            ::Marshal.load(x)
+                      ^^^^ Avoid using `Marshal.load`.
+            Marshal::load(x)
+                     ^^^^ Avoid using `Marshal.load`.
+            Marshal.load(x, proc)
+                    ^^^^ Avoid using `Marshal.load`.
+            "#,
+        );
+    }
+
+    /// 引数 0 個と 3 個はパターンに合わず、`Marshal.dump` を読み直す deep copy と
+    /// safe navigation (`csend`) も対象外。`Foo::Marshal` は別の定数。
+    #[test]
+    fn marshal_load_accepts_the_shapes_the_pattern_excludes() {
+        expect_no_offenses(
+            "Security/MarshalLoad",
+            "Marshal.load(Marshal.dump({}))\n\
+             Marshal.load\n\
+             Marshal.load(a, b, c)\n\
+             Marshal&.load(x)\n\
+             Marshal.dump(\"{}\")\n\
+             Foo::Marshal.load(x)\n",
+        );
+    }
+
+    #[test]
+    fn marshal_load_reports_convention_severity_without_a_correction() {
+        CopCase::new("Security/MarshalLoad", "Marshal.load(x)\n", Vec::new())
+            .without_offense_check()
+            .severity(Severity::Convention)
+            .correctable(false)
+            .run();
+    }
+
+    #[test]
+    fn json_load_flags_the_deserializing_methods() {
+        expect_offense(
+            "Security/JSONLoad",
+            r#"
+            JSON.load('{}')
+                 ^^^^ Prefer `JSON.parse` over `JSON.load`.
+            JSON.restore('{}')
+                 ^^^^^^^ Prefer `JSON.parse` over `JSON.restore`.
+            ::JSON.load(x)
+                   ^^^^ Prefer `JSON.parse` over `JSON.load`.
+            JSON.load('{}', proc)
+                 ^^^^ Prefer `JSON.parse` over `JSON.load`.
+            "#,
+        );
+    }
+
+    /// `!`(pair (sym :create_additions) _)` は最後の引数の**部分木**を探すので、
+    /// `merge` の中に書いても除外される。引数が 1 つも無い呼び出しは対象外。
+    #[test]
+    fn json_load_accepts_an_explicit_create_additions() {
+        expect_no_offenses(
+            "Security/JSONLoad",
+            "JSON.load('{}', create_additions: true)\n\
+             JSON.load('{}', create_additions: false)\n\
+             JSON.load('{}', opts.merge(create_additions: true))\n\
+             JSON.load\n\
+             JSON.parse('{}')\n",
+        );
+    }
+
+    /// `SafeAutoCorrect: false` なので `-a` では書き換わらない。
+    #[test]
+    fn json_load_corrects_the_selector_only_when_unsafe_corrections_are_allowed() {
+        expect_correction(
+            "Security/JSONLoad",
+            "JSON.load('{}')\nJSON.restore(x)\n",
+            "JSON.parse('{}')\nJSON.parse(x)\n",
+        );
+        CopCase::new("Security/JSONLoad", "JSON.load('{}')\n", Vec::new())
+            .without_offense_check()
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected("JSON.load('{}')\n")
+            .run();
+    }
+
+    #[test]
+    fn open_flags_dynamic_and_piped_arguments() {
+        expect_offense(
+            "Security/Open",
+            r##"
+            open(something)
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            open("| #{something}")
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            open("| foo")
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            open("")
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            open("#{x}")
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            open(x, "r")
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            URI.open(something)
+                ^^^^ The use of `URI.open` is a serious security risk.
+            ::URI.open(y)
+                  ^^^^ The use of `::URI.open` is a serious security risk.
+            "##,
+        );
+    }
+
+    /// `__FILE__` は本家のパーサが解析時に `str` へ畳むので、リテラル引数と同じ扱い。
+    /// `"a" + b` は先頭のリテラルで判定され、`?a` も 1 文字の `str`。
+    #[test]
+    fn open_accepts_a_literal_path() {
+        expect_no_offenses(
+            "Security/Open",
+            "open(\"foo.text\")\n\
+             open(\"a\" + b)\n\
+             open(?a)\n\
+             open(__FILE__)\n\
+             URI.open(\"http://example.com\")\n\
+             File.open(something)\n\
+             open\n",
+        );
+    }
+
+    /// heredoc は本文が補間を含まなければ `str` なので、`str_content` の先頭で決まる。
+    /// `<<~` の字下げは落としてから見る。
+    #[test]
+    fn open_judges_a_heredoc_by_its_dedented_body() {
+        expect_offense(
+            "Security/Open",
+            r#"
+            open(<<~SAFE)
+              hi
+            SAFE
+            open(<<~PIPED)
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+              | hi
+            PIPED
+            "#,
+        );
+    }
+
+    #[test]
+    fn yaml_load_flags_the_unsafe_loader() {
+        expect_offense(
+            "Security/YAMLLoad",
+            r#"
+            YAML.load("x")
+                 ^^^^ Prefer using `YAML.safe_load` over `YAML.load`.
+            ::YAML.load(x)
+                   ^^^^ Prefer using `YAML.safe_load` over `YAML.load`.
+            YAML.load
+                 ^^^^ Prefer using `YAML.safe_load` over `YAML.load`.
+            YAML.safe_load(x)
+            "#,
+        );
+        expect_correction(
+            "Security/YAMLLoad",
+            "YAML.load('x')\n",
+            "YAML.safe_load('x')\n",
+        );
+    }
+
+    /// `maximum_target_ruby_version 3.0`。Psych 4 を積む Ruby 3.1 以降では cop ごと退場する。
+    #[test]
+    fn yaml_load_stops_at_ruby_3_1() {
+        CopCase::new("Security/YAMLLoad", "YAML.load('x')\n", Vec::new())
+            .target_ruby("3.1")
+            .run();
+    }
+}
+
+/// `Gemspec` 部門。`Include: ['**/*.gemspec']` があるので、対象は gemspec ファイルだけ。
+mod gemspec_department {
+    use super::*;
+
+    const GEMSPEC: &str = "example.gemspec";
+
+    #[test]
+    fn ordered_dependencies_flags_a_pair_out_of_order() {
+        CopCase::annotated(
+            "Gemspec/OrderedDependencies",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              spec.add_dependency 'rspec'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependencies should be sorted in an alphabetical order within their section of the gemspec. Dependency `rspec` should appear before `rubocop`.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.add_dependency 'rspec'\n  spec.add_dependency 'rubocop'\nend\n",
+        )
+        .run();
+    }
+
+    /// 空行は節を分け、宣言の方法が違えば別の節。既定では行コメントも節を分ける。
+    #[test]
+    fn ordered_dependencies_accepts_separate_sections() {
+        CopCase::new(
+            "Gemspec/OrderedDependencies",
+            "Gem::Specification.new do |spec|\n  spec.add_dependency 'rubocop'\n\n  spec.add_dependency 'rspec'\n  spec.add_development_dependency 'a'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .run();
+        CopCase::new(
+            "Gemspec/OrderedDependencies",
+            "Gem::Specification.new do |spec|\n  # quality\n  spec.add_dependency 'rubocop'\n  # tests\n  spec.add_dependency 'rspec'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+
+    /// `gem_specification` を `def_node_search` で呼ぶ本家の条件は enumerator なので常に真。
+    /// `Gem::Specification.new` ブロックが無い gemspec でも `RUBY_VERSION` は報告される。
+    #[test]
+    fn ruby_version_globals_usage_flags_every_spelling_of_the_constant() {
+        CopCase::annotated(
+            "Gemspec/RubyVersionGlobalsUsage",
+            r#"
+            RUBY_VERSION
+            ^^^^^^^^^^^^ Do not use `RUBY_VERSION` in gemspec file.
+            Ruby::VERSION
+            ^^^^^^^^^^^^^ Do not use `Ruby::VERSION` in gemspec file.
+            ::RUBY_VERSION
+            ^^^^^^^^^^^^^^ Do not use `::RUBY_VERSION` in gemspec file.
+            ::Ruby::VERSION
+            ^^^^^^^^^^^^^^^ Do not use `::Ruby::VERSION` in gemspec file.
+            Foo::RUBY_VERSION
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .run();
+    }
+
+    /// `add_global_offense` はファイル先頭の長さ 0 のレンジで報告される。
+    #[test]
+    fn required_ruby_version_reports_a_missing_declaration_at_the_head_of_the_file() {
+        CopCase::annotated(
+            "Gemspec/RequiredRubyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+            ^{} `required_ruby_version` should be specified.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .correctable(false)
+        .run();
+    }
+
+    /// `extract_ruby_version` は `[>=]` を含む最初の要求から数字を 2 つ拾う。変数や
+    /// 引数無しの呼び出しを含む値は動的とみなして見送る。
+    #[test]
+    fn required_ruby_version_compares_the_declared_version_with_the_target() {
+        CopCase::annotated(
+            "Gemspec/RequiredRubyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.required_ruby_version = '>= 2.7.0'
+              spec.required_ruby_version = '>= 2.4.0'
+                                           ^^^^^^^^^^ `required_ruby_version` and `TargetRubyVersion` (2.7, which may be specified in .rubocop.yml) should be equal.
+              spec.required_ruby_version = ['>= 2.4.0', '< 3.0']
+                                           ^^^^^^^^^^^^^^^^^^^^^ `required_ruby_version` and `TargetRubyVersion` (2.7, which may be specified in .rubocop.yml) should be equal.
+              spec.required_ruby_version = Gem::Requirement.new('>= 2.4')
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `required_ruby_version` and `TargetRubyVersion` (2.7, which may be specified in .rubocop.yml) should be equal.
+              spec.required_ruby_version = version
+              spec.required_ruby_version = @version
+              spec.required_ruby_version = ''
+                                           ^^ `required_ruby_version` and `TargetRubyVersion` (2.7, which may be specified in .rubocop.yml) should be equal.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+
+    /// `spec.requirements <<` のような追記は重複ではない。添字代入は鍵の**値**で
+    /// まとめられるので、引用符の違いは同じ代入になる。
+    #[test]
+    fn duplicated_assignment_flags_a_repeated_attribute() {
+        CopCase::annotated(
+            "Gemspec/DuplicatedAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.name = 'x'
+              spec.name = 'y'
+              ^^^^^^^^^^^^^^^ `name=` method calls already given on line 2 of the gemspec.
+              spec.metadata["k"] = 'v'
+              spec.metadata['k'] = 'w'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['k']=` method calls already given on line 4 of the gemspec.
+              spec.requirements << 'a'
+              spec.requirements << 'b'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .run();
+    }
+
+    /// 報告されるのは「1 行目のカラムから **最終行**の終端カラムまで」なので、
+    /// 複数行の代入では 1 行目の途中で切れる。
+    #[test]
+    fn duplicated_assignment_reports_the_first_line_cut_at_the_last_column() {
+        CopCase::annotated(
+            "Gemspec/DuplicatedAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = {
+                'a' => 1
+              }
+              spec.metadata = {
+              ^ `metadata=` method calls already given on line 2 of the gemspec.
+                'b' => 2
+              }
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+
+    /// 受け手が仕様ブロックの引数名でなければ代入は仕様の属性ではない。ブロックが
+    /// 無いファイルでは `_1` と `it` 以外どの名前も一致しない。
+    #[test]
+    fn duplicated_assignment_needs_the_specification_block_variable() {
+        CopCase::new(
+            "Gemspec/DuplicatedAssignment",
+            "spec.name = 'x'\nspec.name = 'y'\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+}
+
+/// `Bundler` 部門。`Include` は `**/Gemfile` などで、Gemfile 以外には効かない。
+mod bundler_department {
+    use super::*;
+
+    const GEMFILE: &str = "Gemfile";
+
+    #[test]
+    fn ordered_gems_flags_each_pair_out_of_order() {
+        CopCase::annotated(
+            "Bundler/OrderedGems",
+            r#"
+            gem 'rubocop'
+            gem 'rspec'
+            ^^^^^^^^^^^ Gems should be sorted in an alphabetical order within their section of the Gemfile. Gem `rspec` should appear before `rubocop`.
+            gem 'a2'
+            ^^^^^^^^ Gems should be sorted in an alphabetical order within their section of the Gemfile. Gem `a2` should appear before `rspec`.
+            "#,
+        )
+        .path(GEMFILE)
+        .corrected("gem 'a2'\ngem 'rspec'\ngem 'rubocop'\n")
+        .run();
+    }
+
+    #[test]
+    fn ordered_gems_accepts_sorted_and_separated_declarations() {
+        CopCase::new(
+            "Bundler/OrderedGems",
+            "gem 'rspec'\ngem 'rubocop'\n\ngem 'a'\n",
+            Vec::new(),
+        )
+        .path(GEMFILE)
+        .run();
+    }
+
+    /// `TreatCommentsAsGroupSeparators: false` では宣言の頭がその上のコメントまで
+    /// 伸びるので、コメントごと入れ替わる。
+    #[test]
+    fn ordered_gems_moves_the_comment_with_the_declaration() {
+        CopCase::annotated(
+            "Bundler/OrderedGems",
+            r#"
+            # quality
+            gem 'rubocop'
+            # tests
+            gem 'rspec'
+            ^^^^^^^^^^^ Gems should be sorted in an alphabetical order within their section of the Gemfile. Gem `rspec` should appear before `rubocop`.
+            "#,
+        )
+        .path(GEMFILE)
+        .config("Bundler/OrderedGems:\n  TreatCommentsAsGroupSeparators: false\n")
+        .corrected("# tests\ngem 'rspec'\n# quality\ngem 'rubocop'\n")
+        .run();
+    }
+
+    /// 既定の `AllowHttpProtocol: true` では `http://rubygems.org` は見送られ、
+    /// 記号の source だけが報告される。
+    #[test]
+    fn insecure_protocol_source_flags_the_deprecated_symbols() {
+        CopCase::annotated(
+            "Bundler/InsecureProtocolSource",
+            r#"
+            source :rubygems
+                   ^^^^^^^^^ The source `:rubygems` is deprecated because HTTP requests are insecure. Please change your source to 'https://rubygems.org' if possible, or 'http://rubygems.org' if not.
+            source :gemcutter
+                   ^^^^^^^^^^ The source `:gemcutter` is deprecated because HTTP requests are insecure. Please change your source to 'https://rubygems.org' if possible, or 'http://rubygems.org' if not.
+            source :rubyforge
+                   ^^^^^^^^^^ The source `:rubyforge` is deprecated because HTTP requests are insecure. Please change your source to 'https://rubygems.org' if possible, or 'http://rubygems.org' if not.
+            source 'http://rubygems.org'
+            source 'https://rubygems.org'
+            "#,
+        )
+        .path(GEMFILE)
+        .severity(Severity::Warning)
+        .corrected(
+            "source 'https://rubygems.org'\nsource 'https://rubygems.org'\nsource 'https://rubygems.org'\nsource 'http://rubygems.org'\nsource 'https://rubygems.org'\n",
+        )
+        .run();
+    }
+
+    #[test]
+    fn insecure_protocol_source_flags_http_when_it_is_not_allowed() {
+        CopCase::annotated(
+            "Bundler/InsecureProtocolSource",
+            r#"
+            source 'http://rubygems.org'
+                   ^^^^^^^^^^^^^^^^^^^^^ Use `https://rubygems.org` instead of `http://rubygems.org`.
+            "#,
+        )
+        .path(GEMFILE)
+        .config("Bundler/InsecureProtocolSource:\n  AllowHttpProtocol: false\n")
+        .corrected("source 'https://rubygems.org'\n")
+        .run();
+    }
+
+    /// `add_global_offense` なので位置はファイル先頭。メッセージには本家が検査前に
+    /// 絶対化したパスがそのまま入る。
+    #[test]
+    fn gem_filename_reports_the_manifest_the_configuration_did_not_ask_for() {
+        CopCase::annotated(
+            "Bundler/GemFilename",
+            "gem 'a'\n^{} `gems.rb` file was found but `Gemfile` is required (file path: /tmp/example/gems.rb).\n",
+        )
+        .path("/tmp/example/gems.rb")
+        .severity(Severity::Convention)
+        .correctable(false)
+        .run();
+        CopCase::new("Bundler/GemFilename", "gem 'a'\n", Vec::new())
+            .path("/tmp/example/Gemfile")
+            .run();
+    }
+
+    /// 同じ集合のグループは並び順が違っても同じグループ。
+    #[test]
+    fn duplicated_group_flags_a_group_declared_twice() {
+        CopCase::annotated(
+            "Bundler/DuplicatedGroup",
+            r#"
+            group :development do
+              gem 'a'
+            end
+
+            group :development do
+            ^^^^^^^^^^^^^^^^^^ Gem group `:development` already defined on line 1 of the Gemfile.
+              gem 'b'
+            end
+
+            group :test, :development do
+              gem 'c'
+            end
+
+            group :development, :test do
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ Gem group `:development, :test` already defined on line 9 of the Gemfile.
+              gem 'd'
+            end
+            "#,
+        )
+        .path(GEMFILE)
+        .severity(Severity::Warning)
+        .run();
+    }
+
+    /// 囲む `platforms` / `source` / `git` / `path` が違えば別のグループ。
+    #[test]
+    fn duplicated_group_separates_groups_by_their_enclosing_source() {
+        CopCase::new(
+            "Bundler/DuplicatedGroup",
+            "platforms :ruby do\n  group :default do\n    gem 'openssl'\n  end\nend\n\nplatforms :jruby do\n  group :default do\n    gem 'jruby-openssl'\n  end\nend\n",
+            Vec::new(),
+        )
+        .path(GEMFILE)
+        .run();
+    }
+
+    /// 宣言は本家 AST のノード同士の同値でまとめられるので、引用符の違いは同じ gem。
+    #[test]
+    fn duplicated_gem_flags_a_gem_declared_twice() {
+        CopCase::annotated(
+            "Bundler/DuplicatedGem",
+            r#"
+            gem 'a'
+            gem "a"
+            ^^^^^^^ Gem `a` requirements already given on line 1 of the Gemfile.
+            "#,
+        )
+        .path(GEMFILE)
+        .severity(Severity::Warning)
+        .run();
+    }
+
+    /// 同じ条件分岐の各枝に 1 つずつ書かれた宣言は 1 回の宣言。`elsif` の連なりは
+    /// 1 つの条件分岐として平らに見る。
+    #[test]
+    fn duplicated_gem_accepts_one_declaration_per_branch() {
+        CopCase::new(
+            "Bundler/DuplicatedGem",
+            "if Dir.exist?(local)\n  gem 'rubocop', path: local\nelsif ENV['V'] == 'master'\n  gem 'rubocop', git: 'https://example.com/rubocop.git'\nelse\n  gem 'rubocop', '~> 0.90.0'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMFILE)
+        .run();
+    }
+}
+
+/// `Migration/DepartmentName`。部門名の無い cop 名を指すディレクティブを報告する。
+mod migration_department_name {
+    use super::*;
+
+    const COP: &str = "Migration/DepartmentName";
+
+    /// 走査は `/[^,]+|\W+/` なので、コンマ区切りの各名前と区切り自体が交互に届く。
+    /// 部門を 1 つに決められない名前 (`Foo` / `Bar`) は correction が付かない。
+    #[test]
+    fn flags_a_cop_name_without_its_department() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # rubocop:disable AbcSize
+                              ^^^^^^^ Department name is missing.
+            # rubocop:enable Metrics/AbcSize, AbcSize
+                                              ^^^^^^^ Department name is missing.
+            # rubocop:todo Foo,Bar
+                           ^^^ Department name is missing.
+                               ^^^ Department name is missing.
+            # rubocop:disable Syntax
+                              ^^^^^^ Department name is missing.
+            "#,
+        )
+        .corrected(
+            "# rubocop:disable Metrics/AbcSize\n# rubocop:enable Metrics/AbcSize, Metrics/AbcSize\n# rubocop:todo Foo,Bar\n# rubocop:disable Lint/Syntax\n",
+        )
+        .run();
+    }
+
+    /// `valid_content_token?` の `/\W+/` は部分一致なので、非単語文字を含む字面は
+    /// すべて素通しする。`all` も、部門名も同じ。
+    #[test]
+    fn accepts_a_qualified_name_a_department_and_all() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Metrics/AbcSize\n\
+             # rubocop:disable Metrics\n\
+             # rubocop:enable AbcSize -- reason\n\
+             # a plain comment\n",
+        );
+        expect_no_offenses(COP, "# rubocop:disable all\n");
+    }
+}
+
+/// cop 単位の `Include`。`AllCops/Include` が選んだファイルのうち、その cop 自身の
+/// `Include` が届くものだけを検査する本家 `Cop::Base#relevant_file?` の仕組み。
+mod cop_level_include {
+    use super::*;
+
+    #[test]
+    fn a_bundler_cop_stays_off_an_ordinary_ruby_file() {
+        CopCase::new(
+            "Bundler/OrderedGems",
+            "gem 'rubocop'\ngem 'rspec'\n",
+            Vec::new(),
+        )
+        .run();
+        CopCase::new(
+            "Gemspec/OrderedDependencies",
+            "Gem::Specification.new do |spec|\n  spec.add_dependency 'rubocop'\n  spec.add_dependency 'rspec'\nend\n",
+            Vec::new(),
+        )
+        .run();
+    }
+
+    /// `Migration/DepartmentName` は `Include` を持たないので、対象のファイルすべてに効く。
+    #[test]
+    fn a_cop_without_an_include_applies_to_every_target() {
+        CopCase::annotated(
+            "Migration/DepartmentName",
+            r#"
+            # rubocop:disable AbcSize
+                              ^^^^^^^ Department name is missing.
+            "#,
+        )
+        .path("Gemfile")
+        .run();
+    }
+}
+
+/// `Lint/AmbiguousBlockAssociation`。本家は 2 つの入口を持つ -- `{}` ブロックが引数側の
+/// 呼び出しに付く形 (`on_send`) と、`do` ブロックが外側に付いてしまう形 (`on_block`)。
+/// tree-sitter はブロックを呼び出しの子に置くので、本家が 1 段上に持つブロックノードと
+/// 「呼び出しの範囲」がずれる。ここではそのずれと、`foo (a)` の括弧が引数リストでは
+/// ないことを固定する。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/AmbiguousBlockAssociation --format json` 実測。
+mod ambiguous_block_association {
+    use super::*;
+
+    const COP: &str = "Lint/AmbiguousBlockAssociation";
+
+    /// offense は外側の呼び出し全体に付き、メッセージはブロック引数とその呼び出しを
+    /// それぞれの原文で名指しする。
+    #[test]
+    fn the_offense_covers_the_whole_outer_call() {
+        expect_offense(
+            COP,
+            r#"
+            some_method a { |val| puts val }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Parenthesize the param `a { |val| puts val }` to make sure that the block will be associated with the `a` method call.
+            "#,
+        );
+    }
+
+    /// 括弧を付ければ曖昧でなくなる。ラムダと proc、演算子メソッド、代入も対象外。
+    #[test]
+    fn parentheses_a_lambda_and_an_operator_are_all_unambiguous() {
+        expect_no_offenses(COP, "some_method(a { |val| puts val })\n");
+        expect_no_offenses(COP, "some_method(a) { |val| puts val }\n");
+        expect_no_offenses(COP, "foo == bar { |b| b.baz }\n");
+        expect_no_offenses(COP, "foo = ->(bar) { bar.baz }\n");
+        expect_no_offenses(COP, "foo lambda { |x| x }\n");
+        expect_no_offenses(COP, "foo Proc.new { |x| x }\n");
+        expect_no_offenses(COP, "self.foo = a { |x| x }\n");
+        expect_no_offenses(COP, "foo[a { |x| x }]\n");
+    }
+
+    /// 内側の呼び出しが引数を取っていれば、ブロックはそちらのものにしかなり得ない。
+    #[test]
+    fn an_inner_call_with_arguments_is_not_ambiguous() {
+        expect_no_offenses(COP, "foo a(1) { |x| x }\n");
+    }
+
+    /// `foo (a)` の括弧は引数リストではなく式のグループ。本家では
+    /// `parenthesized?` が偽なので、この形も報告される。
+    #[test]
+    fn a_space_before_the_parenthesis_makes_it_a_grouped_expression() {
+        expect_offense(
+            COP,
+            r#"
+            run_without_aborting (ADAPTERS - ["test"]).map { |a| a }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Parenthesize the param `(ADAPTERS - ["test"]).map { |a| a }` to make sure that the block will be associated with the `(ADAPTERS - ["test"]).map` method call.
+            "#,
+        );
+    }
+
+    /// `do` ブロックは外側に付くので、引数の末尾にある列挙メソッドはブロック無しで
+    /// 呼ばれる。offense はその内側の呼び出しに付き、autocorrect は無い。
+    #[test]
+    fn a_do_block_binds_to_the_outer_call() {
+        expect_offense(
+            COP,
+            r#"
+            render json: data.map do |item|
+                         ^^^^^^^^ `map` is called without a block because the `do` block binds to `render`. Use braces or extract to a variable.
+              item.to_h
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "render json: data.map { |item| item.to_h }\n");
+    }
+
+    /// 候補は「引数の終わりで終わる呼び出し」だけ。別の呼び出しに繋がれたもの、
+    /// 括弧の中に埋まったもの、引数を取るものは候補ではない。
+    #[test]
+    fn only_the_call_the_block_could_have_attached_to_is_a_candidate() {
+        expect_no_offenses(COP, "foo bar.map.to_a do |x|\n  x\nend\n");
+        expect_no_offenses(COP, "foo bar(baz.map) do |x|\n  x\nend\n");
+        expect_no_offenses(COP, "foo bar.each_with_object({}) do |x, h|\n  h\nend\n");
+        expect_no_offenses(COP, "super bar.map do |x|\n  x\nend\n");
+    }
+
+    /// autocorrect は引数を括弧で囲む。メソッド名と引数のあいだの空白は落ちる。
+    #[test]
+    fn correction_wraps_the_arguments_in_parentheses() {
+        expect_correction(
+            COP,
+            "some_method a { |val| puts val }\n",
+            "some_method(a { |val| puts val })\n",
+        );
+        expect_correction(
+            COP,
+            "run_without_aborting (ADAPTERS - [\"test\"]).map { |a| a }\n",
+            "run_without_aborting((ADAPTERS - [\"test\"]).map { |a| a })\n",
+        );
+    }
+}
+
+/// Naming 部門の残り 12 cop。期待値はすべて本家 1.89.0 の `--only <cop> --format json`
+/// および `-A` の実出力から取っている。
+mod naming_rest {
+    use super::*;
+
+    const ACCESSOR: &str = "Naming/AccessorMethodName";
+    const BINARY_OPERATOR: &str = "Naming/BinaryOperatorParameterName";
+    const BLOCK_PARAMETER: &str = "Naming/BlockParameterName";
+    const CAMEL_CASE: &str = "Naming/ClassAndModuleCamelCase";
+    const FILE_NAME: &str = "Naming/FileName";
+    const HEREDOC_CASE: &str = "Naming/HeredocDelimiterCase";
+    const HEREDOC_NAMING: &str = "Naming/HeredocDelimiterNaming";
+    const MEMOIZED: &str = "Naming/MemoizedInstanceVariableName";
+    const METHOD_PARAMETER: &str = "Naming/MethodParameterName";
+    const PREDICATE_PREFIX: &str = "Naming/PredicatePrefix";
+    const RESCUED: &str = "Naming/RescuedExceptionsVariableName";
+    const VARIABLE_NUMBER: &str = "Naming/VariableNumber";
+
+    /// `get_` は引数を取らないときだけ、`set_` は必須引数がちょうど 1 つのときだけ
+    /// 報告される。`def get_foo()` は括弧が空なので引数無しの扱い。
+    #[test]
+    fn accessor_method_name_requires_the_arity_of_a_real_accessor() {
+        expect_offense(
+            ACCESSOR,
+            r#"
+            def get_value
+                ^^^^^^^^^ Do not prefix reader method names with `get_`.
+            end
+            def set_value(value)
+                ^^^^^^^^^ Do not prefix writer method names with `set_`.
+            end
+            def self.get_thing
+                     ^^^^^^^^^ Do not prefix reader method names with `get_`.
+            end
+            "#,
+        );
+        for source in [
+            "def get_value(attr)\nend\n",
+            "def set_value\nend\n",
+            "def set_value(a, b)\nend\n",
+            "def set_value(*a)\nend\n",
+            "def set_value(a = 1)\nend\n",
+            "def get_value?\nend\n",
+            "def get_value=(v)\nend\n",
+        ] {
+            expect_no_offenses(ACCESSOR, source);
+        }
+        // 空の括弧は引数無しと同じなので、こちらは報告される側。
+        expect_offense(
+            ACCESSOR,
+            r#"
+            def get_value()
+                ^^^^^^^^^ Do not prefix reader method names with `get_`.
+            end
+            "#,
+        );
+    }
+
+    /// `op_method?` は語頭が単語文字でない名前と `eql?` / `equal?` だけを演算子と
+    /// みなし、`EXCLUDED` の 8 つは除く。`defs` には `on_defs` の別名が無い。
+    #[test]
+    fn binary_operator_parameter_name_covers_only_the_operators_upstream_lists() {
+        expect_offense(
+            BINARY_OPERATOR,
+            r#"
+            def +(amount)
+                  ^^^^^^ When defining the `+` operator, name its argument `other`.
+              amount + 1
+            end
+            def eql?(y)
+                     ^ When defining the `eql?` operator, name its argument `other`.
+              y
+            end
+            "#,
+        );
+        for source in [
+            "def ==(other)\nend\n",
+            "def ==(_other)\nend\n",
+            "def <<(a)\nend\n",
+            "def [](a)\nend\n",
+            "def []=(a)\nend\n",
+            "def ===(a)\nend\n",
+            "def =~(a)\nend\n",
+            "def -@\nend\n",
+            "def self.+(a)\nend\n",
+            "def +(a, b)\nend\n",
+        ] {
+            expect_no_offenses(BINARY_OPERATOR, source);
+        }
+    }
+
+    /// autocorrect は引数と、それを読むローカル変数のすべてを `other` にする。
+    #[test]
+    fn binary_operator_parameter_name_renames_the_reads_as_well() {
+        expect_correction(
+            BINARY_OPERATOR,
+            "def +(amount)\n  amount + 1\nend\n",
+            "def +(other)\n  other + 1\nend\n",
+        );
+    }
+
+    /// `AllowedNames` は名前から取り除かれてから `_` の有無を見るので、
+    /// `module_parent::MyModule` は通り `module_parent::My_Module` は通らない。
+    /// レンジは定数パス全体。
+    #[test]
+    fn class_and_module_camel_case_strips_the_allowed_names_first() {
+        expect_offense(
+            CAMEL_CASE,
+            r#"
+            class My_Class
+                  ^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            module My_Module
+                   ^^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            class module_parent::My_Module
+                  ^^^^^^^^^^^^^^^^^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            class Foo::Bar_Baz
+                  ^^^^^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            "#,
+        );
+        expect_no_offenses(CAMEL_CASE, "class module_parent::MyModule\nend\n");
+        expect_no_offenses(CAMEL_CASE, "class MyClass\nend\n");
+    }
+
+    /// `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1、
+    /// `**` は 2 足されるが `&` は足されないので、ブロック引数は名前の途中で切れる。
+    /// 分解引数は名前ではなく S 式の長さで測られる。
+    #[test]
+    fn block_parameter_name_measures_the_range_from_the_sigil() {
+        expect_offense(
+            BLOCK_PARAMETER,
+            r#"
+            bar { |xA, y| xA }
+                   ^^ Only use lowercase characters for block parameter.
+            baz { |;shadowA| 1 }
+                    ^^^^^^^ Only use lowercase characters for block parameter.
+            qux { |*rB| 1 }
+                   ^^^ Only use lowercase characters for block parameter.
+            quux { |&bC| 1 }
+                    ^^ Only use lowercase characters for block parameter.
+            corge { |(dD, e)| 1 }
+                     ^^^^^^^^^ Only use lowercase characters for block parameter.
+            grault { |x, **kE| 1 }
+                         ^^^^ Only use lowercase characters for block parameter.
+            lam = ->(fF) { fF }
+                     ^^ Only use lowercase characters for block parameter.
+            "#,
+        );
+        // 番号付きブロック引数には `on_block` の handler が無い。
+        expect_no_offenses(BLOCK_PARAMETER, "[1].map { _1 }\n");
+        expect_no_offenses(BLOCK_PARAMETER, "bar { |x, y| x }\n");
+    }
+
+    /// 既定の `MinNameLength` は 3。`AllowedNames` に載る `id` / `io` は免れ、
+    /// 先頭の `_` は名前の一部として数えないが、レンジの長さには含まれる。
+    /// tree-sitter が `x = A, y = 2` を 1 つの多重代入として読む欠陥も、
+    /// 本家どおり 2 つの省略可能引数に戻す。
+    #[test]
+    fn method_parameter_name_counts_every_parameter_form() {
+        expect_offense(
+            METHOD_PARAMETER,
+            r#"
+            def m(a, b = 1, *c, d:, e: 2, **f, &g)
+                  ^ Method parameter must be at least 3 characters long.
+                     ^ Method parameter must be at least 3 characters long.
+                            ^^ Method parameter must be at least 3 characters long.
+                                ^ Method parameter must be at least 3 characters long.
+                                    ^ Method parameter must be at least 3 characters long.
+                                          ^^^ Method parameter must be at least 3 characters long.
+                                               ^ Method parameter must be at least 3 characters long.
+            end
+            def r(_a, __b, _, ab, abc, aB, x1, id, io)
+                  ^^ Method parameter must be at least 3 characters long.
+                      ^^^ Method parameter must be at least 3 characters long.
+                              ^^ Method parameter must be at least 3 characters long.
+                                       ^^ Only use lowercase characters for method parameter.
+                                           ^^ Method parameter must be at least 3 characters long.
+            end
+            def t(x = A, y = 2)
+                  ^ Method parameter must be at least 3 characters long.
+                         ^ Method parameter must be at least 3 characters long.
+            end
+            "#,
+        );
+        expect_no_offenses(METHOD_PARAMETER, "def u\nend\n");
+        expect_no_offenses(METHOD_PARAMETER, "def u()\nend\n");
+    }
+
+    /// 分解引数の名前は `arg.children.first.to_s`、つまり S 式そのもの。大文字を
+    /// 含むかどうかだけがそこで問われ、レンジは S 式の文字数ぶん伸びる。
+    #[test]
+    fn method_parameter_name_reads_a_destructured_parameter_as_an_s_expression() {
+        // `(arg :mA)` は 9 文字あるので、レンジは引数より長く、行末を越えて次の行に
+        // 届く。キャレット注記では書けないので位置を直接指定する。
+        CopCase::new(METHOD_PARAMETER, "def s((mA, b))\nend\n", Vec::new())
+            .without_offense_check()
+            .locations(&[(1, 7, 2, 1)])
+            .lengths(&[9])
+            .run();
+        expect_no_offenses(METHOD_PARAMETER, "def s((m, n_o))\nend\n");
+    }
+
+    /// 空の heredoc には終端の位置が無いので、offense は開始デリミタに付く。
+    /// 終端が字下げされていれば、レンジは行頭から始まる。
+    #[test]
+    fn heredoc_delimiter_naming_reports_the_opening_of_an_empty_heredoc() {
+        expect_offense(
+            HEREDOC_NAMING,
+            r#"
+            a = <<-END
+              x
+            END
+            ^^^ Use meaningful heredoc delimiters.
+            b = <<~EOS
+              y
+            EOS
+            ^^^ Use meaningful heredoc delimiters.
+            d = <<~END
+                ^^^^^^ Use meaningful heredoc delimiters.
+            END
+            e = <<~"--"
+              q
+            --
+            ^^ Use meaningful heredoc delimiters.
+            "#,
+        );
+        expect_no_offenses(HEREDOC_NAMING, "c = <<-SQL\n  z\nSQL\n");
+        expect_no_offenses(HEREDOC_NAMING, "g = <<~_\n  h\n_\n");
+    }
+
+    /// `loc.heredoc_end` は終端の行頭から始まるので、字下げされた終端を直すと
+    /// 字下げごと消える。開始デリミタも同時に書き換わる。
+    #[test]
+    fn heredoc_delimiter_case_correction_drops_the_indentation_of_the_terminator() {
+        expect_offense(
+            HEREDOC_CASE,
+            r#"
+            a = <<-sql
+              x
+            sql
+            ^^^ Use uppercase heredoc delimiters.
+            def f
+              b = <<~Eos
+                y
+                Eos
+            ^^^^^^^ Use uppercase heredoc delimiters.
+            end
+            "#,
+        );
+        expect_correction(
+            HEREDOC_CASE,
+            "a = <<-sql\n  x\nsql\ndef f\n  b = <<~Eos\n    y\n    Eos\nend\n",
+            "a = <<-SQL\n  x\nSQL\ndef f\n  b = <<~EOS\n    y\nEOS\nend\n",
+        );
+        expect_no_offenses(HEREDOC_CASE, "c = <<~SQL\n  z\nSQL\n");
+    }
+
+    /// 接頭辞のあとが数字だったり、名前が `=` で終わったり、`AllowedMethods` に
+    /// 載っていれば免れる。動的定義はレシーバ無しの `define_method` に限られ、
+    /// 第 1 引数はシンボルでなければならない。
+    #[test]
+    fn predicate_prefix_skips_the_names_upstream_allows() {
+        expect_offense(
+            PREDICATE_PREFIX,
+            r#"
+            def is_even(value)
+                ^^^^^^^ Rename `is_even` to `even?`.
+            end
+            def has_foo
+                ^^^^^^^ Rename `has_foo` to `foo?`.
+            end
+            def self.does_bar
+                     ^^^^^^^^ Rename `does_bar` to `bar?`.
+            end
+            define_method(:is_even) { |v| }
+                          ^^^^^^^^ Rename `is_even` to `even?`.
+            "#,
+        );
+        for source in [
+            "def is_a?(x)\nend\n",
+            "def is_1(x)\nend\n",
+            "def is_(x)\nend\n",
+            "def is_foo=(v)\nend\n",
+            "def isfoo\nend\n",
+            "define_method(\"is_str\") { |v| }\n",
+            "Foo.define_method(:is_y) { }\n",
+            "def_node_matcher(:is_z) { }\n",
+        ] {
+            expect_no_offenses(PREDICATE_PREFIX, source);
+        }
+    }
+
+    /// `on_arg` が見るのは必須引数だけ。既定値・キーワード・splat・ブロック引数は
+    /// 別の型なので handler が無い。シンボルはエスケープを解いた値で判定される。
+    #[test]
+    fn variable_number_checks_only_the_nodes_upstream_has_handlers_for() {
+        expect_offense(
+            VARIABLE_NUMBER,
+            r#"
+            variable_1 = 1
+            ^^^^^^^^^^ Use normalcase for variable numbers.
+            @ivar_1 = 3
+            ^^^^^^^ Use normalcase for variable numbers.
+            @@cvar_1 = 4
+            ^^^^^^^^ Use normalcase for variable numbers.
+            $gvar_1 = 5
+            ^^^^^^^ Use normalcase for variable numbers.
+            a_1, b_2 = 1, 2
+            ^^^ Use normalcase for variable numbers.
+                 ^^^ Use normalcase for variable numbers.
+            def some_method_1; end
+                ^^^^^^^^^^^^^ Use normalcase for method name numbers.
+            :some_sym_1
+            ^^^^^^^^^^^ Use normalcase for symbol numbers.
+            { key_1: 1 }
+              ^^^^^ Use normalcase for symbol numbers.
+            def m(arg_1, opt_1 = 1, *rest_1, kw_1:, **krest_1, &blk_1)
+                  ^^^^^ Use normalcase for variable numbers.
+            end
+            proc { |p_1, (q_1, r_1)| }
+                    ^^^ Use normalcase for variable numbers.
+                          ^^^ Use normalcase for variable numbers.
+                               ^^^ Use normalcase for variable numbers.
+            "#,
+        );
+        // 定数の代入には handler が無く、`x86_64` は `AllowedIdentifiers` に載る。
+        expect_no_offenses(VARIABLE_NUMBER, "variable1 = 2\n");
+        expect_no_offenses(VARIABLE_NUMBER, "CONST_1 = 6\n");
+        expect_no_offenses(VARIABLE_NUMBER, "x86_64 = 7\n");
+        expect_no_offenses(VARIABLE_NUMBER, "proc { |_1| }\n");
+    }
+
+    /// `:"a\x5F1"` の値は `a_1` なので、綴りはエスケープを解いてから見る。
+    #[test]
+    fn variable_number_resolves_the_escapes_of_a_symbol() {
+        expect_offense(
+            VARIABLE_NUMBER,
+            r#"
+            :"a\x5F1"
+            ^^^^^^^^^ Use normalcase for symbol numbers.
+            "#,
+        );
+        expect_no_offenses(VARIABLE_NUMBER, ":\"a1\"\n");
+    }
+
+    /// 入れ子の rescue は外側だけが問われる。`_` で始まる名前には `_` 付きの
+    /// 名前が求められる。
+    #[test]
+    fn rescued_exceptions_variable_name_leaves_a_nested_rescue_alone() {
+        expect_offense(
+            RESCUED,
+            r#"
+            begin
+              foo
+            rescue StandardError => err
+                                    ^^^ Use `e` instead of `err`.
+              puts err
+            end
+            begin
+              foo
+            rescue => _err
+                      ^^^^ Use `_e` instead of `_err`.
+            end
+            def m
+              foo
+            rescue => exc
+                      ^^^ Use `e` instead of `exc`.
+              puts exc
+            end
+            begin
+              foo
+            rescue => e1
+                      ^^ Use `e` instead of `e1`.
+              begin
+                bar
+              rescue => e2
+                baz
+              end
+            end
+            "#,
+        );
+        expect_no_offenses(RESCUED, "begin\n  foo\nrescue => e\nend\n");
+        expect_no_offenses(RESCUED, "begin\n  foo\nrescue => _e\nend\n");
+    }
+
+    /// autocorrect は再代入までの読み出しを書き換え、そこで止まる。再代入が
+    /// 無ければ `begin`/`end` のあとに続く文も書き換える。
+    #[test]
+    fn rescued_exceptions_variable_name_stops_correcting_at_a_reassignment() {
+        expect_correction(
+            RESCUED,
+            r#"
+            begin
+              foo
+            rescue => err
+              puts err
+              err = 2
+              puts err
+            end
+            puts err
+            begin
+              bar
+            rescue => other
+              puts other
+            end
+            puts other
+            "#,
+            r#"
+            begin
+              foo
+            rescue => e
+              puts e
+              err = 2
+              puts err
+            end
+            puts err
+            begin
+              bar
+            rescue => e
+              puts e
+            end
+            puts e
+            "#,
+        );
+    }
+
+    /// メモ化は本体の末尾にあるときだけ見られる。`initialize` 系と、`_` を落とせば
+    /// 一致する名前は免れる。`defined?` 形式は 3 か所すべてが報告される。
+    #[test]
+    fn memoized_instance_variable_name_matches_the_method_it_memoizes() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def foo
+              @something ||= calculate
+              ^^^^^^^^^^ Memoized variable `@something` does not match method name `foo`. Use `@foo` instead.
+            end
+            def waldo
+              return @x if defined?(@x)
+                     ^^ Memoized variable `@x` does not match method name `waldo`. Use `@waldo` instead.
+                                    ^^ Memoized variable `@x` does not match method name `waldo`. Use `@waldo` instead.
+              @x = compute
+              ^^ Memoized variable `@x` does not match method name `waldo`. Use `@waldo` instead.
+            end
+            define_method(:plugh) do
+              @nope ||= 1
+              ^^^^^ Memoized variable `@nope` does not match method name `plugh`. Use `@plugh` instead.
+            end
+            "#,
+        );
+        for source in [
+            "def bar\n  @bar ||= calculate\nend\n",
+            "def _baz\n  @baz ||= calculate\nend\n",
+            "def initialize\n  @whatever ||= 1\nend\n",
+            "def +(other)\n  @plus ||= other\nend\n",
+            "def first\n  @first ||= 1\n  do_something\nend\n",
+        ] {
+            expect_no_offenses(MEMOIZED, source);
+        }
+    }
+
+    /// 本体が 1 文のときはその文の最後の子まで見る。ブロックの中の代入も
+    /// `body.children.last` になり得る。
+    #[test]
+    fn memoized_instance_variable_name_looks_at_the_last_child_of_the_body() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def nested
+              [1].each { @inner ||= 1 }
+                         ^^^^^^ Memoized variable `@inner` does not match method name `nested`. Use `@nested` instead.
+            end
+            def bytesize
+              case value
+              when NilClass
+                0
+              else
+                @s ||= 1
+                ^^ Memoized variable `@s` does not match method name `bytesize`. Use `@bytesize` instead.
+              end
+            end
+            "#,
+        );
+        expect_no_offenses(
+            MEMOIZED,
+            "def other\n  case value\n  when NilClass\n    @t ||= 1\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn memoized_instance_variable_name_correction_renames_the_variable() {
+        expect_correction(
+            MEMOIZED,
+            "def foo\n  @something ||= calculate\nend\n",
+            "def foo\n  @foo ||= calculate\nend\n",
+        );
+        expect_correction(
+            MEMOIZED,
+            "def waldo\n  return @x if defined?(@x)\n  @x = compute\nend\n",
+            "def waldo\n  return @waldo if defined?(@waldo)\n  @waldo = compute\nend\n",
+        );
+    }
+
+    /// `add_global_offense` はファイルの先頭を長さ 0 で指す。shebang のある
+    /// スクリプトと gemspec、大文字を含む `Include` に載る名前は免れる。
+    #[test]
+    fn file_name_reports_the_whole_file_at_its_first_character() {
+        let report = CopCase::annotated(
+            FILE_NAME,
+            "x = 1\n^{} The name of this source file (`fooBar.rb`) should use snake_case.\n",
+        )
+        .path("fooBar.rb")
+        .run();
+        assert_eq!(report.offenses.len(), 1);
+
+        for (path, source) in [
+            ("good_name.rb", "x = 1\n"),
+            ("barBaz.rb", "#!/usr/bin/env ruby\nx = 1\n"),
+            ("my-gem.gemspec", "x = 1\n"),
+            ("Rakefile", "x = 1\n"),
+        ] {
+            CopCase::new(FILE_NAME, source, Vec::new()).path(path).run();
+        }
+    }
+
+    /// 拡張子は最後の 1 つだけが落ちるので、途中に大文字があれば残る。
+    /// 空のファイルでも名前は問われる。
+    #[test]
+    fn file_name_strips_only_the_last_extension() {
+        for path in ["a.b.C.rb", "UPPER.rb", "weird name.rb"] {
+            let report = CopCase::new(FILE_NAME, "x = 1\n", Vec::new())
+                .path(path)
+                .without_offense_check()
+                .run();
+            assert_eq!(report.offenses.len(), 1, "{path} should be reported");
+        }
+        let report = CopCase::new(FILE_NAME, "", Vec::new())
+            .path("emptyName.rb")
+            .without_offense_check()
+            .run();
+        assert_eq!(report.offenses.len(), 1);
+    }
+}
+
+/// `Style/Documentation`: クラス・モジュールの直上に本物のコメントがあるか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Documentation --format json` の実測。
+mod documentation {
+    use super::*;
+
+    #[test]
+    fn reports_an_undocumented_class_and_module() {
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            class Foo
+            ^^^^^^^^^ Missing top-level documentation comment for `class Foo`.
+              def bar; end
+            end
+            "#,
+        );
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            module Empty
+            ^^^^^^^^^^^^ Missing top-level documentation comment for `module Empty`.
+            end
+            "#,
+        );
+    }
+
+    /// 本体を持たないクラスは対象外。モジュールは本体が無くても対象になる。
+    #[test]
+    fn a_class_without_a_body_is_not_asked_for_documentation() {
+        expect_no_offenses("Style/Documentation", "class Empty\nend\n");
+    }
+
+    #[test]
+    fn a_comment_directly_above_the_definition_documents_it() {
+        expect_no_offenses(
+            "Style/Documentation",
+            "# Documented\nclass Documented\n  def bar; end\nend\n",
+        );
+    }
+
+    /// 注記コメント (`TODO:` 等)、マジックコメント、rubocop ディレクティブは
+    /// 説明ではないので、直上にあっても文書とは見なされない。
+    #[test]
+    fn an_annotation_comment_does_not_document_anything() {
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            # TODO: fix this
+            class Annotated
+            ^^^^^^^^^^^^^^^ Missing top-level documentation comment for `class Annotated`.
+              def x; end
+            end
+            "#,
+        );
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            # frozen_string_literal: true
+            class Magic
+            ^^^^^^^^^^^ Missing top-level documentation comment for `class Magic`.
+              def x; end
+            end
+            "#,
+        );
+    }
+
+    /// 名前空間としてしか使っていないモジュール、`include` しかしない本体、
+    /// `:nodoc:` を付けた定義は対象外。`:nodoc: all` は入れ子も免除する。
+    #[test]
+    fn namespaces_inclusions_and_nodoc_are_exempt() {
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            module Namespace
+              class Inner
+              ^^^^^^^^^^^ Missing top-level documentation comment for `class Namespace::Inner`.
+                def x; end
+              end
+            end
+            "#,
+        );
+        expect_no_offenses("Style/Documentation", "module Mixin\n  include Foo\nend\n");
+        expect_no_offenses(
+            "Style/Documentation",
+            "class WithNodoc # :nodoc:\n  def x; end\nend\n",
+        );
+        expect_no_offenses(
+            "Style/Documentation",
+            "module Outer # :nodoc: all\n  class Inside\n    def x; end\n  end\nend\n",
+        );
+    }
+
+    /// 上位ノードが同じ位置から始まると、直上のコメントはそちらに吸われる。
+    /// `module Foo end if false` はコメントを `if` に取られて未文書になる。
+    ///
+    /// 実測: ruby/ruby の `lib/English.rb:48` がこの形。
+    #[test]
+    fn a_modifier_keeps_the_definition_from_owning_the_comment_above_it() {
+        expect_offense(
+            "Style/Documentation",
+            r#"
+            # Explanation
+            module English end if false
+            ^^^^^^^^^^^^^^ Missing top-level documentation comment for `module English`.
+            "#,
+        );
+    }
+}
+
+/// `%`-リテラルの区切り文字と、角括弧配列との相互変換。
+///
+/// 期待値は本家 1.89.0 の `--format json` と `-A` の実測。
+mod percent_literals {
+    use super::*;
+
+    #[test]
+    fn percent_literal_delimiters() {
+        expect_offense(
+            "Style/PercentLiteralDelimiters",
+            r#"
+            %w(a b)
+            ^^^^^^^ `%w`-literals should be delimited by `[` and `]`.
+            "#,
+        );
+        expect_offense(
+            "Style/PercentLiteralDelimiters",
+            r#"
+            %q{bar}
+            ^^^^^^^ `%q`-literals should be delimited by `(` and `)`.
+            "#,
+        );
+        expect_no_offenses(
+            "Style/PercentLiteralDelimiters",
+            "%w[g h]\n%r{baz}\n%s(sym)\n",
+        );
+        expect_correction(
+            "Style/PercentLiteralDelimiters",
+            "%w(a b)\n%i(c d)\n%r[foo]\n%q{bar}\n",
+            "%w[a b]\n%i[c d]\n%r{foo}\n%q(bar)\n",
+        );
+    }
+
+    /// 中身に希望の区切り文字が入っていると書き換えられないので報告しない。
+    /// `%w` / `%i` は自分が使っている区切り文字を含む場合も同じ。
+    #[test]
+    fn a_literal_holding_the_preferred_delimiter_is_left_alone() {
+        expect_no_offenses("Style/PercentLiteralDelimiters", "%w(i (j))\n");
+        expect_no_offenses("Style/PercentLiteralDelimiters", "x = %q{a (b}\n");
+    }
+
+    /// 完成したリテラルの後ろの `%` は剰余演算子で、`%`-リテラルではない。
+    ///
+    /// 実測: ruby/ruby の `libexec/erb:150` がこの形。
+    #[test]
+    fn a_percent_after_a_string_is_the_modulo_operator() {
+        expect_no_offenses("Style/PercentLiteralDelimiters", "puts \"%3d\"%[l, x]\n");
+    }
+
+    #[test]
+    fn symbol_and_word_arrays() {
+        expect_offense(
+            "Style/SymbolArray",
+            r#"
+            a = [:foo, :bar]
+                ^^^^^^^^^^^^ Use `%i` or `%I` for an array of symbols.
+            "#,
+        );
+        expect_offense(
+            "Style/WordArray",
+            r#"
+            b = ['one', 'two']
+                ^^^^^^^^^^^^^^ Use `%w` or `%W` for an array of words.
+            "#,
+        );
+        expect_correction(
+            "Style/SymbolArray",
+            "a = [:foo, :bar]\n",
+            "a = %i[foo bar]\n",
+        );
+        expect_correction(
+            "Style/WordArray",
+            "b = ['one', 'two']\n",
+            "b = %w[one two]\n",
+        );
+    }
+
+    /// 単語に見えない中身、要素が 1 つだけの配列、既に `%` 記法のものは対象外。
+    #[test]
+    fn arrays_that_cannot_take_the_percent_form_are_left_alone() {
+        expect_no_offenses("Style/WordArray", "d = [\"it's\", 'plain']\n");
+        expect_no_offenses("Style/SymbolArray", "g = [:a]\n");
+        expect_no_offenses("Style/SymbolArray", "h = [:\"with space\", :b]\n");
+        expect_no_offenses("Style/SymbolArray", "f = %i[a b]\n");
+    }
+
+    /// 複数行の配列は、各要素が書かれていた行と字下げをそのまま引き継ぐ。
+    #[test]
+    fn a_multiline_array_keeps_its_layout() {
+        CopCase::new(
+            "Style/SymbolArray",
+            "c = [\n  :x,\n  :y\n]\n",
+            vec![Annotation::new(
+                1,
+                5,
+                1,
+                "Use `%i` or `%I` for an array of symbols.",
+            )],
+        )
+        .corrected("c = %i[\n  x\n  y\n]\n")
+        .run();
+    }
+}
+
+/// `Style/RegexpLiteral` / `Style/ClassAndModuleChildren` / `Style/SingleLineMethods`。
+///
+/// 期待値は本家 1.89.0 の `--format json` と `-A` の実測。
+mod style_rest {
+    use super::*;
+
+    #[test]
+    fn regexp_literal() {
+        expect_offense(
+            "Style/RegexpLiteral",
+            r#"
+            x = %r{foo}
+                ^^^^^^^ Use `//` around regular expression.
+            "#,
+        );
+        expect_offense(
+            "Style/RegexpLiteral",
+            r"
+            y = /a\/b/
+                ^^^^^^ Use `%r` around regular expression.
+            ",
+        );
+        expect_correction("Style/RegexpLiteral", "x = %r{foo}\n", "x = /foo/\n");
+        expect_correction("Style/RegexpLiteral", "y = /a\\/b/\n", "y = %r{a/b}\n");
+    }
+
+    /// スラッシュを含む `%r`、括弧を省いた呼び出しの引数、括弧の釣り合わない
+    /// スラッシュリテラルは、どれも書き換えられないので報告しない。
+    #[test]
+    fn regexp_literals_that_cannot_change_form_are_left_alone() {
+        expect_no_offenses("Style/RegexpLiteral", "w = %r{a/b}\n");
+        expect_no_offenses("Style/RegexpLiteral", "u = bar %r{ baz}\n");
+        expect_no_offenses("Style/RegexpLiteral", "t = /a{b/\n");
+        expect_no_offenses("Style/RegexpLiteral", "z = /plain/\n");
+    }
+
+    #[test]
+    fn class_and_module_children() {
+        expect_offense(
+            "Style/ClassAndModuleChildren",
+            r#"
+            class Foo::Bar
+                  ^^^^^^^^ Use nested module/class definitions instead of compact style.
+              X = 1
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/ClassAndModuleChildren",
+            "class Foo::Bar\n  X = 1\nend\n",
+            "module Foo\n  class Bar\n  X = 1\n  end\nend\n",
+        );
+    }
+
+    /// 直前の兄弟に同名のクラス定義があれば `class`、無ければ `module` で包む。
+    /// 外側の定義の本体がそれ 1 つだけのときは、そもそも報告しない。
+    #[test]
+    fn the_wrapper_keyword_comes_from_the_previous_statement() {
+        expect_correction(
+            "Style/ClassAndModuleChildren",
+            "module Deep\n  class Q\n  end\n  class Q::R\n    def s; end\n  end\nend\n",
+            "module Deep\n  class Q\n  end\n  class Q\n      class R\n    def s; end\n      end\n  end\nend\n",
+        );
+        expect_no_offenses(
+            "Style/ClassAndModuleChildren",
+            "module Foo\n  class Bar::Baz\n    def a; end\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn trailing_comma() {
+        expect_offense(
+            "Style/TrailingCommaInArrayLiteral",
+            r#"
+            a = [1, 2,]
+                     ^ Avoid comma after the last item of an array.
+            "#,
+        );
+        expect_offense(
+            "Style/TrailingCommaInHashLiteral",
+            r#"
+            b = { c: 1, }
+                      ^ Avoid comma after the last item of a hash.
+            "#,
+        );
+        expect_offense(
+            "Style/TrailingCommaInArguments",
+            r#"
+            foo(1, 2,)
+                    ^ Avoid comma after the last parameter of a method call.
+            "#,
+        );
+        expect_offense(
+            "Style/TrailingCommaInArguments",
+            r#"
+            d = e[1,]
+                   ^ Avoid comma after the last parameter of a method call.
+            "#,
+        );
+        expect_correction(
+            "Style/TrailingCommaInArrayLiteral",
+            "f = [\n  1,\n  2,\n]\n",
+            "f = [\n  1,\n  2\n]\n",
+        );
+    }
+
+    /// 括弧を伴わない呼び出しと `super` / `yield` は、そもそも `on_send` に
+    /// 来ないので対象外。
+    #[test]
+    fn only_bracketed_argument_lists_are_checked() {
+        expect_no_offenses("Style/TrailingCommaInArguments", "foo 1, 2\n");
+        expect_no_offenses(
+            "Style/TrailingCommaInArguments",
+            "def a(b)\n  super(b,)\nend\n",
+        );
+    }
+
+    #[test]
+    fn single_line_methods() {
+        expect_offense(
+            "Style/SingleLineMethods",
+            r#"
+            def foo; bar; end
+            ^^^^^^^^^^^^^^^^^ Avoid single-line method definitions.
+            "#,
+        );
+        expect_no_offenses("Style/SingleLineMethods", "def empty; end\n");
+        expect_correction(
+            "Style/SingleLineMethods",
+            "class K\n  def m; n; o; end\nend\n",
+            "class K\n  def m; \n    n; \n    o; \n  end\nend\n",
+        );
+    }
+
+    /// 行末コメントは定義の上の行に持ち上げられる。
+    #[test]
+    fn a_trailing_comment_moves_above_the_definition() {
+        expect_correction(
+            "Style/SingleLineMethods",
+            "def foo; bar; end # note\n",
+            "# note\ndef foo; \n  bar; \nend \n",
+        );
+    }
+}
+
+/// `Metrics/AbcSize` / `Metrics/CyclomaticComplexity` / `Metrics/PerceivedComplexity` /
+/// `Metrics/BlockNesting`。期待値はすべて本家 1.89.0 の実出力から取った。
+///
+/// ABC は `<assignment, branch, condition>` のベクタまでメッセージに出るので、
+/// どの数え方が食い違ったかがそのまま読める。数え方の根拠は
+/// `lib/rubocop/cop/metrics/utils/abc_size_calculator.rb` と
+/// `lib/rubocop/cop/mixin/method_complexity.rb`。
+mod metrics_complexity {
+    use super::*;
+
+    /// 実測: `[<4, 3, 2> 5.39/2]` / 1:1-7:3 / length 110
+    #[test]
+    fn abc_size_reports_the_whole_definition_with_its_vector() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def compute(input)
+            ^^^^^^^^^^^^^^^^^^ Assignment Branch Condition size for `compute` is too high. [<4, 3, 2> 5.39/2]
+              total = 0
+              input.each do |item|
+                total += item.value if item.valid?
+              end
+              total
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 2\n")
+        .locations(&[(1, 1, 7, 3)])
+        .lengths(&[110])
+        .severity(Severity::Convention)
+        .correctable(false)
+        .run();
+    }
+
+    /// 代入の数え方。`_` 始まりの名前は数えず、`self.c =` と `d[0] =` は setter 呼び出しなので
+    /// 代入と分岐の両方に入り、`g ||= h` は `or_asgn` 自身ではなく畳まれた子が数えられる。
+    ///
+    /// 実測: `[<10, 4, 1> 10.82/0]` / 1:1-11:3 / length 120
+    #[test]
+    fn abc_size_counts_every_shape_of_assignment() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def sizes
+            ^^^^^^^^^ Assignment Branch Condition size for `sizes` is too high. [<10, 4, 1> 10.82/0]
+              a = 1
+              _skipped = 2
+              @b = a
+              self.c = a
+              d[0] = a
+              e, f = a, a
+              g ||= h
+              i = -1
+              j = defined?(a)
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .locations(&[(1, 1, 11, 3)])
+        .lengths(&[120])
+        .run();
+    }
+
+    /// 分岐の数え方。`x == 1` は比較なので条件に回り、`&.` は分岐と条件の両方に入るが
+    /// 2 度目は割り引かれ、`super` と `defined?` は呼び出しではない。`->(y) { y }` は
+    /// `lambda` 呼び出し 1 個として数えられる。
+    ///
+    /// 実測: `[<2, 7, 3> 7.87/0]` / 1:1-11:3 / length 109
+    #[test]
+    fn abc_size_counts_calls_as_branches() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def branches(x)
+            ^^^^^^^^^^^^^^^ Assignment Branch Condition size for `branches` is too high. [<2, 7, 3> 7.87/0]
+              x.foo
+              x&.bar
+              x&.bar
+              x == 1
+              x[0]
+              yield
+              super
+              ->(y) { y }
+              x.map { |y| y }
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .locations(&[(1, 1, 11, 3)])
+        .lengths(&[109])
+        .run();
+    }
+
+    /// 条件の数え方。`else` を持つ `if` は 2、三項演算子は `loc.else` を持たないので 1、
+    /// `case` 自身は数えず `when` が数えられ、`rescue` 節は 1。
+    ///
+    /// 実測: `[<0, 0, 6> 6/0]` / 1:1-20:3 / length 182
+    #[test]
+    fn abc_size_counts_decision_points_as_conditions() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def conditions(x)
+            ^^^^^^^^^^^^^^^^^ Assignment Branch Condition size for `conditions` is too high. [<0, 0, 6> 6/0]
+              if x
+                1
+              else
+                2
+              end
+              x ? 1 : 2
+              while x
+                break
+              end
+              case x
+              when 1 then 2
+              else 3
+              end
+              begin
+                x
+              rescue StandardError
+                nil
+              end
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .locations(&[(1, 1, 20, 3)])
+        .lengths(&[182])
+        .run();
+    }
+
+    /// 同じ変数への `&.` の繰り返しは 1 度しか条件に数えられず、その変数への代入で数え直す。
+    ///
+    /// 実測: ABC `[<1, 3, 2> 3.74/0]` / Cyclomatic `[3/0]`
+    #[test]
+    fn repeated_safe_navigation_is_discounted_until_the_variable_is_written() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def repeated(var)
+            ^^^^^^^^^^^^^^^^^ Assignment Branch Condition size for `repeated` is too high. [<1, 3, 2> 3.74/0]
+              var&.one
+              var&.two
+              var = 1
+              var&.three
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .locations(&[(1, 1, 6, 3)])
+        .run();
+        CopCase::annotated(
+            "Metrics/CyclomaticComplexity",
+            r#"
+            def repeated(var)
+            ^^^^^^^^^^^^^^^^^ Cyclomatic complexity for `repeated` is too high. [3/0]
+              var&.one
+              var&.two
+              var = 1
+              var&.three
+            end
+            "#,
+        )
+        .config("Metrics/CyclomaticComplexity:\n  Max: 0\n")
+        .locations(&[(1, 1, 6, 3)])
+        .run();
+    }
+
+    /// 本家 cop のドキュメントに載っている例。合計 6 になる。
+    #[test]
+    fn cyclomatic_complexity_matches_the_documented_example() {
+        CopCase::annotated(
+            "Metrics/CyclomaticComplexity",
+            r#"
+            def each_child_node(*types)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Cyclomatic complexity for `each_child_node` is too high. [6/5]
+              unless block_given?
+                return to_enum(__method__, *types)
+              end
+
+              children.each do |child|
+                next unless child.is_a?(Node)
+
+                yield child if types.empty? ||
+                               types.include?(child.type)
+              end
+
+              self
+            end
+            "#,
+        )
+        .config("Metrics/CyclomaticComplexity:\n  Max: 5\n")
+        .locations(&[(1, 1, 14, 3)])
+        .lengths(&[256])
+        .run();
+    }
+
+    /// 反復メソッドでないブロックと `&:sym`、`begin … end while`、`_1` を使う numblock は
+    /// いずれも経路を増やさない。数えるのは `each {}` と `each(&:to_s)` の 2 つだけ。
+    ///
+    /// 実測: `[3/0]`
+    #[test]
+    fn only_iterating_blocks_add_a_path() {
+        CopCase::annotated(
+            "Metrics/CyclomaticComplexity",
+            r#"
+            def blocks(list)
+            ^^^^^^^^^^^^^^^^ Cyclomatic complexity for `blocks` is too high. [3/0]
+              list.each { |x| x }
+              list.other { |x| x }
+              list.map(&:to_s)
+              list.other(&:to_s)
+              begin
+                list
+              end while list
+              list.map { _1 }
+            end
+            "#,
+        )
+        .config("Metrics/CyclomaticComplexity:\n  Max: 0\n")
+        .locations(&[(1, 1, 10, 3)])
+        .lengths(&[157])
+        .run();
+    }
+
+    /// 本家 cop のドキュメントに載っている例。`case` は 0.8 点、`when` は 1 つ 0.2 点。
+    #[test]
+    fn perceived_complexity_matches_the_documented_case_example() {
+        CopCase::annotated(
+            "Metrics/PerceivedComplexity",
+            r#"
+            def example_1
+            ^^^^^^^^^^^^^ Perceived complexity for `example_1` is too high. [7/6]
+              if cond
+                case var
+                when 1 then func_one
+                when 2 then func_two
+                when 3 then func_three
+                when 4..10 then func_other
+                end
+              else
+                do_something until a && b
+              end
+            end
+            "#,
+        )
+        .config("Metrics/PerceivedComplexity:\n  Max: 6\n")
+        .locations(&[(1, 1, 12, 3)])
+        .lengths(&[199])
+        .run();
+    }
+
+    /// 同じくドキュメントの例。リテラルだけの `in` 節は `when` と同じ 0.2 点に割り引かれる。
+    #[test]
+    fn perceived_complexity_discounts_literal_in_patterns() {
+        CopCase::annotated(
+            "Metrics/PerceivedComplexity",
+            r#"
+            def example_2
+            ^^^^^^^^^^^^^ Perceived complexity for `example_2` is too high. [2/1]
+              case color
+              in "red" then func_red
+              in "blue" then func_blue
+              in "green" then func_green
+              end
+            end
+            "#,
+        )
+        .config("Metrics/PerceivedComplexity:\n  Max: 1\n")
+        .target_ruby("3.0")
+        .locations(&[(1, 1, 7, 3)])
+        .lengths(&[117])
+        .run();
+    }
+
+    /// `define_method` はリテラルの名前を渡したときだけ測られる。名前が式なら
+    /// `on_block` のパターンに合わないので、その定義はどの複雑度 cop も見ない。
+    #[test]
+    fn define_method_is_measured_only_with_a_literal_name() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            define_method(:literal) do |value|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Assignment Branch Condition size for `literal` is too high. [<0, 3, 0> 3/1]
+              value.to_s + value.to_s
+            end
+            define_method(name) do |value|
+              value.to_s + value.to_s
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 1\n")
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[64])
+        .run();
+    }
+
+    /// `AllowedMethods` と `AllowedPatterns` はどちらも名前で定義を丸ごと除外する。
+    #[test]
+    fn allowed_methods_and_patterns_skip_a_definition() {
+        let source =
+            "def skipped(a)\n  a.to_s + a.to_s\nend\n\ndef watched(a)\n  a.to_s + a.to_s\nend\n";
+        CopCase::new(
+            "Metrics/AbcSize",
+            source,
+            vec![Annotation::new(
+                5,
+                1,
+                14,
+                "Assignment Branch Condition size for `watched` is too high. [<0, 3, 0> 3/1]",
+            )],
+        )
+        .config("Metrics/AbcSize:\n  Max: 1\n  AllowedMethods:\n    - skipped\n")
+        .locations(&[(5, 1, 7, 3)])
+        .run();
+        CopCase::new(
+            "Metrics/CyclomaticComplexity",
+            source,
+            vec![Annotation::new(
+                5,
+                1,
+                14,
+                "Cyclomatic complexity for `watched` is too high. [1/0]",
+            )],
+        )
+        .config("Metrics/CyclomaticComplexity:\n  Max: 0\n  AllowedPatterns:\n    - '\\Askip'\n")
+        .locations(&[(5, 1, 7, 3)])
+        .run();
+    }
+
+    /// 本体の無いメソッドは `check_complexity` が最初に弾く。コメントしか無いものも同じ。
+    #[test]
+    fn a_method_without_a_body_is_never_measured() {
+        for cop in [
+            "Metrics/AbcSize",
+            "Metrics/CyclomaticComplexity",
+            "Metrics/PerceivedComplexity",
+        ] {
+            CopCase::new(
+                cop,
+                "def empty\nend\n\ndef only_comment\n  # nothing\nend\n",
+                Vec::new(),
+            )
+            .config(&format!("{cop}:\n  Max: 0\n"))
+            .run();
+        }
+    }
+
+    /// 実測: 5:9-7:11 / length 39
+    #[test]
+    fn block_nesting_reports_the_innermost_level_over_the_limit() {
+        CopCase::annotated(
+            "Metrics/BlockNesting",
+            r#"
+            def deep(a, b, c, d)
+              if a
+                if b
+                  if c
+                    if d
+                    ^^^^ Avoid more than 3 levels of block nesting.
+                      do_something
+                    end
+                  end
+                end
+              end
+            end
+            "#,
+        )
+        .locations(&[(5, 9, 7, 11)])
+        .lengths(&[39])
+        .severity(Severity::Convention)
+        .correctable(false)
+        .run();
+    }
+
+    /// `elsif` は上の `if` の続きなので段を増やさず、修飾子の `if` も既定では増やさない。
+    /// ただし段が既に上限を超えていれば、増やさない節でも報告はされる。
+    #[test]
+    fn elsif_and_modifier_forms_do_not_add_a_level() {
+        let source = concat!(
+            "def chained(a, b, c, d)\n",
+            "  if a\n",
+            "    if b\n",
+            "      if c\n",
+            "        if d\n",
+            "          one\n",
+            "        elsif d\n",
+            "          two\n",
+            "        end\n",
+            "        three if d\n",
+            "      end\n",
+            "    end\n",
+            "  end\n",
+            "end\n",
+        );
+        let over = Annotation::new(5, 9, 4, "Avoid more than 3 levels of block nesting.");
+        CopCase::new("Metrics/BlockNesting", source, vec![over.clone()])
+            .locations(&[(5, 9, 9, 11)])
+            .lengths(&[60])
+            .run();
+        CopCase::new(
+            "Metrics/BlockNesting",
+            source,
+            vec![
+                over,
+                Annotation::new(10, 9, 10, "Avoid more than 3 levels of block nesting."),
+            ],
+        )
+        .config("Metrics/BlockNesting:\n  CountBlocks: true\n  CountModifierForms: true\n")
+        .locations(&[(5, 9, 9, 11), (10, 9, 10, 18)])
+        .lengths(&[60, 10])
+        .run();
+    }
+
+    /// `rescue` 節は `resbody` として 1 段に数えられる。修飾子の `rescue` も同じで、
+    /// 報告されるのはキーワードからハンドラまで -- 守られている式は外側にある。
+    #[test]
+    fn rescue_clauses_are_a_nesting_level_of_their_own() {
+        CopCase::annotated(
+            "Metrics/BlockNesting",
+            r#"
+            def guarded(a, b, c)
+              if a
+                while b
+                  if c
+                    begin
+                      work
+                    rescue StandardError
+                    ^^^^^^^^^^^^^^^^^^^^ Avoid more than 3 levels of block nesting.
+                      recover
+                    end
+                    other rescue nil
+                          ^^^^^^^^^^ Avoid more than 3 levels of block nesting.
+                  end
+                end
+              end
+            end
+            "#,
+        )
+        .locations(&[(7, 9, 8, 17), (10, 15, 10, 24)])
+        .lengths(&[38, 10])
+        .run();
+    }
+
+    /// ブロックは `CountBlocks` を立てたときだけ段に数えられ、報告はブロックを取る
+    /// 呼び出しから始まる -- 上流の `block` ノードはそこから始まっているため。
+    #[test]
+    fn blocks_count_only_when_asked_for() {
+        let source = concat!(
+            "def blocky(list)\n",
+            "  list.each do |a|\n",
+            "    a.each do |b|\n",
+            "      b.each do |c|\n",
+            "        c.each do |d|\n",
+            "          d\n",
+            "        end\n",
+            "      end\n",
+            "    end\n",
+            "  end\n",
+            "end\n",
+        );
+        CopCase::new("Metrics/BlockNesting", source, Vec::new()).run();
+        CopCase::new(
+            "Metrics/BlockNesting",
+            source,
+            vec![Annotation::new(
+                5,
+                9,
+                13,
+                "Avoid more than 3 levels of block nesting.",
+            )],
+        )
+        .config("Metrics/BlockNesting:\n  CountBlocks: true\n")
+        .locations(&[(5, 9, 7, 11)])
+        .lengths(&[37])
+        .run();
+    }
+}
+
+/// `Lint/InterpolationCheck`。本家は `str` と、シングルクォートで書かれた `dstr` だけを
+/// 見る。判定の核は「引用符を差し替えたものが Ruby として通り、かつ補間する文字列に
+/// なるか」で、`%q()` はこれで落ちる。ヒアドキュメントとその中身は対象外。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/InterpolationCheck --format json` 実測。
+mod interpolation_check {
+    use super::*;
+
+    const COP: &str = "Lint/InterpolationCheck";
+    const MSG: &str = "Interpolation in single quoted string detected. Use double quoted strings \
+                       if you need interpolation.";
+
+    #[test]
+    fn a_single_quoted_string_holding_an_interpolation_is_reported() {
+        CopCase::new(
+            COP,
+            "foo = 'something with #{interpolation} inside'\n",
+            vec![Annotation::new(1, 7, 40, MSG)],
+        )
+        .run();
+    }
+
+    /// 二重引用符で書かれていれば意図どおり。`%q()` は引用符を差し替えても中身が
+    /// そのままなので、補間する文字列にならない。バックスラッシュで逃した `\#{` も同じ。
+    #[test]
+    fn a_string_that_means_what_it_says_is_left_alone() {
+        expect_no_offenses(COP, "bar = \"something with #{interpolation} inside\"\n");
+        expect_no_offenses(COP, "baz = %q(#{x})\n");
+        expect_no_offenses(COP, "esc = '\\#{x}'\n");
+        expect_no_offenses(COP, "sym = :'#{x}'\n");
+        expect_no_offenses(COP, "words = %w[#{x}]\n");
+    }
+
+    /// `#{` と `}` が別の行にあるものは本家の正規表現に掛からない。行を跨ぐのは
+    /// 「補間の中身」ではなく、複数行の単一引用文字列そのもの。
+    #[test]
+    fn the_braces_have_to_close_on_the_line_they_opened_on() {
+        expect_no_offenses(COP, "split = '#{\nx}'\n");
+        CopCase::new(
+            COP,
+            "multi = 'a\n#{x}'\n",
+            vec![Annotation::new(1, 9, 8, MSG)],
+        )
+        .locations(&[(1, 9, 2, 5)])
+        .run();
+    }
+
+    /// ヒアドキュメントは本文も、その補間の中に書かれた文字列も対象外。正規表現の
+    /// 補間の中は対象。
+    #[test]
+    fn a_heredoc_and_everything_written_inside_one_is_skipped() {
+        expect_no_offenses(COP, "x = <<~TEXT\n  #{'#{y}'}\nTEXT\n");
+        expect_no_offenses(COP, "z = <<~'TEXT'\n  #{y}\nTEXT\n");
+        expect_offense(
+            COP,
+            r#"
+            w = /#{'#{y}'}/
+                   ^^^^^^ Interpolation in single quoted string [...]
+            "#,
+        );
+    }
+
+    /// autocorrect は引用符を二重引用符に差し替える。中に `"` があると literal が
+    /// そこで終わってしまうので、そのときだけ `%{...}` にする。
+    #[test]
+    fn correction_swaps_the_quotes_or_falls_back_to_percent_braces() {
+        expect_correction(COP, "foo = '#{x}'\n", "foo = \"#{x}\"\n");
+        expect_correction(
+            COP,
+            "qux = 'say \"#{x}\" now'\n",
+            "qux = %{say \"#{x}\" now}\n",
+        );
+        expect_correction(COP, "concat = 'a' '#{x}'\n", "concat = 'a' \"#{x}\"\n");
+    }
+}

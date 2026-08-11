@@ -29,6 +29,118 @@ use support::manifest::{Entry, Manifest};
 /// 突き合わせキーなので、一度付けたら変えないこと。
 fn catalogue() -> Vec<CopCase> {
     vec![
+        // ---- Bundler ----
+        // 部門ごと `Include` を持つので、対象になるのは Gemfile 系のファイルだけ。
+        CopCase::annotated(
+            "Bundler/DuplicatedGem",
+            "gem 'a'\ngem \"a\"\n^^^^^^^ Gem `a` requirements already given on line 1 of the Gemfile.\n",
+        )
+        .id("bundler_duplicated_gem")
+        .path("Gemfile")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Bundler/DuplicatedGroup",
+            r#"
+            group :development do
+              gem 'a'
+            end
+            group :development do
+            ^^^^^^^^^^^^^^^^^^ Gem group `:development` already defined on line 1 of the Gemfile.
+              gem 'b'
+            end
+            "#,
+        )
+        .id("bundler_duplicated_group")
+        .path("Gemfile")
+        .severity(Severity::Warning),
+        // `add_global_offense` はファイル先頭の長さ 0 のレンジ。メッセージには本家が
+        // 検査前に絶対化したパスがそのまま入る。
+        CopCase::annotated(
+            "Bundler/GemFilename",
+            "gem 'a'\n^{} `gems.rb` file was found but `Gemfile` is required (file path: /tmp/example/gems.rb).\n",
+        )
+        .id("bundler_gem_filename")
+        .path("/tmp/example/gems.rb")
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0])
+        .correctable(false),
+        CopCase::annotated(
+            "Bundler/InsecureProtocolSource",
+            r#"
+            source :rubygems
+                   ^^^^^^^^^ The source `:rubygems` is deprecated because HTTP requests are insecure. Please change your source to 'https://rubygems.org' if possible, or 'http://rubygems.org' if not.
+            "#,
+        )
+        .id("bundler_insecure_protocol_source")
+        .path("Gemfile")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Bundler/OrderedGems",
+            r#"
+            gem 'rubocop'
+            gem 'rspec'
+            ^^^^^^^^^^^ Gems should be sorted in an alphabetical order within their section of the Gemfile. Gem `rspec` should appear before `rubocop`.
+            "#,
+        )
+        .id("bundler_ordered_gems")
+        .path("Gemfile")
+        .correctable(true),
+        // ---- Gemspec ----
+        CopCase::annotated(
+            "Gemspec/DuplicatedAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.name = 'x'
+              spec.name = 'y'
+              ^^^^^^^^^^^^^^^ `name=` method calls already given on line 2 of the gemspec.
+            end
+            "#,
+        )
+        .id("gemspec_duplicated_assignment")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Gemspec/OrderedDependencies",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              spec.add_dependency 'rspec'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependencies should be sorted in an alphabetical order within their section of the gemspec. Dependency `rspec` should appear before `rubocop`.
+            end
+            "#,
+        )
+        .id("gemspec_ordered_dependencies")
+        .path("example.gemspec")
+        .correctable(true),
+        // `add_global_offense`。宣言が 1 つも無いこと自体が offense なので、指す構文が無い。
+        CopCase::annotated(
+            "Gemspec/RequiredRubyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+            ^{} `required_ruby_version` should be specified.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .id("gemspec_required_ruby_version_missing")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0]),
+        CopCase::annotated(
+            "Gemspec/RubyVersionGlobalsUsage",
+            r#"
+            RUBY_VERSION
+            ^^^^^^^^^^^^ Do not use `RUBY_VERSION` in gemspec file.
+            "#,
+        )
+        .id("gemspec_ruby_version_globals_usage")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Layout ----
         CopCase::annotated(
             "Layout/EmptyLineAfterMagicComment",
@@ -259,7 +371,32 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("metrics_parameter_lists"),
+        // ---- Migration ----
+        CopCase::annotated(
+            "Migration/DepartmentName",
+            r#"
+            # rubocop:disable AbcSize
+                              ^^^^^^^ Department name is missing.
+            "#,
+        )
+        .id("migration_department_name")
+        .locations(&[(1, 19, 1, 25)])
+        .correctable(true),
         // ---- Naming ----
+        // `get_` は引数無し、`set_` は必須引数ちょうど 1 つのときだけ accessor 扱い。
+        CopCase::annotated(
+            "Naming/AccessorMethodName",
+            r#"
+            def get_value
+                ^^^^^^^^^ Do not prefix reader method names with `get_`.
+            end
+            def set_value(value)
+                ^^^^^^^^^ Do not prefix writer method names with `set_`.
+            end
+            "#,
+        )
+        .id("naming_accessor_method_name")
+        .correctable(false),
         // 本家 `should_check?` は `tIDENTIFIER` / `tCONSTANT` だけを通すので ivar は
         // 対象外。レンジは識別子全体ではなく最初の非 ASCII 連続部分のみ。
         CopCase::new(
@@ -289,6 +426,47 @@ fn catalogue() -> Vec<CopCase> {
         .id("naming_ascii_identifiers")
         .locations(&[(1, 1, 1, 1), (3, 5, 3, 5), (4, 7, 4, 7)])
         .lengths(&[1, 1, 1]),
+        // 演算子の唯一の引数は `other` でなければならない。`eql?` は語で綴られていても
+        // 演算子扱いで、`<<` や `[]` は `EXCLUDED` なので対象外。
+        CopCase::annotated(
+            "Naming/BinaryOperatorParameterName",
+            r#"
+            def +(amount)
+                  ^^^^^^ When defining the `+` operator, name its argument `other`.
+              amount
+            end
+            "#,
+        )
+        .id("naming_binary_operator_parameter_name")
+        .correctable(true),
+        // `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1 文字
+        // ぶん伸び、`&` は伸びないので名前の途中で切れる。
+        CopCase::annotated(
+            "Naming/BlockParameterName",
+            r#"
+            bar { |xA, *yB, &zC| xA }
+                   ^^ Only use lowercase characters for block parameter.
+                       ^^^ Only use lowercase characters for block parameter.
+                            ^^ Only use lowercase characters for block parameter.
+            "#,
+        )
+        .id("naming_block_parameter_name")
+        .correctable(false),
+        // `AllowedNames` は名前から取り除かれてから `_` の有無を見る。レンジは
+        // 定数パス全体。
+        CopCase::annotated(
+            "Naming/ClassAndModuleCamelCase",
+            r#"
+            class My_Class
+                  ^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            module module_parent::My_Module
+                   ^^^^^^^^^^^^^^^^^^^^^^^^ Use CamelCase for classes and modules.
+            end
+            "#,
+        )
+        .id("naming_class_and_module_camel_case")
+        .correctable(false),
         CopCase::annotated(
             "Naming/ConstantName",
             r#"
@@ -297,6 +475,59 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("naming_constant_name"),
+        // `add_global_offense` はファイル先頭の長さ 0 のレンジ。
+        CopCase::annotated(
+            "Naming/FileName",
+            "x = 1\n^{} The name of this source file (`fooBar.rb`) should use snake_case.\n",
+        )
+        .id("naming_file_name")
+        .path("fooBar.rb")
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0])
+        .correctable(false),
+        // offense は `loc.heredoc_end`、つまり終端の行頭から。autocorrect は開始
+        // デリミタも直すので、字下げされた終端は行頭に戻る。
+        CopCase::annotated(
+            "Naming/HeredocDelimiterCase",
+            r#"
+            a = <<-sql
+              x
+            sql
+            ^^^ Use uppercase heredoc delimiters.
+            "#,
+        )
+        .id("naming_heredoc_delimiter_case")
+        .corrected("a = <<-SQL\n  x\nSQL\n")
+        .correctable(true),
+        // 空の heredoc には終端の位置が無いので、offense は開始デリミタに付く。
+        CopCase::annotated(
+            "Naming/HeredocDelimiterNaming",
+            r#"
+            a = <<-END
+              x
+            END
+            ^^^ Use meaningful heredoc delimiters.
+            b = <<~EOS
+                ^^^^^^ Use meaningful heredoc delimiters.
+            EOS
+            "#,
+        )
+        .id("naming_heredoc_delimiter_naming")
+        .correctable(false),
+        // メモ化は本体の末尾にあるときだけ見られ、`defined?` 形式は 3 か所すべてが
+        // 報告される。
+        CopCase::annotated(
+            "Naming/MemoizedInstanceVariableName",
+            r#"
+            def foo
+              @something ||= calculate
+              ^^^^^^^^^^ Memoized variable `@something` does not match method name `foo`. Use `@foo` instead.
+            end
+            "#,
+        )
+        .id("naming_memoized_instance_variable_name")
+        .corrected("def foo\n  @foo ||= calculate\nend\n")
+        .correctable(true),
         CopCase::annotated(
             "Naming/MethodName",
             r#"
@@ -306,6 +537,48 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("naming_method_name"),
+        // 既定の `MinNameLength` は 3。`AllowedNames` に載る `id` は免れ、先頭の `_` は
+        // 名前から外れるがレンジの長さには残る。
+        CopCase::annotated(
+            "Naming/MethodParameterName",
+            r#"
+            def m(_a, ab, abc, aB, id)
+                  ^^ Method parameter must be at least 3 characters long.
+                      ^^ Method parameter must be at least 3 characters long.
+                               ^^ Only use lowercase characters for method parameter.
+            end
+            "#,
+        )
+        .id("naming_method_parameter_name")
+        .correctable(false),
+        // 接頭辞のあとが数字だったり、名前が `=` で終われば免れる。
+        CopCase::annotated(
+            "Naming/PredicatePrefix",
+            r#"
+            def is_even(value)
+                ^^^^^^^ Rename `is_even` to `even?`.
+            end
+            def is_1(value)
+            end
+            "#,
+        )
+        .id("naming_predicate_prefix")
+        .correctable(false),
+        // 入れ子の rescue は外側だけが問われ、`_` で始まる名前には `_` 付きが求められる。
+        CopCase::annotated(
+            "Naming/RescuedExceptionsVariableName",
+            r#"
+            begin
+              foo
+            rescue StandardError => err
+                                    ^^^ Use `e` instead of `err`.
+              puts err
+            end
+            "#,
+        )
+        .id("naming_rescued_exceptions_variable_name")
+        .corrected("begin\n  foo\nrescue StandardError => e\n  puts e\nend\n")
+        .correctable(true),
         CopCase::annotated(
             "Naming/VariableName",
             r#"
@@ -315,6 +588,21 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("naming_variable_name"),
+        // `on_arg` が見るのは必須引数だけで、シンボルはエスケープを解いた値で判定される。
+        CopCase::annotated(
+            "Naming/VariableNumber",
+            r#"
+            variable_1 = 1
+            ^^^^^^^^^^ Use normalcase for variable numbers.
+            def some_method_1(arg_1, opt_1 = 1); end
+                ^^^^^^^^^^^^^ Use normalcase for method name numbers.
+                              ^^^^^ Use normalcase for variable numbers.
+            :some_sym_1
+            ^^^^^^^^^^^ Use normalcase for symbol numbers.
+            "#,
+        )
+        .id("naming_variable_number")
+        .correctable(false),
         // ---- Security ----
         // 本家 `Cop::Base#default_severity` は `lint? ? :warning : :convention`。
         CopCase::annotated(
@@ -326,6 +614,47 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("security_eval")
         .severity(Severity::Convention),
+        CopCase::annotated(
+            "Security/JSONLoad",
+            r#"
+            JSON.load('{}')
+                 ^^^^ Prefer `JSON.parse` over `JSON.load`.
+            "#,
+        )
+        .id("security_json_load")
+        .severity(Severity::Convention)
+        .correctable(true),
+        CopCase::annotated(
+            "Security/MarshalLoad",
+            r#"
+            Marshal.load(x)
+                    ^^^^ Avoid using `Marshal.load`.
+            "#,
+        )
+        .id("security_marshal_load")
+        .severity(Severity::Convention)
+        .correctable(false),
+        CopCase::annotated(
+            "Security/Open",
+            r#"
+            open(something)
+            ^^^^ The use of `Kernel#open` is a serious security risk.
+            "#,
+        )
+        .id("security_open")
+        .severity(Severity::Convention)
+        .correctable(false),
+        // `maximum_target_ruby_version 3.0`: Psych 4 を積む Ruby 3.1 以降では退場する。
+        CopCase::annotated(
+            "Security/YAMLLoad",
+            r#"
+            YAML.load('x')
+                 ^^^^ Prefer using `YAML.safe_load` over `YAML.load`.
+            "#,
+        )
+        .id("security_yaml_load")
+        .severity(Severity::Convention)
+        .correctable(true),
         // ---- Style ----
         CopCase::annotated(
             "Style/FrozenStringLiteralComment",

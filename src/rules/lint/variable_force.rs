@@ -733,6 +733,15 @@ impl<'tree> Force<'tree, '_> {
         {
             self.reference_everything(node);
         }
+        // `super do ... end` hands the method's own arguments on exactly as a bare `super` does:
+        // upstream reads it as a block whose call is a `zsuper`, and only an argument list --
+        // `super()`'s empty one included -- makes it an ordinary `super` that passes nothing.
+        if let Some(method) = node.child_by_field_name("method")
+            && method.kind() == "super"
+            && node.child_by_field_name("arguments").is_none()
+        {
+            self.process_zero_arity_super(method);
+        }
         for child in named_children(node) {
             if node
                 .child_by_field_name("method")

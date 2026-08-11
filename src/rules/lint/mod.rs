@@ -3,8 +3,12 @@ mod variable_force;
 
 department_rules! {
     "Lint";
+    ambiguous_block_association => ("AmbiguousBlockAssociation", Warning),
+    assignment_in_condition => ("AssignmentInCondition", Warning),
     duplicate_methods => ("DuplicateMethods", Warning),
+    interpolation_check => ("InterpolationCheck", Warning),
     syntax => ("Syntax", Fatal),
     unused_block_argument => ("UnusedBlockArgument", Warning),
+    unused_method_argument => ("UnusedMethodArgument", Warning),
     useless_assignment => ("UselessAssignment", Warning),
 }

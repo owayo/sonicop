@@ -19,6 +19,25 @@ pub(super) fn compile_excludes(raw: &Value) -> HashMap<String, PathPatterns> {
         .collect()
 }
 
+/// Every cop's own `Include` list.
+///
+/// `AllCops/Include` chooses the files a run inspects; a cop's own `Include` chooses which of them
+/// it applies to, which is how the `Bundler` and `Gemspec` departments stay off ordinary Ruby.
+/// A cop that names no `Include` has no entry here and applies to everything.
+pub(super) fn compile_includes(raw: &Value) -> HashMap<String, PathPatterns> {
+    let Some(mapping) = raw.as_mapping() else {
+        return HashMap::new();
+    };
+    mapping
+        .iter()
+        .filter_map(|(name, value)| {
+            let name = name.as_str()?;
+            let patterns = mapping_patterns(value.as_mapping()?, "Include")?;
+            Some((name.to_owned(), patterns))
+        })
+        .collect()
+}
+
 pub(super) fn cop_patterns(raw: &Value, name: &str, key: &str) -> Option<PathPatterns> {
     mapping_patterns(raw.as_mapping()?.get(name)?.as_mapping()?, key)
 }

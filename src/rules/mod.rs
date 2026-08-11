@@ -32,11 +32,16 @@ macro_rules! department_rules {
     };
 }
 
+mod bundler;
+mod gemspec;
 mod layout;
 mod lint;
 mod metrics;
+mod migration;
 mod naming;
+mod ordered_gem;
 mod security;
+mod send_node;
 mod style;
 mod support;
 
@@ -68,9 +73,12 @@ impl Rule {
 /// Every department's registry, in the order cops run. Offenses are sorted before they are
 /// reported, so this order is not user-visible; it only has to stay deterministic.
 static RULE_GROUPS: &[&[Rule]] = &[
+    bundler::RULES,
+    gemspec::RULES,
     layout::RULES,
     lint::RULES,
     metrics::RULES,
+    migration::RULES,
     naming::RULES,
     security::RULES,
     style::RULES,

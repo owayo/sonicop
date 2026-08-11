@@ -1,11 +1,13 @@
 //! Name spelling and variable resolution shared by the cops that enforce `EnforcedStyle`.
 
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 use std::sync::LazyLock;
 
 use regex::Regex;
 use tree_sitter::Node;
 
+use crate::rules::RuleContext;
 use crate::source::SourceFile;
 
 // `ConfigurableNaming::FORMATS` writes these with POSIX character classes on purpose, and Ruby's
@@ -66,6 +68,12 @@ impl Variables {
     /// Whether the parser would build an `lvar` here rather than a receiverless `send`.
     pub(super) fn is_reference(&self, node: Node<'_>) -> bool {
         self.roles.get(&node.start_byte()) == Some(&Role::Reference)
+    }
+
+    /// Whether the name is being bound: an assignment target or a parameter, which is what
+    /// `on_lvasgn` and `on_arg` between them see.
+    pub(super) fn is_definition(&self, node: Node<'_>) -> bool {
+        self.roles.get(&node.start_byte()) == Some(&Role::Definition)
     }
 }
 
@@ -342,6 +350,454 @@ fn field(node: Node<'_>) -> Option<&'static str> {
             return None;
         }
     }
+}
+
+/// One heredoc, in the shape the `Heredoc` mixin hands its cops.
+pub(super) struct Heredoc {
+    /// `node.source_range`: the `<<~SQL` opening, which is all the parser gives the string node
+    /// itself. The body and the terminator live in separate locations.
+    pub opening: Range<usize>,
+    /// `node.loc.heredoc_end`, which starts at the beginning of the terminator's line and so
+    /// covers the indentation a `<<-` or `<<~` heredoc is allowed to close with.
+    pub heredoc_end: Range<usize>,
+    /// Whether the parser builds a node with no children, which is what an entirely empty body
+    /// produces and what `Naming/HeredocDelimiterNaming` reports the opening for.
+    pub empty: bool,
+}
+
+impl Heredoc {
+    /// `Heredoc#delimiter_string`: the delimiter with any quoting stripped.
+    pub(super) fn delimiter<'a>(&self, source: &'a SourceFile) -> &'a str {
+        static OPENING_DELIMITER: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new("(<<[~-]?)['\"`]?([^'\"`]+)['\"`]?").unwrap());
+        OPENING_DELIMITER
+            .captures(source.slice(self.opening.clone()))
+            .and_then(|captures| captures.get(2))
+            .map_or("", |group| group.as_str())
+    }
+}
+
+/// The file's heredocs, in the order the `<<` openings appear.
+///
+/// tree-sitter splits a heredoc in two: the `heredoc_beginning` sits where the string was written
+/// and the `heredoc_body` follows the statement that holds it. The parser upstream keeps them in
+/// one node, so the two lists have to be paired back up, which their shared source order does --
+/// bodies close in the order their openings were written.
+pub(super) fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
+    let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
+    context
+        .nodes_of("heredoc_beginning")
+        .zip(bodies)
+        .filter_map(|(opening, body)| {
+            let mut cursor = body.walk();
+            let terminator = body
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "heredoc_end")?;
+            let (body_line, _) = context.source.line_column(body.start_byte());
+            let (end_line, _) = context.source.line_column(terminator.start_byte());
+            Some(Heredoc {
+                opening: opening.byte_range(),
+                heredoc_end: context.source.line_start(end_line)..terminator.end_byte(),
+                // The body opens with the newline that ended the `<<` line, so a terminator on the
+                // very next line means the heredoc holds nothing at all.
+                empty: end_line == body_line + 1,
+            })
+        })
+        .collect()
+}
+
+/// One entry of `node.arguments`, in the shape the parser builds it.
+pub(super) struct Parameter<'tree> {
+    /// The parameter node itself, whose start is what `arg_range` measures from.
+    pub node: Node<'tree>,
+    /// The identifier the parameter binds, absent for an anonymous `*`, `**` or `&`, for `...`
+    /// and for `**nil`.
+    pub name: Option<Node<'tree>>,
+    /// The parser's node type, which decides both how the name is read and how far the range a
+    /// cop reports reaches past it.
+    pub kind: ParameterKind,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ParameterKind {
+    Arg,
+    Optarg,
+    Restarg,
+    Kwarg,
+    Kwoptarg,
+    Kwrestarg,
+    Blockarg,
+    Shadowarg,
+    /// A destructured parameter, which holds nodes rather than a name.
+    Mlhs,
+    /// `...`, `**nil` and the anonymous forms, none of which name anything.
+    Nameless,
+}
+
+/// The parameters of one `def`, block or lambda, in source order.
+///
+/// The list is what `node.arguments` yields upstream, so a destructured parameter stays one entry
+/// rather than being flattened into the names inside it.
+pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
+    let mut out = Vec::new();
+    let mut cursor = list.walk();
+    for child in list.named_children(&mut cursor) {
+        let kind = match child.kind() {
+            "identifier" if field(child) == Some("locals") => ParameterKind::Shadowarg,
+            "identifier" => ParameterKind::Arg,
+            "optional_parameter" => ParameterKind::Optarg,
+            "splat_parameter" => ParameterKind::Restarg,
+            "hash_splat_parameter" => ParameterKind::Kwrestarg,
+            "keyword_parameter" => {
+                if child.child_by_field_name("value").is_some() {
+                    ParameterKind::Kwoptarg
+                } else {
+                    ParameterKind::Kwarg
+                }
+            }
+            "block_parameter" => ParameterKind::Blockarg,
+            "destructured_parameter" => ParameterKind::Mlhs,
+            _ => ParameterKind::Nameless,
+        };
+        match kind {
+            ParameterKind::Arg | ParameterKind::Shadowarg => out.push(Parameter {
+                node: child,
+                name: Some(child),
+                kind,
+            }),
+            ParameterKind::Mlhs | ParameterKind::Nameless => out.push(Parameter {
+                node: child,
+                name: None,
+                kind,
+            }),
+            ParameterKind::Optarg => expand_optional(child, &mut out),
+            _ => out.push(Parameter {
+                node: child,
+                name: child.child_by_field_name("name"),
+                kind,
+            }),
+        }
+    }
+    out
+}
+
+/// Pushes the optional parameters an `optional_parameter` node stands for.
+///
+/// tree-sitter reads `def m(x = A, y = 2)` as one parameter whose default value is a multiple
+/// assignment that swallowed the parameter written after it. Ruby closes the default at the comma,
+/// so the swallowed names are parameters of their own and have to be handed back one at a time.
+fn expand_optional<'tree>(node: Node<'tree>, out: &mut Vec<Parameter<'tree>>) {
+    out.push(Parameter {
+        node,
+        name: node.child_by_field_name("name"),
+        kind: ParameterKind::Optarg,
+    });
+    let mut value = node.child_by_field_name("value");
+    while let Some(assignment) = value.filter(|node| node.kind() == "assignment") {
+        let Some(list) = assignment.child_by_field_name("left").filter(|left| {
+            left.kind() == "left_assignment_list" && spurious_assignment_list(*left)
+        }) else {
+            return;
+        };
+        let Some(name) = last_named_child(list).filter(|name| name.kind() == "identifier") else {
+            return;
+        };
+        out.push(Parameter {
+            node: name,
+            name: Some(name),
+            kind: ParameterKind::Optarg,
+        });
+        value = assignment.child_by_field_name("right");
+    }
+}
+
+/// Every identifier a parameter list binds, with the parser node type it would carry.
+///
+/// Unlike [`parameters`] this reaches inside a destructured parameter, because the cops that
+/// dispatch on the node type see the `arg` nodes in there rather than the `mlhs` around them.
+pub(super) fn bound_parameters<'tree>(list: Node<'tree>) -> Vec<(Node<'tree>, ParameterKind)> {
+    let mut out = Vec::new();
+    for parameter in parameters(list) {
+        if parameter.kind == ParameterKind::Mlhs {
+            destructured_names(parameter.node, &mut out);
+        } else if let Some(name) = parameter.name {
+            out.push((name, parameter.kind));
+        }
+    }
+    out
+}
+
+fn destructured_names<'tree>(node: Node<'tree>, out: &mut Vec<(Node<'tree>, ParameterKind)>) {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "identifier" => out.push((child, ParameterKind::Arg)),
+            "splat_parameter" => {
+                if let Some(name) = child.child_by_field_name("name") {
+                    out.push((name, ParameterKind::Restarg));
+                }
+            }
+            "destructured_parameter" => destructured_names(child, out),
+            _ => {}
+        }
+    }
+}
+
+/// The node kinds that hold a parameter list.
+pub(super) const PARAMETER_LISTS: &[&str] =
+    &["method_parameters", "block_parameters", "lambda_parameters"];
+
+/// `arg.children.first.to_s`: the name for a parameter that binds one, and the S-expression of the
+/// first element for a destructured parameter.
+///
+/// The second case is upstream's own accident -- `UncommunicativeName` reads the first child
+/// without checking that it is a symbol -- but it decides both the message and the length of the
+/// range reported, so it has to be reproduced exactly.
+pub(super) fn parameter_full_name(
+    parameter: &Parameter<'_>,
+    source: &SourceFile,
+) -> Option<String> {
+    if parameter.kind == ParameterKind::Mlhs {
+        let mut cursor = parameter.node.walk();
+        let first = parameter.node.named_children(&mut cursor).next()?;
+        return Some(sexp(first, source, 0));
+    }
+    Some(source.node_text(parameter.name?).to_owned())
+}
+
+/// `Parser::AST::Node#to_sexp`, for the nodes a destructured parameter is built from. Children
+/// that are nodes go on their own indented line, while a name stays on the head's line.
+fn sexp(node: Node<'_>, source: &SourceFile, indent: usize) -> String {
+    let padding = "  ".repeat(indent);
+    match node.kind() {
+        "destructured_parameter" => {
+            let mut out = format!("{padding}(mlhs");
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                out.push('\n');
+                out.push_str(&sexp(child, source, indent + 1));
+            }
+            out.push(')');
+            out
+        }
+        "splat_parameter" => match node.child_by_field_name("name") {
+            Some(name) => format!("{padding}(restarg :{})", source.node_text(name)),
+            None => format!("{padding}(restarg)"),
+        },
+        _ => format!("{padding}(arg :{})", source.node_text(node)),
+    }
+}
+
+/// `class_emitter_method?`: a singleton method may be named after a class defined beside it, as
+/// `def self.Foo` is next to `class Foo`. RuboCop lets that through -- the method emits the class.
+pub(super) fn class_emitter_method(node: Node<'_>, name: &str, source: &SourceFile) -> bool {
+    if node.kind() != "singleton_method" {
+        return false;
+    }
+    let mut current = node;
+    while let Some(parent) = current.parent().filter(|p| p.kind() == "singleton_method") {
+        current = parent;
+    }
+    let Some(parent) = current.parent() else {
+        return false;
+    };
+    let mut cursor = parent.walk();
+    parent.named_children(&mut cursor).any(|child| {
+        child.kind() == "class"
+            && child
+                .child_by_field_name("name")
+                .is_some_and(|class_name| source.node_text(class_name) == name)
+    })
+}
+
+/// Appends the character one Ruby escape sequence stands for. The numeric forms are the ones that
+/// matter: `:"a\000"` names a method whose name holds a NUL byte, which no naming style accepts,
+/// and reading the escape verbatim would have called it `a000`.
+pub(super) fn unescape(escape: &str, out: &mut String) {
+    let body = &escape[1..];
+    let mut characters = body.chars();
+    let Some(first) = characters.next() else {
+        return;
+    };
+    match first {
+        'n' => out.push('\n'),
+        't' => out.push('\t'),
+        'r' => out.push('\r'),
+        's' => out.push(' '),
+        'a' => out.push('\u{7}'),
+        'b' => out.push('\u{8}'),
+        'e' => out.push('\u{1b}'),
+        'f' => out.push('\u{c}'),
+        'v' => out.push('\u{b}'),
+        '\n' => {}
+        '0'..='7' => push_code_point(u32::from_str_radix(body, 8).ok(), out),
+        'x' => push_code_point(u32::from_str_radix(characters.as_str(), 16).ok(), out),
+        'u' => push_unicode(characters.as_str(), out),
+        // `\cX`, `\C-X` and `\M-X` name control and meta characters; none of them can appear in a
+        // name written in an enforced style, so the exact byte does not matter.
+        'c' | 'C' | 'M' => out.push('\u{1}'),
+        _ => out.push(first),
+    }
+}
+
+/// `\uXXXX` names one code point and `\u{...}` names a space-separated list of them.
+fn push_unicode(body: &str, out: &mut String) {
+    let Some(list) = body
+        .strip_prefix('{')
+        .and_then(|rest| rest.strip_suffix('}'))
+    else {
+        push_code_point(u32::from_str_radix(body, 16).ok(), out);
+        return;
+    };
+    for point in list.split_whitespace() {
+        push_code_point(u32::from_str_radix(point, 16).ok(), out);
+    }
+}
+
+fn push_code_point(value: Option<u32>, out: &mut String) {
+    // A code point Rust cannot hold is a surrogate or a raw byte; either way it is not a character
+    // any naming style allows, so a placeholder that is equally unacceptable stands in for it.
+    out.push(value.and_then(char::from_u32).unwrap_or('\u{1}'));
+}
+
+/// The value RuboCop reads off a `str`/`sym` node: the literal's text with its escapes resolved.
+/// A literal holding an interpolation is a `dstr`/`dsym` upstream, which names nothing, and is the
+/// one shape rejected here.
+pub(super) fn quoted_content(node: Node<'_>, source: &SourceFile) -> Option<String> {
+    let mut value = String::new();
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "string_content" => value.push_str(source.node_text(child)),
+            "escape_sequence" => unescape(source.node_text(child), &mut value),
+            _ => return None,
+        }
+    }
+    Some(value)
+}
+
+/// A Ruby pattern from the configuration, compiled for the `regex` crate.
+///
+/// A configuration value carrying the `!ruby/regexp` tag reaches RuboCop as a `Regexp` and keeps
+/// the flags written in the literal; a plain string is compiled without any. Ruby anchors `^` and
+/// `$` to lines whatever the flags say, and its `\w`, `\d` and `\s` stay ASCII while the POSIX
+/// classes do not, so the pattern is rewritten rather than handed over as written.
+pub(super) fn ruby_regex(value: &serde_yaml_ng::Value) -> Option<Regex> {
+    let (body, flags) = match value {
+        serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "!ruby/regexp" => {
+            let literal = tagged.value.as_str()?;
+            split_regexp_literal(literal).unwrap_or((literal, ""))
+        }
+        other => (other.as_str()?, ""),
+    };
+    let mut pattern = String::from("(?m");
+    if flags.contains('i') {
+        pattern.push('i');
+    }
+    // Ruby's `/m` is what makes `.` match a newline, which the `regex` crate spells `s`.
+    if flags.contains('m') {
+        pattern.push('s');
+    }
+    if flags.contains('x') {
+        pattern.push('x');
+    }
+    pattern.push(')');
+    pattern.push_str(&translate_ruby_pattern(body));
+    Regex::new(&pattern).ok()
+}
+
+/// `Regexp#to_s`, which is what a pattern looks like once a message has interpolated it: the
+/// enabled flags, the disabled ones, and the source, all in `m`, `i`, `x` order.
+pub(super) fn ruby_regex_to_s(value: &serde_yaml_ng::Value) -> Option<String> {
+    let (body, flags) = match value {
+        serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "!ruby/regexp" => {
+            let literal = tagged.value.as_str()?;
+            split_regexp_literal(literal).unwrap_or((literal, ""))
+        }
+        other => (other.as_str()?, ""),
+    };
+    let enabled: String = "mix".chars().filter(|flag| flags.contains(*flag)).collect();
+    let disabled: String = "mix"
+        .chars()
+        .filter(|flag| !flags.contains(*flag))
+        .collect();
+    let disabled = if disabled.is_empty() {
+        String::new()
+    } else {
+        format!("-{disabled}")
+    };
+    Some(format!("(?{enabled}{disabled}:{body})"))
+}
+
+/// Splits `/body/flags` into its two halves. A `Regexp` dumped to YAML is written that way, so the
+/// slashes and the trailing flags are not part of the pattern.
+fn split_regexp_literal(literal: &str) -> Option<(&str, &str)> {
+    let rest = literal.strip_prefix('/')?;
+    let close = rest.rfind('/')?;
+    let flags = &rest[close + 1..];
+    flags
+        .chars()
+        .all(|flag| matches!(flag, 'i' | 'm' | 'x' | 'o' | 'n' | 'u' | 's' | 'e'))
+        .then(|| (&rest[..close], flags))
+}
+
+/// Rewrites the escapes whose meaning differs between Ruby's regex engine and the `regex` crate.
+///
+/// Ruby's `\w`, `\d` and `\s` match ASCII only, while the crate reads them as Unicode properties,
+/// so a Japanese identifier would match a pattern that rejects it upstream. The POSIX classes run
+/// the other way: Ruby's are Unicode-aware and the crate's are not.
+fn translate_ruby_pattern(pattern: &str) -> String {
+    const POSIX_CLASSES: &[(&str, &str)] = &[
+        ("[:alpha:]", r"\p{Alphabetic}"),
+        ("[:alnum:]", r"\p{Alphabetic}\p{Nd}"),
+        ("[:upper:]", r"\p{Uppercase}"),
+        ("[:lower:]", r"\p{Lowercase}"),
+        ("[:digit:]", r"\p{Nd}"),
+        ("[:space:]", r"\p{White_Space}"),
+        ("[:word:]", r"\w"),
+        ("[:punct:]", r"\p{P}\p{S}"),
+    ];
+    let mut out = String::with_capacity(pattern.len());
+    let mut rest = pattern;
+    while let Some(character) = rest.chars().next() {
+        if character == '\\' {
+            let mut escaped = rest[1..].chars();
+            let Some(escape) = escaped.next() else {
+                out.push('\\');
+                break;
+            };
+            match escape {
+                'w' => out.push_str("[0-9A-Za-z_]"),
+                'W' => out.push_str("[^0-9A-Za-z_]"),
+                'd' => out.push_str("[0-9]"),
+                'D' => out.push_str("[^0-9]"),
+                's' => out.push_str("[ \\t\\r\\n\\x0B\\f]"),
+                'S' => out.push_str("[^ \\t\\r\\n\\x0B\\f]"),
+                'h' => out.push_str("[0-9a-fA-F]"),
+                'H' => out.push_str("[^0-9a-fA-F]"),
+                // `\Z` matches at the end of the text or just before a final newline, which the
+                // crate has no escape for.
+                'Z' => out.push_str("(?:\\n?\\z)"),
+                _ => {
+                    out.push('\\');
+                    out.push(escape);
+                }
+            }
+            rest = &rest[1 + escape.len_utf8()..];
+            continue;
+        }
+        if let Some((name, replacement)) = POSIX_CLASSES
+            .iter()
+            .find(|(name, _)| rest.starts_with(*name))
+        {
+            out.push_str(replacement);
+            rest = &rest[name.len()..];
+            continue;
+        }
+        out.push(character);
+        rest = &rest[character.len_utf8()..];
+    }
+    out
 }
 
 #[cfg(test)]

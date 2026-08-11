@@ -183,7 +183,11 @@ fn inspect_planned(
 
     for planned in &plan.entries {
         let rule = planned.rule;
-        if config.rule_excluded(rule.name, source.path()) {
+        // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
+        // `Exclude` does not, which is how a `Bundler` cop stays off everything but a Gemfile.
+        if !config.rule_included(rule.name, source.path())
+            || config.rule_excluded(rule.name, source.path())
+        {
             continue;
         }
         if rule.name == syntax_rule.name {
