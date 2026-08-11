@@ -136,17 +136,17 @@ Measured on the Rails 8.2.0.alpha source tree. Both tools were given their own b
 configuration (`--force-default-config`), so neither reads Rails' `.rubocop.yml`, and both resolve
 **the same 3,550 files**.
 
-| Run | RuboCop 1.89.0 | Sonicop 26.8.101 | Ratio |
+| Run | RuboCop 1.89.0 | Sonicop | Ratio |
 |---|---:|---:|---:|
-| The same 28 cops, parallel | 10.44 s | **2.78 s** | 3.8x |
-| The same 28 cops, single process | 33.82 s | **10.17 s** | 3.3x |
-| Every cop each tool enables by default | 22.52 s *(394 cops, parallel)* | **2.78 s** *(28 cops, parallel)* | — |
+| The same 28 cops, parallel | 8.80 s | **3.85 s** | 2.3x |
+| The same 28 cops, single process | 32.92 s | **15.49 s** | 2.1x |
+| Every cop each tool enables by default | 20.58 s *(394 cops, parallel)* | **3.85 s** *(28 cops, parallel)* | — |
 
 The last row is what the two commands do out of the box, and it is **not a like-for-like
 comparison**: Sonicop implements 28 of RuboCop's 609 cops, so it is answering a much smaller
 question. The first two rows restrict RuboCop to the same 28 cops, which is the honest measure of
-the engines. Over those cops the two disagree on 243 of 117,541 offenses (0.2%), so the speed is not
-bought by skipping work.
+the engines. Over those cops the two agree on **all 117,541 offenses** on this tree, so the speed is
+not bought by skipping work.
 
 Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each

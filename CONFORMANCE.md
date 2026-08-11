@@ -46,15 +46,21 @@ sonicop --force-default-config --format json
 | rails/rails | 0 | 0 | none |
 | mastodon/mastodon | 0 | 0 | none |
 | Homebrew/brew | 253 | 996 | none |
-| ruby/ruby | 262 | 2,457 | 146 |
+| ruby/ruby | 79 | 122 | 1 |
 
-Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. On
-ruby/ruby, 2,309 of the 2,457 missing offenses sit in 24 files that only Sonicop treats as
-unparseable. Both are explained under *Known divergences*.
+Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. So is
+most of ruby/ruby's — 115 of the 122 missing and 66 of the 79 excess are `Lint/Syntax` itself, which
+leaves **20 offenses out of 603,100** attributable to a cop. Twelve files, eight on Sonicop's side
+and four on RuboCop's, disagree about whether they parse at all and are excluded from that count;
+they are what the `Lint/Syntax` difference is made of. Both are explained under *Known divergences*.
 
 Autocorrect is compared the same way, byte for byte over the whole tree: run `-a` (and separately
-`-A`) with both tools from a clean checkout and diff the results. On rubocop/rubocop the corrected
-trees are **identical**.
+`-A`) with both tools from a clean checkout and diff the results. On rubocop/rubocop, Homebrew/brew
+and mastodon/mastodon the corrected trees are **identical**.
+
+Run the comparison on a copy of the corpus. Autocorrect rewrites the tree in place, so a run that
+shares a checkout with anything else — another comparison, a lint measurement — has both tools
+reading different files and reports differences that are not there.
 
 ## Reading a measurement
 
@@ -91,9 +97,14 @@ same.
 ### Grammar gaps
 
 Where tree-sitter rejects code that Ruby accepts, Sonicop reports a syntax error and — following the
-rule above — reports nothing else for that file. On ruby/ruby, 24 files are affected, and they carry
-2,309 of the 2,457 offenses Sonicop misses there. The remaining 148 are spread thinly across cops.
-These are grammar defects rather than cop defects, and are tracked in the tree-sitter-ruby fork.
+rule above — reports nothing else for that file. One such gap costs every offense in the file at
+once, which makes them worth hunting: fixing eight lexer rules in the grammar fork took ruby/ruby
+from 24 affected files to 8, and the offenses Sonicop was missing there from 2,457 to 122.
+
+What remains are constructs whose ambiguity Ruby resolves with information a grammar does not have.
+`$a?0:1` is the clearest: whether `?0` is a character literal or the start of a ternary depends on
+whether the token before it completed an expression, which in turn depends on knowing that `a` is a
+local variable rather than a method call.
 
 ### Encoding
 
