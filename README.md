@@ -120,9 +120,44 @@ The implemented cops are verified against RuboCop 1.89 using normalized JSON off
 On RuboCop's complete 1,759-file source tree with the upstream default configuration, the current
 snapshot matches all 4,052 reference offense locations (**100% recall**) with **zero false
 positives and zero metadata differences**. On Rails, all 3,453 Ruby target paths and the root/nested enabled-cop lists match
-exactly, the full tree has zero false positives, and the 402-file Active Record subset runs about
-12.5x faster without cache. See [CONFORMANCE.md](CONFORMANCE.md) for the commands, scope, and
-measurements.
+exactly, and the full tree has zero false positives. See [CONFORMANCE.md](CONFORMANCE.md) for the
+commands, scope, and measurements.
+
+### Performance
+
+Measured on the Rails 8.2.0.alpha source tree. Both tools were given their own bundled default
+configuration (`--force-default-config`), so neither reads Rails' `.rubocop.yml`, and both resolve
+**the same 3,550 files**.
+
+| Run | RuboCop 1.89.0 | Sonicop 26.8.101 | Ratio |
+|---|---:|---:|---:|
+| The same 28 cops, parallel | 10.44 s | **2.78 s** | 3.8x |
+| The same 28 cops, single process | 33.82 s | **10.17 s** | 3.3x |
+| Every cop each tool enables by default | 22.52 s *(394 cops, parallel)* | **2.78 s** *(28 cops, parallel)* | — |
+
+The last row is what the two commands do out of the box, and it is **not a like-for-like
+comparison**: Sonicop implements 28 of RuboCop's 609 cops, so it is answering a much smaller
+question. The first two rows restrict RuboCop to the same 28 cops, which is the honest measure of
+the engines. Over those cops the two disagree on 243 of 117,541 offenses (0.2%), so the speed is not
+bought by skipping work.
+
+Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
+with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
+run rather than disabled; timing it with `--cache false --parallel` measures a single process and
+overstates the difference. RuboCop's default is a single process, while Sonicop is parallel unless
+`--no-parallel` is passed.
+
+```bash
+# RuboCop, parallel, cold cache, restricted to the cops Sonicop implements
+rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
+        --no-color --parallel --only "$COPS" -f quiet
+
+# Sonicop
+sonicop --force-default-config --format quiet
+```
+
+Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
+Each figure is the fastest of two to three warmed runs.
 
 ## Development
 

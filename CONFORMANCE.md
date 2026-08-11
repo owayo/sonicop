@@ -104,6 +104,9 @@ locations: zero false positives and 10 visible false negatives. The missing loca
 `Layout/IndentationWidth`, two unsupported `Lint/DuplicateMethods` cases, and one
 `Lint/Debugger`. Artifacts: `/tmp/sonicop-conformance-rails-full-2`.
 
-On the 402-file `activerecord/lib` subset, a warmed single run with cache and color disabled took
-4.37 seconds for RuboCop and 0.35 seconds for Sonicop (`/usr/bin/time -p`): approximately
-**12.5x faster** on the validation machine.
+Timings live in the README's Performance section. An earlier measurement here reported roughly
+12.5x on the 402-file `activerecord/lib` subset "with cache disabled", which overstated the
+difference: RuboCop turns `--parallel` off when it is combined with `--cache false`, so that figure
+compared a parallel Sonicop against a single-process RuboCop. Restricting RuboCop to the cops
+Sonicop implements and letting it run in parallel puts the gap at about 3.8x over the whole Rails
+tree.
