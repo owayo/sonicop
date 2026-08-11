@@ -1,21 +1,39 @@
+//! `Layout/SpaceAfterComma`.
+
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::source::is_protected;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let ranges = context.protected_ranges();
     let bytes = context.source.text().as_bytes();
-    for index in 0..bytes.len() {
-        if bytes[index] != b',' || is_protected(index, ranges) {
+    // RuboCop lets a comma sit against `}` only where `Layout/SpaceInsideHashLiteralBraces`
+    // forbids the space that would otherwise follow it.
+    let no_space_before_rcurly = context
+        .setting_of::<String>("Layout/SpaceInsideHashLiteralBraces", "EnforcedStyle")
+        .as_deref()
+        == Some("no_space");
+    for node in context.nodes() {
+        // RuboCop walks the lexer's tokens, where a comma inside a string literal or a heredoc
+        // delimiter is part of that literal rather than a comma. The tree has the same
+        // distinction: only a comma the parser recognised is a node of its own.
+        if node.kind() != "," {
             continue;
         }
-        let next = bytes.get(index + 1).copied();
-        if next.is_none_or(|byte| {
-            matches!(
-                byte,
-                b' ' | b'\t' | b'\r' | b'\n' | b')' | b']' | b'}' | b'|'
-            )
-        }) {
+        let index = node.start_byte();
+        let Some(&next) = bytes.get(index + 1) else {
+            continue;
+        };
+        // The offense is about the *next token* starting one column along, so anything but a
+        // token butting against the comma -- whitespace, a line break, the end of the file --
+        // leaves nothing to report.
+        let skip = match next {
+            b' ' | b'\t' | b'\r' | b'\n' => true,
+            // `;` is not a comma's business, and `)`, `]` and `|` close a construct where
+            // RuboCop asks for no space.
+            b';' | b')' | b']' | b'|' => true,
+            b'}' => no_space_before_rcurly,
+            _ => false,
+        };
+        if skip {
             continue;
         }
         offenses.push(

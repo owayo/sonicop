@@ -7,17 +7,29 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children, walk_named};
 
-/// What kind of construct a length cop measures. The three differ in how the body is counted and
-/// where the offense is reported, so naming the kind keeps those differences in one place instead
-/// of spreading cop-name comparisons through the counting code.
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub(super) enum LengthTarget {
-    /// A method, counted over its body.
-    Method,
+/// What kind of construct a length cop measures. The variants differ in how the body is counted
+/// and in which node RuboCop handed `check_code_length`, since that node fixes both the offense
+/// location and the line span of the cheap pre-check. Naming the kind keeps those differences in
+/// one place instead of spreading cop-name comparisons through the counting code.
+#[derive(Clone, Copy)]
+pub(super) enum LengthTarget<'tree> {
+    /// Counted over its body and reported against itself: a method, or a `class << self`.
+    ///
+    /// `CodeLengthCalculator::CLASSLIKE_TYPES` holds `class` and `module` only, so a singleton
+    /// class falls through to `extract_body` like a method does -- it is measured over its body
+    /// rather than over its interior line range.
+    Body,
     /// A class or module, counted over its interior with nested classes and modules removed.
     Classlike,
-    /// A block, reported against the call that owns it.
+    /// A block, counted over its body and reported against the call that owns it.
     Block,
+    /// `CONST = Module.new { ... }`, whose block body is what gets counted while RuboCop is handed
+    /// the assignment: the pre-check spans the assignment and the offense lands on the constant,
+    /// because `CodeLength#location` answers `loc.name` for a constant assignment.
+    ConstantAssignment {
+        assignment: Node<'tree>,
+        name: Node<'tree>,
+    },
 }
 
 /// Where each heredoc's terminator sits, keyed by the offset of the `<<~FOO` that opened it.
@@ -57,26 +69,37 @@ pub(super) fn report_length(
     node: Node<'_>,
     max: usize,
     label: &str,
-    target: LengthTarget,
+    target: LengthTarget<'_>,
     heredocs: &HeredocEnds,
 ) {
     let count_comments: bool = context.setting("CountComments").unwrap_or(false);
     if node.child_by_field_name("body").is_none() {
         return;
     }
-    let length = if target == LengthTarget::Classlike {
-        classlike_code_line_count(node, context, count_comments)
-    } else {
-        body_code_line_count(node, context, count_comments, heredocs)
+    let location = match target {
+        LengthTarget::Block => block_location(node),
+        LengthTarget::ConstantAssignment { name, .. } => name,
+        _ => node,
+    };
+    // RuboCop skips the count outright when the construct cannot span more than `max` lines. That
+    // reads like a pure optimisation but is observable: a body ending in a heredoc is measured out
+    // to the terminator, which can sit past the construct's own last line.
+    let span = match target {
+        LengthTarget::Block => location,
+        LengthTarget::ConstantAssignment { assignment, .. } => assignment,
+        _ => node,
+    };
+    let spanned_lines = span.end_position().row - span.start_position().row + 1;
+    if spanned_lines <= max {
+        return;
+    }
+    let length = match target {
+        LengthTarget::Classlike => classlike_code_line_count(node, context, count_comments),
+        _ => body_code_line_count(node, context, count_comments, heredocs),
     };
     if length <= max {
         return;
     }
-    let location = if target == LengthTarget::Block {
-        block_location(node)
-    } else {
-        node
-    };
     offenses.push(context.offense(
         format!("{label} has too many lines. [{length}/{max}]"),
         location.byte_range(),
@@ -116,15 +139,20 @@ fn body_code_line_count(
     count_code_lines(context, start, end, count_comments)
 }
 
-/// The statements RuboCop would see as the body. A `heredoc_body` is content, not a statement:
-/// tree-sitter parks it beside the statement that opened it, where RuboCop has nothing at all.
+/// The statements RuboCop would see as the body, in the order they are written.
+///
+/// tree-sitter parks two kinds of node here that RuboCop has nothing at all for: a `heredoc_body`,
+/// which is content rather than a statement, and a `comment`. Leaving either in place moves the
+/// ends of the measured span -- a trailing `end # note` would push the last line past where the
+/// body really stops -- and makes a one-statement body look like several, which changes which
+/// nodes `heredoc_extended_end` treats as its own.
 fn statements_of(body: Node<'_>) -> Vec<Node<'_>> {
     if !matches!(body.kind(), "body_statement" | "block_body") {
         return vec![body];
     }
     let mut cursor = body.walk();
     body.named_children(&mut cursor)
-        .filter(|child| child.kind() != "heredoc_body")
+        .filter(|child| !matches!(child.kind(), "heredoc_body" | "comment"))
         .collect()
 }
 
@@ -147,7 +175,7 @@ fn heredoc_extended_end(statements: &[Node<'_>], heredocs: &HeredocEnds) -> Opti
         if current.kind() == "heredoc_beginning" {
             found = true;
             last_row = last_row.max(heredocs.end_row(current));
-        } else if !is_transparent_wrapper(current.kind()) {
+        } else if !outside_rubocop_ast(current.kind()) {
             last_row = last_row.max(current.end_position().row);
         }
         push_named_children(current, &mut stack);
@@ -155,15 +183,15 @@ fn heredoc_extended_end(statements: &[Node<'_>], heredocs: &HeredocEnds) -> Opti
     found.then_some(last_row)
 }
 
-/// Node kinds tree-sitter interposes where RuboCop has nothing.
+/// Node kinds whose own extent RuboCop's `each_descendant` never reaches.
 ///
 /// A `do`/brace block and a parenthesized argument list both belong to the surrounding call in
 /// RuboCop's tree, so their `end`, `}` and `)` are the *call's* closing tokens -- and a node's own
 /// closing token is what this span deliberately stops short of. Counting these wrappers as if they
-/// were children would put those tokens back, adding a line RuboCop never counts. Their contents
-/// are still visited; only the wrapper's own extent is ignored.
-fn is_transparent_wrapper(kind: &str) -> bool {
-    matches!(kind, "block" | "do_block" | "argument_list")
+/// were children would put those tokens back, adding a line RuboCop never counts. A `comment` is
+/// not part of the AST at all. Their contents are still visited; only their own extent is ignored.
+fn outside_rubocop_ast(kind: &str) -> bool {
+    matches!(kind, "block" | "do_block" | "argument_list" | "comment")
 }
 
 fn count_code_lines(
@@ -185,6 +213,9 @@ fn classlike_code_line_count(
     context: &RuleContext<'_>,
     count_comments: bool,
 ) -> usize {
+    if is_namespace(node) {
+        return 0;
+    }
     let mut excluded_lines = HashSet::new();
     walk_named(node, &mut |descendant| {
         if descendant == node || !matches!(descendant.kind(), "class" | "module") {
@@ -208,4 +239,34 @@ fn classlike_code_line_count(
             !text.is_empty() && (count_comments || !text.starts_with('#'))
         })
         .count()
+}
+
+/// Whether the class or module exists only to namespace a single class or module, which RuboCop
+/// measures as zero lines however far apart the two `end`s are.
+fn is_namespace(node: Node<'_>) -> bool {
+    node.child_by_field_name("body")
+        .map(statements_of)
+        .is_some_and(|statements| {
+            matches!(statements.as_slice(), [only] if matches!(only.kind(), "class" | "module"))
+        })
+}
+
+/// The receiver constant and method name of `Const.method(...)`, for the receiver being a plain
+/// (possibly `::`-rooted) constant -- RuboCop's `#global_const?` accepts exactly those two shapes,
+/// so a namespaced `Foo::Struct` must not match.
+pub(super) fn constructor_call<'a>(
+    context: &'a RuleContext<'_>,
+    call: Node<'_>,
+) -> Option<(&'a str, &'a str)> {
+    let receiver = call.child_by_field_name("receiver")?;
+    let method = call.child_by_field_name("method")?;
+    if !matches!(receiver.kind(), "constant" | "scope_resolution") {
+        return None;
+    }
+    let text = context.source.node_text(receiver);
+    let name = text.strip_prefix("::").unwrap_or(text);
+    if name.contains("::") {
+        return None;
+    }
+    Some((name, context.source.node_text(method)))
 }

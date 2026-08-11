@@ -131,6 +131,11 @@ fn recursive_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if LITERAL_COMPOSITE_KINDS.contains(&kind) {
         return named_children(node).all(|child| recursive_literal(child, context));
     }
+    // A heredoc interpolated into the evaluated string reaches RuboCop as a plain `str`, so it is
+    // literal exactly when its own body is. Its body is a sibling of the statement, not a child.
+    if kind == "heredoc_beginning" {
+        return heredoc_body(node, context).is_some_and(|body| recursive_literal(body, context));
+    }
     if matches!(kind, "unary" | "binary" | "boolean") {
         let Some(operator) = node
             .child_by_field_name("operator")

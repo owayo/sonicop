@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             node,
             max,
             "Method",
-            LengthTarget::Method,
+            LengthTarget::Body,
             &heredocs,
         );
     }

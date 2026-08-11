@@ -1,5 +1,6 @@
 use tree_sitter::Node;
 
+use super::support::constructor_call;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -166,24 +167,4 @@ fn argument_to_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool
         None => matches!(context.source.node_text(method), "lambda" | "proc"),
         Some(_) => matches!(constructor_call(context, call), Some(("Proc", "new"))),
     }
-}
-
-/// The receiver constant and method name of `Const.method(...)`, for the receiver being a plain
-/// (possibly `::`-rooted) constant -- RuboCop's `#global_const?` accepts exactly those two shapes,
-/// so a namespaced `Foo::Struct` must not match.
-fn constructor_call<'a>(
-    context: &'a RuleContext<'_>,
-    call: Node<'_>,
-) -> Option<(&'a str, &'a str)> {
-    let receiver = call.child_by_field_name("receiver")?;
-    let method = call.child_by_field_name("method")?;
-    let name = context
-        .source
-        .node_text(receiver)
-        .strip_prefix("::")
-        .unwrap_or_else(|| context.source.node_text(receiver));
-    if !matches!(receiver.kind(), "constant" | "scope_resolution") || name.contains("::") {
-        return None;
-    }
-    Some((name, context.source.node_text(method)))
 }

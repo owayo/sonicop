@@ -167,13 +167,13 @@ impl Offense {
             return snapshot.location;
         }
         let (start_line, start_column) = source.line_column(self.start);
-        // Stepping back one byte from the exclusive end can land inside a multibyte character,
-        // which `line_column` cannot slice at; walk back to the character that byte belongs to.
-        let mut inclusive_end = self.end.saturating_sub(1).max(self.start);
-        while inclusive_end > self.start && !source.text().is_char_boundary(inclusive_end) {
-            inclusive_end -= 1;
-        }
-        let (last_line, last_column) = source.line_column(inclusive_end);
+        // RuboCop resolves the end of a range at the exclusive end offset rather than at the last
+        // character it covers, so a range closing on a newline is reported on the following line and
+        // an empty range yields a `last_column` one before its start. Its JSON formatter emits that
+        // column zero-based — the one place the two ends of a location disagree on their base — and
+        // maps a resulting 0 back to 1.
+        let (last_line, end_column) = source.line_column(self.end);
+        let last_column = (end_column - 1).max(1);
         Location {
             start_line,
             start_column,

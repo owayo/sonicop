@@ -3,21 +3,36 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
+/// Calls whose block body RuboCop treats as a method body of its own.
+const BLOCK_BODY_CALLS: &[&str] = &["define_method", "define_singleton_method", "lambda"];
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_multiple_return_values: bool = context
         .setting("AllowMultipleReturnValues")
         .unwrap_or(false);
-    for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(body) = node.child_by_field_name("body") else {
+    let mut returns: Vec<Node<'_>> = Vec::new();
+
+    for node in context.nodes_of_any(&["method", "singleton_method", "call", "lambda"]) {
+        let body = match node.kind() {
+            "call" => block_body_of_tracked_call(node, context),
+            // `-> { ... }` reaches RuboCop as a call to `lambda` too, so its body is a body.
+            "lambda" => node
+                .child_by_field_name("body")
+                .and_then(|block| block.child_by_field_name("body")),
+            _ => node.child_by_field_name("body"),
+        };
+        let Some(body) = body else {
             continue;
         };
-        let Some(last) = last_body_statement(body) else {
-            continue;
-        };
-        if last.kind() != "return" {
-            continue;
-        }
-        let arguments = return_arguments(last);
+        check_branch(body, &mut returns);
+    }
+
+    // RuboCop keys reported offenses by range, so a `return` reached twice is reported once.
+    returns.sort_by_key(Node::start_byte);
+    returns.dedup_by_key(|node| node.start_byte());
+
+    for node in returns {
+        let arguments = return_arguments(node);
         let multiple_values = arguments.len() > 1 && !braceless_hash(&arguments);
         if allow_multiple_return_values && multiple_values {
             continue;
@@ -31,11 +46,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             context
                 .offense(
                     message,
-                    last.start_byte()..last.start_byte() + "return".len(),
+                    node.start_byte()..node.start_byte() + "return".len(),
                 )
                 .corrected_by(redundant_return_edit(
                     context,
-                    last,
+                    node,
                     &arguments,
                     multiple_values,
                 )),
@@ -43,20 +58,151 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// The expression a method body evaluates last. A trailing comment is a named
-/// node here but absent from RuboCop's AST, so it must not stand in for the
-/// final expression and hide the `return` behind it.
-fn last_body_statement(body: Node<'_>) -> Option<Node<'_>> {
-    let mut cursor = body.walk();
-    body.named_children(&mut cursor)
+/// The body of a `define_method`/`lambda` block, which RuboCop walks like a method body.
+fn block_body_of_tracked_call<'tree>(
+    node: Node<'tree>,
+    context: &RuleContext<'_>,
+) -> Option<Node<'tree>> {
+    let name = node.child_by_field_name("method")?;
+    if !BLOCK_BODY_CALLS.contains(&context.source.node_text(name)) {
+        return None;
+    }
+    let block = node.child_by_field_name("block")?;
+    block.child_by_field_name("body")
+}
+
+/// RuboCop's `check_branch`: the tail position of a method body, followed through the
+/// constructs whose last expression is what the method returns.
+///
+/// A loop or a plain call is not one of them, so a `return` inside `while` or inside a block
+/// other than the tracked calls above stays untouched.
+fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
+    match node.kind() {
+        "return" => returns.push(node),
+        "case" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                match child.kind() {
+                    "when" => {
+                        if let Some(body) = child.child_by_field_name("body") {
+                            check_branch(body, returns);
+                        }
+                    }
+                    "else" => check_branch(child, returns),
+                    _ => {}
+                }
+            }
+        }
+        "case_match" => {
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                match child.kind() {
+                    "in_clause" => {
+                        if let Some(body) = child.child_by_field_name("body") {
+                            check_branch(body, returns);
+                        }
+                    }
+                    "else" => check_branch(child, returns),
+                    _ => {}
+                }
+            }
+        }
+        // `elsif` is how the grammar spells the `if` RuboCop finds nested in the else branch.
+        "if" | "unless" | "elsif" => {
+            for field in ["consequence", "alternative"] {
+                if let Some(branch) = node.child_by_field_name(field) {
+                    check_branch(branch, returns);
+                }
+            }
+        }
+        "if_modifier" | "unless_modifier" => {
+            if let Some(body) = node.child_by_field_name("body") {
+                check_branch(body, returns);
+            }
+        }
+        // `return +1` reaches the grammar as `(return) + 1`, because a leading `+` on a literal
+        // is indistinguishable from an addition without knowing that `return` takes arguments.
+        // RuboCop's parser reads it as `return(+1)`, so the keyword is still a redundant return.
+        "binary" => {
+            if node
+                .child_by_field_name("left")
+                .is_some_and(|left| left.kind() == "return" && left.named_child_count() == 0)
+            {
+                returns.push(node);
+            }
+        }
+        // Statement sequences. RuboCop sees a `begin` node here and follows its last child;
+        // when the sequence carries `rescue`/`else`/`ensure` clauses it sees the `rescue` and
+        // `ensure` nodes the parser wraps that body in instead.
+        "body_statement"
+        | "begin"
+        | "parenthesized_statements"
+        | "block_body"
+        | "then"
+        | "else" => check_sequence(node, returns),
+        _ => {}
+    }
+}
+
+/// The tail of a statement sequence, including the exception-handling clauses it may carry.
+///
+/// An `ensure` body is never in tail position -- RuboCop's `check_ensure_node` looks only at the
+/// protected body -- so it is skipped even though it is a child here.
+fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
+    let mut cursor = node.walk();
+    let children: Vec<Node<'tree>> = node
+        .named_children(&mut cursor)
         .filter(|child| child.kind() != "comment")
-        .last()
+        .collect();
+
+    let mut statements: Vec<Node<'tree>> = Vec::new();
+    let mut rescues: Vec<Node<'tree>> = Vec::new();
+    let mut else_clause = None;
+    for child in children {
+        match child.kind() {
+            "rescue" => rescues.push(child),
+            "else" => else_clause = Some(child),
+            "ensure" => {}
+            _ if rescues.is_empty() && else_clause.is_none() => statements.push(child),
+            _ => {}
+        }
+    }
+
+    if rescues.is_empty() {
+        // The `else` of a bare `begin ... else ... end` is unreachable dead code, so a sequence
+        // without a rescue keeps its last statement as the tail.
+        if let Some(last) = statements.last() {
+            check_branch(*last, returns);
+        }
+        return;
+    }
+
+    for rescue in rescues {
+        if let Some(body) = rescue.child_by_field_name("body") {
+            check_branch(body, returns);
+        }
+    }
+    // With an `else` the protected body's value is discarded, so only the `else` is in tail
+    // position. Without one the body itself is.
+    match else_clause {
+        Some(clause) => check_branch(clause, returns),
+        None => {
+            if let Some(last) = statements.last() {
+                check_branch(*last, returns);
+            }
+        }
+    }
 }
 
 /// The values a `return` yields. RuboCop reads them off the `return` node
 /// itself, where a braceless trailing hash has already been folded into one
 /// `hash` argument, while tree-sitter keeps its `pair`s separate.
 fn return_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    // The `return +1` shape above: the value RuboCop sees as the sole argument is the right
+    // operand the grammar split off.
+    if node.kind() == "binary" {
+        return node.child_by_field_name("right").into_iter().collect();
+    }
     let Some(list) = node
         .named_child(0)
         .filter(|child| child.kind() == "argument_list")

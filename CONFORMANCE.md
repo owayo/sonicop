@@ -68,11 +68,18 @@ Two properties of the harness itself also bound what a run can tell you:
 - Only the cops passed to `--cop` are compared. Cops that RuboCop reports and Sonicop has not
   implemented show up as false negatives, which is expected rather than a defect.
 - RuboCop emits **only** `Lint/Syntax` for a file it considers fatally unparseable and suppresses
-  every other cop for that file, while Sonicop keeps inspecting it. Whenever the two disagree
-  about syntax validity — most easily triggered by a `TargetRubyVersion` the source does not
-  satisfy — the false-positive count is dominated by that single behaviour rather than by cop
-  logic. Check the reference output for `"severity": "fatal"` before reading a large false-positive
-  count as a cop problem.
+  every other cop for that file. Sonicop does the same (`Cop::Commissioner#investigate` only walks
+  the AST for a source that reports `valid_syntax?`), so the two now agree on the shape of the
+  output for such a file. They can still disagree on *which* files those are: Sonicop decides with
+  a tree-sitter parse plus a `TargetRubyVersion` feature gate rather than the `parser` gem, so a
+  construct one accepts and the other rejects moves every offense in that file at once. Check the
+  reference output for `"severity": "fatal"` before reading a large false-positive or
+  false-negative count as a cop problem.
+- Inside a file that does not parse, only the *first* diagnostic of each broken construct is
+  reproduced. RuboCop reports whatever its LALR parser recovers into, which cascades into
+  follow-on diagnostics (`class definition in method body`, `dynamic constant assignment`,
+  repeated `unexpected token` reports inside one multi-line hash) that a tree-sitter parse has no
+  way to reconstruct. Those show up as false negatives on `Lint/Syntax`.
 
 Closing these gaps properly means migrating RuboCop's own spec suite, which exercises each cop
 against inputs written to break it. Until that lands, this document records what was measured, not

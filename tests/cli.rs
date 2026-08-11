@@ -12,7 +12,8 @@ use std::fs;
 use std::process::Command;
 
 use support::project::{
-    assert_offenses, command, lint_stdin, offenses, project, project_without_pinned_ruby, report,
+    assert_offenses, command, lint_stdin, offenses, project, project_with_ruby,
+    project_without_pinned_ruby, report,
 };
 
 /// `Lint/Syntax` が付ける版の注記。src 側の書式と一致させて固定する。
@@ -408,10 +409,16 @@ fn auto_gen_config_escapes_single_quotes_in_paths() {
 
 #[test]
 fn rails_compatibility_exceptions_do_not_create_false_positives() {
-    let directory = project(&[(
-        ".rubocop.yml",
-        "Style/Semicolon:\n  AllowAsExpressionSeparator: true\nStyle/StringLiterals:\n  EnforcedStyle: double_quotes\n",
-    )]);
+    // ソースが `call(payload:)` を含むので、値の省略を受け付ける 3.1 で見る。
+    // 2.7 のままだと本家もここを構文エラーにし (実測: 21:18 tRPAREN と 42:4 $end)、
+    // ファイル全体が Lint/Syntax 以外の cop の対象から外れてしまう。
+    let directory = project_with_ruby(
+        &[(
+            ".rubocop.yml",
+            "Style/Semicolon:\n  AllowAsExpressionSeparator: true\nStyle/StringLiterals:\n  EnforcedStyle: double_quotes\n",
+        )],
+        "3.1",
+    );
     let source = r##"class Example
   if RUBY_ENGINE == "ruby"
     def dump; 1; end

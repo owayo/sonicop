@@ -17,6 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.104"
 clap = { version = "4.6.4", features = ["derive", "wrap_help"] }
+encoding_rs = "0.8.35"
 globset = "0.4.19"
 ignore = "0.4.31"
 rayon = "1.12.0"

@@ -310,7 +310,8 @@ mod layout {
             "x = 1",
             vec![Annotation::new(1, 6, 0, "Final newline missing.")],
         )
-        .locations(&[(1, 6, 1, 6)])
+        // 空範囲なので本家の last_column は開始位置の 1 つ手前になる。
+        .locations(&[(1, 6, 1, 5)])
         .run();
     }
 
@@ -321,9 +322,12 @@ mod layout {
         CopCase::new(
             "Layout/TrailingEmptyLines",
             "x = 1\n\n",
-            vec![Annotation::new(2, 1, 1, "1 trailing blank lines detected.")],
+            // レンジは改行 1 文字ぶんだが、次の行まで跨るのでキャレットは
+            // 本家 `column_length` と同じく開始行の残り幅 (= 0) になる。
+            vec![Annotation::new(2, 1, 0, "1 trailing blank lines detected.")],
         )
-        .locations(&[(2, 1, 2, 1)])
+        // 範囲が改行で終わるので、本家の last_line はその次の行になる。
+        .locations(&[(2, 1, 3, 1)])
         .run();
     }
 
@@ -1405,5 +1409,1406 @@ mod regressions {
             .without_offense_check()
             .locations(&[(1, 1, 1, 1)])
             .run();
+    }
+}
+
+/// 長さ系 cop が「何行と数えるか」の回帰。`CodeLengthCalculator` と
+/// `CodeLength#check_code_length` の分岐ごとに 1 ケース置く。期待値はすべて
+/// rubocop 1.89.0 の `--only <cop> -f json` 実測。
+mod metrics_length_counting {
+    use super::*;
+
+    /// `CLASSLIKE_TYPES` は `class` と `module` だけなので、`class << self` は
+    /// クラスの行範囲ではなくメソッドと同じく body で数えられる。行範囲で数えると
+    /// 閉じ `end` の分だけ 1 行多い 4 になる。
+    ///
+    /// 実測: line 1 col 1 last 6,3 len 53 / `Class has too many lines. [3/1]`
+    #[test]
+    fn singleton_class_is_measured_over_its_body() {
+        CopCase::annotated(
+            "Metrics/ClassLength",
+            r#"
+            class << self
+            ^^^^^^^^^^^^^ Class has too many lines. [3/1]
+              # a comment
+              def one
+                1
+              end
+            end
+            "#,
+        )
+        .config("Metrics/ClassLength:\n  Max: 1\n")
+        .locations(&[(1, 1, 6, 3)])
+        .lengths(&[53])
+        .run();
+    }
+
+    /// 行末コメントは RuboCop の AST に存在しないので、body の最終行を
+    /// コメントの行まで伸ばしてはいけない。ヒアドキュメントを含む body は
+    /// 行範囲で数えられるため、伸びた 1 行がそのまま件数に出る。
+    ///
+    /// 実測: 1:1 `[5/1]` / 2:3 `[4/1]`
+    #[test]
+    fn a_trailing_comment_does_not_extend_a_body_holding_a_heredoc() {
+        CopCase::annotated(
+            "Metrics/BlockLength",
+            r#"
+            outer do
+            ^^^^^^^^ Block has too many lines. [5/1]
+              inner do
+              ^^^^^^^^ Block has too many lines. [4/1]
+                write <<~RUBY
+                  a
+                  b
+                RUBY
+              end # inner
+            end
+            "#,
+        )
+        .config("Metrics/BlockLength:\n  Max: 1\n")
+        .locations(&[(1, 1, 8, 3), (2, 3, 7, 5)])
+        .run();
+    }
+
+    /// `CountComments: true` でも同じ。body は `bar` の 1 行きりで、後続の
+    /// コメント行は body の外にある。
+    ///
+    /// 実測: offense なし
+    #[test]
+    fn a_trailing_comment_is_outside_the_body_even_when_comments_count() {
+        CopCase::new(
+            "Metrics/MethodLength",
+            "def foo\n  bar\n  # trailing\nend\n",
+            Vec::new(),
+        )
+        .config("Metrics/MethodLength:\n  Max: 1\n  CountComments: true\n")
+        .run();
+    }
+
+    /// 中身が class か module 1 つきりの名前空間は、`end` がどれだけ離れていても
+    /// 0 行と数えられる。`Max: 0` でないと差が出ない。
+    ///
+    /// 実測: 3:3 `[3/0]` のみ (外側の `Outer` には出ない)
+    #[test]
+    fn a_namespace_module_counts_as_zero_lines() {
+        CopCase::annotated(
+            "Metrics/ModuleLength",
+            r#"
+            module Outer
+              # a comment
+              module Inner
+              ^^^^^^^^^^^^ Module has too many lines. [3/0]
+                def a
+                  1
+                end
+              end
+            end
+            "#,
+        )
+        .config("Metrics/ModuleLength:\n  Max: 0\n")
+        .locations(&[(3, 3, 7, 5)])
+        .run();
+    }
+
+    /// 1 行に収まる構文は、body がヒアドキュメントで下へ伸びていても
+    /// `node.line_count <= max_length` で計算前に打ち切られる。`Max: 0` にすると
+    /// 打ち切りが外れて 4 行として報告される。
+    ///
+    /// 実測: Max 1 → offense なし / Max 0 → 1:1 last 1,17 len 17 `[4/0]`
+    #[test]
+    fn a_single_line_construct_is_skipped_before_counting() {
+        let source = "foo { bar(<<~X) }\n  a\n  b\nX\n";
+        CopCase::new("Metrics/BlockLength", source, Vec::new())
+            .config("Metrics/BlockLength:\n  Max: 1\n")
+            .run();
+        CopCase::new("Metrics/BlockLength", source, Vec::new())
+            .config("Metrics/BlockLength:\n  Max: 0\n")
+            .without_offense_check()
+            .locations(&[(1, 1, 1, 17)])
+            .lengths(&[17])
+            .run();
+    }
+}
+
+/// 定数へ代入されたクラス/モジュール定義を長さ系 cop がどう拾うかの回帰。
+/// `Metrics/BlockLength` は `class_constructor?` で降りるので、ここで拾えないと
+/// どの cop からも見えなくなる。期待値は rubocop 1.89.0 の実測。
+mod metrics_constant_definitions {
+    use super::*;
+
+    /// `on_casgn` は block を `check_code_length` に渡すので、offense は定数ではなく
+    /// `Class.new` から始まる。
+    ///
+    /// 実測: line 1 col 7 last 5,3 / `Class has too many lines. [3/1]`
+    #[test]
+    fn a_constant_assigned_a_class_new_block_is_a_class() {
+        CopCase::annotated(
+            "Metrics/ClassLength",
+            r#"
+            Foo = Class.new do
+                  ^^^^^^^^^^^^ Class has too many lines. [3/1]
+              def a
+                1
+              end
+            end
+            "#,
+        )
+        .config("Metrics/ClassLength:\n  Max: 1\n")
+        .locations(&[(1, 7, 5, 3)])
+        .run();
+    }
+
+    /// `class_definition?` は定数に条件を付けないので名前空間付きでも拾い、
+    /// `Struct.new` の引数も許す。
+    ///
+    /// 実測: line 1 col 8 last 5,3 / `Class has too many lines. [3/1]`
+    #[test]
+    fn a_namespaced_constant_assigned_a_struct_new_block_is_a_class() {
+        CopCase::annotated(
+            "Metrics/ClassLength",
+            r#"
+            A::B = Struct.new(:x) do
+                   ^^^^^^^^^^^^^^^^^ Class has too many lines. [3/1]
+              def a
+                1
+              end
+            end
+            "#,
+        )
+        .config("Metrics/ClassLength:\n  Max: 1\n")
+        .locations(&[(1, 8, 5, 3)])
+        .run();
+    }
+
+    /// `Metrics/ModuleLength` は代入そのものを `check_code_length` に渡すため、
+    /// offense は定数名に載る。パターンは `Metrics/ClassLength` より厳しく、
+    /// 名前空間付きの定数 (`C::D`) は対象外。
+    ///
+    /// 実測: line 1 col 1 last 1,3 len 3 / `Module has too many lines. [3/1]` の 1 件だけ
+    #[test]
+    fn a_constant_assigned_a_module_new_block_is_reported_on_the_constant() {
+        CopCase::annotated(
+            "Metrics/ModuleLength",
+            r#"
+            Baz = Module.new do
+            ^^^ Module has too many lines. [3/1]
+              def c
+                3
+              end
+            end
+
+            C::D = Module.new do
+              def d
+                4
+              end
+            end
+            "#,
+        )
+        .config("Metrics/ModuleLength:\n  Max: 1\n")
+        .locations(&[(1, 1, 1, 3)])
+        .lengths(&[3])
+        .run();
+    }
+
+    /// 名前空間付きの定数は `#global_const?` に落ちるのでクラス定義ではなく、
+    /// block として数えられる。
+    ///
+    /// 実測: Metrics/BlockLength line 1 col 5 / `Block has too many lines. [3/1]`
+    #[test]
+    fn a_namespaced_constructor_stays_a_block() {
+        CopCase::annotated(
+            "Metrics/BlockLength",
+            r#"
+            G = Foo::Class.new do
+                ^^^^^^^^^^^^^^^^^ Block has too many lines. [3/1]
+              def e
+                5
+              end
+            end
+            "#,
+        )
+        .config("Metrics/BlockLength:\n  Max: 1\n")
+        .locations(&[(1, 5, 5, 3)])
+        .run();
+        CopCase::new(
+            "Metrics/ClassLength",
+            "G = Foo::Class.new do\n  def e\n    5\n  end\nend\n",
+            Vec::new(),
+        )
+        .config("Metrics/ClassLength:\n  Max: 1\n")
+        .run();
+    }
+}
+
+/// 構文エラーの扱い。
+///
+/// 本家の `Cop::Commissioner#investigate` は `ProcessedSource#valid_syntax?` が
+/// false のとき `on_other_file` しか呼ばず、それを実装している cop は
+/// `Lint/Syntax` だけなので、構文エラーのファイルからは `Lint/Syntax` の
+/// offense しか出ない。
+///
+/// 加えて本家は parser gem を `TargetRubyVersion` で動かすため、その版に無い
+/// 構文はすべて構文エラーになる。tree-sitter は版に関係なく最新構文を受理する
+/// ので、版ごとのゲートは手で持つしかない。
+///
+/// 期待値はすべて rubocop 1.89.0 の `--only Lint/Syntax --format json` 実測。
+mod syntax {
+    use super::*;
+
+    const HINT: &str =
+        "(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)";
+
+    fn unexpected(line: usize, column: usize, length: usize, token: &str) -> Annotation {
+        Annotation::new(
+            line,
+            column,
+            length,
+            format!("unexpected token {token}\n{HINT}"),
+        )
+    }
+
+    fn at_2_7(source: &str, expected: Vec<Annotation>) -> CopCase {
+        CopCase::new("Lint/Syntax", source, expected).target_ruby("2.7")
+    }
+
+    fn accepted(source: &str, version: &str) -> CopCase {
+        CopCase::new("Lint/Syntax", source, Vec::new()).target_ruby(version)
+    }
+
+    /// 実測: `def type = :brew` → 1:10 tEQL / `def other = :y` → 3:11 tEQL
+    #[test]
+    fn endless_method_definition_needs_ruby_3_0() {
+        at_2_7(
+            "def type = :brew\nx = 1\ndef other = :y\n",
+            vec![unexpected(1, 10, 1, "tEQL"), unexpected(3, 11, 1, "tEQL")],
+        )
+        .run();
+        accepted("def type = :brew\n", "3.0").run();
+    }
+
+    /// 通常のメソッドの `=` は setter 名や省略可能引数の一部なので、endless
+    /// 定義と取り違えてはいけない。
+    #[test]
+    fn a_setter_or_default_argument_is_not_an_endless_definition() {
+        accepted("def foo=(value)\n  @foo = value\nend\n", "2.7").run();
+        accepted("def foo a = 1\n  a\nend\n", "2.7").run();
+    }
+
+    /// 値を省略したラベルの**直後のトークン**が報告される。本家は 1 つ報告した
+    /// あと構文ごと読み飛ばすので、同じリテラル内の 2 つ目以降は出ない。
+    ///
+    /// 実測: `foo(a:, b:)` → 1:7 tCOMMA (1 件) / `foo(a:)` → 1:7 tRPAREN
+    #[test]
+    fn hash_value_omission_needs_ruby_3_1() {
+        at_2_7("foo(a:, b:)\n", vec![unexpected(1, 7, 1, "tCOMMA")]).run();
+        at_2_7("foo(a:)\n", vec![unexpected(1, 7, 1, "tRPAREN")]).run();
+        at_2_7("h = {a:, b: 1}\n", vec![unexpected(1, 8, 1, "tCOMMA")]).run();
+        at_2_7(
+            "foo(a: 1, b: {c:, d:})\n",
+            vec![unexpected(1, 17, 1, "tCOMMA")],
+        )
+        .run();
+        accepted("foo(a:, b:)\n", "3.1").run();
+    }
+
+    /// 別々の構文なら回復をまたいでそれぞれ報告される。
+    ///
+    /// 実測: `foo(a:)\nbar(b:)` → 1:7 tRPAREN と 2:7 tRPAREN
+    #[test]
+    fn each_construct_reports_its_own_omission() {
+        at_2_7(
+            "foo(a:)\nbar(b:)\n",
+            vec![
+                unexpected(1, 7, 1, "tRPAREN"),
+                unexpected(2, 7, 1, "tRPAREN"),
+            ],
+        )
+        .run();
+    }
+
+    /// 実測: `def foo(&)` → 1:10 tRPAREN / `bar(&)` → 2:8 tRPAREN
+    #[test]
+    fn anonymous_block_forwarding_needs_ruby_3_1() {
+        at_2_7(
+            "def foo(&)\n  bar(&)\nend\n",
+            vec![
+                unexpected(1, 10, 1, "tRPAREN"),
+                unexpected(2, 8, 1, "tRPAREN"),
+            ],
+        )
+        .run();
+        accepted("def foo(&)\n  bar(&)\nend\n", "3.1").run();
+    }
+
+    /// 名前のない `*` / `**` の**受け取り**は昔から書けるので、渡す側だけが
+    /// Ruby 3.2 のゲートに掛かる。実測: `bar(*)` → 2:8 tRPAREN
+    #[test]
+    fn anonymous_rest_forwarding_needs_ruby_3_2() {
+        at_2_7(
+            "def foo(*)\n  bar(*)\nend\n",
+            vec![unexpected(2, 8, 1, "tRPAREN")],
+        )
+        .run();
+        accepted("def foo(*)\n  bar(1)\nend\n", "2.7").run();
+        accepted("def foo(*)\n  bar(*)\nend\n", "3.2").run();
+    }
+
+    /// 実測: `1 => x` → 1:3 tASSOC (2 文字)。`1 in Integer` は 2.7 で通る。
+    #[test]
+    fn rightward_assignment_needs_ruby_3_0() {
+        at_2_7("1 => x\n", vec![unexpected(1, 3, 2, "tASSOC")]).run();
+        accepted("1 in Integer\n", "2.7").run();
+        accepted("1 => x\n", "3.0").run();
+    }
+
+    /// 壊れたトークンだけを指し、parser gem のトークン名で呼ぶ。
+    /// 実測: `x = )` → 1:5 tRPAREN (1 文字) / `x = 1))` → 1:6 tRPAREN
+    #[test]
+    fn a_broken_token_is_named_and_pointed_at() {
+        at_2_7("x = )\n", vec![unexpected(1, 5, 1, "tRPAREN")]).run();
+        at_2_7("x = 1))\n", vec![unexpected(1, 6, 1, "tRPAREN")]).run();
+        at_2_7("1+1=2\n", vec![unexpected(1, 4, 1, "tEQL")]).run();
+    }
+
+    /// 閉じ損ねた構文は、トークンではなく入力の終わりで報告される。本家は
+    /// 長さ 0 のレンジを最後の 1 文字へ広げる (`lint/syntax.rb` の
+    /// `diagnostic_location`)。実測: `f {` → 1:4-2:1 (1 文字) $end
+    #[test]
+    fn an_unclosed_construct_is_reported_at_the_end_of_input() {
+        // 注記は行内のカラム差でしか長さを表せないので、行をまたぐレンジは
+        // `locations` と `lengths` で固定する。本家の JSON も長さ 1 を出す。
+        at_2_7(
+            "f {\n",
+            vec![Annotation::new(
+                1,
+                4,
+                0,
+                format!("unexpected token $end\n{HINT}"),
+            )],
+        )
+        .locations(&[(1, 4, 2, 1)])
+        .lengths(&[1])
+        .run();
+        at_2_7(
+            "def a\n",
+            vec![Annotation::new(
+                1,
+                6,
+                0,
+                format!("unexpected token $end\n{HINT}"),
+            )],
+        )
+        .locations(&[(1, 6, 2, 1)])
+        .lengths(&[1])
+        .run();
+    }
+
+    /// 構文エラーのファイルには他の cop が一切走らない。
+    #[test]
+    fn no_other_cop_inspects_a_file_that_does_not_parse() {
+        let cops = [
+            "Lint/Syntax",
+            "Style/StringLiterals",
+            "Layout/TrailingWhitespace",
+        ];
+        let broken = CopCase::new("Lint/Syntax", "x = \"a\"  \ny = )\n", Vec::new())
+            .cops(&cops)
+            .target_ruby("2.7")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            broken
+                .offenses
+                .iter()
+                .map(|offense| offense.cop_name)
+                .collect::<Vec<_>>(),
+            vec!["Lint/Syntax"],
+            "構文エラーのファイルから Lint/Syntax 以外が出ている"
+        );
+
+        // 同じソースが構文的に通れば、両方の cop が普段どおり報告する。
+        let sound = CopCase::new("Lint/Syntax", "x = \"a\"  \ny = 1\n", Vec::new())
+            .cops(&cops)
+            .target_ruby("2.7")
+            .without_offense_check()
+            .inspect();
+        let mut names = sound
+            .offenses
+            .iter()
+            .map(|offense| offense.cop_name)
+            .collect::<Vec<_>>();
+        names.sort_unstable();
+        assert_eq!(
+            names,
+            vec!["Layout/TrailingWhitespace", "Style/StringLiterals"]
+        );
+    }
+
+    /// 版ゲートで落ちたファイルも同じ扱いになる。tree-sitter は受理するので、
+    /// ゲートが効いていなければ他の cop がそのまま走ってしまう。
+    #[test]
+    fn version_gated_syntax_also_stops_the_other_cops() {
+        let report = CopCase::new("Lint/Syntax", "def type = \"brew\"  \n", Vec::new())
+            .cops(&[
+                "Lint/Syntax",
+                "Style/StringLiterals",
+                "Layout/TrailingWhitespace",
+            ])
+            .target_ruby("2.7")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .map(|offense| offense.cop_name)
+                .collect::<Vec<_>>(),
+            vec!["Lint/Syntax"]
+        );
+    }
+}
+
+/// `Style/StringLiterals` が本家の `on_dstr` / `on_str` の切り分けに従っていることの回帰。
+///
+/// 本家は `str` と `dstr` を lexer の行分割で区別する。1 リテラルが複数行の
+/// `str` に割れたときだけ `dstr` になり、`on_str` は引用符を持たない子ノードを
+/// 読み飛ばす。`dstr` 自体は `ConsistentQuotesInMultiline` が真のときだけ
+/// `on_dstr` が見る。
+///
+/// 期待値はすべて rubocop 1.89.0 の `--only Style/StringLiterals --format json`
+/// 実測から取っている。
+mod string_literals_multiline {
+    use super::*;
+
+    const SINGLE: &str = "Prefer single-quoted strings [...]";
+    const DOUBLE: &str = "Prefer double-quoted strings [...]";
+    const INCONSISTENT: &str = "Inconsistent quote style.";
+    const CONSISTENT: &str = "Style/StringLiterals:\n  ConsistentQuotesInMultiline: true\n";
+    const CONSISTENT_DOUBLE: &str = concat!(
+        "Style/StringLiterals:\n",
+        "  ConsistentQuotesInMultiline: true\n",
+        "  EnforcedStyle: double_quotes\n",
+    );
+
+    // 改行が閉じ引用符の直前にしか無いリテラルは行が 1 本しかないので本家では
+    // `str` のままで、`on_str` の検査対象に残る。改行を含むだけで一律に読み飛ばして
+    // いた false negative の回帰。既定設定で出る差分なので影響が大きい。
+    //
+    // 実測: `a = "one\n"` → 1:5-2:1 len 6 correctable / `b` (2 行に割れる) は検出なし。
+    #[test]
+    fn a_line_break_that_only_ends_the_literal_leaves_it_a_str() {
+        CopCase::annotated(
+            "Style/StringLiterals",
+            "a = \"one\n    ^^^^ Prefer single-quoted strings [...]\n\"\nb = \"two\nthree\"\n",
+        )
+        .locations(&[(1, 5, 2, 1)])
+        .lengths(&[6])
+        .correctable(true)
+        .run();
+    }
+
+    // 本家の autocorrect は値から書き直すので、生の改行はエスケープに畳まれる。
+    #[test]
+    fn such_a_literal_is_corrected_into_an_escape() {
+        expect_correction(
+            "Style/StringLiterals",
+            "a = \"one\n\"\n",
+            "a = \"one\\n\"\n",
+        );
+    }
+
+    // 隣接リテラルの連結は本家では `dstr`。既定 (`ConsistentQuotesInMultiline: false`)
+    // では `on_dstr` が即 return するため、子リテラルが個別に検査される。
+    #[test]
+    fn adjacent_literals_are_checked_one_by_one_by_default() {
+        CopCase::annotated(
+            "Style/StringLiterals",
+            r#"
+            a = "x" "y"
+                ^^^ Prefer single-quoted strings [...]
+                    ^^^ Prefer single-quoted strings [...]
+            "#,
+        )
+        .run();
+    }
+
+    // `ConsistentQuotesInMultiline` が真なら `on_dstr` が連結全体を 1 件として
+    // 報告し、子リテラルは `part_of_ignored_node?` で落ちる。`dstr` は
+    // `StringLiteralCorrector` が即 return するので correctable にならない。
+    //
+    // 実測: `a = "x" "y"` → 1:5-1:11 len 7 correctable=false。
+    #[test]
+    fn adjacent_literals_are_judged_as_one_when_consistency_is_required() {
+        CopCase::new(
+            "Style/StringLiterals",
+            "a = \"x\" \"y\"\n",
+            vec![Annotation::new(1, 5, 7, SINGLE)],
+        )
+        .config(CONSISTENT)
+        .locations(&[(1, 5, 1, 11)])
+        .lengths(&[7])
+        .correctable(false)
+        .run();
+    }
+
+    // 引用符が混ざる連結は専用メッセージになる。
+    #[test]
+    fn mixed_quotes_report_inconsistency() {
+        CopCase::new(
+            "Style/StringLiterals",
+            "b = \"x\" 'y'\n",
+            vec![Annotation::new(1, 5, 7, INCONSISTENT)],
+        )
+        .config(CONSISTENT)
+        .locations(&[(1, 5, 1, 11)])
+        .run();
+        // `%q(` も 1 つの引用符として数えるので `"` と混ざれば不一致になる。
+        CopCase::new(
+            "Style/StringLiterals",
+            "d = %q(x) \"y\"\n",
+            vec![Annotation::new(1, 5, 9, INCONSISTENT)],
+        )
+        .config(CONSISTENT)
+        .locations(&[(1, 5, 1, 13)])
+        .run();
+    }
+
+    // `accept_child_double_quotes?`: 単引用符では書けない子が 1 つでもあれば
+    // 連結全体が許される。
+    #[test]
+    fn a_child_that_needs_double_quotes_excuses_the_whole_chain() {
+        CopCase::new("Style/StringLiterals", "c = \"it's\" \"y\"\n", Vec::new())
+            .config(CONSISTENT)
+            .run();
+    }
+
+    // Ruby は値の後ろでは `%` を剰余演算子としてしか読まないので `"x" %q(y)` は
+    // `send` であって連結ではない。tree-sitter は連結として畳んでしまうため、
+    // 先頭リテラルが素の `str` として検査され続けることを固定する。
+    //
+    // 実測: `e = "x" %q(y)` → 1:5-1:7 len 3 correctable=true (連結の報告は無い)。
+    #[test]
+    fn a_percent_literal_after_a_string_is_the_modulo_operator() {
+        CopCase::new(
+            "Style/StringLiterals",
+            "e = \"x\" %q(y)\n",
+            vec![Annotation::new(1, 5, 3, SINGLE)],
+        )
+        .config(CONSISTENT)
+        .locations(&[(1, 5, 1, 7)])
+        .correctable(true)
+        .run();
+    }
+
+    // 値が複数行に割れる 1 リテラルは子が引用符を持たないので、本家は親の
+    // 引用符を 1 つだけ読む。連結の中に入っている場合、外側は「子に `dstr` が
+    // ある」ため許され、内側だけが報告される。
+    //
+    // 実測: `a = "x\ny"` → 1:5-2:2 len 5 / `b = "x\ny" "z"` → 3:5-4:2 len 5 のみ。
+    #[test]
+    fn a_multiline_literal_is_judged_as_one_and_nested_chains_report_only_it() {
+        CopCase::new(
+            "Style/StringLiterals",
+            "a = \"x\ny\"\nb = \"x\ny\" \"z\"\n",
+            vec![
+                Annotation::new(1, 5, 2, SINGLE),
+                Annotation::new(3, 5, 2, SINGLE),
+            ],
+        )
+        .config(CONSISTENT)
+        .locations(&[(1, 5, 2, 2), (3, 5, 4, 2)])
+        .lengths(&[5, 5])
+        .correctable(false)
+        .run();
+    }
+
+    // `EnforcedStyle: double_quotes` 側の分岐 (`unexpected_single_quotes?`) は
+    // 子が「全部」単引用符で書き直せることを求める。
+    //
+    // 実測: `a = 'x' 'y'` → 1:5-1:11 len 7 / `b = 'x\ny'` → 2:5-3:2 len 5。
+    #[test]
+    fn single_quoted_multiline_literals_are_reported_under_double_quotes() {
+        CopCase::new(
+            "Style/StringLiterals",
+            "a = 'x' 'y'\nb = 'x\ny'\n",
+            vec![
+                Annotation::new(1, 5, 7, DOUBLE),
+                Annotation::new(2, 5, 2, DOUBLE),
+            ],
+        )
+        .config(CONSISTENT_DOUBLE)
+        .locations(&[(1, 5, 1, 11), (2, 5, 3, 2)])
+        .lengths(&[7, 5])
+        .correctable(false)
+        .run();
+    }
+
+    // 補間を含む部分は本家では `dstr` なので `accept_child_double_quotes?` が
+    // 真になり、連結全体が許される。そのうえで `ignore_node` は行われるため、
+    // 素の `"y"` も報告されない。既定設定なら `"y"` は 1:13 で報告される。
+    #[test]
+    fn an_interpolated_part_excuses_the_whole_chain() {
+        CopCase::new("Style/StringLiterals", "a = \"x#{b}\" \"y\"\n", Vec::new())
+            .config(CONSISTENT)
+            .run();
+        CopCase::annotated(
+            "Style/StringLiterals",
+            r#"
+            a = "x#{b}" "y"
+                        ^^^ Prefer single-quoted strings [...]
+            "#,
+        )
+        .run();
+    }
+
+    // `\` による行継続は double quote の中では 1 行のままなので `str`。
+    // 単引用符の中ではバックスラッシュが改行を食わないので `dstr` になる。
+    // どちらも offense にならないことを固定する (既定設定)。
+    #[test]
+    fn a_backslash_continuation_inside_a_literal_is_not_reported() {
+        expect_no_offenses("Style/StringLiterals", "a = \"x\\\ny\"\nb = 'x\\\ny'\n");
+    }
+}
+
+/// `Layout/SpaceAroundOperators` / `Layout/SpaceAfterComma` / `Layout/SpaceInsideParens`。
+///
+/// 本家はレキサのトークン列を歩くのに対し sonicop は tree-sitter の木を歩くので、
+/// 「本家がどの構文を演算子として拾うか」と「Ruby のレキサと tree-sitter で読みが
+/// 割れる構文」の 2 つが取りこぼしの源になる。ここではその両方を固定する。
+///
+/// 期待値はすべて本家 1.89.0 の `--only <cop> --format json` 実測。
+mod layout_spacing {
+    use super::*;
+
+    const AROUND: &str = "Layout/SpaceAroundOperators";
+    const COMMA: &str = "Layout/SpaceAfterComma";
+    const PARENS: &str = "Layout/SpaceInsideParens";
+
+    /// 本家は `on_pair` / `on_if` / `on_class` / `on_sclass` / `on_resbody` という
+    /// 別々のハンドラで二項演算子以外の演算子も拾う。tree-sitter では `pair` /
+    /// `conditional` / `superclass` / `singleton_class` / `exception_variable` が
+    /// それぞれに対応する。
+    #[test]
+    fn every_handler_of_the_upstream_cop_has_a_node_kind() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "h = {1=>2, 3 =>4}\n",
+                "a = 1\n",
+                "b = 2\n",
+                "c = 3\n",
+                "t = a ? b:c\n",
+                "class Foo<Bar\n",
+                "end\n",
+                "class<<self\n",
+                "end\n",
+                "begin\n",
+                "rescue E=>e\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(1, 7, 2, "Surrounding space missing for operator `=>`."),
+                Annotation::new(1, 14, 2, "Surrounding space missing for operator `=>`."),
+                Annotation::new(5, 10, 1, "Surrounding space missing for operator `:`."),
+                Annotation::new(6, 10, 1, "Surrounding space missing for operator `<`."),
+                Annotation::new(8, 6, 2, "Surrounding space missing for operator `<<`."),
+                Annotation::new(11, 9, 2, "Surrounding space missing for operator `=>`."),
+            ],
+        )
+        .run();
+    }
+
+    /// パターンマッチの `=>` は `on_match_pattern` が 3.0 以上でだけ動く。`|` は
+    /// `on_match_alt`、`Integer => n` は `on_match_as`。
+    #[test]
+    fn pattern_matching_operators_need_ruby_three() {
+        let source = concat!(
+            "v = 5\n",
+            "v => Integer\n",
+            "case v\n",
+            "in 1|2 then 1\n",
+            "in Integer=>n then n\n",
+            "end\n",
+        );
+        CopCase::new(
+            AROUND,
+            source,
+            vec![
+                Annotation::new(4, 5, 1, "Surrounding space missing for operator `|`."),
+                Annotation::new(5, 11, 2, "Surrounding space missing for operator `=>`."),
+            ],
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    /// `range_with_surrounding_space` は演算子の右側だけ改行を飲む。行末の演算子は
+    /// 前に空白があれば許され、無ければ報告される。行の残りがコメントなら
+    /// `comment_at_line` で免除される。空行を挟むと右側は空白で終わらなくなる。
+    #[test]
+    fn a_line_break_counts_as_space_only_on_the_right() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "a = \"x\"+\n",
+                "  \"y\"\n",
+                "b = \"x\" +\n",
+                "  \"y\"\n",
+                "c = 1 + # note\n",
+                "  2\n",
+                "d = 1 +\n",
+                "  2\n",
+                "e = 1+\n",
+                "\n",
+                "  2\n",
+            ),
+            vec![
+                Annotation::new(1, 8, 1, "Surrounding space missing for operator `+`."),
+                Annotation::new(9, 6, 1, "Surrounding space missing for operator `+`."),
+            ],
+        )
+        .run();
+    }
+
+    /// `rational_literal?` は `1/48r` を 1 個のリテラルとみなして send ごと飛ばす。
+    /// 受け手が整数でなければ `EnforcedStyleForRationalLiterals` が効き、既定の
+    /// `no_space` では空白のある `/` が報告される。`**` も同じ形。
+    #[test]
+    fn rational_and_exponent_operators_have_their_own_styles() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "a = 1 / 48r\n",
+                "b = 2/3r\n",
+                "c = x / 48r\n",
+                "d = x/3r\n",
+                "e = 2**3\n",
+                "f = 2 ** 3\n",
+                "g = 2 **\n",
+                "  3\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 1, "Space around operator `/` detected."),
+                Annotation::new(6, 7, 2, "Space around operator `**` detected."),
+                Annotation::new(7, 7, 2, "Space around operator `**` detected."),
+            ],
+        )
+        .run();
+    }
+
+    #[test]
+    fn the_exponent_and_rational_styles_can_be_inverted() {
+        CopCase::new(
+            AROUND,
+            "a = 2**3\nb = 2 ** 3\nc = x/3r\nd = x / 3r\n",
+            vec![
+                Annotation::new(1, 6, 2, "Surrounding space missing for operator `**`."),
+                Annotation::new(3, 6, 1, "Surrounding space missing for operator `/`."),
+            ],
+        )
+        .config(concat!(
+            "Layout/SpaceAroundOperators:\n",
+            "  EnforcedStyleForExponentOperator: space\n",
+            "  EnforcedStyleForRationalLiterals: space\n",
+        ))
+        .run();
+    }
+
+    /// 省略可能引数の既定値の `=` は `Layout/SpaceAroundEqualsInParameterDefault` の
+    /// 担当で、この cop は触らない。tree-sitter は `def f(a=nil, b=nil)` を 1 個の
+    /// 省略可能引数と多重代入として読むので、その代入を演算子として数えないこと。
+    #[test]
+    fn parameter_defaults_belong_to_another_cop() {
+        expect_no_offenses(
+            AROUND,
+            "def foo(x=nil, y=nil, z=nil)\n  x\nend\ndef bar(a=1, b=2)\n  a\nend\n",
+        );
+    }
+
+    /// `=~` は 1 個のトークン。tree-sitter は `a[0] =~ /x/` を「`a[0]` に `~ /x/` を
+    /// 代入」と読むので、`=` の直後が `~` なら `=~` として扱い直す。ただし左辺が
+    /// 正規表現リテラルの `=~` は本家では `match_with_lvasgn` になりハンドラが無い。
+    #[test]
+    fn a_match_operator_is_a_single_token() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "a = \"s\"\n",
+                "b = /x/=~a\n",
+                "c = /x/ =~a\n",
+                "d = a=~/x/\n",
+                "e = /x/!~a\n",
+                "f = %r{x}=~a\n",
+                "g = a[0] =~ /x/ && !a[1]\n",
+                "h = a[0]=~/x/\n",
+                "i = a[0] = ~a\n",
+            ),
+            vec![
+                Annotation::new(4, 6, 2, "Surrounding space missing for operator `=~`."),
+                Annotation::new(5, 8, 2, "Surrounding space missing for operator `!~`."),
+                Annotation::new(8, 9, 2, "Surrounding space missing for operator `=~`."),
+            ],
+        )
+        .run();
+    }
+
+    /// `a&b` は Ruby のレキサでは二項演算子、`a &b` はブロック渡し。tree-sitter は
+    /// どちらもブロック渡しに読むので、空白の有無で区別し直す。
+    #[test]
+    fn an_ampersand_without_a_leading_space_is_the_binary_operator() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "z = [1]\n",
+                "w = z&z\n",
+                "v = z & z\n",
+                "u = z.map(&:to_s)\n",
+                "t = z.each &:to_s\n",
+                "s = z.first&.to_s\n",
+            ),
+            vec![Annotation::new(
+                2,
+                6,
+                1,
+                "Surrounding space missing for operator `&`.",
+            )],
+        )
+        .run();
+    }
+
+    /// 余分な空白は「隣の行と揃っている」ときだけ許される。揃っていないものは
+    /// `Operator ... should be surrounded by a single space.` になる。
+    #[test]
+    fn padding_is_allowed_only_where_it_lines_up_with_a_neighbour() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "h = {\n",
+                "  1 =>  2,\n",
+                "  11 => 3\n",
+                "}\n",
+                "g = {\n",
+                "  \"aaa\"   => 1,\n",
+                "  \"b\" => 2\n",
+                "}\n",
+                "x   = 1\n",
+                "yyy = 2\n",
+            ),
+            vec![Annotation::new(
+                6,
+                11,
+                2,
+                "Operator `=>` should be surrounded by a single space.",
+            )],
+        )
+        .run();
+    }
+
+    /// `AllowForAlignment: false` でも `excess_leading_space?` は先に
+    /// `allow_for_alignment?` を見て抜けるので、左側の余白は報告されない。
+    /// 報告されるのは右側の余白だけ。
+    #[test]
+    fn disallowing_alignment_only_reaches_the_trailing_padding() {
+        CopCase::new(
+            AROUND,
+            "h = {\n  1 =>  2,\n  11 => 3\n}\nx   = 1\nyyy = 2\n",
+            vec![Annotation::new(
+                2,
+                5,
+                2,
+                "Operator `=>` should be surrounded by a single space.",
+            )],
+        )
+        .config("Layout/SpaceAroundOperators:\n  AllowForAlignment: false\n")
+        .run();
+    }
+
+    /// `Layout/HashAlignment` が table なら、1 行 1 要素で書かれたハッシュの
+    /// ロケットは揃えるためのものとして丸ごと見逃される。
+    #[test]
+    fn a_table_style_hash_keeps_its_padded_rockets() {
+        CopCase::new(
+            AROUND,
+            concat!(
+                "h = {\n",
+                "  \"aaa\"   => 1,\n",
+                "  \"b\" => 2\n",
+                "}\n",
+                "g = { \"aaa\"   => 1, \"b\" => 2 }\n",
+            ),
+            vec![Annotation::new(
+                5,
+                15,
+                2,
+                "Operator `=>` should be surrounded by a single space.",
+            )],
+        )
+        .config("Layout/HashAlignment:\n  EnforcedHashRocketStyle: table\n")
+        .run();
+    }
+
+    /// 文字列補間やヒアドキュメントの中身も本家では普通にトークン化される。
+    #[test]
+    fn operators_inside_interpolation_are_still_operators() {
+        CopCase::new(
+            AROUND,
+            "n = 1\ns = <<~TEXT\n  line #{n-1} here\nTEXT\n",
+            vec![Annotation::new(
+                3,
+                11,
+                1,
+                "Surrounding space missing for operator `-`.",
+            )],
+        )
+        .run();
+    }
+
+    #[test]
+    fn space_around_operators_autocorrects_like_upstream() {
+        expect_correction(
+            AROUND,
+            concat!(
+                "a=1\n",
+                "h = {1=>2}\n",
+                "b = \"x\"+\n",
+                "  \"y\"\n",
+                "c = 2 ** 3\n",
+                "d = x / 3r\n",
+                "e = {\n",
+                "  \"aaa\"   => 1,\n",
+                "  \"b\" => 2\n",
+                "}\n",
+            ),
+            concat!(
+                "a = 1\n",
+                "h = {1 => 2}\n",
+                "b = \"x\" +\n",
+                "  \"y\"\n",
+                "c = 2**3\n",
+                "d = x/3r\n",
+                "e = {\n",
+                "  \"aaa\" => 1,\n",
+                "  \"b\" => 2\n",
+                "}\n",
+            ),
+        );
+    }
+
+    /// 空の括弧の中の空白も本家は報告する。`(` の側から 1 件だけ出るので、
+    /// `)` の側では二重に数えない。行末やコメントが続く場合は「同じ行の次の
+    /// トークン」が無いので対象外。
+    #[test]
+    fn empty_parentheses_are_reported_once_from_the_opening_side() {
+        CopCase::new(
+            PARENS,
+            concat!(
+                "a = foo( )\n",
+                "b = foo(  )\n",
+                "c = foo( 3 )\n",
+                "d = foo( # note\n",
+                ")\n",
+                "e = foo(\n",
+                "  3\n",
+                ")\n",
+                "f = ( 1 )\n",
+                "g = %w( a b )\n",
+                "h = %i( a )\n",
+            ),
+            vec![
+                Annotation::new(1, 9, 1, "Space inside parentheses detected."),
+                Annotation::new(2, 9, 2, "Space inside parentheses detected."),
+                Annotation::new(3, 9, 1, "Space inside parentheses detected."),
+                Annotation::new(3, 11, 1, "Space inside parentheses detected."),
+                Annotation::new(9, 6, 1, "Space inside parentheses detected."),
+                Annotation::new(9, 8, 1, "Space inside parentheses detected."),
+            ],
+        )
+        .run();
+    }
+
+    /// `)` `]` `|` の前は空白を求めない。`}` は
+    /// `Layout/SpaceInsideHashLiteralBraces` が `no_space` のときだけ免除される。
+    /// 文字列リテラルやヒアドキュメントの終端記号の中のコンマはトークンでは
+    /// ないが、補間の中のコンマはトークンなので報告される。
+    #[test]
+    fn only_a_comma_the_parser_saw_is_a_comma() {
+        let source = concat!(
+            "a = {x: 1,}\n",
+            "b = [1,]\n",
+            "c = foo(1,)\n",
+            "d = [1,2]\n",
+            "e = \"#{d[0,1]}\"\n",
+            "f = <<-'},'\n",
+            "body\n",
+            "},\n",
+            "g = %w[a,b]\n",
+            "h = :\"a,b\"\n",
+            "i = [1,# note\n",
+            "     2]\n",
+        );
+        CopCase::new(
+            COMMA,
+            source,
+            vec![
+                Annotation::new(1, 10, 1, "Space missing after comma."),
+                Annotation::new(4, 7, 1, "Space missing after comma."),
+                Annotation::new(5, 11, 1, "Space missing after comma."),
+                Annotation::new(11, 7, 1, "Space missing after comma."),
+            ],
+        )
+        .run();
+        CopCase::new(
+            COMMA,
+            "a = {x: 1,}\nb = [1,2]\n",
+            vec![Annotation::new(2, 7, 1, "Space missing after comma.")],
+        )
+        .config("Layout/SpaceInsideHashLiteralBraces:\n  EnforcedStyle: no_space\n")
+        .run();
+    }
+
+    #[test]
+    fn parens_and_commas_autocorrect_like_upstream() {
+        expect_correction(
+            PARENS,
+            "a = foo( )\nb = foo( 3 )\n",
+            "a = foo()\nb = foo(3)\n",
+        );
+        expect_correction(
+            COMMA,
+            "c = {x: 1,}\nd = [1,2]\n",
+            "c = {x: 1, }\nd = [1, 2]\n",
+        );
+    }
+}
+
+/// 名前の綴りを見る cop 群。リテラルの実体値と、tree-sitter が読み違える
+/// カンマ区切りリストの扱いが対象。
+mod naming_literals {
+    use super::*;
+
+    /// `sym` / `str` の値はエスケープを解いた後の文字列なので、`:"a\000"` は NUL を含む
+    /// 名前になる。エスケープを字面のまま読むと `a000` になって snake_case を通ってしまう。
+    #[test]
+    fn method_name_reads_the_value_a_literal_stands_for() {
+        expect_offense(
+            "Naming/MethodName",
+            r#"
+            Data.define(:"a\000")
+                        ^^^^^^^^ Use snake_case for method names.
+            define_method("\u{3042}") {}
+                          ^^^^^^^^^^^ Use snake_case for method names.
+            define_method(:"\t") { :tab }
+                          ^^^^^^ Use snake_case for method names.
+            define_method("a \"b\" c") {}
+                          ^^^^^^^^^^^^ Use snake_case for method names.
+            define_method('a\nb') {}
+                          ^^^^^^^ Use snake_case for method names.
+            "#,
+        );
+    }
+
+    /// 単一引用符の中の `\n` はエスケープではなく 2 文字。解いてはいけない。
+    #[test]
+    fn method_name_keeps_a_single_quoted_backslash_literal() {
+        expect_no_offenses("Naming/MethodName", "define_method('a_b') {}\n");
+    }
+
+    /// `rescue => Foo` は本家では `casgn` なので、値を持たない定数代入として報告される。
+    #[test]
+    fn constant_name_reports_a_constant_a_rescue_clause_binds() {
+        expect_offense(
+            "Naming/ConstantName",
+            r#"
+            begin
+              raise 'x'
+            rescue => CapturedError
+                      ^^^^^^^^^^^^^ Use SCREAMING_SNAKE_CASE for constants.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Naming/ConstantName",
+            "begin\n  raise 'x'\nrescue => CAPTURED\nend\n",
+        );
+    }
+
+    /// tree-sitter は `foo(A, b = 1)` を「`A` を巻き込んだ多重代入」として読むが、Ruby は
+    /// カンマごとにリストを閉じるので `A` は引数、代入されるのは `b` だけ。仮引数の既定値
+    /// (`def m(a = A, b = 2)`) と `__FILE__` を挟む形も同じ読み違えをする。
+    #[test]
+    fn a_comma_list_is_not_a_multiple_assignment() {
+        expect_no_offenses(
+            "Naming/ConstantName",
+            concat!(
+                "assert_kind_of(Integer, a = Object.new)\n",
+                "puts a\n",
+                "def def_class(superklass = Object, methodname = 'result')\n",
+                "  [superklass, methodname]\n",
+                "end\n",
+            ),
+        );
+        expect_no_offenses(
+            "Naming/VariableName",
+            concat!(
+                "m.module_eval \"A = 1\", __FILE__, line = __LINE__\n",
+                "puts line\n",
+            ),
+        );
+    }
+}
+
+/// `VariableForce` を土台にする 2 cop。スコープの入れ子、評価順、ブロックによる捕捉が
+/// 結果を決めるので、その 3 つを崩さないための回帰テストを置く。
+mod local_variable_analysis {
+    use super::*;
+
+    const UNUSED_ARGUMENT: &str = "Lint/UnusedBlockArgument";
+    const USELESS: &str = "Lint/UselessAssignment";
+
+    /// 内側のブロックが同じ名前を再束縛したら、外側の引数は読まれていない。名前で本文を
+    /// 探すだけの実装はここで内側の束縛を外側の参照と取り違える。
+    #[test]
+    fn an_inner_binding_does_not_reference_the_outer_argument() {
+        expect_offense(
+            UNUSED_ARGUMENT,
+            r#"
+            x = ->(a) { ->(a) { 1 } }
+                   ^ Unused block argument - `a`. If it's necessary, use `_` or `_a` as an argument name to indicate that it won't be used. Also consider using a proc without arguments instead of a lambda if you want it to accept any arguments but don't care about them.
+                           ^ Unused block argument - `a`. If it's necessary, use `_` or `_a` as an argument name to indicate that it won't be used. Also consider using a proc without arguments instead of a lambda if you want it to accept any arguments but don't care about them.
+            puts x
+            "#,
+        );
+    }
+
+    /// メソッド名は変数の読みではない。`Etc.group` の `group` をブロック引数 `group` の
+    /// 参照と数えると、この offense が消える。
+    #[test]
+    fn a_method_of_the_same_name_is_not_a_reference() {
+        expect_offense(
+            UNUSED_ARGUMENT,
+            r#"
+            Etc.group do |group|
+                          ^^^^^ Unused block argument - `group`. You can omit the argument if you don't care about it.
+              Etc.group do |group2|
+              end
+            end
+            "#,
+        );
+    }
+
+    /// `binding` が引数として束縛されていれば変数の読みで、スコープを渡す `binding` 呼び出し
+    /// ではない。呼び出しと取り違えると同じブロックの引数が全部「参照済み」になる。
+    #[test]
+    fn a_binding_parameter_is_not_a_binding_call() {
+        expect_offense(
+            UNUSED_ARGUMENT,
+            r#"
+            set_trace_func ->(event, file, line, id, binding, klass) do
+                                     ^^^^ Unused block argument - `file`. If it's necessary, use `_` or `_file` as an argument name to indicate that it won't be used.
+                                           ^^^^ Unused block argument - `line`. If it's necessary, use `_` or `_line` as an argument name to indicate that it won't be used.
+                                                 ^^ Unused block argument - `id`. If it's necessary, use `_` or `_id` as an argument name to indicate that it won't be used.
+                                                              ^^^^^ Unused block argument - `klass`. If it's necessary, use `_` or `_klass` as an argument name to indicate that it won't be used.
+              stf_b = binding if event == 'raise'
+              stf_b
+            end
+            "#,
+        );
+    }
+
+    /// `{ |f| ; }` の本体は文を 1 つも持たないので、本家の `empty_block?` では body が nil。
+    /// `IgnoreEmptyBlocks` の既定で見逃す側になる。
+    #[test]
+    fn a_block_holding_only_a_separator_is_empty() {
+        expect_no_offenses(UNUSED_ARGUMENT, "File.open('f', 'w') { |f|\n  ;\n}\n");
+    }
+
+    /// ヒアドキュメントの本体は tree-sitter では文の側にぶら下がるが、補間が読む変数は
+    /// `<<EOF` を書いたブロックのもの。
+    #[test]
+    fn a_heredoc_body_reads_the_block_it_was_opened_in() {
+        expect_no_offenses(
+            UNUSED_ARGUMENT,
+            concat!(
+                "have_func_decl = proc do |name, headers|\n",
+                "  %w[int void].all? { |ret| try_compile(<<EOF) }\n",
+                "#{headers} #{ret} #{name}(void);\n",
+                "EOF\n",
+                "end\n",
+                "puts have_func_decl\n",
+            ),
+        );
+    }
+
+    /// 分岐の中の読みは、分岐の外の代入を使ったことにならない。
+    #[test]
+    fn a_read_inside_a_branch_does_not_use_an_assignment_outside_it() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m(flag)
+              x = 1
+              ^ Useless assignment to variable - `x`.
+              if flag
+                x = 2
+                puts x
+              end
+            end
+            "#,
+        );
+    }
+
+    /// ブロックが捕まえた変数はいつ読まれるか分からないので、上書きされていない代入は
+    /// 使われたものとして扱う。
+    #[test]
+    fn an_assignment_captured_by_a_block_counts_as_used() {
+        expect_no_offenses(
+            USELESS,
+            "def m\n  result = compute\n  [1].each { result = 2 }\n  result\nend\n",
+        );
+    }
+
+    /// ループの条件が読む変数への代入は、次の周回で読まれるので死んでいない。
+    #[test]
+    fn an_assignment_a_loop_reads_again_is_not_dead() {
+        expect_no_offenses(
+            USELESS,
+            "def m\n  i = 0\n  while i < 10\n    i += 1\n  end\nend\n",
+        );
+    }
+
+    /// `for` の変数は本家では代入で、読まれなければ報告される。ループ走査でこれを参照と
+    /// 数えてしまうと消える。
+    #[test]
+    fn an_unread_for_variable_is_reported() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              for dummy in 0..3
+                  ^^^^^ Useless assignment to variable - `dummy`.
+                puts 1
+              end
+            end
+            "#,
+        );
+    }
+
+    /// スコープの戻り値になっている演算代入だけ、演算子を提案する文面が足される。
+    #[test]
+    fn an_operator_assignment_in_return_position_names_the_operator() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              x = 0
+              x ^= 1
+              ^ Useless assignment to variable - `x`. Use `^` instead of `^=`.
+            end
+            "#,
+        );
+    }
+
+    /// `rescue => ex` は代入なので、使われなければ報告される。
+    #[test]
+    fn an_unread_exception_variable_is_reported() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              begin
+                do_something
+              rescue StandardError => ex
+                                      ^^ Useless assignment to variable - `ex`.
+                :handled
+              end
+            end
+            "#,
+        );
+    }
+
+    /// 名前付きキャプチャは `match_with_lvasgn` として変数を作る。報告位置は変数名ではなく
+    /// 正規表現リテラル。
+    #[test]
+    fn a_regexp_named_capture_declares_a_variable() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m(text)
+              /(?<year>\d+)/ =~ text
+              ^^^^^^^^^^^^^^ Useless assignment to variable - `year`.
+              puts 1
+            end
+            "#,
+        );
+        // 補間を含む正規表現はリテラルとして畳めないので、本家では変数を作らない。
+        expect_no_offenses(
+            USELESS,
+            "def m(text, part)\n  /(?<year>#{part})/ =~ text\n  puts 1\nend\n",
+        );
+    }
+
+    /// 似た名前がスコープにあれば綴り間違いとして提案する。順位付けは Ruby の
+    /// `DidYouMean::SpellChecker` そのもの。
+    #[test]
+    fn a_similar_name_in_the_scope_is_suggested() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              stretch_depth = 5
+              stretch_tree = 1
+              ^^^^^^^^^^^^ Useless assignment to variable - `stretch_tree`. Did you mean `stretch_depth`?
+              puts stretch_depth
+            end
+            "#,
+        );
+    }
+
+    /// 多重代入の要素は消せないので、`_` 前置を勧める文面になる。
+    #[test]
+    fn a_multiple_assignment_target_suggests_an_underscore() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              a, b = 1, 2
+                 ^ Useless assignment to variable - `b`. Use `_` or `_b` as a variable name to indicate that it won't be used.
+              puts a
+            end
+            "#,
+        );
+    }
+
+    /// 引数なしの `super` はメソッドの引数を全部渡すので、全部読まれている。
+    /// `def n(config = nil, options = nil)` は tree-sitter がカンマリストを読み違える形でもある。
+    #[test]
+    fn a_bare_super_reads_every_method_argument() {
+        expect_no_offenses(
+            USELESS,
+            "class Foo\n  def initialize(config = nil, options = nil)\n    super\n  end\nend\n",
+        );
+    }
+
+    /// 後置 `if` の条件でした代入は、キーワードの左にある読みからは見えない。逆に条件の
+    /// 代入自体は使われている。
+    #[test]
+    fn an_assignment_in_a_modifier_condition_is_used_by_the_body() {
+        expect_no_offenses(USELESS, "def m\n  v = 1\n  \"#{v}\" if v &&= v.to_s\nend\n");
+    }
+
+    /// `DirectiveComment::DIRECTIVE_COMMENT_REGEXP` は cop 名の並びまでしか読まず、後ろに
+    /// 続く散文は無視する。行全体を 1 つの名前として読むと、この disable が効かなくなる。
+    #[test]
+    fn a_directive_may_be_followed_by_prose() {
+        expect_no_offenses(
+            USELESS,
+            concat!(
+                "def m(block)\n",
+                "  count = 1\n",
+                "  handle = nil # rubocop:disable Lint/UselessAssignment avoid holding it\n",
+                "  [count, block]\n",
+                "end\n",
+            ),
+        );
     }
 }

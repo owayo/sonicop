@@ -145,6 +145,30 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_syntax_unexpected_token")
         .locations(&[(1, 5, 1, 5)])
         .severity(Severity::Fatal),
+        // 本家は壊れた構文から回復した先で追加の診断を出す。ここでは endless
+        // メソッドが `def` 文脈を開いたままにするので、`class` の還元が
+        // `class definition in method body` になる。実測 (rubocop 1.89.0):
+        // 2:9 tEQL と 1:1-1:5 class definition in method body の 2 件。
+        CopCase::new(
+            "Lint/Syntax",
+            "class A\n  def x = 1\nend\n",
+            vec![
+                support::annotation::Annotation::new(
+                    1,
+                    1,
+                    5,
+                    format!("class definition in method body\n{SYNTAX_HINT}"),
+                ),
+                support::annotation::Annotation::new(
+                    2,
+                    9,
+                    1,
+                    format!("unexpected token tEQL\n{SYNTAX_HINT}"),
+                ),
+            ],
+        )
+        .id("lint_syntax_recovery_cascade")
+        .severity(Severity::Fatal),
         CopCase::annotated(
             "Lint/UnusedBlockArgument",
             r#"

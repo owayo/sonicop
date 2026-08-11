@@ -11,25 +11,33 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "native".to_owned());
     let crlf_expected = style == "crlf" || (style == "native" && cfg!(windows));
-    let bytes = context.source.text().as_bytes();
-    for (index, byte) in bytes.iter().enumerate() {
-        if *byte != b'\n' {
-            continue;
-        }
-        let has_cr = index > 0 && bytes[index - 1] == b'\r';
-        if has_cr == crlf_expected {
-            continue;
-        }
-        let (start, end) = if crlf_expected {
-            (index, index)
+
+    let line_count = context.source.line_count();
+    for line_number in 1..=line_count {
+        let line = context.source.line(line_number);
+        let has_crlf = line.ends_with("\r\n");
+        let offending = if crlf_expected {
+            !has_crlf
         } else {
-            (index - 1, index + 1)
+            has_crlf || line.ends_with('\r')
         };
+        if !offending {
+            continue;
+        }
+        // A last line with no line terminator at all cannot be missing a carriage return.
+        if crlf_expected && line_number == line_count && !line.ends_with('\n') {
+            continue;
+        }
         let message = if crlf_expected {
             "Carriage return character missing."
         } else {
             "Carriage return character detected."
         };
-        offenses.push(context.offense(message, start..end));
+        // The offense covers the whole line, terminator included, rather than just the carriage
+        // return: RuboCop builds it as `source_range(buffer, line, 0, line.length)`.
+        let range = context.source.line_range(line_number);
+        offenses.push(context.offense(message, range));
+        // A file's line endings are almost always all alike, so RuboCop stops after the first.
+        break;
     }
 }

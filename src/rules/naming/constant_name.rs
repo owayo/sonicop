@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tree_sitter::Node;
 
-use super::support::Variables;
+use super::support::{Variables, last_named_child, spurious_assignment_list};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -14,6 +14,18 @@ static SCREAMING_SNAKE_CASE: LazyLock<Regex> =
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let variables = Variables::resolve(context.root_node(), context.source);
+    // `rescue => Foo` and `for Foo in bar` are `casgn` nodes upstream just as much as `Foo = bar`
+    // is, and neither carries a value, so neither can be excused by what it was assigned.
+    for node in context.nodes_of("exception_variable") {
+        if let Some(target) = node.named_child(0) {
+            report(context, offenses, target, None, &variables);
+        }
+    }
+    for node in context.nodes_of("for") {
+        if let Some(target) = node.child_by_field_name("pattern") {
+            report(context, offenses, target, None, &variables);
+        }
+    }
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
         let Some(left) = node.child_by_field_name("left") else {
             continue;
@@ -27,7 +39,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         } else {
             right
         };
-        if left.kind() == "left_assignment_list" {
+        if left.kind() == "left_assignment_list" && spurious_assignment_list(left) {
+            // The grammar swallowed the items written before the assignment; only the last of them
+            // is really assigned to, and it keeps the value on the right.
+            if let Some(target) = last_named_child(left) {
+                report(context, offenses, target, value, &variables);
+            }
+        } else if left.kind() == "left_assignment_list" {
             // Every target of a multiple assignment is a casgn without an expression, so none of
             // them can be excused by what stands on the right.
             let mut targets = Vec::new();

@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::fs;
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use anyhow::{Context, Result, bail};
 use ignore::WalkBuilder;
@@ -14,6 +14,7 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::directives::DirectiveState;
+use crate::magic_comment::MagicComment;
 use crate::rules::{AstIndex, Rule, RuleContext, rules};
 use crate::source::SourceFile;
 
@@ -114,6 +115,18 @@ impl RulePlan {
     }
 }
 
+/// The cop that reports parse failures. Every file is put to it before any other cop runs, so it
+/// is looked up by name rather than taken from the run's plan, which a configuration could have
+/// excluded it from without making the file inspectable.
+fn syntax_rule() -> &'static Rule {
+    static RULE: OnceLock<&'static Rule> = OnceLock::new();
+    RULE.get_or_init(|| {
+        rules()
+            .find(|rule| rule.name == "Lint/Syntax")
+            .expect("the registry always carries Lint/Syntax")
+    })
+}
+
 pub fn inspect_source(
     path: impl Into<PathBuf>,
     text: String,
@@ -151,9 +164,33 @@ fn inspect_planned(
         .then(|| DirectiveState::parse(&source, ast.comment_ranges()));
     let mut offenses = Vec::new();
 
+    // RuboCop's `Commissioner#investigate` walks the syntax tree only for a source that parses;
+    // otherwise it calls `on_other_file`, which `Lint/Syntax` alone implements. A file that does
+    // not parse therefore reports its syntax errors and nothing else, however the run selected its
+    // cops -- including when `Lint/Syntax` is itself excluded from the file and reports nothing.
+    let syntax_rule = syntax_rule();
+    let mut syntax_offenses = Vec::new();
+    let syntax_severity = plan
+        .entries
+        .iter()
+        .find(|planned| planned.rule.name == syntax_rule.name)
+        .map_or(syntax_rule.severity, |planned| planned.severity);
+    (syntax_rule.check)(
+        &RuleContext::new(&source, &ast, config, syntax_rule, syntax_severity),
+        &mut syntax_offenses,
+    );
+    let valid_syntax = syntax_offenses.is_empty();
+
     for planned in &plan.entries {
         let rule = planned.rule;
         if config.rule_excluded(rule.name, source.path()) {
+            continue;
+        }
+        if rule.name == syntax_rule.name {
+            offenses.append(&mut syntax_offenses);
+            continue;
+        }
+        if !valid_syntax {
             continue;
         }
         let context = RuleContext::new(&source, &ast, config, rule, planned.severity);
@@ -244,16 +281,50 @@ pub fn inspect_files_with_store(
     Ok(reports)
 }
 
-/// `None` when the file exists but does not decode as UTF-8. RuboCop reports that as a fatal
-/// `Lint/Syntax` offense and inspects the remaining files, so it must not abort the run; a genuine
-/// IO failure still does.
+/// `None` when the file exists but cannot be decoded. RuboCop reports that as a fatal `Lint/Syntax`
+/// offense and inspects the remaining files, so it must not abort the run; a genuine IO failure
+/// still does.
 fn decoded_source(path: &Path) -> Result<Option<String>> {
-    match fs::read_to_string(path) {
+    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    match String::from_utf8(bytes) {
         Ok(text) => Ok(Some(text)),
-        Err(error) if error.kind() == io::ErrorKind::InvalidData => Ok(None),
-        Err(error) => Err(anyhow::Error::new(error))
-            .with_context(|| format!("failed to read {}", path.display())),
+        Err(error) => Ok(decode_declared_encoding(error.as_bytes())),
     }
+}
+
+/// Decodes a file that is not UTF-8 using the encoding its own magic comment names, which is what
+/// Ruby's parser does before handing the source to a cop. A file with no such comment -- a Vim
+/// `fileencoding` line does not count, since Ruby does not read those -- stays undecodable, and
+/// RuboCop reports it as a syntax error rather than guessing.
+fn decode_declared_encoding(bytes: &[u8]) -> Option<String> {
+    // The magic comment itself is ASCII in every encoding this can resolve, so reading the opening
+    // lines loosely is enough to find it.
+    let head = String::from_utf8_lossy(&bytes[..bytes.len().min(1024)]);
+    let label = head
+        .lines()
+        .take_while(|line| line.trim_start().starts_with('#'))
+        .find_map(|line| MagicComment::parse(line).encoding())?;
+    let encoding = encoding_for_ruby_label(&label)?;
+    let (text, _, malformed) = encoding.decode(bytes);
+    (!malformed).then(|| text.into_owned())
+}
+
+/// Resolves an encoding name the way Ruby spells it. `encoding_rs` answers to the WHATWG label
+/// registry, which covers the names a browser sees but not the code page names Ruby also accepts,
+/// so those are mapped onto the equivalent registry label first.
+fn encoding_for_ruby_label(label: &str) -> Option<&'static encoding_rs::Encoding> {
+    if let Some(encoding) = encoding_rs::Encoding::for_label(label.as_bytes()) {
+        return Some(encoding);
+    }
+    let alias = match label.to_ascii_lowercase().as_str() {
+        "cp932" => "windows-31j",
+        "cp51932" | "eucjp-ms" | "euc-jp-ms" => "euc-jp",
+        "cp936" => "gbk",
+        "cp949" => "euc-kr",
+        "cp950" => "big5",
+        _ => return None,
+    };
+    encoding_rs::Encoding::for_label(alias.as_bytes())
 }
 
 fn undecodable_report(path: &Path) -> FileReport {
@@ -321,16 +392,40 @@ pub fn discover_targets_with_store(
             continue;
         }
 
+        // RuboCop resolves targets from `AllCops/Include` and `AllCops/Exclude` alone and never reads
+        // `.gitignore`. Honouring it here would silently drop files that git itself still tracks —
+        // a checkout whose `.gitignore` lists `bin/*` for binstubs keeps a committed `bin/console`,
+        // and the ignore crate has no view of the index to notice that.
+        // RuboCop globs with `File::FNM_DOTMATCH`, so a hidden file under a visible directory is a
+        // target like any other; only a path whose *first* component is hidden is shortcut away, and
+        // `Config::path_included` does that. What keeps the walk cheap is pruning the directories
+        // the configuration excludes outright, which is what upstream's `wanted_dir_patterns` does
+        // before it descends.
+        let pruned = configs.root().clone();
         let mut builder = WalkBuilder::new(&root);
         builder
-            .hidden(!configs.root().possibly_include_hidden())
-            .parents(true)
-            .git_ignore(true)
-            .git_exclude(true)
-            .git_global(true)
-            .follow_links(false);
+            .filter_entry(move |entry| {
+                !entry.file_type().is_some_and(|kind| kind.is_dir())
+                    || !pruned.directory_excluded(entry.path())
+            })
+            .hidden(false)
+            .parents(false)
+            .git_ignore(false)
+            .git_exclude(false)
+            .git_global(false)
+            .require_git(false)
+            .ignore(false)
+            // RuboCop descends through a directory symlink and turns back only when following it
+            // would revisit an ancestor, so a vendored gem reachable under both its real name and a
+            // versionless link is inspected under both paths.
+            .follow_links(true);
         for entry in builder.build() {
-            let entry = entry.with_context(|| format!("failed to traverse {}", root.display()))?;
+            // RuboCop globs the tree and keeps whatever `FileTest.file?` accepts, so an entry it
+            // cannot resolve -- a symlink that closes a cycle, or one whose target is gone -- drops
+            // out silently instead of failing the run.
+            let Ok(entry) = entry else {
+                continue;
+            };
             let path = entry.path();
             if !entry.file_type().is_some_and(|kind| kind.is_file()) {
                 continue;
@@ -359,6 +454,13 @@ fn normalized_target_path(path: &Path) -> PathBuf {
 }
 
 fn has_ruby_shebang(path: &Path) -> bool {
+    // RuboCop's `ruby_executable?` bails out before reading the file unless the name carries no
+    // extension at all, so a shebang only rescues files like `bin/console`. Templates such as
+    // `newgem.tt` or `Executable.standalone` start with `#!/usr/bin/env ruby` and would otherwise be
+    // linted here while upstream leaves them alone.
+    if path.extension().is_some() {
+        return false;
+    }
     let Ok(contents) = fs::read(path) else {
         return false;
     };
@@ -606,6 +708,12 @@ pub fn correct_until_stable(
     }
 }
 
+/// Writes corrected source as UTF-8, whatever encoding the file declares for itself.
+///
+/// RuboCop's runner ends in a plain `File.write`, so a corrected Shift_JIS file comes back out as
+/// UTF-8 while its magic comment still claims Shift_JIS. Re-encoding here would be the kinder
+/// behaviour, but it would also make the two tools produce different bytes for the same input,
+/// which is the one thing this port must not do.
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
@@ -730,5 +838,46 @@ mod tests {
         assert_eq!(bad.offenses[0].message, "Invalid byte sequence in utf-8.");
         let location = bad.offenses[0].location(&bad.source);
         assert_eq!((location.line, location.column), (1, 1));
+    }
+
+    #[test]
+    fn a_file_is_decoded_with_the_encoding_its_magic_comment_names() {
+        // `Prefer single-quoted` on a Shift_JIS line: reachable only once the bytes are decoded,
+        // and the column has to count characters of the decoded text, not the encoded bytes.
+        let directory = tempdir().unwrap();
+        let mut bytes = b"# encoding: cp932\nx = \"".to_vec();
+        bytes.extend_from_slice(b"\x93\xfa\x96\x7b"); // 日本 in Shift_JIS
+        bytes.extend_from_slice(b"\"\n");
+        std::fs::write(directory.path().join("sjis.rb"), bytes).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Style/StringLiterals".to_owned()],
+            ..Selection::default()
+        };
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &selection, false).unwrap();
+
+        let report = &reports[0];
+        assert_eq!(report.offenses.len(), 1);
+        let location = report.offenses[0].location(&report.source);
+        assert_eq!((location.line, location.column, location.length), (2, 5, 4));
+    }
+
+    #[test]
+    fn an_encoding_a_magic_comment_does_not_name_stays_undecodable() {
+        // A Vim modeline is not a Ruby magic comment, so RuboCop never reads the encoding out of
+        // one and reports the file as a syntax error instead.
+        let directory = tempdir().unwrap();
+        let mut bytes = b"# vim: set fileencoding=cp932\nx = \"".to_vec();
+        bytes.extend_from_slice(b"\x93\xfa\x96\x7b\"\n");
+        std::fs::write(directory.path().join("vim.rb"), bytes).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &Selection::default(), false).unwrap();
+
+        assert_eq!(reports[0].offenses.len(), 1);
+        assert_eq!(reports[0].offenses[0].cop_name, "Lint/Syntax");
     }
 }

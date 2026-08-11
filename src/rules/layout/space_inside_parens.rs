@@ -18,10 +18,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         match bytes[index] {
             b'(' => {
                 let spaces = whitespace_after(text, index + 1);
-                if !spaces.is_empty()
-                    && bytes.get(spaces.end) != Some(&b')')
-                    && bytes.get(spaces.end) != Some(&b'#')
-                {
+                // RuboCop compares two neighbouring tokens, so the space only counts when a
+                // token follows it on the same line. A line break ends the line and a comment
+                // means one follows, and neither leaves anything to report. An empty pair of
+                // parentheses is reported here, from its opening side, and skipped at the
+                // closing one so that the pair yields a single offense.
+                let followed_by_a_token = !matches!(
+                    bytes.get(spaces.end),
+                    None | Some(b'\r' | b'\n') | Some(b'#')
+                );
+                if !spaces.is_empty() && followed_by_a_token {
                     offenses.push(paren_space_offense(context, spaces));
                 }
             }

@@ -212,6 +212,15 @@ fn position(node: Node<'_>) -> Position {
     };
     match parent.kind() {
         "assignment" | "operator_assignment" => bound_when(node, "left"),
+        "left_assignment_list" if spurious_assignment_list(parent) => {
+            // Only the name the real parser would have assigned to is bound; the items the
+            // grammar swallowed ahead of it are ordinary expressions.
+            if last_named_child(parent).is_some_and(|last| last.id() == node.id()) {
+                Position::Binding
+            } else {
+                Position::Value
+            }
+        }
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
             Position::Binding
         }
@@ -258,6 +267,46 @@ fn position(node: Node<'_>) -> Position {
         | "alternative_pattern" => Position::Shadow,
         _ => Position::Value,
     }
+}
+
+/// Node kinds that hold a comma-separated list of expressions. Ruby's own parser closes such a
+/// list at every comma, so `foo(a, b = 1)` passes two arguments and only `b` is assigned.
+const COMMA_SEPARATED_LISTS: &[&str] = &[
+    "argument_list",
+    "array",
+    "splat_argument",
+    "optional_parameter",
+    "keyword_parameter",
+    "right_assignment_list",
+];
+
+/// Whether a `left_assignment_list` is one the grammar invented. tree-sitter parses `foo(a, b = 1)`
+/// and `def m(x = A, y = 2)` as a multiple assignment that swallowed the items written before the
+/// one being assigned to, which is not how Ruby reads them, so such a list is not a `masgn` and
+/// binds only its last name.
+pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
+    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
+    // assignment inside the next and only the outermost one stands in the list itself.
+    let mut current = list.parent();
+    while let Some(node) = current {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind()) {
+            return true;
+        }
+        let continues = parent.kind() == "assignment"
+            && parent
+                .child_by_field_name("right")
+                .is_some_and(|right| right.id() == node.id());
+        current = continues.then_some(parent);
+    }
+    false
+}
+
+pub(super) fn last_named_child(node: Node<'_>) -> Option<Node<'_>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor).last()
 }
 
 fn bound_when(node: Node<'_>, field_name: &str) -> Position {

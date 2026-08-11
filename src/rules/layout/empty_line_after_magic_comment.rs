@@ -1,23 +1,13 @@
 use crate::diagnostic::{Edit, Offense};
+use crate::magic_comment::MagicComment;
 use crate::rules::RuleContext;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let mut last_magic = None;
-    for line_number in 1..=context.source.line_count().min(4) {
-        let line = context.source.line(line_number).trim();
-        if line_number == 1 && line.starts_with("#!") {
-            continue;
-        }
-        if is_magic_comment(line) {
-            last_magic = Some(line_number);
-            continue;
-        }
-        if line.is_empty() {
-            continue;
-        }
-        break;
-    }
-    let Some(line_number) = last_magic else {
+    // RuboCop takes every comment that precedes the first line of code and keeps the *last* magic
+    // one among them. Stopping at the first magic comment reports the wrong line whenever a file
+    // opens with several of them, which is common: an encoding line above a frozen string literal
+    // line.
+    let Some(line_number) = last_magic_comment_line(context) else {
         return;
     };
     let next = line_number + 1;
@@ -29,7 +19,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         context
             .offense(
                 "Add an empty line after magic comments.",
-                insertion..insertion,
+                // `source_range` defaults to a length of one, so the offense covers the first
+                // character of the line rather than collapsing to the insertion point.
+                insertion..next_char_boundary(context, insertion),
             )
             .corrected_by(Edit {
                 start: insertion,
@@ -40,10 +32,35 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     );
 }
 
-fn is_magic_comment(line: &str) -> bool {
-    let lower = line.to_ascii_lowercase();
-    lower.starts_with("# frozen_string_literal:")
-        || lower.starts_with("# encoding:")
-        || lower.starts_with("# coding:")
-        || (lower.starts_with("# -") && lower.contains("coding:"))
+fn last_magic_comment_line(context: &RuleContext<'_>) -> Option<usize> {
+    let mut last = None;
+    for line_number in 1..=context.source.line_count() {
+        // This cop reads comment *tokens*, and a byte order mark is not part of the token that
+        // follows it, so a magic comment on the first line still counts.
+        let line = context
+            .source
+            .line(line_number)
+            .trim_start_matches('\u{feff}')
+            .trim();
+        if !line.starts_with('#') {
+            // The first line of code ends the run of comments RuboCop considers.
+            if line.is_empty() {
+                continue;
+            }
+            break;
+        }
+        if MagicComment::parse(line).any() {
+            last = Some(line_number);
+        }
+    }
+    last
+}
+
+fn next_char_boundary(context: &RuleContext<'_>, start: usize) -> usize {
+    let text = context.source.text();
+    let mut end = (start + 1).min(text.len());
+    while end < text.len() && !text.is_char_boundary(end) {
+        end += 1;
+    }
+    end
 }

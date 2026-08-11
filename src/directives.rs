@@ -174,15 +174,10 @@ fn parse_directive(line: &str) -> Option<Directive> {
             inline,
         });
     }
-    if arguments.is_empty() {
+    let cops = cop_list(arguments);
+    if cops.is_empty() {
         return None;
     }
-    let cops = arguments
-        .split(',')
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToOwned::to_owned)
-        .collect();
     Some(Directive {
         action,
         cops,
@@ -190,6 +185,56 @@ fn parse_directive(line: &str) -> Option<Directive> {
         reason,
         inline,
     })
+}
+
+/// The cop names a `disable`/`enable`/`todo` directive lists.
+///
+/// `DirectiveComment::DIRECTIVE_COMMENT_REGEXP` matches `(all|COP(?:\s*,\s*COP)*)` and is not
+/// anchored, so it stops at the first word that is not a cop name and leaves the rest of the
+/// comment as prose: `# rubocop:disable Lint/UselessAssignment kept for the closure` disables the
+/// cop it names. Reading the whole remainder as one name would silently ignore such a directive.
+fn cop_list(arguments: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut rest = arguments.trim_start();
+    loop {
+        let Some(length) = cop_name_length(rest) else {
+            return names;
+        };
+        names.push(rest[..length].to_owned());
+        let after = rest[length..].trim_start();
+        match after.strip_prefix(',') {
+            Some(next) => rest = next.trim_start(),
+            None => return names,
+        }
+    }
+}
+
+/// The length of the cop name `text` starts with, following `COP_NAME_PATTERN`: one or more
+/// `[A-Za-z]\w+` segments separated by slashes.
+fn cop_name_length(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut index = 0;
+    loop {
+        let start = index;
+        if !bytes.get(index).is_some_and(u8::is_ascii_alphabetic) {
+            return None;
+        }
+        index += 1;
+        while bytes
+            .get(index)
+            .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+        {
+            index += 1;
+        }
+        // The pattern is `[A-Za-z]\w+`, so a one-character segment does not match.
+        if index - start < 2 {
+            return None;
+        }
+        if bytes.get(index) != Some(&b'/') {
+            return Some(index);
+        }
+        index += 1;
+    }
 }
 
 fn find_comment_start(line: &str) -> Option<usize> {

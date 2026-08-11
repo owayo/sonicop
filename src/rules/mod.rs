@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::config::Config;
 use crate::diagnostic::{Offense, Severity};
+use crate::formatter::smart_path;
 use crate::ruby_version::RubyVersion;
 use crate::source::SourceFile;
 
@@ -122,9 +123,24 @@ impl RuleContext<'_> {
         self.config.cop_value(self.rule.name, key)
     }
 
+    /// Another cop's configuration parameter, the way RuboCop's cops reach for
+    /// `config.for_cop('Layout/HashAlignment')`. A cop whose own behaviour is defined in terms of
+    /// a neighbour's configuration has to read that neighbour, not guess at its default.
+    pub fn setting_of<T: serde::de::DeserializeOwned>(&self, cop: &str, key: &str) -> Option<T> {
+        self.config.cop_value(cop, key)
+    }
+
     /// The Ruby version the run analyzes as, which version-gated cops compare against.
     pub fn target_ruby_version(&self) -> RubyVersion {
         self.config.target_ruby_version()
+    }
+
+    /// The file's path as RuboCop writes it into an offense message: relative to the directory the
+    /// run started in, or absolute when it lies outside. Cops that name a second location, such as
+    /// the other definition `Lint/DuplicateMethods` points at, must go through this rather than
+    /// print the path they were handed.
+    pub fn display_path(&self) -> String {
+        smart_path(self.source.path(), self.config.cwd())
     }
 
     /// Reports `range` under this cop's name and severity. Every cop offense is built here.

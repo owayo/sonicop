@@ -51,6 +51,9 @@ struct CompiledPattern {
     basename: bool,
     /// A pattern naming no dot-component does not opt into hidden paths.
     skips_hidden: bool,
+    /// The pattern's dot-prefixed segments, such as `.git` in `.git/**/*`, compiled on their own so
+    /// they can be asked whether they reach a hidden part of a path.
+    dot_segments: Vec<GlobMatcher>,
 }
 
 impl PathPatterns {
@@ -75,7 +78,39 @@ impl PathPatterns {
     }
 
     pub(super) fn matches_includes(&self, path: &Path, root: &Path) -> bool {
-        self.matches(path, root, true, false)
+        if self.patterns.is_empty() {
+            return false;
+        }
+        let relative = project_relative(path, root).unwrap_or_else(|| path.to_path_buf());
+        let relative = relative.to_string_lossy().replace('\\', "/");
+        let normalized = relative.trim_start_matches("./");
+        let basename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        // RuboCop's `match_path?` matches without `FNM_DOTMATCH`, so a wildcard never reaches a dot
+        // component -- only a segment the pattern spells out literally does. On top of that,
+        // `hidden_file_in_not_hidden_dir?` lets a dot *file* through as long as it sits in a real,
+        // non-hidden directory. So a dot directory is invisible unless named, and a top-level dot
+        // file needs naming too.
+        let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", normalized));
+        let hidden_directories: Vec<&str> = directories
+            .split('/')
+            .filter(|part| part.starts_with('.'))
+            .collect();
+        let hidden_file = file.starts_with('.');
+        self.patterns.iter().any(|pattern| {
+            if !hidden_directories
+                .iter()
+                .all(|part| pattern.reaches_hidden(part))
+            {
+                return false;
+            }
+            if hidden_file && directories.is_empty() && !pattern.reaches_hidden(file) {
+                return false;
+            }
+            pattern.matches(normalized, basename, false)
+        })
     }
 
     fn matches(&self, path: &Path, root: &Path, respect_hidden: bool, absolute_only: bool) -> bool {
@@ -110,7 +145,22 @@ impl CompiledPattern {
             absolute,
             basename: !pattern.contains('/'),
             skips_hidden: !pattern.starts_with('.') && !pattern.contains("/."),
+            dot_segments: pattern
+                .split('/')
+                .filter(|segment| segment.starts_with('.'))
+                .filter_map(|segment| Glob::new(segment).ok())
+                .map(|glob| glob.compile_matcher())
+                .collect(),
         })
+    }
+
+    /// Whether the pattern can reach a hidden path segment. A wildcard cannot -- RuboCop matches
+    /// without `FNM_DOTMATCH` -- so only a segment of the pattern that itself begins with a dot
+    /// does, and it still has to match the segment.
+    fn reaches_hidden(&self, segment: &str) -> bool {
+        self.dot_segments
+            .iter()
+            .any(|matcher| matcher.is_match(segment))
     }
 
     fn matches(&self, normalized: &str, basename: &str, hidden: bool) -> bool {
@@ -205,18 +255,25 @@ fn matches_patterns_reference(
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("");
-    let contains_hidden_component = Path::new(&normalized).components().any(|component| {
-        component
-            .as_os_str()
-            .to_str()
-            .is_some_and(|part| part.starts_with('.') && part != "." && part != "..")
-    });
+    let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", &normalized));
+    let hidden_directories: Vec<&str> = directories
+        .split('/')
+        .filter(|part| part.starts_with('.') && *part != "." && *part != "..")
+        .collect();
+    let hidden_file = file.starts_with('.') && file != "." && file != "..";
     patterns.iter().any(|pattern| {
         let pattern = pattern.trim_start_matches("./");
+        // Only a dot-prefixed segment of the pattern reaches a dot component, and a dot file at the
+        // top level needs the same. Below the top level a dot file is reached anyway.
+        let reaches = |segment: &str| {
+            pattern.split('/').any(|part| {
+                part.starts_with('.')
+                    && Glob::new(part).is_ok_and(|glob| glob.compile_matcher().is_match(segment))
+            })
+        };
         if respect_hidden
-            && contains_hidden_component
-            && !pattern.starts_with('.')
-            && !pattern.contains("/.")
+            && (!hidden_directories.iter().all(|part| reaches(part))
+                || (hidden_file && directories.is_empty() && !reaches(file)))
         {
             return false;
         }

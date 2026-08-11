@@ -236,14 +236,20 @@ impl Check<'_, '_> {
         }
     }
 
+    /// The value RuboCop reads off a `str`/`sym` node: the literal's text with its escapes
+    /// resolved. A literal holding an interpolation is a `dstr`/`dsym` upstream, which names
+    /// nothing, and is the one shape rejected here.
     fn quoted_content(&self, node: Node<'_>) -> Option<String> {
+        let mut value = String::new();
         let mut cursor = node.walk();
-        let mut children = node.named_children(&mut cursor);
-        let content = children.next().filter(|c| c.kind() == "string_content")?;
-        children
-            .next()
-            .is_none()
-            .then(|| self.context.source.node_text(content).to_owned())
+        for child in node.named_children(&mut cursor) {
+            match child.kind() {
+                "string_content" => value.push_str(self.context.source.node_text(child)),
+                "escape_sequence" => unescape(self.context.source.node_text(child), &mut value),
+                _ => return None,
+            }
+        }
+        Some(value)
     }
 
     fn is_forbidden(&self, name: &str) -> bool {
@@ -265,6 +271,56 @@ impl Check<'_, '_> {
             self.offenses.push(self.context.offense(message, range));
         }
     }
+}
+
+/// Appends the character one Ruby escape sequence stands for. The numeric forms are the ones that
+/// matter: `:"a\000"` names a method whose name holds a NUL byte, which no naming style accepts,
+/// and reading the escape verbatim would have called it `a000`.
+fn unescape(escape: &str, out: &mut String) {
+    let body = &escape[1..];
+    let mut characters = body.chars();
+    let Some(first) = characters.next() else {
+        return;
+    };
+    match first {
+        'n' => out.push('\n'),
+        't' => out.push('\t'),
+        'r' => out.push('\r'),
+        's' => out.push(' '),
+        'a' => out.push('\u{7}'),
+        'b' => out.push('\u{8}'),
+        'e' => out.push('\u{1b}'),
+        'f' => out.push('\u{c}'),
+        'v' => out.push('\u{b}'),
+        '\n' => {}
+        '0'..='7' => push_code_point(u32::from_str_radix(body, 8).ok(), out),
+        'x' => push_code_point(u32::from_str_radix(characters.as_str(), 16).ok(), out),
+        'u' => push_unicode(characters.as_str(), out),
+        // `\cX`, `\C-X` and `\M-X` name control and meta characters; none of them can appear in a
+        // name written in an enforced style, so the exact byte does not matter.
+        'c' | 'C' | 'M' => out.push('\u{1}'),
+        _ => out.push(first),
+    }
+}
+
+/// `\uXXXX` names one code point and `\u{...}` names a space-separated list of them.
+fn push_unicode(body: &str, out: &mut String) {
+    let Some(list) = body
+        .strip_prefix('{')
+        .and_then(|rest| rest.strip_suffix('}'))
+    else {
+        push_code_point(u32::from_str_radix(body, 16).ok(), out);
+        return;
+    };
+    for point in list.split_whitespace() {
+        push_code_point(u32::from_str_radix(point, 16).ok(), out);
+    }
+}
+
+fn push_code_point(value: Option<u32>, out: &mut String) {
+    // A code point Rust cannot hold is a surrogate or a raw byte; either way it is not a character
+    // any naming style allows, so a placeholder that is equally unacceptable stands in for it.
+    out.push(value.and_then(char::from_u32).unwrap_or('\u{1}'));
 }
 
 /// `range_position` for a `send`: one character past the selector, which lands on the first

@@ -10,6 +10,7 @@ pub mod diagnostic;
 mod directives;
 pub mod engine;
 mod formatter;
+mod magic_comment;
 mod ruby_version;
 pub mod rules;
 pub mod source;

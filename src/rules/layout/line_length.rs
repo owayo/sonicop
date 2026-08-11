@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::source::is_protected;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
 /// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
@@ -23,7 +24,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let directive_lines = directive_lines(context);
     let endless_method_lines = endless_method_lines(context);
 
-    for line_number in 1..=context.source.line_count() {
+    // RuboCop drops the `__END__` line and the data section behind it from the lines it walks, so
+    // a long line down there is not a long line of code.
+    let data_line = context
+        .nodes_of("uninterpreted")
+        .next()
+        .map_or(usize::MAX, |node| node.start_position().row + 1);
+
+    for line_number in 1..=context.source.line_count().min(data_line.saturating_sub(1)) {
         let raw = context.source.line(line_number);
         // RuboCop chomps only the newline, so a CRLF file counts its `\r` as one more character.
         let line = raw.strip_suffix('\n').unwrap_or(raw);
@@ -41,8 +49,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // An endless method has a way out of being long -- it can be rewritten as a regular
         // method -- so RuboCop reports it before any exemption gets a say, and reports the whole
         // line even when a cop directive is what pushed it over.
-        let (start_column, reported) = if endless_method_lines.contains(&line_number) {
-            (max.saturating_sub(indent), length)
+        let (start_column, reported) = if let Some(node) = endless_method_lines.get(&line_number) {
+            let range = line_start + byte_offset(line, max.saturating_sub(indent))
+                ..line_start + byte_offset(line, length);
+            offenses.push(
+                context
+                    .offense(format!("Line is too long. [{length}/{max}]"), range)
+                    .corrected_by(endless_method_edit(context, *node)),
+            );
+            continue;
         }
         // A cop directive is measured without the directive, so a line that is only long because
         // of `# rubocop:disable ...` is not reported -- but the code before it still is.
@@ -136,17 +151,55 @@ fn directive_lines(context: &RuleContext<'_>) -> HashSet<usize> {
 /// Lines an endless method definition starts on.
 ///
 /// The grammar tells the two forms apart by the closing keyword: `def foo = bar` has no `end`.
-fn endless_method_lines(context: &RuleContext<'_>) -> HashSet<usize> {
+fn endless_method_lines<'tree>(context: &'tree RuleContext<'_>) -> HashMap<usize, Node<'tree>> {
     context
         .nodes_of_any(&["method", "singleton_method"])
-        .filter(|node| {
-            let mut cursor = node.walk();
-            !node
-                .children(&mut cursor)
-                .any(|child| child.kind() == "end")
-        })
-        .map(|node| node.start_position().row + 1)
+        .filter(|node| is_endless_method(*node))
+        .map(|node| (node.start_position().row + 1, node))
         .collect()
+}
+
+/// RuboCop's `correct_to_multiline`: an endless method is rewritten as a regular one, which is the
+/// correction that makes every over-long endless method line correctable.
+fn endless_method_edit(context: &RuleContext<'_>, node: Node<'_>) -> Edit {
+    let indent = " ".repeat(context.source.line_column(node.start_byte()).1 - 1);
+    let mut signature = String::from("def ");
+    if let Some(object) = node.child_by_field_name("object") {
+        signature.push_str(context.source.node_text(object));
+        // The separator is whatever sits between the receiver and the name: `.` or `::`.
+        signature.push_str(
+            context
+                .source
+                .slice(object.end_byte()..name_start(node, object)),
+        );
+    }
+    if let Some(name) = node.child_by_field_name("name") {
+        signature.push_str(context.source.node_text(name));
+    }
+    if let Some(parameters) = node.child_by_field_name("parameters") {
+        signature.push_str(context.source.node_text(parameters));
+    }
+    let body = node
+        .child_by_field_name("body")
+        .map_or("", |body| context.source.node_text(body));
+    Edit {
+        start: node.start_byte(),
+        end: node.end_byte(),
+        replacement: format!("{signature}\n{indent}  {body}\n{indent}end"),
+        safe: true,
+    }
+}
+
+fn name_start(node: Node<'_>, object: Node<'_>) -> usize {
+    node.child_by_field_name("name")
+        .map_or(object.end_byte(), |name| name.start_byte())
+}
+
+fn is_endless_method(node: Node<'_>) -> bool {
+    let mut cursor = node.walk();
+    !node
+        .children(&mut cursor)
+        .any(|child| child.kind() == "end")
 }
 
 fn marker_only(prefix: &str) -> bool {
@@ -304,104 +357,448 @@ static RFC3986_URI: LazyLock<Regex> = LazyLock::new(|| {
     .unwrap()
 });
 
-fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edit> {
-    let comments: HashSet<usize> = context
-        .nodes_of("comment")
-        .map(|node| node.start_position().row + 1)
-        .collect();
-    let mut edits = HashMap::new();
+/// Node kinds whose RuboCop counterpart `Layout/LineLength` offers a line break inside.
+///
+/// `element_reference` and an `assignment` onto one are `send` nodes upstream (`[]` and `[]=`),
+/// and the three array spellings plus a multiple assignment's right-hand side are all `array`.
+const BREAKABLE_KINDS: &[&str] = &[
+    "block",
+    "do_block",
+    "call",
+    "element_reference",
+    "assignment",
+    "array",
+    "string_array",
+    "symbol_array",
+    "right_assignment_list",
+    "exceptions",
+    "hash",
+    "method",
+    "singleton_method",
+];
 
-    // RuboCop gives a single-line block precedence over the call that owns it.
-    // Breaking immediately after `{` / `do` is syntax preserving even when the
-    // line has a trailing comment.
-    for node in context
-        .nodes_of_any(&["block", "do_block"])
-        .filter(|node| node.start_position().row == node.end_position().row)
-    {
-        let start = node
-            .child_by_field_name("parameters")
-            .map_or_else(
-                || node.start_byte() + if node.kind() == "block" { 1 } else { 2 },
-                |parameters| parameters.end_byte(),
-            )
-            .min(node.end_byte());
-        edits.entry(node.start_position().row + 1).or_insert(Edit {
-            start,
-            end: start,
-            replacement: "\n".to_owned(),
-            safe: true,
-        });
+/// Where `Layout/LineLength` would insert a line break on each line, keyed by line number. A line
+/// with no entry has no correction, which is what makes its offense uncorrectable.
+///
+/// RuboCop builds one table for the whole file, and the order it is filled in decides the ties:
+/// semicolons first, then a single walk of the AST in which a single-line block overwrites whatever
+/// its line already held while every other node only fills a line that is still empty.
+fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edit> {
+    let breaker = Breaker {
+        context,
+        max,
+        comment_lines: comment_lines(context),
+        heredocs: context
+            .nodes_of("heredoc_beginning")
+            .map(|node| node.byte_range())
+            .collect(),
+    };
+    let mut positions: HashMap<usize, usize> = HashMap::new();
+
+    // Reversed, so that the first semicolon on a line is the one whose position survives.
+    if context.source.text().contains(';') {
+        for offset in semicolon_break_positions(context).into_iter().rev() {
+            positions.insert(context.source.line_column(offset).0, offset);
+        }
     }
 
-    for node in context
-        .nodes_of_any(&["call", "array", "hash", "method", "singleton_method"])
-        .filter(|node| breakable_collection_on_one_line(*node))
-    {
-        let line_number = node.start_position().row + 1;
-        if edits.contains_key(&line_number) || comments.contains(&line_number) {
-            continue;
+    for node in context.nodes_of_any(BREAKABLE_KINDS) {
+        if matches!(node.kind(), "block" | "do_block") {
+            if let Some(offset) = breaker.block_break_position(node) {
+                // Upstream's block node starts at the receiver, not at the brace, so a call split
+                // over two lines files its break under the line the receiver is on.
+                let owner = node.parent().unwrap_or(node);
+                positions.insert(owner.start_position().row + 1, offset);
+            }
+        } else if let Some(element) = breaker.breakable_element(node) {
+            positions
+                .entry(element.start_position().row + 1)
+                .or_insert_with(|| element.start_byte());
         }
+    }
 
-        let Some(mut elements) = breakable_elements(node, context) else {
-            continue;
+    positions
+        .into_iter()
+        .map(|(line, start)| {
+            (
+                line,
+                Edit {
+                    start,
+                    end: start,
+                    replacement: "\n".to_owned(),
+                    safe: true,
+                },
+            )
+        })
+        .collect()
+}
+
+/// Every line a comment sits on. A node whose first line carries one is never broken, because the
+/// break would push the rest of the line behind the comment marker.
+fn comment_lines(context: &RuleContext<'_>) -> HashSet<usize> {
+    let mut lines = HashSet::new();
+    for range in context.comment_ranges() {
+        let first = context.source.line_column(range.start).0;
+        let last = context.source.line_column(range.end.saturating_sub(1)).0;
+        lines.extend(first..=last);
+    }
+    lines
+}
+
+/// The offset just after each semicolon that has something else behind it on its line.
+fn semicolon_break_positions(context: &RuleContext<'_>) -> Vec<usize> {
+    let ranges = context.protected_ranges();
+    // `$;`, `?;` and `:";"` spell a semicolon inside a single token, which is not a `tSEMI`.
+    let tokens: Vec<std::ops::Range<usize>> = context
+        .nodes_of_any(&["global_variable", "character", "delimited_symbol"])
+        .map(|node| node.byte_range())
+        .collect();
+    let text = context.source.text();
+    text.bytes()
+        .enumerate()
+        .filter(|(offset, byte)| {
+            *byte == b';'
+                && !is_protected(*offset, ranges)
+                && !tokens.iter().any(|token| token.contains(offset))
+        })
+        .filter_map(|(offset, _)| match text.as_bytes().get(offset + 1) {
+            Some(b'\n' | b'\r' | b';') | None => None,
+            Some(_) => Some(offset + 1),
+        })
+        .collect()
+}
+
+/// RuboCop's `CheckLineBreakable`, which decides where a too-long line could be split.
+struct Breaker<'a, 'b> {
+    context: &'a RuleContext<'b>,
+    max: usize,
+    comment_lines: HashSet<usize>,
+    /// The `<<~FOO` openers of the file, which several of the rules below have to steer around.
+    heredocs: Vec<std::ops::Range<usize>>,
+}
+
+impl Breaker<'_, '_> {
+    /// `check_for_breakable_block`: a single-line block breaks right after what opens its body.
+    fn block_break_position(&self, node: Node<'_>) -> Option<usize> {
+        if node.start_position().row != node.end_position().row
+            || self.receiver_contains_heredoc(node)
+        {
+            return None;
+        }
+        // With block arguments the break goes after the closing `|`. A lambda keeps its parameters
+        // on the `->` rather than the block, so it always falls through to the brace or `do`.
+        let opener = if node.kind() == "block" { 1 } else { 2 };
+        let position = match node.child_by_field_name("parameters") {
+            Some(parameters) => parameters.end_byte(),
+            None => node.start_byte() + opener,
         };
-        if elements.len() < 2 {
-            continue;
-        }
+        Some(position.min(node.end_byte()))
+    }
 
-        if node.kind() == "call" && !call_parenthesized(node, context) {
+    /// `extract_breakable_node`: the element a break would be inserted before, if any.
+    fn breakable_element<'t>(&self, node: Node<'t>) -> Option<Node<'t>> {
+        if node.kind() == "call" && self.chained_to_heredoc(node) {
+            return None;
+        }
+        if matches!(node.kind(), "method" | "singleton_method") && is_endless_method(node) {
+            return None;
+        }
+        let elements = self.elements(node)?;
+        if elements.len() < 2 {
+            return None;
+        }
+        let line = node.start_position().row + 1;
+        if line_char_count(self.context, line) <= self.max
+            || self.comment_lines.contains(&line)
+            || self.safe_to_ignore(node, &elements)
+        {
+            return None;
+        }
+        self.first_element_over_column_limit(node, elements)
+    }
+
+    /// The children RuboCop counts when it asks whether a node is a collection worth breaking.
+    ///
+    /// A brace-less hash argument is already spelled as loose `pair`s by the grammar, which is what
+    /// upstream's `process_args` reaches by unfolding the `hash` node its parser builds.
+    fn elements<'t>(&self, node: Node<'t>) -> Option<Vec<Node<'t>>> {
+        let container = match node.kind() {
+            // `super(...)` is its own node type upstream rather than a `send`, so no cop callback
+            // reaches it and it is never broken.
+            "call" if is_super_call(node) => return None,
+            "call" => node.child_by_field_name("arguments")?,
+            "method" | "singleton_method" => node.child_by_field_name("parameters")?,
+            // A `rescue` clause's exception list reaches RuboCop as an `array` too.
+            "array" | "string_array" | "symbol_array" | "right_assignment_list" | "exceptions" => {
+                node
+            }
+            // A kwargs hash has no braces and is never broken, only a literal one is.
+            "hash" if self.context.source.node_text(node).starts_with('{') => node,
+            "element_reference" => return Some(index_arguments(node)),
+            // `a[b] = c` is the `[]=` call whose arguments are the subscripts and the value.
+            "assignment" => {
+                let left = node.child_by_field_name("left")?;
+                if left.kind() != "element_reference" {
+                    return None;
+                }
+                let mut elements = index_arguments(left);
+                elements.push(node.child_by_field_name("right")?);
+                return Some(elements);
+            }
+            _ => return None,
+        };
+        let mut cursor = container.walk();
+        // A comment is a node of the tree but not of RuboCop's AST, so a trailing one inside a
+        // literal must not count as an element of it.
+        Some(
+            container
+                .named_children(&mut cursor)
+                .filter(|child| child.kind() != "comment")
+                .collect(),
+        )
+    }
+
+    fn safe_to_ignore(&self, node: Node<'_>, elements: &[Node<'_>]) -> bool {
+        self.already_on_multiple_lines(node, elements)
+            || self.contained_by_breakable_collection_on_same_line(node)
+            || self.contained_by_multiline_collection_that_could_be_broken_up(node)
+    }
+
+    /// A node already spread over several lines has been broken enough.
+    ///
+    /// A method definition is measured by its parameter list rather than by the whole definition,
+    /// and a call by its arguments: the block it may carry is a separate node upstream.
+    fn already_on_multiple_lines(&self, node: Node<'_>, elements: &[Node<'_>]) -> bool {
+        let last_row = match node.kind() {
+            "method" | "singleton_method" => match elements.last() {
+                Some(last) => last.end_position().row,
+                None => return false,
+            },
+            "call" => node
+                .child_by_field_name("arguments")
+                .map_or(node.end_position().row, |arguments| {
+                    arguments.end_position().row
+                }),
+            _ => node.end_position().row,
+        };
+        node.start_position().row != last_row
+    }
+
+    /// A collection nested in another one that starts on the same line waits its turn: upstream
+    /// only ever marks one break per line, and the outer one is broken first.
+    fn contained_by_breakable_collection_on_same_line(&self, node: Node<'_>) -> bool {
+        let row = node.start_position().row;
+        for ancestor in Ancestors::of(node) {
+            if ancestor.start_position().row != row {
+                return false;
+            }
+            if self
+                .ancestor_elements(ancestor)
+                .is_some_and(|elements| elements.len() >= 2)
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// The nearest enclosing collection, wherever it starts, gets asked whether its own children
+    /// still have room to be spread out; if they do, breaking this one would be redundant.
+    fn contained_by_multiline_collection_that_could_be_broken_up(&self, node: Node<'_>) -> bool {
+        for ancestor in Ancestors::of(node) {
+            if let Some(elements) = self.ancestor_elements(ancestor) {
+                if elements.len() >= 2 {
+                    return children_could_be_broken_up(&elements);
+                }
+            }
+        }
+        false
+    }
+
+    /// The elements of an enclosing node, which upstream only asks of a `hash`, an `array` or a
+    /// `send` -- never of a method definition, whose parameters are not the caller's to break.
+    fn ancestor_elements<'t>(&self, node: Node<'t>) -> Option<Vec<Node<'t>>> {
+        if matches!(node.kind(), "method" | "singleton_method") {
+            return None;
+        }
+        self.elements(node)
+    }
+
+    /// `extract_first_element_over_column_limit`.
+    fn first_element_over_column_limit<'t>(
+        &self,
+        node: Node<'t>,
+        mut elements: Vec<Node<'t>>,
+    ) -> Option<Node<'t>> {
+        // Moving the first argument of a call written without parentheses would change what the
+        // line means, so it is left where it is.
+        if is_call_like(node)
+            && !call_parenthesized(node, self.context)
+            && !elements
+                .first()
+                .is_some_and(|first| self.is_heredoc(*first))
+        {
             elements.remove(0);
         }
-        let Some(element) = elements
+
+        let row = node.start_position().row;
+        let mut index = 0;
+        while elements.get(index).is_some_and(|element| {
+            self.char_column(*element) <= self.max && element.start_position().row == row
+        }) {
+            index += 1;
+        }
+        index = self.shift_elements_for_heredoc_arg(node, &elements, index)?;
+        if index == 0 {
+            return elements.first().copied();
+        }
+        elements.get(index - 1).copied()
+    }
+
+    /// Breaking after a heredoc argument would leave the body stranded, so the break moves to just
+    /// after it -- and a heredoc in first position rules the line out entirely.
+    fn shift_elements_for_heredoc_arg(
+        &self,
+        node: Node<'_>,
+        elements: &[Node<'_>],
+        index: usize,
+    ) -> Option<usize> {
+        if !matches!(
+            node.kind(),
+            "call"
+                | "array"
+                | "string_array"
+                | "symbol_array"
+                | "right_assignment_list"
+                | "exceptions"
+        ) {
+            return Some(index);
+        }
+        let Some(heredoc) = elements
             .iter()
-            .position(|element| element.start_position().column > max)
-            .map_or_else(
-                || elements.last().copied(),
-                |index| elements.get(index.saturating_sub(1)).copied(),
-            )
+            .position(|element| self.is_heredoc(*element))
         else {
-            continue;
+            return Some(index);
         };
-        let start = element.start_byte();
-        edits.insert(
-            line_number,
-            Edit {
-                start,
-                end: start,
-                replacement: "\n".to_owned(),
-                safe: true,
-            },
-        );
+        if heredoc == 0 {
+            return None;
+        }
+        Some(if heredoc >= index { index } else { heredoc + 1 })
     }
 
-    edits
-}
-
-fn breakable_collection_on_one_line(node: Node<'_>) -> bool {
-    if node.kind() == "call" {
-        return node
-            .child_by_field_name("arguments")
-            .is_some_and(|arguments| {
-                node.start_position().row == arguments.start_position().row
-                    && arguments.start_position().row == arguments.end_position().row
-            });
+    fn char_column(&self, node: Node<'_>) -> usize {
+        self.context.source.line_column(node.start_byte()).1 - 1
     }
-    node.start_position().row == node.end_position().row
+
+    fn is_heredoc(&self, node: Node<'_>) -> bool {
+        node.kind() == "heredoc_beginning"
+    }
+
+    /// Whether a heredoc opens anywhere inside `node`.
+    fn contains_heredoc(&self, node: Node<'_>) -> bool {
+        let range = node.byte_range();
+        self.heredocs
+            .iter()
+            .any(|heredoc| heredoc.start >= range.start && heredoc.end <= range.end)
+    }
+
+    fn receiver_contains_heredoc(&self, node: Node<'_>) -> bool {
+        node.parent()
+            .and_then(|parent| parent.child_by_field_name("receiver"))
+            .is_some_and(|receiver| self.contains_heredoc(receiver))
+    }
+
+    /// A call whose receiver chain starts from a heredoc cannot take a break in its arguments.
+    fn chained_to_heredoc(&self, node: Node<'_>) -> bool {
+        let mut receiver = node.child_by_field_name("receiver");
+        while let Some(current) = receiver {
+            if self.is_heredoc(current) {
+                return true;
+            }
+            receiver = current.child_by_field_name("receiver");
+        }
+        false
+    }
 }
 
-fn breakable_elements<'tree>(
-    node: Node<'tree>,
-    context: &RuleContext<'_>,
-) -> Option<Vec<Node<'tree>>> {
-    let container = match node.kind() {
-        "call" => node.child_by_field_name("arguments")?,
-        "method" | "singleton_method" => node.child_by_field_name("parameters")?,
-        "array" => node,
-        "hash" if context.source.node_text(node).starts_with('{') => node,
-        _ => return None,
+/// The enclosing nodes of `node` as RuboCop sees them.
+///
+/// The grammar hangs a block off the call it belongs to, while upstream's parser hangs the call off
+/// the block. So walking out of a block body must not pass through the call that owns it: the block
+/// is not an argument of that call, and treating it as one would let an unrelated argument list
+/// decide whether the body can be broken.
+struct Ancestors<'t> {
+    current: Node<'t>,
+}
+
+impl<'t> Ancestors<'t> {
+    fn of(node: Node<'t>) -> Self {
+        Self { current: node }
+    }
+}
+
+impl<'t> Iterator for Ancestors<'t> {
+    type Item = Node<'t>;
+
+    fn next(&mut self) -> Option<Node<'t>> {
+        loop {
+            let parent = self.current.parent()?;
+            let through_block = parent.kind() == "call"
+                && parent
+                    .child_by_field_name("block")
+                    .is_some_and(|block| block.id() == self.current.id());
+            self.current = parent;
+            if !through_block {
+                return Some(parent);
+            }
+        }
+    }
+}
+
+/// The subscripts of `a[b, c]`, which are every child but the object being indexed.
+fn index_arguments<'t>(node: Node<'t>) -> Vec<Node<'t>> {
+    let object = node.child_by_field_name("object");
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| {
+            child.kind() != "comment" && Some(child.id()) != object.map(|object| object.id())
+        })
+        .collect()
+}
+
+/// Whether the elements of a collection are already spread over lines with room left to spread
+/// further: two of them sharing a line is what makes another pass worthwhile.
+fn children_could_be_broken_up(elements: &[Node<'_>]) -> bool {
+    let (Some(first), Some(last)) = (elements.first(), elements.last()) else {
+        return false;
     };
-    let mut cursor = container.walk();
-    Some(container.named_children(&mut cursor).collect())
+    if first.start_position().row == last.end_position().row {
+        return false;
+    }
+    let mut last_seen: isize = -1;
+    for element in elements {
+        if last_seen >= element.start_position().row as isize {
+            return true;
+        }
+        last_seen = element.end_position().row as isize;
+    }
+    false
+}
+
+/// The node kinds that reach RuboCop as a `send`, where an unparenthesized first argument is
+/// pinned in place.
+fn is_call_like(node: Node<'_>) -> bool {
+    matches!(node.kind(), "call" | "element_reference" | "assignment")
+}
+
+fn is_super_call(node: Node<'_>) -> bool {
+    node.child_by_field_name("method")
+        .is_some_and(|method| method.kind() == "super")
+}
+
+fn line_char_count(context: &RuleContext<'_>, line: usize) -> usize {
+    let raw = context.source.line(line);
+    raw.strip_suffix('\n').unwrap_or(raw).chars().count()
 }
 
 fn call_parenthesized(node: Node<'_>, context: &RuleContext<'_>) -> bool {

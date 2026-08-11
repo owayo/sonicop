@@ -31,6 +31,9 @@ pub struct Config {
     raw: Value,
     user: Value,
     project_root: PathBuf,
+    /// Where the run was launched from. RuboCop shortens paths it prints inside offense messages
+    /// against `Dir.pwd`, not against the project root, so the two cannot be collapsed.
+    cwd: PathBuf,
     config_path: Option<PathBuf>,
     target_ruby: ResolvedTargetRuby,
     known_cops: HashSet<String>,
@@ -108,6 +111,7 @@ impl Config {
             raw,
             user,
             project_root,
+            cwd: cwd.to_path_buf(),
             config_path,
             target_ruby,
             known_cops,
@@ -119,6 +123,10 @@ impl Config {
 
     pub fn project_root(&self) -> &Path {
         &self.project_root
+    }
+
+    pub fn cwd(&self) -> &Path {
+        &self.cwd
     }
 
     pub fn config_path(&self) -> Option<&Path> {
@@ -205,7 +213,38 @@ impl Config {
     }
 
     pub fn path_included(&self, path: &Path) -> bool {
+        // RuboCop shortcuts a path whose *first* component is hidden: no `Include` pattern can reach
+        // it unless one of them mentions a dot. Only the leading component counts, so a dot
+        // directory nested under a visible one -- `docs/.mdl_style.rb` -- is still matched normally.
+        if self.top_level_hidden(path) && !self.possibly_include_hidden() {
+            return false;
+        }
         self.includes.is_empty() || self.includes.matches_includes(path, &self.project_root)
+    }
+
+    fn top_level_hidden(&self, path: &Path) -> bool {
+        paths::project_relative(path, &self.project_root).is_some_and(|relative| {
+            relative
+                .components()
+                .next()
+                .and_then(|component| component.as_os_str().to_str())
+                .is_some_and(|first| first.starts_with('.') && first != "..")
+        })
+    }
+
+    /// Whether a *directory* is one the configuration excludes wholesale, which is how RuboCop
+    /// prunes `.git` and `node_modules` before descending rather than filtering their contents one
+    /// file at a time.
+    pub fn directory_excluded(&self, path: &Path) -> bool {
+        let patterns: Vec<String> = self.all_cops_value("Exclude").unwrap_or_default();
+        let Some(relative) = paths::project_relative(path, &self.project_root) else {
+            return false;
+        };
+        patterns.iter().any(|pattern| {
+            pattern
+                .strip_suffix("/**/*")
+                .is_some_and(|directory| relative == Path::new(directory))
+        })
     }
 
     pub fn path_excluded(&self, path: &Path) -> bool {

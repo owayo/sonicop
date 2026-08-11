@@ -252,7 +252,7 @@ impl<'a> Tracker<'a> {
             self.definitions.insert(key, line);
             return;
         }
-        let path = self.context.source.path().display();
+        let path = self.context.display_path();
         offenses.push(self.context.offense(
             format!("Method `{method_name}` is defined at both {path}:{first} and {path}:{line}."),
             offense_range(node),

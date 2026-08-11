@@ -17,10 +17,23 @@ const STATEMENT_SEQUENCE_KINDS: &[&str] = &[
     "then",
     "else",
     "ensure",
+    "begin",
+    "do",
     "parenthesized_statements",
     "begin_block",
     "end_block",
 ];
+
+/// Children of a statement sequence that are not statements of it.
+///
+/// The exception-handling clauses are separate nodes upstream -- the sequence RuboCop sees ends
+/// where the `rescue` begins -- and an empty statement is nothing at all, so `if x then ; 1; end`
+/// has a one-expression body rather than a two-expression one.
+const NON_STATEMENT_KINDS: &[&str] = &["comment", "empty_statement", "rescue", "else", "ensure"];
+
+/// Node kinds that spell a semicolon as part of a single token: `$;`, `?;` and `:";"`. RuboCop
+/// walks a token stream rather than the text, so none of these is a semicolon to it.
+const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "delimited_symbol"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -32,58 +45,84 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or(false);
 
     let semicolons = semicolon_offsets(context);
-    let mut reported: Vec<usize> = Vec::new();
+    let mut terminators: Vec<usize> = Vec::new();
 
     // RuboCop reports one semicolon per line here: the one that terminates the line or opens it.
     // A semicolon in the middle of a line is not an offense on its own -- `def foo; bar; end` is
     // left alone -- because that shape is a single expression, not two.
     for line_number in 1..=context.source.line_count() {
         if let Some(offset) = line_terminator_or_opener(context, line_number, &semicolons) {
-            reported.push(offset);
+            terminators.push(offset);
         }
     }
 
     // The second pass is the one that makes `foo; bar` an offense: a line holding the end of more
     // than one statement really is separating expressions, and then *every* semicolon on it counts.
+    // Upstream runs this pass second and drops a range it has already reported, so a semicolon that
+    // both ends its line and separates expressions keeps the first pass's correction.
+    let mut separators: Vec<usize> = Vec::new();
     if !allow_as_expression_separator {
         let separator_lines = expression_separator_lines(context);
-        reported.extend(
+        let already: HashSet<usize> = terminators.iter().copied().collect();
+        separators.extend(
             semicolons
                 .iter()
-                .filter(|(line, _)| separator_lines.contains(line))
+                .filter(|(line, offset)| {
+                    separator_lines.contains(line) && !already.contains(offset)
+                })
                 .map(|(_, offset)| *offset),
         );
     }
 
+    let mut reported: Vec<(usize, bool)> = terminators
+        .into_iter()
+        .map(|offset| (offset, false))
+        .chain(separators.into_iter().map(|offset| (offset, true)))
+        .collect();
     reported.sort_unstable();
-    reported.dedup();
-    for offset in reported {
-        // Only a semicolon with nothing but a comment after it can be dropped outright; removing
-        // one that separates two expressions would join them into a single statement.
+
+    let heredoc_openers = heredoc_openers(context);
+    for (offset, after_expression) in reported {
         let offense = context.offense(
             "Do not use semicolons to terminate expressions.",
             offset..offset + 1,
         );
-        offenses.push(if trailing_on_line(context, offset) {
-            offense.corrected_by(Edit {
-                start: offset,
-                end: offset + 1,
-                replacement: String::new(),
-                safe: true,
-            })
+        // A semicolon that terminates or opens a line can simply be dropped. One that separates
+        // two expressions becomes the line break that should have been there -- unless a heredoc
+        // opened earlier on the line, because then the rest of the line would fall into its body.
+        let replacement = if after_expression {
+            if heredoc_opened_before(context, &heredoc_openers, offset) {
+                offenses.push(offense);
+                continue;
+            }
+            "\n"
         } else {
-            offense
-        });
+            ""
+        };
+        offenses.push(offense.corrected_by(Edit {
+            start: offset,
+            end: offset + 1,
+            replacement: replacement.to_owned(),
+            safe: true,
+        }));
     }
 }
 
 /// Every semicolon that is code rather than text, as `(line, byte offset)`.
 fn semicolon_offsets(context: &RuleContext<'_>) -> Vec<(usize, usize)> {
     let ranges = context.protected_ranges();
+    let tokens: Vec<std::ops::Range<usize>> = context
+        .nodes_of_any(SEMICOLON_BEARING_TOKENS)
+        .map(|node| node.byte_range())
+        .collect();
     let text = context.source.text();
     text.bytes()
         .enumerate()
-        .filter(|(offset, byte)| *byte == b';' && !is_protected(*offset, ranges))
+        .filter(|(offset, byte)| {
+            *byte == b';'
+                && !is_protected(*offset, ranges)
+                && !tokens.iter().any(|token| token.contains(offset))
+        })
         .map(|(offset, _)| (context.source.line_column(offset).0, offset))
         .collect()
 }
@@ -112,7 +151,9 @@ fn line_terminator_or_opener(
     let last = on_line[on_line.len() - 1];
     let first = on_line[0];
 
-    if last + 1 == code.end {
+    // A trailing comment is a token of its own to RuboCop, so it takes the last position away
+    // from the semicolon and the line stops counting as one that ends in one.
+    if last + 1 == code.end && !comment_follows(context, last) {
         return Some(last);
     }
     if first == code.start {
@@ -153,9 +194,20 @@ fn expression_separator_lines(context: &RuleContext<'_>) -> HashSet<usize> {
     let mut lines = HashSet::new();
     for node in context.nodes_of_any(STATEMENT_SEQUENCE_KINDS) {
         let mut cursor = node.walk();
-        let mut ends: Vec<usize> = node
-            .named_children(&mut cursor)
-            .filter(|child| child.kind() != "comment")
+        let children: Vec<_> = node.named_children(&mut cursor).collect();
+        // `begin ... end` holds its statements directly upstream rather than wrapping them in the
+        // `begin` node the cop looks for, so `begin a; b end` is not an offense. Add a `rescue` and
+        // the protected body becomes such a node after all.
+        if node.kind() == "begin"
+            && !children
+                .iter()
+                .any(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+        {
+            continue;
+        }
+        let mut ends: Vec<usize> = children
+            .iter()
+            .filter(|child| !NON_STATEMENT_KINDS.contains(&child.kind()))
             .map(|child| child.end_position().row + 1)
             .collect();
         ends.sort_unstable();
@@ -168,8 +220,36 @@ fn expression_separator_lines(context: &RuleContext<'_>) -> HashSet<usize> {
     lines
 }
 
-/// Whether nothing but a comment follows the semicolon on its line.
-fn trailing_on_line(context: &RuleContext<'_>, offset: usize) -> bool {
+/// Whether a comment starts after `offset` on the same line.
+fn comment_follows(context: &RuleContext<'_>, offset: usize) -> bool {
+    let line = context
+        .source
+        .line_range(context.source.line_column(offset).0);
+    context
+        .comment_ranges()
+        .iter()
+        .any(|range| range.start > offset && range.start < line.end)
+}
+
+/// The `<<~FOO` openers of the file, as `(line, byte offset just past the opener)`.
+fn heredoc_openers(context: &RuleContext<'_>) -> Vec<(usize, usize)> {
+    context
+        .nodes_of("heredoc_beginning")
+        .map(|node| (node.start_position().row + 1, node.end_byte()))
+        .collect()
+}
+
+/// Whether a heredoc opens on the semicolon's line, before the semicolon itself.
+fn heredoc_opened_before(
+    context: &RuleContext<'_>,
+    openers: &[(usize, usize)],
+    offset: usize,
+) -> bool {
+    if openers.is_empty() {
+        return false;
+    }
     let line_number = context.source.line_column(offset).0;
-    code_range(context, line_number).is_none_or(|code| offset + 1 >= code.end)
+    openers
+        .iter()
+        .any(|(line, end)| *line == line_number && *end <= offset)
 }

@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use super::support::{HeredocEnds, LengthTarget, report_length};
+use super::support::{HeredocEnds, LengthTarget, constructor_call, report_length};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -70,23 +70,8 @@ fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(call) = node.parent().filter(|parent| parent.kind() == "call") else {
         return false;
     };
-    let (Some(receiver), Some(method)) = (
-        call.child_by_field_name("receiver"),
-        call.child_by_field_name("method"),
-    ) else {
-        return false;
-    };
-    if !matches!(receiver.kind(), "constant" | "scope_resolution") {
-        return false;
-    }
-    let text = context.source.node_text(receiver);
-    let name = text.strip_prefix("::").unwrap_or(text);
-    if name.contains("::") {
-        return false;
-    }
-    match context.source.node_text(method) {
-        "new" => matches!(name, "Class" | "Module" | "Struct"),
-        "define" => name == "Data",
-        _ => false,
-    }
+    matches!(
+        constructor_call(context, call),
+        Some(("Class" | "Module" | "Struct", "new") | ("Data", "define"))
+    )
 }

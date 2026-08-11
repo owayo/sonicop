@@ -8,10 +8,21 @@ pub struct SourceFile {
     path: PathBuf,
     text: String,
     line_starts: Vec<usize>,
+    /// Whether the file opened with a UTF-8 byte order mark, which `text` no longer carries.
+    byte_order_mark: bool,
 }
+
+/// The UTF-8 byte order mark, which `parser` strips before handing the source to a cop but which
+/// RuboCop still writes back out when it corrects the file.
+pub const BYTE_ORDER_MARK: &str = "\u{feff}";
 
 impl SourceFile {
     pub fn new(path: impl Into<PathBuf>, text: String) -> Self {
+        // Ruby's parser re-encodes the source but leaves its content alone, so a leading byte order
+        // mark stays in the buffer and every column on the first line counts it. Only the *tokens*
+        // exclude it, which is why a cop reading comment tokens sees a magic comment where one
+        // reading raw lines does not.
+        let byte_order_mark = text.starts_with(BYTE_ORDER_MARK);
         let mut line_starts = vec![0];
         line_starts.extend(
             text.bytes()
@@ -22,7 +33,14 @@ impl SourceFile {
             path: path.into(),
             text,
             line_starts,
+            byte_order_mark,
         }
+    }
+
+    /// Whether the source opens with a byte order mark. A cop that reads a raw line rather than a
+    /// token has to step over it the way the tokenizer already has.
+    pub fn starts_with_byte_order_mark(&self) -> bool {
+        self.byte_order_mark
     }
 
     pub fn path(&self) -> &Path {
