@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::support::Interpolations;
 use crate::source::is_protected;
 
 /// Node kinds whose named children are a sequence of statements.
@@ -22,6 +23,8 @@ const STATEMENT_SEQUENCE_KINDS: &[&str] = &[
     "parenthesized_statements",
     "begin_block",
     "end_block",
+    // `"#{a; b}"` puts the interpolated statements in a `begin` node of their own upstream.
+    "interpolation",
 ];
 
 /// Children of a statement sequence that are not statements of it.
@@ -34,6 +37,7 @@ const NON_STATEMENT_KINDS: &[&str] = &["comment", "empty_statement", "rescue", "
 /// Node kinds that spell a semicolon as part of a single token: `$;`, `?;` and `:";"`. RuboCop
 /// walks a token stream rather than the text, so none of these is a semicolon to it.
 const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "delimited_symbol"];
+
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -115,12 +119,13 @@ fn semicolon_offsets(context: &RuleContext<'_>) -> Vec<(usize, usize)> {
         .nodes_of_any(SEMICOLON_BEARING_TOKENS)
         .map(|node| node.byte_range())
         .collect();
+    let interpolations = Interpolations::new(context);
     let text = context.source.text();
     text.bytes()
         .enumerate()
         .filter(|(offset, byte)| {
             *byte == b';'
-                && !is_protected(*offset, ranges)
+                && (!is_protected(*offset, ranges) || interpolations.holds_code(*offset))
                 && !tokens.iter().any(|token| token.contains(offset))
         })
         .map(|(offset, _)| (context.source.line_column(offset).0, offset))

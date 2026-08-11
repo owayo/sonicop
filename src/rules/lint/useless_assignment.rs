@@ -4,8 +4,8 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use super::variable_force::{
-    Analysis, Assignment, AssignmentKind, Scope, Variable, body_node, named_children, scope_nodes,
-    spurious_assignment_list,
+    Analysis, Assignment, AssignmentKind, Scope, Variable, body_node, is_variable_read,
+    named_children, scope_nodes, spurious_assignment_list,
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
@@ -139,32 +139,10 @@ fn variable_like_invocation(
     analysis: &Analysis<'_>,
 ) -> Option<String> {
     match node.kind() {
-        // A bare name is a `send` upstream only when it did not resolve to a local; a read of a
-        // local is an `lvar` and contributes nothing of its own here.
-        "identifier" if !analysis.is_variable_reference(node) => {
-            let parent = node.parent()?;
-            let named = matches!(
-                parent.kind(),
-                "call"
-                    | "method"
-                    | "singleton_method"
-                    | "optional_parameter"
-                    | "keyword_parameter"
-                    | "splat_parameter"
-                    | "hash_splat_parameter"
-                    | "block_parameter"
-                    | "alias"
-                    | "undef"
-                    | "setter"
-                    | "method_parameters"
-                    | "block_parameters"
-                    | "lambda_parameters"
-            );
-            let assigned = matches!(parent.kind(), "assignment" | "operator_assignment")
-                && parent
-                    .child_by_field_name("left")
-                    .is_some_and(|left| left.id() == node.id());
-            (!named && !assigned).then(|| context.source.node_text(node).to_owned())
+        // A bare name standing where a value is read is a `send` upstream unless it resolved to a
+        // local, and a read of a local is an `lvar` that contributes nothing of its own here.
+        "identifier" if is_variable_read(node) && !analysis.is_variable_reference(node) => {
+            Some(context.source.node_text(node).to_owned())
         }
         "call" => {
             let method = node.child_by_field_name("method")?;
@@ -198,9 +176,14 @@ fn operator_message(
     format!(" Use `{stripped}` instead of `{operator}`.")
 }
 
+/// What the scope evaluates to. A heredoc's body trails the statement that opened it here but is
+/// part of that statement upstream, so it can never be the value a scope returns.
 fn return_value_node<'tree>(scope: &Scope<'tree>) -> Option<Node<'tree>> {
     let body = body_node(scope)?;
-    named_children(body).last().copied().or(Some(body))
+    named_children(body)
+        .into_iter()
+        .rfind(|child| !matches!(child.kind(), "heredoc_body" | "comment"))
+        .or(Some(body))
 }
 
 fn operator_token(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
@@ -217,13 +200,20 @@ fn operator_token(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
 // Assignment shapes
 // ---------------------------------------------------------------------------
 
-/// Whether the write is one target of a genuine `masgn`, which cannot simply be deleted.
+/// Whether the write is one target of a genuine `masgn`, which cannot simply be deleted. The
+/// targets of `for a, b in list` share the shape but hang off the `for`, and upstream calls that a
+/// `for_assignment` instead.
 fn multiple_assignment(node: Node<'_>) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
         match parent.kind() {
             "rest_assignment" | "destructured_left_assignment" => current = parent,
-            "left_assignment_list" => return !spurious_assignment_list(parent),
+            "left_assignment_list" => {
+                return parent
+                    .parent()
+                    .is_some_and(|list| list.kind() == "assignment")
+                    && !spurious_assignment_list(parent);
+            }
             _ => return false,
         }
     }

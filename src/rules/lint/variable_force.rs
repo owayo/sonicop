@@ -407,6 +407,8 @@ impl<'tree> Force<'tree, '_> {
             }
             "pair" => self.process_pair(node),
             "heredoc_beginning" => self.process_heredoc(node),
+            "interpolation" if swallowed_by_escape(node, self.source) => {}
+            "chained_string" => self.process_chained_string(node),
             // Walked at the `<<~X` that opened it, in whichever scope that was written in.
             "heredoc_body" => {}
             "array_pattern"
@@ -927,6 +929,22 @@ impl<'tree> Force<'tree, '_> {
         }
     }
 
+    /// `"%3d %s"%[a, b]` applies the modulo operator to an array, but the grammar reads the `%` as
+    /// the start of one more string literal and folds it into the concatenation. Ruby only begins a
+    /// percent literal where an expression may begin, and a finished string is not such a place, so
+    /// a component starting with `%` always holds code rather than text.
+    fn process_chained_string(&mut self, node: Node<'tree>) {
+        for (position, child) in named_children(node).into_iter().enumerate() {
+            if position > 0 && self.text(child).starts_with('%') {
+                for name in identifier_words(self.text(child)) {
+                    self.reference_by_name(&name, child);
+                }
+            } else {
+                self.process_node(child);
+            }
+        }
+    }
+
     fn process_exception_variable(&mut self, node: Node<'tree>) {
         let Some(target) = node.named_child(0) else {
             return;
@@ -1151,12 +1169,10 @@ impl<'tree> Force<'tree, '_> {
                 return None;
             }
             let parent = current.parent()?;
-            if let Some((incomplete, jumps, branched)) = branch_role(current, parent)
-                && branched
+            if let Some(role) = branch_role(current, parent)
+                && role.branched
             {
-                return Some(
-                    self.intern_branch(current, parent, scope_node, top_level, incomplete, jumps),
-                );
+                return Some(self.intern_branch(role, parent, scope_node, top_level));
             }
             current = parent;
         }
@@ -1164,24 +1180,22 @@ impl<'tree> Force<'tree, '_> {
 
     fn intern_branch(
         &mut self,
-        child: Node<'tree>,
+        role: BranchRole<'tree>,
         control: Node<'tree>,
         scope_node: Node<'tree>,
         top_level: bool,
-        incomplete: bool,
-        jumps: bool,
     ) -> usize {
-        let key = (control.id(), child.id());
+        let key = (control.id(), role.child.id());
         if let Some(&index) = self.branch_index.get(&key) {
             return index;
         }
         let index = self.branches.len();
         self.branches.push(Branch {
             control: control.id(),
-            child: child.id(),
+            child: role.child.id(),
             parent: None,
-            incomplete,
-            jumps,
+            incomplete: role.incomplete,
+            jumps: role.jumps,
         });
         self.branch_index.insert(key, index);
         let parent = self.branch_within(control, scope_node, top_level);
@@ -1222,48 +1236,90 @@ impl<'tree> Force<'tree, '_> {
 
 /// Whether the child stands in a branch of the control structure above it, and how that branch
 /// behaves: `(may_run_incompletely, may_jump_to_other_branch, branched)`.
-fn branch_role(child: Node<'_>, parent: Node<'_>) -> Option<(bool, bool, bool)> {
+fn branch_role<'tree>(child: Node<'tree>, parent: Node<'tree>) -> Option<BranchRole<'tree>> {
     let field = field_name(child, parent);
+    let always_run = BranchRole::always_run(child);
+    let branched = BranchRole::branched(child);
     match parent.kind() {
-        "if" | "elsif" | "unless" | "conditional" => Some(match field {
-            Some("condition") => (false, false, false),
-            _ => (false, false, true),
-        }),
-        "if_modifier" | "unless_modifier" => Some(match field {
-            Some("condition") => (false, false, false),
-            _ => (false, false, true),
-        }),
-        "while" | "until" | "while_modifier" | "until_modifier" => Some(match field {
-            Some("condition") => (false, false, false),
-            _ => (false, false, true),
+        "if" | "elsif" | "unless" | "conditional" | "if_modifier" | "unless_modifier" | "while"
+        | "until" | "while_modifier" | "until_modifier" => Some(match field {
+            Some("condition") => always_run,
+            _ => branched,
         }),
         "for" => Some(match field {
-            Some("body") => (false, false, true),
-            _ => (false, false, false),
+            Some("body") => branched,
+            _ => always_run,
         }),
         "case" | "case_match" => Some(match field {
-            Some("value") => (false, false, false),
-            _ => (false, false, true),
+            Some("value") => always_run,
+            _ => branched,
         }),
         "binary" => match operator(parent) {
-            Some("&&" | "||" | "and" | "or") => Some((false, false, field != Some("left"))),
+            Some("&&" | "||" | "and" | "or") if field != Some("left") => Some(branched),
+            Some("&&" | "||" | "and" | "or") => Some(always_run),
             _ => None,
         },
-        "operator_assignment" => Some((false, false, field != Some("left"))),
+        "operator_assignment" if field != Some("left") => Some(branched),
+        "operator_assignment" => Some(always_run),
         "rescue_modifier" => Some(match field {
-            Some("body") => (true, true, true),
-            _ => (false, false, true),
+            Some("body") => branched.escaping(),
+            _ => branched,
         }),
+        // `begin … rescue … ensure … end` has no node of its own here: the clauses stand beside
+        // the statements they guard. Upstream wraps those statements in one node, and the whole
+        // main body is a single branch, so they all have to point at the same child.
         _ if is_rescue_container(parent) => Some(match child.kind() {
-            "rescue" => (false, false, true),
-            "else" => (false, false, true),
-            "ensure" => (false, false, false),
-            // The body a raise can leave part-way through.
-            _ if has_child_kind(parent, "rescue") => (true, true, true),
-            _ => (true, true, true),
+            "rescue" | "else" => branched,
+            "ensure" => always_run,
+            _ => BranchRole::branched(main_body_anchor(parent)?).escaping(),
         }),
         _ => None,
     }
+}
+
+/// One arm of a control structure: the node upstream would have hung the branch off, and how the
+/// arm behaves when something raises inside it.
+#[derive(Clone, Copy)]
+struct BranchRole<'tree> {
+    child: Node<'tree>,
+    incomplete: bool,
+    jumps: bool,
+    branched: bool,
+}
+
+impl<'tree> BranchRole<'tree> {
+    fn branched(child: Node<'tree>) -> Self {
+        Self {
+            child,
+            incomplete: false,
+            jumps: false,
+            branched: true,
+        }
+    }
+
+    fn always_run(child: Node<'tree>) -> Self {
+        Self {
+            branched: false,
+            ..Self::branched(child)
+        }
+    }
+
+    /// `ExceptionHandler`: the guarded body may stop part-way through and continue in a rescue
+    /// clause, so nothing it assigns can be ruled out by where a later read stands.
+    fn escaping(self) -> Self {
+        Self {
+            incomplete: true,
+            jumps: true,
+            ..self
+        }
+    }
+}
+
+/// The first statement of a `begin`'s main body, which stands for the whole of it.
+fn main_body_anchor<'tree>(container: Node<'tree>) -> Option<Node<'tree>> {
+    named_children(container)
+        .into_iter()
+        .find(|child| !matches!(child.kind(), "rescue" | "else" | "ensure"))
 }
 
 fn is_rescue_container(node: Node<'_>) -> bool {
@@ -1431,23 +1487,28 @@ fn interpolated_names(text: &str) -> Vec<String> {
         rest = &rest[start + 2..];
         let end = rest.find('}').unwrap_or(rest.len());
         let (expression, after) = rest.split_at(end);
-        for word in expression.split(|c: char| !c.is_alphanumeric() && c != '_') {
-            if word
-                .chars()
-                .next()
-                .is_some_and(|first| first.is_lowercase() || first == '_')
-            {
-                names.push(word.to_owned());
-            }
-        }
+        names.extend(identifier_words(expression));
         rest = after;
     }
     names
 }
 
+/// The words in `text` that could name a local variable. Nothing is lost by offering a name the
+/// table has no entry for, while missing one would turn a variable that is read into an offense.
+fn identifier_words(text: &str) -> Vec<String> {
+    text.split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|word| {
+            word.chars()
+                .next()
+                .is_some_and(|first| first.is_lowercase() || first == '_')
+        })
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
 /// Whether an identifier stands where the parser upstream would have built an `lvar`, rather than
 /// a name being declared, written or called.
-fn is_variable_read(node: Node<'_>) -> bool {
+pub(super) fn is_variable_read(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
@@ -1474,6 +1535,17 @@ fn is_variable_read(node: Node<'_>) -> bool {
         "for" => field_name(node, parent) != Some("pattern"),
         _ => true,
     }
+}
+
+/// Whether the `#` that seems to open this interpolation was really the argument of the escape
+/// before it. `/\c#{str}/` is the control character `\c#` followed by the literal text `{str}`,
+/// but the grammar stops the escape at `\c` and reads the rest as an interpolation.
+fn swallowed_by_escape(node: Node<'_>, source: &SourceFile) -> bool {
+    node.prev_named_sibling().is_some_and(|previous| {
+        previous.kind() == "escape_sequence"
+            && previous.end_byte() == node.start_byte()
+            && matches!(source.node_text(previous), "\\c" | "\\C-" | "\\M-")
+    })
 }
 
 /// Whether an identifier is a write that stores no value of its own.

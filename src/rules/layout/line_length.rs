@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::support::Interpolations;
 use crate::source::is_protected;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
@@ -453,12 +454,13 @@ fn semicolon_break_positions(context: &RuleContext<'_>) -> Vec<usize> {
         .nodes_of_any(&["global_variable", "character", "delimited_symbol"])
         .map(|node| node.byte_range())
         .collect();
+    let interpolations = Interpolations::new(context);
     let text = context.source.text();
     text.bytes()
         .enumerate()
         .filter(|(offset, byte)| {
             *byte == b';'
-                && !is_protected(*offset, ranges)
+                && (!is_protected(*offset, ranges) || interpolations.holds_code(*offset))
                 && !tokens.iter().any(|token| token.contains(offset))
         })
         .filter_map(|(offset, _)| match text.as_bytes().get(offset + 1) {
@@ -560,10 +562,15 @@ impl Breaker<'_, '_> {
             .named_children(&mut cursor)
             .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
             .collect();
-        // Only an argument list unfolds its trailing hash into separate elements, and only when
-        // nothing follows it: that is what `process_args` does and it leaves an array's own
-        // trailing hash -- or one followed by a block argument -- as a single element.
-        Some(group_pairs(children, container.kind() == "argument_list"))
+        // A literal hash's own pairs are its elements; only an argument list and an array literal
+        // carry a brace-less hash that upstream's parser folds into one node. `process_args` then
+        // unfolds it again -- but for a call's last argument only, so a hash followed by a block
+        // argument, or one inside an array, stays a single element.
+        let inside_array = matches!(
+            container.kind(),
+            "array" | "string_array" | "symbol_array" | "right_assignment_list"
+        );
+        Some(group_pairs(children, !inside_array))
     }
 
     fn safe_to_ignore(&self, node: Node<'_>, elements: &[Element<'_>]) -> bool {

@@ -2863,6 +2863,109 @@ mod local_variable_analysis {
             "#,
         );
     }
+
+    /// `for a, b in list` の要素は `masgn` ではなく `for_assignment` なので、`_` 前置の案内は
+    /// 付かない。
+    #[test]
+    fn a_for_loop_target_is_not_a_multiple_assignment() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              for i, j in { 1 => 10 }
+                     ^ Useless assignment to variable - `j`.
+                puts i
+              end
+            end
+            "#,
+        );
+    }
+
+    /// ヒアドキュメントの本体は開いた文の一部なので、スコープの戻り値はその手前の文。
+    /// 本体を戻り値と見ると演算子の案内が消える。
+    #[test]
+    fn a_trailing_heredoc_body_is_not_the_return_value() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m(name)
+              code = "a"
+              return code unless name
+
+              code += <<~TEXT
+              ^^^^ Useless assignment to variable - `code`. Use `+` instead of `+=`.
+                body
+              TEXT
+            end
+            "#,
+        );
+    }
+
+    /// `/\c#{str}/` の `#` はエスケープの引数で、補間ではない。補間として読むと `str` が
+    /// 使われたことになってしまう。
+    #[test]
+    fn an_escape_can_swallow_the_hash_of_an_interpolation() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              str = "J"
+              ^^^ Useless assignment to variable - `str`.
+              /\c#{str}/.to_s
+            end
+            "#,
+        );
+    }
+
+    /// `begin` の本体は raise で途中終了しうるので、後ろの読みが手前の代入を使ったことに
+    /// ならない。本体全体で 1 つの分岐として扱わないと、文ごとに別の分岐になって
+    /// 手前の代入まで参照済みになる。
+    #[test]
+    fn the_guarded_body_of_a_begin_is_one_branch() {
+        expect_offense(
+            USELESS,
+            r#"
+            def m(source)
+              a = source.read(1)
+              ^ Useless assignment to variable - `a`.
+              b = source.read(2)
+              ^ Useless assignment to variable - `b`.
+              a, b = source.read(3), 4
+              [a, b]
+            ensure
+              source.close
+            end
+            "#,
+        );
+    }
+
+    /// `"%3d"%[1]` の `%` は演算子で、リテラルの始まりではない。文字列の連結として読むと
+    /// 中に書かれた変数の読みが見えなくなる。
+    #[test]
+    fn a_percent_literal_after_a_string_holds_code() {
+        expect_offense(
+            UNUSED_ARGUMENT,
+            r#"
+            def m(list)
+              list.each_with_index do |line, l|
+                                       ^^^^ Unused block argument - `line`. You can omit all the arguments if you don't care about them.
+                                             ^ Unused block argument - `l`. You can omit all the arguments if you don't care about them.
+                puts "%3d"%[1]
+              end
+            end
+            "#,
+        );
+        expect_no_offenses(
+            UNUSED_ARGUMENT,
+            concat!(
+                "def m(list)\n",
+                "  list.each_with_index do |line, l|\n",
+                "    puts \"%3d %s\"%[l+1, line]\n",
+                "  end\n",
+                "end\n",
+            ),
+        );
+    }
 }
 
 /// `Style/Semicolon` — 期待値は本家 1.89.0 の `--only Style/Semicolon` 実測。

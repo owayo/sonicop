@@ -1,119 +1,117 @@
 # RuboCop conformance
 
-Snapshot date: 2026-08-10  
-Reference: RuboCop 1.89.0  
-Corpus: the complete 1,759-file RuboCop source tree  
-Configuration: RuboCop 1.89.0 built-in defaults (`--force-default-config`)
+Snapshot date: 2026-08-11
+Reference: RuboCop 1.89.0 on Ruby 4.0.6
+Configuration: RuboCop 1.89.0 built-in defaults (`--force-default-config`) on both sides
 
 The bundled `config/default.yml` records the upstream version it was vendored from in its header.
 Re-fetch it with `scripts/sync_default_yml.sh <rubocop-version>`.
 
-The comparison covers every cop Sonicop implemented at the snapshot date, listed verbatim in the
-`cops` variable of the command below. Each JSON offense is normalized by path, cop, line, column,
-length, severity, correctability, and message. Run `sonicop --show-cops` for the current set.
+## What is measured
 
-| Result | Count |
-|---|---:|
-| Reference offense locations | 4,052 |
-| Sonicop offense locations | 4,052 |
-| Matching locations | 4,052 |
-| False positives | **0** |
-| False negatives | **0** |
-| Location recall | **100%** |
-| Message/severity/correctability differences at matching locations | **0** |
+Five Ruby projects, 18,242 target files between them, are linted by both tools and compared offense
+by offense. An offense is keyed by cop name, path, line and column; at each shared key the last
+line, last column, length, message, severity and correctability are compared as well.
 
-All offenses from the implemented cops match RuboCop by location, message, severity, and
-correctability. This includes RuboCop's source-line indexing for metric cops, line-length
-correctability and exemptions, directive lexing around heredocs, and target-version syntax errors.
+| Corpus | Commit | Target files | Reference offenses |
+|---|---|---:|---:|
+| rubocop/rubocop | `e82df38` | 1,763 | 4,063 |
+| rails/rails | `729d2e9` | 3,550 | 117,541 |
+| ruby/ruby | `52975b7` | 7,465 | 603,341 |
+| Homebrew/brew | `5d49126` | 2,175 | 38,765 |
+| mastodon/mastodon | `e5db3aa` | 3,289 | 7,610 |
 
-Run the harness against a local RuboCop and corpus. It defaults to `rubocop` on `PATH`
-(`gem install rubocop`) as the reference and `./target/release/sonicop` (`make release`) as the
-candidate, so both only need `--reference` / `--candidate` when they live elsewhere — for example
-`--reference "bundle exec rubocop"` inside a bundled project:
+The **target file lists match exactly** on all five — not just the counts but the paths. That is
+worth stating separately because file discovery is where a port silently diverges first: RuboCop
+never reads `.gitignore`, applies a shebang test only to extensionless files, descends through
+directory symlinks, and treats a hidden path by its *first* component rather than by any dot in it.
+
+Only the cops Sonicop implements are compared; the reference process is restricted to them with
+`--only`. RuboCop's extension plugins are not installed, so this measures the range that can be
+checked without them.
 
 ```bash
-cops="Layout/EmptyLineAfterMagicComment,Layout/EndOfLine,Layout/LineLength,Layout/SpaceAfterComma,Layout/SpaceAroundOperators,Layout/SpaceInsideParens,Layout/TrailingEmptyLines,Layout/TrailingWhitespace,Lint/DuplicateMethods,Lint/Syntax,Lint/UnusedBlockArgument,Lint/UselessAssignment,Metrics/BlockLength,Metrics/ClassLength,Metrics/MethodLength,Metrics/ModuleLength,Metrics/ParameterLists,Naming/AsciiIdentifiers,Naming/ConstantName,Naming/MethodName,Naming/VariableName,Security/Eval,Style/FrozenStringLiteralComment,Style/HashSyntax,Style/NumericLiterals,Style/RedundantReturn,Style/Semicolon,Style/StringLiterals"
+cops=$(sonicop --show-cops --force-default-config \
+       | grep -B3 'Implemented: true' | grep '^[A-Z].*:$' | tr -d ':' | paste -sd, -)
 
-scripts/conformance_diff.sh \
-  --force-default-config \
-  --cop "${cops}" \
-  -- /path/to/rubocop
+rubocop --force-default-config --cache false --only "$cops" -f json
+sonicop --force-default-config --format json
 ```
 
-`Lint/Syntax` is also run independently over the corpus. The latest owayo tree-sitter grammar
-accepts the modern syntax in all 1,759 files, while Sonicop resolves Ruby 2.6 from the corpus
-gemspec and applies a post-parse syntax feature gate. Its four fatal offenses, including the legacy
-parser recovery diagnostics, exactly match RuboCop.
+## Results
 
-## Limits of this measurement
-
-The 100% above is a property of *this corpus*, not a general accuracy claim. RuboCop's own source
-tree is RuboCop-clean and stylistically uniform, so entire classes of input never occur in it and
-the comparison cannot exercise them. A cop that is never triggered contributes nothing to the
-match count, and its absence is indistinguishable from agreement.
-
-Two implemented cops are confirmed to produce **zero offenses on both sides** over this corpus, so
-this run says nothing about them:
-
-| Cop | Offenses in this corpus | Verified elsewhere |
-|---|---:|---|
-| `Layout/TrailingEmptyLines` | 0 | Diverges on line, column, length, and message for a file ending in a blank line |
-| `Naming/AsciiIdentifiers` | 0 | Rails contains exactly two occurrences; both diverge on message casing |
-
-Running the same harness over application code rather than linter source surfaces divergences this
-corpus does not. Treat a clean run on any single corpus as evidence about that corpus.
-
-Two properties of the harness itself also bound what a run can tell you:
-
-- Only the cops passed to `--cop` are compared. Cops that RuboCop reports and Sonicop has not
-  implemented show up as false negatives, which is expected rather than a defect.
-- RuboCop emits **only** `Lint/Syntax` for a file it considers fatally unparseable and suppresses
-  every other cop for that file. Sonicop does the same (`Cop::Commissioner#investigate` only walks
-  the AST for a source that reports `valid_syntax?`), so the two now agree on the shape of the
-  output for such a file. They can still disagree on *which* files those are: Sonicop decides with
-  a tree-sitter parse plus a `TargetRubyVersion` feature gate rather than the `parser` gem, so a
-  construct one accepts and the other rejects moves every offense in that file at once. Check the
-  reference output for `"severity": "fatal"` before reading a large false-positive or
-  false-negative count as a cop problem.
-- Inside a file that does not parse, only the *first* diagnostic of each broken construct is
-  reproduced. RuboCop reports whatever its LALR parser recovers into, which cascades into
-  follow-on diagnostics (`class definition in method body`, `dynamic constant assignment`,
-  repeated `unexpected token` reports inside one multi-line hash) that a tree-sitter parse has no
-  way to reconstruct. Those show up as false negatives on `Lint/Syntax`.
-
-Closing these gaps properly means migrating RuboCop's own spec suite, which exercises each cop
-against inputs written to break it. Until that lands, this document records what was measured, not
-an upper bound on what could differ.
-
-## Rails configuration and scale
-
-Rails source snapshot: `adf307b03b4241cbc0ed3821faf3b153ca6cd5cd` (Rails 8.2.0.alpha).
-The reference process uses RuboCop 1.89.0 with the five plugins declared by Rails:
-rubocop-minitest 0.40.0, rubocop-packaging 0.6.0, rubocop-performance 1.26.1,
-rubocop-rails 2.36.0, and rubocop-md 2.0.4.
-
-This corpus exercises `AllCops/DisabledByDefault`, external plugin cops, recursive excludes,
-hidden paths, and the inherited `guides/.rubocop.yml` configuration.
-
-| Compatibility check | RuboCop | Sonicop | Result |
+| Corpus | Excess | Missing | Field differences |
 |---|---:|---:|---|
-| Ruby target files from repository root | 3,453 | 3,453 | Exact paths and order |
-| Enabled cops for `activerecord/lib/active_record.rb` | 107 | 107 | Exact names and order |
-| Enabled cops for a file under `guides/` | 102 | 102 | Exact names and order |
-| Full-tree false positives | — | 0 | Pass |
+| rubocop/rubocop | 0 | 0 | none |
+| rails/rails | 0 | 0 | none |
+| mastodon/mastodon | 0 | 0 | none |
+| Homebrew/brew | 253 | 996 | none |
+| ruby/ruby | 262 | 2,457 | 146 |
 
-RuboCop also discovers 75 Markdown targets through rubocop-md. Markdown extraction is outside
-Sonicop's current parser scope, so those files are removed before comparing `-L` output.
+Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. On
+ruby/ruby, 2,309 of the 2,457 missing offenses sit in 24 files that only Sonicop treats as
+unparseable. Both are explained under *Known divergences*.
 
-The full 3,453-Ruby-file offense comparison reports 10 reference locations and no Sonicop
-locations: zero false positives and 10 visible false negatives. The missing locations are three
-`Style/RedundantPercentQ`, two `Lint/RedundantCopDisableDirective`, two
-`Layout/IndentationWidth`, two unsupported `Lint/DuplicateMethods` cases, and one
-`Lint/Debugger`. Artifacts: `/tmp/sonicop-conformance-rails-full-2`.
+Autocorrect is compared the same way, byte for byte over the whole tree: run `-a` (and separately
+`-A`) with both tools from a clean checkout and diff the results. On rubocop/rubocop the corrected
+trees are **identical**.
 
-Timings live in the README's Performance section. An earlier measurement here reported roughly
-12.5x on the 402-file `activerecord/lib` subset "with cache disabled", which overstated the
-difference: RuboCop turns `--parallel` off when it is combined with `--cache false`, so that figure
-compared a parallel Sonicop against a single-process RuboCop. Restricting RuboCop to the cops
-Sonicop implements and letting it run in parallel puts the gap at about 3.8x over the whole Rails
-tree.
+## Reading a measurement
+
+Two traps make a run look better or worse than it is, and both have produced wrong conclusions here.
+
+**Counts cancel out.** Comparing offense totals hides an excess and a shortfall of the same size.
+Compare the *set* of locations, then compare fields at the locations both tools produced.
+
+**RuboCop can stop early and still emit valid JSON.** On ruby/ruby its parser raises
+`invalid byte sequence in UTF-8` on `test/ruby/test_regexp.rb` and the whole run unwinds; the JSON
+formatter still writes a well-formed document from an `ensure` block. The result reports 6,924 of
+7,465 files inspected, and the 541 files after that one in sort order were never looked at — so
+every offense Sonicop found in them counts as "excess". Check `summary.inspected_file_count`
+against `summary.target_file_count` on every run. To get a complete reference for that corpus, split
+the file list into chunks and re-run each chunk past the file that killed it.
+
+## Known divergences
+
+`tests/conformance/known_divergences.yml` is the machine-checked record: a divergence that is listed
+but no longer reproduces fails the test, and so does one that appears without being listed.
+
+### Error recovery after a syntax error
+
+RuboCop parses with `parser`, an LALR parser that recovers from an error and keeps going, emitting
+further diagnostics from the recovered state. Sonicop parses with tree-sitter, which does not model
+that recovery, so the follow-on diagnostics cannot be reproduced. On Homebrew this accounts for the
+996 missing `Lint/Syntax` offenses: `class definition in method body`, `dynamic constant assignment`,
+`cannot assign to a keyword`, and repeated `unexpected token` inside one multi-line hash.
+
+The first diagnostic in each file does match, which is what decides whether the file is inspected at
+all: RuboCop runs no cop other than `Lint/Syntax` on a file that does not parse, and Sonicop does the
+same.
+
+### Grammar gaps
+
+Where tree-sitter rejects code that Ruby accepts, Sonicop reports a syntax error and — following the
+rule above — reports nothing else for that file. On ruby/ruby, 24 files are affected, and they carry
+2,309 of the 2,457 offenses Sonicop misses there. The remaining 148 are spread thinly across cops.
+These are grammar defects rather than cop defects, and are tracked in the tree-sitter-ruby fork.
+
+### Encoding
+
+RuboCop's autocorrect ends in a plain `File.write`, so a corrected Shift_JIS file is written back as
+UTF-8 while its magic comment still claims Shift_JIS. Sonicop reproduces this rather than fixing it,
+because writing different bytes than RuboCop for the same input is the one thing a drop-in cannot do.
+
+A source declaring `ASCII-8BIT` or `binary` is the exception: Ruby measures it one byte at a time, so
+Sonicop reads it that way too and writes the same bytes back.
+
+## Limits
+
+A clean run is a property of the corpora, not a general claim. `known_divergences.yml` carries the
+current list of what these corpora never exercise; the main ones are non-default configuration
+values, extension plugins, and Windows line endings. Cops that never fire contribute nothing to a
+match count, and their silence is indistinguishable from agreement.
+
+Closing that gap properly means porting RuboCop's own spec suite, which exercises each cop against
+inputs written to break it. Until that lands, this document records what was measured.
+
+Timings live in the README's Performance section.
