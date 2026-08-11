@@ -21,6 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_directives = allow_cop_directives(context);
     let break_edits = line_break_edits(context, max);
     let directive_lines = directive_lines(context);
+    let endless_method_lines = endless_method_lines(context);
 
     for line_number in 1..=context.source.line_count() {
         let raw = context.source.line(line_number);
@@ -37,10 +38,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
+        // An endless method has a way out of being long -- it can be rewritten as a regular
+        // method -- so RuboCop reports it before any exemption gets a say, and reports the whole
+        // line even when a cop directive is what pushed it over.
+        let (start_column, reported) = if endless_method_lines.contains(&line_number) {
+            (max.saturating_sub(indent), length)
+        }
         // A cop directive is measured without the directive, so a line that is only long because
         // of `# rubocop:disable ...` is not reported -- but the code before it still is.
-        let (start_column, reported) = if allow_directives && directive_lines.contains(&line_number)
-        {
+        else if allow_directives && directive_lines.contains(&line_number) {
             let without = length_without_directive(line);
             if without <= max {
                 continue;
@@ -124,6 +130,22 @@ fn directive_lines(context: &RuleContext<'_>) -> HashSet<usize> {
                 .is_some_and(|found| !marker_only(&text[..found.start()]))
         })
         .map(|range| context.source.line_column(range.start).0)
+        .collect()
+}
+
+/// Lines an endless method definition starts on.
+///
+/// The grammar tells the two forms apart by the closing keyword: `def foo = bar` has no `end`.
+fn endless_method_lines(context: &RuleContext<'_>) -> HashSet<usize> {
+    context
+        .nodes_of_any(&["method", "singleton_method"])
+        .filter(|node| {
+            let mut cursor = node.walk();
+            !node
+                .children(&mut cursor)
+                .any(|child| child.kind() == "end")
+        })
+        .map(|node| node.start_position().row + 1)
         .collect()
 }
 
