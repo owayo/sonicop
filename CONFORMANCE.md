@@ -1,6 +1,6 @@
 # RuboCop conformance
 
-Snapshot date: 2026-08-11
+Snapshot date: 2026-08-12
 Reference: RuboCop 1.89.0 on Ruby 4.0.6
 Configuration: RuboCop 1.89.0 built-in defaults (`--force-default-config`) on both sides
 
@@ -9,16 +9,16 @@ Re-fetch it with `scripts/sync_default_yml.sh <rubocop-version>`.
 
 ## What is measured
 
-Five Ruby projects, 18,242 target files between them, are linted by both tools and compared offense
+Five Ruby projects, 18,244 target files between them, are linted by both tools and compared offense
 by offense. An offense is keyed by cop name, path, line and column; at each shared key the last
 line, last column, length, message, severity and correctability are compared as well.
 
 | Corpus | Commit | Target files | Reference offenses |
 |---|---|---:|---:|
-| rubocop/rubocop | `e82df38` | 1,763 | 4,063 |
+| rubocop/rubocop | `e82df38` | 1,765 | 4,142 |
 | rails/rails | `729d2e9` | 3,550 | 117,541 |
-| ruby/ruby | `52975b7` | 7,465 | 603,341 |
-| Homebrew/brew | `5d49126` | 2,175 | 38,765 |
+| ruby/ruby | `52975b7` | 7,465 | 603,331 |
+| Homebrew/brew | `5d49126` | 2,175 | 38,742 |
 | mastodon/mastodon | `e5db3aa` | 3,289 | 7,610 |
 
 The **target file lists match exactly** on all five — not just the counts but the paths. That is
@@ -46,17 +46,18 @@ sonicop --force-default-config --format json
 | rails/rails | 0 | 0 | none |
 | mastodon/mastodon | 0 | 0 | none |
 | Homebrew/brew | 253 | 996 | none |
-| ruby/ruby | 79 | 122 | 1 |
+| ruby/ruby | 89 | 346 | 1 |
 
-Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. So is
-most of ruby/ruby's — 115 of the 122 missing and 66 of the 79 excess are `Lint/Syntax` itself, which
-leaves **20 offenses out of 603,100** attributable to a cop. Twelve files, eight on Sonicop's side
-and four on RuboCop's, disagree about whether they parse at all and are excluded from that count;
-they are what the `Lint/Syntax` difference is made of. Both are explained under *Known divergences*.
+Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. Most of
+ruby/ruby's is too — 117 of the 346 missing and 70 of the 89 excess are `Lint/Syntax` itself. The
+rest follows from it: a file the two disagree about is inspected by one tool and skipped by the
+other, so every offense in it lands on one side of the ledger. Both are explained under
+*Known divergences*.
 
 Autocorrect is compared the same way, byte for byte over the whole tree: run `-a` (and separately
-`-A`) with both tools from a clean checkout and diff the results. On rubocop/rubocop, Homebrew/brew
-and mastodon/mastodon the corrected trees are **identical**.
+`-A`) with both tools from a clean checkout and diff the results. On all four corpora measured this way —
+rubocop/rubocop, rails/rails, Homebrew/brew and mastodon/mastodon — the corrected trees are
+**identical**.
 
 Run the comparison on a copy of the corpus. Autocorrect rewrites the tree in place, so a run that
 shares a checkout with anything else — another comparison, a lint measurement — has both tools
@@ -99,7 +100,7 @@ same.
 Where tree-sitter rejects code that Ruby accepts, Sonicop reports a syntax error and — following the
 rule above — reports nothing else for that file. One such gap costs every offense in the file at
 once, which makes them worth hunting: fixing eight lexer rules in the grammar fork took ruby/ruby
-from 24 affected files to 8, and the offenses Sonicop was missing there from 2,457 to 122.
+from 24 affected files to 5, and the offenses Sonicop was missing there from 2,457 to 346.
 
 What remains are constructs whose ambiguity Ruby resolves with information a grammar does not have.
 `$a?0:1` is the clearest: whether `?0` is a character literal or the start of a ternary depends on
@@ -116,7 +117,7 @@ cp932 and you get mojibake, not the source you had.
 when the correction holds a character that encoding cannot represent, leaving the file untouched
 rather than substituting something else. Drop-in compatibility reaches a long way, but not as far as
 reproducing data loss on purpose. This is the only place Sonicop knowingly differs, and it only
-shows up on files that declare a non-UTF-8 encoding — 8 of the 18,242 files measured here.
+shows up on files that declare a non-UTF-8 encoding — 8 of the 18,244 files measured here.
 
 A source declaring `ASCII-8BIT` or `binary` needs no such treatment: Ruby measures it one byte at a
 time, so Sonicop reads it that way too and the bytes go back out unchanged.

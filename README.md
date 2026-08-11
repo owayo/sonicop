@@ -117,36 +117,47 @@ reuse, custom Ruby cops, or cops outside the implemented set.
 ### Conformance
 
 The implemented cops are verified against RuboCop 1.89.0 over five Ruby projects — RuboCop itself,
-Rails, Ruby, Homebrew and Mastodon — totalling 18,242 files, with the upstream default
+Rails, Ruby, Homebrew and Mastodon — totalling 18,244 files, with the upstream default
 configuration on both sides. Every offense is compared by cop, path, line, column, last line, last
 column, length, message, severity and correctability.
 
-Three of the five match **exactly**: RuboCop's own tree (4,063 offenses), Rails (117,541) and
+Three of the five match **exactly**: RuboCop's own tree (4,142 offenses), Rails (117,541) and
 Mastodon (7,610), with no excess, no shortfall and no metadata differences. The target file lists
 match exactly on all five. What remains is concentrated in `Lint/Syntax`, where RuboCop's LALR
-parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct. Running
-`-a` and `-A` across RuboCop's own tree produces byte-identical output.
+parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct.
+Autocorrect is byte-identical on every corpus it was run against.
 
 See [CONFORMANCE.md](CONFORMANCE.md) for the commands, the per-corpus numbers, and the two ways a
 measurement of this kind can mislead you.
 
 ### Performance
 
-Measured on the Rails 8.2.0.alpha source tree. Both tools were given their own bundled default
-configuration (`--force-default-config`), so neither reads Rails' `.rubocop.yml`, and both resolve
-**the same 3,550 files**.
+Measured over all five conformance corpora. Both tools were given their own bundled default
+configuration (`--force-default-config`), so neither reads the project's `.rubocop.yml`, and on every
+corpus the two resolve **the same file list**.
 
-| Run | RuboCop 1.89.0 | Sonicop | Ratio |
-|---|---:|---:|---:|
-| The same 28 cops, parallel | 8.80 s | **3.85 s** | 2.3x |
-| The same 28 cops, single process | 32.92 s | **15.49 s** | 2.1x |
-| Every cop each tool enables by default | 20.58 s *(394 cops, parallel)* | **3.85 s** *(28 cops, parallel)* | — |
+RuboCop is restricted to the 28 cops Sonicop implements, which is the only like-for-like comparison
+available. Times are the fastest of two warmed runs.
 
-The last row is what the two commands do out of the box, and it is **not a like-for-like
-comparison**: Sonicop implements 28 of RuboCop's 609 cops, so it is answering a much smaller
-question. The first two rows restrict RuboCop to the same 28 cops, which is the honest measure of
-the engines. Over those cops the two agree on **all 117,541 offenses** on this tree, so the speed is
-not bought by skipping work.
+| Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
+|---|---:|---:|---:|---:|---:|
+| rubocop/rubocop | 1,765 | 5.30 s | **1.41 s** | 20.88 s | **6.22 s** |
+| mastodon/mastodon | 3,289 | 3.77 s | **1.54 s** | 11.18 s | **5.67 s** |
+| Homebrew/brew | 2,175 | 8.52 s | **1.47 s** | 19.26 s | **5.20 s** |
+| rails/rails | 3,550 | 10.62 s | **5.07 s** | 32.89 s | **15.58 s** |
+| ruby/ruby | 7,465 | 27.31 s | **11.19 s** | 96.19 s | **34.85 s** |
+
+The gap is 2.1x to 5.8x in parallel and 2.0x to 3.7x single-process, so no single corpus summarizes
+it. The single-process column is the steadier of the two — it measures the engines rather than how
+well each one's parallelism happens to fit the tree it was pointed at.
+
+Out of the box the two commands do different amounts of work — RuboCop enables 394 cops by default
+against Sonicop's 28 — so that comparison is **not** like-for-like. For the record, RuboCop's default
+parallel run takes 10.46 s on its own tree, 9.91 s on Mastodon, 10.83 s on Homebrew, 20.73 s on
+Rails and 75.05 s on Ruby.
+
+Over the 28 shared cops the two agree on **every offense** on RuboCop's own tree, on Rails and on
+Mastodon, so the speed is not bought by skipping work.
 
 Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
@@ -164,7 +175,8 @@ sonicop --force-default-config --format quiet
 ```
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-Each figure is the fastest of two to three warmed runs.
+Measure on an otherwise idle machine: anything else competing for cores inflates both sides
+unevenly, and a contended run here reported RuboCop's Rails time as 21 s rather than 10.6 s.
 
 ## Development
 
