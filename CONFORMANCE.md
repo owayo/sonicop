@@ -106,14 +106,20 @@ What remains are constructs whose ambiguity Ruby resolves with information a gra
 whether the token before it completed an expression, which in turn depends on knowing that `a` is a
 local variable rather than a method call.
 
-### Encoding
+### Encoding — the one deliberate difference
 
 RuboCop's autocorrect ends in a plain `File.write`, so a corrected Shift_JIS file is written back as
-UTF-8 while its magic comment still claims Shift_JIS. Sonicop reproduces this rather than fixing it,
-because writing different bytes than RuboCop for the same input is the one thing a drop-in cannot do.
+UTF-8 while its magic comment still claims Shift_JIS. The result no longer loads: read it back as
+cp932 and you get mojibake, not the source you had.
 
-A source declaring `ASCII-8BIT` or `binary` is the exception: Ruby measures it one byte at a time, so
-Sonicop reads it that way too and writes the same bytes back.
+**Sonicop writes the correction back in the encoding the file declares**, and refuses to write at all
+when the correction holds a character that encoding cannot represent, leaving the file untouched
+rather than substituting something else. Drop-in compatibility reaches a long way, but not as far as
+reproducing data loss on purpose. This is the only place Sonicop knowingly differs, and it only
+shows up on files that declare a non-UTF-8 encoding — 8 of the 18,242 files measured here.
+
+A source declaring `ASCII-8BIT` or `binary` needs no such treatment: Ruby measures it one byte at a
+time, so Sonicop reads it that way too and the bytes go back out unchanged.
 
 ## Limits
 

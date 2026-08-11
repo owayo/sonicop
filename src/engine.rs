@@ -725,27 +725,49 @@ pub fn correct_until_stable(
     }
 }
 
-/// The bytes to write back for corrected source.
+/// The bytes to write back for corrected source, in the encoding the file declares for itself.
 ///
-/// RuboCop's runner ends in a plain `File.write`, so a corrected Shift_JIS file comes back out as
-/// UTF-8 while its magic comment still claims Shift_JIS. Re-encoding would be the kinder behaviour,
-/// but it would also make the two tools produce different bytes for the same input, which is the one
-/// thing this port must not do. A binary source is the exception: it was read one byte to one
-/// character, so writing it back that way is what leaves the file as RuboCop leaves it.
-fn output_bytes(contents: &str) -> Vec<u8> {
-    let declared = contents
+/// This is the one place Sonicop knowingly departs from RuboCop. RuboCop's runner ends in a plain
+/// `File.write`, so a corrected Shift_JIS file comes back out as UTF-8 while its magic comment still
+/// claims Shift_JIS -- a file that no longer loads. Reproducing that faithfully would mean shipping
+/// data loss on purpose, which is further than drop-in compatibility reaches. The divergence is
+/// recorded in `tests/conformance/known_divergences.yml`.
+///
+/// `Err` when the correction cannot be represented in that encoding, so the caller leaves the file
+/// alone rather than writing a lossy approximation.
+fn output_bytes(contents: &str) -> Result<Vec<u8>> {
+    let Some(label) = contents
         .lines()
         .take_while(|line| line.trim_start().starts_with('#'))
-        .find_map(|line| MagicComment::parse(line).encoding());
-    if declared.is_some_and(|label| is_binary_label(&label))
-        && contents.chars().all(|character| (character as u32) < 0x100)
-    {
-        return contents.chars().map(|character| character as u8).collect();
+        .find_map(|line| MagicComment::parse(line).encoding())
+    else {
+        return Ok(contents.as_bytes().to_vec());
+    };
+    // A binary source was read one byte to one character, so it goes back out the same way.
+    if is_binary_label(&label) {
+        return match contents.chars().all(|character| (character as u32) < 0x100) {
+            true => Ok(contents.chars().map(|character| character as u8).collect()),
+            false => bail!("the correction cannot be written back as {label}"),
+        };
     }
-    contents.as_bytes().to_vec()
+    let Some(encoding) = encoding_for_ruby_label(&label) else {
+        return Ok(contents.as_bytes().to_vec());
+    };
+    if encoding == encoding_rs::UTF_8 {
+        return Ok(contents.as_bytes().to_vec());
+    }
+    let (bytes, _, unmappable) = encoding.encode(contents);
+    match unmappable {
+        // `encode` substitutes what it cannot represent, so writing this would silently corrupt the
+        // very characters the correction was supposed to leave alone.
+        true => bail!("the correction cannot be written back as {label}"),
+        false => Ok(bytes.into_owned()),
+    }
 }
 
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
+    let bytes = output_bytes(contents)
+        .with_context(|| format!("refusing to rewrite {}", path.display()))?;
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
         .ok()
@@ -753,7 +775,7 @@ pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     let mut temporary = NamedTempFile::new_in(parent)
         .with_context(|| format!("failed to create temporary file beside {}", path.display()))?;
     temporary
-        .write_all(&output_bytes(contents))
+        .write_all(&bytes)
         .with_context(|| format!("failed to write corrected contents for {}", path.display()))?;
     temporary
         .as_file_mut()
@@ -786,6 +808,7 @@ pub fn offense_count(reports: &[FileReport], fail_level: Severity) -> usize {
 mod tests {
     use tempfile::tempdir;
 
+    use super::output_bytes;
     use crate::config::Config;
     use crate::diagnostic::Severity;
 
@@ -917,6 +940,25 @@ mod tests {
         let report = &reports[0];
         let location = report.offenses[0].location(&report.source);
         assert_eq!((location.line, location.column, location.length), (2, 5, 5));
+    }
+
+    #[test]
+    fn a_correction_goes_back_out_in_the_encoding_the_file_declares() {
+        // RuboCop would write UTF-8 here and leave the file claiming cp932, which no longer loads.
+        let corrected = "# encoding: cp932\nx = '\u{65e5}\u{672c}'\n";
+
+        let bytes = output_bytes(corrected).unwrap();
+
+        assert!(bytes.ends_with(b"x = '\x93\xfa\x96\x7b'\n"));
+    }
+
+    #[test]
+    fn a_correction_that_the_declared_encoding_cannot_hold_is_refused() {
+        // Nothing in cp932 stands for an emoji, and substituting one silently would corrupt the
+        // very text the correction was meant to leave alone.
+        let corrected = "# encoding: cp932\nx = '\u{1f363}'\n";
+
+        assert!(output_bytes(corrected).is_err());
     }
 
     #[test]

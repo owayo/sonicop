@@ -35,12 +35,21 @@ blind_spots:
     not_covered: 大規模な実コード / cop 同士の相互作用 / autocorrect の反復収束
     consequence: 単体では一致しても、実プロジェクトで組み合わせ由来の差分が残り得る
 
-# autocorrect のバイト一致は 4 コーパスで確認済み (rubocop/rubocop は -a と -A、
-# Homebrew/brew と mastodon/mastodon と rails/rails は -A)。
-# rails/rails だけ 3,550 ファイル中 1 ファイルが食い違う:
-#   actionview/test/template/test_case_test.rb — `assert_pattern { expr => {...} }` を
-#   tree-sitter がブロックでなくハッシュ引数として読むため、Layout/LineLength の
-#   折り位置がずれる。lint の出力 (位置・メッセージ・修正可否) は一致する。
+# autocorrect のバイト一致は 4 コーパスすべてで確認済み
+# (rubocop/rubocop は -a と -A、rails/rails・Homebrew/brew・mastodon/mastodon は -A)。
+#
+# 意図的に本家と違えている箇所が 1 つだけある。本家の autocorrect は
+# lib/rubocop/runner.rb の File.write で終わるため、`# encoding: cp932` を宣言した
+# Shift_JIS のファイルを直すと UTF-8 のバイト列で上書きし、マジックコメントだけが
+# cp932 のまま残る。実測すると本家の出力は cp932 として読み直せず、ファイルが壊れる。
+# sonicop は宣言された符号化へ再符号化して書き戻す (src/engine.rs の output_bytes)。
+# 表現できない文字が出る場合は書き戻さず失敗させ、元のファイルに触れない。
+#
+# 「本家のバグは再現しない」と判断した根拠: ai-second-opinion (gpt-5.6-sol) の判定。
+#   ドロップイン互換はバグ互換の対象に境界があり、ファイル内容と encoding 宣言を
+#   不整合にする挙動まで製品保証に含めるべきではない。非 UTF-8 ソースは 18,242 ファイル中
+#   8 件と稀だが、稀なファイルほど置換困難な資産である可能性がある。
+# 本家へ upstream パッチを送るべき問題でもある。
 
 divergences:
   # --- Lint/Syntax ---
