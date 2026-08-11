@@ -28,7 +28,7 @@ serde_yaml_ng = "0.10"
 shell-words = "1.1.1"
 tempfile = "3.27.0"
 tree-sitter = "0.26.11"
-tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", rev = "3f2ee5055ec710da6866e006474a61f9bbc31cfd" }
+tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", rev = "6408d8b7adff44f0b346517b56071460efd323b6" }
 ureq = { version = "3.4", default-features = false, features = ["native-tls"] }
 
 [dev-dependencies]
