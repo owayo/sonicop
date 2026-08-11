@@ -243,9 +243,12 @@ jobs:
                 ;;
             esac
           done
+      # このジョブは成果物を集めるだけで checkout しないため、gh が対象リポジトリを
+      # git から推測できず `fatal: not a git repository` で落ちる。明示的に渡す。
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.prepare-release.outputs.tag }}
         run: gh release create "${TAG}" gems/*.gem --generate-notes
       # 長期の API キーを置かず、この repository / workflow / environment から出た OIDC
