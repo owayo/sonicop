@@ -8,9 +8,13 @@
 //!
 //! The traversal follows the upstream force node for node, including the places where it walks
 //! children out of order (a post-condition loop scans its body before its condition), because the
-//! order is what decides whether a read comes before or after an assignment. Two tree-sitter
-//! shapes need bridging: a heredoc's body hangs off the statement rather than the expression that
-//! opened it, and `->(x) { }` keeps its parameters one node above its body.
+//! order is what decides whether a read comes before or after an assignment.
+//!
+//! Where the syntax tree here disagrees with the one upstream reasons about, the difference is
+//! bridged rather than worked around, and each such place says which parse Ruby's own would have
+//! produced: `->(x) { }` holds its parameters one node above its body, a heredoc's body hangs off
+//! the statement rather than the expression that opened it, and the grammar reads several
+//! constructs as literals that Ruby reads as code -- `foo(a = 1, b = 2)`, `"%d"%[x]`, `/\c#{x}/`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -124,13 +128,12 @@ pub(super) struct Analysis<'tree> {
     lvars: HashSet<usize>,
 }
 
-impl Analysis<'_> {
+impl<'tree> Analysis<'tree> {
+    /// Whether the parser upstream would have built an `lvar` here rather than a receiverless call.
     pub(super) fn is_variable_reference(&self, node: Node<'_>) -> bool {
         self.lvars.contains(&node.id())
     }
-}
 
-impl<'tree> Analysis<'tree> {
     pub(super) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
         let mut force = Force {
             source,
@@ -1513,7 +1516,9 @@ pub(super) fn is_variable_read(node: Node<'_>) -> bool {
         return true;
     };
     match parent.kind() {
-        "call" | "method" | "singleton_method" => field_name(node, parent) != Some("name"),
+        // The receiver of `foo.bar` and of `def obj.baz` is read; the selector is not.
+        "call" => field_name(node, parent) != Some("method"),
+        "method" | "singleton_method" => field_name(node, parent) != Some("name"),
         "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),
         "left_assignment_list"
         | "rest_assignment"

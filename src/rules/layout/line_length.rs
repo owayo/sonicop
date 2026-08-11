@@ -378,6 +378,54 @@ const BREAKABLE_KINDS: &[&str] = &[
     "singleton_method",
 ];
 
+/// Nodes the grammar writes body-first but upstream's parser stores condition-first, so its walk
+/// reaches the condition before the body however the source reads.
+const MODIFIER_KINDS: &[&str] = &[
+    "if_modifier",
+    "unless_modifier",
+    "while_modifier",
+    "until_modifier",
+];
+
+/// The order upstream's walk reaches each node that can hold a break, numbered from the top.
+///
+/// Which of two candidates on a line wins depends on the order they are reached in, and the two
+/// trees do not agree on it: a modifier keeps its condition after its body here, and a block hangs
+/// off the end of the call it belongs to rather than wrapping it. Both are re-sorted here.
+fn upstream_order(root: Node<'_>) -> HashMap<usize, u32> {
+    let mut order = HashMap::new();
+    let mut stack = vec![root];
+    let mut index = 0;
+    let mut children = Vec::new();
+    while let Some(node) = stack.pop() {
+        if matches!(node.kind(), "lambda") || BREAKABLE_KINDS.contains(&node.kind()) {
+            order.insert(node.id(), index);
+        }
+        index += 1;
+        children.clear();
+        let mut cursor = node.walk();
+        children.extend(node.named_children(&mut cursor));
+        if MODIFIER_KINDS.contains(&node.kind()) {
+            children.reverse();
+        }
+        stack.extend(children.iter().rev().copied());
+    }
+    order
+}
+
+/// Where a candidate sorts, with a block placed just ahead of the call it belongs to: upstream's
+/// block node stands where the grammar puts the call, and the call is its first child.
+fn visit_order(node: Node<'_>, order: &HashMap<usize, u32>) -> (u32, u8) {
+    if matches!(node.kind(), "block" | "do_block") {
+        if let Some(parent) = node.parent() {
+            if let Some(index) = order.get(&parent.id()) {
+                return (*index, 0);
+            }
+        }
+    }
+    (order.get(&node.id()).copied().unwrap_or(u32::MAX), 1)
+}
+
 /// Where `Layout/LineLength` would insert a line break on each line, keyed by line number. A line
 /// with no entry has no correction, which is what makes its offense uncorrectable.
 ///
@@ -403,7 +451,11 @@ fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edi
         }
     }
 
-    for node in context.nodes_of_any(BREAKABLE_KINDS) {
+    let order = upstream_order(context.root_node());
+    let mut candidates: Vec<Node<'_>> = context.nodes_of_any(BREAKABLE_KINDS).collect();
+    candidates.sort_by_key(|node| visit_order(*node, &order));
+
+    for node in candidates {
         if matches!(node.kind(), "block" | "do_block") {
             if let Some(offset) = breaker.block_break_position(node) {
                 // Upstream's block node starts at the receiver, not at the brace, so a call split

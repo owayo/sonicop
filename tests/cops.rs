@@ -340,6 +340,37 @@ mod layout {
         expect_no_offenses("Layout/TrailingWhitespace", "x = 1\n");
         expect_correction("Layout/TrailingWhitespace", "x = 1  \n", "x = 1\n");
     }
+
+    /// ヒアドキュメント内の行末空白は文字列の一部なので、消すとプログラムが変わる。
+    /// 本家は「字下げとして剥がされる分」だけを消し、それ以外は補間で保存する。
+    /// 期待値はすべて本家 1.89.0 の `-A` 実出力から取得。
+    #[test]
+    fn trailing_whitespace_inside_a_heredoc_is_preserved() {
+        // 内容のある行では、空白を補間に包んで残す。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = <<~RUBY\n  a  \n  b\nRUBY\n",
+            "x = <<~RUBY\n  a#{'  '}\n  b\nRUBY\n",
+        );
+        // 非補間ヒアドキュメントでは包めないので、報告だけして直さない。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = <<~'RUBY'\n  a  \n  b\nRUBY\n",
+            "x = <<~'RUBY'\n  a  \n  b\nRUBY\n",
+        );
+        // 空白だけの行は、字下げに収まる分なら消す。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = <<~RUBY\n  a\n  \n  b\nRUBY\n",
+            "x = <<~RUBY\n  a\n\n  b\nRUBY\n",
+        );
+        // 字下げを超える分は、超えた分だけを包んで残す。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = <<~RUBY\n  a\n      \n  b\nRUBY\n",
+            "x = <<~RUBY\n  a\n  #{'    '}\n  b\nRUBY\n",
+        );
+    }
 }
 
 mod lint {
@@ -3256,5 +3287,58 @@ mod eval_literal_code {
     #[test]
     fn an_interpolated_heredoc_of_literal_text_is_not_an_offense() {
         expect_no_offenses("Security/Eval", "eval(\"#{<<~A}\")\n  literal\nA\n");
+    }
+}
+
+/// `Layout/LineLength` が同じ行の候補のうちどれを折るか。どちらも本家 AST と文法の
+/// 走査順の違いが出る形で、期待値は本家 1.89.0 の `-A` 実測。
+mod line_length_visit_order {
+    use super::*;
+
+    const LINE_LENGTH: &str = "Layout/LineLength";
+
+    /// 引数の中のラムダのブロックは、そのブロックを持つ呼び出しのブロックより **後** に
+    /// 走査されて上書きする。文法は逆順に並べるので、並べ直さないと外側で折ってしまう。
+    #[test]
+    fn a_block_written_in_the_arguments_wins_over_the_one_that_owns_them() {
+        let long = "    field(:text, type: 'text', analyzer: 'verbatim', \
+                    value: ->(account) { account.searchable_text }) \
+                    { field :stemmed, type: 'text', analyzer: 'natural' }";
+        CopCase::new(
+            LINE_LENGTH,
+            format!("class A\n  def self.call\n{long}\n  end\nend\n"),
+            vec![Annotation::new(3, 121, 34, "Line is too long. [154/120]")],
+        )
+        .corrected(&format!(
+            "class A\n  def self.call\n    field(:text, type: 'text', analyzer: 'verbatim', \
+             value: ->(account) {{\n account.searchable_text }}) \
+             {{ field :stemmed, type: 'text', analyzer: 'natural' }}\n  end\nend\n"
+        ))
+        .run();
+    }
+
+    /// 修飾子の条件は本家 AST では本体より先に来るので、同じ行では条件側の呼び出しが
+    /// 先に折り位置を取る。
+    #[test]
+    fn a_modifier_condition_is_reached_before_its_body() {
+        let long = "    errors.add(:base, I18n.t('scheduled_statuses.over_daily_limit', \
+                    limit: DAILY_LIMIT)) if account.scheduled_statuses\
+                    .where('scheduled_at::date = ?::date', scheduled_at).count >= DAILY_LIMIT";
+        CopCase::new(
+            LINE_LENGTH,
+            format!("class A\n  def validate_daily_limit\n{long}\n  end\nend\n"),
+            vec![Annotation::new(3, 121, 71, "Line is too long. [191/120]")],
+        )
+        .corrected(concat!(
+            "class A\n",
+            "  def validate_daily_limit\n",
+            "    errors.add(:base, \n",
+            "I18n.t('scheduled_statuses.over_daily_limit', limit: DAILY_LIMIT)) ",
+            "if account.scheduled_statuses.where(\n",
+            "'scheduled_at::date = ?::date', scheduled_at).count >= DAILY_LIMIT\n",
+            "  end\n",
+            "end\n",
+        ))
+        .run();
     }
 }
