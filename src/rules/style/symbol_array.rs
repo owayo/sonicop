@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("array") {
         let items = nodes::children(node);
-        if items.is_empty() || !items.iter().all(|item| is_symbol(*item)) {
+        if items.is_empty() || !items.iter().all(|item| is_symbol(context, *item)) {
             continue;
         }
         let Some(values) = values(context, &items) else {
@@ -75,8 +75,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `bracketed_array_of?(:sym, node)`: an element is a symbol unless an interpolation makes it a
 /// `dsym`.
-fn is_symbol(node: Node<'_>) -> bool {
-    matches!(node.kind(), "simple_symbol" | "delimited_symbol") && !interpolated(node)
+fn is_symbol(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    matches!(node.kind(), "simple_symbol" | "delimited_symbol")
+        && !interpolated(node)
+        && !context.source.node_text(node).contains('\n')
 }
 
 fn interpolated(node: Node<'_>) -> bool {

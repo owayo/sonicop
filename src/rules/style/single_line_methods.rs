@@ -30,6 +30,9 @@ const CONDITIONAL_KINDS: &[&str] = &[
 /// Bodies an endless definition cannot hold.
 const UNSUPPORTED_BODY_KINDS: &[&str] = &["return", "break", "next"];
 
+/// `COMPARISON_OPERATORS`.
+const COMPARISON_OPERATORS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<"];
+
 /// `ARITHMETIC_OPERATORS` and `COMPARISON_OPERATORS`: calls upstream leaves written as they are.
 const OPERATORS_WITHOUT_PARENTHESES: &[&str] = &[
     "+", "-", "*", "/", "%", "**", "==", "===", "!=", "<=", ">=", ">", "<",
@@ -67,11 +70,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
-        let correction = match body.filter(|body| endless_allowed && correct_to_endless(node, body))
-        {
-            Some(body) => endless_correction(context, node, &body),
-            None => multiline_correction(context, node, closing, width),
-        };
+        let correction =
+            match body.filter(|body| endless_allowed && correct_to_endless(context, node, body)) {
+                Some(body) => endless_correction(context, node, &body),
+                None => multiline_correction(context, node, closing, width),
+            };
         offenses.push(
             context
                 .offense(MSG, node.byte_range())
@@ -132,17 +135,20 @@ fn body_expression(body: Node<'_>) -> Option<Body> {
 }
 
 /// `correct_to_endless?`: the body fits on the right of an `=`.
-fn correct_to_endless(node: Node<'_>, body: &Body) -> bool {
-    if CONDITIONAL_KINDS.contains(&body.kind)
-        || UNSUPPORTED_BODY_KINDS.contains(&body.kind)
-        || matches!(body.kind, "begin" | "parenthesized_statements")
-    {
-        return false;
-    }
-    // `node.parent.assignment_method?`: a writer cannot be written endlessly.
-    !node
-        .child_by_field_name("name")
-        .is_some_and(|name| name.kind() == "setter")
+fn correct_to_endless(context: &RuleContext<'_>, node: Node<'_>, body: &Body) -> bool {
+    !CONDITIONAL_KINDS.contains(&body.kind)
+        && !UNSUPPORTED_BODY_KINDS.contains(&body.kind)
+        && !matches!(body.kind, "begin" | "parenthesized_statements")
+        // `node.parent.assignment_method?`: a writer cannot be written endlessly.
+        && !assignment_method(context, node)
+}
+
+/// `assignment_method?`: a name closing on `=` that is not one of the comparison operators.
+fn assignment_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.child_by_field_name("name").is_some_and(|name| {
+        let text = context.source.node_text(name);
+        text.ends_with('=') && !COMPARISON_OPERATORS.contains(&text)
+    })
 }
 
 /// `correct_to_endless`: `def foo() = bar`.
@@ -193,7 +199,8 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
                 expression.child_by_field_name("receiver"),
                 context
                     .source
-                    .node_text(expression.child_by_field_name("method")?),
+                    .node_text(expression.child_by_field_name("method")?)
+                    .to_owned(),
                 arguments,
             )
         }
@@ -205,23 +212,49 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
             }
             (
                 expression.child_by_field_name("left"),
-                name,
+                name.to_owned(),
                 vec![expression.child_by_field_name("right")?],
             )
         }
         "element_reference" => {
-            let mut arguments = super::nodes::children(expression);
-            if expression.child_by_field_name("object").is_some() && !arguments.is_empty() {
-                arguments.remove(0);
-            }
+            let arguments = index_arguments(expression);
             if arguments.is_empty() {
                 return None;
             }
-            (expression.child_by_field_name("object"), "[]", arguments)
+            (
+                expression.child_by_field_name("object"),
+                "[]".to_owned(),
+                arguments,
+            )
+        }
+        // A write through a receiver is a call to `name=` or to `[]=` upstream, not an assignment.
+        "assignment" => {
+            let left = expression.child_by_field_name("left")?;
+            let right = expression.child_by_field_name("right")?;
+            match left.kind() {
+                "call" => {
+                    let method = left.child_by_field_name("method")?;
+                    (
+                        left.child_by_field_name("receiver"),
+                        format!("{}=", context.source.node_text(method)),
+                        vec![right],
+                    )
+                }
+                "element_reference" => {
+                    let mut arguments = index_arguments(left);
+                    arguments.push(right);
+                    (
+                        left.child_by_field_name("object"),
+                        "[]=".to_owned(),
+                        arguments,
+                    )
+                }
+                _ => return None,
+            }
         }
         _ => return None,
     };
-    if OPERATORS_WITHOUT_PARENTHESES.contains(&name) {
+    if OPERATORS_WITHOUT_PARENTHESES.contains(&name.as_str()) {
         return None;
     }
     let joined = arguments
@@ -233,6 +266,15 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
         Some(receiver) => format!("{}.{name}({joined})", context.source.node_text(receiver)),
         None => format!("{name}({joined})"),
     })
+}
+
+/// The index arguments of `a[b, c]`, which upstream hands to `:[]` after the receiver.
+fn index_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut arguments = super::nodes::children(node);
+    if node.child_by_field_name("object").is_some() && !arguments.is_empty() {
+        arguments.remove(0);
+    }
+    arguments
 }
 
 fn find_child<'tree>(body: Node<'tree>, id: usize) -> Option<Node<'tree>> {

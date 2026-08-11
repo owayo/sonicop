@@ -110,24 +110,17 @@ fn clause_range(node: Node<'_>) -> Range<usize> {
     if node.kind() != "rescue" {
         return node.byte_range();
     }
-    let last = ["body", "variable", "exceptions"]
+    // A clause that guards nothing -- one whose body holds only a comment -- ends where its
+    // exception list does, or at the keyword when it lists none.
+    let listed = ["variable", "exceptions"]
         .iter()
         .find_map(|field| node.child_by_field_name(field))
-        .map_or(node.start_byte() + "rescue".len(), |part| {
-            match part.kind() {
-                "then" => last_statement(part).map_or(part.start_byte(), |node| node.end_byte()),
-                _ => part.end_byte(),
-            }
-        });
-    // A clause whose only statement is a comment guards nothing, so it ends where its exception
-    // list does -- or at the keyword when it lists none.
-    let end = last.max(
-        ["variable", "exceptions"]
-            .iter()
-            .find_map(|field| node.child_by_field_name(field))
-            .map_or(node.start_byte() + "rescue".len(), |part| part.end_byte()),
-    );
-    node.start_byte()..end
+        .map_or(node.start_byte() + "rescue".len(), |part| part.end_byte());
+    let guarded = node
+        .child_by_field_name("body")
+        .and_then(last_statement)
+        .map_or(listed, |statement| statement.end_byte());
+    node.start_byte()..guarded.max(listed)
 }
 
 /// The `resbody` of `x rescue y`, which starts at the keyword and ends with the handler.
@@ -143,8 +136,7 @@ fn modifier_clause(node: Node<'_>, handler: Node<'_>) -> Range<usize> {
 fn last_statement<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
     named_children(body)
         .into_iter()
-        .filter(|child| !matches!(child.kind(), "comment" | "empty_statement" | "heredoc_body"))
-        .next_back()
+        .rfind(|child| !matches!(child.kind(), "comment" | "empty_statement" | "heredoc_body"))
 }
 
 fn is_lambda_body(node: Node<'_>) -> bool {

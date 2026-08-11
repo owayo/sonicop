@@ -4,6 +4,7 @@ department_rules! {
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
     empty_lines_around_access_modifier => ("EmptyLinesAroundAccessModifier", Convention),
     end_of_line => ("EndOfLine", Convention),
+    hash_alignment => ("HashAlignment", Convention),
     line_length => ("LineLength", Convention),
     space_after_comma => ("SpaceAfterComma", Convention),
     space_around_operators => ("SpaceAroundOperators", Convention),

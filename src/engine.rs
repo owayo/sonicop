@@ -212,7 +212,7 @@ fn inspect_planned(
         );
         if !planned.safe_autocorrect {
             for offense in &mut offenses[start..] {
-                if let Some(correction) = &mut offense.correction {
+                for correction in &mut offense.corrections {
                     correction.safe = false;
                 }
             }
@@ -504,42 +504,59 @@ pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, us
         return (report.source.text().to_owned(), 0);
     }
 
-    let mut candidates: Vec<(usize, crate::diagnostic::Edit)> = report
+    // An offense is corrected whole or not at all: its edits are one rewrite the cop asked for, and
+    // applying half of them would leave source the cop never intended to produce.
+    let mut candidates: Vec<(usize, Vec<crate::diagnostic::Edit>)> = report
         .offenses
         .iter()
         .enumerate()
-        .filter_map(|(index, offense)| {
-            offense
-                .correction
-                .clone()
-                .filter(|edit| mode == CorrectMode::All || edit.safe)
-                .map(|edit| (index, edit))
+        .filter(|(_, offense)| {
+            !offense.corrections.is_empty()
+                && (mode == CorrectMode::All || offense.corrections.iter().all(|edit| edit.safe))
+        })
+        .map(|(index, offense)| {
+            let mut edits = offense.corrections.clone();
+            edits.sort_by_key(|edit| (edit.start, edit.end));
+            (index, edits)
         })
         .collect();
-    candidates.sort_by_key(|(_, edit)| (edit.start, edit.end));
+    candidates.sort_by_key(|(_, edits)| edits.first().map(|edit| (edit.start, edit.end)));
 
-    let mut selected = Vec::new();
+    let mut selected: Vec<(usize, Vec<crate::diagnostic::Edit>)> = Vec::new();
     let mut occupied_end = 0;
     let mut occupied_insertions = HashSet::new();
-    for candidate in candidates {
-        let edit = &candidate.1;
-        let insertion_conflict = edit.start == edit.end && !occupied_insertions.insert(edit.start);
-        if edit.start < occupied_end || insertion_conflict {
+    for (index, edits) in candidates {
+        let mut taken_insertions = Vec::new();
+        let fits = edits.iter().all(|edit| {
+            let insertion_conflict = edit.start == edit.end
+                && (occupied_insertions.contains(&edit.start)
+                    || taken_insertions.contains(&edit.start));
+            if edit.start == edit.end {
+                taken_insertions.push(edit.start);
+            }
+            edit.start >= occupied_end && !insertion_conflict
+        });
+        if !fits {
             continue;
         }
-        occupied_end = occupied_end.max(edit.end);
-        selected.push(candidate);
+        occupied_end = edits
+            .iter()
+            .fold(occupied_end, |end, edit| end.max(edit.end));
+        occupied_insertions.extend(taken_insertions);
+        selected.push((index, edits));
     }
 
     let mut text = report.source.text().to_owned();
-    for (offense_index, edit) in selected.iter().rev() {
-        if edit.start <= edit.end
-            && edit.end <= text.len()
-            && text.is_char_boundary(edit.start)
-            && text.is_char_boundary(edit.end)
-        {
-            text.replace_range(edit.start..edit.end, &edit.replacement);
-            report.offenses[*offense_index].corrected = true;
+    for (offense_index, edits) in selected.iter().rev() {
+        for edit in edits.iter().rev() {
+            if edit.start <= edit.end
+                && edit.end <= text.len()
+                && text.is_char_boundary(edit.start)
+                && text.is_char_boundary(edit.end)
+            {
+                text.replace_range(edit.start..edit.end, &edit.replacement);
+                report.offenses[*offense_index].corrected = true;
+            }
         }
     }
     let corrected = report

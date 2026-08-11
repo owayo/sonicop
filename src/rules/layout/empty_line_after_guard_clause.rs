@@ -50,15 +50,10 @@ fn inspect<'tree>(
     let Some((next, begin_parent)) = next_statement(node) else {
         return;
     };
-    if next.kind() == "if"
-        || next.kind() == "unless"
-        || next.kind() == "if_modifier"
-        || next.kind() == "unless_modifier"
-        || next.kind() == "conditional"
+    if CONDITIONALS.contains(&next.kind())
+        && if_branch(next).is_some_and(|branch| is_guard_clause_branch(text, branch))
     {
-        if if_branch(next).is_some_and(|branch| is_guard_clause_branch(text, branch)) {
-            return;
-        }
+        return;
     }
     if begin_parent && next.start_position().row == node.start_position().row {
         return;
@@ -66,7 +61,7 @@ fn inspect<'tree>(
 
     let modifier_form = matches!(node.kind(), "if_modifier" | "unless_modifier");
     let heredoc = modifier_form
-        .then(|| last_heredoc_argument(context, heredocs, node, true))
+        .then(|| last_heredoc_argument(context, node, true))
         .flatten();
     let last_line = node.end_position().row + 1;
 
@@ -313,7 +308,6 @@ fn terminator_range(context: &RuleContext<'_>, body: Node<'_>) -> Range<usize> {
 /// `last_heredoc_argument`.
 fn last_heredoc_argument<'tree>(
     context: &RuleContext<'tree>,
-    heredocs: Heredocs<'_, 'tree>,
     node: Node<'tree>,
     conditional: bool,
 ) -> Option<Node<'tree>> {
@@ -340,12 +334,12 @@ fn last_heredoc_argument<'tree>(
         return Some(current);
     }
     for argument in call_arguments(current) {
-        if let Some(found) = last_heredoc_argument(context, heredocs, argument, false) {
+        if let Some(found) = last_heredoc_argument(context, argument, false) {
             return Some(found);
         }
     }
     let receiver = current.child_by_field_name("receiver")?;
-    last_heredoc_argument(context, heredocs, receiver, false)
+    last_heredoc_argument(context, receiver, false)
 }
 
 /// `node.children.last`, which for a call or a `return` is its final argument. Anything else is a

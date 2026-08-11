@@ -821,7 +821,7 @@ fn filter_displayed_offenses(reports: &mut [FileReport], cli: &Cli, fail_level: 
                 && (!cli.display_only_correctable || offense.is_correctable())
                 && (!cli.display_only_safe_correctable
                     || (offense.is_correctable()
-                        && offense.correction.as_ref().is_some_and(|edit| edit.safe)))
+                        && offense.corrections.iter().all(|edit| edit.safe)))
         });
     }
 }

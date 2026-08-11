@@ -166,10 +166,11 @@ impl<'a> Walk<'a> {
         match node.kind() {
             "call" => self.visit_call(node, sink),
             "lambda" => self.visit_lambda(node, sink),
+            // `a[i]` is a call to `[]` upstream, with the subscript as its argument.
             "element_reference" => {
-                let mut emit = Emit::of(Kind::Send, node);
-                emit.comparison = false;
-                self.around(emit, sink, |walk, sink| walk.children(node, sink));
+                self.around(Emit::of(Kind::Send, node), sink, |walk, sink| {
+                    walk.children(node, sink);
+                });
             }
             "binary" => self.visit_binary(node, sink),
             "unary" => self.visit_unary(node, sink),

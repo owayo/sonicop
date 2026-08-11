@@ -87,7 +87,12 @@ pub struct Offense {
     pub correctable: bool,
     pub suppressed: bool,
     pub justification: Option<String>,
-    pub correction: Option<Edit>,
+    /// Every rewrite one offense asks for. RuboCop hands a cop a corrector it can call any number of
+    /// times, and several cops do -- renaming a variable touches its declaration and each of its
+    /// uses. Collapsing those into one span that swallows the text between them reproduces the same
+    /// output only while nothing else wants to correct inside it, which stops being true as the
+    /// registry fills out.
+    pub corrections: Vec<Edit>,
     pub snapshot: Option<OffenseSnapshot>,
 }
 
@@ -113,14 +118,19 @@ impl Offense {
             correctable: false,
             suppressed: false,
             justification: None,
-            correction: None,
+            corrections: Vec::new(),
             snapshot: None,
         }
     }
 
-    pub fn corrected_by(mut self, edit: Edit) -> Self {
-        self.correctable = true;
-        self.correction = Some(edit);
+    pub fn corrected_by(self, edit: Edit) -> Self {
+        self.corrected_by_all([edit])
+    }
+
+    /// For a cop whose single offense rewrites more than one place at once.
+    pub fn corrected_by_all(mut self, edits: impl IntoIterator<Item = Edit>) -> Self {
+        self.corrections.extend(edits);
+        self.correctable = !self.corrections.is_empty();
         self
     }
 

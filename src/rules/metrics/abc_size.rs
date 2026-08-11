@@ -1,3 +1,9 @@
+//! `Metrics/AbcSize`, a port of `Utils::AbcSizeCalculator`.
+//!
+//! `CountRepeatedAttributes` is not read: the bundled configuration leaves it at `true`, which is
+//! what turns `Utils::RepeatedAttributeDiscount` off upstream, so the counting here is the counting
+//! every default run does. Setting it to `false` would ask for a discount this cop does not apply.
+
 use super::complexity::{Allowed, CsendDiscount, Emit, Kind, Order, Walk, measured};
 use super::fragments::Fragments;
 use super::locals::Locals;
@@ -60,11 +66,9 @@ impl Vector {
         }
         match emit.kind {
             Kind::Send | Kind::Csend | Kind::Yield => self.branch_node(emit, discount),
-            kind if is_condition(kind) => {
-                // A block on a method that is known not to iterate is not a decision point.
-                if emit.iterating != Some(false) {
-                    self.condition += u32::from(emit.has_else) + 1;
-                }
+            // A block on a method that is known not to iterate is not a decision point.
+            kind if is_condition(kind) && emit.iterating != Some(false) => {
+                self.condition += u32::from(emit.has_else) + 1;
             }
             _ => {}
         }
@@ -186,9 +190,7 @@ fn format_g4(value: f64) -> String {
         let rest = digits[PRECISION + 1..].iter().any(|digit| *digit != 0);
         let tie = digits[PRECISION] == 5 && !rest;
         let even = digits[PRECISION - 1] % 2 == 0;
-        let round_up = digits[PRECISION] > 5
-            || (digits[PRECISION] == 5 && rest)
-            || (tie && !even);
+        let round_up = digits[PRECISION] > 5 || (digits[PRECISION] == 5 && rest) || (tie && !even);
         // A tie the value approaches from above keeps the zeros: `dtoa` takes its rounding branch
         // but declines to move a digit that is already even.
         if tie && even && above_decimal(magnitude, &digits, exponent) {
@@ -275,4 +277,3 @@ fn scaled(value: u128, twos: i32, tens: i32) -> Option<u128> {
     let value = value.checked_mul(2u128.checked_pow(u32::try_from(twos).ok()?)?)?;
     value.checked_mul(10u128.checked_pow(u32::try_from(tens).ok()?)?)
 }
-

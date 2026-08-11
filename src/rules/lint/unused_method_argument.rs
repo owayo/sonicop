@@ -160,7 +160,7 @@ fn not_implemented(
             .child_by_field_name("arguments")
             .and_then(|arguments| arguments.named_child(0))
             .and_then(|argument| const_name(argument, context))
-            .is_some_and(|name| exceptions.iter().any(|exception| *exception == name)),
+            .is_some_and(|name| exceptions.contains(&name)),
         _ => false,
     }
 }

@@ -5466,6 +5466,38 @@ mod style_rest {
         );
     }
 
+    /// Ruby 3.0 以降は本体を `=` の右に畳む。引数を持つ呼び出しは括弧を補って
+    /// 書き直され、算術・比較の演算子だけはそのまま残る。
+    ///
+    /// 実測: `.ruby-version` に 3.2.0 を置いた `-A` の出力。
+    #[test]
+    fn an_endless_definition_replaces_the_single_line_one_from_ruby_3_0() {
+        let source = concat!(
+            "def foo; bar; end\n",
+            "def self.logger; config.logger; end\n",
+            "def with_args(a); helper a; end\n",
+            "def arith; a + b; end\n",
+            "def shovel; a << b; end\n",
+            "def multi; a; b; end\n",
+            "def ret; return 1; end\n",
+            "def op=(v); @v = v; end\n",
+        );
+        CopCase::new("Style/SingleLineMethods", source, Vec::new())
+            .without_offense_check()
+            .target_ruby("3.2")
+            .corrected(concat!(
+                "def foo() = bar\n",
+                "def self.logger() = config.logger\n",
+                "def with_args(a) = helper(a)\n",
+                "def arith() = a + b\n",
+                "def shovel() = a.<<(b)\n",
+                "def multi; \n  a; \n  b; \nend\n",
+                "def ret; \n  return 1; \nend\n",
+                "def op=(v); \n  @v = v; \nend\n",
+            ))
+            .run();
+    }
+
     /// 行末コメントは定義の上の行に持ち上げられる。
     #[test]
     fn a_trailing_comment_moves_above_the_definition() {
@@ -5997,9 +6029,10 @@ mod interpolation_check {
         CopCase::new(
             COP,
             "multi = 'a\n#{x}'\n",
-            vec![Annotation::new(1, 9, 8, MSG)],
+            vec![Annotation::new(1, 9, 2, MSG)],
         )
         .locations(&[(1, 9, 2, 5)])
+        .lengths(&[8])
         .run();
     }
 
@@ -6029,5 +6062,273 @@ mod interpolation_check {
             "qux = %{say \"#{x}\" now}\n",
         );
         expect_correction(COP, "concat = 'a' '#{x}'\n", "concat = 'a' \"#{x}\"\n");
+    }
+}
+
+/// `Layout/SpaceInsideArrayLiteralBrackets` と
+/// `Layout/SpaceInsidePercentLiteralDelimiters`。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` / `-A` の実出力から取った。
+mod layout_bracket_spacing {
+    use super::*;
+
+    const BRACKETS: &str = "Layout/SpaceInsideArrayLiteralBrackets";
+    const PERCENT: &str = "Layout/SpaceInsidePercentLiteralDelimiters";
+    const MSG: &str = "Do not use space inside array brackets.";
+    const EMPTY_MSG: &str = "Do not use space inside empty array brackets.";
+    const PERCENT_MSG: &str = "Do not use spaces inside percent literal delimiters.";
+
+    /// 空白は左右それぞれ 1 件ずつ報告される。空の `[ ]` は括弧ごと 1 件。
+    /// 入れ子は内側の配列も別の node なので、それぞれが自分の括弧を見る。
+    #[test]
+    fn each_bracket_reports_the_run_of_spaces_beside_it() {
+        CopCase::new(
+            BRACKETS,
+            concat!(
+                "array = [ a, b ]\n",
+                "empty = [ ]\n",
+                "nested = [[ 1 ], [ 2 ]]\n",
+            ),
+            vec![
+                Annotation::new(1, 10, 1, MSG),
+                Annotation::new(1, 15, 1, MSG),
+                Annotation::new(2, 9, 3, EMPTY_MSG),
+                Annotation::new(3, 12, 1, MSG),
+                Annotation::new(3, 14, 1, MSG),
+                Annotation::new(3, 19, 1, MSG),
+                Annotation::new(3, 21, 1, MSG),
+            ],
+        )
+        .run();
+    }
+
+    /// 本家は node 1 個につき 1 回しか corrector を回さないので、2 件目の offense は
+    /// corrector が空のまま `correctable: false` で出る。
+    #[test]
+    fn only_the_first_offense_of_a_node_carries_the_correction() {
+        let report = CopCase::new(BRACKETS, "array = [ a, b ]\n", vec![])
+            .without_offense_check()
+            .inspect();
+        let correctable: Vec<bool> = report
+            .offenses
+            .iter()
+            .map(sonicop::diagnostic::Offense::is_correctable)
+            .collect();
+        assert_eq!(correctable, vec![true, false]);
+    }
+
+    /// 閉じ括弧が自分の行を独り占めしていれば右側は免除される。行頭の `[` に
+    /// コメントが続く場合は左側が免除される。免除された側も autocorrect では
+    /// 一緒に詰められる。
+    #[test]
+    fn a_bracket_on_its_own_line_and_a_comment_after_the_opening_one_are_excused() {
+        CopCase::new(
+            BRACKETS,
+            concat!(
+                "own = [ 1,\n",
+                "  2\n",
+                "    ]\n",
+                "comment = [ # note\n",
+                "  1 ]\n",
+            ),
+            vec![Annotation::new(1, 8, 1, MSG), Annotation::new(5, 4, 1, MSG)],
+        )
+        .run();
+        expect_correction(
+            BRACKETS,
+            concat!("own = [ 1,\n", "  2\n", "    ]\n"),
+            concat!("own = [1,\n", "  2\n", "]\n"),
+        );
+        expect_correction(
+            BRACKETS,
+            concat!("comment = [ # note\n", "  1 ]\n"),
+            concat!("comment = [# note\n", "  1]\n"),
+        );
+    }
+
+    /// `%w[...]` は括弧を持たないので配列側の cop は触らない。
+    #[test]
+    fn a_percent_literal_is_not_a_bracketed_array() {
+        expect_no_offenses(BRACKETS, "words = %w[ a b ]\n");
+    }
+
+    /// 前後の空白はそれぞれ 1 件。空の本文はまとめて 1 件。複数行は前後の空白を
+    /// 見ない。`\` で逃した空白は語の一部なので、末尾の 1 個だけが残る。
+    #[test]
+    fn percent_literals_report_their_edge_spaces() {
+        CopCase::new(
+            PERCENT,
+            concat!(
+                "w = %w( foo bar )\n",
+                "i = %i(  baz )\n",
+                "x = %x( ls )\n",
+                "blank = %w( )\n",
+                "multiline = %w( a\n",
+                "  b )\n",
+                "escaped = %w(a\\  )\n",
+                "plain = %w(ok)\n",
+            ),
+            vec![
+                Annotation::new(1, 8, 1, PERCENT_MSG),
+                Annotation::new(1, 16, 1, PERCENT_MSG),
+                Annotation::new(2, 8, 2, PERCENT_MSG),
+                Annotation::new(2, 13, 1, PERCENT_MSG),
+                Annotation::new(3, 8, 1, PERCENT_MSG),
+                Annotation::new(3, 11, 1, PERCENT_MSG),
+                Annotation::new(4, 12, 1, PERCENT_MSG),
+                Annotation::new(7, 17, 1, PERCENT_MSG),
+            ],
+        )
+        .run();
+    }
+
+    /// バッククォートのコマンド実行は `%` で始まらないので対象外。
+    #[test]
+    fn a_backtick_command_is_not_a_percent_literal() {
+        expect_no_offenses(PERCENT, "x = `ls `\n");
+        expect_no_offenses(PERCENT, "q = %q( s )\n");
+    }
+}
+
+/// `Layout/EmptyLinesAroundAccessModifier` と `Layout/EmptyLineAfterGuardClause`。
+mod layout_blank_lines {
+    use super::*;
+
+    const MODIFIER: &str = "Layout/EmptyLinesAroundAccessModifier";
+    const GUARD: &str = "Layout/EmptyLineAfterGuardClause";
+
+    /// class 本体の先頭行に来た修飾子は「後ろだけ」を求められる。それ以外は前後
+    /// 両方。空行が揃っていれば報告しない。
+    #[test]
+    fn the_message_depends_on_whether_the_modifier_opens_the_body() {
+        CopCase::new(
+            MODIFIER,
+            concat!(
+                "class Foo\n",
+                "  def a; end\n",
+                "  private\n",
+                "  def b; end\n",
+                "end\n",
+                "class Bar\n",
+                "  private\n",
+                "  def b; end\n",
+                "end\n",
+                "module Baz\n",
+                "  def a; end\n",
+                "\n",
+                "  private\n",
+                "\n",
+                "  def b; end\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(3, 3, 7, "Keep a blank line before and after `private`."),
+                Annotation::new(7, 3, 7, "Keep a blank line after `private`."),
+            ],
+        )
+        .run();
+    }
+
+    /// 引数付きの `private :foo` と、class 本体の外に書かれた `private` は
+    /// `bare_access_modifier?` に落ちない。
+    #[test]
+    fn only_a_bare_modifier_inside_a_class_like_body_counts() {
+        expect_no_offenses(MODIFIER, "class Foo\n  private :bar\n  def b; end\nend\n");
+        expect_no_offenses(MODIFIER, "def foo\n  private\n  bar\nend\n");
+        expect_no_offenses(
+            MODIFIER,
+            "x = Class.new do\n  private\n\n  def b; end\nend\n",
+        );
+    }
+
+    /// 修飾子形式は node ごと、`if ... end` 形式は `end` を指す。次の行が空なら
+    /// 報告しない。
+    #[test]
+    fn a_guard_clause_wants_a_blank_line_after_it() {
+        CopCase::new(
+            GUARD,
+            concat!(
+                "def foo\n",
+                "  return if a\n",
+                "  bar\n",
+                "end\n",
+                "def baz\n",
+                "  return if a\n",
+                "  return if b\n",
+                "\n",
+                "  qux\n",
+                "end\n",
+                "def quux\n",
+                "  if a\n",
+                "    return\n",
+                "  end\n",
+                "  corge\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(2, 3, 11, "Add empty line after guard clause."),
+                Annotation::new(14, 3, 3, "Add empty line after guard clause."),
+            ],
+        )
+        .run();
+    }
+
+    /// 続く文が無い、`while` 本体の最後、else 節の直前といった場所では
+    /// `right_sibling` が無いか else に当たるので報告しない。
+    #[test]
+    fn a_guard_clause_with_nothing_after_it_is_left_alone() {
+        expect_no_offenses(GUARD, "def foo\n  bar\n  return if a\nend\n");
+        expect_no_offenses(GUARD, "if a\n  return if b\nelse\n  c\nend\n");
+        expect_no_offenses(
+            GUARD,
+            "def foo\n  return if a\n  # rubocop:enable Style/Foo\n\n  bar\nend\n",
+        );
+    }
+
+    /// `while` / `until` の本体も `begin` になるので、そこに書かれた guard clause も
+    /// 対象になる。
+    #[test]
+    fn a_loop_body_is_a_statement_list_too() {
+        CopCase::new(
+            GUARD,
+            concat!("until a\n", "  next if b\n", "  c\n", "end\n"),
+            vec![Annotation::new(
+                2,
+                3,
+                9,
+                "Add empty line after guard clause.",
+            )],
+        )
+        .run();
+    }
+
+    /// autocorrect は行末に改行を足す。ヒアドキュメントを持つ guard clause は
+    /// 終端子の行の後ろに入る。
+    #[test]
+    fn the_blank_line_goes_after_the_whole_clause() {
+        expect_correction(
+            GUARD,
+            concat!("def foo\n", "  return if a\n", "  bar\n", "end\n"),
+            concat!("def foo\n", "  return if a\n", "\n", "  bar\n", "end\n"),
+        );
+        expect_correction(
+            GUARD,
+            concat!(
+                "def foo\n",
+                "  raise <<~MSG if a\n",
+                "    hello\n",
+                "  MSG\n",
+                "  bar\n",
+                "end\n",
+            ),
+            concat!(
+                "def foo\n",
+                "  raise <<~MSG if a\n",
+                "    hello\n",
+                "  MSG\n",
+                "\n",
+                "  bar\n",
+                "end\n",
+            ),
+        );
     }
 }

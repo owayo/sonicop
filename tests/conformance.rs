@@ -143,6 +143,33 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // ---- Layout ----
         CopCase::annotated(
+            "Layout/EmptyLineAfterGuardClause",
+            r#"
+            def foo
+              return if a
+              ^^^^^^^^^^^ Add empty line after guard clause.
+              bar
+            end
+            "#,
+        )
+        .id("layout_empty_line_after_guard_clause")
+        .locations(&[(2, 3, 2, 13)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAroundAccessModifier",
+            r#"
+            class Foo
+              def a; end
+              private
+              ^^^^^^^ Keep a blank line before and after `private`.
+              def b; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_around_access_modifier")
+        .locations(&[(3, 3, 3, 9)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterMagicComment",
             r#"
             # encoding: utf-8
@@ -201,6 +228,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_space_around_operators"),
         CopCase::annotated(
+            "Layout/SpaceInsideArrayLiteralBrackets",
+            r#"
+            [ 1]
+             ^ Do not use space inside array brackets.
+            "#,
+        )
+        .id("layout_space_inside_array_literal_brackets")
+        .locations(&[(1, 2, 1, 2)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceInsideParens",
             r#"
             puts( 1)
@@ -208,6 +245,16 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("layout_space_inside_parens"),
+        CopCase::annotated(
+            "Layout/SpaceInsidePercentLiteralDelimiters",
+            r#"
+            %w( a)
+               ^ Do not use spaces inside percent literal delimiters.
+            "#,
+        )
+        .id("layout_space_inside_percent_literal_delimiters")
+        .locations(&[(1, 4, 1, 4)])
+        .correctable(true),
         CopCase::annotated(
             "Layout/TrailingEmptyLines",
             r#"
@@ -314,6 +361,18 @@ fn catalogue() -> Vec<CopCase> {
         .severity(Severity::Warning),
         // ---- Metrics ----
         CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def foo
+            ^^^^^^^ Assignment Branch Condition size for `foo` is too high. [<0, 2, 0> 2/0]
+              bar.baz
+            end
+            "#,
+        )
+        .id("metrics_abc_size")
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .locations(&[(1, 1, 3, 3)]),
+        CopCase::annotated(
             "Metrics/BlockLength",
             r#"
             [1].each do |i|
@@ -325,6 +384,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("metrics_block_length")
         .config("Metrics/BlockLength:\n  Max: 1\n"),
+        CopCase::annotated(
+            "Metrics/BlockNesting",
+            r#"
+            if a
+              if b
+                if c
+                  if d
+                  ^^^^ Avoid more than 3 levels of block nesting.
+                    e
+                  end
+                end
+              end
+            end
+            "#,
+        )
+        .id("metrics_block_nesting")
+        .locations(&[(4, 7, 6, 9)]),
         CopCase::annotated(
             "Metrics/ClassLength",
             r#"
@@ -338,6 +414,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("metrics_class_length")
         .config("Metrics/ClassLength:\n  Max: 1\n")
         .locations(&[(1, 1, 4, 3)]),
+        CopCase::annotated(
+            "Metrics/CyclomaticComplexity",
+            r#"
+            def foo
+            ^^^^^^^ Cyclomatic complexity for `foo` is too high. [2/1]
+              bar if baz
+            end
+            "#,
+        )
+        .id("metrics_cyclomatic_complexity")
+        .config("Metrics/CyclomaticComplexity:\n  Max: 1\n")
+        .locations(&[(1, 1, 3, 3)]),
         CopCase::annotated(
             "Metrics/MethodLength",
             r#"
@@ -371,6 +459,18 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("metrics_parameter_lists"),
+        CopCase::annotated(
+            "Metrics/PerceivedComplexity",
+            r#"
+            def foo
+            ^^^^^^^ Perceived complexity for `foo` is too high. [2/1]
+              bar if baz
+            end
+            "#,
+        )
+        .id("metrics_perceived_complexity")
+        .config("Metrics/PerceivedComplexity:\n  Max: 1\n")
+        .locations(&[(1, 1, 3, 3)]),
         // ---- Migration ----
         CopCase::annotated(
             "Migration/DepartmentName",

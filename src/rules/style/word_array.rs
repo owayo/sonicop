@@ -28,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("array") {
         let items = nodes::children(node);
-        if items.is_empty() || !items.iter().all(|item| is_word(*item)) {
+        if items.is_empty() || !items.iter().all(|item| is_word(context, *item)) {
             continue;
         }
         let Some(values) = values(context, &items) else {
@@ -77,8 +77,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `bracketed_array_of?(:str, node)`: a plain string, so neither interpolated nor split across
 /// lines, both of which upstream's parser turns into a `dstr`.
-fn is_word(node: Node<'_>) -> bool {
-    node.kind() == "string" && !interpolated(node) && !node.byte_range().is_empty()
+fn is_word(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.kind() == "string"
+        && !interpolated(node)
+        && !context.source.node_text(node).contains('\n')
 }
 
 fn interpolated(node: Node<'_>) -> bool {

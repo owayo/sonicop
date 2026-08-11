@@ -92,7 +92,9 @@ fn check_brace_block_argument(
     let Some(block) = block_of(last) else {
         return;
     };
-    if has_arguments(last) || parenthesized(node, arguments, context) || lambda_or_proc(last, context)
+    if has_arguments(last)
+        || parenthesized(node, arguments, context)
+        || lambda_or_proc(last, context)
     {
         return;
     }

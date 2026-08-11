@@ -45,12 +45,12 @@ impl Locals {
 
 /// One static scope. A block sees the names of the scope around it; a method, class or module
 /// starts from nothing.
-struct Frame {
-    names: HashSet<String>,
+struct Frame<'a> {
+    names: HashSet<&'a str>,
     block: bool,
 }
 
-impl Frame {
+impl Frame<'_> {
     fn new(block: bool) -> Self {
         Self {
             names: HashSet::new(),
@@ -62,7 +62,7 @@ impl Frame {
 struct Walker<'a> {
     source: &'a SourceFile,
     fragments: &'a Fragments,
-    stack: Vec<Frame>,
+    stack: Vec<Frame<'a>>,
     lvars: HashSet<usize>,
 }
 
@@ -80,14 +80,16 @@ fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
     }
 }
 
-impl Walker<'_> {
-    fn text(&self, node: Node<'_>) -> &str {
+impl<'a> Walker<'a> {
+    /// The text of a node, tied to the file rather than to the walk, so that a name can be read
+    /// and then declared without the borrow of one outliving the other.
+    fn text(&self, node: Node<'_>) -> &'a str {
         self.source.node_text(node)
     }
 
-    fn declare(&mut self, name: &str) {
+    fn declare(&mut self, name: &'a str) {
         if let Some(frame) = self.stack.last_mut() {
-            frame.names.insert(name.to_owned());
+            frame.names.insert(name);
         }
     }
 
@@ -175,8 +177,8 @@ impl Walker<'_> {
         // A block written without parameters that reaches for `_1` gets them implicitly, and the
         // parser upstream reads every such name as a variable of that block.
         if block && node.child_by_field_name("parameters").is_none() {
-            for index in 1..=9 {
-                self.declare(&format!("_{index}"));
+            for name in NUMBERED_PARAMETERS {
+                self.declare(name);
             }
         }
         for child in named_children(node) {
@@ -255,7 +257,7 @@ impl Walker<'_> {
             return;
         };
         if left.kind() == "identifier" {
-            self.declare(&self.text(left).to_owned());
+            self.declare(self.text(left));
         } else {
             self.visit(left);
         }
@@ -267,8 +269,7 @@ impl Walker<'_> {
     fn declare_targets(&mut self, node: Node<'_>) {
         match node.kind() {
             "identifier" => {
-                let name = self.text(node).to_owned();
-                self.declare(&name);
+                self.declare(self.text(node));
             }
             "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
                 for child in named_children(node) {
@@ -348,8 +349,7 @@ impl Walker<'_> {
     fn declare_parameter(&mut self, node: Node<'_>) {
         match node.kind() {
             "identifier" => {
-                let name = self.text(node).to_owned();
-                self.declare(&name);
+                self.declare(self.text(node));
             }
             "destructured_parameter" => {
                 for child in named_children(node) {
@@ -362,8 +362,7 @@ impl Walker<'_> {
             | "hash_splat_parameter"
             | "block_parameter" => {
                 if let Some(name) = node.child_by_field_name("name") {
-                    let name = self.text(name).to_owned();
-                    self.declare(&name);
+                    self.declare(self.text(name));
                 }
                 if let Some(value) = node.child_by_field_name("value") {
                     self.visit_default(value);
@@ -400,8 +399,7 @@ impl Walker<'_> {
             return;
         };
         if target.kind() == "identifier" {
-            let name = self.text(target).to_owned();
-            self.declare(&name);
+            self.declare(self.text(target));
         } else {
             self.visit(target);
         }
@@ -427,7 +425,7 @@ impl Walker<'_> {
             return;
         }
         for name in named_captures(self.text(left)) {
-            self.declare(&name);
+            self.declare(name);
         }
         self.visit(left);
         self.visit(right);
@@ -437,8 +435,7 @@ impl Walker<'_> {
     fn declare_pattern(&mut self, node: Node<'_>) {
         match node.kind() {
             "identifier" => {
-                let name = self.text(node).to_owned();
-                self.declare(&name);
+                self.declare(self.text(node));
             }
             "array_pattern"
             | "find_pattern"
@@ -455,8 +452,7 @@ impl Walker<'_> {
                 Some(value) => self.declare_pattern(value),
                 None => {
                     if let Some(key) = node.child_by_field_name("key") {
-                        let name = self.text(key).trim_end_matches(':').to_owned();
-                        self.declare(&name);
+                        self.declare(self.text(key).trim_end_matches(':'));
                     }
                 }
             },
@@ -601,8 +597,11 @@ fn is_variable_read(node: Node<'_>) -> bool {
     }
 }
 
+/// The names a block written without parameters can reach for, which the parser declares for it.
+const NUMBERED_PARAMETERS: [&str; 9] = ["_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9"];
+
 /// The names a regexp literal captures, in the order they are written.
-pub(super) fn named_captures(source: &str) -> Vec<String> {
+pub(super) fn named_captures(source: &str) -> Vec<&str> {
     let bytes = source.as_bytes();
     let mut names = Vec::new();
     let mut index = 0;
@@ -626,7 +625,7 @@ pub(super) fn named_captures(source: &str) -> Vec<String> {
                 continue;
             }
             if let Some(end) = source[index + 3..].find(close as char) {
-                names.push(source[index + 3..index + 3 + end].to_owned());
+                names.push(&source[index + 3..index + 3 + end]);
                 index += 3 + end + 1;
                 continue;
             }
