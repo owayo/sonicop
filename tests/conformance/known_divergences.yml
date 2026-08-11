@@ -55,12 +55,6 @@ divergences:
   # --- Layout/LineLength ---
   - cop: Layout/LineLength
     case: layout_line_length_multibyte
-    kind: message
-    upstream: Line is too long. [7/3]
-    sonicop: Line is too long. [10/3]
-    note: 本家は String#length で文字数を数える。sonicop は unicode-width の表示幅で数えている
-  - cop: Layout/LineLength
-    case: layout_line_length_multibyte
     kind: length_unit
     upstream: '4'
     sonicop: '8'

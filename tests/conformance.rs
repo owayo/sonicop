@@ -59,8 +59,8 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_line_length_ascii")
         .config("Layout/LineLength:\n  Max: 10\n")
         .lengths(&[4]),
-        // 本家は `String#length` で数えるので全角も 1 文字。sonicop は
-        // unicode-width の表示幅で数えている。
+        // 本家は `String#length` で数えるので全角も 1 文字。表示幅で数えると
+        // 全角を含む行だけが早く上限を超え、本家が見逃す行を報告してしまう。
         CopCase::annotated(
             "Layout/LineLength",
             r#"

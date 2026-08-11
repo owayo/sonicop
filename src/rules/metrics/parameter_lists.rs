@@ -34,7 +34,8 @@ fn report_optional_parameters(
             parameters
                 .named_children(&mut cursor)
                 .filter(|parameter| parameter.kind() == "optional_parameter")
-                .count()
+                .map(folded_parameter_count)
+                .sum()
         });
     if count <= max {
         return;
@@ -60,11 +61,12 @@ fn report_parameter_count(
     let mut cursor = node.walk();
     // An explicit block argument is never counted: making it implicit is a rename away, so
     // counting it would push authors toward a change the cop does not actually want.
-    let count = node
+    let count: usize = node
         .named_children(&mut cursor)
         .filter(|parameter| parameter.kind() != "block_parameter")
         .filter(|parameter| count_keywords || parameter.kind() != "keyword_parameter")
-        .count();
+        .map(folded_parameter_count)
+        .sum();
     if count <= max || argument_to_lambda_or_proc(context, node) {
         return;
     }
@@ -72,6 +74,30 @@ fn report_parameter_count(
         format!("Avoid parameter lists longer than {max} parameters. [{count}/{max}]"),
         node.byte_range(),
     ));
+}
+
+/// How many parameters one child of a parameter list really stands for.
+///
+/// Normally one, but tree-sitter-ruby sometimes folds a run of defaulted parameters into a single
+/// `optional_parameter` whose value is a chain of multiple assignments -- `def tag(name = nil,
+/// options = nil, open = false, escape = true)` parses as `name = (nil, options = (nil, open =
+/// (false, escape = true)))`. Each `left_assignment_list` in that chain holds the previous
+/// parameter's default followed by the names the fold swallowed, so unwinding the chain recovers
+/// the count the source actually spells out.
+fn folded_parameter_count(parameter: Node<'_>) -> usize {
+    let mut count = 1;
+    let mut value = parameter.child_by_field_name("value");
+    while let Some(node) = value.filter(|node| node.kind() == "assignment") {
+        let Some(targets) = node
+            .child_by_field_name("left")
+            .filter(|left| left.kind() == "left_assignment_list")
+        else {
+            break;
+        };
+        count += targets.named_child_count().saturating_sub(1);
+        value = node.child_by_field_name("right");
+    }
+    count
 }
 
 /// `Struct.new(...) { def initialize(...) }` and `Data.define(...) { ... }` mirror the member list

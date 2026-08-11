@@ -144,16 +144,26 @@ fn heredoc_extended_end(statements: &[Node<'_>], heredocs: &HeredocEnds) -> Opti
     let mut found = false;
     let mut last_row = 0;
     while let Some(current) = stack.pop() {
-        let row = if current.kind() == "heredoc_beginning" {
+        if current.kind() == "heredoc_beginning" {
             found = true;
-            heredocs.end_row(current)
-        } else {
-            current.end_position().row
-        };
-        last_row = last_row.max(row);
+            last_row = last_row.max(heredocs.end_row(current));
+        } else if !is_transparent_wrapper(current.kind()) {
+            last_row = last_row.max(current.end_position().row);
+        }
         push_named_children(current, &mut stack);
     }
     found.then_some(last_row)
+}
+
+/// Node kinds tree-sitter interposes where RuboCop has nothing.
+///
+/// A `do`/brace block and a parenthesized argument list both belong to the surrounding call in
+/// RuboCop's tree, so their `end`, `}` and `)` are the *call's* closing tokens -- and a node's own
+/// closing token is what this span deliberately stops short of. Counting these wrappers as if they
+/// were children would put those tokens back, adding a line RuboCop never counts. Their contents
+/// are still visited; only the wrapper's own extent is ignored.
+fn is_transparent_wrapper(kind: &str) -> bool {
+    matches!(kind, "block" | "do_block" | "argument_list")
 }
 
 fn count_code_lines(
