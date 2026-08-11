@@ -1,6 +1,6 @@
 [package]
 name = "sonicop"
-version = "26.8.100"
+version = "26.8.101"
 edition = "2024"
 rust-version = "1.85"
 description = "A fast, native RuboCop-compatible Ruby linter and formatter"
