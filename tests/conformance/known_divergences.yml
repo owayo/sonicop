@@ -12,22 +12,28 @@
 # バグの記録なので、増えるときは人間が中身を見るべきだから)。
 
 # 検証コーパスが見ていないもの。CONFORMANCE.md に必ず出す。
+#
+# 現在の検証コーパスは 5 本、計 18,242 ファイル:
+#   rubocop/rubocop 1,763 / rails/rails 3,550 / ruby/ruby 7,465 /
+#   Homebrew/brew 2,175 / mastodon/mastodon 3,289
+# 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
+# 版依存の挙動はこの 3 つの範囲では踏めている。
 blind_spots:
-  - corpus: 本家 RuboCop のソース (1,743 ファイル)
-    not_covered: 非 ASCII の識別子・定数
-    consequence: Naming/AsciiIdentifiers が一度も発火せず、差分が 0 件に見える
-  - corpus: 本家 RuboCop のソース (1,743 ファイル)
-    not_covered: 末尾の余分な空行 / 最終改行の欠落
-    consequence: Layout/TrailingEmptyLines の該当コードパスを一度も通らない
-  - corpus: Rails のソース (250 ファイル)
-    not_covered: 非 ASCII の識別子・定数
-    consequence: 同じく Naming/AsciiIdentifiers の差分が 1 件も出ない
+  - corpus: 全コーパス
+    not_covered: 既定以外の設定値 (EnforcedStyle の非既定値・CountAsOne・Max の変更など)
+    consequence: 設定分岐は tests/cops.rs の手書きケースでしか通らず、実プロジェクトの .rubocop.yml で差分が出得る
+  - corpus: 全コーパス
+    not_covered: 拡張プラグイン (rubocop-rails / rubocop-performance など) を入れた状態
+    consequence: プラグイン cop との相互作用や、プラグインが変える既定値の影響を測れていない
+  - corpus: 全コーパス
+    not_covered: Windows の改行と EnforcedStyle native
+    consequence: Layout/EndOfLine の crlf 側の分岐は手書きケースでしか通らない
+  - corpus: 全コーパス
+    not_covered: UTF-16 など、マジックコメントで宣言されない非 UTF-8 の符号化
+    consequence: 復号できず構文エラー扱いになる。本家も同じ結論になるかはケース次第
   - corpus: tests/conformance.rs の手書きケース
     not_covered: 大規模な実コード / cop 同士の相互作用 / autocorrect の反復収束
     consequence: 単体では一致しても、実プロジェクトで組み合わせ由来の差分が残り得る
-  - corpus: 全コーパス
-    not_covered: TargetRubyVersion 2.7 以外での挙動 (一部ケースのみ 2.6 を見る)
-    consequence: 版依存の構文・cop の有効無効に差分が残り得る
 
 divergences:
   # --- Lint/Syntax ---

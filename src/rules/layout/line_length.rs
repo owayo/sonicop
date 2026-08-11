@@ -485,10 +485,15 @@ impl Breaker<'_, '_> {
         {
             return None;
         }
-        // With block arguments the break goes after the closing `|`. A lambda keeps its parameters
-        // on the `->` rather than the block, so it always falls through to the brace or `do`.
+        // With block arguments the break goes after the closing `|`. A lambda is exempt -- both
+        // `->` and a call to `lambda` count as one upstream -- and falls through to the brace.
         let opener = if node.kind() == "block" { 1 } else { 2 };
-        let position = match node.child_by_field_name("parameters") {
+        let parameters = if is_lambda_block(node, self.context) {
+            None
+        } else {
+            node.child_by_field_name("parameters")
+        };
+        let position = match parameters {
             Some(parameters) => parameters.end_byte(),
             None => node.start_byte() + opener,
         };
@@ -515,13 +520,14 @@ impl Breaker<'_, '_> {
             return None;
         }
         self.first_element_over_column_limit(node, elements)
+            .map(|element| element.node)
     }
 
     /// The children RuboCop counts when it asks whether a node is a collection worth breaking.
     ///
     /// A brace-less hash argument is already spelled as loose `pair`s by the grammar, which is what
     /// upstream's `process_args` reaches by unfolding the `hash` node its parser builds.
-    fn elements<'t>(&self, node: Node<'t>) -> Option<Vec<Node<'t>>> {
+    fn elements<'t>(&self, node: Node<'t>) -> Option<Vec<Element<'t>>> {
         let container = match node.kind() {
             // `super(...)` is its own node type upstream rather than a `send`, so no cop callback
             // reaches it and it is never broken.
@@ -534,31 +540,33 @@ impl Breaker<'_, '_> {
             }
             // A kwargs hash has no braces and is never broken, only a literal one is.
             "hash" if self.context.source.node_text(node).starts_with('{') => node,
-            "element_reference" => return Some(index_arguments(node)),
+            "element_reference" => return Some(group_pairs(index_arguments(node), true)),
             // `a[b] = c` is the `[]=` call whose arguments are the subscripts and the value.
             "assignment" => {
                 let left = node.child_by_field_name("left")?;
                 if left.kind() != "element_reference" {
                     return None;
                 }
-                let mut elements = index_arguments(left);
-                elements.push(node.child_by_field_name("right")?);
-                return Some(elements);
+                let mut children = index_arguments(left);
+                children.push(node.child_by_field_name("right")?);
+                return Some(group_pairs(children, true));
             }
             _ => return None,
         };
         let mut cursor = container.walk();
-        // A comment is a node of the tree but not of RuboCop's AST, so a trailing one inside a
-        // literal must not count as an element of it.
-        Some(
-            container
-                .named_children(&mut cursor)
-                .filter(|child| child.kind() != "comment")
-                .collect(),
-        )
+        // A comment is a node of the tree but not of RuboCop's AST, and a heredoc's body hangs off
+        // the argument list it was opened in rather than off the opener, so neither is an element.
+        let children: Vec<Node<'t>> = container
+            .named_children(&mut cursor)
+            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .collect();
+        // Only an argument list unfolds its trailing hash into separate elements, and only when
+        // nothing follows it: that is what `process_args` does and it leaves an array's own
+        // trailing hash -- or one followed by a block argument -- as a single element.
+        Some(group_pairs(children, container.kind() == "argument_list"))
     }
 
-    fn safe_to_ignore(&self, node: Node<'_>, elements: &[Node<'_>]) -> bool {
+    fn safe_to_ignore(&self, node: Node<'_>, elements: &[Element<'_>]) -> bool {
         self.already_on_multiple_lines(node, elements)
             || self.contained_by_breakable_collection_on_same_line(node)
             || self.contained_by_multiline_collection_that_could_be_broken_up(node)
@@ -568,10 +576,10 @@ impl Breaker<'_, '_> {
     ///
     /// A method definition is measured by its parameter list rather than by the whole definition,
     /// and a call by its arguments: the block it may carry is a separate node upstream.
-    fn already_on_multiple_lines(&self, node: Node<'_>, elements: &[Node<'_>]) -> bool {
+    fn already_on_multiple_lines(&self, node: Node<'_>, elements: &[Element<'_>]) -> bool {
         let last_row = match node.kind() {
             "method" | "singleton_method" => match elements.last() {
-                Some(last) => last.end_position().row,
+                Some(last) => last.last_row,
                 None => return false,
             },
             "call" => node
@@ -617,7 +625,7 @@ impl Breaker<'_, '_> {
 
     /// The elements of an enclosing node, which upstream only asks of a `hash`, an `array` or a
     /// `send` -- never of a method definition, whose parameters are not the caller's to break.
-    fn ancestor_elements<'t>(&self, node: Node<'t>) -> Option<Vec<Node<'t>>> {
+    fn ancestor_elements<'t>(&self, node: Node<'t>) -> Option<Vec<Element<'t>>> {
         if matches!(node.kind(), "method" | "singleton_method") {
             return None;
         }
@@ -628,15 +636,15 @@ impl Breaker<'_, '_> {
     fn first_element_over_column_limit<'t>(
         &self,
         node: Node<'t>,
-        mut elements: Vec<Node<'t>>,
-    ) -> Option<Node<'t>> {
+        mut elements: Vec<Element<'t>>,
+    ) -> Option<Element<'t>> {
         // Moving the first argument of a call written without parentheses would change what the
         // line means, so it is left where it is.
         if is_call_like(node)
             && !call_parenthesized(node, self.context)
             && !elements
                 .first()
-                .is_some_and(|first| self.is_heredoc(*first))
+                .is_some_and(|first| self.is_heredoc(first.node))
         {
             elements.remove(0);
         }
@@ -644,7 +652,7 @@ impl Breaker<'_, '_> {
         let row = node.start_position().row;
         let mut index = 0;
         while elements.get(index).is_some_and(|element| {
-            self.char_column(*element) <= self.max && element.start_position().row == row
+            self.char_column(element.node) <= self.max && element.node.start_position().row == row
         }) {
             index += 1;
         }
@@ -660,7 +668,7 @@ impl Breaker<'_, '_> {
     fn shift_elements_for_heredoc_arg(
         &self,
         node: Node<'_>,
-        elements: &[Node<'_>],
+        elements: &[Element<'_>],
         index: usize,
     ) -> Option<usize> {
         if !matches!(
@@ -676,7 +684,7 @@ impl Breaker<'_, '_> {
         }
         let Some(heredoc) = elements
             .iter()
-            .position(|element| self.is_heredoc(*element))
+            .position(|element| self.is_heredoc(element.node))
         else {
             return Some(index);
         };
@@ -761,28 +769,80 @@ fn index_arguments<'t>(node: Node<'t>) -> Vec<Node<'t>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .filter(|child| {
-            child.kind() != "comment" && Some(child.id()) != object.map(|object| object.id())
+            !matches!(child.kind(), "comment" | "heredoc_body")
+                && Some(child.id()) != object.map(|object| object.id())
         })
         .collect()
 }
 
 /// Whether the elements of a collection are already spread over lines with room left to spread
 /// further: two of them sharing a line is what makes another pass worthwhile.
-fn children_could_be_broken_up(elements: &[Node<'_>]) -> bool {
+fn children_could_be_broken_up(elements: &[Element<'_>]) -> bool {
     let (Some(first), Some(last)) = (elements.first(), elements.last()) else {
         return false;
     };
-    if first.start_position().row == last.end_position().row {
+    if first.node.start_position().row == last.last_row {
         return false;
     }
     let mut last_seen: isize = -1;
     for element in elements {
-        if last_seen >= element.start_position().row as isize {
+        if last_seen >= element.node.start_position().row as isize {
             return true;
         }
-        last_seen = element.end_position().row as isize;
+        last_seen = element.last_row as isize;
     }
     false
+}
+
+/// One element of a collection as RuboCop's parser groups them.
+///
+/// `node` is where a break would go, which for a run of loose `pair`s standing in for a brace-less
+/// hash is the first of them; `last_row` covers the whole run.
+#[derive(Clone, Copy)]
+struct Element<'t> {
+    node: Node<'t>,
+    last_row: usize,
+}
+
+/// Folds the trailing key/value arguments into the single `hash` node upstream's parser builds.
+///
+/// `expand` keeps them apart instead, which is what `process_args` does to the last argument of a
+/// call -- but only there: an array literal, or a call whose hash is followed by a block argument,
+/// keeps the hash whole.
+fn group_pairs<'t>(children: Vec<Node<'t>>, expand: bool) -> Vec<Element<'t>> {
+    let is_entry = |node: &Node<'t>| matches!(node.kind(), "pair" | "hash_splat_argument");
+    let plain = |node: Node<'t>| Element {
+        node,
+        last_row: node.end_position().row,
+    };
+    let Some(end) = children.iter().rposition(is_entry) else {
+        return children.into_iter().map(plain).collect();
+    };
+    if expand && end + 1 == children.len() {
+        return children.into_iter().map(plain).collect();
+    }
+    let mut start = end;
+    while start > 0 && is_entry(&children[start - 1]) {
+        start -= 1;
+    }
+    let mut elements: Vec<Element<'t>> = children[..start].iter().copied().map(plain).collect();
+    elements.push(Element {
+        node: children[start],
+        last_row: children[end].end_position().row,
+    });
+    elements.extend(children[end + 1..].iter().copied().map(plain));
+    elements
+}
+
+/// Whether the block belongs to a lambda: `-> {}` and `lambda {}` are the same node upstream.
+fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    match node.parent() {
+        Some(parent) if parent.kind() == "lambda" => true,
+        Some(parent) => parent
+            .child_by_field_name("method")
+            .is_some_and(|method| context.source.node_text(method) == "lambda"),
+        None => false,
+    }
 }
 
 /// The node kinds that reach RuboCop as a `send`, where an unparenthesized first argument is

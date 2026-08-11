@@ -2811,4 +2811,347 @@ mod local_variable_analysis {
             ),
         );
     }
+
+    /// ループ走査は代入ノードを `Array#include?` で探すので、比較は同一性ではなく構造。
+    /// 同じ綴りの代入はループの外のものまで「ループ内の代入」と数えられ、条件分岐の中に
+    /// あればまとめて参照済みになる。
+    #[test]
+    fn a_loop_marks_every_assignment_written_the_same_way() {
+        expect_no_offenses(
+            USELESS,
+            concat!(
+                "if true\n",
+                "  def m\n",
+                "    for i in 1..10\n",
+                "      puts 1\n",
+                "    end\n",
+                "    for i in 1..10\n",
+                "      puts i\n",
+                "    end\n",
+                "  end\n",
+                "end\n",
+            ),
+        );
+        // 分岐の外なら、参照されるのは最後の 1 件だけ。
+        expect_offense(
+            USELESS,
+            r#"
+            def m
+              for i in 1..10
+                  ^ Useless assignment to variable - `i`.
+                puts 1
+              end
+              for i in 1..10
+                puts i
+              end
+            end
+            "#,
+        );
+        // 綴りが違えば別の代入なので、分岐の中でも最初の 1 件は残る。
+        expect_offense(
+            USELESS,
+            r#"
+            if true
+              def m
+                i = 1
+                ^ Useless assignment to variable - `i`.
+                for i in 1..10
+                  puts i
+                end
+              end
+            end
+            "#,
+        );
+    }
+}
+
+/// `Style/Semicolon` — 期待値は本家 1.89.0 の `--only Style/Semicolon` 実測。
+mod semicolon_shapes {
+    use super::*;
+
+    const SEMICOLON: &str = "Style/Semicolon";
+
+    /// 本家は式の分割まで直す。`;` を改行に置き換えるので、後ろの空白はそのまま残る。
+    #[test]
+    fn a_separator_between_expressions_is_corrected_into_a_line_break() {
+        CopCase::annotated(
+            SEMICOLON,
+            r#"
+            puts 1; puts 2
+                  ^ Do not use semicolons to terminate expressions.
+            "#,
+        )
+        .correctable(true)
+        .corrected("puts 1\n puts 2\n")
+        .run();
+    }
+
+    /// 改行に置き換えると行の残りが heredoc 本文に落ちるため、本家は corrector を
+    /// 1 つも積まない。offense は出るが correctable ではない。
+    #[test]
+    fn a_heredoc_opened_earlier_on_the_line_leaves_the_separator_uncorrectable() {
+        CopCase::annotated(
+            SEMICOLON,
+            r#"
+            x = <<~MSG; y = 2
+                      ^ Do not use semicolons to terminate expressions.
+              hi
+            MSG
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// 本家はトークン列を歩くので、`$;` はグローバル変数 1 トークンであって `;` ではない。
+    #[test]
+    fn the_global_variable_named_semicolon_is_not_a_semicolon() {
+        expect_no_offenses(SEMICOLON, "alias $FS $;\n");
+    }
+
+    /// コメントもトークンなので、行末コメントがあると `;` は行の最後のトークンではなくなる。
+    #[test]
+    fn a_trailing_comment_takes_the_last_token_position_from_the_semicolon() {
+        expect_no_offenses(SEMICOLON, "x = 1;   # note\n");
+    }
+
+    /// `begin ... end` は本家 AST では文をそのまま抱える `kwbegin` で、cop が探す
+    /// `begin` ノードにはならない。ループ本体は `begin` になるので報告される。
+    #[test]
+    fn a_begin_block_does_not_separate_expressions_but_a_loop_body_does() {
+        CopCase::annotated(
+            SEMICOLON,
+            r#"
+            begin a = 1; b = 2 end
+            while true
+              c = 1; d = 2
+                   ^ Do not use semicolons to terminate expressions.
+            end
+            "#,
+        )
+        .run();
+    }
+}
+
+/// `Style/RedundantReturn` — 期待値は本家 1.89.0 の `--only Style/RedundantReturn` 実測。
+mod redundant_return_branches {
+    use super::*;
+
+    const REDUNDANT_RETURN: &str = "Style/RedundantReturn";
+
+    #[test]
+    fn every_branch_of_a_conditional_is_followed() {
+        CopCase::annotated(
+            REDUNDANT_RETURN,
+            r#"
+            def a
+              if x
+                return 1
+                ^^^^^^ Redundant `return` detected.
+              elsif y
+                return 2
+                ^^^^^^ Redundant `return` detected.
+              else
+                return 3
+                ^^^^^^ Redundant `return` detected.
+              end
+            end
+            "#,
+        )
+        .corrected("def a\n  if x\n    1\n  elsif y\n    2\n  else\n    3\n  end\nend\n")
+        .run();
+    }
+
+    #[test]
+    fn a_rescue_body_and_its_else_are_followed() {
+        CopCase::annotated(
+            REDUNDANT_RETURN,
+            r#"
+            def a
+              x
+            rescue Foo
+              return 1
+              ^^^^^^ Redundant `return` detected.
+            else
+              return 2
+              ^^^^^^ Redundant `return` detected.
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `ensure` の中身は戻り値にならないので、本家は追わない。
+    #[test]
+    fn an_ensure_body_is_not_followed() {
+        expect_no_offenses(REDUNDANT_RETURN, "def a\n  x\nensure\n  return 1\nend\n");
+    }
+
+    #[test]
+    fn case_branches_are_followed() {
+        CopCase::annotated(
+            REDUNDANT_RETURN,
+            r#"
+            def a
+              case x
+              when 1
+                return 1
+                ^^^^^^ Redundant `return` detected.
+              else
+                return 2
+                ^^^^^^ Redundant `return` detected.
+              end
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `lambda {}` も `-> {}` も本家には `lambda` 呼び出しなので、本体はメソッド本体扱い。
+    #[test]
+    fn a_lambda_body_is_a_method_body() {
+        CopCase::annotated(
+            REDUNDANT_RETURN,
+            r#"
+            def a
+              lambda { return 1 }
+                       ^^^^^^ Redundant `return` detected.
+            end
+            def b
+              -> { return 2 }
+                   ^^^^^^ Redundant `return` detected.
+            end
+            "#,
+        )
+        .corrected("def a\n  lambda { 1 }\nend\ndef b\n  -> { 2 }\nend\n")
+        .run();
+    }
+
+    /// ループ本体の `return` は末尾式ではないので追わない。修飾子付きの `if` は追う。
+    #[test]
+    fn a_loop_body_is_not_followed_but_a_modifier_branch_is() {
+        CopCase::annotated(
+            REDUNDANT_RETURN,
+            r#"
+            def a
+              while x
+                return 1
+              end
+            end
+            def b
+              return 1 if y
+              ^^^^^^ Redundant `return` detected.
+            end
+            "#,
+        )
+        .run();
+    }
+}
+
+/// `Layout/LineLength` の autocorrect 可否。期待値は本家 1.89.0 の実測。
+mod line_length_breakable {
+    use super::*;
+
+    const LINE_LENGTH: &str = "Layout/LineLength";
+    const TOO_LONG: &str = "Line is too long. [126/120]";
+
+    /// 引数が 2 つ以上ある呼び出しは、上限を越える最初の引数の 1 つ手前で折れる。
+    #[test]
+    fn a_long_call_breaks_before_the_last_argument_within_the_limit() {
+        let long = "        assert_equal(:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, \
+                    :bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, :cccccccccccccccccccccccccccccccc)";
+        CopCase::new(
+            LINE_LENGTH,
+            format!("def foo\n{long}\nend\n"),
+            vec![Annotation::new(2, 121, 6, TOO_LONG)],
+        )
+        .correctable(true)
+        .run();
+    }
+
+    /// メソッド定義は本体ではなく引数リストの広がりで「もう折れている」かを見るので、
+    /// 本体が複数行でも 1 行に収まった引数リストは折れる。
+    #[test]
+    fn a_long_definition_breaks_inside_its_parameter_list() {
+        let long = "  def grouped_collection_select(method, collection, group_method, \
+                    group_label_method, option_key_method, option_value_method, options = {})";
+        CopCase::new(
+            LINE_LENGTH,
+            format!("class A\n{long}\n    1\n  end\nend\n"),
+            vec![Annotation::new(2, 121, 19, "Line is too long. [139/120]")],
+        )
+        .correctable(true)
+        .run();
+    }
+
+    /// `__END__` から後ろはデータであってコードではない。本家は行の走査から外す。
+    #[test]
+    fn the_data_section_is_not_measured() {
+        expect_no_offenses(
+            LINE_LENGTH,
+            &format!("x = 1\n__END__\n{}\n", "D".repeat(130)),
+        );
+    }
+
+    /// endless method は通常のメソッドに書き直せるので、本家は常に correctable にする。
+    #[test]
+    fn an_endless_method_is_rewritten_as_a_regular_one() {
+        let body = format!("/<conversation-{}>/", "x".repeat(110));
+        CopCase::new(
+            LINE_LENGTH,
+            format!("class A\n  def conversation_header_regex = {body}\nend\n"),
+            vec![Annotation::new(2, 121, 41, "Line is too long. [161/120]")],
+        )
+        .target_ruby("3.0")
+        .correctable(true)
+        .corrected(&format!(
+            "class A\n  def conversation_header_regex\n    {body}\n  end\nend\n"
+        ))
+        .run();
+    }
+}
+
+/// `Style/HashSyntax` が新記法で書けると認めるシンボル。期待値は本家 1.89.0 の実測。
+mod hash_syntax_symbols {
+    use super::*;
+
+    const HASH_SYNTAX: &str = "Style/HashSyntax";
+    const MSG_19: &str = "Use the new Ruby 1.9 hash syntax.";
+
+    /// 末尾の `?` / `!` は新記法で書けるが、`=` は書けない。書けないキーが 1 つでも
+    /// あると、その hash は 2 つの記法が混ざらないよう丸ごと見送られる。
+    #[test]
+    fn a_trailing_question_mark_is_acceptable_but_a_setter_is_not() {
+        CopCase::new(
+            HASH_SYNTAX,
+            "a = { begin: 1, end: 2, :exclude_end? => false }\nc = { :foo => 1, :foo= => 2 }\n",
+            vec![Annotation::new(1, 25, 16, MSG_19)],
+        )
+        .corrected("a = { begin: 1, end: 2, exclude_end?: false }\nc = { :foo => 1, :foo= => 2 }\n")
+        .run();
+    }
+
+    /// クォート付きシンボルは中身が何であれ新記法で書ける。
+    #[test]
+    fn a_quoted_symbol_is_acceptable() {
+        CopCase::new(
+            HASH_SYNTAX,
+            "b = { :\"user name\" => \"z\" }\n",
+            vec![Annotation::new(1, 7, 15, MSG_19)],
+        )
+        .corrected("b = { \"user name\": \"z\" }\n")
+        .run();
+    }
+}
+
+/// `Security/Eval` — 期待値は本家 1.89.0 の実測。
+mod eval_literal_code {
+    use super::*;
+
+    /// 補間された heredoc は本家 AST では素の `str` なので、本文がリテラルなら
+    /// 評価される文字列全体もリテラルであって offense にならない。
+    #[test]
+    fn an_interpolated_heredoc_of_literal_text_is_not_an_offense() {
+        expect_no_offenses("Security/Eval", "eval(\"#{<<~A}\")\n  literal\nA\n");
+    }
 }

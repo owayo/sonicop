@@ -286,10 +286,33 @@ pub fn inspect_files_with_store(
 /// still does.
 fn decoded_source(path: &Path) -> Result<Option<String>> {
     let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    // A file declaring itself binary has to be read that way even when its bytes happen to be valid
+    // UTF-8: Ruby measures an `ASCII-8BIT` source one byte at a time, so a cop reporting a length or
+    // a column over a multibyte sequence counts each byte separately.
+    if declared_label(&bytes).is_some_and(|label| is_binary_label(&label)) {
+        return Ok(Some(bytes.iter().map(|byte| *byte as char).collect()));
+    }
     match String::from_utf8(bytes) {
         Ok(text) => Ok(Some(text)),
         Err(error) => Ok(decode_declared_encoding(error.as_bytes())),
     }
+}
+
+/// The encoding a source names for itself, read loosely: the magic comment is ASCII in every
+/// encoding this can resolve, so the opening lines can be scanned before anything is decoded.
+fn declared_label(bytes: &[u8]) -> Option<String> {
+    String::from_utf8_lossy(&bytes[..bytes.len().min(1024)])
+        .lines()
+        .take_while(|line| line.trim_start().starts_with('#'))
+        .find_map(|line| MagicComment::parse(line).encoding())
+}
+
+/// Ruby's names for "no encoding at all", where one byte is one character.
+fn is_binary_label(label: &str) -> bool {
+    matches!(
+        label.to_ascii_lowercase().as_str(),
+        "binary" | "ascii-8bit" | "ascii8bit"
+    )
 }
 
 /// Decodes a file that is not UTF-8 using the encoding its own magic comment names, which is what
@@ -297,13 +320,7 @@ fn decoded_source(path: &Path) -> Result<Option<String>> {
 /// `fileencoding` line does not count, since Ruby does not read those -- stays undecodable, and
 /// RuboCop reports it as a syntax error rather than guessing.
 fn decode_declared_encoding(bytes: &[u8]) -> Option<String> {
-    // The magic comment itself is ASCII in every encoding this can resolve, so reading the opening
-    // lines loosely is enough to find it.
-    let head = String::from_utf8_lossy(&bytes[..bytes.len().min(1024)]);
-    let label = head
-        .lines()
-        .take_while(|line| line.trim_start().starts_with('#'))
-        .find_map(|line| MagicComment::parse(line).encoding())?;
+    let label = declared_label(bytes)?;
     let encoding = encoding_for_ruby_label(&label)?;
     let (text, _, malformed) = encoding.decode(bytes);
     (!malformed).then(|| text.into_owned())
@@ -708,12 +725,26 @@ pub fn correct_until_stable(
     }
 }
 
-/// Writes corrected source as UTF-8, whatever encoding the file declares for itself.
+/// The bytes to write back for corrected source.
 ///
 /// RuboCop's runner ends in a plain `File.write`, so a corrected Shift_JIS file comes back out as
-/// UTF-8 while its magic comment still claims Shift_JIS. Re-encoding here would be the kinder
-/// behaviour, but it would also make the two tools produce different bytes for the same input,
-/// which is the one thing this port must not do.
+/// UTF-8 while its magic comment still claims Shift_JIS. Re-encoding would be the kinder behaviour,
+/// but it would also make the two tools produce different bytes for the same input, which is the one
+/// thing this port must not do. A binary source is the exception: it was read one byte to one
+/// character, so writing it back that way is what leaves the file as RuboCop leaves it.
+fn output_bytes(contents: &str) -> Vec<u8> {
+    let declared = contents
+        .lines()
+        .take_while(|line| line.trim_start().starts_with('#'))
+        .find_map(|line| MagicComment::parse(line).encoding());
+    if declared.is_some_and(|label| is_binary_label(&label))
+        && contents.chars().all(|character| (character as u32) < 0x100)
+    {
+        return contents.chars().map(|character| character as u8).collect();
+    }
+    contents.as_bytes().to_vec()
+}
+
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
@@ -722,7 +753,7 @@ pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     let mut temporary = NamedTempFile::new_in(parent)
         .with_context(|| format!("failed to create temporary file beside {}", path.display()))?;
     temporary
-        .write_all(contents.as_bytes())
+        .write_all(&output_bytes(contents))
         .with_context(|| format!("failed to write corrected contents for {}", path.display()))?;
     temporary
         .as_file_mut()
@@ -862,6 +893,30 @@ mod tests {
         assert_eq!(report.offenses.len(), 1);
         let location = report.offenses[0].location(&report.source);
         assert_eq!((location.line, location.column, location.length), (2, 5, 4));
+    }
+
+    #[test]
+    fn a_binary_source_is_measured_one_byte_at_a_time() {
+        // Valid UTF-8, but declared binary: Ruby counts each byte of `あ` as its own character, so
+        // the string literal is 5 long rather than 3.
+        let directory = tempdir().unwrap();
+        std::fs::write(
+            directory.path().join("binary.rb"),
+            "# encoding: ASCII-8BIT\nx = \"\u{3042}\"\n",
+        )
+        .unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Style/StringLiterals".to_owned()],
+            ..Selection::default()
+        };
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &selection, false).unwrap();
+
+        let report = &reports[0];
+        let location = report.offenses[0].location(&report.source);
+        assert_eq!((location.line, location.column, location.length), (2, 5, 5));
     }
 
     #[test]

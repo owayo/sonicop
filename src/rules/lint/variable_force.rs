@@ -118,6 +118,16 @@ pub(super) struct Analysis<'tree> {
     /// Every scope, in the order they were left, which is the order the cops report in.
     pub scopes: Vec<Scope<'tree>>,
     pub variables: Vec<Variable<'tree>>,
+    /// The identifiers that resolved to a local variable. tree-sitter cannot tell a read of a
+    /// local from a receiverless call, and only the analysis knows which one the parser upstream
+    /// would have built.
+    lvars: HashSet<usize>,
+}
+
+impl Analysis<'_> {
+    pub(super) fn is_variable_reference(&self, node: Node<'_>) -> bool {
+        self.lvars.contains(&node.id())
+    }
 }
 
 impl<'tree> Analysis<'tree> {
@@ -131,6 +141,7 @@ impl<'tree> Analysis<'tree> {
             branch_index: HashMap::new(),
             heredocs: heredoc_bodies(root),
             scanned: HashSet::new(),
+            lvars: HashSet::new(),
         };
         force.push_scope(root, true);
         force.process_children(root);
@@ -138,6 +149,7 @@ impl<'tree> Analysis<'tree> {
         Analysis {
             scopes: force.scopes,
             variables: force.variables,
+            lvars: force.lvars,
         }
     }
 }
@@ -175,6 +187,7 @@ struct Force<'tree, 'a> {
     heredocs: HashMap<usize, Node<'tree>>,
     /// Nodes already walked in an outer scope, which the scope they sit in must not walk again.
     scanned: HashSet<usize>,
+    lvars: HashSet<usize>,
 }
 
 // ---------------------------------------------------------------------------
@@ -698,6 +711,7 @@ impl<'tree> Force<'tree, '_> {
         }
         let name = self.text(node);
         if let Some(variable) = self.find_variable(name) {
+            self.lvars.insert(node.id());
             self.reference(variable, node);
         } else if name == "binding" {
             self.reference_everything(node);
@@ -767,7 +781,7 @@ impl<'tree> Force<'tree, '_> {
     /// unused any more.
     fn reference_everything(&mut self, node: Node<'tree>) {
         for variable in self.accessible_variables() {
-            self.reference(variable, node);
+            self.reference_without_capture(variable, node);
         }
     }
 
@@ -780,7 +794,7 @@ impl<'tree> Force<'tree, '_> {
                     "method" | "singleton_method"
                 );
             if method_argument {
-                self.reference(variable, node);
+                self.reference_without_capture(variable, node);
             }
         }
     }
@@ -1093,9 +1107,13 @@ impl<'tree> Force<'tree, '_> {
             let Some(variable) = self.find_variable(&name) else {
                 continue;
             };
+            // `assignment_nodes_in_loop.include?` compares parser nodes, and those compare by
+            // structure rather than identity, so an assignment written the same way anywhere in
+            // the scope matches one the loop holds.
             let indices: Vec<usize> = (0..self.variables[variable].assignments.len())
                 .filter(|&index| {
-                    assignments.contains(&self.variables[variable].assignments[index].node.id())
+                    let assignment = &self.variables[variable].assignments[index];
+                    assignments.contains(&assignment_shape(assignment, self.source))
                 })
                 .collect();
             let Some(&last) = indices.last() else {
@@ -1350,20 +1368,27 @@ fn collect_loop_references(
     node: Node<'_>,
     source: &SourceFile,
     names: &mut Vec<String>,
-    assignments: &mut HashSet<usize>,
+    assignments: &mut HashSet<String>,
 ) {
     for child in named_children(node) {
         match child.kind() {
             "assignment" => {
                 if let Some(left) = child.child_by_field_name("left") {
+                    let value = child.child_by_field_name("right").map(assigned_value);
                     match left.kind() {
                         "identifier" => {
-                            assignments.insert(child.id());
+                            assignments.insert(shape(left, value, source));
                         }
-                        // Each target of a multiple assignment is an `lvasgn` of its own.
+                        "left_assignment_list" if spurious_assignment_list(left) => {
+                            if let Some(target) = named_children(left).last() {
+                                assignments.insert(shape(*target, value, source));
+                            }
+                        }
+                        // Each target of a multiple assignment is an `lvasgn` of its own, and
+                        // none of them carries a value.
                         "left_assignment_list" => {
                             for target in named_children(left) {
-                                assignments.insert(target.id());
+                                assignments.insert(shape(target, None, source));
                             }
                         }
                         _ => {}
@@ -1375,25 +1400,20 @@ fn collect_loop_references(
                     && left.kind() == "identifier"
                 {
                     // `foo += 1` both reads `foo` and writes it, and the write is the `lvasgn`
-                    // the operator assignment wraps.
+                    // the operator assignment wraps, which carries no value of its own.
                     names.push(source.node_text(left).to_owned());
-                    assignments.insert(left.id());
-                }
-            }
-            "exception_variable" | "for" => {
-                let target = if child.kind() == "for" {
-                    child.child_by_field_name("pattern")
-                } else {
-                    child.named_child(0)
-                };
-                if let Some(target) = target.filter(|node| node.kind() == "identifier") {
-                    assignments.insert(target.id());
+                    assignments.insert(shape(left, None, source));
                 }
             }
             // Only a read is an `lvar` upstream: a method name, a parameter and an assignment
-            // target all wear the same node type here.
-            "identifier" if is_variable_read(child) => {
-                names.push(source.node_text(child).to_owned());
+            // target all wear the same node type here. A `for` variable and a rescue clause's
+            // variable are `lvasgn` nodes that carry no value.
+            "identifier" => {
+                if is_variable_read(child) {
+                    names.push(source.node_text(child).to_owned());
+                } else if bare_assignment_target(child) {
+                    assignments.insert(shape(child, None, source));
+                }
             }
             _ => {}
         }
@@ -1454,6 +1474,44 @@ fn is_variable_read(node: Node<'_>) -> bool {
         "for" => field_name(node, parent) != Some("pattern"),
         _ => true,
     }
+}
+
+/// Whether an identifier is a write that stores no value of its own.
+fn bare_assignment_target(node: Node<'_>) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        "for" => field_name(node, parent) == Some("pattern"),
+        "exception_variable" => true,
+        _ => false,
+    }
+}
+
+/// How an `lvasgn` node compares to another one. The parser's nodes compare by structure, so two
+/// writes match when they name the same variable and store the same expression -- and a write
+/// that stores nothing, such as a `for` variable, matches every other one of its name.
+fn shape(name: Node<'_>, value: Option<Node<'_>>, source: &SourceFile) -> String {
+    let name = source.node_text(name);
+    match value {
+        Some(value) => format!("{name}={}", collapse(source.node_text(value))),
+        None => name.to_owned(),
+    }
+}
+
+/// The shape of one recorded assignment, matching what [`shape`] builds from the syntax tree.
+fn assignment_shape(assignment: &Assignment<'_>, source: &SourceFile) -> String {
+    match assignment.kind {
+        // A named capture is a `match_with_lvasgn`, which the loop scan never collects.
+        AssignmentKind::RegexpNamedCapture => String::new(),
+        AssignmentKind::Plain => shape(assignment.name, assignment.value, source),
+    }
+}
+
+/// Layout is not part of a node's structure, so two expressions written with different spacing
+/// still compare equal.
+fn collapse(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// The names a regexp literal captures, in the order they are written.

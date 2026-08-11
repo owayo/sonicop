@@ -47,8 +47,9 @@ fn report(
 ) {
     let assignment = &variable.assignments[position];
     let node = assignment.node;
+    let range = written_range(assignment);
     if variable.assignment_used(position)
-        || ignored.iter().any(|range| covers(range, node.byte_range()))
+        || ignored.iter().any(|ignored| covers(ignored, &range))
         || variable_in_loop_condition(node, &variable.name, context)
     {
         return;
@@ -60,13 +61,22 @@ fn report(
         Some(edit) if !uncorrectable(node) => offense.corrected_by(edit),
         _ => offense,
     });
-    if let Some(value) = assignment.value.filter(|value| chained_value(*value)) {
-        ignored.push(assignment.name.start_byte()..value.end_byte());
+    if assignment.value.is_some_and(chained_value) {
+        ignored.push(range);
     }
 }
 
-fn covers(range: &Range<usize>, inner: Range<usize>) -> bool {
-    range.start <= inner.start && inner.end <= range.end
+/// What the `lvasgn` upstream covers: the name and, when there is one, the value it stores.
+fn written_range(assignment: &Assignment<'_>) -> Range<usize> {
+    let start = assignment.name.start_byte();
+    start
+        ..assignment
+            .value
+            .map_or(assignment.name.end_byte(), |value| value.end_byte())
+}
+
+fn covers(outer: &Range<usize>, inner: &Range<usize>) -> bool {
+    outer.start <= inner.start && inner.end <= outer.end
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +113,7 @@ fn similar_name_message(
     let mut names: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     for node in scope_nodes(scope) {
-        if let Some(name) = variable_like_invocation(node, context)
+        if let Some(name) = variable_like_invocation(node, context, analysis)
             && seen.insert(name.clone())
         {
             names.push(name);
@@ -123,11 +133,17 @@ fn similar_name_message(
 
 /// `variable_like_method_invocation?`: a receiverless call without arguments, which reads like a
 /// variable and so may well be the name that was meant.
-fn variable_like_invocation(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
+fn variable_like_invocation(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    analysis: &Analysis<'_>,
+) -> Option<String> {
     match node.kind() {
-        "identifier" => {
+        // A bare name is a `send` upstream only when it did not resolve to a local; a read of a
+        // local is an `lvar` and contributes nothing of its own here.
+        "identifier" if !analysis.is_variable_reference(node) => {
             let parent = node.parent()?;
-            let field_is_name = matches!(
+            let named = matches!(
                 parent.kind(),
                 "call"
                     | "method"
@@ -140,15 +156,15 @@ fn variable_like_invocation(node: Node<'_>, context: &RuleContext<'_>) -> Option
                     | "alias"
                     | "undef"
                     | "setter"
-            ) || matches!(
-                parent.kind(),
-                "method_parameters" | "block_parameters" | "lambda_parameters"
+                    | "method_parameters"
+                    | "block_parameters"
+                    | "lambda_parameters"
             );
             let assigned = matches!(parent.kind(), "assignment" | "operator_assignment")
                 && parent
                     .child_by_field_name("left")
                     .is_some_and(|left| left.id() == node.id());
-            (!field_is_name && !assigned).then(|| context.source.node_text(node).to_owned())
+            (!named && !assigned).then(|| context.source.node_text(node).to_owned())
         }
         "call" => {
             let method = node.child_by_field_name("method")?;
