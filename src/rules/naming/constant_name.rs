@@ -3,34 +3,179 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tree_sitter::Node;
 
+use super::support::Variables;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
-static CONSTANT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Z][A-Z0-9_]*$").unwrap());
+// `[[:digit:][:upper:]_]` upstream, and Ruby's POSIX classes are Unicode-aware, so `Ä` counts as
+// upper case. Rust's `[[:upper:]]` would only accept ASCII.
+static SCREAMING_SNAKE_CASE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[\d\p{Uppercase}_]+$").unwrap());
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for node in context.nodes_of("assignment") {
+    let variables = Variables::resolve(context.root_node(), context.source);
+    for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
         let Some(left) = node.child_by_field_name("left") else {
             continue;
         };
-        if left.kind() != "constant" {
-            continue;
+        let right = node.child_by_field_name("right");
+        // `on_casgn` reads the value through a surrounding `or_asgn`, so `FOO ||= bar` is judged
+        // by `bar`. Under any other operator the casgn keeps no expression of its own and the
+        // value counts as unknown -- which is not the same as allowed.
+        let value = if node.kind() == "operator_assignment" {
+            right.filter(|_| operator(node) == Some("||="))
+        } else {
+            right
+        };
+        if left.kind() == "left_assignment_list" {
+            // Every target of a multiple assignment is a casgn without an expression, so none of
+            // them can be excused by what stands on the right.
+            let mut targets = Vec::new();
+            collect_targets(left, &mut targets);
+            for target in targets {
+                report(context, offenses, target, None, &variables);
+            }
+        } else {
+            report(context, offenses, left, value, &variables);
         }
-        let name = context.source.node_text(left);
-        // Only a literal makes the name a constant in RuboCop's sense; anything computed may well
-        // be a class or module the author named in CamelCase on purpose.
-        let allowed_assignment = node
-            .child_by_field_name("right")
-            .is_none_or(|right| !literal_constant_value(right));
-        if allowed_assignment || CONSTANT.is_match(name) {
-            continue;
-        }
-        offenses
-            .push(context.offense("Use SCREAMING_SNAKE_CASE for constants.", left.byte_range()));
     }
 }
 
-fn literal_constant_value(node: Node<'_>) -> bool {
+fn report(
+    context: &RuleContext<'_>,
+    offenses: &mut Vec<Offense>,
+    target: Node<'_>,
+    value: Option<Node<'_>>,
+    variables: &Variables,
+) {
+    let Some(name_node) = constant_name(target) else {
+        return;
+    };
+    if allowed_assignment(value, variables) {
+        return;
+    }
+    if SCREAMING_SNAKE_CASE.is_match(context.source.node_text(name_node)) {
+        return;
+    }
+    offenses.push(context.offense(
+        "Use SCREAMING_SNAKE_CASE for constants.",
+        name_node.byte_range(),
+    ));
+}
+
+/// The part of an assignment target that `casgn.loc.name` covers: `A::B = 1` and `::B = 1` both
+/// report only the `B`.
+fn constant_name(node: Node<'_>) -> Option<Node<'_>> {
+    match node.kind() {
+        "constant" => Some(node),
+        "scope_resolution" => node
+            .child_by_field_name("name")
+            .filter(|name| name.kind() == "constant"),
+        _ => None,
+    }
+}
+
+fn collect_targets<'tree>(node: Node<'tree>, targets: &mut Vec<Node<'tree>>) {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
+                collect_targets(child, targets);
+            }
+            _ => targets.push(child),
+        }
+    }
+}
+
+/// The shapes `allowed_assignment?` lets through. RuboCop only judges a constant's spelling once
+/// it can tell the value is not a class or module, because `SomeClass = SomeOtherClass` is a
+/// perfectly good CamelCase constant.
+fn allowed_assignment(value: Option<Node<'_>>, variables: &Variables) -> bool {
+    let Some(value) = value else {
+        return false;
+    };
+    match value_kind(value, variables) {
+        Value::ClassLike => true,
+        Value::Call { receiver } => receiver.is_none_or(|receiver| !literal_receiver(receiver)),
+        Value::Conditional => branches(value).into_iter().any(is_constant),
+        Value::Other => false,
+    }
+}
+
+enum Value<'tree> {
+    /// `block`, `const` and `casgn`: each of those can just as well evaluate to a class.
+    ClassLike,
+    /// A `send`. The receiver decides, because a call on a literal cannot return a class.
+    Call {
+        receiver: Option<Node<'tree>>,
+    },
+    Conditional,
+    Other,
+}
+
+fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
+    match node.kind() {
+        "constant" => Value::ClassLike,
+        "scope_resolution" => match node.child_by_field_name("name") {
+            Some(name) if name.kind() == "constant" => Value::ClassLike,
+            _ => Value::Call {
+                receiver: node.child_by_field_name("scope"),
+            },
+        },
+        // `A = B = Class.new` chains casgn nodes, and the inner one excuses the outer.
+        "assignment" => match node.child_by_field_name("left") {
+            Some(left) if constant_name(left).is_some() => Value::ClassLike,
+            _ => Value::Other,
+        },
+        // A method call carrying a block is a `block` node upstream, not a `send`.
+        "call" if node.child_by_field_name("block").is_some() => Value::ClassLike,
+        "lambda" => Value::ClassLike,
+        "call" => Value::Call {
+            receiver: node.child_by_field_name("receiver"),
+        },
+        // A bare identifier is a receiverless call unless the parser resolved it to a local.
+        "identifier" => {
+            if variables.is_reference(node) {
+                Value::Other
+            } else {
+                Value::Call { receiver: None }
+            }
+        }
+        "binary" => match operator(node) {
+            // `&&` and `||` build their own node types upstream; they are not method calls.
+            Some("&&" | "||" | "and" | "or") => Value::Other,
+            _ => Value::Call {
+                receiver: node.child_by_field_name("left"),
+            },
+        },
+        "unary" => match operator(node) {
+            Some("defined?") => Value::Other,
+            // A signed number reaches the parser as one numeric literal, not a call to `-@`.
+            Some("-" | "+") if node.child_by_field_name("operand").is_some_and(numeric) => {
+                Value::Other
+            }
+            _ => Value::Call {
+                receiver: node.child_by_field_name("operand"),
+            },
+        },
+        "element_reference" => Value::Call {
+            receiver: node.child_by_field_name("object"),
+        },
+        "if" | "unless" | "conditional" => Value::Conditional,
+        _ => Value::Other,
+    }
+}
+
+/// `literal_receiver?`. The `(send (begin literal?) ...)` half of the pattern is why a
+/// parenthesised literal counts too.
+fn literal_receiver(node: Node<'_>) -> bool {
+    if node.kind() == "parenthesized_statements" {
+        return node.named_child_count() == 1 && node.named_child(0).is_some_and(is_literal);
+    }
+    is_literal(node)
+}
+
+fn is_literal(node: Node<'_>) -> bool {
     matches!(
         node.kind(),
         "integer"
@@ -38,12 +183,78 @@ fn literal_constant_value(node: Node<'_>) -> bool {
             | "rational"
             | "complex"
             | "string"
-            | "symbol"
+            | "bare_string"
+            | "chained_string"
+            | "subshell"
+            | "heredoc_beginning"
+            | "character"
+            | "regex"
+            | "simple_symbol"
+            | "delimited_symbol"
+            | "bare_symbol"
+            | "hash_key_symbol"
             | "array"
+            | "string_array"
+            | "symbol_array"
             | "hash"
+            | "range"
             | "true"
             | "false"
             | "nil"
-            | "regex"
-    )
+    ) || (node.kind() == "unary"
+        && matches!(operator(node), Some("-" | "+"))
+        && node.child_by_field_name("operand").is_some_and(numeric))
+}
+
+fn numeric(node: Node<'_>) -> bool {
+    matches!(node.kind(), "integer" | "float" | "rational" | "complex")
+}
+
+fn is_constant(node: Node<'_>) -> bool {
+    constant_name(node).is_some()
+}
+
+/// The branch values of a conditional, following `elsif` chains the way `IfNode#branches` does.
+/// A branch holding more than one statement is a `begin` upstream and so can never be a constant,
+/// which is why only a lone child counts.
+fn branches(node: Node<'_>) -> Vec<Node<'_>> {
+    if node.kind() == "conditional" {
+        return node
+            .child_by_field_name("consequence")
+            .into_iter()
+            .chain(node.child_by_field_name("alternative"))
+            .collect();
+    }
+    let mut branches = Vec::new();
+    let mut current = Some(node);
+    while let Some(node) = current.take() {
+        branches.extend(node.child_by_field_name("consequence").and_then(only_child));
+        match node.child_by_field_name("alternative") {
+            Some(alternative) if alternative.kind() == "elsif" => current = Some(alternative),
+            Some(alternative) => branches.extend(only_child(alternative)),
+            None => {}
+        }
+    }
+    branches
+}
+
+fn only_child(node: Node<'_>) -> Option<Node<'_>> {
+    (node.named_child_count() == 1).then(|| node.named_child(0))?
+}
+
+/// The operator token of a node whose operands tree-sitter names but whose operator it does not.
+fn operator(node: Node<'_>) -> Option<&'static str> {
+    let mut cursor = node.walk();
+    if !cursor.goto_first_child() {
+        return None;
+    }
+    loop {
+        let child = cursor.node();
+        if !child.is_named() {
+            return Some(child.kind());
+        }
+        if !cursor.goto_next_sibling() {
+            return None;
+        }
+    }
 }

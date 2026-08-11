@@ -573,6 +573,142 @@ mod style {
         expect_no_offenses("Style/StringLiterals", "puts 'hi'\n");
         expect_correction("Style/StringLiterals", "puts \"hi\"\n", "puts 'hi'\n");
     }
+
+    // 本家の判定は「値」ではなく「ソース」に対して行われる。`\"` は単引用符では
+    // ただの `"` になるので、エスケープがあっても二重引用符は要らない。
+    //
+    // 実測 (rubocop 1.89.0): 3 行とも offense。
+    #[test]
+    fn string_literals_reports_escapes_that_single_quotes_can_drop() {
+        expect_offense(
+            "Style/StringLiterals",
+            r##"
+            a = "{\"k\":\"v\"}"
+                ^^^^^^^^^^^^^^^ Prefer single-quoted strings [...]
+            b = "\\x34"
+                ^^^^^^^ Prefer single-quoted strings [...]
+            c = "\\\"x"
+                ^^^^^^^ Prefer single-quoted strings [...]
+            "##,
+        );
+        expect_correction(
+            "Style/StringLiterals",
+            "a = \"{\\\"k\\\":\\\"v\\\"}\"\nb = \"\\\\x34\"\nc = \"\\\\\\\"x\"\n",
+            "a = '{\"k\":\"v\"}'\nb = '\\\\x34'\nc = '\\\"x'\n",
+        );
+    }
+
+    // 逆に、バックスラッシュの連なりが奇数個で終わる (= 何かをエスケープしている)
+    // 場合は単引用符では書けないので offense にならない。`'` を含む場合も同じ。
+    #[test]
+    fn string_literals_accepts_escapes_that_need_double_quotes() {
+        expect_no_offenses(
+            "Style/StringLiterals",
+            r##"
+            a = "a\nb"
+            b = "\e[0m"
+            c = "it's"
+            d = "\\\y"
+            "##,
+        );
+    }
+
+    // `#$0` / `#@ivar` は `#{}` と同じ補間で、本家では dstr になり `on_str` が
+    // 呼ばれない。字面に `#{` が無いため素通ししていた false positive の回帰。
+    #[test]
+    fn string_literals_ignores_shorthand_interpolation() {
+        expect_no_offenses(
+            "Style/StringLiterals",
+            r##"
+            a = "x_#$0"
+            b = "y_#@ivar"
+            c = "z_#{w}"
+            "##,
+        );
+    }
+
+    // 値が複数行にまたがるリテラルは本家では dstr になり、行ごとの str 子ノードは
+    // 引用符を持たないので検査対象から外れる。
+    #[test]
+    fn string_literals_ignores_a_value_that_spans_lines() {
+        expect_no_offenses("Style/StringLiterals", "a = \"multi\nline\"\n");
+    }
+
+    // 補間の中の文字列は Style/StringLiteralsInInterpolation の担当だが、
+    // それが効くのは dstr / dsym / regexp の中だけ。バッククォート (xstr) の
+    // 補間はこの cop が見る。
+    #[test]
+    fn string_literals_checks_interpolation_inside_a_command_literal() {
+        expect_offense(
+            "Style/StringLiterals",
+            r#"
+            a = `ls #{"foo"}`
+                      ^^^^^ Prefer single-quoted strings [...]
+            "#,
+        );
+        expect_no_offenses(
+            "Style/StringLiterals",
+            r##"
+            a = "o#{"i"}"
+            b = /r#{"i"}/
+            c = :"s#{"i"}"
+            "##,
+        );
+    }
+
+    // `%` リテラルと文字リテラルは引用符を差し替えようがないので本家も見ない。
+    // 引用符付きハッシュキーは symbol なので同様。
+    #[test]
+    fn string_literals_ignores_literals_without_swappable_quotes() {
+        expect_no_offenses(
+            "Style/StringLiterals",
+            r##"
+            a = %q(x)
+            b = %(y)
+            c = %w[d e]
+            d = ?f
+            e = { "k": 1 }
+            "##,
+        );
+    }
+
+    // 値に生の制御文字が入っていると単引用符では書けないので、本家は
+    // `String#inspect` に切り替えて二重引用符のままエスケープする。
+    #[test]
+    fn string_literals_corrects_a_raw_control_character_by_escaping_it() {
+        expect_correction(
+            "Style/StringLiterals",
+            "a = \"tab\there\"\n",
+            "a = \"tab\\there\"\n",
+        );
+    }
+
+    // double_quotes 側の判定は `"` / `\` の後続 1 文字 / `#{`・`#@`・`#$` の
+    // 走査で、単引用符側のような連なりの数え上げはしない。
+    #[test]
+    fn string_literals_double_quotes_style_keeps_meaningful_single_quotes() {
+        CopCase::annotated(
+            "Style/StringLiterals",
+            r#"
+            a = 'plain'
+                ^^^^^^^ Prefer double-quoted strings [...]
+            "#,
+        )
+        .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+        .run();
+        CopCase::new(
+            "Style/StringLiterals",
+            "a = 'a\\nb'\nb = 'say \"hi\"'\nc = '#{x}'\nd = '#@y'\n",
+            Vec::new(),
+        )
+        .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+        .run();
+        CopCase::new("Style/StringLiterals", "a = 'tab\there'\n", Vec::new())
+            .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+            .without_offense_check()
+            .corrected("a = \"tab\\there\"\n")
+            .run();
+    }
 }
 
 /// 他チームが並行して直している確定バグの回帰。

@@ -1,50 +1,54 @@
-use std::collections::HashSet;
-
-use tree_sitter::Node;
-
-use super::support::valid_name;
+use super::support::{Variables, valid_name};
 use crate::diagnostic::Offense;
-use crate::rules::{RuleContext, first_identifier};
+use crate::rules::RuleContext;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "snake_case".to_owned());
-    let mut seen = HashSet::new();
-    for node in context.nodes_of("identifier") {
-        if !is_variable_definition(node) || !seen.insert(node.start_byte()) {
+    let allowed: Vec<String> = context.setting("AllowedIdentifiers").unwrap_or_default();
+    let forbidden: Vec<String> = context.setting("ForbiddenIdentifiers").unwrap_or_default();
+    let variables = Variables::resolve(context.root_node(), context.source);
+    for node in context.nodes_of_any(&[
+        "identifier",
+        "instance_variable",
+        "class_variable",
+        "global_variable",
+    ]) {
+        if !variables.is_variable(node) {
             continue;
         }
         let name = context.source.node_text(node);
-        if valid_name(name, &style) {
+        let forbidden_name = forbidden.iter().any(|entry| entry == name);
+        // `on_gvasgn` stops at the forbidden names: a global variable's spelling is never held
+        // against the enforced style.
+        if node.kind() == "global_variable" {
+            if forbidden_name {
+                offenses.push(forbidden_offense(context, node, name));
+            }
             continue;
         }
-        offenses.push(context.offense(
-            format!("Use {style} for variable names."),
-            node.byte_range(),
-        ));
+        if allowed.iter().any(|entry| entry == name) {
+            continue;
+        }
+        if forbidden_name {
+            offenses.push(forbidden_offense(context, node, name));
+        } else if !valid_name(name, &style) {
+            offenses.push(context.offense(
+                format!("Use {style} for variable names."),
+                node.byte_range(),
+            ));
+        }
     }
 }
 
-/// Whether the identifier introduces a variable rather than reading one.
-fn is_variable_definition(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
-        return false;
-    };
-    match parent.kind() {
-        "assignment" | "operator_assignment" => parent
-            .child_by_field_name("left")
-            .is_some_and(|left| left.byte_range() == node.byte_range()),
-        "method_parameters" | "block_parameters" | "lambda_parameters" => true,
-        "optional_parameter"
-        | "keyword_parameter"
-        | "splat_parameter"
-        | "hash_splat_parameter"
-        | "block_parameter"
-        | "destructured_parameter"
-        | "rescue" => {
-            first_identifier(parent).is_some_and(|first| first.byte_range() == node.byte_range())
-        }
-        _ => false,
-    }
+fn forbidden_offense(
+    context: &RuleContext<'_>,
+    node: tree_sitter::Node<'_>,
+    name: &str,
+) -> Offense {
+    context.offense(
+        format!("`{name}` is forbidden, use another name instead."),
+        node.byte_range(),
+    )
 }

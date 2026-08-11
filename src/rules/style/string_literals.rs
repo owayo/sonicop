@@ -295,7 +295,10 @@ mod tests {
         assert!(single_quotes_required("'#@a'"));
         assert!(!single_quotes_required("'#a'"));
         assert!(single_quotes_required(r"'a\nb'"));
-        assert!(!single_quotes_required(r"'a\\b'"));
+        // The scan has no run count: the second backslash of `\\b` escapes `b` as far as the
+        // upstream regex is concerned, while `\\` before the closing quote escapes nothing.
+        assert!(single_quotes_required(r"'a\\b'"));
+        assert!(!single_quotes_required(r"'a\\'"));
     }
 
     #[test]
