@@ -35,6 +35,13 @@ blind_spots:
     not_covered: 大規模な実コード / cop 同士の相互作用 / autocorrect の反復収束
     consequence: 単体では一致しても、実プロジェクトで組み合わせ由来の差分が残り得る
 
+# autocorrect のバイト一致は 4 コーパスで確認済み (rubocop/rubocop は -a と -A、
+# Homebrew/brew と mastodon/mastodon と rails/rails は -A)。
+# rails/rails だけ 3,550 ファイル中 1 ファイルが食い違う:
+#   actionview/test/template/test_case_test.rb — `assert_pattern { expr => {...} }` を
+#   tree-sitter がブロックでなくハッシュ引数として読むため、Layout/LineLength の
+#   折り位置がずれる。lint の出力 (位置・メッセージ・修正可否) は一致する。
+
 divergences:
   # --- Lint/Syntax ---
   # 本家は parser gem (LALR) の誤り回復に乗って追加の診断を出す。tree-sitter は
