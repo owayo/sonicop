@@ -182,6 +182,13 @@ impl RuleContext<'_> {
             .filter(|heredoc| heredoc.start < range.end && range.start < heredoc.end)
             .count()
     }
+
+    /// Comment spans in source order. A cop that reasons about what a *line* holds needs these:
+    /// RuboCop's token stream excludes comments, so a trailing comment must not change whether a
+    /// line counts as ending in some token.
+    pub fn comment_ranges(&self) -> &[Range<usize>] {
+        &self.ast.comment_ranges
+    }
 }
 
 /// Node kinds whose byte range spans literal text rather than code. The

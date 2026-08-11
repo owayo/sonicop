@@ -34,6 +34,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         return;
     }
 
+    // The offense is always reported at the head of the file, as RuboCop does: the comment is
+    // missing from the file, not from a particular line. Only the insertion point moves, since the
+    // comment has to follow a shebang rather than displace it.
     let first = context.source.line(1);
     let insertion = if first.starts_with("#!") {
         context.source.line_range(1).end
@@ -42,10 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     };
     offenses.push(
         context
-            .offense(
-                "Missing frozen string literal comment.",
-                insertion..insertion,
-            )
+            .offense("Missing frozen string literal comment.", 0..0)
             .corrected_by(Edit {
                 start: insertion,
                 end: insertion,

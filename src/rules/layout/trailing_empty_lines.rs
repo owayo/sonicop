@@ -9,29 +9,41 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "final_newline".to_owned());
-    let expected_newlines = usize::from(style == "final_blank_line") + 1;
-    let without_newlines = text.trim_end_matches(['\r', '\n']);
-    let actual_start = without_newlines.len();
-    let actual = &text[actual_start..];
-    // Only `\n` is counted, as RuboCop does. A carriage return is `Layout/EndOfLine`'s business;
-    // reporting CRLF here as well would make the two cops rewrite the same bytes in opposite
-    // directions on Windows, where the expected ending is CRLF.
-    let newline_count = actual.bytes().filter(|byte| *byte == b'\n').count();
-    if newline_count == expected_newlines {
+    let wanted_blank_lines = isize::from(style == "final_blank_line");
+
+    // All trailing whitespace, as RuboCop's `/\s*\Z/` takes it -- not just newlines, so a file
+    // ending in spaces is measured from where the whitespace starts rather than from the last
+    // newline. Only `\n` is counted, leaving carriage returns to `Layout/EndOfLine`.
+    let whitespace_start = text.trim_end_matches(char::is_whitespace).len();
+    let whitespace = &text[whitespace_start..];
+    let blank_lines = whitespace.matches('\n').count() as isize - 1;
+    if blank_lines == wanted_blank_lines {
         return;
     }
-    let message = if newline_count < expected_newlines {
-        "Final newline missing."
+
+    let message = match blank_lines {
+        -1 => "Final newline missing.".to_owned(),
+        0 => "Trailing blank line missing.".to_owned(),
+        count if wanted_blank_lines == 0 => format!("{count} trailing blank lines detected."),
+        count => format!("{count} trailing blank lines instead of {wanted_blank_lines} detected."),
+    };
+
+    // The offense starts one byte into the trailing whitespace, so that it points at the first
+    // line that should not be there rather than at the last line of real code. With no trailing
+    // whitespace at all it collapses to the end of the file, which is where the missing newline
+    // belongs. The correction still covers the whitespace in full.
+    let report_start = if whitespace.is_empty() {
+        text.len()
     } else {
-        "Extra blank line detected at file end."
+        whitespace_start + 1
     };
     offenses.push(
         context
-            .offense(message, actual_start.saturating_sub(1)..text.len())
+            .offense(message, report_start..text.len())
             .corrected_by(Edit {
-                start: actual_start,
+                start: whitespace_start,
                 end: text.len(),
-                replacement: "\n".repeat(expected_newlines),
+                replacement: "\n".repeat((wanted_blank_lines + 1) as usize),
                 safe: true,
             }),
     );

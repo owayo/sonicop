@@ -235,6 +235,32 @@ mod layout {
         expect_no_offenses("Layout/TrailingEmptyLines", "x = 1\n");
     }
 
+    /// 最終改行が無いときはファイル末尾 (最後の文字の「次」) を指す。本家は末尾の空白の
+    /// 開始位置から報告範囲を組み立てるので、最後の文字そのものを指すと 1 桁ずれる。
+    #[test]
+    fn trailing_empty_lines_points_past_the_last_character_when_the_newline_is_missing() {
+        CopCase::new(
+            "Layout/TrailingEmptyLines",
+            "x = 1",
+            vec![Annotation::new(1, 6, 0, "Final newline missing.")],
+        )
+        .locations(&[(1, 6, 1, 6)])
+        .run();
+    }
+
+    /// 余分な空行があるときは、余った 1 行目を指す。文言も本家の
+    /// 「N trailing blank lines detected.」に揃える。
+    #[test]
+    fn trailing_empty_lines_counts_the_extra_blank_lines() {
+        CopCase::new(
+            "Layout/TrailingEmptyLines",
+            "x = 1\n\n",
+            vec![Annotation::new(2, 1, 1, "1 trailing blank lines detected.")],
+        )
+        .locations(&[(2, 1, 2, 1)])
+        .run();
+    }
+
     #[test]
     fn trailing_whitespace() {
         expect_offense(
@@ -498,6 +524,41 @@ mod style {
     #[test]
     fn semicolon_accepts_separate_lines() {
         expect_no_offenses("Style/Semicolon", "puts 1\nputs 2\n");
+    }
+
+    /// 1 行メソッドの `;` は本家では offense にならない。本家はトークン列を見て
+    /// 「行頭・行末・波括弧に接する」セミコロンだけを 1 行 1 件報告し、`def foo; bar; end` は
+    /// 式が 1 つなので何も出さない。Rails では 641 件を誤検出していた形。
+    #[test]
+    fn semicolon_accepts_a_single_line_method_definition() {
+        expect_no_offenses("Style/Semicolon", "def user; \"David\"; end\n");
+        expect_no_offenses("Style/Semicolon", "class << self; attr_accessor :x; end\n");
+    }
+
+    /// 逆に、式が 2 つ以上終わる行では行内の `;` を残らず報告する。
+    #[test]
+    fn semicolon_reports_every_separator_when_a_line_holds_two_expressions() {
+        expect_offense(
+            "Style/Semicolon",
+            r#"
+            def clear; @a = 1; @b = 2; end
+                     ^ Do not use semicolons to terminate expressions.
+                             ^ Do not use semicolons to terminate expressions.
+                                     ^ Do not use semicolons to terminate expressions.
+            "#,
+        );
+    }
+
+    /// 行末のセミコロンは式が 1 つでも報告する。
+    #[test]
+    fn semicolon_reports_a_line_terminator() {
+        expect_offense(
+            "Style/Semicolon",
+            r#"
+            x = 1;
+                 ^ Do not use semicolons to terminate expressions.
+            "#,
+        );
     }
 
     #[test]
