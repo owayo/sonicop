@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+require 'rubygems/package'
+
+require_relative 'sonicop_version'
+
+binary, platform = ARGV
+abort 'Usage: script/package_gem BINARY GEM_PLATFORM' unless binary && platform
+abort "Binary not found: #{binary}" unless File.file?(binary)
+
+root = SonicopVersion::ROOT
+version =
+  begin
+    SonicopVersion.check!(root)
+  rescue SonicopVersion::Mismatch => error
+    abort error.message
+  end
+
+# 古い RubyGems は未知の platform 文字列を `x64-unknown` のように潰してしまい、
+# 出来上がる gem のファイル名も platform も別物になる。先に弾いて理由を明示する。
+normalized = Gem::Platform.new(platform).to_s
+unless normalized == platform
+  abort "RubyGems #{Gem::VERSION} normalizes #{platform} to #{normalized}. Build this platform gem with a newer Ruby."
+end
+
+executable = File.extname(binary).casecmp('.exe').zero? ? 'sonicop.exe' : 'sonicop'
+destination = File.join(root, 'libexec', executable)
+expected_gem = File.join(root, "sonicop-#{version}-#{platform}.gem")
+
+FileUtils.mkdir_p(File.dirname(destination))
+FileUtils.cp(binary, destination)
+FileUtils.chmod(0o755, destination)
+# 前回の生成物が残っていると、今回の gem build が別名の gem を吐いても成功に見えてしまう。
+FileUtils.rm_f(expected_gem)
+
+begin
+  env = { 'SONICOP_GEM_PLATFORM' => platform }
+  success = system(env, Gem.ruby, '-S', 'gem', 'build', 'sonicop.gemspec', chdir: root)
+  abort 'gem build failed' unless success
+ensure
+  FileUtils.rm_f(destination)
+end
+
+# gemspec がソース gem の分岐に落ちても gem build 自体は成功するため、
+# 「platform gem を作ったつもりでソース gem を配る」事故は事後検証でしか捕まえられない。
+unless File.file?(expected_gem)
+  produced = Dir.glob('sonicop-*.gem', base: root).sort
+  abort "Expected #{File.basename(expected_gem)} but gem build produced: #{produced.join(', ')}"
+end
+
+built = Gem::Package.new(expected_gem).spec
+abort "#{expected_gem}: platform is #{built.platform}, expected #{platform}" unless built.platform.to_s == platform
+abort "#{expected_gem}: libexec/#{executable} is missing" unless built.files.include?("libexec/#{executable}")
+abort "#{expected_gem}: platform gems must not declare extensions" unless built.extensions.empty?
+
+puts "Built #{File.basename(expected_gem)} (#{built.files.size} files)"

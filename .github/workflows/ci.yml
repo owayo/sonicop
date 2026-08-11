@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      # バイナリの --version は CARGO_PKG_VERSION 由来、gem の版は version.rb 由来なので、
+      # cargo 自身が読んだ版と gem が読む版を突き合わせて割れを検出する。
+      - name: Verify Cargo.toml and lib/sonicop/version.rb agree
+        shell: bash
+        run: |
+          cargo_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "sonicop") | .version')"
+          gem_version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
+          echo "Cargo.toml=${cargo_version} lib/sonicop/version.rb=${gem_version}"
+          test -n "${cargo_version}"
+          test "${cargo_version}" = "${gem_version}"
+      # 品質ゲートは Makefile に一本化してあるので、ローカルと同じ内容がそのまま走る。
+      - run: make check
+      - run: gem build sonicop.gemspec
+      - name: Install and execute source gem
+        shell: bash
+        run: |
+          version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
+          gem install "./sonicop-${version}.gem" --install-dir tmp/gems --no-document
+          GEM_HOME="${PWD}/tmp/gems" GEM_PATH="${PWD}/tmp/gems" tmp/gems/bin/sonicop --version
+      - uses: actions/upload-artifact@v6
+        with:
+          name: source-gem
+          path: sonicop-*.gem
+
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # tests/cli.rs は gem ラッパーを ruby で起動する。ランナー同梱の ruby に
+      # 暗黙依存させず、明示的に用意する。
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - run: cargo test --all-targets --locked
+      # find_binary のパス解決は OS 差が出るところなので、Windows / macOS でも回す。
+      - run: rake test:ruby

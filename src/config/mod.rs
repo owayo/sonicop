@@ -1,0 +1,461 @@
+mod inheritance;
+mod loader;
+mod paths;
+mod plugin;
+mod store;
+
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use anyhow::{Context, Result, bail};
+use serde::de::DeserializeOwned;
+use serde_yaml_ng::{Mapping, Value};
+
+use crate::cop_name;
+use crate::ruby_version::{
+    ResolvedTargetRuby, RubyVersion, resolve_target_ruby, validate_supported,
+};
+
+use inheritance::{load_with_inheritance, merge_config};
+use loader::{find_config, find_project_root};
+use paths::{PathPatterns, compile_excludes, cop_patterns, has_hidden_component};
+use plugin::{belongs_to_plugin, configured_plugin_departments};
+
+pub use store::ConfigStore;
+
+const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
+
+#[derive(Clone, Debug)]
+pub struct Config {
+    raw: Value,
+    user: Value,
+    project_root: PathBuf,
+    config_path: Option<PathBuf>,
+    target_ruby: ResolvedTargetRuby,
+    known_cops: HashSet<String>,
+    unrecognized_cops: Vec<String>,
+    includes: PathPatterns,
+    excludes: HashMap<String, PathPatterns>,
+}
+
+impl Config {
+    pub fn load(explicit: Option<&Path>, cwd: &Path) -> Result<Self> {
+        Self::load_with_options(explicit, cwd, false)
+    }
+
+    pub fn load_with_options(
+        explicit: Option<&Path>,
+        cwd: &Path,
+        force_default: bool,
+    ) -> Result<Self> {
+        let default: Value = serde_yaml_ng::from_str(DEFAULT_CONFIG)
+            .context("embedded RuboCop default configuration is invalid")?;
+        let mut known_cops = cop_names(&default);
+        let config_path = if force_default {
+            None
+        } else {
+            match explicit {
+                Some(path) => Some(fs::canonicalize(path).with_context(|| {
+                    format!("configuration file not found: {}", path.display())
+                })?),
+                None => find_config(cwd),
+            }
+        };
+
+        let (raw, user, project_root, unrecognized_cops) = if let Some(path) = &config_path {
+            let mut visited = HashSet::new();
+            let user = load_with_inheritance(path, &mut visited)?;
+            let configured_cops = cop_names(&user);
+            let plugin_departments = configured_plugin_departments(&user);
+            let plugin_cops = configured_cops
+                .iter()
+                .filter(|name| belongs_to_plugin(name, &plugin_departments))
+                .cloned()
+                .collect::<HashSet<_>>();
+            let mut unknown = configured_cops
+                .difference(&known_cops)
+                .filter(|name| !plugin_cops.contains(*name))
+                .cloned()
+                .collect::<Vec<_>>();
+            unknown.sort();
+            known_cops.extend(plugin_cops);
+            let root = find_project_root(path.parent().unwrap_or(cwd))
+                .unwrap_or_else(|| path.parent().unwrap_or(cwd).to_path_buf());
+            (merge_config(default, user.clone()), user, root, unknown)
+        } else {
+            (
+                default,
+                Value::Mapping(Mapping::new()),
+                cwd.to_path_buf(),
+                Vec::new(),
+            )
+        };
+
+        if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
+            bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
+        }
+
+        let target_base = config_path.as_deref().and_then(Path::parent).unwrap_or(cwd);
+        let configured_target = configured_target_ruby(&raw)?;
+        let target_ruby = resolve_target_ruby(configured_target, target_base)?;
+        validate_supported(target_ruby.version)?;
+
+        let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
+        let excludes = compile_excludes(&raw);
+
+        Ok(Self {
+            raw,
+            user,
+            project_root,
+            config_path,
+            target_ruby,
+            known_cops,
+            unrecognized_cops,
+            includes,
+            excludes,
+        })
+    }
+
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
+    pub fn config_path(&self) -> Option<&Path> {
+        self.config_path.as_deref()
+    }
+
+    pub fn target_ruby_version(&self) -> RubyVersion {
+        self.target_ruby.version
+    }
+
+    pub fn display_cop_names(&self) -> bool {
+        self.all_cops_value("DisplayCopNames").unwrap_or(true)
+    }
+
+    pub fn rule_enabled(&self, name: &str) -> bool {
+        self.rule_enabled_with_pending(name, false, false)
+    }
+
+    pub fn rule_enabled_with_pending(
+        &self,
+        name: &str,
+        enable_pending: bool,
+        disable_pending: bool,
+    ) -> bool {
+        if name == "Lint/Syntax" {
+            return true;
+        }
+
+        let configured = self.user_cop_mapping(name);
+        let configured_enabled = configured.and_then(|cop| cop.get("Enabled"));
+        let department = self.user_department_mapping(name);
+        let department_enabled = department.and_then(|cop| cop.get("Enabled"));
+
+        // An explicitly enabled cop overrides a disabled department.
+        if configured_enabled == Some(&Value::Bool(true)) {
+            return true;
+        }
+        if department_enabled == Some(&Value::Bool(false)) {
+            return false;
+        }
+
+        if self.all_cops_bool_value("DisabledByDefault") {
+            if let Some(configured) = configured {
+                return configured.get("Enabled").is_none_or(|enabled| {
+                    self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
+                });
+            }
+            if department_enabled == Some(&Value::Bool(true)) {
+                return self.default_enabled(name, enable_pending, disable_pending);
+            }
+            return false;
+        }
+
+        if self.all_cops_bool_value("EnabledByDefault") {
+            return configured_enabled.is_none_or(|enabled| {
+                self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
+            });
+        }
+
+        configured_enabled.map_or_else(
+            || self.default_enabled(name, enable_pending, disable_pending),
+            |enabled| self.resolve_enabled_value(enabled, name, enable_pending, disable_pending),
+        )
+    }
+
+    pub fn rule_safe(&self, name: &str) -> bool {
+        self.cop_raw_value(name, "Safe")
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    }
+
+    pub fn rule_safe_autocorrect(&self, name: &str) -> bool {
+        self.cop_raw_value(name, "SafeAutoCorrect")
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+    }
+
+    pub fn cop_value<T: DeserializeOwned>(&self, name: &str, key: &str) -> Option<T> {
+        serde_yaml_ng::from_value(self.cop_raw_value(name, key)?.clone()).ok()
+    }
+
+    pub fn all_cops_value<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.cop_value("AllCops", key)
+    }
+
+    pub fn path_included(&self, path: &Path) -> bool {
+        self.includes.is_empty() || self.includes.matches_includes(path, &self.project_root)
+    }
+
+    pub fn path_excluded(&self, path: &Path) -> bool {
+        self.excluded_by("AllCops", path)
+    }
+
+    pub fn possibly_include_hidden(&self) -> bool {
+        let patterns: Vec<String> = self.all_cops_value("Include").unwrap_or_default();
+        patterns
+            .iter()
+            .any(|pattern| pattern.starts_with('.') || pattern.contains("/."))
+    }
+
+    pub fn path_hidden(&self, path: &Path) -> bool {
+        let relative =
+            paths::project_relative(path, &self.project_root).unwrap_or_else(|| path.to_path_buf());
+        let relative = relative.as_path();
+        has_hidden_component(relative)
+    }
+
+    pub fn rule_excluded(&self, name: &str, path: &Path) -> bool {
+        self.excluded_by(name, path)
+    }
+
+    fn excluded_by(&self, name: &str, path: &Path) -> bool {
+        self.excludes
+            .get(name)
+            .is_some_and(|patterns| patterns.matches_any(path, &self.project_root))
+    }
+
+    pub fn known_cop_names(&self) -> impl Iterator<Item = &str> {
+        self.known_cops.iter().map(String::as_str)
+    }
+
+    pub fn unrecognized_cop_names(&self) -> &[String] {
+        &self.unrecognized_cops
+    }
+
+    pub fn description(&self, name: &str) -> Option<String> {
+        self.cop_value(name, "Description")
+    }
+
+    fn cop_mapping(&self, name: &str) -> Option<&Mapping> {
+        self.raw.as_mapping()?.get(name)?.as_mapping()
+    }
+
+    fn cop_raw_value(&self, name: &str, key: &str) -> Option<&Value> {
+        self.cop_mapping(name)?.get(key)
+    }
+
+    fn user_cop_mapping(&self, name: &str) -> Option<&Mapping> {
+        self.user.as_mapping()?.get(name)?.as_mapping()
+    }
+
+    fn user_department_mapping(&self, name: &str) -> Option<&Mapping> {
+        self.user
+            .as_mapping()?
+            .get(cop_name::department(name))?
+            .as_mapping()
+    }
+
+    fn default_enabled(&self, name: &str, enable_pending: bool, disable_pending: bool) -> bool {
+        self.cop_raw_value(name, "Enabled").is_none_or(|enabled| {
+            self.resolve_enabled_value(enabled, name, enable_pending, disable_pending)
+        })
+    }
+
+    fn resolve_enabled_value(
+        &self,
+        enabled: &Value,
+        name: &str,
+        enable_pending: bool,
+        disable_pending: bool,
+    ) -> bool {
+        match enabled {
+            Value::Bool(value) => *value,
+            Value::String(value) if value == "pending" => {
+                if enable_pending {
+                    true
+                } else if disable_pending {
+                    false
+                } else {
+                    let department_new_cops = self
+                        .cop_raw_value(cop_name::department(name), "NewCops")
+                        .and_then(Value::as_str);
+                    department_new_cops.map_or_else(
+                        || {
+                            self.cop_raw_value("AllCops", "NewCops")
+                                .and_then(Value::as_str)
+                                == Some("enable")
+                        },
+                        |setting| setting == "enable",
+                    )
+                }
+            }
+            _ => true,
+        }
+    }
+
+    fn all_cops_bool_value(&self, key: &str) -> bool {
+        self.cop_raw_value("AllCops", key)
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    }
+}
+
+fn all_cops_bool(config: &Value, key: &str) -> bool {
+    all_cops_mapping(config)
+        .and_then(|mapping| mapping.get(key))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn all_cops_mapping(config: &Value) -> Option<&Mapping> {
+    config.as_mapping()?.get("AllCops")?.as_mapping()
+}
+
+fn configured_target_ruby(config: &Value) -> Result<Option<RubyVersion>> {
+    let value = all_cops_mapping(config).and_then(|mapping| mapping.get("TargetRubyVersion"));
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let text = match value {
+        Value::Null => return Ok(None),
+        Value::Number(number) => number.to_string(),
+        Value::String(string) => string.clone(),
+        _ => bail!("AllCops/TargetRubyVersion must be a major.minor version"),
+    };
+    RubyVersion::parse(&text)
+        .map(Some)
+        .with_context(|| format!("invalid AllCops/TargetRubyVersion: {text}"))
+}
+
+fn cop_names(value: &Value) -> HashSet<String> {
+    value
+        .as_mapping()
+        .into_iter()
+        .flat_map(Mapping::keys)
+        .filter_map(Value::as_str)
+        .filter(|name| name.contains('/'))
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::tempdir;
+
+    use super::Config;
+
+    #[test]
+    fn recognizes_all_upstream_cops() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        assert_eq!(config.known_cop_names().count(), 609);
+        assert!(!config.rule_enabled("Style/ArrayFirstLast"));
+    }
+
+    #[test]
+    fn disabled_by_default_enables_only_configured_cops() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "AllCops:\n  DisabledByDefault: true\nLayout/TrailingWhitespace:\n  Enabled: true\nStyle/StringLiterals:\n  EnforcedStyle: double_quotes\n",
+        )
+        .unwrap();
+
+        let config = Config::load(None, directory.path()).unwrap();
+
+        assert!(config.rule_enabled("Lint/Syntax"));
+        assert!(config.rule_enabled("Layout/TrailingWhitespace"));
+        assert!(config.rule_enabled("Style/StringLiterals"));
+        assert!(!config.rule_enabled("Layout/SpaceAfterComma"));
+    }
+
+    #[test]
+    fn explicitly_enabled_cop_overrides_disabled_department() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "Layout:\n  Enabled: false\nLayout/TrailingWhitespace:\n  Enabled: true\n",
+        )
+        .unwrap();
+
+        let config = Config::load(None, directory.path()).unwrap();
+
+        assert!(config.rule_enabled("Layout/TrailingWhitespace"));
+        assert!(!config.rule_enabled("Layout/SpaceAfterComma"));
+    }
+
+    #[test]
+    fn enabled_by_default_preserves_explicit_disables() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "AllCops:\n  EnabledByDefault: true\nStyle/ArrayFirstLast:\n  Enabled: false\n",
+        )
+        .unwrap();
+
+        let config = Config::load(None, directory.path()).unwrap();
+
+        assert!(config.rule_enabled("Style/HashSyntax"));
+        assert!(!config.rule_enabled("Style/ArrayFirstLast"));
+    }
+
+    #[test]
+    fn still_reports_unknown_core_cops() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "Style/DefinitelyNotACop:\n  Enabled: true\n",
+        )
+        .unwrap();
+
+        let config = Config::load(None, directory.path()).unwrap();
+
+        assert_eq!(
+            config.unrecognized_cop_names(),
+            &["Style/DefinitelyNotACop"]
+        );
+    }
+
+    #[test]
+    fn rejects_conflicting_default_modes() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "AllCops:\n  EnabledByDefault: true\n  DisabledByDefault: true\n",
+        )
+        .unwrap();
+
+        assert!(Config::load(None, directory.path()).is_err());
+    }
+
+    #[test]
+    fn relative_excludes_do_not_match_paths_outside_the_project_root() {
+        let project = tempdir().unwrap();
+        let external = tempdir().unwrap();
+        let config = Config::load(None, project.path()).unwrap();
+        let local_gemspec = project.path().join("local.gemspec");
+        let external_gemspec = external.path().join("external.gemspec");
+
+        assert!(config.rule_excluded("Metrics/BlockLength", &local_gemspec));
+        assert!(!config.rule_excluded("Metrics/BlockLength", &external_gemspec));
+    }
+}

@@ -1,0 +1,219 @@
+# 本家 RuboCop 1.89.0 との既知差分。
+#
+# tests/conformance.rs のケースを常に実行し、出た差分をここと突き合わせる。
+#   - 登録が無い差分が出た   → 新しい退行なので失敗する
+#   - 登録があるのに出ない   → 直ったので失敗する (このファイルから消すこと)
+#
+# 期待値は本家の実出力から取る。sonicop の出力を写すとバグを仕様として
+# 焼き付けるため、`scratchpad/ab_cops.py` で突合してから登録する。
+#
+# エントリを手で書き起こす必要はない。テストが失敗すると追記用の YAML を
+# 提示するので、note を埋めてから取り込む。自動では書き換えない (差分は
+# バグの記録なので、増えるときは人間が中身を見るべきだから)。
+
+# 検証コーパスが見ていないもの。CONFORMANCE.md に必ず出す。
+blind_spots:
+  - corpus: 本家 RuboCop のソース (1,743 ファイル)
+    not_covered: 非 ASCII の識別子・定数
+    consequence: Naming/AsciiIdentifiers が一度も発火せず、差分が 0 件に見える
+  - corpus: 本家 RuboCop のソース (1,743 ファイル)
+    not_covered: 末尾の余分な空行 / 最終改行の欠落
+    consequence: Layout/TrailingEmptyLines の該当コードパスを一度も通らない
+  - corpus: Rails のソース (250 ファイル)
+    not_covered: 非 ASCII の識別子・定数
+    consequence: 同じく Naming/AsciiIdentifiers の差分が 1 件も出ない
+  - corpus: tests/conformance.rs の手書きケース
+    not_covered: 大規模な実コード / cop 同士の相互作用 / autocorrect の反復収束
+    consequence: 単体では一致しても、実プロジェクトで組み合わせ由来の差分が残り得る
+  - corpus: 全コーパス
+    not_covered: TargetRubyVersion 2.7 以外での挙動 (一部ケースのみ 2.6 を見る)
+    consequence: 版依存の構文・cop の有効無効に差分が残り得る
+
+divergences:
+  # --- Layout/EmptyLineAfterMagicComment ---
+  - cop: Layout/EmptyLineAfterMagicComment
+    case: layout_empty_line_after_magic_comment
+    kind: range
+    upstream: 2:1-2 (1 chars)
+    sonicop: 2:1-1 (0 chars)
+    note: 本家は次の行の 1 文字目を指す。sonicop は長さ 0 の挿入点を返す
+
+  # --- Layout/EndOfLine ---
+  - cop: Layout/EndOfLine
+    case: layout_end_of_line_crlf
+    kind: range
+    upstream: 1:1-6 (5 chars)
+    sonicop: 1:6-8 (2 chars)
+    note: 本家は行全体を指す。sonicop は CRLF の 2 バイトだけを指す
+  - cop: Layout/EndOfLine
+    case: layout_end_of_line_crlf
+    kind: range
+    upstream: 1:1-2:1
+    sonicop: 1:6-1:7
+    note: 上と同じ原因。レンジ終端も次行の先頭まで伸びるのが本家
+
+  # --- Layout/LineLength ---
+  - cop: Layout/LineLength
+    case: layout_line_length_multibyte
+    kind: message
+    upstream: Line is too long. [7/3]
+    sonicop: Line is too long. [10/3]
+    note: 本家は String#length で文字数を数える。sonicop は unicode-width の表示幅で数えている
+  - cop: Layout/LineLength
+    case: layout_line_length_multibyte
+    kind: length_unit
+    upstream: '4'
+    sonicop: '8'
+    note: location.length の単位。全 cop 横断の差分 (src/diagnostic.rs)
+
+  # --- Layout/TrailingEmptyLines ---
+  - cop: Layout/TrailingEmptyLines
+    case: layout_trailing_empty_lines_missing
+    kind: range
+    upstream: 1:6-6 (0 chars)
+    sonicop: 1:5-6 (1 chars)
+    note: 本家は行末の空レンジ (挿入点) を指す。sonicop は最後の文字を含めてしまう
+  - cop: Layout/TrailingEmptyLines
+    case: layout_trailing_empty_lines_missing
+    kind: range
+    upstream: 1:6-1:5
+    sonicop: 1:5-1:5
+    note: 上と同じ原因。空レンジなので本家は last_column < start_column になる
+  - cop: Layout/TrailingEmptyLines
+    case: layout_trailing_empty_lines_extra
+    kind: false_negative
+    upstream: 2:1-1 (0 chars) 1 trailing blank lines detected.
+    sonicop: (検出なし)
+    note: 本家は余分な空行の数を文言に含め、空行そのものを指す
+  - cop: Layout/TrailingEmptyLines
+    case: layout_trailing_empty_lines_extra
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: 1:5-6 (1 chars) Extra blank line detected at file end.
+    note: sonicop は独自文言で最後の非改行文字を指している
+  - cop: Layout/TrailingEmptyLines
+    case: layout_trailing_empty_lines_extra
+    kind: range
+    upstream: 2:1-3:1
+    sonicop: 1:5-2:1
+    note: 上 2 件と同じ原因。レンジの起点が 1 行ずれている
+
+  # --- Lint/DuplicateMethods ---
+  - cop: Lint/DuplicateMethods
+    case: lint_duplicate_methods
+    kind: false_negative
+    upstream: 3:1-8 (7 chars) Method `Object#foo` is defined at both example.rb:1 and example.rb:3.
+    sonicop: (検出なし)
+    note: 本家は名前空間 (Object#) とファイルパスを文言に含め、def 全体を指す
+  - cop: Lint/DuplicateMethods
+    case: lint_duplicate_methods
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: 3:5-8 (3 chars) Method `foo` is defined at both line 1 and line 3.
+    note: sonicop は名前空間もパスも出さず、メソッド名だけを指す
+  - cop: Lint/DuplicateMethods
+    case: lint_duplicate_methods
+    kind: range
+    upstream: 3:1-3:7
+    sonicop: 3:5-3:7
+    note: 上 2 件と同じ原因。本家は def キーワードから指す
+
+  # --- Lint/Syntax ---
+  - cop: Lint/Syntax
+    case: lint_syntax_unexpected_token
+    kind: false_negative
+    upstream: |-
+      1:5-6 (1 chars) unexpected token tRPAREN
+      (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
+    sonicop: (検出なし)
+    note: 本家は parser のトークン名 (tRPAREN) を出し、壊れたトークンだけを指す
+  - cop: Lint/Syntax
+    case: lint_syntax_unexpected_token
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: |-
+      1:1-6 (5 chars) unexpected token `x = )`
+      (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
+    note: sonicop は tree-sitter の error ノード本文をそのまま出し、行全体を指す
+  - cop: Lint/Syntax
+    case: lint_syntax_unexpected_token
+    kind: range
+    upstream: 1:5-1:5
+    sonicop: 1:1-1:5
+    note: 上 2 件と同じ原因。レンジを壊れたトークンまで絞る必要がある
+
+  # --- Lint/UnusedBlockArgument ---
+  - cop: Lint/UnusedBlockArgument
+    case: lint_unused_block_argument
+    kind: message
+    upstream: Unused block argument - `x`. You can omit the argument if you don't care about it.
+    sonicop: Unused block argument - `x`. If it's necessary, use `_` or `_name` as an argument name.
+    note: 本家 message_for_normal_block は、引数がどれも参照されず define_method でもないとき「省略できる」側の文面を選ぶ
+
+  # --- Naming/AsciiIdentifiers ---
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: false_negative
+    upstream: 4:7-8 (1 chars) Use only ascii symbols in constants.
+    sonicop: (検出なし)
+    note: 本家は定数用に専用の文面を持つ。sonicop は identifiers の文面しか持たない
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: 2:1-3 (2 chars) Use only ASCII symbols in identifiers.
+    note: 本家 should_check? は tIDENTIFIER と tCONSTANT だけを通すのでインスタンス変数を検査しない
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: 4:1-8 (7 chars) Use only ASCII symbols in identifiers.
+    note: 定数を identifiers の文面で識別子全体を指して報告している (本家は constants の文面で非 ASCII 部分のみ)
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: message
+    upstream: Use only ascii symbols in identifiers.
+    sonicop: Use only ASCII symbols in identifiers.
+    note: 本家は ascii を小文字で書く (IDENTIFIER_MSG)
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: message
+    upstream: Use only ascii symbols in identifiers.
+    sonicop: Use only ASCII symbols in identifiers.
+    note: 同上。1 ケース内で 2 件が同じ文言差分を起こす
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: range
+    upstream: 1:1-1:1, 3:5-3:5, 4:7-4:7
+    sonicop: 1:1-1:1, 2:1-2:2, 3:5-3:5, 4:1-4:7
+    note: 本家 first_offense_range は最初の非 ASCII 連続部分だけを指す。sonicop は識別子全体
+  - cop: Naming/AsciiIdentifiers
+    case: naming_ascii_identifiers
+    kind: length_unit
+    upstream: 1, 1, 1
+    sonicop: 3, 4, 3, 9
+    note: location.length の単位。全 cop 横断の差分 (src/diagnostic.rs)
+
+  # --- Style/FrozenStringLiteralComment ---
+  - cop: Style/FrozenStringLiteralComment
+    case: style_frozen_string_literal_comment
+    kind: range
+    upstream: 1:1-2 (1 chars)
+    sonicop: 1:1-1 (0 chars)
+    note: 本家は 1 文字目を指す。sonicop は長さ 0 の挿入点を返す
+
+  # --- Style/Semicolon ---
+  - cop: Style/Semicolon
+    case: style_semicolon
+    kind: correctable
+    upstream: 'true'
+    sonicop: 'false'
+    note: 本家は式の分割まで直せる。sonicop は行末コメントの場合しか correctable にしない
+
+  # --- Style/StringLiterals ---
+  - cop: Style/StringLiterals
+    case: style_string_literals_multibyte
+    kind: length_unit
+    upstream: '3'
+    sonicop: '5'
+    note: location.length の単位。全 cop 横断の差分 (src/diagnostic.rs)

@@ -1,0 +1,7 @@
+Sonicop includes and adapts configuration data from RuboCop 1.89.0.
+RuboCop is Copyright (c) 2012-26 Bozhidar Batsov and contributors,
+licensed under the MIT License. See licenses/RUBOCOP.txt.
+
+Sonicop links to owayo/tree-sitter-ruby, derived from tree-sitter-ruby.
+tree-sitter-ruby is Copyright (c) 2016 Rob Rix and contributors,
+licensed under the MIT License. See licenses/TREE_SITTER_RUBY.txt.

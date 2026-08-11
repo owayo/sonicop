@@ -1,0 +1,734 @@
+use std::collections::HashSet;
+use std::fs;
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use anyhow::{Context, Result, bail};
+use ignore::WalkBuilder;
+use rayon::prelude::*;
+use tempfile::NamedTempFile;
+use tree_sitter::Parser;
+
+use crate::config::{Config, ConfigStore};
+use crate::cop_name::selector_matches;
+use crate::diagnostic::{FileReport, Offense, Severity};
+use crate::directives::DirectiveState;
+use crate::rules::{AstIndex, Rule, RuleContext, rules};
+use crate::source::SourceFile;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CorrectMode {
+    None,
+    Safe,
+    All,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Selection {
+    pub only: Vec<String>,
+    pub except: Vec<String>,
+    pub disable_all: bool,
+    pub enable_all: bool,
+    pub enable_pending: bool,
+    pub disable_pending: bool,
+    pub safe_only: bool,
+    pub ignore_disable_comments: bool,
+    pub display_suppressed: bool,
+}
+
+/// RuboCop refuses to let syntax checking be turned off, so the cop stays on no matter how it is
+/// selected away. Both the `--except` guard and cop selection have to agree on the names that
+/// denote it, including the legacy `Syntax` spelling RuboCop still accepts.
+pub fn is_mandatory_cop(name: &str) -> bool {
+    matches!(name, "Lint/Syntax" | "Syntax")
+}
+
+impl Selection {
+    pub fn includes(&self, name: &str, configured_enabled: bool, safe: bool) -> bool {
+        if is_mandatory_cop(name) {
+            return true;
+        }
+        let explicitly_selected = self
+            .only
+            .iter()
+            .any(|selection| selector_matches(selection, name));
+        let selected = if self.only.is_empty() {
+            if self.disable_all {
+                false
+            } else if self.enable_all {
+                true
+            } else {
+                configured_enabled
+            }
+        } else {
+            explicitly_selected
+        };
+        selected
+            && (!self.safe_only || safe)
+            && !self
+                .except
+                .iter()
+                .any(|except| selector_matches(except, name))
+    }
+}
+
+/// The cops a run applies, with every configuration decision that does not depend on the file
+/// resolved once.
+///
+/// Resolving `Enabled`, `Severity` and `SafeAutoCorrect` out of YAML costs a lookup per cop per
+/// file, which is work that grows with the registry as it fills out RuboCop's full cop set. Only
+/// `Exclude` reads the path being inspected, so it is all that stays per-file.
+pub(crate) struct RulePlan {
+    entries: Vec<PlannedRule>,
+}
+
+struct PlannedRule {
+    rule: &'static Rule,
+    /// `rule.severity` unless the configuration overrode it.
+    severity: Severity,
+    safe_autocorrect: bool,
+}
+
+impl RulePlan {
+    pub(crate) fn build(config: &Config, selection: &Selection) -> Self {
+        let entries = rules()
+            .filter(|rule| {
+                let enabled = config.rule_enabled_with_pending(
+                    rule.name,
+                    selection.enable_pending,
+                    selection.disable_pending,
+                );
+                selection.includes(rule.name, enabled, config.rule_safe(rule.name))
+            })
+            .map(|rule| PlannedRule {
+                rule,
+                severity: config
+                    .cop_value::<String>(rule.name, "Severity")
+                    .and_then(|value| Severity::parse(&value))
+                    .unwrap_or(rule.severity),
+                safe_autocorrect: config.rule_safe_autocorrect(rule.name),
+            })
+            .collect();
+        Self { entries }
+    }
+}
+
+pub fn inspect_source(
+    path: impl Into<PathBuf>,
+    text: String,
+    config: &Config,
+    selection: &Selection,
+) -> Result<FileReport> {
+    inspect_planned(
+        path,
+        text,
+        config,
+        selection,
+        &RulePlan::build(config, selection),
+    )
+}
+
+/// Inspects one file against an already-resolved [`RulePlan`], which must have been built from
+/// `config` and `selection`.
+fn inspect_planned(
+    path: impl Into<PathBuf>,
+    text: String,
+    config: &Config,
+    selection: &Selection,
+    plan: &RulePlan,
+) -> Result<FileReport> {
+    let source = SourceFile::new(path, text);
+    let mut parser = Parser::new();
+    parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .context("failed to initialize the Ruby parser")?;
+    let tree = parser
+        .parse(source.text(), None)
+        .context("Ruby parser returned no syntax tree")?;
+    let ast = AstIndex::new(tree.root_node());
+    let directives = (!selection.ignore_disable_comments)
+        .then(|| DirectiveState::parse(&source, ast.comment_ranges()));
+    let mut offenses = Vec::new();
+
+    for planned in &plan.entries {
+        let rule = planned.rule;
+        if config.rule_excluded(rule.name, source.path()) {
+            continue;
+        }
+        let context = RuleContext::new(&source, &ast, config, rule, planned.severity);
+        let start = offenses.len();
+        (rule.check)(&context, &mut offenses);
+        // The cop's name comes from the registry through `RuleContext`, so a mismatch here means
+        // an offense was built outside `context.offense` and would be attributed to a cop that
+        // never ran -- directives and severity overrides would both consult the wrong entry.
+        debug_assert!(
+            offenses[start..]
+                .iter()
+                .all(|offense| offense.cop_name == rule.name),
+            "{} reported an offense under another cop's name",
+            rule.name
+        );
+        if !planned.safe_autocorrect {
+            for offense in &mut offenses[start..] {
+                if let Some(correction) = &mut offense.correction {
+                    correction.safe = false;
+                }
+            }
+        }
+    }
+
+    if let Some(directives) = directives {
+        offenses.retain_mut(|offense| {
+            let Some(justification) = directives.suppression(offense, &source) else {
+                return true;
+            };
+            offense.suppressed = true;
+            offense.justification = justification;
+            selection.display_suppressed
+        });
+    }
+    sort_offenses(&mut offenses, &source);
+
+    Ok(FileReport {
+        path: source.path().to_path_buf(),
+        source,
+        offenses,
+    })
+}
+
+pub fn inspect_files(
+    paths: &[PathBuf],
+    config: &Config,
+    selection: &Selection,
+    parallel: bool,
+) -> Result<Vec<FileReport>> {
+    let configs = ConfigStore::new(config.clone(), false, false);
+    inspect_files_with_store(paths, &configs, selection, parallel)
+}
+
+pub fn inspect_files_with_store(
+    paths: &[PathBuf],
+    configs: &ConfigStore,
+    selection: &Selection,
+    parallel: bool,
+) -> Result<Vec<FileReport>> {
+    // Most runs resolve every file to the store's root configuration, so the plan for it is worth
+    // building once. A file that a nested `.rubocop.yml` gives a different configuration falls back
+    // to building its own, which costs no more than resolving the cops inline would have.
+    let root_plan = RulePlan::build(configs.root(), selection);
+    let inspect = |path: &PathBuf| -> Result<FileReport> {
+        let Some(text) = decoded_source(path)? else {
+            return Ok(undecodable_report(path));
+        };
+        let config = configs.for_path(path)?;
+        let own_plan = (!std::ptr::eq(Arc::as_ptr(&config), configs.root()))
+            .then(|| RulePlan::build(&config, selection));
+        inspect_planned(
+            path.clone(),
+            text,
+            &config,
+            selection,
+            own_plan.as_ref().unwrap_or(&root_plan),
+        )
+    };
+    // Collecting every outcome rather than short-circuiting keeps the surfaced error the first one
+    // in path order instead of whichever thread rayon happened to finish first.
+    let inspected: Vec<Result<FileReport>> = if parallel && paths.len() > 1 {
+        paths.par_iter().map(inspect).collect()
+    } else {
+        paths.iter().map(inspect).collect()
+    };
+    let mut reports = inspected.into_iter().collect::<Result<Vec<_>>>()?;
+    reports.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(reports)
+}
+
+/// `None` when the file exists but does not decode as UTF-8. RuboCop reports that as a fatal
+/// `Lint/Syntax` offense and inspects the remaining files, so it must not abort the run; a genuine
+/// IO failure still does.
+fn decoded_source(path: &Path) -> Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if error.kind() == io::ErrorKind::InvalidData => Ok(None),
+        Err(error) => Err(anyhow::Error::new(error))
+            .with_context(|| format!("failed to read {}", path.display())),
+    }
+}
+
+fn undecodable_report(path: &Path) -> FileReport {
+    // RuboCop capitalizes the parser's `invalid byte sequence in UTF-8` and anchors the offense at
+    // the head of the file, since it never got a syntax tree to locate anything against.
+    let mut offense = Offense::new(
+        "Lint/Syntax",
+        Severity::Fatal,
+        "Invalid byte sequence in utf-8.",
+        0,
+        0,
+    );
+    let source = SourceFile::new(path.to_path_buf(), String::new());
+    offense.freeze_location(&source);
+    FileReport {
+        path: path.to_path_buf(),
+        source,
+        offenses: vec![offense],
+    }
+}
+
+pub fn discover_targets(
+    arguments: &[PathBuf],
+    cwd: &Path,
+    config: &Config,
+    force_exclusion: bool,
+    only_recognized_file_types: bool,
+) -> Result<Vec<PathBuf>> {
+    let configs = ConfigStore::new(config.clone(), false, false);
+    discover_targets_with_store(
+        arguments,
+        cwd,
+        &configs,
+        force_exclusion,
+        only_recognized_file_types,
+    )
+}
+
+pub fn discover_targets_with_store(
+    arguments: &[PathBuf],
+    cwd: &Path,
+    configs: &ConfigStore,
+    force_exclusion: bool,
+    only_recognized_file_types: bool,
+) -> Result<Vec<PathBuf>> {
+    let roots = if arguments.is_empty() {
+        vec![cwd.to_path_buf()]
+    } else {
+        arguments.to_vec()
+    };
+    let mut targets = Vec::new();
+
+    for root in roots {
+        if !root.exists() {
+            bail!("No such file or directory: {}", root.display());
+        }
+        if root.is_file() {
+            let config = configs.for_path(&root)?;
+            let recognized = config.path_included(&root) || has_ruby_shebang(&root);
+            if (!force_exclusion || !config.path_excluded(&root))
+                && (!only_recognized_file_types || recognized)
+            {
+                targets.push(root);
+            }
+            continue;
+        }
+
+        let mut builder = WalkBuilder::new(&root);
+        builder
+            .hidden(!configs.root().possibly_include_hidden())
+            .parents(true)
+            .git_ignore(true)
+            .git_exclude(true)
+            .git_global(true)
+            .follow_links(false);
+        for entry in builder.build() {
+            let entry = entry.with_context(|| format!("failed to traverse {}", root.display()))?;
+            let path = entry.path();
+            if !entry.file_type().is_some_and(|kind| kind.is_file()) {
+                continue;
+            }
+            let config = configs.for_path(path)?;
+            let included = config.path_included(path);
+            if config.path_excluded(path)
+                || (!included && (config.path_hidden(path) || !has_ruby_shebang(path)))
+            {
+                continue;
+            }
+            targets.push(normalized_target_path(path));
+        }
+    }
+
+    targets.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
+    targets.dedup();
+    Ok(targets)
+}
+
+fn normalized_target_path(path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    path.strip_prefix(".").unwrap_or(path).to_path_buf()
+}
+
+fn has_ruby_shebang(path: &Path) -> bool {
+    let Ok(contents) = fs::read(path) else {
+        return false;
+    };
+    let first_line = contents
+        .split(|byte| *byte == b'\n')
+        .next()
+        .unwrap_or_default();
+    first_line.starts_with(b"#!")
+        && [b"ruby".as_slice(), b"rake".as_slice(), b"jruby".as_slice()]
+            .iter()
+            .any(|interpreter| {
+                first_line
+                    .windows(interpreter.len())
+                    .any(|part| part == *interpreter)
+            })
+}
+
+pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, usize) {
+    if mode == CorrectMode::None {
+        return (report.source.text().to_owned(), 0);
+    }
+
+    let mut candidates: Vec<(usize, crate::diagnostic::Edit)> = report
+        .offenses
+        .iter()
+        .enumerate()
+        .filter_map(|(index, offense)| {
+            offense
+                .correction
+                .clone()
+                .filter(|edit| mode == CorrectMode::All || edit.safe)
+                .map(|edit| (index, edit))
+        })
+        .collect();
+    candidates.sort_by_key(|(_, edit)| (edit.start, edit.end));
+
+    let mut selected = Vec::new();
+    let mut occupied_end = 0;
+    let mut occupied_insertions = HashSet::new();
+    for candidate in candidates {
+        let edit = &candidate.1;
+        let insertion_conflict = edit.start == edit.end && !occupied_insertions.insert(edit.start);
+        if edit.start < occupied_end || insertion_conflict {
+            continue;
+        }
+        occupied_end = occupied_end.max(edit.end);
+        selected.push(candidate);
+    }
+
+    let mut text = report.source.text().to_owned();
+    for (offense_index, edit) in selected.iter().rev() {
+        if edit.start <= edit.end
+            && edit.end <= text.len()
+            && text.is_char_boundary(edit.start)
+            && text.is_char_boundary(edit.end)
+        {
+            text.replace_range(edit.start..edit.end, &edit.replacement);
+            report.offenses[*offense_index].corrected = true;
+        }
+    }
+    let corrected = report
+        .offenses
+        .iter()
+        .filter(|offense| offense.corrected)
+        .count();
+    (text, corrected)
+}
+
+const MAX_CORRECTION_PASSES: usize = 200;
+
+type OffenseKey = (usize, usize, &'static str, String, Severity);
+
+fn offense_key(offense: &Offense, source: &SourceFile) -> OffenseKey {
+    let (line, column) = offense.start_position(source);
+    (
+        line,
+        column,
+        offense.cop_name,
+        offense.message.clone(),
+        offense.severity,
+    )
+}
+
+fn sort_offenses(offenses: &mut [Offense], source: &SourceFile) {
+    offenses.sort_by(|left, right| {
+        let (left_line, left_column) = left.start_position(source);
+        let (right_line, right_column) = right.start_position(source);
+        (
+            left_line,
+            left_column,
+            left.cop_name,
+            &left.message,
+            left.severity,
+        )
+            .cmp(&(
+                right_line,
+                right_column,
+                right.cop_name,
+                &right.message,
+                right.severity,
+            ))
+    });
+}
+
+/// Offenses an earlier autocorrect pass already fixed. Re-inspecting the rewritten text cannot
+/// rediscover them, so without this ledger every `[Corrected]` marker and every corrected count
+/// would vanish the moment the fix landed.
+#[derive(Default)]
+struct CorrectionLog {
+    offenses: Vec<Offense>,
+    keys: HashSet<OffenseKey>,
+    /// The cops credited with each pass's corrections, used to name the culprits of a loop.
+    cops_by_pass: Vec<Vec<&'static str>>,
+}
+
+impl CorrectionLog {
+    fn record_pass(&mut self, report: &mut FileReport) {
+        let source = &report.source;
+        let mut cops: Vec<&'static str> = Vec::new();
+        for offense in &mut report.offenses {
+            if !offense.corrected {
+                continue;
+            }
+            offense.freeze_location(source);
+            if !cops.contains(&offense.cop_name) {
+                cops.push(offense.cop_name);
+            }
+            if self.keys.insert(offense_key(offense, source)) {
+                self.offenses.push(offense.clone());
+            }
+        }
+        self.cops_by_pass.push(cops);
+    }
+
+    fn root_cause(&self, loop_start: usize) -> String {
+        self.cops_by_pass
+            .get(loop_start..)
+            .unwrap_or_default()
+            .iter()
+            .map(|cops| cops.join(", "))
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    }
+
+    /// Union the ledger with the last pass the way RuboCop does: an offense a later pass
+    /// rediscovered at the same place loses to the corrected entry already on file.
+    fn merge_into(self, mut report: FileReport) -> (FileReport, usize) {
+        let Self {
+            mut offenses, keys, ..
+        } = self;
+        let source = &report.source;
+        offenses.extend(
+            report
+                .offenses
+                .drain(..)
+                .filter(|offense| !keys.contains(&offense_key(offense, source))),
+        );
+        sort_offenses(&mut offenses, source);
+        let corrected_count = offenses.iter().filter(|offense| offense.corrected).count();
+        report.offenses = offenses;
+        (report, corrected_count)
+    }
+}
+
+/// The result of driving autocorrect to a fixed point.
+pub struct CorrectionOutcome {
+    pub report: FileReport,
+    pub text: String,
+    pub corrected_count: usize,
+    /// Set when the passes never settled. RuboCop reports this per file, still writes the last
+    /// corrected text, and keeps inspecting the rest of the run.
+    pub infinite_loop: Option<String>,
+}
+
+pub fn correct_file(
+    mut report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+) -> Result<CorrectionOutcome> {
+    let mut text = report.source.text().to_owned();
+    if mode == CorrectMode::None {
+        return Ok(CorrectionOutcome {
+            report,
+            text,
+            corrected_count: 0,
+            infinite_loop: None,
+        });
+    }
+
+    let path = report.path.clone();
+    let mut log = CorrectionLog::default();
+    let mut sources = vec![text.clone()];
+    // Every pass re-inspects the same file under the same configuration, so the plan is resolved
+    // once for the whole fixed-point loop.
+    let plan = RulePlan::build(config, selection);
+    for pass in 0..=MAX_CORRECTION_PASSES {
+        let (corrected, count) = corrected_text(&mut report, mode);
+        if count == 0 {
+            let (report, corrected_count) = log.merge_into(report);
+            return Ok(CorrectionOutcome {
+                report,
+                text,
+                corrected_count,
+                infinite_loop: None,
+            });
+        }
+        log.record_pass(&mut report);
+
+        // Re-producing a source seen before means the passes are trading edits back and forth; the
+        // repeat tells us which pass the cycle closed on.
+        let repeated = sources.iter().position(|source| *source == corrected);
+        if pass == MAX_CORRECTION_PASSES || repeated.is_some() {
+            let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
+            let root_cause = log.root_cause(loop_start);
+            let (report, corrected_count) = log.merge_into(report);
+            return Ok(CorrectionOutcome {
+                report,
+                text: corrected,
+                corrected_count,
+                infinite_loop: Some(format!(
+                    "Infinite loop detected in {} and caused by {root_cause}",
+                    path.display()
+                )),
+            });
+        }
+
+        sources.push(corrected.clone());
+        text = corrected;
+        report = inspect_planned(path.clone(), text.clone(), config, selection, &plan)?;
+    }
+    unreachable!("the autocorrect loop always returns before exhausting its passes")
+}
+
+pub fn correct_until_stable(
+    report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+) -> Result<(FileReport, String, usize)> {
+    let outcome = correct_file(report, mode, config, selection)?;
+    match outcome.infinite_loop {
+        Some(message) => bail!(message),
+        None => Ok((outcome.report, outcome.text, outcome.corrected_count)),
+    }
+}
+
+pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
+    let parent = path.parent().unwrap_or(Path::new("."));
+    let permissions = fs::metadata(path)
+        .ok()
+        .map(|metadata| metadata.permissions());
+    let mut temporary = NamedTempFile::new_in(parent)
+        .with_context(|| format!("failed to create temporary file beside {}", path.display()))?;
+    temporary
+        .write_all(contents.as_bytes())
+        .with_context(|| format!("failed to write corrected contents for {}", path.display()))?;
+    temporary
+        .as_file_mut()
+        .sync_all()
+        .with_context(|| format!("failed to flush corrected contents for {}", path.display()))?;
+    if let Some(permissions) = permissions {
+        temporary
+            .as_file()
+            .set_permissions(permissions)
+            .with_context(|| format!("failed to preserve permissions for {}", path.display()))?;
+    }
+    temporary
+        .persist(path)
+        .map_err(|error| error.error)
+        .with_context(|| format!("failed to replace {} atomically", path.display()))?;
+    Ok(())
+}
+
+pub fn offense_count(reports: &[FileReport], fail_level: Severity) -> usize {
+    reports
+        .iter()
+        .flat_map(|report| &report.offenses)
+        .filter(|offense| {
+            offense.severity >= fail_level && !offense.corrected && !offense.suppressed
+        })
+        .count()
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::config::Config;
+    use crate::diagnostic::Severity;
+
+    use super::{
+        CorrectMode, Selection, correct_file, discover_targets, inspect_files, inspect_source,
+    };
+
+    #[test]
+    fn discovers_ruby_files_and_honors_exclusions() {
+        let directory = tempdir().unwrap();
+        std::fs::write(directory.path().join("good.rb"), "puts 1\n").unwrap();
+        std::fs::create_dir(directory.path().join("vendor")).unwrap();
+        std::fs::write(directory.path().join("vendor/skip.rb"), "puts 1\n").unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+        assert_eq!(targets.len(), 1);
+        assert_eq!(
+            inspect_files(&targets, &config, &selection, false)
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn autocorrect_keeps_corrected_offenses_and_their_original_lines() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let report = inspect_source(
+            directory.path().join("example.rb"),
+            "x = 'a'  \n".to_owned(),
+            &config,
+            &selection,
+        )
+        .unwrap();
+
+        let outcome = correct_file(report, CorrectMode::Safe, &config, &selection).unwrap();
+
+        assert!(outcome.infinite_loop.is_none());
+        assert!(outcome.corrected_count > 0);
+        assert_eq!(
+            outcome
+                .report
+                .offenses
+                .iter()
+                .filter(|offense| offense.corrected)
+                .count(),
+            outcome.corrected_count
+        );
+        let trailing = outcome
+            .report
+            .offenses
+            .iter()
+            .find(|offense| offense.cop_name == "Layout/TrailingWhitespace")
+            .expect("the corrected trailing whitespace offense survives into the final report");
+        assert!(trailing.corrected);
+        assert_eq!(trailing.source_line(&outcome.report.source), "x = 'a'  \n");
+    }
+
+    #[test]
+    fn an_undecodable_file_reports_a_fatal_offense_without_stopping_the_run() {
+        let directory = tempdir().unwrap();
+        std::fs::write(directory.path().join("good.rb"), "puts 1\n").unwrap();
+        std::fs::write(directory.path().join("bad.rb"), b"x = \"\xff\xfe\"\n").unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &selection, false).unwrap();
+
+        assert_eq!(reports.len(), 2);
+        let bad = reports
+            .iter()
+            .find(|report| report.path.ends_with("bad.rb"))
+            .unwrap();
+        assert_eq!(bad.offenses.len(), 1);
+        assert_eq!(bad.offenses[0].cop_name, "Lint/Syntax");
+        assert_eq!(bad.offenses[0].severity, Severity::Fatal);
+        assert_eq!(bad.offenses[0].message, "Invalid byte sequence in utf-8.");
+        let location = bad.offenses[0].location(&bad.source);
+        assert_eq!((location.line, location.column), (1, 1));
+    }
+}

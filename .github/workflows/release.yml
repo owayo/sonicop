@@ -1,0 +1,260 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (次のバージョンを算出するだけで、タグも公開もしない)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# 2 本同時に走ると同じカウンタから別々のタグが生まれ、片方は永久に publish できない
+# バージョンになる。RubyGems は同一バージョンの再 push を受け付けないため直列化する。
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        shell: bash
+        run: |
+          # 年は 2 桁。4 桁だとメジャーが 255 を超え、Windows MSI が扱えるバージョン範囲から外れる。
+          # 月はゼロ埋めしない。SemVer は数値識別子の先頭ゼロを禁じており、Cargo は "26.08.100" を
+          # `invalid leading zero in minor version number` で拒否する。
+          YEAR=$(date +%y)
+          MONTH=$(date +%-m)
+
+          # 版の正本は Cargo.toml。読み取りは gem 側と同じパーサに委ねる (別実装を置くと
+          # [[bin]] の version を拾うような差異が生まれる)。
+          CURRENT=$(ruby -Iscript -rsonicop_version -e 'print SonicopVersion.cargo_version')
+          echo "Current version: ${CURRENT}"
+
+          # 同じ年月なら連番、月が変われば 100 から。100 始まりなのは、桁数が揃って
+          # ファイル名の並びが崩れないため。
+          if echo "${CURRENT}" | grep -qE '^[0-9]{2,4}\.[0-9]{1,2}\.[0-9]+$'; then
+            OLD_YEAR=$(echo "${CURRENT}" | cut -d. -f1)
+            OLD_MONTH=$(echo "${CURRENT}" | cut -d. -f2)
+            OLD_COUNTER=$(echo "${CURRENT}" | cut -d. -f3)
+            # 4 桁年で切られた過去バージョンからも移行できるようにする。
+            OLD_YEAR_2DIGIT=$(echo "${OLD_YEAR}" | sed 's/^20//')
+            if [ "${OLD_YEAR_2DIGIT}" = "${YEAR}" ] && [ "${OLD_MONTH}" = "${MONTH}" ]; then
+              NEW_COUNTER=$((OLD_COUNTER + 1))
+            else
+              NEW_COUNTER=100
+            fi
+          else
+            NEW_COUNTER=100
+          fi
+
+          NEW_VERSION="${YEAR}.${MONTH}.${NEW_COUNTER}"
+          echo "New version: ${NEW_VERSION}"
+
+          # Cargo.toml / Cargo.lock / version.rb の書き換えは rake に委ねる。sed で済ませると
+          # `0,/re/` が GNU 拡張のため BSD sed では無言で何もせず、失敗に気づくのが
+          # CI 終盤の照合になる。rake 側は対象が無ければその場で落ち、テストも付いている。
+          rake version:set VERSION="${NEW_VERSION}"
+
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version files agree
+        run: rake version:check
+
+      - name: Commit and tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git add Cargo.toml Cargo.lock lib/sonicop/version.rb
+          git commit -m "Release ${{ steps.bump.outputs.tag }}"
+          git tag -a "${{ steps.bump.outputs.tag }}" -m "Release ${{ steps.bump.outputs.tag }}"
+          git push origin "${{ github.ref_name }}" "${{ steps.bump.outputs.tag }}"
+
+      - name: Dry run info
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Dry run: タグも公開もしていない"
+          echo "Would release: ${{ steps.bump.outputs.tag }}"
+
+  # tag / Cargo.toml / lib/sonicop/version.rb の三者一致を、何かをビルドする前に確かめる。
+  # 採番は prepare-release が済ませているが、ここで見るのは「タグの中身が本当にその版か」。
+  # 通さないと「gem 26.8.101 の中身が 26.8.100 と名乗る」状態のまま公開できてしまう。
+  verify-version:
+    needs: prepare-release
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare-release.outputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - name: Verify tag, Cargo.toml, and version.rb agree
+        shell: bash
+        env:
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: |
+          rake version:check
+          cargo_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "sonicop") | .version')"
+          gem_version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
+          echo "tag=${TAG} Cargo.toml=${cargo_version} lib/sonicop/version.rb=${gem_version}"
+          test -n "${cargo_version}"
+          test "${cargo_version}" = "${gem_version}"
+          test "${TAG}" = "v${cargo_version}"
+
+  source-gem:
+    needs: [prepare-release, verify-version]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare-release.outputs.tag }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - name: Build source gem
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          built="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
+          test "${VERSION}" = "${built}"
+          rake gem
+          test -f "sonicop-${VERSION}.gem"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: source-gem
+          path: sonicop-*.gem
+
+  # musl 版 (x86_64-linux-musl / aarch64-linux-musl) は意図的に出していない。
+  # gemspec の required_ruby_version が 2.6.0 なので RubyGems 3.0 系のクライアントが
+  # 対象に入るが、そこでは Gem::Platform が musl サフィックスを落として
+  # x86_64-linux と「同一」と判定する (RubyGems 3.0.3.1 で実測)。
+  # musl gem を publish すると glibc 環境に musl バイナリが入り得るため、
+  # 現状は Alpine 等には source gem を使わせるほうが安全。
+  # musl gem を出すなら required_ruby_version を 3.1 以上へ上げること
+  # (musl の区別は RubyGems 3.3.22 / Bundler 2.3.21 以降)。
+  platform-gem:
+    needs: [prepare-release, verify-version]
+    if: ${{ !inputs.dry_run }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            binary: target/release/sonicop
+            platform: x86_64-linux
+          - os: ubuntu-24.04-arm
+            binary: target/release/sonicop
+            platform: aarch64-linux
+          - os: macos-15-intel
+            binary: target/release/sonicop
+            platform: x86_64-darwin
+          - os: macos-14
+            binary: target/release/sonicop
+            platform: arm64-darwin
+          - os: windows-2025
+            binary: target/release/sonicop.exe
+            platform: x64-mingw-ucrt
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare-release.outputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - run: cargo build --release --locked
+      # package_gem は生成された gem の platform と libexec 同梱を事後検証するので、
+      # ソース gem に落ちた場合はここで失敗する。
+      - name: Build platform gem
+        run: rake gem:platform BINARY=${{ matrix.binary }} GEM_PLATFORM=${{ matrix.platform }}
+      # ソース gem と同名になり得る glob を上げると merge-multiple で取り違えるため、
+      # platform を含む名前だけに絞る。
+      - uses: actions/upload-artifact@v6
+        with:
+          name: gem-${{ matrix.platform }}
+          path: sonicop-*-${{ matrix.platform }}.gem
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare-release, source-gem, platform-gem]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    # RubyGems 側の trusted publisher は owner / repository / workflow / environment の
+    # 4 つ組を文字列一致で照合する。大小文字も含めて GitHub 上の environment 名と
+    # RubyGems の登録値の 3 つを完全に揃えること。ここを変えると publish 側も設定し直しになる。
+    environment: RubyGems
+    permissions:
+      # gh release create に必要。job 側で permissions を書くと workflow 側の指定は
+      # 引き継がれないため、ここに再掲する。
+      contents: write
+      # OIDC トークンの発行。これが無いと RubyGems に身元を示せない。
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: gems
+          merge-multiple: true
+      # runner に入っている Ruby に依存すると、イメージ更新で gem コマンドの挙動が変わる。
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      # RubyGems は同一バージョンの再 push を受け付けないため、取り違えは復旧できない。
+      # push する前に、集めた成果物がこの版のものだけであることを確かめる。
+      - name: Verify collected artifacts
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          shopt -s nullglob
+          packages=(gems/*.gem)
+          printf '%s\n' "${packages[@]}"
+          test "${#packages[@]}" -gt 1
+          test -f "gems/sonicop-${VERSION}.gem"
+          for package in "${packages[@]}"; do
+            case "$(basename "${package}")" in
+              "sonicop-${VERSION}.gem" | "sonicop-${VERSION}-"*.gem) ;;
+              *)
+                echo "unexpected artifact: ${package}"
+                exit 1
+                ;;
+            esac
+          done
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: gh release create "${TAG}" gems/*.gem --generate-notes
+      # 長期の API キーを置かず、この repository / workflow / environment から出た OIDC
+      # トークンと引き換えに短命の資格情報を受け取る。gemspec が rubygems_mfa_required を
+      # 立てている以上、API キー方式ではアカウントの MFA レベルを下げる必要があり、
+      # そちらは公開鍵の管理と引き換えに保護を弱める取引になる。
+      - uses: rubygems/configure-rubygems-credentials@v2.1.0
+      - name: Publish RubyGems packages
+        run: |
+          for package in gems/*.gem; do
+            gem push "${package}"
+          done
