@@ -334,10 +334,31 @@ fn decoded_source(path: &Path) -> Result<Option<String>> {
 /// The encoding a source names for itself, read loosely: the magic comment is ASCII in every
 /// encoding this can resolve, so the opening lines can be scanned before anything is decoded.
 fn declared_label(bytes: &[u8]) -> Option<String> {
-    String::from_utf8_lossy(&bytes[..bytes.len().min(1024)])
-        .lines()
-        .take_while(|line| line.trim_start().starts_with('#'))
-        .find_map(|line| MagicComment::parse(line).encoding())
+    if bytes.starts_with(b"\xef\xbb\xbf") {
+        // `Parser::Source::Buffer.recognize_encoding` settles a byte order mark as UTF-8 and never
+        // looks at the comment, so a declaration under one is only a comment.
+        return None;
+    }
+    encoding_declaration(&String::from_utf8_lossy(&bytes[..bytes.len().min(1024)]))
+}
+
+/// The encoding a source declares, read the way `Parser::Source::Buffer.recognize_encoding` reads
+/// it: from the first line, or the second when the first is a shebang, and from nowhere else. A
+/// `# coding:` comment further down -- Rails has one under a `frozen_string_literal` line -- is
+/// just a comment, and reading it would decode the file as something Ruby never would.
+fn encoding_declaration(head: &str) -> Option<String> {
+    let mut lines = head.lines();
+    let first = lines.next()?;
+    let line = match first.starts_with("#!") {
+        true => lines.next()?,
+        false => first,
+    };
+    // Upstream tests the first byte rather than the first non-blank one, so an indented comment
+    // declares nothing.
+    if !line.starts_with('#') {
+        return None;
+    }
+    MagicComment::parse(line).encoding()
 }
 
 /// Ruby's names for "no encoding at all", where one byte is one character.
@@ -1273,11 +1294,7 @@ pub fn correct_until_stable(
 /// `Err` when the correction cannot be represented in that encoding, so the caller leaves the file
 /// alone rather than writing a lossy approximation.
 fn output_bytes(contents: &str) -> Result<Vec<u8>> {
-    let Some(label) = contents
-        .lines()
-        .take_while(|line| line.trim_start().starts_with('#'))
-        .find_map(|line| MagicComment::parse(line).encoding())
-    else {
+    let Some(label) = encoding_declaration(contents) else {
         return Ok(contents.as_bytes().to_vec());
     };
     // A binary source was read one byte to one character, so it goes back out the same way.
