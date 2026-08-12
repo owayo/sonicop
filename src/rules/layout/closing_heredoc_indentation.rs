@@ -5,6 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
+use super::support::is_send_like;
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let openers: Vec<Node<'_>> = context.nodes_of("heredoc_beginning").collect();
     if openers.is_empty() {
@@ -18,10 +20,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             break;
         };
         // `SIMPLE_HEREDOC`: a `<<EOS` terminator has to sit at column 0 whatever the opener does.
-        if !matches!(
-            text[opener.byte_range()].as_bytes().get(2),
-            Some(b'~' | b'-')
-        ) {
+        // An opener whose delimiter is empty matches nothing at all and so is not simple either.
+        if heredoc_type(&text[opener.byte_range()]) == Some("<<") {
             continue;
         }
         let mut cursor = body.walk();
@@ -39,9 +39,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if opening_indent == closing_indent {
             continue;
         }
-        let argument = argument_send(opener);
-        if let Some(send) = argument.or_else(|| chained_send(opener)) {
-            let outermost = outermost_send(send);
+        let argument = argument_send(context, opener);
+        if let Some(send) = argument.or_else(|| chained_send(context, opener)) {
+            let outermost = outermost_send(context, send);
             if indent_level(source_line(context, outermost.start_byte())) == closing_indent {
                 continue;
             }
@@ -84,28 +84,81 @@ fn reindented(line: &str, closing_indent: usize, opening_indent: usize) -> Strin
     format!("{}{}", " ".repeat(opening_indent), &line[closing_indent..])
 }
 
-/// `node.argument?`: the heredoc is one of the arguments of the call it was written in.
-fn argument_send<'tree>(opener: Node<'tree>) -> Option<Node<'tree>> {
-    opener
-        .parent()
-        .filter(|parent| parent.kind() == "argument_list")
-        .and_then(|list| list.parent())
-        .filter(|call| call.kind() == "call")
+/// `Heredoc#heredoc_type`: the first capture of `/(<<[~-]?)['"`]?([^'"`]+)['"`]?/` over the
+/// opener. An opener written with an empty delimiter, `<<""`, matches nowhere and has no type.
+fn heredoc_type(source: &str) -> Option<&str> {
+    let bytes = source.as_bytes();
+    for start in 0..bytes.len() {
+        if !source[start..].starts_with("<<") {
+            continue;
+        }
+        let mut cursor = start + 2;
+        if matches!(bytes.get(cursor), Some(b'~' | b'-')) {
+            cursor += 1;
+        }
+        let prefix = &source[start..cursor];
+        // The quote is optional, so a delimiter is looked for both behind it and in its place.
+        for probe in [cursor + usize::from(is_quote(bytes.get(cursor))), cursor] {
+            if bytes.get(probe).is_some_and(|byte| !is_quote(Some(byte))) {
+                return Some(prefix);
+            }
+        }
+    }
+    None
 }
 
-/// `node.chained?`: the heredoc is the receiver of the call it was written in.
-fn chained_send<'tree>(opener: Node<'tree>) -> Option<Node<'tree>> {
-    opener
-        .parent()
-        .filter(|parent| parent.child_by_field_name("receiver") == Some(opener))
-        .filter(|parent| parent.kind() == "call")
+fn is_quote(byte: Option<&u8>) -> bool {
+    matches!(byte, Some(b'\'' | b'"' | b'`'))
 }
 
-/// `find_node_used_heredoc_argument`: the outermost call the heredoc's own call is nested in.
+/// `node.argument?`: the heredoc is one of the arguments of the send it was written in. An
+/// attribute or index write is a send too, so its right-hand side counts.
+fn argument_send<'tree>(
+    context: &RuleContext<'_>,
+    opener: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let parent = opener.parent()?;
+    match parent.kind() {
+        "argument_list" => parent.parent().filter(|call| call.kind() == "call"),
+        "assignment" => (parent.child_by_field_name("right") == Some(opener)
+            && parent
+                .child_by_field_name("left")
+                .is_some_and(|left| matches!(left.kind(), "call" | "element_reference")))
+        .then_some(parent),
+        _ if is_send_like(context, parent) => {
+            (receiver_of(parent) != Some(opener)).then_some(parent)
+        }
+        _ => None,
+    }
+}
+
+/// The node upstream calls the send's receiver, whichever shape the grammar gave the call.
+fn receiver_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    match node.kind() {
+        "element_reference" => node.child(0),
+        "binary" => node.child_by_field_name("left"),
+        "unary" => node.child_by_field_name("operand"),
+        _ => node.child_by_field_name("receiver"),
+    }
+}
+
+/// `node.chained?`: the heredoc is the receiver of the send it was written in.
+fn chained_send<'tree>(
+    context: &RuleContext<'_>,
+    opener: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let parent = opener.parent()?;
+    if !is_send_like(context, parent) {
+        return None;
+    }
+    (receiver_of(parent) == Some(opener)).then_some(parent)
+}
+
+/// `find_node_used_heredoc_argument`: the outermost send the heredoc's own send is nested in.
 ///
 /// A call written as another call's argument is that call's direct child upstream, so the argument
 /// list the grammar puts between them is stepped over rather than ending the walk.
-fn outermost_send<'tree>(send: Node<'tree>) -> Node<'tree> {
+fn outermost_send<'tree>(context: &RuleContext<'_>, send: Node<'tree>) -> Node<'tree> {
     let mut current = send;
     loop {
         let parent = current
@@ -114,10 +167,18 @@ fn outermost_send<'tree>(send: Node<'tree>) -> Node<'tree> {
                 "argument_list" => parent.parent(),
                 _ => Some(parent),
             })
-            .filter(|parent| parent.kind() == "call");
+            .filter(|parent| is_send_like(context, *parent) || is_setter(*parent));
         match parent {
             Some(parent) => current = parent,
             None => return current,
         }
     }
+}
+
+/// An assignment the parser files under `send`, because its target is an attribute or an index.
+fn is_setter(node: Node<'_>) -> bool {
+    node.kind() == "assignment"
+        && node
+            .child_by_field_name("left")
+            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
 }

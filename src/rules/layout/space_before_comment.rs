@@ -12,8 +12,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for comment in comments(context) {
         // `token1.pos.end == token2.pos.begin` over consecutive tokens: whatever came before the
         // comment ends exactly where it starts, which is the same as saying that the character
-        // before it belongs to a token rather than to the whitespace between two.
-        let Some(previous) = text[..comment.start].chars().next_back() else {
+        // before it belongs to a token rather than to the whitespace between two. A byte order
+        // mark stays in the buffer but is no token, so a comment behind one opens the file.
+        let before = &text[..comment.start];
+        let before = before
+            .strip_prefix(crate::source::BYTE_ORDER_MARK)
+            .unwrap_or(before);
+        let Some(previous) = before.chars().next_back() else {
             continue;
         };
         if previous.is_whitespace() {

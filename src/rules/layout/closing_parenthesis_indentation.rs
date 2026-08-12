@@ -20,6 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // so its brackets are never what this cop looks at.
     for node in context.nodes_of_any(&[
         "call",
+        "interpolation",
         "parenthesized_statements",
         "method",
         "singleton_method",
@@ -127,6 +128,9 @@ fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
             ")",
         ),
         "parenthesized_statements" => (node.start_byte(), node, "(", ")"),
+        // The parser wraps an interpolation's statements in a `begin` whose delimiters are the
+        // `#{` and the `}`, which is what `on_begin` then measures.
+        "interpolation" => (node.start_byte(), node, "#{", "}"),
         // `check(node.arguments, node.arguments)`: the parameter list stands in for the definition.
         _ => {
             let parameters = node.child_by_field_name("parameters")?;
