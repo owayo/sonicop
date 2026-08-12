@@ -703,13 +703,14 @@ impl CommentConfig {
         comment_ranges: &[Range<usize>],
         registry: &CopRegistry,
     ) -> Self {
+        let code_lines = lines_with_code(source, comment_ranges);
         let mut comments = Vec::with_capacity(comment_ranges.len());
         let mut by_line = HashMap::with_capacity(comment_ranges.len());
         for range in comment_ranges {
             let (line, _) = source.line_column(range.start);
             by_line.insert(line, comments.len());
             comments.push(CommentEntry {
-                comment_only_line: is_comment_only_line(source, comment_ranges, line),
+                comment_only_line: !code_lines.contains(&line),
                 directive: DirectiveComment::parse(source, range.clone(), line),
                 range: range.clone(),
                 line,
@@ -1033,28 +1034,40 @@ fn jaro_winkler_distance(left: &str, right: &str) -> f64 {
     jaro + (prefix as f64 * WEIGHT * (1.0 - jaro))
 }
 
-/// `CommentConfig#comment_only_line?`: no token that is not a comment starts on the line.
-fn is_comment_only_line(source: &SourceFile, comment_ranges: &[Range<usize>], line: usize) -> bool {
-    let range = source.line_range(line);
-    let mut cursor = range.start;
-    for comment in comment_ranges {
-        if comment.end <= cursor || comment.start >= range.end {
+/// The lines that hold something other than a comment, which `comment_only_line?` is the negation
+/// of.
+///
+/// RuboCop asks the token stream, which the tree-sitter parse does not keep. Reading the text with
+/// the comments cut out answers the same question for everything but a line in the middle of a
+/// multi-line literal, which carries no token of its own but is not blank either.
+fn lines_with_code(source: &SourceFile, comment_ranges: &[Range<usize>]) -> HashSet<usize> {
+    let text = source.text().as_bytes();
+    let mut lines = HashSet::new();
+    let mut comments = comment_ranges.iter().peekable();
+    let mut line = 1;
+    let mut index = 0;
+    while index < text.len() {
+        if comments
+            .peek()
+            .is_some_and(|comment| index >= comment.start)
+        {
+            let end = comments.next().expect("peeked").end.min(text.len());
+            while index < end {
+                line += usize::from(text[index] == b'\n');
+                index += 1;
+            }
             continue;
         }
-        if source
-            .slice(cursor..comment.start.max(cursor))
-            .trim()
-            .is_empty()
-        {
-            cursor = comment.end.max(cursor);
-        } else {
-            return false;
+        match text[index] {
+            b'\n' => line += 1,
+            b' ' | b'\t' | b'\r' | 0x0b | 0x0c => {}
+            _ => {
+                lines.insert(line);
+            }
         }
+        index += 1;
     }
-    source
-        .slice(cursor..range.end.max(cursor))
-        .trim()
-        .is_empty()
+    lines
 }
 
 /// `CommentConfig#analyze_cop`.
