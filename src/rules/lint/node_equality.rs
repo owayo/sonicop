@@ -61,6 +61,19 @@ enum Literal {
     Float(f64),
 }
 
+/// The value of an `int` or `float` literal, with a leading sign folded into it the way upstream's
+/// parser folds one. A cop that asks whether a literal *is* some number is asking about the value
+/// rather than about the digits: `0x1` and `1` are one and the same `(int 1)` there.
+pub(super) fn numeric_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<f64> {
+    match literal(node, context)? {
+        // The cast is lossy past 2^53, which is far beyond any literal a cop compares against a
+        // small constant.
+        Literal::Integer(value) => Some(value as f64),
+        Literal::Float(value) => Some(value),
+        Literal::Text(_) | Literal::Symbol(_) => None,
+    }
+}
+
 fn literal(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
     let text = context.source.node_text(node);
     match node.kind() {

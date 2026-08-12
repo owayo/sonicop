@@ -682,7 +682,7 @@ pub(super) fn quoted_content(node: Node<'_>, source: &SourceFile) -> Option<Stri
 /// the flags written in the literal; a plain string is compiled without any. Ruby anchors `^` and
 /// `$` to lines whatever the flags say, and its `\w`, `\d` and `\s` stay ASCII while the POSIX
 /// classes do not, so the pattern is rewritten rather than handed over as written.
-pub(super) fn ruby_regex(value: &serde_yaml_ng::Value) -> Option<Regex> {
+pub(crate) fn ruby_regex(value: &serde_yaml_ng::Value) -> Option<Regex> {
     let (body, flags) = match value {
         serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "!ruby/regexp" => {
             let literal = tagged.value.as_str()?;

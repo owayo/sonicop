@@ -18,5 +18,6 @@ department_rules! {
     variable_number => ("VariableNumber", Convention),
 }
 
-mod support;
+/// Also read by `Lint/UnreachableLoop`, whose `AllowedPatterns` default is a `!ruby/regexp`.
+pub(super) mod support;
 mod uncommunicative;
