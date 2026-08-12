@@ -209,21 +209,22 @@ impl<'tree> UpNode<'tree> {
         !self.single_line(context)
     }
 
-    /// `Node#receiver`, which reaches through a `block` to the call it was written on.
+    /// `Node#receiver`, whose pattern only matches a `send` and the `block` wrapped around one, so
+    /// everything else -- `super`, `yield`, `defined?` -- answers with nothing.
     pub(super) fn receiver(self, context: &RuleContext<'_>) -> Option<Self> {
         let node = self.node;
+        if self.role == Role::Hash || !plain_kind(context, node).call_type() {
+            return None;
+        }
         match node.kind() {
             "call" | "method_call" => node.child_by_field_name("receiver").map(Self::of),
             "element_reference" => node.child_by_field_name("object").map(Self::of),
-            "binary" if plain_kind(context, node) == UpKind::Send => {
-                node.child_by_field_name("left").map(Self::of)
-            }
+            "binary" => node.child_by_field_name("left").map(Self::of),
             "unary" => node.child_by_field_name("operand").map(Self::of),
             "assignment" => {
                 let left = node.child_by_field_name("left")?;
                 Self::plain(left).receiver(context)
             }
-            "lambda" => None,
             _ => None,
         }
     }
@@ -564,7 +565,10 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
                 role: Role::Hash,
             });
         }
-        if TRANSPARENT.contains(&parent.kind()) || is_fused_setter_target(parent) {
+        if TRANSPARENT.contains(&parent.kind())
+            || is_fused_setter_target(parent)
+            || is_defined_parentheses(parent)
+        {
             current = parent;
             continue;
         }
@@ -574,7 +578,12 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
 
 fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
     match node.kind() {
-        "call" | "method_call" => call_kind(context, node),
+        // `super args` and `super(args)` are one call node here and a `super` upstream, which is
+        // no `send` at all: nothing that looks for an enclosing method call may stop at one.
+        "call" | "method_call" => match node.child_by_field_name("method") {
+            Some(method) if method.kind() == "super" => UpKind::Other,
+            _ => call_kind(context, node),
+        },
         "element_reference" => UpKind::Send,
         "binary" => match node.child_by_field_name("operator") {
             Some(operator) => match context.source.node_text(operator) {
@@ -584,7 +593,11 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
             },
             None => UpKind::Send,
         },
-        "unary" => UpKind::Send,
+        // `defined?` is a node of its own upstream rather than a call to `!`.
+        "unary" => match node.child_by_field_name("operator") {
+            Some(operator) if context.source.node_text(operator) == "defined?" => UpKind::Other,
+            _ => UpKind::Send,
+        },
         "assignment" => match node.child_by_field_name("left") {
             Some(left) if left.kind() == "call" => call_kind(context, left),
             Some(left) if left.kind() == "element_reference" => UpKind::Send,
@@ -608,6 +621,9 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
         "return" => UpKind::Return,
         "array" | "right_assignment_list" => UpKind::Array,
         "begin" => UpKind::Kwbegin,
+        // The parentheses of `defined?(x)` belong to the `defined?` node upstream, so they are not
+        // the `begin` a written-out group would be.
+        "parenthesized_statements" if is_defined_parentheses(node) => UpKind::Other,
         "parenthesized_statements" | "interpolation" => UpKind::Begin,
         "pair" => UpKind::Pair,
         "hash" => UpKind::Hash,
@@ -622,6 +638,18 @@ fn call_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
         Some(operator) if context.source.node_text(operator) == "&." => UpKind::Csend,
         _ => UpKind::Send,
     }
+}
+
+/// Whether the group is the argument list `defined?` was written with, which upstream keeps in the
+/// `defined?` node's own location rather than as a node.
+fn is_defined_parentheses(node: Node<'_>) -> bool {
+    node.kind() == "parenthesized_statements"
+        && node.parent().is_some_and(|parent| {
+            parent.kind() == "unary"
+                && parent
+                    .child_by_field_name("operator")
+                    .is_some_and(|operator| operator.kind() == "defined?")
+        })
 }
 
 fn post_loop(node: Node<'_>) -> bool {

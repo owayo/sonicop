@@ -12637,6 +12637,36 @@ mod layout_multiline_indentation {
         expect_no_offenses(OPERATION, "x = !foo\n");
     }
 
+    /// `super` / `yield` / `defined?` は本家では send ではない別のノードなので、
+    /// 「メソッド呼び出しの引数か」を見る `argument_in_method_call` は止まらないし、
+    /// `defined?(...)` の括弧は書かれた括弧グループでもない。
+    #[test]
+    fn super_and_defined_are_not_method_calls() {
+        expect_offense(
+            OPERATION,
+            r#"
+            class Z
+              def m
+                defined?(a &&
+                b)
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                super(c &&
+                d)
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                super e &&
+                f
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                yield g &&
+                h
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+              end
+            end
+            "#,
+        );
+        // 通常の呼び出しの括弧の中は対象外のまま。
+        expect_no_offenses(OPERATION, "def m\n  puts(i &&\n  j)\nend\n");
+    }
+
     #[test]
     fn operation_correction_moves_the_right_operand() {
         expect_correction(
