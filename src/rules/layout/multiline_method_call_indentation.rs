@@ -676,7 +676,7 @@ fn handle_descendant_block<'tree>(
     if !block.multiline(context) {
         return None;
     }
-    match receiver.kind(context).call_type() {
+    match mixin.call_type(receiver) {
         true => Some(receiver),
         false => block.parent(),
     }

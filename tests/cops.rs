@@ -12694,6 +12694,37 @@ mod layout_multiline_indentation {
         expect_no_offenses(CALL, "foo(k: obj.(1)\n        .b\n)\n");
     }
 
+    /// 連鎖の途中に複数行ブロックがあるとき、レシーバが「レシーバなしの呼び出し」なら
+    /// それ自身が基準になり、局所変数ならブロックの親が基準になる。tree-sitter は
+    /// どちらも `identifier` なので、本家と同じく代入の有無で見分ける必要がある。
+    #[test]
+    fn a_bare_receiver_is_a_call_unless_the_name_is_a_local_variable() {
+        expect_no_offenses(
+            CALL,
+            concat!(
+                "foo\n",
+                "  .bar(k: obj.a do |x|\n",
+                "            x\n",
+                "          end\n",
+                "          .b\n",
+                ")\n",
+            ),
+        );
+        expect_offense(
+            CALL,
+            r#"
+            foo = 1
+            foo
+              .bar(k: obj.a do |x|
+              ^^^^ Align `.bar` with `.b` on line 6.
+                        x
+                      end
+                      .b
+            )
+            "#,
+        );
+    }
+
     #[test]
     fn operation_correction_moves_the_right_operand() {
         expect_correction(

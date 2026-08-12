@@ -21,6 +21,7 @@ use tree_sitter::Node;
 
 use super::support::{begins_its_line, character_column, line_indentation};
 use crate::rules::RuleContext;
+use crate::rules::lint::locals::LocalVariables;
 
 /// Which of the nodes upstream's parser builds for one piece of source this stands for.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -424,6 +425,11 @@ impl<'tree> UpNode<'tree> {
         self.node.kind()
     }
 
+    /// The grammar node itself, for the analyses that work on the tree rather than on the model.
+    pub(super) fn raw(self) -> Node<'tree> {
+        self.node
+    }
+
     /// Whether the call was fused into the setter send its assignment builds.
     pub(super) fn is_fused_setter_target(self) -> bool {
         self.role == Role::Plain && is_fused_setter_target(self.node)
@@ -694,6 +700,9 @@ pub(super) struct Mixin<'a, 'tree> {
     pub(super) width: i64,
     /// `Layout/IndentationWidth`'s own `Width`, which prefix keywords add on top.
     pub(super) keyword_width: i64,
+    /// Which bare identifiers upstream's parser reads as local variables rather than as calls
+    /// without a receiver. The analysis is deferred until a chain actually asks.
+    locals: LocalVariables<'a>,
 }
 
 /// The tail `operation_description` appends to a message.
@@ -725,7 +734,17 @@ impl<'tree> Mixin<'_, 'tree> {
             context,
             width: cop_width.unwrap_or(keyword_width),
             keyword_width,
+            locals: LocalVariables::new(context),
         }
+    }
+
+    /// `Node#call_type?`, including the bare identifiers upstream's parser turns into a `send`
+    /// without a receiver. Only a name it has seen assigned in the enclosing scope is an `lvar`.
+    pub(super) fn call_type(&self, node: UpNode<'tree>) -> bool {
+        if node.kind(self.context).call_type() {
+            return true;
+        }
+        node.ts_kind() == "identifier" && !self.locals.is_lvar(node.raw())
     }
 
     /// `MultilineExpressionIndentation#left_hand_side`: in a chain of calls the top call is the
