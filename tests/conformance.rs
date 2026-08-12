@@ -638,6 +638,71 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 1, 4, 1)])
         .lengths(&[9])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyComment",
+            r#"
+            #
+            ^ Source code comment is empty.
+            class Foo
+            end
+            "#,
+        )
+        .id("layout_empty_comment")
+        .correctable(true),
+        CopCase::new(
+            "Layout/BlockEndNewline",
+            "blah do |i|\n  foo(i) end\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                10,
+                3,
+                "Expression at 2, 10 should be on its own line.",
+            )],
+        )
+        .id("layout_block_end_newline")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceInsideRangeLiteral",
+            r#"
+            x = 1 .. 3
+                ^^^^^^ Space inside range literal.
+            "#,
+        )
+        .id("layout_space_inside_range_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceAfterNot",
+            r#"
+            y = ! foo
+                ^^^^^ Do not leave space between `!` and its argument.
+            "#,
+        )
+        .id("layout_space_after_not")
+        .correctable(true),
+        CopCase::new(
+            "Layout/IndentationStyle",
+            "def x\n\ty = 1\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                1,
+                "Tab detected in indentation.",
+            )],
+        )
+        .id("layout_indentation_style")
+        .correctable(true),
+        CopCase::new(
+            "Layout/InitialIndentation",
+            "  x = 1\n  y = 2\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                3,
+                1,
+                "Indentation of first line in file detected.",
+            )],
+        )
+        .id("layout_initial_indentation")
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",

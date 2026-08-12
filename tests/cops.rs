@@ -11196,3 +11196,181 @@ mod preferred_hash_methods {
         .run();
     }
 }
+
+/// コメントとインデントの Layout cop。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_comments_and_indentation {
+    use super::*;
+
+    /// 連続する空コメントは 1 塊として判定され、説明を挟むと余白コメントになるので
+    /// どれも報告されない。行を占有するコメントは行ごと、行末のものは前後の空白ごと消える。
+    #[test]
+    fn empty_comment() {
+        const COP: &str = "Layout/EmptyComment";
+        CopCase::annotated(
+            COP,
+            r#"
+            #
+            ^ Source code comment is empty.
+            class Foo
+            end
+            "#,
+        )
+        .run();
+        expect_correction(COP, "#\nclass Foo\nend\n", "class Foo\nend\n");
+        // 余白コメントは既定で許され、罫線コメントも `#` 1 個ではないので対象外。
+        expect_no_offenses(COP, "#\n# Description of `Foo` class.\n#\nclass Foo\nend\n");
+        expect_no_offenses(COP, "def m\n  ###\nend\n");
+        CopCase::new(
+            COP,
+            "x = 1 # \n",
+            vec![Annotation::new(1, 7, 2, "Source code comment is empty.")],
+        )
+        .run();
+        expect_correction(COP, "x = 1 # \n", "x = 1\n");
+    }
+
+    /// `AllowBorderComment: false` にすると `#` の並びも空コメントになる。
+    #[test]
+    fn empty_comment_without_border_comments() {
+        CopCase::annotated(
+            "Layout/EmptyComment",
+            r#"
+            ###
+            ^^^ Source code comment is empty.
+            "#,
+        )
+        .config("Layout/EmptyComment:\n  AllowBorderComment: false\n")
+        .corrected("")
+        .run();
+    }
+
+    /// 閉じ括弧が行頭に無いときだけ報告する。直前がセミコロンなら見送る。
+    #[test]
+    fn block_end_newline() {
+        const COP: &str = "Layout/BlockEndNewline";
+        CopCase::new(
+            COP,
+            "blah do |i|\n  foo(i) end\n",
+            vec![Annotation::new(
+                2,
+                10,
+                3,
+                "Expression at 2, 10 should be on its own line.",
+            )],
+        )
+        .run();
+        expect_correction(
+            COP,
+            "blah do |i|\n  foo(i) end\n",
+            "blah do |i|\n  foo(i)\nend\n",
+        );
+        expect_correction(COP, "blah { |i|\n  foo(i) }\n", "blah { |i|\n  foo(i)\n}\n");
+        expect_no_offenses(COP, "blah do |i|\n  foo(i)\nend\n");
+        expect_no_offenses(COP, "blah { |i| foo(i) }\n");
+        // 最後の文の後ろがセミコロンなら本家は見送る。
+        expect_no_offenses(COP, "blah do |i|\n  foo(i); end\n");
+    }
+
+    /// 演算子の前後どちらの空白でも報告し、複数行のリテラルは 1 行に畳んでから測る。
+    #[test]
+    fn space_inside_range_literal() {
+        const COP: &str = "Layout/SpaceInsideRangeLiteral";
+        CopCase::annotated(
+            COP,
+            r#"
+            x = 1 .. 3
+                ^^^^^^ Space inside range literal.
+            "#,
+        )
+        .corrected("x = 1..3\n")
+        .run();
+        expect_correction(COP, "y = 'a' ...'z'\n", "y = 'a'...'z'\n");
+        expect_no_offenses(COP, "x = 1..3\n");
+        expect_no_offenses(COP, "x = 1...3\n");
+        // 条件に書いた範囲はフリップフロップで、範囲リテラルの cop は見に行かない。
+        expect_no_offenses(COP, "if a .. b\n  c\nend\n");
+        expect_no_offenses(COP, "d while e .. f\n");
+    }
+
+    #[test]
+    fn space_after_not() {
+        const COP: &str = "Layout/SpaceAfterNot";
+        CopCase::annotated(
+            COP,
+            r#"
+            y = ! foo
+                ^^^^^ Do not leave space between `!` and its argument.
+            "#,
+        )
+        .corrected("y = !foo\n")
+        .run();
+        expect_no_offenses(COP, "y = !foo\n");
+        expect_no_offenses(COP, "y = !(foo)\n");
+        expect_no_offenses(COP, "y = not foo\n");
+    }
+
+    /// 既定は spaces なので、行頭のタブを報告して空白へ直す。文字列リテラルの中は対象外だが、
+    /// ヒアドキュメントの終端行のインデントはコードとして数える。
+    #[test]
+    fn indentation_style() {
+        const COP: &str = "Layout/IndentationStyle";
+        CopCase::new(
+            COP,
+            "def x\n\ty = 1\nend\n",
+            vec![Annotation::new(2, 1, 1, "Tab detected in indentation.")],
+        )
+        .run();
+        expect_correction(COP, "def x\n\ty = 1\nend\n", "def x\n  y = 1\nend\n");
+        expect_no_offenses(COP, "def x\n  y = 1\nend\n");
+        expect_no_offenses(COP, "x = <<~X\n\thi\nX\n");
+        CopCase::new(
+            COP,
+            "x = <<~X\n  hi\n\tX\n",
+            vec![Annotation::new(3, 1, 1, "Tab detected in indentation.")],
+        )
+        .run();
+    }
+
+    /// tabs では行頭の空白の方が報告される。
+    #[test]
+    fn indentation_style_with_tabs() {
+        CopCase::annotated(
+            "Layout/IndentationStyle",
+            r#"
+            def x
+              y = 1
+            ^^ Space detected in indentation.
+            end
+            "#,
+        )
+        .config("Layout/IndentationStyle:\n  EnforcedStyle: tabs\n")
+        .corrected("def x\n\ty = 1\nend\n")
+        .run();
+    }
+
+    #[test]
+    fn initial_indentation() {
+        const COP: &str = "Layout/InitialIndentation";
+        CopCase::new(
+            COP,
+            "  x = 1\n  y = 2\n",
+            vec![Annotation::new(
+                1,
+                3,
+                1,
+                "Indentation of first line in file detected.",
+            )],
+        )
+        .run();
+        // `expect_correction` はソースを dedent するので、行頭の字下げそのものを見る
+        // このケースだけは `CopCase` を直に組む。
+        CopCase::new(COP, "  x = 1\n  y = 2\n", Vec::new())
+            .without_offense_check()
+            .corrected("x = 1\n  y = 2\n")
+            .run();
+        expect_no_offenses(COP, "x = 1\n  y = 2\n");
+        // 先頭のコメントはトークンとして数えないので、次の行の字下げが見られる。
+        expect_no_offenses(COP, "# c\nx = 1\n");
+    }
+}
