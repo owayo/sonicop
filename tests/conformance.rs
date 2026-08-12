@@ -1495,6 +1495,315 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_trailing_comma_in_attribute_declaration")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantWithIndex",
+            r#"
+            ary.each_with_index { |x| p x }
+                ^^^^^^^^^^^^^^^ Use `each` instead of `each_with_index`.
+            ary.each.with_index { |x| p x }
+                     ^^^^^^^^^^ Remove redundant `with_index`.
+            "#,
+        )
+        .id("lint_redundant_with_index")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantWithObject",
+            r#"
+            ary.each_with_object([]) { |x| p x }
+                ^^^^^^^^^^^^^^^^^^^^ Use `each` instead of `each_with_object`.
+            ary.each.with_object({}) { |x| p x }
+                     ^^^^^^^^^^^^^^^ Remove redundant `with_object`.
+            "#,
+        )
+        .id("lint_redundant_with_object")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RescueType",
+            r#"
+            begin
+              a
+            rescue nil
+            ^^^^^^^^^^ Rescuing from `nil` will raise a `TypeError` instead of catching the actual exception.
+              b
+            end
+            "#,
+        )
+        .id("lint_rescue_type")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RequireParentheses",
+            r#"
+            foo a && b ? 1 : 2
+            ^^^^^^^^^^ Use parentheses in the method call to avoid confusion about precedence.
+            "#,
+        )
+        .id("lint_require_parentheses")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RegexpAsCondition",
+            r#"
+            if /re/
+               ^^^^ Do not use regexp literal as a condition. The regexp literal matches `$_` implicitly.
+              p 1
+            end
+            "#,
+        )
+        .id("lint_regexp_as_condition")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyExpression",
+            r#"
+            a = ()
+                ^^ Avoid empty expressions.
+            "#,
+        )
+        .id("lint_empty_expression")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/CircularArgumentReference",
+            r#"
+            def foo(bar = bar)
+                          ^^^ Circular argument reference - `bar`.
+            end
+            "#,
+        )
+        .id("lint_circular_argument_reference")
+        .target_ruby("2.6")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantStringCoercion",
+            r##"
+            puts "#{foo.to_s}"
+                        ^^^^ Redundant use of `Object#to_s` in interpolation.
+            "##,
+        )
+        .id("lint_redundant_string_coercion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SendWithMixinArgument",
+            r#"
+            send(:include, Foo)
+            ^^^^^^^^^^^^^^^^^^^ Use `include Foo` instead of `send(:include, Foo)`.
+            "#,
+        )
+        .id("lint_send_with_mixin_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MultipleComparison",
+            r#"
+            p x < y < z
+              ^^^^^^^^^ Use the `&&` operator to compare multiple values.
+            "#,
+        )
+        .id("lint_multiple_comparison")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/FloatOutOfRange",
+            r#"
+            a = 1.0e400
+                ^^^^^^^ Float out of range.
+            "#,
+        )
+        .id("lint_float_out_of_range")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantRequireStatement",
+            r#"
+            require 'enumerator'
+            ^^^^^^^^^^^^^^^^^^^^ Remove unnecessary `require` statement.
+            "#,
+        )
+        .id("lint_redundant_require_statement")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/PercentStringArray",
+            r#"
+            a = %w[one, "two"]
+                ^^^^^^^^^^^^^^ Within `%w`/`%W`, quotes and ',' are unnecessary and may be unwanted in the resulting strings.
+            "#,
+        )
+        .id("lint_percent_string_array")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/PercentSymbolArray",
+            r#"
+            a = %i[:one, :two]
+                ^^^^^^^^^^^^^^ Within `%i`/`%I`, ':' and ',' are unnecessary and may be unwanted in the resulting symbols.
+            "#,
+        )
+        .id("lint_percent_symbol_array")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NestedPercentLiteral",
+            r#"
+            a = %w[%w[nested]]
+                ^^^^^^^^^^^^^^ Within percent literals, nested percent literals do not function and may be unwanted in the result.
+            "#,
+        )
+        .id("lint_nested_percent_literal")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OrderedMagicComments",
+            r#"
+            # frozen_string_literal: true
+            # encoding: ascii
+            ^^^^^^^^^^^^^^^^^ The encoding magic comment should precede all other magic comments.
+            "#,
+        )
+        .id("lint_ordered_magic_comments")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ElseLayout",
+            r#"
+            if something
+              foo
+            else bar
+                 ^^^ Odd `else` layout detected. Did you mean to use `elsif`?
+              baz
+            end
+            "#,
+        )
+        .id("lint_else_layout")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ImplicitStringConcatenation",
+            r#"
+            array = ["foo" "bar"]
+                     ^^^^^^^^^^^ Combine "foo" and "bar" into a single string literal, rather than using implicit string concatenation. Or, if they were intended to be separate array elements, separate them with a comma.
+            "#,
+        )
+        .id("lint_implicit_string_concatenation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NestedMethodDefinition",
+            r#"
+            def foo
+              def bar
+              ^^^^^^^ Method definitions must not be nested. Use `lambda` instead.
+              end
+            end
+            "#,
+        )
+        .id("lint_nested_method_definition")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessElseWithoutRescue",
+            r#"
+            begin
+              do_something
+            else
+            ^^^^ `else` without `rescue` is useless.
+              handle_errors
+            end
+            "#,
+        )
+        .id("lint_useless_else_without_rescue")
+        .target_ruby("2.5")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DeprecatedOpenSSLConstant",
+            r#"
+            OpenSSL::Cipher::AES.new(128, :GCM)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `OpenSSL::Cipher.new('aes-128-gcm')` instead of `OpenSSL::Cipher::AES.new(128, :GCM)`.
+            "#,
+        )
+        .id("lint_deprecated_open_ssl_constant")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/Debugger",
+            r#"
+            binding.pry
+            ^^^^^^^^^^^ Remove debugger entry point `binding.pry`.
+            "#,
+        )
+        .id("lint_debugger")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/SafeNavigationWithEmpty",
+            r#"
+            return if foo&.empty?
+                      ^^^^^^^^^^^ Avoid calling `empty?` with the safe navigation operator in conditionals.
+            "#,
+        )
+        .id("lint_safe_navigation_with_empty")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyConditionalBody",
+            r#"
+            if condition
+            ^^^^^^^^^^^^ Avoid `if` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_conditional_body")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessTimes",
+            r#"
+            1.times { |i| do_something(i) }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Useless call to `1.times` detected.
+            "#,
+        )
+        .id("lint_useless_times")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MixedRegexpCaptureTypes",
+            r#"
+            /(?<foo>bar)(baz)/
+            ^^^^^^^^^^^^^^^^^^ Do not mix named captures and numbered captures in a Regexp literal.
+            "#,
+        )
+        .id("lint_mixed_regexp_capture_types")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OutOfRangeRegexpRef",
+            r#"
+            "foo" =~ /(f)oo/
+            puts $2
+                 ^^ $2 is out of range (1 regexp capture group detected).
+            "#,
+        )
+        .id("lint_out_of_range_regexp_ref")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/FlipFlop",
+            r#"
+            if (1..2)
+                ^^^^ Avoid the use of flip-flop operators.
+              do_something
+            end
+            "#,
+        )
+        .id("lint_flip_flop")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
