@@ -8587,3 +8587,647 @@ mod raise_exception {
         expect_correction(COP, "raise ::Exception\n", "raise ::StandardError\n");
     }
 }
+/// `Style/EmptyMethod`: 空の定義は 1 行にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EmptyMethod` と `-A` の実測。
+mod empty_method {
+    use super::*;
+
+    const COP: &str = "Style/EmptyMethod";
+
+    #[test]
+    fn a_multiline_empty_definition_is_reported_whole() {
+        expect_offense(
+            COP,
+            r#"
+            def foo(bar)
+            ^^^^^^^^^^^^ Put empty method definitions on a single line.
+            end
+            "#,
+        );
+        expect_correction(COP, "def foo(bar)\nend\n", "def foo(bar); end\n");
+        expect_correction(COP, "def self.foo bar\nend\n", "def self.foo bar; end\n");
+        // 空の括弧は本家も落とす。
+        expect_correction(COP, "def foo()\nend\n", "def foo; end\n");
+    }
+
+    /// 本体を持つ定義と、`def` / `end` と同じ行にコメントがある定義は対象外。
+    /// `contains_comment?` は行で見るので、行末コメントも免除になる。
+    #[test]
+    fn a_body_or_a_comment_on_either_line_exempts_the_definition() {
+        expect_no_offenses(COP, "def foo; end\n");
+        expect_no_offenses(COP, "def foo\n  1\nend\n");
+        expect_no_offenses(COP, "def foo\n  # note\nend\n");
+        expect_no_offenses(COP, "def foo # note\nend\n");
+        expect_no_offenses(COP, "def foo\nend # note\n");
+        // `rescue` は本体なので空ではない。
+        expect_no_offenses(COP, "def foo\nrescue\nend\n");
+    }
+
+    /// `expanded` では逆に 1 行の定義を報告し、`end` を `def` の桁に置く。
+    #[test]
+    fn the_expanded_style_puts_the_end_on_its_own_line() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class Foo
+              def bar; end
+              ^^^^^^^^^^^^ Put the `end` of empty method definitions on the next line.
+            end
+            "#,
+        )
+        .config("Style/EmptyMethod:\n  EnforcedStyle: expanded\n")
+        .corrected("class Foo\n  def bar\n  end\nend\n")
+        .run();
+    }
+}
+
+/// `Style/NumericLiteralPrefix`: 基数の接頭辞は小文字、10 進数は接頭辞なし。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NumericLiteralPrefix` と `-A` の実測。
+mod numeric_literal_prefix {
+    use super::*;
+
+    const COP: &str = "Style/NumericLiteralPrefix";
+
+    #[test]
+    fn each_base_has_its_own_message() {
+        expect_offense(
+            COP,
+            r#"
+            a = 0O1234
+                ^^^^^^ Use 0o for octal literals.
+            "#,
+        );
+        expect_correction(COP, "a = 0X12AB\n", "a = 0x12AB\n");
+        expect_correction(COP, "a = 0B10101\n", "a = 0b10101\n");
+        expect_correction(COP, "a = 0D1234\n", "a = 1234\n");
+        expect_correction(COP, "a = 01234\n", "a = 0o1234\n");
+    }
+
+    /// `integer_part` は符号を落としてから `e` / `.` の手前で切る。符号付きは
+    /// 本家でも `sub` が効かず、報告だけで内容が変わらない。
+    #[test]
+    fn a_sign_is_part_of_the_literal_and_leaves_it_unchanged() {
+        expect_offense(
+            COP,
+            r#"
+            a = -0X1F
+                ^^^^^ Use 0x for hexadecimal literals.
+            "#,
+        );
+        // 補正は元と同じ文字列を書き戻すので、本家もここで無限ループを検出する。
+        // 突き合わせられるのは報告と correctable まで。
+        // 空白が挟まると `integer_part` が接頭辞に届かない。
+        expect_no_offenses(COP, "a = - 0X1F\n");
+        // `0XE1` は `E` で切られて `0X` になり、桁が残らない。
+        expect_no_offenses(COP, "a = 0XE1\n");
+        expect_no_offenses(COP, "a = 0Xab\n");
+        expect_no_offenses(COP, "a = 0X1_F\n");
+        expect_no_offenses(COP, "a = 0\n");
+        expect_no_offenses(COP, "a = 0o17\n");
+    }
+
+    /// `zero_only` では `0o` の側が報告される。
+    #[test]
+    fn the_zero_only_style_reverses_the_octal_rule() {
+        CopCase::annotated(
+            COP,
+            r#"
+            a = 0o1234
+                ^^^^^^ Use 0 for octal literals.
+            "#,
+        )
+        .config("Style/NumericLiteralPrefix:\n  EnforcedOctalStyle: zero_only\n")
+        .corrected("a = 01234\n")
+        .run();
+    }
+}
+
+/// `Style/PerlBackrefs`: `$1` ではなく `Regexp.last_match` を使う。
+///
+/// 期待値は本家 1.89.0 の `--only Style/PerlBackrefs` と `-A` の実測。
+mod perl_backrefs {
+    use super::*;
+
+    const COP: &str = "Style/PerlBackrefs";
+
+    #[test]
+    fn numbered_and_named_references_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            puts $1
+                 ^^ Prefer `Regexp.last_match(1)` over `$1`.
+            "#,
+        );
+        expect_correction(COP, "puts $&\n", "puts Regexp.last_match(0)\n");
+        expect_correction(COP, "puts $MATCH\n", "puts Regexp.last_match(0)\n");
+        expect_correction(COP, "puts $`\n", "puts Regexp.last_match.pre_match\n");
+        expect_correction(COP, "puts $'\n", "puts Regexp.last_match.post_match\n");
+        expect_correction(
+            COP,
+            "puts $POSTMATCH\n",
+            "puts Regexp.last_match.post_match\n",
+        );
+    }
+
+    /// `$+` は置き換え先が無いので対象外。ほかのグローバル変数も同じ。
+    #[test]
+    fn references_without_an_equivalent_are_left_alone() {
+        expect_no_offenses(COP, "puts $+\n");
+        expect_no_offenses(COP, "puts $LAST_PAREN_MATCH\n");
+        expect_no_offenses(COP, "puts $0\n");
+        expect_no_offenses(COP, "puts $stdout\n");
+    }
+
+    /// 波括弧なしの補間は補正で波括弧を補う。クラス／モジュールの中では
+    /// 定数を根から綴る。
+    #[test]
+    fn braces_and_the_root_prefix_are_supplied_by_the_correction() {
+        expect_correction(
+            COP,
+            "x = \"a#$1b\"\n",
+            "x = \"a#{Regexp.last_match(1)}b\"\n",
+        );
+        expect_correction(
+            COP,
+            "x = \"a#{$1}b\"\n",
+            "x = \"a#{Regexp.last_match(1)}b\"\n",
+        );
+        CopCase::annotated(
+            COP,
+            r#"
+            class Foo
+              def bar
+                $1
+                ^^ Prefer `::Regexp.last_match(1)` over `$1`.
+              end
+            end
+            "#,
+        )
+        .corrected("class Foo\n  def bar\n    ::Regexp.last_match(1)\n  end\nend\n")
+        .run();
+    }
+}
+
+/// `Style/StringConcatenation`: `+` での連結より補間。
+///
+/// 期待値は本家 1.89.0 の `--only Style/StringConcatenation` と `-A` の実測。
+mod string_concatenation {
+    use super::*;
+
+    const COP: &str = "Style/StringConcatenation";
+
+    #[test]
+    fn a_literal_on_either_side_is_reported_at_the_whole_chain() {
+        expect_offense(
+            COP,
+            r#"
+            a = 'x' + y + 'z'
+                ^^^^^^^^^^^^^ Prefer string interpolation to string concatenation.
+            "#,
+        );
+        expect_correction(COP, "a = 'x' + y\n", "a = \"x#{y}\"\n");
+        expect_correction(COP, "a = y + 'x'\n", "a = \"#{y}x\"\n");
+        expect_correction(COP, "a = ?a + y\n", "a = \"a#{y}\"\n");
+        expect_correction(COP, "a = 'x'.+(y)\n", "a = \"x#{y}\"\n");
+    }
+
+    /// 単引用符の中身は `\\` `\"` `#{` だけを逃がし、二重引用符の中身は
+    /// `inspect` で書き戻す。
+    #[test]
+    fn each_quoting_escapes_what_the_interpolation_would_read() {
+        expect_correction(
+            COP,
+            "a = 'has \"quotes\"' + y\n",
+            "a = \"has \\\"quotes\\\"#{y}\"\n",
+        );
+        expect_correction(
+            COP,
+            "a = 'interp #{x}' + y\n",
+            "a = \"interp \\#{x}#{y}\"\n",
+        );
+        // 補間の中の文字列はその値だけが残る。
+        expect_correction(COP, "a = 'x' + \"#{'q'}\"\n", "a = \"xq\"\n");
+        // `\xFF` は文字にならないバイトなので、`inspect` と同じく書かれた通りに戻す。
+        expect_correction(
+            COP,
+            "a = (bytes + \"\\xFF\").unpack('R')\n",
+            "a = (\"#{bytes}\\xFF\").unpack('R')\n",
+        );
+        // UTF-8 のソースでは、組み合わせて文字になるバイト列は文字として戻る。
+        expect_correction(COP, "x = \"\\xE5\\xBE\\x8C\" + y\n", "x = \"後#{y}\"\n");
+        // バイナリ宣言のあるソースでは 1 バイトが 1 文字なので、繋がらない。
+        expect_correction(
+            COP,
+            "# coding: ASCII-8BIT\nx = \"\\xE5\\xBE\\x8C\" + y\n",
+            "# coding: ASCII-8BIT\nx = \"\\xE5\\xBE\\x8C#{y}\"\n",
+        );
+    }
+
+    /// 1 行に収まらない文字列は `str` ではなく `dstr` なので対象外。行末の
+    /// `+` は `Style/LineEndConcatenation` の担当。
+    #[test]
+    fn a_literal_spread_over_lines_is_not_a_plain_string() {
+        expect_no_offenses(COP, "a = \"one\ntwo\" + b\n");
+        expect_no_offenses(COP, "a = 'x' +\n    'y'\n");
+        expect_no_offenses(COP, "a = \"a#{z}\" + y\n");
+        // 演算子に見えて演算ではない `return +\"\"`。
+        expect_no_offenses(COP, "def m\n  return +\"\"\nend\n");
+    }
+
+    /// ヒアドキュメントは補正できないが報告はされる。内側の連結は外側が
+    /// 直したあとなので、このパスでは補正しない。
+    #[test]
+    fn heredocs_and_already_corrected_ancestors_are_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            a = 'x' + <<~X
+                ^^^^^^^^^^ Prefer string interpolation to string concatenation.
+              body
+            X
+            "#,
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            a = ('x' + y) + 'z'
+                ^^^^^^^^^^^^^^^ Prefer string interpolation to string concatenation.
+                 ^^^^^^^ Prefer string interpolation to string concatenation.
+            "#,
+        )
+        .without_offense_check()
+        .corrected("a = \"#{\"x#{y}\"}z\"\n")
+        .run();
+    }
+}
+
+/// `Style/Lambda`: 1 行なら `->`、複数行なら `lambda`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Lambda` と `-A` の実測。
+mod lambda {
+    use super::*;
+
+    const COP: &str = "Style/Lambda";
+
+    #[test]
+    fn the_selector_alone_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            a = lambda { |x| x }
+                ^^^^^^ Use the `-> { ... }` lambda literal syntax for single line lambdas.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            a = ->(x) do
+                ^^ Use the `lambda` method for multiline lambdas.
+              x
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "a = ->(x) { x }\n");
+        expect_no_offenses(COP, "a = lambda do |x|\n  x\nend\n");
+        // 受け手がついた `lambda` は綴りが一致しないので対象外。
+        expect_no_offenses(COP, "a = Foo.lambda { |x| x }\n");
+    }
+
+    #[test]
+    fn the_method_form_becomes_a_literal_with_parenthesized_parameters() {
+        expect_correction(COP, "a = lambda { |x| x }\n", "a = ->(x) { x }\n");
+        expect_correction(COP, "a = lambda { 1 }\n", "a = -> { 1 }\n");
+        expect_correction(COP, "a = lambda { |x; y| x }\n", "a = ->(x; y) { x }\n");
+        // 引数のない `||` は引数無しと同じ扱い。
+        expect_correction(COP, "a = lambda { || 1 }\n", "a = -> { || 1 }\n");
+    }
+
+    #[test]
+    fn the_literal_form_moves_its_parameters_into_the_block() {
+        expect_correction(
+            COP,
+            "a = ->(x) do\n  x\nend\n",
+            "a = lambda do |x|\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "a = -> x do\n  x\nend\n",
+            "a = lambda do |x|\n  x\nend\n",
+        );
+        // `->do` と `->(x)do` は `lambdado` にならないよう空白を補う。
+        expect_correction(COP, "a = ->do\n  1\nend\n", "a = lambda do\n  1\nend\n");
+        expect_correction(
+            COP,
+            "a = ->(x)do\n  x\nend\n",
+            "a = lambda do |x|\n  x\nend\n",
+        );
+        expect_correction(COP, "a = ->() do\n  1\nend\n", "a = lambda do\n  1\nend\n");
+    }
+
+    /// 括弧なしの呼び出しの引数だったときだけ、`do ... end` を波括弧に替える。
+    #[test]
+    fn a_block_handed_to_an_unparenthesized_call_becomes_braces() {
+        expect_correction(
+            COP,
+            "foo ->(x) do\n  x\nend\n",
+            "foo lambda { |x|\n  x\n}\n",
+        );
+        expect_correction(
+            COP,
+            "foo(->(x) do\n  x\nend)\n",
+            "foo(lambda do |x|\n  x\nend)\n",
+        );
+        expect_correction(
+            COP,
+            "a = ->(x) do\n  x\nend.call\n",
+            "a = lambda do |x|\n  x\nend.call\n",
+        );
+    }
+}
+
+/// `Style/NumericPredicate`: `== 0` より `zero?`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NumericPredicate` と `-A` の実測。
+mod numeric_predicate {
+    use super::*;
+
+    const COP: &str = "Style/NumericPredicate";
+
+    #[test]
+    fn comparisons_against_zero_are_reported_either_way_round() {
+        expect_offense(
+            COP,
+            r#"
+            a = foo == 0
+                ^^^^^^^^ Use `foo.zero?` instead of `foo == 0`.
+            "#,
+        );
+        expect_correction(COP, "a = 0 > foo\n", "a = foo.negative?\n");
+        expect_correction(COP, "a = 0 < foo\n", "a = foo.positive?\n");
+        expect_correction(COP, "a = bar.baz > 0\n", "a = bar.baz.positive?\n");
+        // `-0` も `0` と同じ整数リテラル。
+        expect_correction(COP, "a = foo == -0\n", "a = foo.zero?\n");
+    }
+
+    /// 演算子呼び出しは括弧で包んでからでないと述語を繋げられない。
+    #[test]
+    fn an_operator_call_gains_parentheses() {
+        expect_correction(COP, "a = b + c == 0\n", "a = (b + c).zero?\n");
+        expect_correction(COP, "a = b[c] == 0\n", "a = (b[c]).zero?\n");
+        // 既に括弧のある呼び出しはそのまま。
+        expect_correction(COP, "a = b.+(c) == 0\n", "a = b.+(c).zero?\n");
+        expect_correction(COP, "a = (b + c) == 0\n", "a = (b + c).zero?\n");
+        expect_correction(COP, "a = -b == 0\n", "a = -b.zero?\n");
+    }
+
+    /// グローバル変数、`!=`、浮動小数点数は対象外。
+    #[test]
+    fn what_is_not_a_numeric_comparison() {
+        expect_no_offenses(COP, "a = $x == 0\n");
+        expect_no_offenses(COP, "a = 0 == $x\n");
+        expect_no_offenses(COP, "a = foo != 0\n");
+        expect_no_offenses(COP, "a = foo == 0.0\n");
+        expect_no_offenses(COP, "a = foo == 1\n");
+    }
+
+    /// `comparison` では逆に述語を比較へ書き戻す。`!` の下では括弧が要る。
+    #[test]
+    fn the_comparison_style_writes_the_predicate_back_out() {
+        CopCase::annotated(
+            COP,
+            r#"
+            a = foo.zero?
+                ^^^^^^^^^ Use `foo == 0` instead of `foo.zero?`.
+            "#,
+        )
+        .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+        .corrected("a = foo == 0\n")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            a = !foo.negative?
+                 ^^^^^^^^^^^^^ Use `(foo < 0)` instead of `foo.negative?`.
+            "#,
+        )
+        .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+        .corrected("a = !(foo < 0)\n")
+        .run();
+    }
+}
+/// `Style/RescueStandardError`: 既定では例外クラスを省いた `rescue` を報告する。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RescueStandardError` と `-A` の実測。
+mod rescue_standard_error {
+    use super::*;
+
+    const COP: &str = "Style/RescueStandardError";
+
+    #[test]
+    fn a_bare_rescue_is_reported_at_the_keyword() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              foo
+            rescue
+            ^^^^^^ Avoid rescuing without specifying an error class.
+              bar
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "begin\n  foo\nrescue\n  bar\nend\n",
+            "begin\n  foo\nrescue StandardError\n  bar\nend\n",
+        );
+        // 変数だけを受ける `rescue => e` もクラスを名指ししていない。
+        expect_correction(
+            COP,
+            "begin\n  foo\nrescue => e\n  bar\nend\n",
+            "begin\n  foo\nrescue StandardError => e\n  bar\nend\n",
+        );
+    }
+
+    /// 修飾子の `rescue` とクラスを名指しした `rescue` は対象外。
+    #[test]
+    fn a_modifier_or_a_named_class_is_left_alone() {
+        expect_no_offenses(COP, "x = foo rescue nil\n");
+        expect_no_offenses(COP, "begin\n  foo\nrescue Foo\n  bar\nend\n");
+        expect_no_offenses(COP, "begin\n  foo\nrescue StandardError\n  bar\nend\n");
+    }
+
+    /// `implicit` では逆に `StandardError` だけを名指しした `rescue` を報告する。
+    #[test]
+    fn the_implicit_style_takes_the_class_back_off() {
+        CopCase::annotated(
+            COP,
+            r#"
+            begin
+              foo
+            rescue StandardError
+            ^^^^^^^^^^^^^^^^^^^^ Omit the error class when rescuing `StandardError` by itself.
+              bar
+            end
+            "#,
+        )
+        .config("Style/RescueStandardError:\n  EnforcedStyle: implicit\n")
+        .corrected("begin\n  foo\nrescue\n  bar\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "begin\n  foo\nrescue StandardError, Foo\n  bar\nend\n",
+            vec![],
+        )
+        .config("Style/RescueStandardError:\n  EnforcedStyle: implicit\n")
+        .run();
+    }
+}
+
+/// `Style/HashAsLastArrayItem`: 配列の最後のハッシュは波括弧で包む。
+///
+/// 期待値は本家 1.89.0 の `--only Style/HashAsLastArrayItem` と `-A` の実測。
+mod hash_as_last_array_item {
+    use super::*;
+
+    const COP: &str = "Style/HashAsLastArrayItem";
+
+    #[test]
+    fn the_trailing_pairs_are_reported_as_one_hash() {
+        expect_offense(
+            COP,
+            r#"
+            a = [1, 2, one: 1, two: 2]
+                       ^^^^^^^^^^^^^^ Wrap hash in `{` and `}`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "a = [1, 2, one: 1, two: 2]\n",
+            "a = [1, 2, {one: 1, two: 2}]\n",
+        );
+        expect_correction(COP, "a = [one: 1]\n", "a = [{one: 1}]\n");
+    }
+
+    /// 直前の要素もハッシュなら、複数のハッシュが並ぶ配列とみなして触らない。
+    /// `**` で始まるハッシュ、角括弧でない配列も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "a = [1, 2, { one: 1 }]\n");
+        expect_no_offenses(COP, "a = [{ one: 1 }, { two: 2 }]\n");
+        expect_no_offenses(COP, "a = [1, { one: 1 }, two: 2]\n");
+        expect_no_offenses(COP, "a = [1, **opts]\n");
+        expect_no_offenses(COP, "a = %w[x y]\n");
+        expect_no_offenses(COP, "a = [1, {}]\n");
+    }
+
+    /// 配列と行が違うときは、波括弧を独立した行に置いて字下げを合わせる。
+    #[test]
+    fn a_hash_on_its_own_lines_gets_the_braces_on_theirs() {
+        expect_correction(
+            COP,
+            "a = [1,\n     one: 1,\n     two: 2]\n",
+            "a = [1,\n     {\n     one: 1,\n     two: 2\n     }]\n",
+        );
+    }
+
+    /// `no_braces` では逆に波括弧を落とし、続く読点も片付ける。
+    #[test]
+    fn the_no_braces_style_removes_them() {
+        CopCase::annotated(
+            COP,
+            r#"
+            a = [1, { one: 1 }]
+                    ^^^^^^^^^^ Omit the braces around the hash.
+            "#,
+        )
+        .config("Style/HashAsLastArrayItem:\n  EnforcedStyle: no_braces\n")
+        .corrected("a = [1,  one: 1 ]\n")
+        .run();
+    }
+}
+/// `Style/GlobalStdStream`: `STDOUT` ではなく `$stdout`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/GlobalStdStream` と `-A` の実測。
+mod global_std_stream {
+    use super::*;
+
+    const COP: &str = "Style/GlobalStdStream";
+
+    #[test]
+    fn the_three_streams_are_reported_bare_or_from_the_root() {
+        expect_offense(
+            COP,
+            r#"
+            STDOUT.puts 'a'
+            ^^^^^^ Use `$stdout` instead of `STDOUT`.
+            "#,
+        );
+        expect_correction(COP, "::STDERR.puts 'b'\n", "$stderr.puts 'b'\n");
+        expect_correction(COP, "STDIN.gets\n", "$stdin.gets\n");
+    }
+
+    /// 名前空間つきの定数は別物。`$stdout = STDOUT` はその代入そのものなので残す。
+    #[test]
+    fn a_qualified_constant_and_the_defining_assignment_are_left_alone() {
+        expect_no_offenses(COP, "Foo::STDOUT.puts 'c'\n");
+        expect_no_offenses(COP, "$stdout = STDOUT\n");
+        // 代入される側の定数は `casgn` で、`const` ノードにならない。
+        expect_no_offenses(COP, "STDOUT = io\n");
+        expect_no_offenses(COP, "STDERR = new_io file\n");
+        // 名前が食い違う代入と、根から綴った右辺は対象。
+        expect_correction(COP, "$stderr = STDOUT\n", "$stderr = $stdout\n");
+        expect_correction(COP, "$stdout = ::STDOUT\n", "$stdout = $stdout\n");
+    }
+}
+
+/// `Style/PreferredHashMethods`: 既定では `has_key?` より `key?`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/PreferredHashMethods` と `-A` の実測。
+mod preferred_hash_methods {
+    use super::*;
+
+    const COP: &str = "Style/PreferredHashMethods";
+
+    #[test]
+    fn the_verbose_predicates_are_reported_at_the_selector() {
+        expect_offense(
+            COP,
+            r#"
+            h.has_key?(:a)
+              ^^^^^^^^ Use `Hash#key?` instead of `Hash#has_key?`.
+            "#,
+        );
+        expect_correction(COP, "h.has_value?(1)\n", "h.value?(1)\n");
+        expect_correction(COP, "has_key? :a\n", "key? :a\n");
+        expect_correction(COP, "h&.has_key?(:a)\n", "h&.key?(:a)\n");
+    }
+
+    /// 引数がちょうど 1 つでなければ `Hash` の述語ではない。
+    #[test]
+    fn the_argument_count_has_to_be_one() {
+        expect_no_offenses(COP, "h.has_key?\n");
+        expect_no_offenses(COP, "h.has_key?(:a, :b)\n");
+        expect_no_offenses(COP, "h.key?(:a)\n");
+    }
+
+    /// `verbose` では逆向きになる。
+    #[test]
+    fn the_verbose_style_reverses_the_rule() {
+        CopCase::annotated(
+            COP,
+            r#"
+            h.key?(:a)
+              ^^^^ Use `Hash#has_key?` instead of `Hash#key?`.
+            "#,
+        )
+        .config("Style/PreferredHashMethods:\n  EnforcedStyle: verbose\n")
+        .corrected("h.has_key?(:a)\n")
+        .run();
+    }
+}

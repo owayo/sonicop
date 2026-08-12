@@ -186,25 +186,31 @@ pub(super) fn escape_string(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     let mut characters = value.chars().peekable();
     while let Some(character) = characters.next() {
-        match character {
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\t' => out.push_str("\\t"),
-            '\r' => out.push_str("\\r"),
-            '\x0c' => out.push_str("\\f"),
-            '\x0b' => out.push_str("\\v"),
-            '\x07' => out.push_str("\\a"),
-            '\x08' => out.push_str("\\b"),
-            '\x1b' => out.push_str("\\e"),
-            // `inspect` escapes a `#` only where it would open an interpolation.
-            '#' if matches!(characters.peek(), Some('{' | '$' | '@')) => out.push_str("\\#"),
-            character if character.is_control() => {
-                out.push_str(&format!("\\u{:04X}", character as u32));
-            }
-            character => out.push(character),
-        }
+        escape_character(character, characters.peek().copied(), &mut out);
     }
     out
+}
+
+/// One character of `escape_string`, which needs to see the one after it to know whether a `#`
+/// would have opened an interpolation.
+fn escape_character(character: char, following: Option<char>, out: &mut String) {
+    match character {
+        '\\' => out.push_str("\\\\"),
+        '\n' => out.push_str("\\n"),
+        '\t' => out.push_str("\\t"),
+        '\r' => out.push_str("\\r"),
+        '\x0c' => out.push_str("\\f"),
+        '\x0b' => out.push_str("\\v"),
+        '\x07' => out.push_str("\\a"),
+        '\x08' => out.push_str("\\b"),
+        '\x1b' => out.push_str("\\e"),
+        // `inspect` escapes a `#` only where it would open an interpolation.
+        '#' if matches!(following, Some('{' | '$' | '@')) => out.push_str("\\#"),
+        character if character.is_control() => {
+            out.push_str(&format!("\\u{:04X}", character as u32));
+        }
+        character => out.push(character),
+    }
 }
 
 /// `double_quotes_required?`: the escaped form holds a single quote, or a backslash standing alone.
@@ -246,8 +252,68 @@ pub(super) fn to_string_literal(value: &str) -> String {
 }
 
 /// `string.inspect` without its quotes, which is `escape_string` with the double quotes escaped.
-fn inspect_body(value: &str) -> String {
+pub(super) fn inspect_body(value: &str) -> String {
     escape_string(value).replace('"', "\\\"")
+}
+
+/// The value of a literal body as the bytes the parser put in the string.
+///
+/// A `\xFF` escape names a byte no character stands for, so a cop that writes the value back out
+/// has to keep the bytes rather than the lossy text [`decode`] hands it.
+pub(super) fn decode_raw(body: &str, quoting: Quoting, delimiters: &[char]) -> Vec<u8> {
+    decode_bytes(body, quoting, delimiters)
+}
+
+/// `string.inspect` without its quotes, for a value that is not text throughout: `inspect` spells
+/// a byte UTF-8 has no character for as `\xNN`.
+///
+/// `binary` is whether the source declared itself to hold bytes rather than text. Every byte above
+/// ASCII is its own character there, so none of them join into the character their UTF-8 spells.
+pub(super) fn inspect_bytes(bytes: &[u8], binary: bool) -> String {
+    let mut out = String::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        // A byte string has no code points, so `inspect` writes anything it cannot print as the
+        // byte it is rather than as the `\uNNNN` a text string would name.
+        if binary && !(0x20..0x7f).contains(&bytes[index]) && !NAMED_ESCAPE.contains(&bytes[index])
+        {
+            out.push_str(&format!("\\x{:02X}", bytes[index]));
+            index += 1;
+            continue;
+        }
+        match next_character(bytes, index).filter(|_| !binary || bytes[index] < 0x80) {
+            Some((character, width)) => {
+                let following = next_character(bytes, index + width).map(|(next, _)| next);
+                escape_character(character, following, &mut out);
+                index += width;
+            }
+            None => {
+                out.push_str(&format!("\\x{:02X}", bytes[index]));
+                index += 1;
+            }
+        }
+    }
+    out.replace('"', "\\\"")
+}
+
+/// The control characters `inspect` has a name for, which it uses in a byte string too.
+const NAMED_ESCAPE: &[u8] = &[b'\n', b'\t', b'\r', 0x0c, 0x0b, 0x07, 0x08, 0x1b];
+
+/// The character starting at `index`, and how many bytes it took, when the bytes there are one.
+fn next_character(bytes: &[u8], index: usize) -> Option<(char, usize)> {
+    let rest = bytes.get(index..)?;
+    let width = match rest.first()? {
+        0x00..=0x7f => 1,
+        0xc0..=0xdf => 2,
+        0xe0..=0xef => 3,
+        0xf0..=0xf7 => 4,
+        _ => return None,
+    };
+    let character = std::str::from_utf8(rest.get(..width)?)
+        .ok()?
+        .chars()
+        .next()?;
+    Some((character, width))
 }
 
 /// `to_symbol_literal`: a name the parser reads back as this symbol.
