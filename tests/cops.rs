@@ -996,6 +996,231 @@ mod lint {
             "attr_accessor :foo\ndef bar\nend\n",
         );
     }
+
+    /// ブロックの引数は 0 個か 1 個まで。numblock の arity は `_1` だけのときに 1 で、
+    /// `_2` まで読むと 2 になり当たらない。
+    #[test]
+    fn redundant_with_index_counts_the_block_parameters() {
+        expect_no_offenses(
+            "Lint/RedundantWithIndex",
+            "ary.each_with_index { |x, i| p x }\nary.each_with_index { _1 + _2 }\n",
+        );
+        expect_correction(
+            "Lint/RedundantWithIndex",
+            "ary.each_with_index { _1 }\n",
+            "ary.each { _1 }\n",
+        );
+    }
+
+    /// `with_index` はレシーバ自身がレシーバを持つ呼び出しのときだけ冗長になる。
+    #[test]
+    fn redundant_with_index_needs_a_chained_receiver() {
+        expect_no_offenses("Lint/RedundantWithIndex", "foo.with_index { |x| p x }\n");
+        expect_correction(
+            "Lint/RedundantWithIndex",
+            "bar.each.with_index { |x| p x }\n",
+            "bar.each { |x| p x }\n",
+        );
+    }
+
+    /// `each_with_object` は引数 1 個・ブロック引数 1 個のときだけ。
+    #[test]
+    fn redundant_with_object_needs_one_plain_parameter() {
+        expect_no_offenses(
+            "Lint/RedundantWithObject",
+            "ary.each_with_object([]) { |x, h| p x }\n",
+        );
+        expect_correction(
+            "Lint/RedundantWithObject",
+            "ary.each.with_object({}) { |x| p x }\n",
+            "ary.each { |x| p x }\n",
+        );
+    }
+
+    /// 補正は `rescue` の後ろを有効な例外だけで置き換える。全部無効なら空になる。
+    #[test]
+    fn rescue_type_keeps_the_valid_exceptions() {
+        expect_correction(
+            "Lint/RescueType",
+            "begin\n  a\nrescue Foo, 'str', Bar\n  b\nrescue nil\n  c\nend\n",
+            "begin\n  a\nrescue Foo, Bar\n  b\nrescue\n  c\nend\n",
+        );
+    }
+
+    /// 三項演算子の条件が `&&` / `||` / `and` / `or` のときだけ。
+    #[test]
+    fn require_parentheses_needs_an_operator_keyword() {
+        expect_no_offenses(
+            "Lint/RequireParentheses",
+            "foo a ? 1 : 2\nfoo?(a && b)\nfoo? a\n",
+        );
+    }
+
+    /// 条件の位置でなければ `match_current_line` にならないので当たらない。
+    #[test]
+    fn regexp_as_condition_needs_a_condition_position() {
+        expect_no_offenses("Lint/RegexpAsCondition", "x = /re/\n!/re2/\n");
+        expect_correction(
+            "Lint/RegexpAsCondition",
+            "if /re/\n  p 1\nend\n",
+            "if /re/ =~ $_\n  p 1\nend\n",
+        );
+    }
+
+    /// `on_begin` は `begin ... end` (kwbegin) には来ない。
+    #[test]
+    fn empty_expression_ignores_begin_end() {
+        expect_no_offenses("Lint/EmptyExpression", "begin\nend\n");
+    }
+
+    /// 既定値が引数自身を読むときだけ。別の名前なら当たらない。
+    #[test]
+    fn circular_argument_reference_needs_the_same_name() {
+        expect_no_offenses(
+            "Lint/CircularArgumentReference",
+            "def foo(bar = baz)\nend\ndef qux(a: b)\nend\n",
+        );
+    }
+
+    /// 引数付きの `to_s` は冗長ではない。レシーバが無いときは `self` に置き換える。
+    #[test]
+    fn redundant_string_coercion_needs_a_bare_to_s() {
+        expect_no_offenses("Lint/RedundantStringCoercion", "puts 1.to_s(2)\n");
+        expect_correction("Lint/RedundantStringCoercion", "warn to_s\n", "warn self\n");
+    }
+
+    /// 混ぜ込む対象は定数でなければならない。
+    #[test]
+    fn send_with_mixin_argument_needs_constant_arguments() {
+        expect_no_offenses(
+            "Lint/SendWithMixinArgument",
+            "send(:include, foo)\nsend(:puts, Foo)\n",
+        );
+        expect_correction(
+            "Lint/SendWithMixinArgument",
+            "Klass.public_send('prepend', A::B)\n",
+            "Klass.prepend A::B\n",
+        );
+    }
+
+    /// 集合演算子で繋いだ比較は連鎖比較ではない。
+    #[test]
+    fn multiple_comparison_allows_set_operations() {
+        expect_no_offenses("Lint/MultipleComparison", "p 1 >= 2 & 3 < 4\n");
+        expect_correction(
+            "Lint/MultipleComparison",
+            "p x < y < z\n",
+            "p x < y && y < z\n",
+        );
+    }
+
+    /// 符号は本家のパーサがリテラルへ畳み込むので、レンジは符号から始まる。
+    #[test]
+    fn float_out_of_range_reports_the_folded_sign() {
+        expect_offense(
+            "Lint/FloatOutOfRange",
+            "a = -1.0e400\n    ^^^^^^^^ Float out of range.\n",
+        );
+        expect_no_offenses("Lint/FloatOutOfRange", "a = 0.0\nb = 1.0\n");
+    }
+
+    /// 対象の版で既に読み込まれている機能だけ。`set` は 3.2 から。
+    #[test]
+    fn redundant_require_statement_follows_the_target_version() {
+        expect_no_offenses(
+            "Lint/RedundantRequireStatement",
+            "require 'set'\nrequire 'json'\n",
+        );
+        expect_correction(
+            "Lint/RedundantRequireStatement",
+            "require 'enumerator'\nputs 1\n",
+            "puts 1\n",
+        );
+    }
+
+    /// 英数字を持たない語は意図的な記号とみなして数えない。
+    #[test]
+    fn percent_string_array_skips_punctuation_only_words() {
+        expect_no_offenses("Lint/PercentStringArray", "a = %w[' \"]\n");
+        expect_correction(
+            "Lint/PercentStringArray",
+            "a = %w[one, \"two\"]\n",
+            "a = %w[one two]\n",
+        );
+    }
+
+    #[test]
+    fn percent_symbol_array_removes_the_punctuation() {
+        expect_no_offenses("Lint/PercentSymbolArray", "a = %i[one two]\n");
+        expect_correction(
+            "Lint/PercentSymbolArray",
+            "a = %i[:one, :two]\n",
+            "a = %i[one two]\n",
+        );
+    }
+
+    /// 接頭辞のあとに区切り文字が続くときだけ入れ子とみなす。
+    #[test]
+    fn nested_percent_literal_needs_a_delimiter_after_the_prefix() {
+        expect_no_offenses("Lint/NestedPercentLiteral", "a = %w[%s]\nb = %w[%foo]\n");
+    }
+
+    /// エンコーディングが先頭にあれば正しい順序。
+    #[test]
+    fn ordered_magic_comments_accepts_the_encoding_first() {
+        expect_no_offenses(
+            "Lint/OrderedMagicComments",
+            "# encoding: ascii\n# frozen_string_literal: true\nputs 1\n",
+        );
+        expect_correction(
+            "Lint/OrderedMagicComments",
+            "# frozen_string_literal: true\n# encoding: ascii\nputs 1\n",
+            "# encoding: ascii\n# frozen_string_literal: true\nputs 1\n",
+        );
+    }
+
+    /// `then` を書いた `if` の `else` は、本体が 2 文以上のときだけ odd になる。
+    #[test]
+    fn else_layout_ignores_a_single_statement_after_then() {
+        expect_no_offenses("Lint/ElseLayout", "if x\nthen y\nelse foo(1,\n  2)\nend\n");
+        expect_correction(
+            "Lint/ElseLayout",
+            "if x\n  y\nelse z\n  w\nend\n",
+            "if x\n  y\nelse\n  z\n  w\nend\n",
+        );
+    }
+
+    /// `"..."%[...]` は書式演算子で、隣接した文字列リテラルではない。
+    #[test]
+    fn implicit_string_concatenation_ignores_the_format_operator() {
+        expect_no_offenses(
+            "Lint/ImplicitStringConcatenation",
+            "puts \"%3d %s\"%[1, 2]\n",
+        );
+        expect_correction(
+            "Lint/ImplicitStringConcatenation",
+            "y = \"g\" \"h\"\n",
+            "y = \"g\" + \"h\"\n",
+        );
+    }
+
+    /// クラスを組み立てるブロックや `instance_eval` は自前のスコープを開く。
+    #[test]
+    fn nested_method_definition_allows_scoping_blocks() {
+        expect_no_offenses(
+            "Lint/NestedMethodDefinition",
+            "def foo\n  Class.new do\n    def bar; end\n  end\n  instance_eval do\n    def baz; end\n  end\nend\n",
+        );
+    }
+
+    /// 2.6 以降は構文エラーになるので、cop 自体が組み立てられない。
+    #[test]
+    fn useless_else_without_rescue_is_off_for_newer_rubies() {
+        expect_no_offenses(
+            "Lint/UselessElseWithoutRescue",
+            "begin\n  do_something\nelse\n  handle\nend\n",
+        );
+    }
 }
 
 mod metrics {

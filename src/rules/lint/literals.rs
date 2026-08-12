@@ -101,3 +101,82 @@ fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 pub(super) fn is_constant(node: Node<'_>) -> bool {
     matches!(node.kind(), "constant" | "scope_resolution")
 }
+
+/// The name upstream's parser gives a literal node, for the cops whose pattern lists types.
+///
+/// Only literals answer: a pattern that names `{str dstr sym}` never asks about a node type it did
+/// not list, so everything else is `None` rather than a name of its own. The three pairs the
+/// grammar spells with one node each -- `str`/`dstr`, `sym`/`dsym`, `irange`/`erange` -- are told
+/// apart here, since a cop that lists one of a pair and not the other depends on the difference.
+pub(super) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
+    Some(match node.kind() {
+        "integer" => "int",
+        "float" => "float",
+        "rational" => "rational",
+        "complex" => "complex",
+        "true" => "true",
+        "false" => "false",
+        "nil" => "nil",
+        // `?a` and the words of a `%w` list are one-line strings that cannot interpolate.
+        "character" | "bare_string" => "str",
+        // Adjacent literals are concatenated by the parser into one `dstr` of their parts.
+        "chained_string" => "dstr",
+        "string" => string_type(node, context),
+        "heredoc_beginning" => heredoc_type(node, context),
+        "simple_symbol" | "hash_key_symbol" | "bare_symbol" => "sym",
+        "delimited_symbol" => {
+            if has_interpolation(node) {
+                "dsym"
+            } else {
+                "sym"
+            }
+        }
+        "subshell" => "xstr",
+        "array" | "string_array" | "symbol_array" => "array",
+        "hash" => "hash",
+        "regex" => "regexp",
+        "range" => range_type(node, context),
+        _ => return None,
+    })
+}
+
+/// `str` or `dstr`. The lexer ends a fragment at every newline the literal *holds*, so a literal
+/// written over two lines is a `dstr` of two parts -- unless the newline was escaped, which makes
+/// it part of the escape rather than of the text.
+fn string_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
+    if has_interpolation(node) {
+        return "dstr";
+    }
+    let mut cursor = node.walk();
+    let broken = node
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "string_content")
+        .any(|child| context.source.node_text(child).contains('\n'));
+    if broken { "dstr" } else { "str" }
+}
+
+/// A heredoc is a `str` only when its body is exactly one fragment: an empty body is a `dstr` of
+/// nothing and a two-line body a `dstr` of two parts.
+fn heredoc_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
+    let Some(body) = crate::rules::send_node::heredoc_body(node, context) else {
+        return "dstr";
+    };
+    if has_interpolation(body) {
+        return "dstr";
+    }
+    let mut cursor = body.walk();
+    let lines: usize = body
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "heredoc_content")
+        .map(|child| context.source.node_text(child).matches('\n').count())
+        .sum();
+    if lines == 1 { "str" } else { "dstr" }
+}
+
+/// `irange` or `erange`, which the grammar spells with one node and an operator.
+fn range_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
+    let exclusive = node
+        .child_by_field_name("operator")
+        .is_some_and(|operator| context.source.node_text(operator) == "...");
+    if exclusive { "erange" } else { "irange" }
+}

@@ -2,10 +2,14 @@
 /// modifier, what a `rescue` clause covers, whether a bare name reads a local variable, and
 /// RuboCop's local variable tracking.
 mod access_modifier;
+mod blocks;
 mod flow;
 mod literals;
 mod locals;
 mod node_equality;
+mod parameters;
+mod percent_literal;
+mod ranges;
 mod rescue_clause;
 mod statements;
 mod variable_force;
@@ -17,6 +21,7 @@ department_rules! {
     big_decimal_new => ("BigDecimalNew", Warning),
     binary_operator_with_identical_operands => ("BinaryOperatorWithIdenticalOperands", Warning),
     boolean_symbol => ("BooleanSymbol", Warning),
+    circular_argument_reference => ("CircularArgumentReference", Warning),
     constant_definition_in_block => ("ConstantDefinitionInBlock", Warning),
     deprecated_class_methods => ("DeprecatedClassMethods", Warning),
     disjunctive_assignment_in_constructor => ("DisjunctiveAssignmentInConstructor", Warning),
@@ -27,28 +32,46 @@ department_rules! {
     duplicate_require => ("DuplicateRequire", Warning),
     duplicate_rescue_exception => ("DuplicateRescueException", Warning),
     each_with_object_argument => ("EachWithObjectArgument", Warning),
+    else_layout => ("ElseLayout", Warning),
     empty_ensure => ("EmptyEnsure", Warning),
+    empty_expression => ("EmptyExpression", Warning),
     empty_file => ("EmptyFile", Warning),
     empty_interpolation => ("EmptyInterpolation", Warning),
     empty_when => ("EmptyWhen", Warning),
     ensure_return => ("EnsureReturn", Warning),
     float_comparison => ("FloatComparison", Warning),
+    float_out_of_range => ("FloatOutOfRange", Warning),
     hash_compare_by_identity => ("HashCompareByIdentity", Warning),
     identity_comparison => ("IdentityComparison", Warning),
+    implicit_string_concatenation => ("ImplicitStringConcatenation", Warning),
     ineffective_access_modifier => ("IneffectiveAccessModifier", Warning),
     inherit_exception => ("InheritException", Warning),
     interpolation_check => ("InterpolationCheck", Warning),
     literal_in_interpolation => ("LiteralInInterpolation", Warning),
     r#loop => ("Loop", Warning),
     missing_super => ("MissingSuper", Warning),
+    multiple_comparison => ("MultipleComparison", Warning),
+    nested_method_definition => ("NestedMethodDefinition", Warning),
+    nested_percent_literal => ("NestedPercentLiteral", Warning),
     next_without_accumulator => ("NextWithoutAccumulator", Warning),
     non_local_exit_from_iterator => ("NonLocalExitFromIterator", Warning),
+    ordered_magic_comments => ("OrderedMagicComments", Warning),
     parentheses_as_grouped_expression => ("ParenthesesAsGroupedExpression", Warning),
+    percent_string_array => ("PercentStringArray", Warning),
+    percent_symbol_array => ("PercentSymbolArray", Warning),
     raise_exception => ("RaiseException", Warning),
     rand_one => ("RandOne", Warning),
+    redundant_require_statement => ("RedundantRequireStatement", Warning),
+    redundant_string_coercion => ("RedundantStringCoercion", Warning),
+    redundant_with_index => ("RedundantWithIndex", Warning),
+    redundant_with_object => ("RedundantWithObject", Warning),
+    regexp_as_condition => ("RegexpAsCondition", Warning),
+    require_parentheses => ("RequireParentheses", Warning),
     rescue_exception => ("RescueException", Warning),
+    rescue_type => ("RescueType", Warning),
     return_in_void_context => ("ReturnInVoidContext", Warning),
     self_assignment => ("SelfAssignment", Warning),
+    send_with_mixin_argument => ("SendWithMixinArgument", Warning),
     struct_new_override => ("StructNewOverride", Warning),
     suppressed_exception => ("SuppressedException", Warning),
     syntax => ("Syntax", Fatal),
@@ -65,5 +88,6 @@ department_rules! {
     uri_regexp => ("UriRegexp", Warning),
     useless_access_modifier => ("UselessAccessModifier", Warning),
     useless_assignment => ("UselessAssignment", Warning),
+    useless_else_without_rescue => ("UselessElseWithoutRescue", Warning),
     useless_method_definition => ("UselessMethodDefinition", Warning),
 }
