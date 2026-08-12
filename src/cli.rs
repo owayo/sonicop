@@ -402,6 +402,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         safe_only: cli.safe,
         ignore_disable_comments: cli.ignore_disable_comments,
         display_suppressed: cli.display_suppressed,
+        correcting: cli.correct_mode() != CorrectMode::None,
     };
     let correct_mode = cli.correct_mode();
 

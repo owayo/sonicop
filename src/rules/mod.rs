@@ -105,6 +105,8 @@ pub(crate) struct RuleContext<'a> {
     rule: &'static Rule,
     /// `rule.severity` unless the configuration overrode it for this cop.
     severity: Severity,
+    /// RuboCop's `autocorrect?`. See [`crate::engine::Selection::correcting`].
+    correcting: bool,
 }
 
 impl<'a> RuleContext<'a> {
@@ -114,6 +116,7 @@ impl<'a> RuleContext<'a> {
         config: &'a Config,
         rule: &'static Rule,
         severity: Severity,
+        correcting: bool,
     ) -> Self {
         Self {
             source,
@@ -121,11 +124,19 @@ impl<'a> RuleContext<'a> {
             config,
             rule,
             severity,
+            correcting,
         }
     }
 }
 
 impl RuleContext<'_> {
+    /// RuboCop's `autocorrect?`: whether this run was asked to rewrite the file. A cop only needs
+    /// this to decide something it cannot decide from the source, which is rare -- normally a cop
+    /// attaches its edits and lets the engine decide whether to apply them.
+    pub fn correcting(&self) -> bool {
+        self.correcting
+    }
+
     /// One of the cop's own configuration parameters, such as `Max` or `EnforcedStyle`.
     pub fn setting<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
         self.config.cop_value(self.rule.name, key)

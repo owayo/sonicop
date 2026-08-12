@@ -37,6 +37,13 @@ pub struct Selection {
     pub safe_only: bool,
     pub ignore_disable_comments: bool,
     pub display_suppressed: bool,
+    /// Whether the run was asked to correct, which a handful of cops branch on themselves.
+    ///
+    /// RuboCop exposes this to cops as `autocorrect?`, and `Layout/IndentationWidth` is the one
+    /// that needs it here: it withholds the corrector from an offense nested inside one it already
+    /// reported, since two overlapping shifts would corrupt the text. Without a correction pass
+    /// there is nothing to corrupt, so it does not withhold, and the offense stays correctable.
+    pub correcting: bool,
 }
 
 /// RuboCop refuses to let syntax checking be turned off, so the cop stays on no matter how it is
@@ -184,7 +191,14 @@ fn inspect_planned(
         .find(|planned| planned.rule.name == syntax_rule.name)
         .map_or(syntax_rule.severity, |planned| planned.severity);
     (syntax_rule.check)(
-        &RuleContext::new(&source, &ast, config, syntax_rule, syntax_severity),
+        &RuleContext::new(
+            &source,
+            &ast,
+            config,
+            syntax_rule,
+            syntax_severity,
+            selection.correcting,
+        ),
         &mut syntax_offenses,
     );
     let valid_syntax = syntax_offenses.is_empty();
@@ -205,7 +219,14 @@ fn inspect_planned(
         if !valid_syntax {
             continue;
         }
-        let context = RuleContext::new(&source, &ast, config, rule, planned.severity);
+        let context = RuleContext::new(
+            &source,
+            &ast,
+            config,
+            rule,
+            planned.severity,
+            selection.correcting,
+        );
         let start = offenses.len();
         (rule.check)(&context, &mut offenses);
         // The cop's name comes from the registry through `RuleContext`, so a mismatch here means

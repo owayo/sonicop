@@ -203,7 +203,7 @@ impl CopCase {
             divergences.extend(divergence::classify(&expected, &actual));
         }
         divergences.extend(self.uniform_field_divergences(&report));
-        divergences.extend(self.correction_divergences(&report));
+        divergences.extend(self.correction_divergences());
 
         Verification {
             rendered_expected: annotation::render(&self.source, &expected),
@@ -239,8 +239,16 @@ impl CopCase {
     }
 
     fn selection(&self) -> Selection {
+        self.selection_for(false)
+    }
+
+    /// `correcting` は本家の `autocorrect?` で、cop がそれ自身で分岐に使う。検査だけの
+    /// 実行と `-a` / `-A` の実行では偽と真になるので、offense の突き合わせと autocorrect
+    /// の突き合わせは別々の値で検査し直す必要がある。
+    fn selection_for(&self, correcting: bool) -> Selection {
         Selection {
             only: self.only.clone(),
+            correcting,
             ..Selection::default()
         }
     }
@@ -384,18 +392,21 @@ impl CopCase {
         divergences
     }
 
-    fn correction_divergences(&self, report: &FileReport) -> Vec<Divergence> {
+    fn correction_divergences(&self) -> Vec<Divergence> {
         let Some(expected) = &self.corrected else {
             return Vec::new();
         };
         let config = self.resolved_config();
-        let (_, corrected, _) = engine::correct_until_stable(
-            report.clone(),
-            self.correct_mode,
-            &config,
-            &self.selection(),
-        )
-        .unwrap_or_else(|error| panic!("{}: autocorrect が失敗した: {error:#}", self.label()));
+        // The report handed in came from an inspection that was not correcting, so the cops that
+        // branch on `autocorrect?` took the other path. Re-inspect before correcting.
+        let selection = self.selection_for(self.correct_mode != CorrectMode::None);
+        let report = engine::inspect_source(&self.path, self.source.clone(), &config, &selection)
+            .unwrap_or_else(|error| panic!("{}: 検査に失敗した: {error:#}", self.label()));
+        let (_, corrected, _) =
+            engine::correct_until_stable(report, self.correct_mode, &config, &selection)
+                .unwrap_or_else(|error| {
+                    panic!("{}: autocorrect が失敗した: {error:#}", self.label())
+                });
         match corrected == *expected {
             true => Vec::new(),
             false => vec![Divergence::new(Kind::Correction, expected, &corrected)],

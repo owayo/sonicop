@@ -34,6 +34,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             == Some("def"),
         reported: HashSet::new(),
         ignored: HashSet::new(),
+        corrected_ranges: Vec::new(),
     };
     // A pre-order walk reproduces the order upstream's commissioner calls the handlers in, which
     // is what decides who claims a body first and which offense a duplicate range belongs to.
@@ -54,6 +55,15 @@ struct Checker<'a, 'b> {
     reported: HashSet<(usize, usize)>,
     /// Definitions a `private def foo` already claimed, which `on_def` then leaves alone.
     ignored: HashSet<usize>,
+    /// `other_offense_in_same_range?`: the spans this cop has already handed a corrector.
+    ///
+    /// A correction here shifts every line the node spans, so two of them nested inside one
+    /// another would shift the inner lines twice and corrupt the file. Upstream drops the
+    /// corrector of the inner offense; the outer shift then makes it report again on the next
+    /// pass, where it is no longer nested. The list is only kept while correcting, since
+    /// upstream's `autocorrect? && other_offense_in_same_range?` never reaches the call
+    /// otherwise -- an inspection that corrects nothing leaves every offense correctable.
+    corrected_ranges: Vec<(usize, usize)>,
 }
 
 impl Checker<'_, '_> {
@@ -405,7 +415,8 @@ impl Checker<'_, '_> {
             self.width
         );
         let mut offense = self.context.offense(message, range);
-        if !holds_block_comment(self.context, &target) {
+        if !self.other_offense_in_same_range(&target) && !holds_block_comment(self.context, &target)
+        {
             let taboo = string_interiors(self.context, &target);
             offense = offense.corrected_by_all(alignment_corrections(
                 self.context,
@@ -415,6 +426,23 @@ impl Checker<'_, '_> {
             ));
         }
         offenses.push(offense);
+    }
+
+    /// Whether an offense already corrected covers `target`, recording it when none does. See
+    /// [`Checker::corrected_ranges`].
+    fn other_offense_in_same_range(&mut self, target: &Range<usize>) -> bool {
+        if !self.context.correcting() {
+            return false;
+        }
+        if self
+            .corrected_ranges
+            .iter()
+            .any(|(start, end)| target.start >= *start && target.end <= *end)
+        {
+            return true;
+        }
+        self.corrected_ranges.push((target.start, target.end));
+        false
     }
 
     fn begins_its_line(&self, offset: usize) -> bool {

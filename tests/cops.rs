@@ -7622,6 +7622,92 @@ mod layout_indentation {
     const CONSISTENCY: &str = "Layout/IndentationConsistency";
     const INCONSISTENT: &str = "Inconsistent indentation detected.";
 
+    /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
+    /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
+    /// ずれが効いた次のパスで入れ子でなくなってから直す
+    /// (`other_offense_in_same_range?`)。検出だけなら記録もしないので、offense は
+    /// 全部 correctable のまま残る。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn a_nested_offense_waits_for_the_pass_after_the_one_that_moves_it() {
+        const NESTED: &str = concat!(
+            "module M\n",
+            "  private\n",
+            "    def z\n",
+            "      w\n",
+            "    end\n",
+            "\n",
+            "    class C\n",
+            "      def k\n",
+            "        m\n",
+            "      end\n",
+            "\n",
+            "      private\n",
+            "        def a\n",
+            "          x\n",
+            "        end\n",
+            "    end\n",
+            "end\n",
+        );
+        expect_correction(
+            WIDTH,
+            NESTED,
+            concat!(
+                "module M\n",
+                "  private\n",
+                "  def z\n",
+                "    w\n",
+                "  end\n",
+                "\n",
+                "  class C\n",
+                "    def k\n",
+                "      m\n",
+                "    end\n",
+                "\n",
+                "    private\n",
+                "    def a\n",
+                "      x\n",
+                "    end\n",
+                "  end\n",
+                "end\n",
+            ),
+        );
+        // 検査だけの実行では corrector を取り上げないので、3 件とも修正可能。
+        let report = expect_offense(
+            WIDTH,
+            r#"
+            module M
+              private
+                def z
+            ^^^^ Use 2 (not 4) spaces for indentation.
+                  w
+                end
+
+                class C
+            ^^^^ Use 2 (not 4) spaces for indentation.
+                  def k
+                    m
+                  end
+
+                  private
+                    def a
+                ^^^^ Use 2 (not 4) spaces for indentation.
+                      x
+                    end
+                end
+            end
+            "#,
+        );
+        assert!(
+            report
+                .offenses
+                .iter()
+                .all(sonicop::diagnostic::Offense::is_correctable),
+            "検査だけの実行では corrector を取り上げない"
+        );
+    }
+
     /// 本家が handler を持つ節をひととおり。基準はそれぞれ `def` / `class` /
     /// `if` / `else` / `while` / `when` / `rescue` / `ensure` / ブロックの `end`。
     #[test]
