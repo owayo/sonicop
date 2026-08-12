@@ -222,16 +222,22 @@ fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> 
         }),
         // The node is the receiver of the call it hangs off.
         "call" => dispatch(context, parent),
-        // Every operator is a `send` upstream, and none of them is parenthesized.
-        "binary" | "unary" => Some(SendParent {
-            method: parent
+        // Every operator dispatches a method upstream, and none of them is parenthesized. The
+        // logical ones are the exception: `and` and `or` are nodes of their own there.
+        "binary" | "unary" => {
+            let operator = parent
                 .child_by_field_name("operator")
-                .or_else(|| parent.child(0))
-                .map(|operator| context.source.node_text(operator).to_owned())
-                .unwrap_or_default(),
-            parenthesized: false,
-            start: parent.start_byte(),
-        }),
+                .or_else(|| parent.child(0))?;
+            let name = context.source.node_text(operator);
+            if matches!(name, "&&" | "||" | "and" | "or") {
+                return None;
+            }
+            Some(SendParent {
+                method: name.to_owned(),
+                parenthesized: false,
+                start: parent.start_byte(),
+            })
+        }
         // Assigning through a reader is a `send` too; assigning to a variable is not.
         "assignment" => {
             let left = parent.child_by_field_name("left")?;

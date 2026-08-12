@@ -12687,6 +12687,59 @@ mod layout_first_argument_and_parameters {
         .run();
     }
 
+    /// `special_for_inner_method_call` は括弧を要求しないので、演算子・添字・属性代入も
+    /// 「呼び出しの引数」として基準になる。`&&` だけは本家では `and` node で send では
+    /// ないため、直前の行に落ちる。
+    #[test]
+    fn special_for_inner_method_call_treats_every_operator_as_a_call() {
+        CopCase::new(
+            FIRST_ARGUMENT,
+            concat!(
+                "x && foo(\n",
+                "1)\n",
+                "y = 1 + bar(\n",
+                "2)\n",
+                "outer baz(\n",
+                "3)\n",
+                "a[qux(\n",
+                "4)]\n",
+                "z.attr = quux(\n",
+                "5)\n",
+            ),
+            vec![
+                Annotation::new(2, 1, 1, PREVIOUS_LINE),
+                Annotation::new(
+                    4,
+                    1,
+                    1,
+                    "Indent the first argument one step more than `bar(`.",
+                ),
+                Annotation::new(
+                    6,
+                    1,
+                    1,
+                    "Indent the first argument one step more than `baz(`.",
+                ),
+                Annotation::new(
+                    8,
+                    1,
+                    1,
+                    "Indent the first argument one step more than `qux(`.",
+                ),
+                Annotation::new(
+                    10,
+                    1,
+                    1,
+                    "Indent the first argument one step more than `quux(`.",
+                ),
+            ],
+        )
+        .config(
+            "Layout/FirstArgumentIndentation:\n  EnforcedStyle: special_for_inner_method_call\n",
+        )
+        .run();
+    }
+
     /// 定義の仮引数は `Layout/FirstParameterIndentation` と
     /// `Layout/ParameterAlignment` の分担。前者は左括弧の行の字下げ基準、後者は
     /// 最初の仮引数の桁基準。
