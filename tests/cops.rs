@@ -7179,6 +7179,23 @@ mod literal_in_interpolation {
         );
         expect_correction(COP, "m = \"#{'a\"b'}\"\n", "m = \"a\\\"b\"\n");
     }
+
+    /// `?x` は本家のパーサでは 1 文字の `str` なので、文字列と同じくリテラル。
+    /// エスケープは二重引用符の文字列と同じものが使え、書き戻しでは二重引用符
+    /// だけを逃がす (`autocorrected_value_for_string` の非引用符側の枝)。
+    #[test]
+    fn a_character_literal_is_the_one_character_string_it_names() {
+        expect_offense(
+            COP,
+            r##"
+            a = "th#{?r}ee"
+                     ^^ Literal interpolation detected.
+            "##,
+        );
+        expect_correction(COP, "a = \"th#{?r}ee\"\n", "a = \"three\"\n");
+        expect_correction(COP, "b = \"q#{?\"}q\"\n", "b = \"q\\\"q\"\n");
+        expect_correction(COP, "c = \"n#{?\\n}n\"\n", "c = \"n\nn\"\n");
+    }
 }
 
 /// `Style/CaseEquality`: `===` を直接書かない。

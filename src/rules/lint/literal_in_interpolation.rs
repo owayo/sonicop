@@ -8,6 +8,8 @@ const MSG: &str = "Literal interpolation detected.";
 /// The literals that print as themselves without being made of other nodes (`BASIC_LITERALS`).
 const BASIC_LITERALS: &[&str] = &[
     "string",
+    // `?x` is a `str` upstream, indistinguishable from the one-character string it names.
+    "character",
     "integer",
     "float",
     "simple_symbol",
@@ -86,17 +88,15 @@ fn prints_as_self(node: Node<'_>) -> bool {
         }
         "array" | "hash" | "pair" => {
             let mut cursor = node.walk();
-            node.named_children(&mut cursor)
-                .all(prints_as_self)
+            node.named_children(&mut cursor).all(prints_as_self)
         }
         // A range missing an end is not one upstream reads as a literal at all.
         "range" => {
             node.child_by_field_name("begin").is_some()
                 && node.child_by_field_name("end").is_some()
-                && ["begin", "end"].iter().all(|field| {
-                    node.child_by_field_name(field)
-                        .is_some_and(prints_as_self)
-                })
+                && ["begin", "end"]
+                    .iter()
+                    .all(|field| node.child_by_field_name(field).is_some_and(prints_as_self))
         }
         "string" | "delimited_symbol" | "bare_symbol" => {
             !interpolated(node) && BASIC_LITERALS.contains(&node.kind())
@@ -192,6 +192,9 @@ fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         "float" => float_value(context.source.node_text(node)),
         "unary" => signed_numeric(node, context),
         "string" => escape_string_content(&string_value(node, context)),
+        // A character literal's source never starts with a quote, so upstream takes the branch of
+        // `autocorrected_value_for_string` that only escapes the double quote.
+        "character" => character_value(context.source.node_text(node)).replace('"', "\\\""),
         "simple_symbol" | "delimited_symbol" => symbol_content(node, context).replace('"', "\\\""),
         "array" | "string_array" | "symbol_array" => array_value(node, context),
         "hash" => hash_value(node, context),
@@ -423,6 +426,18 @@ fn push_verbatim(text: &str, out: &mut String) {
             out.push(character);
         }
     }
+}
+
+/// The one character `?x` stands for. It takes the escapes a double-quoted string takes, and
+/// upstream's parser has already resolved them by the time a cop sees the `str` node.
+fn character_value(text: &str) -> String {
+    let body = text.strip_prefix('?').unwrap_or(text);
+    let mut value = String::new();
+    match body.starts_with('\\') {
+        true => unescape(body, &mut value),
+        false => value.push_str(body),
+    }
+    value
 }
 
 fn unescape(escape: &str, out: &mut String) {
