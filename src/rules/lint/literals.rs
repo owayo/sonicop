@@ -185,3 +185,26 @@ fn range_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
 pub(super) fn is_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     literal_type(node, context).is_some()
 }
+
+/// `FALSEY_LITERALS`.
+const FALSEY: &[&str] = &["false", "nil"];
+
+/// `node.truthy_literal?`.
+pub(super) fn is_truthy_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    literal_type(node, context).is_some_and(|kind| !FALSEY.contains(&kind))
+}
+
+/// `node.falsey_literal?`.
+pub(super) fn is_falsey_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    literal_type(node, context).is_some_and(|kind| FALSEY.contains(&kind))
+}
+
+/// `COMPOSITE_LITERALS`, by the name upstream's parser gives the node.
+const COMPOSITE_LITERAL_TYPES: &[&str] = &[
+    "dstr", "xstr", "dsym", "array", "hash", "irange", "erange", "regexp",
+];
+
+/// `node.basic_literal?`: a literal that holds no other node.
+pub(super) fn is_basic_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    literal_type(node, context).is_some_and(|kind| !COMPOSITE_LITERAL_TYPES.contains(&kind))
+}

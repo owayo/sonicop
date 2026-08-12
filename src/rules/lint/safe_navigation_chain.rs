@@ -165,8 +165,18 @@ fn safe_navigation_of<'tree>(
 }
 
 fn is_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "call"
-        && node
+    // `obj&.foo = 3` is one `csend` upstream, where the grammar writes the setter as an assignment
+    // whose target is the safe call.
+    let call = if node.kind() == "assignment" {
+        match node.child_by_field_name("left") {
+            Some(left) => left,
+            None => return false,
+        }
+    } else {
+        node
+    };
+    call.kind() == "call"
+        && call
             .child_by_field_name("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "&.")
 }

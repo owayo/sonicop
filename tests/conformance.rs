@@ -2097,6 +2097,32 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_script_permission")
         .path("script.rb"),
         CopCase::annotated(
+            "Lint/ShadowedArgument",
+            r#"
+            def do_something(foo)
+              foo = 42
+              ^^^^^^^^ Argument `foo` was shadowed by a local variable before it was used.
+              puts foo
+            end
+            "#,
+        )
+        .id("lint_shadowed_argument")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/LiteralAsCondition",
+            r#"
+            if 20
+               ^^ Literal `20` appeared as a condition.
+              do_something
+            end
+            "#,
+        )
+        .id("lint_literal_as_condition")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("do_something\n"),
+        CopCase::annotated(
             "Lint/EmptyConditionalBody",
             r#"
             if condition
