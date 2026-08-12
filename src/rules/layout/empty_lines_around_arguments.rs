@@ -104,7 +104,9 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
                         .map(|argument| argument.range)
                         .collect(),
                 ),
-                close: child_of_kind(node, "]").map(|node| node.start_byte()),
+                // `Map::Send` carries no `end` for a `:[]` send, so there is no closing token to
+                // look at even though the brackets are right there.
+                close: None,
                 ..view(node, node.child(0), Some(bracket))
             })
         }
@@ -123,7 +125,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
                             .map(|argument| argument.range)
                             .collect(),
                     ),
-                    child_of_kind(left, "]").map(|node| node.start_byte()),
+                    None,
                 ),
                 "call" => (
                     left.child_by_field_name("receiver"),

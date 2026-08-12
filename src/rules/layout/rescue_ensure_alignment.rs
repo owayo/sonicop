@@ -7,7 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
-use super::support::{character_column, start_line_range};
+use super::support::{character_column, parser_node_start, start_line_range};
 
 /// `ANCESTOR_TYPES`, as the grammar spells them.
 const ANCESTOR_KINDS: [&str; 8] = [
@@ -86,21 +86,34 @@ fn alignment_node<'tree>(
         return None;
     }
     // An assignment written on the ancestor's own line takes its place.
-    if let Some(assignment) = ancestor.parent().filter(|parent| {
+    let parent = parser_parent(ancestor);
+    if let Some(assignment) = parent.filter(|parent| {
         matches!(parent.kind(), "assignment" | "operator_assignment")
-            && parent.start_position().row == ancestor.start_position().row
+            && context.source.line_column(parent.start_byte()).0
+                == context.source.line_column(parser_node_start(ancestor)).0
     }) {
         return Some(assignment);
     }
     if matches!(ancestor.kind(), "method" | "singleton_method") {
-        if let Some(modifier) = ancestor
-            .parent()
-            .filter(|parent| is_access_modifier(context, *parent))
-        {
+        if let Some(modifier) = parent.filter(|parent| is_access_modifier(context, *parent)) {
             return Some(modifier);
         }
     }
     Some(ancestor)
+}
+
+/// `node.ancestors.first` as upstream's tree has it. A block literal is one node there spanning the
+/// call it hangs off, and an argument is a direct child of the call it was written in, so both of
+/// the nodes the grammar puts in between are stepped over.
+fn parser_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let parent = match node.kind() {
+        "block" | "do_block" => node.parent()?.parent(),
+        _ => node.parent(),
+    }?;
+    match parent.kind() {
+        "argument_list" => parent.parent(),
+        _ => Some(parent),
+    }
 }
 
 fn ancestor<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
@@ -146,7 +159,7 @@ fn aligned_with_line_break_method(
 
 /// `alignment_location` under the default `start_of_line` style of `Layout/BeginEndAlignment`.
 fn alignment_location(context: &RuleContext<'_>, alignment: Node<'_>) -> Range<usize> {
-    start_line_range(context, alignment.start_byte())
+    start_line_range(context, parser_node_start(alignment))
 }
 
 /// `alignment_source`: from the start of the alignment line to the end of whatever names the

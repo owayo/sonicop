@@ -899,12 +899,13 @@ fn catalogue() -> Vec<CopCase> {
             vec![support::annotation::Annotation::new(
                 2,
                 1,
-                1,
+                0,
                 "Empty line detected around arguments.",
             )],
         )
         .id("layout_empty_lines_around_arguments")
         .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
         .correctable(true),
         CopCase::new(
             "Layout/MultilineBlockLayout",
@@ -912,12 +913,13 @@ fn catalogue() -> Vec<CopCase> {
             vec![support::annotation::Annotation::new(
                 1,
                 7,
-                8,
+                3,
                 "Block argument expression is not on the same line as the block start.",
             )],
         )
         .id("layout_multiline_block_layout")
         .locations(&[(1, 7, 2, 4)])
+        .lengths(&[8])
         .correctable(true),
         CopCase::new(
             "Layout/RescueEnsureAlignment",

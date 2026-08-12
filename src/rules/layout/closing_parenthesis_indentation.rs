@@ -16,9 +16,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
         .setting_of::<i64>("Layout/IndentationWidth", "Width")
         .unwrap_or(2);
+    // An index read is a `:[]` send upstream whose source map carries no `begin` or `end` at all,
+    // so its brackets are never what this cop looks at.
     for node in context.nodes_of_any(&[
         "call",
-        "element_reference",
         "parenthesized_statements",
         "method",
         "singleton_method",
@@ -125,7 +126,6 @@ fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
             "(",
             ")",
         ),
-        "element_reference" => (node.start_byte(), node, "[", "]"),
         "parenthesized_statements" => (node.start_byte(), node, "(", ")"),
         // `check(node.arguments, node.arguments)`: the parameter list stands in for the definition.
         _ => {
@@ -137,7 +137,7 @@ fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
     let close = last_child_of_kind(container, closer)?;
 
     let elements = match node.kind() {
-        "call" | "element_reference" => grouped(node),
+        "call" => grouped(node),
         _ => {
             let mut cursor = container.walk();
             container

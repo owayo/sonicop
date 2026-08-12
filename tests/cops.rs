@@ -13127,11 +13127,12 @@ mod layout_spacing_and_alignment {
             vec![Annotation::new(
                 2,
                 1,
-                1,
+                0,
                 "Empty line detected around arguments.",
             )],
         )
         .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
         .corrected("foo(a,\n  b\n)\n")
         .run();
         expect_no_offenses(COP, "foo(a,\n  b\n)\n");
@@ -13148,11 +13149,12 @@ mod layout_spacing_and_alignment {
             vec![Annotation::new(
                 1,
                 7,
-                8,
+                3,
                 "Block argument expression is not on the same line as the block start.",
             )],
         )
         .locations(&[(1, 7, 2, 4)])
+        .lengths(&[8])
         .corrected("bar { |a, b|\n  a }\n")
         .run();
         CopCase::new(
@@ -13238,9 +13240,17 @@ mod layout_spacing_and_alignment {
         expect_correction(COP, "if(x)\nend\n", "if (x)\nend\n");
         expect_correction(COP, "while(y)\nend\n", "while (y)\nend\n");
         expect_no_offenses(COP, "if (x)\nend\n");
-        // `return` / `super` / `yield` は `(` をそのまま続けてよい。
-        expect_no_offenses(COP, "def a\n  return(1)\nend\n");
+        // `(` を続けてよいのは `ACCEPT_LEFT_PAREN` の 7 語だけで、`return` は入っていない。
         expect_no_offenses(COP, "def a\n  yield(1)\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def a
+              return(1)
+              ^^^^^^ Space after keyword `return` is missing.
+            end
+            "#,
+        );
     }
 
     /// 閉じ括弧の字下げ。引数が無いときは 3 つの候補のどれかであればよい。

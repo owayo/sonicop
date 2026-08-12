@@ -102,10 +102,22 @@ fn chained_send<'tree>(opener: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 /// `find_node_used_heredoc_argument`: the outermost call the heredoc's own call is nested in.
+///
+/// A call written as another call's argument is that call's direct child upstream, so the argument
+/// list the grammar puts between them is stepped over rather than ending the walk.
 fn outermost_send<'tree>(send: Node<'tree>) -> Node<'tree> {
     let mut current = send;
-    while let Some(parent) = current.parent().filter(|node| node.kind() == "call") {
-        current = parent;
+    loop {
+        let parent = current
+            .parent()
+            .and_then(|parent| match parent.kind() {
+                "argument_list" => parent.parent(),
+                _ => Some(parent),
+            })
+            .filter(|parent| parent.kind() == "call");
+        match parent {
+            Some(parent) => current = parent,
+            None => return current,
+        }
     }
-    current
 }
