@@ -703,6 +703,76 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_initial_indentation")
         .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundClassBody",
+            "class C\n\n  def m; end\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at class body beginning.",
+            )],
+        )
+        .id("layout_empty_lines_around_class_body")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundModuleBody",
+            "module M\n\n  X = 1\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at module body beginning.",
+            )],
+        )
+        .id("layout_empty_lines_around_module_body")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundMethodBody",
+            "def foo\n\n  1\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at method body beginning.",
+            )],
+        )
+        .id("layout_empty_lines_around_method_body")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundBeginBody",
+            "begin\n\n  y\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at `begin` body beginning.",
+            )],
+        )
+        .id("layout_empty_lines_around_begin_body")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundBlockBody",
+            "foo do\n\n  z\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at block body beginning.",
+            )],
+        )
+        .id("layout_empty_lines_around_block_body")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",

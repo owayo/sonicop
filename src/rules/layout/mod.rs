@@ -17,7 +17,12 @@ department_rules! {
     empty_lines => ("EmptyLines", Convention),
     empty_lines_around_attribute_accessor => ("EmptyLinesAroundAttributeAccessor", Convention),
     empty_lines_around_access_modifier => ("EmptyLinesAroundAccessModifier", Convention),
+    empty_lines_around_begin_body => ("EmptyLinesAroundBeginBody", Convention),
+    empty_lines_around_block_body => ("EmptyLinesAroundBlockBody", Convention),
+    empty_lines_around_class_body => ("EmptyLinesAroundClassBody", Convention),
     empty_lines_around_exception_handling_keywords => ("EmptyLinesAroundExceptionHandlingKeywords", Convention),
+    empty_lines_around_method_body => ("EmptyLinesAroundMethodBody", Convention),
+    empty_lines_around_module_body => ("EmptyLinesAroundModuleBody", Convention),
     end_of_line => ("EndOfLine", Convention),
     first_array_element_indentation => ("FirstArrayElementIndentation", Convention),
     first_hash_element_indentation => ("FirstHashElementIndentation", Convention),
@@ -49,5 +54,6 @@ department_rules! {
     trailing_whitespace => ("TrailingWhitespace", Convention),
 }
 
+mod empty_lines_around_body;
 mod multiline_brace;
 mod support;

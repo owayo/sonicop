@@ -11374,3 +11374,155 @@ mod layout_comments_and_indentation {
         expect_no_offenses(COP, "# c\nx = 1\n");
     }
 }
+
+/// `Layout/EmptyLinesAround*Body` の 5 本。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_empty_lines_around_bodies {
+    use super::*;
+
+    /// 既定はどれも `no_empty_lines` で、本体の前後の空行を 1 行ずつ落とす。
+    #[test]
+    fn extra_empty_lines_at_both_ends() {
+        for (cop, kind, source) in [
+            (
+                "Layout/EmptyLinesAroundClassBody",
+                "class",
+                "class C\n\n  def m; end\n\nend\n",
+            ),
+            (
+                "Layout/EmptyLinesAroundModuleBody",
+                "module",
+                "module M\n\n  X = 1\n\nend\n",
+            ),
+            (
+                "Layout/EmptyLinesAroundMethodBody",
+                "method",
+                "def foo\n\n  1\n\nend\n",
+            ),
+            (
+                "Layout/EmptyLinesAroundBeginBody",
+                "`begin`",
+                "begin\n\n  y\n\nend\n",
+            ),
+            (
+                "Layout/EmptyLinesAroundBlockBody",
+                "block",
+                "foo do\n\n  z\n\nend\n",
+            ),
+        ] {
+            CopCase::new(
+                cop,
+                source,
+                vec![
+                    Annotation::new(
+                        2,
+                        1,
+                        0,
+                        format!("Extra empty line detected at {kind} body beginning."),
+                    ),
+                    Annotation::new(
+                        4,
+                        1,
+                        0,
+                        format!("Extra empty line detected at {kind} body end."),
+                    ),
+                ],
+            )
+            .locations(&[(2, 1, 3, 1), (4, 1, 5, 1)])
+            .lengths(&[1, 1])
+            .run();
+        }
+    }
+
+    #[test]
+    fn corrections_take_one_line_off_each_end() {
+        expect_correction(
+            "Layout/EmptyLinesAroundClassBody",
+            "class C\n\n  def m; end\n\nend\n",
+            "class C\n  def m; end\nend\n",
+        );
+        expect_correction(
+            "Layout/EmptyLinesAroundBlockBody",
+            "foo do\n\n  z\n\nend\n",
+            "foo do\n  z\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundClassBody",
+            "class C\n  def m; end\nend\n",
+        );
+        expect_no_offenses("Layout/EmptyLinesAroundMethodBody", "def foo\n  1\nend\n");
+    }
+
+    /// 空の本体は 1 行だけの空行が始端と終端の両方になるが、`add_offense` が同じレンジを
+    /// 一度しか受けないので始端の側だけが残る。
+    #[test]
+    fn an_empty_body_is_reported_once() {
+        CopCase::new(
+            "Layout/EmptyLinesAroundMethodBody",
+            "def foo\n\nend\n",
+            vec![Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at method body beginning.",
+            )],
+        )
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .run();
+    }
+
+    /// 受け側が複数行でも、ブロックは `{` と `}` が同じ行なら単一行として扱われる。
+    #[test]
+    fn a_block_opened_on_the_last_line_of_its_receiver_is_single_line() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundBlockBody",
+            "X = [\n  1,\n].map { |p| p }\n\nY = 1\n",
+        );
+    }
+
+    /// エンドレスメソッドは `=` の次の行が空いているときだけ報告する。
+    #[test]
+    fn an_endless_method_reports_the_line_after_the_assignment() {
+        CopCase::new(
+            "Layout/EmptyLinesAroundMethodBody",
+            "def foo =\n\n  1\n",
+            vec![Annotation::new(
+                2,
+                1,
+                0,
+                "Extra empty line detected at method body beginning.",
+            )],
+        )
+        .target_ruby("3.0")
+        .locations(&[(2, 1, 3, 1)])
+        .lengths(&[1])
+        .corrected("def foo =\n  1\n")
+        .run();
+        CopCase::new(
+            "Layout/EmptyLinesAroundMethodBody",
+            "def foo = 1\n",
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    /// `empty_lines_special` は最初の定義の前の空行を要求し、本体の終端にも空行を求める。
+    #[test]
+    fn the_special_style_defers_to_the_first_definition() {
+        CopCase::new(
+            "Layout/EmptyLinesAroundClassBody",
+            "class D\n  X = 1\n  def m; end\nend\n",
+            vec![
+                Annotation::new(3, 1, 1, "Empty line missing before first def definition"),
+                Annotation::new(4, 1, 1, "Empty line missing at class body end."),
+            ],
+        )
+        .locations(&[(3, 1, 3, 1), (4, 1, 4, 1)])
+        .lengths(&[1, 1])
+        .config("Layout/EmptyLinesAroundClassBody:\n  EnforcedStyle: empty_lines_special\n")
+        .corrected("class D\n  X = 1\n\n  def m; end\n\nend\n")
+        .run();
+    }
+}
