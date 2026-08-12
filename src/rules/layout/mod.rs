@@ -22,6 +22,10 @@ department_rules! {
     indentation_consistency => ("IndentationConsistency", Convention),
     indentation_width => ("IndentationWidth", Convention),
     line_length => ("LineLength", Convention),
+    multiline_array_brace_layout => ("MultilineArrayBraceLayout", Convention),
+    multiline_hash_brace_layout => ("MultilineHashBraceLayout", Convention),
+    multiline_method_call_brace_layout => ("MultilineMethodCallBraceLayout", Convention),
+    multiline_method_definition_brace_layout => ("MultilineMethodDefinitionBraceLayout", Convention),
     space_after_comma => ("SpaceAfterComma", Convention),
     space_around_operators => ("SpaceAroundOperators", Convention),
     space_in_lambda_literal => ("SpaceInLambdaLiteral", Convention),
@@ -33,4 +37,5 @@ department_rules! {
     trailing_whitespace => ("TrailingWhitespace", Convention),
 }
 
+mod multiline_brace;
 mod support;
