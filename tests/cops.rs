@@ -9731,3 +9731,369 @@ mod return_in_void_context {
         .run();
     }
 }
+
+/// `Layout/Multiline*BraceLayout` の 4 本。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_multiline_brace_layout {
+    use super::*;
+
+    /// symmetrical では開き括弧が第 1 要素と同じ行なら閉じ括弧も最終要素と同じ行に来る。
+    /// 補正は閉じ括弧を消して最終要素の直後へ入れ直す。
+    #[test]
+    fn method_call_brace_follows_the_opening_brace() {
+        CopCase::annotated(
+            "Layout/MultilineMethodCallBraceLayout",
+            r#"
+            foo(a,
+              b
+            )
+            ^ Closing method call brace must be on the same line as the last argument when opening brace is on the same line as the first argument.
+            "#,
+        )
+        .run();
+        expect_correction(
+            "Layout/MultilineMethodCallBraceLayout",
+            "foo(a,\n  b\n)\n",
+            "foo(a,\n  b)\n",
+        );
+        // 開き括弧が別行なら閉じ括弧も別行。逆向きの補正は改行を入れるだけ。
+        CopCase::annotated(
+            "Layout/MultilineMethodCallBraceLayout",
+            r#"
+            foo(
+              a,
+              b)
+               ^ Closing method call brace must be on the line after the last argument when opening brace is on a separate line from the first argument.
+            "#,
+        )
+        .run();
+        expect_correction(
+            "Layout/MultilineMethodCallBraceLayout",
+            "foo(\n  a,\n  b)\n",
+            "foo(\n  a,\n  b\n)\n",
+        );
+        expect_no_offenses("Layout/MultilineMethodCallBraceLayout", "foo(a,\n  b)\n");
+        expect_no_offenses(
+            "Layout/MultilineMethodCallBraceLayout",
+            "foo(\n  a,\n  b\n)\n",
+        );
+    }
+
+    /// 括弧を書いていない呼び出しと、引数のない呼び出しは暗黙リテラル扱いで対象外。
+    /// `super(...)` は本家では `send` ではないので `on_send` が発火しない。
+    #[test]
+    fn method_call_ignores_implicit_and_empty_and_super() {
+        expect_no_offenses("Layout/MultilineMethodCallBraceLayout", "foo a,\n  b\n");
+        expect_no_offenses("Layout/MultilineMethodCallBraceLayout", "foo(\n)\n");
+        expect_no_offenses(
+            "Layout/MultilineMethodCallBraceLayout",
+            "def m\n  super(\"a\" \\\n        \"b\"\n       )\nend\n",
+        );
+        // 添字読みは本家でも `send` だが `loc.begin` を持たないので暗黙リテラル。
+        expect_no_offenses("Layout/MultilineMethodCallBraceLayout", "a[1,\n  2\n]\n");
+    }
+
+    /// 最終引数がヒアドキュメントを抱えていると、閉じ括弧を上げるとコードが壊れるので
+    /// 本家は何も報告しない。
+    #[test]
+    fn method_call_leaves_a_trailing_heredoc_alone() {
+        expect_no_offenses(
+            "Layout/MultilineMethodCallBraceLayout",
+            "foo(a,\n  <<~X\n    hi\n  X\n)\n",
+        );
+    }
+
+    /// 第 1 引数がヒアドキュメントの呼び出しに繋いだメソッドは閉じ括弧と一緒に動く。
+    /// 本家は `insert_before` で括弧、`insert_after` でチェインを同じ空レンジへ入れる。
+    #[test]
+    fn method_call_moves_the_chained_method_with_the_brace() {
+        expect_correction(
+            "Layout/MultilineMethodCallBraceLayout",
+            "foo(<<~X,\n  hi\nX\n  b\n).bar\n",
+            "foo(<<~X,\n  hi\nX\n  b).bar\n",
+        );
+    }
+
+    /// 配列は `%w` / `%i` も対象。閉じ括弧の直前の要素行にコメントがあり、かつ
+    /// チェインまたは引数になっているものは報告だけで補正しない。
+    #[test]
+    fn array_brace_covers_percent_literals_and_comments() {
+        CopCase::annotated(
+            "Layout/MultilineArrayBraceLayout",
+            r#"
+            x = %w[
+              a
+              b ]
+                ^ The closing array brace must be on the line after the last array element when the opening brace is on a separate line from the first array element.
+            "#,
+        )
+        .run();
+        CopCase::annotated(
+            "Layout/MultilineArrayBraceLayout",
+            r#"
+            yy = [1,
+              2 # c
+            ].freeze
+            ^ The closing array brace must be on the same line as the last array element when the opening brace is on the same line as the first array element.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        // チェインも引数もしていなければ補正する。閉じ括弧は最終要素の直後へ移り、
+        // 行末コメントはその場に残る。
+        expect_correction(
+            "Layout/MultilineArrayBraceLayout",
+            "yy = [1,\n  2 # c\n]\n",
+            "yy = [1,\n  2] # c\n",
+        );
+        // 末尾のカンマは最終要素の一部として扱われ、閉じ括弧はその後ろへ入る。
+        expect_correction(
+            "Layout/MultilineArrayBraceLayout",
+            "[1,\n  2,\n]\n",
+            "[1,\n  2,]\n",
+        );
+    }
+
+    /// ブレース付きハッシュだけが対象で、`foo(a: 1)` のような暗黙ハッシュは対象外。
+    #[test]
+    fn hash_brace_needs_braces() {
+        CopCase::annotated(
+            "Layout/MultilineHashBraceLayout",
+            r#"
+            { a: 1,
+              b: 2
+            }
+            ^ Closing hash brace must be on the same line as the last hash element when opening brace is on the same line as the first hash element.
+            "#,
+        )
+        .run();
+        expect_correction(
+            "Layout/MultilineHashBraceLayout",
+            "{ a: 1,\n  b: 2\n}\n",
+            "{ a: 1,\n  b: 2}\n",
+        );
+        expect_no_offenses("Layout/MultilineHashBraceLayout", "foo(a: 1,\n  b: 2\n)\n");
+    }
+
+    /// 定義側は仮引数リストがリテラル。括弧なしの `def foo a, b` は暗黙リテラル。
+    #[test]
+    fn method_definition_brace_reports_the_parameter_list() {
+        CopCase::annotated(
+            "Layout/MultilineMethodDefinitionBraceLayout",
+            r#"
+            def foo(a,
+              b
+            )
+            ^ Closing method definition brace must be on the same line as the last parameter when opening brace is on the same line as the first parameter.
+            end
+            "#,
+        )
+        .run();
+        expect_correction(
+            "Layout/MultilineMethodDefinitionBraceLayout",
+            "def foo(a,\n  b\n)\nend\n",
+            "def foo(a,\n  b)\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/MultilineMethodDefinitionBraceLayout",
+            "def foo a,\n  b\nend\n",
+        );
+    }
+}
+
+/// トークン列の隣接だけで決まる空白の cop 群。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_token_spacing {
+    use super::*;
+
+    #[test]
+    fn space_before_semicolon() {
+        CopCase::annotated(
+            "Layout/SpaceBeforeSemicolon",
+            r#"
+            foo ; bar
+               ^ Space found before semicolon.
+            a = 1  ;
+                 ^^ Space found before semicolon.
+            "#,
+        )
+        .run();
+        expect_correction(
+            "Layout/SpaceBeforeSemicolon",
+            "foo ; bar\na = 1  ;\n",
+            "foo; bar\na = 1;\n",
+        );
+        // 行頭のセミコロンは直前のトークンが別行なので対象外。ブロックの `{` は
+        // `Layout/SpaceInsideBlockBraces` が空白を求めるので免除される。
+        expect_no_offenses("Layout/SpaceBeforeSemicolon", "foo\n  ;\n");
+        expect_no_offenses("Layout/SpaceBeforeSemicolon", "foo { ; }\n");
+        expect_no_offenses("Layout/SpaceBeforeSemicolon", "x = \"a ; b\"\n");
+    }
+
+    /// 2 個以上の空白だけが対象で、単語の末尾のエスケープ空白は単語の一部。
+    #[test]
+    fn space_inside_array_percent_literal() {
+        const MESSAGE: &str = "Use only a single space inside array percent literal.";
+        CopCase::new(
+            "Layout/SpaceInsideArrayPercentLiteral",
+            "x = %w[a  b   c]\n",
+            vec![
+                Annotation::new(1, 9, 2, MESSAGE),
+                Annotation::new(1, 12, 3, MESSAGE),
+            ],
+        )
+        .run();
+        expect_correction(
+            "Layout/SpaceInsideArrayPercentLiteral",
+            "x = %w[a  b   c]\n",
+            "x = %w[a b c]\n",
+        );
+        expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = %w[a b]\n");
+        // 先頭と末尾の空白は要素の間ではない。
+        expect_no_offenses(
+            "Layout/SpaceInsideArrayPercentLiteral",
+            "x = %w[\n  a\n  b\n]\n",
+        );
+        expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = %w[a\\  b]\n");
+        expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = [a,  b]\n");
+    }
+
+    /// 1 つの `#{}` につき corrector は 1 回しか回らないので、2 件目の offense は
+    /// 補正不能になる。
+    #[test]
+    fn space_inside_string_interpolation() {
+        const COP: &str = "Layout/SpaceInsideStringInterpolation";
+        const MESSAGE: &str = "Do not use space inside string interpolation.";
+        CopCase::new(
+            COP,
+            "q = \"#{ a } #{b } #{ c}\"\n",
+            vec![
+                Annotation::new(1, 8, 1, MESSAGE),
+                Annotation::new(1, 10, 1, MESSAGE),
+                Annotation::new(1, 16, 1, MESSAGE),
+                Annotation::new(1, 21, 1, MESSAGE),
+            ],
+        )
+        .run();
+        expect_correction(
+            COP,
+            "q = \"#{ a } #{b } #{ c}\"\n",
+            "q = \"#{a} #{b} #{c}\"\n",
+        );
+        expect_no_offenses(COP, "q = \"#{a}\"\n");
+        // 中身のない `#{}` と `#{ }` はトークンが隣り合うので「中」が無い。
+        expect_no_offenses(COP, "q = \"#{}\"\n");
+        expect_no_offenses(COP, "q = \"#{ }\"\n");
+        // 複数行の `#{}` は対象外。
+        expect_no_offenses(COP, "q = \"#{ a +\n  b }\"\n");
+    }
+
+    /// 既定は中に空白 1 つ、空のブレースだけは空白なし。空白の「過剰」は
+    /// この cop の担当ではない。
+    #[test]
+    fn space_inside_hash_literal_braces() {
+        const COP: &str = "Layout/SpaceInsideHashLiteralBraces";
+        CopCase::new(
+            COP,
+            "h = {a: 1}\n",
+            vec![
+                Annotation::new(1, 5, 1, "Space inside { missing."),
+                Annotation::new(1, 10, 1, "Space inside } missing."),
+            ],
+        )
+        .run();
+        expect_correction(COP, "h = {a: 1}\n", "h = { a: 1 }\n");
+        expect_no_offenses(COP, "h = { a: 1 }\n");
+        // 空白の数はこの cop の担当ではない。
+        expect_no_offenses(COP, "h = {  a: 1  }\n");
+        expect_no_offenses(COP, "h = {}\n");
+        expect_no_offenses(COP, "h = {\n  a: 1,\n}\n");
+        // 空のブレースの中身は、空白だけなら報告される。
+        CopCase::annotated(
+            COP,
+            r#"
+            h5 = {  }
+                  ^^ Space inside empty hash literal braces detected.
+            "#,
+        )
+        .run();
+        expect_correction(COP, "h5 = {  }\n", "h5 = {}\n");
+        // ブレース無しのハッシュには内側が無い。
+        expect_no_offenses(COP, "foo(a: 1)\n");
+    }
+}
+
+/// 例外処理キーワードとヒアドキュメントのインデント。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_exception_and_heredoc {
+    use super::*;
+
+    #[test]
+    fn empty_lines_around_exception_handling_keywords() {
+        const COP: &str = "Layout/EmptyLinesAroundExceptionHandlingKeywords";
+        CopCase::new(
+            COP,
+            "def foo\n  a\n\nrescue\n\n  b\nend\n",
+            vec![
+                Annotation::new(3, 1, 0, "Extra empty line detected before the `rescue`."),
+                Annotation::new(5, 1, 0, "Extra empty line detected after the `rescue`."),
+            ],
+        )
+        .locations(&[(3, 1, 4, 1), (5, 1, 6, 1)])
+        .lengths(&[1, 1])
+        .run();
+        expect_correction(
+            COP,
+            "def foo\n  a\n\nrescue\n\n  b\nend\n",
+            "def foo\n  a\nrescue\n  b\nend\n",
+        );
+        expect_no_offenses(COP, "def foo\n  a\nrescue\n  b\nend\n");
+        // `class` の本体に付いた `rescue` は本家が見に行かない。
+        expect_no_offenses(COP, "class C\n  a\n\nrescue\n\n  b\nend\n");
+    }
+
+    /// `<<~` は本体のインデントを、`<<-` と `<<` は記法そのものを直す。
+    #[test]
+    fn heredoc_indentation() {
+        const COP: &str = "Layout/HeredocIndentation";
+        CopCase::new(
+            COP,
+            "def m\n  x = <<~X\n      hi\n    X\nend\n",
+            vec![Annotation::new(
+                3,
+                1,
+                8,
+                "Use 2 spaces for indentation in a heredoc.",
+            )],
+        )
+        .locations(&[(3, 1, 4, 1)])
+        .lengths(&[9])
+        .run();
+        expect_correction(
+            COP,
+            "def m\n  x = <<~X\n      hi\n    X\nend\n",
+            "def m\n  x = <<~X\n    hi\n    X\nend\n",
+        );
+        CopCase::new(
+            COP,
+            "def m\n  y = <<-Y\nhello\n  Y\nend\n",
+            vec![Annotation::new(
+                3,
+                1,
+                5,
+                "Use 2 spaces for indentation in a heredoc by using `<<~` instead of `<<-`.",
+            )],
+        )
+        .locations(&[(3, 1, 4, 1)])
+        .lengths(&[6])
+        .run();
+        expect_correction(
+            COP,
+            "def m\n  y = <<-Y\nhello\n  Y\nend\n",
+            "def m\n  y = <<~Y\n    hello\n  Y\nend\n",
+        );
+        // 本体に既にインデントがある `<<` 系は対象外。空の本体も同じ。
+        expect_no_offenses(COP, "def m\n  z = <<Z\n  qq\nZ\nend\n");
+        expect_no_offenses(COP, "x = <<~X\nX\n");
+    }
+}

@@ -522,6 +522,122 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_case_indentation")
         .locations(&[(2, 3, 2, 6)])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodCallBraceLayout",
+            r#"
+            foo(a,
+              b
+            )
+            ^ Closing method call brace must be on the same line as the last argument when opening brace is on the same line as the first argument.
+            "#,
+        )
+        .id("layout_multiline_method_call_brace_layout")
+        .locations(&[(3, 1, 3, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineArrayBraceLayout",
+            r#"
+            [ :a,
+              :b
+            ]
+            ^ The closing array brace must be on the same line as the last array element when the opening brace is on the same line as the first array element.
+            "#,
+        )
+        .id("layout_multiline_array_brace_layout")
+        .locations(&[(3, 1, 3, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashBraceLayout",
+            r#"
+            { a: 1,
+              b: 2
+            }
+            ^ Closing hash brace must be on the same line as the last hash element when opening brace is on the same line as the first hash element.
+            "#,
+        )
+        .id("layout_multiline_hash_brace_layout")
+        .locations(&[(3, 1, 3, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodDefinitionBraceLayout",
+            r#"
+            def foo(a,
+              b
+            )
+            ^ Closing method definition brace must be on the same line as the last parameter when opening brace is on the same line as the first parameter.
+            end
+            "#,
+        )
+        .id("layout_multiline_method_definition_brace_layout")
+        .locations(&[(3, 1, 3, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceBeforeSemicolon",
+            r#"
+            foo ; bar
+               ^ Space found before semicolon.
+            "#,
+        )
+        .id("layout_space_before_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceInsideArrayPercentLiteral",
+            r#"
+            x = %w[a  b]
+                    ^^ Use only a single space inside array percent literal.
+            "#,
+        )
+        .id("layout_space_inside_array_percent_literal")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceInsideStringInterpolation",
+            "q = \"#{ a}\"\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                8,
+                1,
+                "Do not use space inside string interpolation.",
+            )],
+        )
+        .id("layout_space_inside_string_interpolation")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceInsideHashLiteralBraces",
+            r#"
+            h = {a: 1 }
+                ^ Space inside { missing.
+            "#,
+        )
+        .id("layout_space_inside_hash_literal_braces")
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundExceptionHandlingKeywords",
+            "def foo\n  a\n\nrescue\n  b\nend\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                1,
+                0,
+                "Extra empty line detected before the `rescue`.",
+            )],
+        )
+        .id("layout_empty_lines_around_exception_handling_keywords")
+        .locations(&[(3, 1, 4, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::new(
+            "Layout/HeredocIndentation",
+            "def m\n  x = <<~X\n      hi\n    X\nend\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                1,
+                8,
+                "Use 2 spaces for indentation in a heredoc.",
+            )],
+        )
+        .id("layout_heredoc_indentation")
+        .locations(&[(3, 1, 4, 1)])
+        .lengths(&[9])
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",
