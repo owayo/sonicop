@@ -336,14 +336,17 @@ impl Cop<'_> {
         Some(first.start_byte()..last.end_byte())
     }
 
-    /// `find_heredoc_argument`: the heredoc opened somewhere inside the branch, whose body sits
-    /// below the conditional and so cannot simply be moved with it.
+    /// `find_heredoc_argument`: the heredoc opened inside the branch, whose body sits below the
+    /// conditional and so cannot simply be moved with it.
     fn heredoc_argument(&self, node: Node<'_>, field: &str) -> Option<Range<usize>> {
         let clause = node.child_by_field_name(field)?;
-        let branch = body_of(clause).single()?;
-        let beginning = descendants(branch)
-            .into_iter()
-            .find(|node| node.kind() == "heredoc_beginning")?;
+        let branch = match body_of(clause) {
+            Body::Missing => return None,
+            Body::One(only) => only,
+            // `node = node.children.first while node.begin_type?`.
+            Body::Begin(statements) => *statements.first()?,
+        };
+        let beginning = find_heredoc_argument(branch)?;
         heredoc_end(self.context, beginning)
     }
 
@@ -480,6 +483,29 @@ impl Cop<'_> {
             .position(|node| node.id() == beginning.id())?;
         self.context.nodes_of("heredoc_body").nth(index)
     }
+}
+
+/// `find_heredoc_argument`, which walks a call's arguments from the last one back and then its
+/// receiver, so that the heredoc written closest to the end of the branch is the one found.
+fn find_heredoc_argument<'t>(node: Node<'t>) -> Option<Node<'t>> {
+    let mut node = node;
+    while node.kind() == "parenthesized_statements" {
+        node = *super::nodes::children(node).first()?;
+    }
+    if node.kind() == "heredoc_beginning" {
+        return Some(node);
+    }
+    if !matches!(node.kind(), "call" | "method_call") {
+        return None;
+    }
+    if let Some(list) = node.child_by_field_name("arguments") {
+        for argument in super::nodes::children(list).into_iter().rev() {
+            if let Some(found) = find_heredoc_argument(argument) {
+                return Some(found);
+            }
+        }
+    }
+    find_heredoc_argument(node.child_by_field_name("receiver")?)
 }
 
 /// Every name a destructuring left-hand side writes.

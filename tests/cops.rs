@@ -6794,6 +6794,28 @@ mod layout_array_alignment {
         expect_no_offenses(COP, "def f\n  return 1,\n    2\nend\n");
     }
 
+    /// `rescue A, B` の例外リストは括弧が無くても `array`。継続行は最初の例外の桁で
+    /// 揃える。
+    #[test]
+    fn the_exception_list_of_a_rescue_is_an_array() {
+        CopCase::new(
+            COP,
+            concat!(
+                "begin\n",
+                "  x\n",
+                "rescue AAA, BBB,\n",
+                "  CCC => e\n",
+                "  y\n",
+                "rescue DDD,\n",
+                "       EEE\n",
+                "  z\n",
+                "end\n",
+            ),
+            vec![Annotation::new(4, 3, 3, MSG)],
+        )
+        .run();
+    }
+
     #[test]
     fn the_correction_lines_the_elements_up_with_the_first() {
         expect_correction(
@@ -7298,6 +7320,431 @@ mod if_unless_modifier {
             COP,
             "if a\n  if b\n    c\n  end\nend\n",
             "if a\n  c if b\nend\n",
+        );
+    }
+}
+
+/// `Style/GuardClause`: 抜けるだけの分岐で本体を包むのをやめ、ガード節にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/GuardClause` と `-A` の実測。
+mod guard_clause {
+    use super::*;
+
+    const COP: &str = "Style/GuardClause";
+
+    /// 定義の末尾に立つ条件は `return` のガードに置き換わる。修正は `end` を
+    /// 消すだけなので、本体の字下げはそのまま残る。
+    #[test]
+    fn a_conditional_closing_a_definition_becomes_a_return_guard() {
+        expect_offense(
+            COP,
+            r#"
+            def foo
+              bar
+              if cond
+              ^^ Use a guard clause (`return unless cond`) instead of wrapping the code inside a conditional expression.
+                body
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def foo\n  bar\n  if cond\n    body\n  end\nend\n",
+            "def foo\n  bar\n  return unless cond\n    body\n  \nend\n",
+        );
+    }
+
+    /// `else` を持つ条件は、どちらかの枝が scope を抜けるときだけ対象。
+    #[test]
+    fn a_branch_that_leaves_the_scope_becomes_the_guard() {
+        expect_offense(
+            COP,
+            r#"
+            if c
+            ^^ Use a guard clause (`raise "x" if c`) instead of wrapping the code inside a conditional expression.
+              raise "x"
+            else
+              ok
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if c\n  raise \"x\"\nelse\n  ok\nend\n",
+            "raise \"x\" if c\n  \n\n  ok\n\n",
+        );
+        // `else` 側がガードなら条件が反転する。
+        expect_offense(
+            COP,
+            r#"
+            unless d
+            ^^^^^^ Use a guard clause (`return if d`) instead of wrapping the code inside a conditional expression.
+              a
+            else
+              return
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "unless d\n  a\nelse\n  return\nend\n",
+            "return if d\n  a\n\n  \n\n",
+        );
+    }
+
+    /// ガードが 1 行に収まらないときは、例示も修正も 3 行の形になる。
+    #[test]
+    fn a_guard_that_would_not_fit_on_one_line_is_written_over_three() {
+        let condition = "a".repeat(110);
+        let source = format!("def foo\n  bar\n  if {condition}\n    one\n    two\n  end\nend\n");
+        expect_offense(
+            COP,
+            &format!(
+                "def foo\n  bar\n  if {condition}\n  ^^ Use a guard clause (`unless {condition}; return; end`) instead of wrapping the code inside a conditional expression.\n    one\n    two\n  end\nend\n"
+            ),
+        );
+        expect_correction(
+            COP,
+            &source,
+            &format!(
+                "def foo\n  bar\n  unless {condition}\n  return\nend\n    one\n    two\n  \nend\n"
+            ),
+        );
+    }
+
+    /// 免除される形。1 行しか無い本体、`elsif` の連なり、条件が束縛した局所変数を
+    /// 本体が読むもの、複数行の条件、そして代入の右辺。
+    #[test]
+    fn forms_that_cannot_become_a_guard_are_left_alone() {
+        expect_no_offenses(COP, "def foo\n  bar\n  if cond then body end\nend\n");
+        expect_no_offenses(
+            COP,
+            "def foo\n  bar\n  if a\n    b\n  elsif c\n    d\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  bar\n  if (x = compute)\n    use(x)\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  bar\n  if a &&\n     b\n    c\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "x = if c\n  raise 'x'\nelse\n  ok\nend\n");
+    }
+}
+
+/// `Style/Next`: 反復の末尾を丸ごと包む条件は `next` で抜ける形にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Next` と `-A` の実測。
+mod next {
+    use super::*;
+
+    const COP: &str = "Style/Next";
+
+    #[test]
+    fn a_conditional_wrapping_the_tail_of_an_iteration_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            [1, 2].each do |a|
+              if a == 1
+              ^^^^^^^^^ Use `next` to skip iteration.
+                puts a
+                puts a
+                puts a
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "[1, 2].each do |a|\n  if a == 1\n    puts a\n    puts a\n    puts a\n  end\nend\n",
+            "[1, 2].each do |a|\n  next unless a == 1\n  puts a\n  puts a\n  puts a\nend\n",
+        );
+    }
+
+    /// `while` も反復。ブロックの側は列挙メソッドに限られる。
+    #[test]
+    fn a_loop_keyword_counts_as_an_iteration_too() {
+        expect_offense(
+            COP,
+            r#"
+            while x
+              if y
+              ^^^^ Use `next` to skip iteration.
+                z
+                z
+                z
+              end
+            end
+            "#,
+        );
+    }
+
+    /// 免除される形。既定の `MinBodyLength` は 3 で、修飾形は既定の
+    /// `skip_modifier_ifs` で見送られ、`else` を持つものは対象外。
+    #[test]
+    fn short_bodies_modifier_forms_and_else_branches_are_left_alone() {
+        expect_no_offenses(
+            COP,
+            "[1, 2].each do |a|\n  if a == 1\n    puts a\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "[1, 2].each { |a| puts a if a == 1 }\n");
+        expect_no_offenses(
+            COP,
+            "[1, 2].reduce(0) do |a, b|\n  if a == 1\n    puts a\n    puts a\n  else\n    puts b\n  end\nend\n",
+        );
+        // 列挙メソッドではないブロックは反復ではない。
+        expect_no_offenses(
+            COP,
+            "foo.bar do |a|\n  if a == 1\n    puts a\n    puts a\n    puts a\n  end\nend\n",
+        );
+    }
+}
+
+/// `Style/ParallelAssignment`: 値が本当に同時に動く必要が無いなら 1 行 1 代入。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ParallelAssignment` と `-A` の実測。
+mod parallel_assignment {
+    use super::*;
+
+    const COP: &str = "Style/ParallelAssignment";
+
+    #[test]
+    fn a_plain_parallel_assignment_is_split_into_one_line_each() {
+        expect_offense(
+            COP,
+            r#"
+            a, b = 1, 2
+            ^^^^^^^^^^^ Do not use parallel assignment.
+            "#,
+        );
+        expect_correction(COP, "a, b = 1, 2\n", "a = 1\nb = 2\n");
+        // 右辺が配列リテラルでも同じ。
+        expect_correction(COP, "j, k = [1, 2]\n", "j = 1\nk = 2\n");
+    }
+
+    /// 後の代入が前の値を読むときは、読む側が先に来るよう並べ替える。
+    #[test]
+    fn the_assignments_are_ordered_so_that_none_reads_an_overwritten_name() {
+        expect_correction(COP, "e, f = 1, e\n", "f = e\ne = 1\n");
+    }
+
+    /// 修飾形の条件に包まれているときは、条件をブロックへ開いてから並べる。
+    #[test]
+    fn a_modifier_condition_is_opened_into_a_block() {
+        expect_correction(COP, "m, n = 1, 2 if x\n", "if x\n  m = 1\n  n = 2\nend\n");
+    }
+
+    /// 免除される形。入れ替え (循環依存)、splat、左辺が 1 つだけのもの。
+    #[test]
+    fn a_swap_a_splat_and_a_single_name_are_left_alone() {
+        expect_no_offenses(COP, "c, d = d, c\n");
+        expect_no_offenses(COP, "g, h = *foo\n");
+        expect_no_offenses(COP, "i = 1, 2\n");
+    }
+}
+
+/// `Style/BlockDelimiters`: 1 行のブロックは波括弧、複数行は `do...end`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/BlockDelimiters` と `-A` の実測。
+mod block_delimiters {
+    use super::*;
+
+    const COP: &str = "Style/BlockDelimiters";
+
+    #[test]
+    fn a_single_line_do_end_becomes_braces() {
+        expect_offense(
+            COP,
+            r#"
+            each_with_index do |x| x end
+                            ^^ Prefer `{...}` over `do...end` for single-line blocks.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "each_with_index do |x| x end\n",
+            "each_with_index { |x| x }\n",
+        );
+    }
+
+    #[test]
+    fn a_multi_line_brace_block_becomes_do_end() {
+        expect_offense(
+            COP,
+            r#"
+            items.each { |x|
+                       ^ Avoid using `{...}` for multi-line blocks.
+              puts x
+            }
+            "#,
+        );
+        expect_correction(
+            COP,
+            "items.each { |x|\n  puts x\n}\n",
+            "items.each do |x|\n  puts x\nend\n",
+        );
+    }
+
+    /// `AllowedMethods` の既定は `lambda` / `proc` / `it`。括弧の無い引数に付いた
+    /// ブロックは束縛が変わるので対象外。
+    #[test]
+    fn allowed_methods_and_blocks_bound_to_an_argument_are_left_alone() {
+        expect_no_offenses(COP, "lambda do |x| x end\n");
+        expect_no_offenses(COP, "foo bar do |x|\n  x\nend\n");
+    }
+}
+
+/// 字下げ系。期待値は本家 1.89.0 の `--only <cop>` の実出力から取った。
+mod layout_indentation {
+    use super::*;
+
+    const WIDTH: &str = "Layout/IndentationWidth";
+    const CONSISTENCY: &str = "Layout/IndentationConsistency";
+    const INCONSISTENT: &str = "Inconsistent indentation detected.";
+
+    /// 本家が handler を持つ節をひととおり。基準はそれぞれ `def` / `class` /
+    /// `if` / `else` / `while` / `when` / `rescue` / `ensure` / ブロックの `end`。
+    #[test]
+    fn every_handler_of_the_upstream_cop_has_a_node_kind() {
+        CopCase::new(
+            WIDTH,
+            concat!(
+                "def foo\n",
+                "    bar\n",
+                "end\n",
+                "class Baz\n",
+                "      def a\n",
+                "   b\n",
+                "      end\n",
+                "end\n",
+                "if x\n",
+                "      y\n",
+                "else\n",
+                "  z\n",
+                "end\n",
+                "while a\n",
+                "   b\n",
+                "end\n",
+                "case q\n",
+                "when 1\n",
+                "      r\n",
+                "else\n",
+                "   s\n",
+                "end\n",
+                "begin\n",
+                "   t\n",
+                "rescue\n",
+                "      u\n",
+                "ensure\n",
+                "   v\n",
+                "end\n",
+                "[1].each do |i|\n",
+                "      i\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(2, 1, 4, "Use 2 (not 4) spaces for indentation."),
+                Annotation::new(5, 1, 6, "Use 2 (not 6) spaces for indentation."),
+                // The range runs past the end of its line, which the caret notation cannot
+                // show; `lengths` pins what the report actually carries.
+                Annotation::new(6, 4, 1, "Use 2 (not -3) spaces for indentation."),
+                Annotation::new(10, 1, 6, "Use 2 (not 6) spaces for indentation."),
+                Annotation::new(15, 1, 3, "Use 2 (not 3) spaces for indentation."),
+                Annotation::new(19, 1, 6, "Use 2 (not 6) spaces for indentation."),
+                Annotation::new(21, 1, 3, "Use 2 (not 3) spaces for indentation."),
+                Annotation::new(24, 1, 3, "Use 2 (not 3) spaces for indentation."),
+                Annotation::new(26, 1, 6, "Use 2 (not 6) spaces for indentation."),
+                Annotation::new(28, 1, 3, "Use 2 (not 3) spaces for indentation."),
+                Annotation::new(31, 1, 6, "Use 2 (not 6) spaces for indentation."),
+            ],
+        )
+        .lengths(&[4, 6, 3, 6, 3, 6, 3, 3, 6, 3, 6])
+        .run();
+    }
+
+    /// 一貫性は文の並びごとに見る。先頭のアクセス修飾子が本体より深ければ、その桁が
+    /// 基準になる。
+    #[test]
+    fn a_statement_list_is_measured_against_its_first_member() {
+        let source = concat!(
+            "class Foo\n",
+            "  def a\n",
+            "  end\n",
+            "    def b\n",
+            "    end\n",
+            " def c\n",
+            " end\n",
+            "end\n",
+            "module Bar\n",
+            "  private\n",
+            "\n",
+            "    def d\n",
+            "    end\n",
+            "end\n",
+        );
+        CopCase::new(
+            CONSISTENCY,
+            source,
+            vec![
+                Annotation::new(4, 5, 5, INCONSISTENT),
+                Annotation::new(6, 2, 5, INCONSISTENT),
+                Annotation::new(12, 5, 5, INCONSISTENT),
+            ],
+        )
+        .lengths(&[13, 10, 13])
+        .run();
+        CopCase::new(
+            WIDTH,
+            source,
+            vec![
+                Annotation::new(4, 1, 4, "Use 2 (not 4) spaces for indentation."),
+                Annotation::new(6, 1, 1, "Use 2 (not 1) spaces for indentation."),
+                Annotation::new(12, 1, 4, "Use 2 (not 4) spaces for indentation."),
+            ],
+        )
+        .run();
+    }
+
+    /// `#{...}` の中身も本家では `begin` なので、複数文なら一貫性の対象になる。
+    #[test]
+    fn the_code_inside_an_interpolation_is_a_begin() {
+        CopCase::new(
+            CONSISTENCY,
+            concat!("x = \"#{1 + 1\n", " 2 + 2}\"\n"),
+            vec![Annotation::new(2, 2, 5, INCONSISTENT)],
+        )
+        .run();
+    }
+
+    /// autocorrect は要素が跨る行を丸ごと動かす。
+    #[test]
+    fn the_correction_moves_the_whole_member() {
+        expect_correction(
+            CONSISTENCY,
+            concat!(
+                "class Foo\n",
+                "  def a\n",
+                "  end\n",
+                "    def b\n",
+                "    end\n",
+                "end\n"
+            ),
+            concat!(
+                "class Foo\n",
+                "  def a\n",
+                "  end\n",
+                "  def b\n",
+                "  end\n",
+                "end\n"
+            ),
+        );
+        expect_correction(
+            WIDTH,
+            concat!("def foo\n", "    bar\n", "end\n"),
+            concat!("def foo\n", "  bar\n", "end\n"),
         );
     }
 }

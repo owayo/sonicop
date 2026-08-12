@@ -16,14 +16,16 @@ const ALIGN_ELEMENTS_MSG: &str =
 const FIXED_INDENT_MSG: &str =
     "Use one level of indentation for elements following the first line of a multi-line array.";
 
-/// Every shape upstream's parser calls an `array`: the bracketed and percent literals, and the
-/// brace-less list of `a = 1, 2`. A `return 1, 2` is not one -- its values stay children of the
-/// keyword.
-const ARRAY_KINDS: [&str; 4] = [
+/// Every shape upstream's parser calls an `array`: the bracketed and percent literals, the
+/// brace-less list of `a = 1, 2`, and the exception list of a `rescue`, which a `resbody` carries
+/// as an `array` even though it is written without brackets. A `return 1, 2` is not one -- its
+/// values stay children of the keyword.
+const ARRAY_KINDS: [&str; 5] = [
     "array",
     "string_array",
     "symbol_array",
     "right_assignment_list",
+    "exceptions",
 ];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {

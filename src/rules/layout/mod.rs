@@ -9,6 +9,8 @@ department_rules! {
     first_array_element_indentation => ("FirstArrayElementIndentation", Convention),
     first_hash_element_indentation => ("FirstHashElementIndentation", Convention),
     hash_alignment => ("HashAlignment", Convention),
+    indentation_consistency => ("IndentationConsistency", Convention),
+    indentation_width => ("IndentationWidth", Convention),
     line_length => ("LineLength", Convention),
     space_after_comma => ("SpaceAfterComma", Convention),
     space_around_operators => ("SpaceAroundOperators", Convention),

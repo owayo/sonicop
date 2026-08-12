@@ -486,3 +486,117 @@ pub(super) fn line_indentation(context: &RuleContext<'_>, offset: usize) -> i64 
 pub(super) fn preceded_by_code(context: &RuleContext<'_>, offset: usize) -> bool {
     !begins_its_line(context, offset)
 }
+
+/// A statement list upstream's parser wraps in a `begin` or `kwbegin` node.
+///
+/// The grammar has a container node for every body -- `body_statement`, `block_body`, `then`,
+/// `else`, `do`, `ensure` -- while the parser only materializes a `begin` once a body holds more
+/// than one statement. A parenthesized group is a `begin` even with a single statement in it, and
+/// `begin ... end` is a `kwbegin` that carries its statements directly.
+pub(super) struct StatementGroup<'tree> {
+    pub(super) statements: Vec<Node<'tree>>,
+    /// Where the node upstream would call this group's parent starts, if it has one.
+    pub(super) parent_start: Option<usize>,
+}
+
+/// Node kinds that hold a statement list.
+const STATEMENT_CONTAINERS: [&str; 6] = [
+    "body_statement",
+    "block_body",
+    "then",
+    "else",
+    "do",
+    "ensure",
+];
+
+pub(super) fn statement_groups<'tree>(
+    context: &'tree RuleContext<'tree>,
+) -> Vec<StatementGroup<'tree>> {
+    let mut groups = Vec::new();
+    let mut push = |container: Node<'tree>, always: bool| {
+        let statements = body_statements(container);
+        if statements.is_empty() || (!always && statements.len() < 2) {
+            return;
+        }
+        // A body with a `rescue` or `ensure` clause files its statements under that clause
+        // upstream, so the group's parent is the clause rather than the body's own owner.
+        let parent_start = if has_clause(container) {
+            Some(statements[0].start_byte())
+        } else {
+            container.parent().map(parser_node_start)
+        };
+        groups.push(StatementGroup {
+            statements,
+            parent_start,
+        });
+    };
+    for container in context.nodes_of_any(&STATEMENT_CONTAINERS) {
+        push(container, false);
+    }
+    // A parenthesized group is a `begin` even with a single statement in it, and so is the code
+    // inside a `#{...}`: the parser hangs every interpolation off a `begin` node.
+    for container in context.nodes_of_any(&["parenthesized_statements", "interpolation"]) {
+        push(container, true);
+    }
+    for container in context.nodes_of("program") {
+        let statements = body_statements(container);
+        if statements.len() >= 2 {
+            groups.push(StatementGroup {
+                statements,
+                parent_start: None,
+            });
+        }
+    }
+    for container in context.nodes_of("begin") {
+        let statements = body_statements(container);
+        if statements.is_empty() {
+            continue;
+        }
+        if has_clause(container) {
+            // The `kwbegin` then holds only the clause node, which is one child and never
+            // misaligned; the statements before it are their own `begin`.
+            if statements.len() >= 2 {
+                groups.push(StatementGroup {
+                    statements,
+                    parent_start: Some(container.start_byte()),
+                });
+            }
+            continue;
+        }
+        groups.push(StatementGroup {
+            statements,
+            parent_start: container.parent().map(parser_node_start),
+        });
+    }
+    groups
+}
+
+/// The statements of a body, without the clause nodes and the grammar's own bookkeeping.
+pub(super) fn body_statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut cursor = container.walk();
+    container
+        .named_children(&mut cursor)
+        .filter(|child| {
+            !matches!(
+                child.kind(),
+                "rescue" | "ensure" | "else" | "heredoc_body" | "comment" | "empty_statement"
+            )
+        })
+        .collect()
+}
+
+/// Where the node upstream's parser builds for `node` starts. A block literal is a `block` node
+/// there that spans the call it hangs off, so it begins at the receiver rather than at `do`.
+fn parser_node_start(node: Node<'_>) -> usize {
+    match node.kind() {
+        "block" | "do_block" => node.parent().unwrap_or(node).start_byte(),
+        _ => node.start_byte(),
+    }
+}
+
+fn has_clause(container: Node<'_>) -> bool {
+    let mut cursor = container.walk();
+    container
+        .named_children(&mut cursor)
+        .any(|child| matches!(child.kind(), "rescue" | "ensure" | "else"))
+}

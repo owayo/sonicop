@@ -250,6 +250,34 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 1, 2, 1)])
         .correctable(false),
         CopCase::annotated(
+            "Layout/IndentationConsistency",
+            r#"
+            class Foo
+              def a
+              end
+                def b
+                ^^^^^ Inconsistent indentation detected.
+                end
+            end
+            "#,
+        )
+        .id("layout_indentation_consistency")
+        .locations(&[(4, 5, 5, 7)])
+        .lengths(&[13])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/IndentationWidth",
+            r#"
+            def foo
+                bar
+            ^^^^ Use 2 (not 4) spaces for indentation.
+            end
+            "#,
+        )
+        .id("layout_indentation_width")
+        .locations(&[(2, 1, 2, 4)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/LineLength",
             r#"
             x = 1234567890
@@ -1013,6 +1041,31 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_syntax"),
+        // 既定の `line_count_based` では、1 行のブロックは波括弧、複数行は `do...end`。
+        CopCase::annotated(
+            "Style/BlockDelimiters",
+            r#"
+            each_with_index do |x| x end
+                            ^^ Prefer `{...}` over `do...end` for single-line blocks.
+            "#,
+        )
+        .id("style_block_delimiters")
+        .correctable(true),
+        // 定義の末尾に立つ条件はガード節へ。既定の `MinBodyLength` は 1。
+        CopCase::annotated(
+            "Style/GuardClause",
+            r#"
+            def foo
+              bar
+              if cond
+              ^^ Use a guard clause (`return unless cond`) instead of wrapping the code inside a conditional expression.
+                body
+              end
+            end
+            "#,
+        )
+        .id("style_guard_clause")
+        .correctable(true),
         // 1 文の本体は修飾形へ。報告位置は `if` / `unless` のキーワード。
         CopCase::annotated(
             "Style/IfUnlessModifier",
@@ -1033,6 +1086,32 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_numeric_literals"),
+        // 既定の `MinBodyLength` は 3 なので、3 行未満の本体は対象外。
+        CopCase::annotated(
+            "Style/Next",
+            r#"
+            [1, 2].each do |a|
+              if a == 1
+              ^^^^^^^^^ Use `next` to skip iteration.
+                puts a
+                puts a
+                puts a
+              end
+            end
+            "#,
+        )
+        .id("style_next")
+        .correctable(true),
+        // 左右の要素数が揃い、循環依存が無いものだけが対象。
+        CopCase::annotated(
+            "Style/ParallelAssignment",
+            r#"
+            a, b = 1, 2
+            ^^^^^^^^^^^ Do not use parallel assignment.
+            "#,
+        )
+        .id("style_parallel_assignment")
+        .correctable(true),
         // 既定の希望区切りは `%w` / `%i` が `[]`、`%r` が `{}`、それ以外が `()`。
         CopCase::annotated(
             "Style/PercentLiteralDelimiters",
