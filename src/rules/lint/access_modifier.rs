@@ -10,9 +10,6 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 
-/// The names `bare_access_modifier_declaration?` matches.
-const MODIFIERS: [&str; 4] = ["public", "protected", "private", "module_function"];
-
 /// The name of the receiverless call `node` spells, when it is one that takes no arguments.
 ///
 /// `bare_access_modifier?` needs both halves of that: a receiver makes the call a message to
@@ -33,27 +30,6 @@ pub(super) fn bare_send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -
         }
         _ => None,
     }
-}
-
-/// The name of the call `node` spells whatever its receiver and arguments, which is what
-/// `SendNode#method?` compares against.
-pub(super) fn send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
-        "identifier" => Some(context.source.node_text(node)),
-        "call" => node
-            .child_by_field_name("method")
-            .map(|method| context.source.node_text(method)),
-        _ => None,
-    }
-}
-
-/// `bare_access_modifier?`: the name of the modifier `node` declares, when it declares one.
-pub(super) fn bare_access_modifier<'a>(
-    node: Node<'_>,
-    context: &'a RuleContext<'_>,
-) -> Option<&'a str> {
-    let name = bare_send_name(node, context)?;
-    (MODIFIERS.contains(&name) && in_macro_scope(node, context)).then_some(name)
 }
 
 /// `macro?`'s scope half: whether the call sits in a class, module or block body rather than

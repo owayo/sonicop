@@ -326,6 +326,24 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_space_inside_array_literal_brackets")
         .locations(&[(1, 2, 1, 2)])
         .correctable(true),
+        // 空でない波括弧は開き側・閉じ側を別々に見る。空の波括弧はさらに別扱いで、
+        // 既定の `EnforcedStyleForEmptyBraces: no_space` が中の空白を咎める。
+        CopCase::annotated(
+            "Layout/SpaceInsideBlockBraces",
+            r#"
+            each {|x| x }
+                 ^^ Space between { and | missing.
+            each { |x| x}
+                        ^ Space missing inside }.
+            each {}
+            each {  }
+                  ^^ Space inside empty braces detected.
+            "#,
+        )
+        .id("layout_space_inside_block_braces")
+        .locations(&[(1, 6, 1, 7), (2, 13, 2, 13), (4, 7, 4, 8)])
+        .lengths(&[2, 1, 2])
+        .correctable(true),
         CopCase::annotated(
             "Layout/SpaceInsideParens",
             r#"
@@ -414,6 +432,21 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_duplicate_methods")
         .locations(&[(3, 1, 3, 7)]),
+        CopCase::annotated(
+            "Lint/IneffectiveAccessModifier",
+            r#"
+            class C
+              private
+
+              def self.method
+              ^^^ `private` (on line 2) does not make singleton methods private. Use `private_class_method` or `private` inside a `class << self` block instead.
+              end
+            end
+            "#,
+        )
+        .id("lint_ineffective_access_modifier")
+        .severity(Severity::Warning)
+        .correctable(false),
         CopCase::new(
             "Lint/Syntax",
             "x = )\n",
@@ -573,6 +606,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_useless_assignment")
         .severity(Severity::Warning),
+        CopCase::annotated(
+            "Lint/UselessMethodDefinition",
+            r#"
+            def foo
+            ^^^^^^^ Useless method definition detected.
+              super
+            end
+            "#,
+        )
+        .id("lint_useless_method_definition")
+        .locations(&[(1, 1, 3, 4)])
+        .lengths(&[21])
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
@@ -1123,6 +1170,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_next")
         .correctable(true),
+        // 咎めるのは省略可能引数そのもののレンジで、後ろに続く必須引数ではない。
+        CopCase::annotated(
+            "Style/OptionalArguments",
+            r#"
+            def foo(a = 1, b)
+                    ^^^^^ Optional arguments should appear at the end of the argument list.
+              a + b
+            end
+            "#,
+        )
+        .id("style_optional_arguments")
+        .correctable(false),
         // 左右の要素数が揃い、循環依存が無いものだけが対象。
         CopCase::annotated(
             "Style/ParallelAssignment",

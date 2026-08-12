@@ -24,6 +24,7 @@ department_rules! {
     if_unless_modifier => ("IfUnlessModifier", Convention),
     next => ("Next", Convention),
     numeric_literals => ("NumericLiterals", Convention),
+    optional_arguments => ("OptionalArguments", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     redundant_return => ("RedundantReturn", Convention),

@@ -64,18 +64,17 @@ impl Cop<'_, '_> {
         if node.child_by_field_name("body").is_none() && !single_line {
             return;
         }
-        self.check_inside(node, left, right, single_line, expr_start, offenses);
+        let braces = Braces {
+            left,
+            right,
+            single_line,
+            expr_start,
+        };
+        self.check_inside(node, &braces, offenses);
     }
 
-    fn check_inside(
-        &self,
-        node: Node<'_>,
-        left: Node<'_>,
-        right: Node<'_>,
-        single_line: bool,
-        expr_start: usize,
-        offenses: &mut Vec<Offense>,
-    ) {
+    fn check_inside(&self, node: Node<'_>, braces: &Braces<'_>, offenses: &mut Vec<Offense>) {
+        let (left, right) = (braces.left, braces.right);
         if left.end_byte() == right.start_byte() {
             if self.empty_style == Style::Space {
                 self.offense(
@@ -89,15 +88,7 @@ impl Cop<'_, '_> {
         }
         let inner = &self.text()[left.end_byte()..right.start_byte()];
         if inner.bytes().any(|byte| !is_space(byte)) {
-            self.braces_with_contents_inside(
-                node,
-                left,
-                right,
-                inner,
-                single_line,
-                expr_start,
-                offenses,
-            );
+            self.braces_with_contents_inside(node, braces, inner, offenses);
         } else if self.empty_style == Style::NoSpace {
             self.offense(
                 left.end_byte(),
@@ -111,11 +102,8 @@ impl Cop<'_, '_> {
     fn braces_with_contents_inside(
         &self,
         node: Node<'_>,
-        left: Node<'_>,
-        right: Node<'_>,
+        braces: &Braces<'_>,
         inner: &str,
-        single_line: bool,
-        expr_start: usize,
         offenses: &mut Vec<Offense>,
     ) {
         // `node.arguments.loc.begin`, which is the `|` of `{ |x| ... }`. A lambda literal keeps its
@@ -124,8 +112,8 @@ impl Cop<'_, '_> {
             .child_by_field_name("parameters")
             .and_then(|parameters| parameters.child(0))
             .filter(|child| child.kind() == "|");
-        self.check_left_brace(inner, left, pipe, offenses);
-        self.check_right_brace(inner, left, right, single_line, expr_start, offenses);
+        self.check_left_brace(inner, braces.left, pipe, offenses);
+        self.check_right_brace(inner, braces, offenses);
     }
 
     fn check_left_brace(
@@ -194,16 +182,9 @@ impl Cop<'_, '_> {
         }
     }
 
-    fn check_right_brace(
-        &self,
-        inner: &str,
-        left: Node<'_>,
-        right: Node<'_>,
-        single_line: bool,
-        expr_start: usize,
-        offenses: &mut Vec<Offense>,
-    ) {
-        if single_line
+    fn check_right_brace(&self, inner: &str, braces: &Braces<'_>, offenses: &mut Vec<Offense>) {
+        let (left, right) = (braces.left, braces.right);
+        if braces.single_line
             && inner
                 .bytes()
                 .next_back()
@@ -217,7 +198,7 @@ impl Cop<'_, '_> {
             );
             return;
         }
-        let column = character_column(self.context, expr_start);
+        let column = character_column(self.context, braces.expr_start);
         let multiline_braces = self.context.source.line_column(left.start_byte()).0
             != self.context.source.line_column(right.start_byte()).0;
         let right_column = character_column(self.context, right.start_byte());
@@ -306,6 +287,14 @@ impl Cop<'_, '_> {
                 .corrected_by(edit),
         );
     }
+}
+
+/// The braces of one block, and where the expression they close begins.
+struct Braces<'tree> {
+    left: Node<'tree>,
+    right: Node<'tree>,
+    single_line: bool,
+    expr_start: usize,
 }
 
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {

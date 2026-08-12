@@ -91,9 +91,19 @@ that recovery, so the follow-on diagnostics cannot be reproduced. On Homebrew th
 996 missing `Lint/Syntax` offenses: `class definition in method body`, `dynamic constant assignment`,
 `cannot assign to a keyword`, and repeated `unexpected token` inside one multi-line hash.
 
-The first diagnostic in each file does match, which is what decides whether the file is inspected at
-all: RuboCop runs no cop other than `Lint/Syntax` on a file that does not parse, and Sonicop does the
-same.
+What the divergence does not change is **which** files are held to be unparseable, and that is what
+decides whether a file is inspected at all: RuboCop runs no cop other than `Lint/Syntax` on a file
+that does not parse, and Sonicop does the same. On Homebrew both tools flag the same 568 files —
+neither has one the other lacks. This is why every cop other than `Lint/Syntax` matches exactly there
+despite the 1,249 offenses of difference.
+
+Within those 568 files the agreement is partial, as recovery cannot be reproduced: 499 report the
+same first diagnostic (position and message), and 223 report an identical list end to end. The 69
+files whose first diagnostic differs follow one shape — an endless method definition (`def to_s =
+to_str`, valid from Ruby 3.0, rejected by the default `TargetRubyVersion: 2.7`) leaves `parser`'s
+method context open, so the enclosing `class` emits `class definition in method body` when it is
+finally reduced. The diagnostic is reported at the `class` keyword, far above the line that actually
+failed, which puts it first in source order.
 
 ### Grammar gaps
 

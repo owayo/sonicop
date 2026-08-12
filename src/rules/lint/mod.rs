@@ -22,4 +22,5 @@ department_rules! {
     unused_block_argument => ("UnusedBlockArgument", Warning),
     unused_method_argument => ("UnusedMethodArgument", Warning),
     useless_assignment => ("UselessAssignment", Warning),
+    useless_method_definition => ("UselessMethodDefinition", Warning),
 }
