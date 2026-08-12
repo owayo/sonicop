@@ -773,6 +773,63 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 1, 3, 1)])
         .lengths(&[1])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceAfterColon",
+            r#"
+            h = {a:3}
+                  ^ Space missing after colon.
+            "#,
+        )
+        .id("layout_space_after_colon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceAfterMethodName",
+            r#"
+            def g (x); end
+                 ^ Do not put a space between a method name and the opening parenthesis.
+            "#,
+        )
+        .id("layout_space_after_method_name")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceAfterSemicolon",
+            r#"
+            k = 1;l = 2
+                 ^ Space missing after semicolon.
+            "#,
+        )
+        .id("layout_space_after_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceBeforeComma",
+            r#"
+            h = [1 , 2]
+                  ^ Space found before comma.
+            "#,
+        )
+        .id("layout_space_before_comma")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LeadingCommentSpace",
+            r#"
+            #comment
+            ^^^^^^^^ Missing space after `#`.
+            "#,
+        )
+        .id("layout_leading_comment_space")
+        .correctable(true),
+        CopCase::new(
+            "Layout/LeadingEmptyLines",
+            "\n\nx = 1\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                1,
+                1,
+                "Unnecessary blank line at the beginning of the source.",
+            )],
+        )
+        .id("layout_leading_empty_lines")
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",

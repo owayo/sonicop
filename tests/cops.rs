@@ -11526,3 +11526,138 @@ mod layout_empty_lines_around_bodies {
         .run();
     }
 }
+
+/// 句読点まわりの空白と行頭コメント。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_punctuation_spacing {
+    use super::*;
+
+    #[test]
+    fn space_after_colon() {
+        const COP: &str = "Layout/SpaceAfterColon";
+        CopCase::new(
+            COP,
+            "def f(a:, b:2)\n  {a:3}\nend\n",
+            vec![
+                Annotation::new(1, 12, 1, "Space missing after colon."),
+                Annotation::new(2, 5, 1, "Space missing after colon."),
+            ],
+        )
+        .corrected("def f(a:, b: 2)\n  {a: 3}\nend\n")
+        .run();
+        expect_no_offenses(COP, "def f(a:, b: 2)\n  {a: 3}\nend\n");
+        // `=>` で書いたペアにはコロンが無く、値を省いた `{ x: }` も対象外。
+        expect_no_offenses(COP, "h = {:a=>1}\n");
+        CopCase::new("Layout/SpaceAfterColon", "x = 1\nh = {x:}\n", Vec::new())
+            .target_ruby("3.1")
+            .run();
+    }
+
+    #[test]
+    fn space_after_method_name() {
+        const COP: &str = "Layout/SpaceAfterMethodName";
+        CopCase::annotated(
+            COP,
+            r#"
+            def g (x); end
+                 ^ Do not put a space between a method name and the opening parenthesis.
+            "#,
+        )
+        .corrected("def g(x); end\n")
+        .run();
+        expect_no_offenses(COP, "def g(x); end\n");
+        // 括弧の無い引数リストは対象外。
+        expect_no_offenses(COP, "def g x; end\n");
+    }
+
+    #[test]
+    fn space_before_comma() {
+        const COP: &str = "Layout/SpaceBeforeComma";
+        CopCase::annotated(
+            COP,
+            r#"
+            h = [1 , 2]
+                  ^ Space found before comma.
+            "#,
+        )
+        .corrected("h = [1, 2]\n")
+        .run();
+        expect_no_offenses(COP, "h = [1, 2]\n");
+        // 行頭のカンマは直前のトークンが別行なので対象外。
+        expect_no_offenses(COP, "h = [1\n, 2]\n");
+        expect_no_offenses(COP, "x = \"a , b\"\n");
+    }
+
+    #[test]
+    fn space_after_semicolon() {
+        const COP: &str = "Layout/SpaceAfterSemicolon";
+        CopCase::annotated(
+            COP,
+            r#"
+            k = 1;l = 2
+                 ^ Space missing after semicolon.
+            "#,
+        )
+        .corrected("k = 1; l = 2\n")
+        .run();
+        expect_no_offenses(COP, "k = 1; l = 2\n");
+        // 連続したセミコロン、閉じ括弧、補間の終わりは空白を要らない。
+        expect_no_offenses(COP, "k = 1;;\n");
+        expect_no_offenses(COP, "x = (1;)\n");
+        expect_no_offenses(COP, "x = \"#{1;}\"\n");
+        expect_no_offenses(COP, "k = 1;\nl = 2\n");
+    }
+
+    #[test]
+    fn leading_comment_space() {
+        const COP: &str = "Layout/LeadingCommentSpace";
+        CopCase::annotated(
+            COP,
+            r#"
+            #comment
+            ^^^^^^^^ Missing space after `#`.
+            "#,
+        )
+        .corrected("# comment\n")
+        .run();
+        expect_no_offenses(COP, "# comment\n");
+        // 罫線・`#=`・`#++` は対象外で、1 行目の shebang も許される。
+        expect_no_offenses(COP, "####\n");
+        expect_no_offenses(COP, "#=begin\n");
+        expect_no_offenses(COP, "#++\n");
+        expect_no_offenses(COP, "#!/usr/bin/env ruby\nx = 1\n");
+        // ヒアドキュメント本文の `#` は文法上コメントに見えるがコメントではない。
+        expect_no_offenses(COP, "x = <<~MSG\n  a #{1}#b\nMSG\n");
+    }
+
+    #[test]
+    fn leading_empty_lines() {
+        const COP: &str = "Layout/LeadingEmptyLines";
+        CopCase::new(
+            COP,
+            "\n\nx = 1\n",
+            vec![Annotation::new(
+                3,
+                1,
+                1,
+                "Unnecessary blank line at the beginning of the source.",
+            )],
+        )
+        .corrected("x = 1\n")
+        .run();
+        expect_no_offenses(COP, "x = 1\n");
+        // 先頭のコメントもトークンなので、その前の空行が対象になる。
+        CopCase::new(
+            COP,
+            "\n# c\nx = 1\n",
+            vec![Annotation::new(
+                2,
+                1,
+                3,
+                "Unnecessary blank line at the beginning of the source.",
+            )],
+        )
+        .corrected("# c\nx = 1\n")
+        .run();
+    }
+}

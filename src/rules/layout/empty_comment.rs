@@ -2,7 +2,7 @@
 
 use std::ops::Range;
 
-use super::support::whitespace_after;
+use super::support::{comments as comment_ranges, whitespace_after};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
@@ -15,10 +15,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let margin = context
         .setting::<bool>("AllowMarginComment")
         .unwrap_or(true);
-    let comments = context.comment_ranges();
+    let comments = comment_ranges(context);
 
     if !margin {
-        for comment in comments {
+        for comment in &comments {
             if is_empty(&[stripped(context, comment)], border) {
                 offenses.push(report(context, comment));
             }

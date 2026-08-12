@@ -79,6 +79,23 @@ fn is_hash_element(node: Node<'_>) -> bool {
     matches!(node.kind(), "pair" | "hash_splat_argument")
 }
 
+/// The comments upstream's lexer produced.
+///
+/// The grammar starts a `comment` node at any `#` in a heredoc body that is not opening an
+/// interpolation, which is literal text there and never a comment. A comment written inside an
+/// interpolation is a real one and sits below the `interpolation` node rather than directly under
+/// the body.
+pub(super) fn comments<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Range<usize>> {
+    context
+        .nodes_of("comment")
+        .filter(|node| {
+            node.parent()
+                .is_none_or(|parent| parent.kind() != "heredoc_body")
+        })
+        .map(|node| node.byte_range())
+        .collect()
+}
+
 /// `Util.begins_its_line?`: the first non-blank character of the line is where the node starts.
 pub(super) fn begins_its_line(context: &RuleContext<'_>, offset: usize) -> bool {
     let line = context.source.line_column(offset).0;
