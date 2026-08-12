@@ -763,6 +763,44 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_struct_new_override")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/DisjunctiveAssignmentInConstructor",
+            r#"
+            class C
+              def initialize
+                @a ||= 1
+                   ^^^ Unnecessary disjunctive assignment. Use plain assignment.
+              end
+            end
+            "#,
+        )
+        .id("lint_disjunctive_assignment_in_constructor")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ParenthesesAsGroupedExpression",
+            r#"
+            puts (1)
+                ^ `(1)` interpreted as grouped expression.
+            "#,
+        )
+        .id("lint_parentheses_as_grouped_expression")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ReturnInVoidContext",
+            r#"
+            class C
+              def initialize
+                return 1
+                ^^^^^^ Do not return a value in `initialize`.
+              end
+            end
+            "#,
+        )
+        .id("lint_return_in_void_context")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

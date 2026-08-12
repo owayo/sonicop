@@ -9111,14 +9111,14 @@ mod struct_new_override {
         CopCase::new(
             COP,
             "U = ::Struct.new(:size)\n",
-            vec![Annotation::new(1, 18, 5, &message(":size", "size"))],
+            vec![Annotation::new(1, 18, 5, message(":size", "size"))],
         )
         .run();
         // 演算子名も member になりうる。
         CopCase::new(
             COP,
             "Z = Struct.new(:<=>)\n",
-            vec![Annotation::new(1, 16, 4, &message(":<=>", "<=>"))],
+            vec![Annotation::new(1, 16, 4, message(":<=>", "<=>"))],
         )
         .run();
         expect_no_offenses(COP, "Good = Struct.new(:id, :name)\n");
@@ -9131,7 +9131,7 @@ mod struct_new_override {
         CopCase::new(
             COP,
             "S = Struct.new(\"Name\", :count)\n",
-            vec![Annotation::new(1, 24, 6, &message(":count", "count"))],
+            vec![Annotation::new(1, 24, 6, message(":count", "count"))],
         )
         .run();
         expect_no_offenses(COP, "V = Foo::Struct.new(:size)\n");
@@ -9145,7 +9145,203 @@ mod struct_new_override {
         CopCase::new(
             COP,
             "X = Struct.new(:\"count\")\n",
-            vec![Annotation::new(1, 16, 8, &message(":count", "count"))],
+            vec![Annotation::new(1, 16, 8, message(":count", "count"))],
+        )
+        .run();
+    }
+}
+/// `Lint/DisjunctiveAssignmentInConstructor`。コンストラクタ冒頭の `||=` を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod disjunctive_assignment_in_constructor {
+    use super::*;
+
+    const COP: &str = "Lint/DisjunctiveAssignmentInConstructor";
+    const MSG: &str = "Unnecessary disjunctive assignment. Use plain assignment.";
+
+    /// 走査は先頭から続く `||=` の並びだけ。別種の式で打ち切る。
+    #[test]
+    fn the_run_of_disjunctive_assignments_at_the_top_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class C
+              def initialize
+                @a ||= 1
+                   ^^^ Unnecessary disjunctive assignment. Use plain assignment.
+                @b ||= 2
+                   ^^^ Unnecessary disjunctive assignment. Use plain assignment.
+                @c = 3
+                @d ||= 4
+              end
+            end
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "class E\n  def initialize\n    @a ||= 1\n  end\nend\n",
+            vec![Annotation::new(3, 8, 3, MSG)],
+        )
+        .run();
+        // 左辺がインスタンス変数でないときは報告しないが、走査は続く。
+        CopCase::new(
+            COP,
+            "class D\n  def initialize(x)\n    x ||= 1\n    @a ||= 2\n  end\nend\n",
+            vec![Annotation::new(4, 8, 3, MSG)],
+        )
+        .run();
+        expect_no_offenses(
+            COP,
+            "class H\n  def initialize\n    @a, @b = 1, 2\n    @c ||= 3\n  end\nend\n",
+        );
+    }
+
+    /// `rescue` の付いた本体は `begin` ではなくなるので、1 行目から対象外。
+    #[test]
+    fn a_rescue_or_a_singleton_definition_is_out_of_scope() {
+        expect_no_offenses(
+            COP,
+            "class F\n  def initialize\n    @a ||= 1\n  rescue\n    nil\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class G\n  def self.initialize\n    @a ||= 1\n  end\nend\n",
+        );
+    }
+
+    /// autocorrect は演算子だけを `=` に置き換える。
+    #[test]
+    fn the_correction_replaces_the_operator() {
+        expect_correction(
+            COP,
+            "class C\n  def initialize\n    @a ||= 1\n  end\nend\n",
+            "class C\n  def initialize\n    @a = 1\n  end\nend\n",
+        );
+    }
+}
+
+/// `Lint/ParenthesesAsGroupedExpression`。`foo (a)` の空白を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod parentheses_as_grouped_expression {
+    use super::*;
+
+    const COP: &str = "Lint/ParenthesesAsGroupedExpression";
+
+    fn message(argument: &str) -> String {
+        format!("`{argument}` interpreted as grouped expression.")
+    }
+
+    /// 指すのはセレクタと括弧の間の空白そのもの。
+    #[test]
+    fn the_space_between_the_selector_and_the_parenthesis_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            puts (1 + 2)
+                ^ `(1 + 2)` interpreted as grouped expression.
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "foo   (a)\n",
+            vec![Annotation::new(1, 4, 3, message("(a)"))],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "obj.foo (a)\n",
+            vec![Annotation::new(1, 8, 1, message("(a)"))],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "foo&.bar (a)\n",
+            vec![Annotation::new(1, 9, 1, message("(a)"))],
+        )
+        .run();
+        expect_no_offenses(COP, "puts(1 + 2)\n");
+        expect_no_offenses(COP, "x = (1 + 2)\n");
+    }
+
+    /// 引数が 1 個で、その引数が括弧で始まるときだけ。連鎖した呼び出しは対象外。
+    #[test]
+    fn a_chained_call_or_a_second_argument_takes_it_out_of_scope() {
+        expect_no_offenses(COP, "puts (a).to_s\n");
+        expect_no_offenses(COP, "foo (a).b(1)\n");
+        expect_no_offenses(COP, "foo (a) + 1\n");
+        expect_no_offenses(COP, "foo (a), b\n");
+        // 演算子と setter は空白を置くのが普通の書き方。
+        expect_no_offenses(COP, "foo.== (a)\n");
+        expect_no_offenses(COP, "x.foo= (a)\n");
+        // `yield` と `return` は send ではない。
+        expect_no_offenses(COP, "yield (a)\n");
+        expect_no_offenses(COP, "return (a)\n");
+    }
+
+    /// autocorrect は空白を消すだけ。
+    #[test]
+    fn the_correction_removes_the_space() {
+        expect_correction(COP, "puts (1 + 2)\n", "puts(1 + 2)\n");
+        expect_correction(COP, "foo   (a)\n", "foo(a)\n");
+    }
+}
+
+/// `Lint/ReturnInVoidContext`。戻り値が捨てられるメソッドでの `return 値` を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod return_in_void_context {
+    use super::*;
+
+    const COP: &str = "Lint/ReturnInVoidContext";
+
+    fn message(method: &str) -> String {
+        format!("Do not return a value in `{method}`.")
+    }
+
+    #[test]
+    fn a_constructor_and_a_setter_are_the_two_void_contexts() {
+        expect_offense(
+            COP,
+            r#"
+            class C
+              def initialize
+                return 1
+                ^^^^^^ Do not return a value in `initialize`.
+              end
+            end
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "class C\n  def foo=(v)\n    return 1\n  end\nend\n",
+            vec![Annotation::new(3, 5, 6, message("foo="))],
+        )
+        .run();
+        expect_no_offenses(COP, "class C\n  def bar\n    return 1\n  end\nend\n");
+        // 値を返さない `return` は対象外。
+        expect_no_offenses(COP, "class C\n  def baz=(v)\n    return\n  end\nend\n");
+    }
+
+    /// スコープを移すブロックの中は別のメソッドの本体になる。
+    #[test]
+    fn a_scope_changing_block_takes_the_return_out_of_the_void_context() {
+        expect_no_offenses(
+            COP,
+            "class C\n  def initialize\n    define_method(:x) { return 1 }\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class C\n  def initialize\n    lambda { return 1 }\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class C\n  def initialize\n    ->() { return 1 }\n  end\nend\n",
+        );
+        CopCase::new(
+            COP,
+            "class C\n  def initialize\n    [1].each { return 3 }\n  end\nend\n",
+            vec![Annotation::new(3, 16, 6, message("initialize"))],
         )
         .run();
     }
