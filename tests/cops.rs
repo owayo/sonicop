@@ -12667,6 +12667,33 @@ mod layout_multiline_indentation {
         expect_no_offenses(OPERATION, "def m\n  puts(i &&\n  j)\nend\n");
     }
 
+    /// `x = *y` の右辺は本家では `array` に包まれるので、`part_of_assignment_rhs` は
+    /// そこで打ち切られて代入は基準にならない。
+    #[test]
+    fn a_lone_splat_on_the_right_of_an_assignment_is_wrapped_in_an_array() {
+        expect_no_offenses(CALL, "def m(y)\n  x = *y\n    .to_a\n  x\nend\n");
+        expect_offense(
+            CALL,
+            r#"
+            def m(y)
+              x = y
+                .to_a
+                ^^^^^ Align `.to_a` with `y` on line 2.
+              x
+            end
+            "#,
+        );
+    }
+
+    /// `foo.(1)` は `loc.selector` を持たないので、ハッシュのペアの中で連鎖すると
+    /// 本家の `first_dot_alignment_base` が `dot.join(nil)` で cop エラーになり、
+    /// そのノードの offense は落ちる。同じ位置で報告してはいけない。
+    #[test]
+    fn an_implicit_call_in_a_hash_pair_drops_the_offense_like_upstream_does() {
+        expect_no_offenses(CALL, "h = { k: obj.(1)\n          .b\n }\n");
+        expect_no_offenses(CALL, "foo(k: obj.(1)\n        .b\n)\n");
+    }
+
     #[test]
     fn operation_correction_moves_the_right_operand() {
         expect_correction(

@@ -32,6 +32,9 @@ enum Role {
     /// The `hash` upstream folds a brace-less run of pairs into. The node is the container the
     /// pairs were written in.
     Hash,
+    /// The `array` upstream wraps a lone splat assigned to something in: `x = *y` is
+    /// `(lvasgn :x (array (splat ...)))` there and a bare splat here.
+    Array,
 }
 
 /// One node of the tree upstream's parser would have built.
@@ -148,6 +151,7 @@ impl<'tree> UpNode<'tree> {
         match self.role {
             Role::Block => UpKind::Block,
             Role::Hash => UpKind::Hash,
+            Role::Array => UpKind::Array,
             Role::Plain => plain_kind(context, self.node),
         }
     }
@@ -155,7 +159,7 @@ impl<'tree> UpNode<'tree> {
     /// `node.source_range`.
     pub(super) fn range(self, context: &RuleContext<'_>) -> Range<usize> {
         match self.role {
-            Role::Block => self.node.byte_range(),
+            Role::Block | Role::Array => self.node.byte_range(),
             Role::Hash => hash_run_range(self.node),
             Role::Plain => {
                 if self.node.kind() == "lambda" {
@@ -213,7 +217,10 @@ impl<'tree> UpNode<'tree> {
     /// everything else -- `super`, `yield`, `defined?` -- answers with nothing.
     pub(super) fn receiver(self, context: &RuleContext<'_>) -> Option<Self> {
         let node = self.node;
-        if self.role == Role::Hash || !plain_kind(context, node).call_type() {
+        if self.role != Role::Plain && self.role != Role::Block {
+            return None;
+        }
+        if !plain_kind(context, node).call_type() {
             return None;
         }
         match node.kind() {
@@ -451,7 +458,7 @@ impl<'tree> UpNode<'tree> {
 
     pub(super) fn parent(self) -> Option<Self> {
         match self.role {
-            Role::Block => raw_parent(self.node),
+            Role::Block | Role::Array => raw_parent(self.node),
             Role::Hash => {
                 if self.node.kind() == "argument_list" {
                     raw_parent(self.node)
@@ -464,6 +471,12 @@ impl<'tree> UpNode<'tree> {
                     return Some(Self {
                         node: self.node,
                         role: Role::Block,
+                    });
+                }
+                if is_lone_assigned_splat(self.node) {
+                    return Some(Self {
+                        node: self.node,
+                        role: Role::Array,
                     });
                 }
                 raw_parent(self.node)
@@ -638,6 +651,18 @@ fn call_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
         Some(operator) if context.source.node_text(operator) == "&." => UpKind::Csend,
         _ => UpKind::Send,
     }
+}
+
+/// Whether the splat is the whole right-hand side of an assignment, which upstream's parser wraps
+/// in an `array` -- one of the types that stops the walk looking for an assignment to align under.
+fn is_lone_assigned_splat(node: Node<'_>) -> bool {
+    node.kind() == "splat_argument"
+        && node.parent().is_some_and(|parent| {
+            parent.kind() == "assignment"
+                && parent
+                    .child_by_field_name("right")
+                    .is_some_and(|right| right.id() == node.id())
+        })
 }
 
 /// Whether the group is the argument list `defined?` was written with, which upstream keeps in the
