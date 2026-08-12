@@ -1,329 +1,287 @@
-//! `RuboCop::Cop::Utils::FormatString`, the scanner behind the format-string cops.
-//!
-//! Upstream spells the grammar as one regexp whose alternatives reuse the same capture names and
-//! whose template branch needs a look-behind -- neither of which this engine's regexes allow -- so
-//! the ordered choice and the greedy back-tracking are written out here instead.
+//! `Style/FormatString`: one of `format`, `sprintf` and `String#%` per project.
 
-/// The shape of one format sequence, which decides which style it belongs to.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum SequenceStyle {
-    /// `%<name>s`.
-    Annotated,
-    /// `%{name}`.
-    Template,
-    /// `%s`.
-    Unannotated,
-    /// `%%`, which every caller skips.
-    Percent,
-}
+use std::ops::Range;
 
-pub(super) struct Sequence {
-    /// Byte offsets into the scanned text.
-    pub begin: usize,
-    pub end: usize,
-    pub flags: String,
-    pub width: String,
-    pub precision: String,
-    pub name: Option<String>,
-    /// The type character, absent from a template sequence.
-    pub kind: Option<char>,
-    pub style: SequenceStyle,
-}
+use tree_sitter::Node;
 
-/// The type characters `sprintf` accepts.
-const TYPES: &[u8] = b"bBdiouxXeEfgGaAcps";
+use crate::diagnostic::{Edit, Offense};
+use crate::rules::RuleContext;
+use crate::rules::send_node::{Argument, arguments, is_plain_send};
 
-/// Every format sequence in `text`, in source order, as `String#scan` finds them.
-pub(super) fn sequences(text: &str) -> Vec<Sequence> {
-    let bytes = text.as_bytes();
-    let mut found = Vec::new();
-    let mut offset = 0;
-    while offset < bytes.len() {
-        match match_at(text, bytes, offset) {
-            Some(sequence) => {
-                offset = sequence.end;
-                found.push(sequence);
-            }
-            None => offset += next_boundary(text, offset),
-        }
-    }
-    found
-}
+/// Literal kinds a leading sign belongs to rather than turning into a `:-@` call.
+const NUMBER_KINDS: &[&str] = &["integer", "float", "rational", "complex"];
 
-fn next_boundary(text: &str, offset: usize) -> usize {
-    text[offset..].chars().next().map_or(1, char::len_utf8)
-}
+/// `AUTOCORRECTABLE_METHODS`: conversions whose result is never an array, so folding the argument
+/// into `format`'s list cannot change what it prints.
+const AUTOCORRECTABLE_METHODS: &[&str] =
+    &["to_d", "to_f", "to_h", "to_i", "to_r", "to_s", "to_sym"];
 
-fn match_at(text: &str, bytes: &[u8], start: usize) -> Option<Sequence> {
-    if bytes.get(start) != Some(&b'%') {
-        return None;
-    }
-    if bytes.get(start + 1) == Some(&b'%') {
-        return Some(Sequence {
-            begin: start,
-            end: start + 2,
-            flags: String::new(),
-            width: String::new(),
-            precision: String::new(),
-            name: None,
-            kind: Some('%'),
-            style: SequenceStyle::Percent,
-        });
-    }
+pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let style = context
+        .setting::<String>("EnforcedStyle")
+        .unwrap_or_else(|| "format".to_owned());
 
-    // `FLAG*` is greedy, so the longest run is tried first and given up one flag at a time.
-    let mut flag_ends = vec![start + 1];
-    let mut cursor = start + 1;
-    while let Some(next) = match_flag(bytes, cursor) {
-        cursor = next;
-        flag_ends.push(cursor);
-    }
-    for flag_end in flag_ends.iter().rev() {
-        let flags = text[start + 1..*flag_end].to_owned();
-        if let Some(sequence) = match_body(text, bytes, start, *flag_end, flags) {
-            return Some(sequence);
-        }
-    }
-    None
-}
-
-/// The alternation after the flags: three shapes closed by a type character, then the template one.
-fn match_body(
-    text: &str,
-    bytes: &[u8],
-    start: usize,
-    after_flags: usize,
-    flags: String,
-) -> Option<Sequence> {
-    // `WIDTH? PRECISION? NAME?` TYPE
-    for width in optional(number_ends(text, bytes, after_flags)) {
-        let after_width = width.unwrap_or(after_flags);
-        for precision in optional(precision_ends(text, bytes, after_width)) {
-            let after_precision = precision.unwrap_or(after_width);
-            for name in optional(name_end(bytes, after_precision).into_iter().collect()) {
-                let position = name.unwrap_or(after_precision);
-                if let Some(kind) = type_at(bytes, position) {
-                    return Some(build(
-                        text,
-                        start,
-                        position + 1,
-                        flags,
-                        span(text, after_flags, width),
-                        precision_text(text, after_width, precision),
-                        name.map(|end| text[after_precision + 1..end - 1].to_owned()),
-                        Some(kind),
-                    ));
-                }
-            }
-        }
-    }
-    // `WIDTH? NAME PRECISION?` TYPE
-    for width in optional(number_ends(text, bytes, after_flags)) {
-        let after_width = width.unwrap_or(after_flags);
-        let Some(after_name) = name_end(bytes, after_width) else {
+    for node in context.nodes_of_any(&["call", "binary", "chained_string"]) {
+        let Some(found) = Formatter::of(context, node) else {
             continue;
         };
-        for precision in optional(precision_ends(text, bytes, after_name)) {
-            let position = precision.unwrap_or(after_name);
-            if let Some(kind) = type_at(bytes, position) {
-                return Some(build(
-                    text,
-                    start,
-                    position + 1,
-                    flags,
-                    span(text, after_flags, width),
-                    precision_text(text, after_name, precision),
-                    Some(text[after_width + 1..after_name - 1].to_owned()),
-                    Some(kind),
-                ));
-            }
+        if found.detected == style {
+            continue;
         }
+        let message = format!(
+            "Favor `{}` over `{}`.",
+            method_name(&style),
+            method_name(&found.detected)
+        );
+        let offense = context.offense(message, found.selector.clone());
+        offenses.push(match correction(context, &found, &style) {
+            Some(edit) => offense.corrected_by(edit),
+            None => offense,
+        });
     }
-    // `NAME FLAG* WIDTH? PRECISION?` TYPE
-    if let Some(after_name) = name_end(bytes, after_flags) {
-        let mut more = after_name;
-        while let Some(next) = match_flag(bytes, more) {
-            more = next;
-        }
-        let extra = text[after_name..more].to_owned();
-        for width in optional(number_ends(text, bytes, more)) {
-            let after_width = width.unwrap_or(more);
-            for precision in optional(precision_ends(text, bytes, after_width)) {
-                let position = precision.unwrap_or(after_width);
-                if let Some(kind) = type_at(bytes, position) {
-                    return Some(build(
-                        text,
-                        start,
-                        position + 1,
-                        format!("{flags}{extra}"),
-                        span(text, more, width),
-                        precision_text(text, after_width, precision),
-                        Some(text[after_flags + 1..after_name - 1].to_owned()),
-                        Some(kind),
-                    ));
-                }
-            }
-        }
-    }
-    // `WIDTH? PRECISION? TEMPLATE_NAME`
-    for width in optional(number_ends(text, bytes, after_flags)) {
-        let after_width = width.unwrap_or(after_flags);
-        for precision in optional(precision_ends(text, bytes, after_width)) {
-            let position = precision.unwrap_or(after_width);
-            if let Some(end) = template_name_end(bytes, position) {
-                return Some(build(
-                    text,
-                    start,
-                    end,
-                    flags,
-                    span(text, after_flags, width),
-                    precision_text(text, after_width, precision),
-                    Some(text[position + 1..end - 1].to_owned()),
-                    None,
-                ));
-            }
-        }
-    }
-    None
 }
 
-#[allow(clippy::too_many_arguments)]
-fn build(
-    text: &str,
-    begin: usize,
-    end: usize,
-    flags: String,
-    width: String,
-    precision: String,
-    name: Option<String>,
-    kind: Option<char>,
-) -> Sequence {
-    let source = &text[begin..end];
-    let style = match &name {
-        Some(_) if source.contains('<') => SequenceStyle::Annotated,
-        Some(_) if source.contains('{') => SequenceStyle::Template,
-        _ => SequenceStyle::Unannotated,
+fn method_name(style: &str) -> &str {
+    if style == "percent" {
+        "String#%"
+    } else {
+        style
+    }
+}
+
+/// The right-hand side of a `%`, which the grammar sometimes leaves as raw text.
+enum Operand<'tree> {
+    Node(Node<'tree>),
+    /// `"%s"%[a, b]`: the grammar reads the `%[...]` as a percent literal of its own, so the array
+    /// upstream's parser built was never parsed at all.
+    Text(Range<usize>),
+}
+
+/// One call this cop recognises: which spelling it used, and where its selector is.
+struct Formatter<'tree> {
+    detected: String,
+    selector: Range<usize>,
+    /// The whole expression, which the `%` correction replaces.
+    span: Range<usize>,
+    /// `node.receiver`, which only the `%` spelling has.
+    receiver: Option<Range<usize>>,
+    /// `node.first_argument`, which is all either correction reads.
+    argument: Option<Operand<'tree>>,
+}
+
+impl<'tree> Formatter<'tree> {
+    fn of(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
+        match node.kind() {
+            "chained_string" => Self::of_chained_string(context, node),
+            "binary" => Self::of_binary(context, node),
+            _ => Self::of_call(context, node),
+        }
+    }
+
+    /// `(send {str dstr} $:% ...)` and `(send !nil? $:% {array hash})` written as an operator,
+    /// which the grammar spells as a node of its own rather than a call.
+    fn of_binary(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
+        let operator = node.child_by_field_name("operator")?;
+        if context.source.node_text(operator) != "%" {
+            return None;
+        }
+        let left = node.child_by_field_name("left")?;
+        let right = node.child_by_field_name("right")?;
+        if !matches!(left.kind(), "string" | "chained_string")
+            && !matches!(right.kind(), "array" | "hash")
+        {
+            return None;
+        }
+        Some(Self {
+            detected: "percent".to_owned(),
+            selector: operator.byte_range(),
+            span: node.byte_range(),
+            receiver: Some(left.byte_range()),
+            argument: Some(Operand::Node(right)),
+        })
+    }
+
+    /// `"%s"%[a, b]`, where nothing separates the literal from the `%`.
+    ///
+    /// Ruby only opens a percent literal where a value may begin, so this is a call to `:%` whose
+    /// argument is an array; the grammar reads a second string literal and chains the two.
+    fn of_chained_string(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
+        let first = node.child(0)?;
+        let second = node.child(1)?;
+        let opener = context.source.node_text(second.child(0)?);
+        if node.child_count() != 2 || !opener.starts_with('%') || opener.chars().count() != 2 {
+            return None;
+        }
+        // A `{` operand is a hash to upstream's parser, which rejects the file outright when what
+        // stands between the braces is not one. Reading it here would rewrite a file upstream
+        // never got as far as inspecting.
+        if opener.ends_with('{') {
+            return None;
+        }
+        Some(Self {
+            detected: "percent".to_owned(),
+            selector: second.start_byte()..second.start_byte() + 1,
+            span: node.byte_range(),
+            receiver: Some(first.byte_range()),
+            argument: Some(Operand::Text(second.start_byte() + 1..second.end_byte())),
+        })
+    }
+
+    fn of_call(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
+        let selector = node.child_by_field_name("method")?;
+        let name = context.source.node_text(selector);
+        // `'%s'.%(x)`: the same two `%` alternatives, written as an ordinary call.
+        if name == "%" {
+            let receiver = node.child_by_field_name("receiver")?;
+            let written = arguments(node);
+            let first = written.first().map(Argument::first);
+            let recognised = matches!(receiver.kind(), "string" | "chained_string")
+                || (written.len() == 1
+                    && first.is_some_and(|node| matches!(node.kind(), "array" | "hash")));
+            if !recognised {
+                return None;
+            }
+            return Some(Self {
+                detected: "percent".to_owned(),
+                selector: selector.byte_range(),
+                span: node.byte_range(),
+                receiver: Some(receiver.byte_range()),
+                argument: first.map(Operand::Node),
+            });
+        }
+        // `(send nil? ${:sprintf :format} _ _ ...)`: no receiver and at least two arguments.
+        if !matches!(name, "sprintf" | "format")
+            || node.child_by_field_name("receiver").is_some()
+            || !is_plain_send(node, context)
+        {
+            return None;
+        }
+        if arguments(node).len() < 2 {
+            return None;
+        }
+        Some(Self {
+            detected: name.to_owned(),
+            selector: selector.byte_range(),
+            span: node.byte_range(),
+            receiver: None,
+            argument: None,
+        })
+    }
+}
+
+fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> Option<Edit> {
+    // `autocorrect_to_percent` is only reachable with `EnforcedStyle: percent`, which no corpus
+    // configures; the offense is reported without a correction rather than guessed at.
+    if style == "percent" {
+        return None;
+    }
+    if found.detected != "percent" {
+        return Some(Edit {
+            start: found.selector.start,
+            end: found.selector.end,
+            replacement: style.to_owned(),
+            safe: true,
+        });
+    }
+    let argument = found.argument.as_ref()?;
+    // `variable_argument?`: the argument may already be an array, so folding it into `format`'s
+    // list would print something else.
+    if is_variable_argument(context, found, argument) {
+        return None;
+    }
+    let receiver = found.receiver.clone()?;
+    let args = match argument {
+        Operand::Node(node) if matches!(node.kind(), "array" | "hash") => {
+            super::nodes::children(*node)
+                .iter()
+                .map(|child| context.source.node_text(*child))
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+        Operand::Node(node) => context.source.node_text(*node).to_owned(),
+        Operand::Text(range) => elements_of(context.source.slice(range.clone())),
     };
-    Sequence {
-        begin,
-        end,
-        flags,
-        width,
-        precision,
-        name,
-        kind,
-        style,
-    }
+    Some(Edit {
+        start: found.span.start,
+        end: found.span.end,
+        replacement: format!(
+            "{style}({}, {args})",
+            context.source.slice(receiver.clone())
+        ),
+        safe: true,
+    })
 }
 
-/// A greedy `X?`: the match is tried before the absence of one.
-fn optional(ends: Vec<usize>) -> Vec<Option<usize>> {
-    let mut all: Vec<Option<usize>> = ends.into_iter().map(Some).collect();
-    all.push(None);
-    all
-}
-
-fn span(text: &str, start: usize, end: Option<usize>) -> String {
-    end.map_or_else(String::new, |end| text[start..end].to_owned())
-}
-
-/// The `precision` capture, which excludes the `.` that introduces it.
-fn precision_text(text: &str, start: usize, end: Option<usize>) -> String {
-    end.map_or_else(String::new, |end| text[start + 1..end].to_owned())
-}
-
-/// `FLAG`: one of the sprintf flags, or an argument number.
-fn match_flag(bytes: &[u8], position: usize) -> Option<usize> {
-    match bytes.get(position)? {
-        b' ' | b'#' | b'0' | b'+' | b'-' => Some(position + 1),
-        _ => digit_dollar_end(bytes, position),
-    }
-}
-
-/// `\d+\$`.
-fn digit_dollar_end(bytes: &[u8], position: usize) -> Option<usize> {
-    let mut cursor = position;
-    while bytes.get(cursor).is_some_and(u8::is_ascii_digit) {
-        cursor += 1;
-    }
-    (cursor > position && bytes.get(cursor) == Some(&b'$')).then_some(cursor + 1)
-}
-
-/// `NUMBER`, as the ends its alternatives can reach, longest first.
-fn number_ends(text: &str, bytes: &[u8], position: usize) -> Vec<usize> {
-    let mut ends = Vec::new();
-    let mut digits = position;
-    while bytes.get(digits).is_some_and(u8::is_ascii_digit) {
-        digits += 1;
-    }
-    // `\d+` is greedy and gives one digit back at a time.
-    ends.extend((position + 1..=digits).rev());
-    if bytes.get(position) == Some(&b'*') {
-        if let Some(end) = digit_dollar_end(bytes, position + 1) {
-            ends.push(end);
+/// `children.map(&:source).join(', ')` for the array or hash the grammar left as text.
+fn elements_of(source: &str) -> String {
+    let inner = source
+        .strip_prefix(['[', '{'])
+        .and_then(|rest| rest.strip_suffix([']', '}']));
+    let Some(inner) = inner else {
+        return source.to_owned();
+    };
+    let mut depth = 0i32;
+    let mut parts = Vec::new();
+    let mut start = 0;
+    for (index, character) in inner.char_indices() {
+        match character {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth -= 1,
+            ',' if depth == 0 => {
+                parts.push(inner[start..index].trim());
+                start = index + 1;
+            }
+            _ => {}
         }
-        ends.push(position + 1);
     }
-    if let Some(end) = interpolation_end(text, bytes, position) {
-        ends.push(end);
-    }
-    ends
+    parts.push(inner[start..].trim());
+    parts.join(", ")
 }
 
-/// `\#\{.*?\}`, whose `.` stops at a line break.
-fn interpolation_end(text: &str, bytes: &[u8], position: usize) -> Option<usize> {
-    if bytes.get(position) != Some(&b'#') || bytes.get(position + 1) != Some(&b'{') {
-        return None;
+/// `variable_argument?`: `(send {str dstr} :% #autocorrectable?)`, where `autocorrectable?` holds
+/// for a local variable and for a call that is not one of the safe conversions.
+///
+/// A bare identifier is a local variable or a receiverless call and answers the same either way,
+/// except for the name of a conversion method written as a call, which no project does.
+fn is_variable_argument(
+    context: &RuleContext<'_>,
+    found: &Formatter<'_>,
+    argument: &Operand<'_>,
+) -> bool {
+    let literal_receiver = found.receiver.clone().is_some_and(|range| {
+        let text = context.source.slice(range);
+        !text.starts_with(['[', '{'])
+    });
+    if !literal_receiver {
+        return false;
     }
-    let rest = &text[position + 2..];
-    let close = rest.find('}')?;
-    match rest[..close].contains('\n') {
-        true => None,
-        false => Some(position + 2 + close + 1),
+    let Operand::Node(node) = argument else {
+        return false;
+    };
+    match node.kind() {
+        "identifier" => !AUTOCORRECTABLE_METHODS.contains(&context.source.node_text(*node)),
+        "call" => node.child_by_field_name("method").is_none_or(|method| {
+            !AUTOCORRECTABLE_METHODS.contains(&context.source.node_text(method))
+        }),
+        // Every other spelling of a `send`: an index, an operator, a unary minus. None of their
+        // selectors is one of the safe conversions.
+        "element_reference" => true,
+        // A sign in front of a number is part of the literal upstream, not a call to `:-@`.
+        "unary" => {
+            let operator = node
+                .child_by_field_name("operator")
+                .map_or("", |operator| context.source.node_text(operator));
+            let signed_number = matches!(operator, "-" | "+")
+                && node
+                    .child_by_field_name("operand")
+                    .is_some_and(|operand| NUMBER_KINDS.contains(&operand.kind()));
+            !signed_number && matches!(operator, "-" | "+" | "!" | "~" | "not")
+        }
+        "binary" => node
+            .child_by_field_name("operator")
+            .is_some_and(|operator| {
+                super::nodes::is_operator_method(context.source.node_text(operator))
+            }),
+        _ => false,
     }
-}
-
-/// `\.(?<precision>NUMBER?)`.
-fn precision_ends(text: &str, bytes: &[u8], position: usize) -> Vec<usize> {
-    if bytes.get(position) != Some(&b'.') {
-        return Vec::new();
-    }
-    let mut ends = number_ends(text, bytes, position + 1);
-    ends.push(position + 1);
-    ends
-}
-
-/// `<(?<name>\w+)>`.
-fn name_end(bytes: &[u8], position: usize) -> Option<usize> {
-    if bytes.get(position) != Some(&b'<') {
-        return None;
-    }
-    let mut cursor = position + 1;
-    while bytes.get(cursor).is_some_and(is_word_byte) {
-        cursor += 1;
-    }
-    (cursor > position + 1 && bytes.get(cursor) == Some(&b'>')).then_some(cursor + 1)
-}
-
-/// `(?<!\#)\{(?<name>\w+)\}`.
-fn template_name_end(bytes: &[u8], position: usize) -> Option<usize> {
-    if bytes.get(position) != Some(&b'{') || position == 0 || bytes[position - 1] == b'#' {
-        return None;
-    }
-    let mut cursor = position + 1;
-    while bytes.get(cursor).is_some_and(is_word_byte) {
-        cursor += 1;
-    }
-    (cursor > position + 1 && bytes.get(cursor) == Some(&b'}')).then_some(cursor + 1)
-}
-
-fn type_at(bytes: &[u8], position: usize) -> Option<char> {
-    bytes
-        .get(position)
-        .filter(|byte| TYPES.contains(byte))
-        .map(|byte| *byte as char)
-}
-
-fn is_word_byte(byte: &u8) -> bool {
-    byte.is_ascii_alphanumeric() || *byte == b'_'
 }

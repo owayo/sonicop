@@ -2204,6 +2204,83 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_stderr_puts")
         .correctable(true),
+        CopCase::annotated(
+            "Style/FormatString",
+            r#"
+            puts sprintf('%10s', 'foo')
+                 ^^^^^^^ Favor `format` over `sprintf`.
+            "#,
+        )
+        .id("style_format_string")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/BarePercentLiterals",
+            r#"
+            a = %Q(hi)
+                ^^^ Use `%` instead of `%Q`.
+            "#,
+        )
+        .id("style_bare_percent_literals")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/PercentQLiterals",
+            r#"
+            b = %Q(hi)
+                ^^^ Do not use `%Q` unless interpolation is needed. Use `%q`.
+            "#,
+        )
+        .id("style_percent_q_literals")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantPercentQ",
+            r#"
+            c = %q(hi)
+                ^^^^^^ Use `%q` only for strings that contain both single quotes and double quotes.
+            "#,
+        )
+        .id("style_redundant_percent_q")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantCapitalW",
+            r#"
+            d = %W[a b]
+                ^^^^^^^ Do not use `%W` unless interpolation is needed. If not, use `%w`.
+            "#,
+        )
+        .id("style_redundant_capital_w")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RaiseArgs",
+            r#"
+            raise RuntimeError.new('msg')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Provide an exception class and message as arguments to `raise`.
+            "#,
+        )
+        .id("style_raise_args")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ZeroLengthPredicate",
+            r#"
+            x = a.size.zero?
+                  ^^^^^^^^^^ Use `empty?` instead of `size.zero?`.
+            "#,
+        )
+        .id("style_zero_length_predicate")
+        .correctable(true),
+        // 同じスコープに `respond_to_missing?` があれば咎めない。
+        CopCase::annotated(
+            "Style/MissingRespondToMissing",
+            r#"
+            class Q
+              def method_missing(name)
+              ^^^^^^^^^^^^^^^^^^^^^^^^ When using `method_missing`, define `respond_to_missing?`.
+                nil
+              end
+            end
+            "#,
+        )
+        .id("style_missing_respond_to_missing")
+        .correctable(false),
     ]
 }
 

@@ -11407,3 +11407,171 @@ mod style_conventions {
         expect_no_offenses("Style/StderrPuts", "$stdout.puts 'x'\n");
     }
 }
+
+/// 書式文字列 / `%` リテラル / `raise` の引数 / 長さ 0 判定 / `method_missing` の回帰。
+mod style_formatting {
+    use super::*;
+
+    #[test]
+    fn format_string_covers_every_spelling_of_the_call() {
+        expect_offense(
+            "Style/FormatString",
+            r#"
+            puts sprintf('%10s', 'foo')
+                 ^^^^^^^ Favor `format` over `sprintf`.
+            "#,
+        );
+        expect_offense(
+            "Style/FormatString",
+            r#"
+            puts '%10s' % 'foo'
+                        ^ Favor `format` over `String#%`.
+            "#,
+        );
+        expect_correction(
+            "Style/FormatString",
+            "puts '%10s' % 'foo'\n",
+            "puts format('%10s', 'foo')\n",
+        );
+        expect_correction(
+            "Style/FormatString",
+            "puts '%s' % [1, 2]\n",
+            "puts format('%s', 1, 2)\n",
+        );
+        // 文法が `\"%s\"%[a, b]` を 2 つ目の `%` リテラルとして読むので、上流の
+        // `(send (str) :% (array ...))` へ戻してから報告する。
+        expect_correction(
+            "Style/FormatString",
+            "puts '%s'%[a, b]\n",
+            "puts format('%s', a, b)\n",
+        );
+        // 引数が配列かもしれない変数なら、たたみ込むと出力が変わるので補正しない。
+        CopCase::annotated(
+            "Style/FormatString",
+            r#"
+            puts '%s' % x
+                      ^ Favor `format` over `String#%`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_no_offenses("Style/FormatString", "puts format('%10s', 'foo')\n");
+        expect_no_offenses("Style/FormatString", "puts foo % bar\n");
+    }
+
+    #[test]
+    fn percent_literal_cops_agree_on_the_opening_delimiter() {
+        expect_offense(
+            "Style/BarePercentLiterals",
+            r#"
+            a = %Q(hi)
+                ^^^ Use `%` instead of `%Q`.
+            "#,
+        );
+        expect_correction("Style/BarePercentLiterals", "a = %Q(hi)\n", "a = %(hi)\n");
+        expect_no_offenses("Style/BarePercentLiterals", "a = %(hi)\n");
+        expect_correction("Style/PercentQLiterals", "b = %Q(hi)\n", "b = %q(hi)\n");
+        // `%q` と `%Q` で意味が変わる本文は残す。
+        expect_no_offenses("Style/PercentQLiterals", "b = %Q(a\\nb)\n");
+        expect_correction("Style/RedundantCapitalW", "d = %W[a b]\n", "d = %w[a b]\n");
+        expect_no_offenses("Style/RedundantCapitalW", "e = %W[a #\u{7b}b}]\n");
+        expect_correction("Style/RedundantPercentQ", "c = %q(hi)\n", "c = 'hi'\n");
+        expect_correction(
+            "Style/RedundantPercentQ",
+            "f = %q(don't)\n",
+            "f = \"don't\"\n",
+        );
+        expect_no_offenses("Style/RedundantPercentQ", "g = %q(it's \"here\")\n");
+    }
+
+    #[test]
+    fn raise_args_explodes_a_constructed_exception() {
+        expect_offense(
+            "Style/RaiseArgs",
+            r#"
+            raise RuntimeError.new('msg')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Provide an exception class and message as arguments to `raise`.
+            "#,
+        );
+        expect_correction(
+            "Style/RaiseArgs",
+            "raise RuntimeError.new('msg')\n",
+            "raise RuntimeError, 'msg'\n",
+        );
+        // 引数の無い `new` も潰せる。
+        expect_correction(
+            "Style/RaiseArgs",
+            "raise StandardError.new\n",
+            "raise StandardError\n",
+        );
+        // `operator_keyword?` は `||` も含むので括弧が要る。
+        expect_correction(
+            "Style/RaiseArgs",
+            "x || raise(KeyError.new('k'))\n",
+            "x || raise(KeyError, 'k')\n",
+        );
+        expect_no_offenses("Style/RaiseArgs", "raise RuntimeError, 'msg'\n");
+        expect_no_offenses("Style/RaiseArgs", "raise Foo.new(bar: 1)\n");
+    }
+
+    #[test]
+    fn zero_length_predicate_reads_both_the_predicate_and_the_comparisons() {
+        expect_offense(
+            "Style/ZeroLengthPredicate",
+            r#"
+            x = [].size.zero?
+                   ^^^^^^^^^^ Use `empty?` instead of `size.zero?`.
+            "#,
+        );
+        expect_correction(
+            "Style/ZeroLengthPredicate",
+            "x = [].size.zero?\n",
+            "x = [].empty?\n",
+        );
+        expect_correction(
+            "Style/ZeroLengthPredicate",
+            "y = a.length == 0\n",
+            "y = a.empty?\n",
+        );
+        expect_correction(
+            "Style/ZeroLengthPredicate",
+            "z = a.size > 0\n",
+            "z = !a.empty?\n",
+        );
+        expect_correction(
+            "Style/ZeroLengthPredicate",
+            "w = 0 == a.size\n",
+            "w = a.empty?\n",
+        );
+        expect_correction(
+            "Style/ZeroLengthPredicate",
+            "v = a.size < 1\n",
+            "v = a.empty?\n",
+        );
+        // ファイルの大きさは要素数ではない。
+        expect_no_offenses(
+            "Style/ZeroLengthPredicate",
+            "u = File.stat('f').size == 0\n",
+        );
+        expect_no_offenses("Style/ZeroLengthPredicate", "t = a.size == 1\n");
+    }
+
+    #[test]
+    fn missing_respond_to_missing_looks_in_the_same_scope() {
+        expect_offense(
+            "Style/MissingRespondToMissing",
+            r#"
+            class Q
+              def method_missing(name)
+              ^^^^^^^^^^^^^^^^^^^^^^^^ When using `method_missing`, define `respond_to_missing?`.
+                nil
+              end
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Style/MissingRespondToMissing",
+            "class R\n  def method_missing(name)\n    nil\n  end\n\n  def respond_to_missing?(name, p = false)\n    true\n  end\nend\n",
+        );
+    }
+}

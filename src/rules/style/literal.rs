@@ -214,7 +214,7 @@ fn escape_character(character: char, following: Option<char>, out: &mut String) 
 }
 
 /// `double_quotes_required?`: the escaped form holds a single quote, or a backslash standing alone.
-fn double_quotes_required(escaped: &str) -> bool {
+pub(super) fn double_quotes_required(escaped: &str) -> bool {
     if escaped.contains('\'') {
         return true;
     }
