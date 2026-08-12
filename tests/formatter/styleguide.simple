@@ -1,0 +1,16 @@
+== alpha.rb ==
+W:  1:  1: [Correctable] Lint/UselessAssignment: Useless assignment to variable - x. (https://rubystyle.guide#underscore-unused-vars)
+C:  1:  1: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+C:  1:  5: [Correctable] Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols. (https://rubystyle.guide#consistent-string-literals)
+W:  2:  1: [Correctable] Lint/UselessAssignment: Useless assignment to variable - y. (https://rubystyle.guide#underscore-unused-vars)
+C:  2:  6: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+C:  3:  1: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+== beta/gamma.rb ==
+C:  3:  5: [Correctable] Style/WordArray: Use %w or %W for an array of words. (https://rubystyle.guide#percent-w)
+== fmt.rb ==
+C:  3:  9: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+C:  3: 12: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+== tabbed.rb ==
+W:  4:  2: [Correctable] Lint/UselessAssignment: Useless assignment to variable - value. (https://rubystyle.guide#underscore-unused-vars)
+
+5 files inspected, 10 offenses detected, 8 offenses autocorrectable

@@ -880,6 +880,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
                 corrected_count,
                 fail_level: fail_level.severity(),
                 safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
+                display_only_failed: cli.display_only_failed,
             },
         )?;
         if cli.display_time {

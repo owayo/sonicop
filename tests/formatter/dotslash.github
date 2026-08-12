@@ -6,6 +6,3 @@
 ::error file=alpha.rb,line=2,col=6::Layout/TrailingWhitespace: Trailing whitespace detected.
 ::error file=alpha.rb,line=3,col=1::Layout/TrailingWhitespace: Trailing whitespace detected.
 ::error file=beta/gamma.rb,line=3,col=5::Style/WordArray: Use `%25w` or `%25W` for an array of words.
-::error file=fmt.rb,line=3,col=9::Style/FormatStringToken: Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
-::error file=fmt.rb,line=3,col=12::Style/FormatStringToken: Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
-::error file=tabbed.rb,line=4,col=2::Lint/UselessAssignment: Useless assignment to variable - `value`.

@@ -1,3 +1,4 @@
 {root}/alpha.rb
 {root}/beta/gamma.rb
+{root}/fmt.rb
 {root}/tabbed.rb

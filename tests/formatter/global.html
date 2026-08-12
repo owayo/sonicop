@@ -366,39 +366,18 @@ TvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=
     <div class="information">
       <div class="infobox">
         <div class="total">
-          5 files inspected,
-          10 offenses detected:
+          2 files inspected,
+          1 offense detected:
         </div>
         <ul class="offenses-list">
 
 
             <li>
-              <a href="#offense_alpha.rb">
-                alpha.rb - 6 offenses
+              <a href="#offense_BadName.rb">
+                BadName.rb - 1 offense
               </a>
             </li>
 
-
-            <li>
-              <a href="#offense_beta/gamma.rb">
-                beta/gamma.rb - 1 offense
-              </a>
-            </li>
-
-
-
-            <li>
-              <a href="#offense_fmt.rb">
-                fmt.rb - 2 offenses
-              </a>
-            </li>
-
-
-            <li>
-              <a href="#offense_tabbed.rb">
-                tabbed.rb - 1 offense
-              </a>
-            </li>
 
         </ul>
       </div>
@@ -406,71 +385,16 @@ TvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=
     <div id="offenses">
 
 
-      <div class="offense-box" id="offense_alpha.rb">
+      <div class="offense-box" id="offense_BadName.rb">
         <div class="box-title-placeholder"><h3>&nbsp;</h3></div>
-        <div class="box-title"><h3>alpha.rb - 6 offenses</h3></div>
+        <div class="box-title"><h3>BadName.rb - 1 offense</h3></div>
         <div class="offense-reports">
 
           <div class="report">
             <div class="meta">
               <span class="location">Line #1</span> –
-              <span class="severity warning">warning:</span>
-              <span class="message">Lint/UselessAssignment: Useless assignment to variable - <code>x</code>.</span>
-            </div>
-
-            <pre><code><span class="highlight warning">x</span> = &quot;a&lt;b&gt;&amp;c&quot;</code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #1</span> –
               <span class="severity convention">convention:</span>
-              <span class="message">Style/FrozenStringLiteralComment: Missing frozen string literal comment.</span>
-            </div>
-
-            <pre><code><span class="highlight convention">x</span> = &quot;a&lt;b&gt;&amp;c&quot;</code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #1</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.</span>
-            </div>
-
-            <pre><code>x = <span class="highlight convention">&quot;a&lt;b&gt;&amp;c&quot;</span></code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #2</span> –
-              <span class="severity warning">warning:</span>
-              <span class="message">Lint/UselessAssignment: Useless assignment to variable - <code>y</code>.</span>
-            </div>
-
-            <pre><code><span class="highlight warning">y</span> = 1  </code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #2</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Layout/TrailingWhitespace: Trailing whitespace detected.</span>
-            </div>
-
-            <pre><code>y = 1<span class="highlight convention">  </span></code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #3</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Layout/TrailingWhitespace: Trailing whitespace detected.</span>
+              <span class="message">Naming/FileName: The name of this source file (<code>BadName.rb</code>) should use snake_case.</span>
             </div>
 
           </div>
@@ -479,80 +403,6 @@ TvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=
       </div>
 
 
-
-      <div class="offense-box" id="offense_beta/gamma.rb">
-        <div class="box-title-placeholder"><h3>&nbsp;</h3></div>
-        <div class="box-title"><h3>beta/gamma.rb - 1 offense</h3></div>
-        <div class="offense-reports">
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #3</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Style/WordArray: Use <code>%w</code> or <code>%W</code> for an array of words.</span>
-            </div>
-
-            <pre><code>z = <span class="highlight convention">[</span> <span class="extra-code">...</span></code></pre>
-
-          </div>
-
-        </div>
-      </div>
-
-
-
-
-
-      <div class="offense-box" id="offense_fmt.rb">
-        <div class="box-title-placeholder"><h3>&nbsp;</h3></div>
-        <div class="box-title"><h3>fmt.rb - 2 offenses</h3></div>
-        <div class="offense-reports">
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #3</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Style/FormatStringToken: Prefer annotated tokens (like <code>%&lt;foo&gt;s</code>) over unannotated tokens (like <code>%s</code>).</span>
-            </div>
-
-            <pre><code>format(&#39;<span class="highlight convention">%s</span> %s&#39;, 1, 2)</code></pre>
-
-          </div>
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #3</span> –
-              <span class="severity convention">convention:</span>
-              <span class="message">Style/FormatStringToken: Prefer annotated tokens (like <code>%&lt;foo&gt;s</code>) over unannotated tokens (like <code>%s</code>).</span>
-            </div>
-
-            <pre><code>format(&#39;%s <span class="highlight convention">%s</span>&#39;, 1, 2)</code></pre>
-
-          </div>
-
-        </div>
-      </div>
-
-
-
-      <div class="offense-box" id="offense_tabbed.rb">
-        <div class="box-title-placeholder"><h3>&nbsp;</h3></div>
-        <div class="box-title"><h3>tabbed.rb - 1 offense</h3></div>
-        <div class="offense-reports">
-
-          <div class="report">
-            <div class="meta">
-              <span class="location">Line #4</span> –
-              <span class="severity warning">warning:</span>
-              <span class="message">Lint/UselessAssignment: Useless assignment to variable - <code>value</code>.</span>
-            </div>
-
-            <pre><code>	<span class="highlight warning">value</span> = 1</code></pre>
-
-          </div>
-
-        </div>
-      </div>
 
 
     </div>

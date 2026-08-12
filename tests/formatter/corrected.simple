@@ -1,0 +1,16 @@
+== alpha.rb ==
+W:  1:  1: [Corrected] Lint/UselessAssignment: Useless assignment to variable - x.
+C:  1:  1: [Corrected] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+C:  1:  5: [Corrected] Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.
+W:  2:  1: [Corrected] Lint/UselessAssignment: Useless assignment to variable - y.
+C:  2:  6: [Corrected] Layout/TrailingWhitespace: Trailing whitespace detected.
+C:  3:  1: [Corrected] Layout/TrailingWhitespace: Trailing whitespace detected.
+== beta/gamma.rb ==
+C:  3:  5: [Corrected] Style/WordArray: Use %w or %W for an array of words.
+== fmt.rb ==
+C:  3:  9: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+C:  3: 12: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+== tabbed.rb ==
+W:  4:  2: [Corrected] Lint/UselessAssignment: Useless assignment to variable - value.
+
+5 files inspected, 10 offenses detected, 8 offenses corrected

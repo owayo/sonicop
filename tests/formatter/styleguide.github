@@ -1,0 +1,11 @@
+
+::error file=alpha.rb,line=1,col=1::Lint/UselessAssignment: Useless assignment to variable - `x`. (https://rubystyle.guide#underscore-unused-vars)
+::error file=alpha.rb,line=1,col=1::Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+::error file=alpha.rb,line=1,col=5::Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols. (https://rubystyle.guide#consistent-string-literals)
+::error file=alpha.rb,line=2,col=1::Lint/UselessAssignment: Useless assignment to variable - `y`. (https://rubystyle.guide#underscore-unused-vars)
+::error file=alpha.rb,line=2,col=6::Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+::error file=alpha.rb,line=3,col=1::Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+::error file=beta/gamma.rb,line=3,col=5::Style/WordArray: Use `%25w` or `%25W` for an array of words. (https://rubystyle.guide#percent-w)
+::error file=fmt.rb,line=3,col=9::Style/FormatStringToken: Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
+::error file=fmt.rb,line=3,col=12::Style/FormatStringToken: Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
+::error file=tabbed.rb,line=4,col=2::Lint/UselessAssignment: Useless assignment to variable - `value`. (https://rubystyle.guide#underscore-unused-vars)

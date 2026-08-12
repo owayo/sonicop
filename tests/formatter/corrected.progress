@@ -1,0 +1,35 @@
+Inspecting 5 files
+WC.CW
+
+Offenses:
+
+alpha.rb:1:1: W: [Corrected] Lint/UselessAssignment: Useless assignment to variable - x.
+x = "a<b>&c"
+^
+alpha.rb:1:1: C: [Corrected] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+x = "a<b>&c"
+^
+alpha.rb:1:5: C: [Corrected] Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.
+x = "a<b>&c"
+    ^^^^^^^^
+alpha.rb:2:1: W: [Corrected] Lint/UselessAssignment: Useless assignment to variable - y.
+y = 1  
+^
+alpha.rb:2:6: C: [Corrected] Layout/TrailingWhitespace: Trailing whitespace detected.
+y = 1  
+     ^^
+alpha.rb:3:1: C: [Corrected] Layout/TrailingWhitespace: Trailing whitespace detected.
+beta/gamma.rb:3:5: C: [Corrected] Style/WordArray: Use %w or %W for an array of words.
+z = [ ...
+    ^
+fmt.rb:3:9: C: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+format('%s %s', 1, 2)
+        ^^
+fmt.rb:3:12: C: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
+format('%s %s', 1, 2)
+           ^^
+tabbed.rb:4:2: W: [Corrected] Lint/UselessAssignment: Useless assignment to variable - value.
+	value = 1
+	^^^^^
+
+5 files inspected, 10 offenses detected, 8 offenses corrected

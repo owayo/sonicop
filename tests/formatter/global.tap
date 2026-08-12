@@ -1,0 +1,6 @@
+1..2
+not ok 1 - BadName.rb
+# BadName.rb:1:1: C: Naming/FileName: The name of this source file (BadName.rb) should use snake_case.
+ok 2 - clean.rb
+
+2 files inspected, 1 offense detected

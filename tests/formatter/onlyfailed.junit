@@ -1,0 +1,49 @@
+<?xml version='1.0'?>
+<testsuites>
+  <testsuite name='rubocop' tests='5' failures='10'>
+    <testcase classname='alpha' name='Layout/TrailingWhitespace'>
+      <failure type='Layout/TrailingWhitespace' message='Layout/TrailingWhitespace: Trailing whitespace detected.'>
+        {root}/alpha.rb:2:6
+      </failure>
+      <failure type='Layout/TrailingWhitespace' message='Layout/TrailingWhitespace: Trailing whitespace detected.'>
+        {root}/alpha.rb:3:1
+      </failure>
+    </testcase>
+    <testcase classname='alpha' name='Lint/UselessAssignment'>
+      <failure type='Lint/UselessAssignment' message='Lint/UselessAssignment: Useless assignment to variable - `x`.'>
+        {root}/alpha.rb:1:1
+      </failure>
+      <failure type='Lint/UselessAssignment' message='Lint/UselessAssignment: Useless assignment to variable - `y`.'>
+        {root}/alpha.rb:2:1
+      </failure>
+    </testcase>
+    <testcase classname='alpha' name='Style/FrozenStringLiteralComment'>
+      <failure type='Style/FrozenStringLiteralComment' message='Style/FrozenStringLiteralComment: Missing frozen string literal comment.'>
+        {root}/alpha.rb:1:1
+      </failure>
+    </testcase>
+    <testcase classname='alpha' name='Style/StringLiterals'>
+      <failure type='Style/StringLiterals' message='Style/StringLiterals: Prefer single-quoted strings when you don&apos;t need string interpolation or special symbols.'>
+        {root}/alpha.rb:1:5
+      </failure>
+    </testcase>
+    <testcase classname='beta.gamma' name='Style/WordArray'>
+      <failure type='Style/WordArray' message='Style/WordArray: Use `%w` or `%W` for an array of words.'>
+        {root}/beta/gamma.rb:3:5
+      </failure>
+    </testcase>
+    <testcase classname='fmt' name='Style/FormatStringToken'>
+      <failure type='Style/FormatStringToken' message='Style/FormatStringToken: Prefer annotated tokens (like `%&lt;foo&gt;s`) over unannotated tokens (like `%s`).'>
+        {root}/fmt.rb:3:9
+      </failure>
+      <failure type='Style/FormatStringToken' message='Style/FormatStringToken: Prefer annotated tokens (like `%&lt;foo&gt;s`) over unannotated tokens (like `%s`).'>
+        {root}/fmt.rb:3:12
+      </failure>
+    </testcase>
+    <testcase classname='tabbed' name='Lint/UselessAssignment'>
+      <failure type='Lint/UselessAssignment' message='Lint/UselessAssignment: Useless assignment to variable - `value`.'>
+        {root}/tabbed.rb:4:2
+      </failure>
+    </testcase>
+  </testsuite>
+</testsuites>

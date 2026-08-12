@@ -1,0 +1,64 @@
+# RuboCop Inspection Report
+
+5 files inspected, 10 offenses detected:
+
+### alpha.rb - (6 offenses)
+  * **Line # 1 - warning:** Lint/UselessAssignment: Useless assignment to variable - `x`. (https://rubystyle.guide#underscore-unused-vars)
+
+    ```rb
+    x = "a<b>&c"
+    ```
+
+  * **Line # 1 - convention:** Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+
+    ```rb
+    x = "a<b>&c"
+    ```
+
+  * **Line # 1 - convention:** Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols. (https://rubystyle.guide#consistent-string-literals)
+
+    ```rb
+    x = "a<b>&c"
+    ```
+
+  * **Line # 2 - warning:** Lint/UselessAssignment: Useless assignment to variable - `y`. (https://rubystyle.guide#underscore-unused-vars)
+
+    ```rb
+    y = 1  
+    ```
+
+  * **Line # 2 - convention:** Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+
+    ```rb
+    y = 1  
+    ```
+
+  * **Line # 3 - convention:** Layout/TrailingWhitespace: Trailing whitespace detected. (https://rubystyle.guide#no-trailing-whitespace)
+
+### beta/gamma.rb - (1 offense)
+  * **Line # 3 - convention:** Style/WordArray: Use `%w` or `%W` for an array of words. (https://rubystyle.guide#percent-w)
+
+    ```rb
+    z = [ ...
+    ```
+
+### fmt.rb - (2 offenses)
+  * **Line # 3 - convention:** Style/FormatStringToken: Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
+
+    ```rb
+    format('%s %s', 1, 2)
+    ```
+
+  * **Line # 3 - convention:** Style/FormatStringToken: Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
+
+    ```rb
+    format('%s %s', 1, 2)
+    ```
+
+### tabbed.rb - (1 offense)
+  * **Line # 4 - warning:** Lint/UselessAssignment: Useless assignment to variable - `value`. (https://rubystyle.guide#underscore-unused-vars)
+
+    ```rb
+    	value = 1
+    ```
+

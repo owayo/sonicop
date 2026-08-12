@@ -1,7 +1,11 @@
 
+::error file=alpha.rb,line=1,col=1::Useless assignment to variable - `x`.
 ::error file=alpha.rb,line=1,col=1::Missing frozen string literal comment.
 ::error file=alpha.rb,line=1,col=5::Prefer single-quoted strings when you don't need string interpolation or special symbols.
+::error file=alpha.rb,line=2,col=1::Useless assignment to variable - `y`.
 ::error file=alpha.rb,line=2,col=6::Trailing whitespace detected.
 ::error file=alpha.rb,line=3,col=1::Trailing whitespace detected.
 ::error file=beta/gamma.rb,line=3,col=5::Use `%25w` or `%25W` for an array of words.
+::error file=fmt.rb,line=3,col=9::Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
+::error file=fmt.rb,line=3,col=12::Prefer annotated tokens (like `%25<foo>s`) over unannotated tokens (like `%25s`).
 ::error file=tabbed.rb,line=4,col=2::Useless assignment to variable - `value`.

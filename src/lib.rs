@@ -8,6 +8,7 @@ pub mod config;
 pub mod cop_name;
 pub mod diagnostic;
 mod directives;
+pub mod display_width;
 pub mod engine;
 mod formatter;
 mod magic_comment;

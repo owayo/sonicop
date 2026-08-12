@@ -1,5 +1,7 @@
 mod comments;
+mod conditional;
 mod format_string;
+mod line_length_help;
 mod literal;
 mod nodes;
 mod percent;
@@ -15,6 +17,7 @@ department_rules! {
     format_string_token => ("FormatStringToken", Convention),
     frozen_string_literal_comment => ("FrozenStringLiteralComment", Convention),
     hash_syntax => ("HashSyntax", Convention),
+    if_unless_modifier => ("IfUnlessModifier", Convention),
     numeric_literals => ("NumericLiterals", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     redundant_return => ("RedundantReturn", Convention),

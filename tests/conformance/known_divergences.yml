@@ -34,6 +34,47 @@ blind_spots:
   - corpus: tests/conformance.rs の手書きケース
     not_covered: 大規模な実コード / cop 同士の相互作用 / autocorrect の反復収束
     consequence: 単体では一致しても、実プロジェクトで組み合わせ由来の差分が残り得る
+  - corpus: tests/formatter.rs
+    not_covered: markdown フォーマッタ × ファイル全体に対する offense
+    consequence: 本家が落ちるので固定値を取れない (下の「フォーマッタの既知差分」を参照)
+  - corpus: tests/formatter.rs
+    not_covered: clang 系 (clang / progress / fuubar / pacman / tap) のキャレット幅、マルチバイト文字を含む行
+    consequence: 本家は Unicode::DisplayWidth で数え、sonicop は文字数で数えるため、全角を含む行でキャレットの本数と位置がずれる
+  - corpus: tests/formatter.rs
+    not_covered: 複数ファイルの列挙順そのもの
+    consequence: 対象の並び順が本家と違うため、順序を持つ全フォーマッタで行の並びが入れ替わる
+
+# フォーマッタの既知差分 (2026-08-12 時点)。いずれも src/formatter.rs 側の
+# 描画ではなく、外側か本家のバグに原因がある。
+#
+# 1. markdown × ファイル全体に対する offense — 本家が落ちる。
+#    MarkdownFormatter#write_code は `offense.location.source_line` を取る前に
+#    possible_ellipses(location) を呼ぶが、`add_global_offense` の offense が持つ
+#    Offense::PseudoSourceRange は single_line? を定義していない
+#    (lib/rubocop/cop/offense.rb:63-84)。結果として
+#    `undefined method 'single_line?' for an instance of
+#    RuboCop::Cop::Offense::PseudoSourceRange` で異常終了し (exit 2)、
+#    途中まで書いた markdown だけが残る。同じ run に登録した他フォーマッタは
+#    finished を呼ばれず、出力が空か要約抜きで切れる。
+#    html が無事なのは assets/output.html.erb:87 の
+#    `unless offense.location.source_line.strip.empty?` が先に弾くため。
+#    sonicop は落とさず完全な markdown を出す。クラッシュは再現しない。
+#
+# 2. clang 系のキャレット幅 — 未一致。ClangStyleFormatter#report_highlighted_area
+#    (clang_style_formatter.rb:47-55) は `'^' * Unicode::DisplayWidth.of(source_area)`、
+#    字下げも `' ' * Unicode::DisplayWidth.of(...)` で、いずれも**表示幅**で数える。
+#    sonicop は文字数で数えるため `x = "日本語です"` のキャレットが 12 本ではなく
+#    7 本になる。直すには東アジア文字幅の表を持つ必要がある
+#    (unicode-width クレート相当) ので、依存追加の判断待ち。
+#
+# 3. 対象ファイルの列挙順 — 未一致。原因は src/formatter.rs ではなく対象探索。
+#    ディレクトリ指定: 本家はパス文字列のバイト順なので `type.rb` → `type/helpers.rb`。
+#    sonicop は PathBuf の成分順で比較するため `type/helpers.rb` → `type.rb` になる。
+#    ファイル直接指定: 本家は引数の順を保つが、sonicop は並べ替える。
+#    html / offenses / worst は自前で並べ直すので影響を受けない。
+#
+# 4. json の metadata — 意図的。ruby_engine / ruby_version / ruby_platform は
+#    sonicop 自身の値を出し、sonicop_version を足す。files と summary は一致する。
 
 # autocorrect のバイト一致は 4 コーパスすべてで確認済み
 # (rubocop/rubocop は -a と -A、rails/rails・Homebrew/brew・mastodon/mastodon は -A)。

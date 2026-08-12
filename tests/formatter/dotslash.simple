@@ -7,10 +7,5 @@ C:  2:  6: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected
 C:  3:  1: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected.
 == beta/gamma.rb ==
 C:  3:  5: [Correctable] Style/WordArray: Use %w or %W for an array of words.
-== fmt.rb ==
-C:  3:  9: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
-C:  3: 12: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
-== tabbed.rb ==
-W:  4:  2: [Correctable] Lint/UselessAssignment: Useless assignment to variable - value.
 
-5 files inspected, 10 offenses detected, 8 offenses autocorrectable
+2 files inspected, 7 offenses detected, 7 offenses autocorrectable

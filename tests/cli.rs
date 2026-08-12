@@ -310,11 +310,13 @@ fn list_target_files_preserves_relative_paths_and_rubocop_order() {
         ("lib.rb", "puts 1\n"),
     ]);
 
+    // RuboCop walks the arguments in the order they were given and only puts each directory's own
+    // expansion in order, so the file named second stays second. Measured against 1.89.0.
     command(directory.path())
         .args(["--list-target-files", "lib", "lib.rb"])
         .assert()
         .success()
-        .stdout("lib.rb\nlib/a.rb\n");
+        .stdout("lib/a.rb\nlib.rb\n");
 }
 
 #[test]

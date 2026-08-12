@@ -7198,3 +7198,106 @@ mod case_equality {
         .run();
     }
 }
+
+/// `Style/IfUnlessModifier`: 単文の本体は条件の後ろへ、長すぎる修飾形はブロック形へ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/IfUnlessModifier` と `-A` の実測。
+mod if_unless_modifier {
+    use super::*;
+
+    const COP: &str = "Style/IfUnlessModifier";
+
+    #[test]
+    fn reports_the_keyword_of_a_single_statement_body() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+            ^^ Favor modifier `if` usage when having a single-line body. Another good alternative is the usage of control flow `&&`/`||`.
+              b
+            end
+            "#,
+        );
+        expect_correction(COP, "if a\n  b\nend\n", "b if a\n");
+        expect_correction(COP, "unless c\n  d\nend\n", "d unless c\n");
+    }
+
+    /// 大きな式の一部にいるときは、修飾形が結合を変えてしまうので括弧を促す。
+    #[test]
+    fn a_conditional_inside_a_larger_expression_asks_for_parentheses() {
+        expect_offense(
+            COP,
+            r#"
+            x = if e
+                ^^ Favor modifier `if` usage when having a single-line body. Wrap the expression in parentheses to keep the current behavior, as it is part of a larger expression.
+              f
+            end
+            "#,
+        );
+        expect_correction(COP, "x = if e\n  f\nend\n", "x = (f if e)\n");
+    }
+
+    /// 修飾形の行が長すぎるならブロック形へ戻す。
+    #[test]
+    fn a_modifier_that_makes_the_line_too_long_goes_back_to_block_form() {
+        let source = "foo_bar_baz_qux(argument_one, argument_two, argument_three) \
+                      if some_condition_that_is_rather_long && another_condition_here\n";
+        expect_offense(
+            COP,
+            &format!(
+                "{source}{}^^ Modifier form of `if` makes the line too long.\n",
+                " ".repeat(60)
+            ),
+        );
+        expect_correction(
+            COP,
+            source,
+            "if some_condition_that_is_rather_long && another_condition_here\n  \
+             foo_bar_baz_qux(argument_one, argument_two, argument_three)\nend\n",
+        );
+    }
+
+    /// 長さの原因が行末のコメントだけなら、コメントを上の行へ移すだけで足りる。
+    #[test]
+    fn a_comment_that_is_what_made_the_line_too_long_moves_above_it() {
+        expect_correction(
+            COP,
+            "do_something(with_an_argument) if condition_here \
+             # a comment that is long enough to push this single line over the limit!\n",
+            "# a comment that is long enough to push this single line over the limit!\n\
+             do_something(with_an_argument) if condition_here\n",
+        );
+    }
+
+    /// 免除される形。`defined?` の引数が未定義になり得るもの、複数文の本体、
+    /// `else` を持つもの、条件が局所変数を束縛するもの、補間の中のもの。
+    #[test]
+    fn forms_the_modifier_cannot_carry_are_left_alone() {
+        expect_no_offenses(COP, "if defined?(foo)\n  bar\nend\n");
+        expect_no_offenses(COP, "if a\n  b\n  c\nend\n");
+        expect_no_offenses(COP, "if a\n  b\nelse\n  c\nend\n");
+        expect_no_offenses(COP, "unless (x, y = foo)\n  z\nend\n");
+        expect_no_offenses(COP, "s = \"#{if a then b end}\"\n");
+    }
+
+    /// 本体に条件を抱えているものは対象外で、内側だけが報告される。
+    #[test]
+    fn only_the_innermost_of_two_nested_conditionals_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+              if b
+              ^^ Favor modifier `if` usage when having a single-line body. Another good alternative is the usage of control flow `&&`/`||`.
+                c
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if a\n  if b\n    c\n  end\nend\n",
+            "if a\n  c if b\nend\n",
+        );
+    }
+}

@@ -1013,6 +1013,18 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_syntax"),
+        // 1 文の本体は修飾形へ。報告位置は `if` / `unless` のキーワード。
+        CopCase::annotated(
+            "Style/IfUnlessModifier",
+            r#"
+            if a
+            ^^ Favor modifier `if` usage when having a single-line body. Another good alternative is the usage of control flow `&&`/`||`.
+              b
+            end
+            "#,
+        )
+        .id("style_if_unless_modifier")
+        .correctable(true),
         CopCase::annotated(
             "Style/NumericLiterals",
             r#"

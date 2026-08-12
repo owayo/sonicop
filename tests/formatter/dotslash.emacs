@@ -5,6 +5,3 @@
 {root}/alpha.rb:2:6: C: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected.
 {root}/alpha.rb:3:1: C: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected.
 {root}/beta/gamma.rb:3:5: C: [Correctable] Style/WordArray: Use `%w` or `%W` for an array of words.
-{root}/fmt.rb:3:9: C: Style/FormatStringToken: Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
-{root}/fmt.rb:3:12: C: Style/FormatStringToken: Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
-{root}/tabbed.rb:4:2: W: [Correctable] Lint/UselessAssignment: Useless assignment to variable - `value`.

@@ -7,6 +7,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::cop_name;
 use crate::diagnostic::{FileReport, Location, Offense, Severity};
+use crate::display_width::display_width;
 use crate::{RUBOCOP_COMPAT_FULL_VERSION, VERSION};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -68,6 +69,9 @@ pub struct FormatOptions<'a> {
     pub fail_level: Severity,
     /// True for `-a`, where RuboCop points at `-A` instead of calling the rest autocorrectable.
     pub safe_autocorrect: bool,
+    /// `--display-only-failed`, which `junit` alone honours -- RuboCop rejects the flag outright
+    /// for any other formatter.
+    pub display_only_failed: bool,
 }
 
 pub fn render(
@@ -180,16 +184,15 @@ fn render_clang(reports: &[FileReport], options: &FormatOptions<'_>, progress: b
 fn render_emacs(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
     let mut output = String::new();
     for report in reports {
-        let path = if report.path.is_absolute() {
-            report.path.clone()
-        } else {
-            options.cwd.join(&report.path)
-        };
+        // The expanded path, `..` segments and all resolved: RuboCop names its buffers after what
+        // file discovery produced, so a target typed as `../sub/a.rb` is reported from the root
+        // down rather than as a path that walks back out through the run's own directory.
+        let path = absolute_path(&report.path, options.cwd);
         for offense in &report.offenses {
             let location = offense.location(&report.source);
             output.push_str(&format!(
                 "{}:{}:{}: {}: {}\n",
-                path.display(),
+                path,
                 location.line,
                 location.column,
                 offense.severity.code(),
@@ -286,8 +289,15 @@ fn render_junit(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
         }
         for cop in COP_REGISTRY_ORDER {
             let offenses = by_cop.remove(cop).unwrap_or_default();
+            // The tally is raised before the filter below, so `--display-only-failed` shortens the
+            // body without changing the `failures` count the suite reports.
             offense_count += offenses.len();
             if offenses.is_empty() {
+                // `relevant_for_output?` (`junit_formatter.rb:76-78`): `--display-only-failed`
+                // drops the passing test cases, leaving only the cops that found something.
+                if options.display_only_failed {
+                    continue;
+                }
                 body.push_str(&format!(
                     "    <testcase classname='{classname}' name='{cop}'/>\n"
                 ));
@@ -833,28 +843,33 @@ fn source_excerpt(offense: &Offense, report: &FileReport) -> Option<(String, Str
     }
     let location = offense.location(&report.source);
     let column = location.column.saturating_sub(1);
+    // RuboCop draws the marker with `Unicode::DisplayWidth`, so CJK text puts two carets under each
+    // character and the marker still lines up with the source above it. Tabs are carried across as
+    // tabs, since only the terminal knows how far one of those reaches.
+    let width = |text: &str| usize::try_from(display_width(text)).unwrap_or(0);
+    let highlighted: String = source_line
+        .chars()
+        .skip(column)
+        .take(location.length)
+        .collect();
     let (quoted, carets) = if location.last_line == location.start_line {
-        (source_line.to_owned(), location.length)
+        (source_line.to_owned(), width(&highlighted))
     } else {
-        (
-            format!("{source_line} ..."),
-            source_line.chars().count().saturating_sub(column),
-        )
+        let rest: String = source_line.chars().skip(column).collect();
+        (format!("{source_line} ..."), width(&rest))
     };
-    let prefix = source_line.chars().take(column);
-    let (tabs, spaces) = prefix.fold((0, 0), |(tabs, spaces), character| {
-        if character == '\t' {
-            (tabs + 1, spaces)
-        } else {
-            (tabs, spaces + 1)
-        }
-    });
+    let prefix: String = source_line.chars().take(column).collect();
     Some((
         quoted,
         format!(
             "{}{}{}",
-            "\t".repeat(tabs),
-            " ".repeat(spaces),
+            "\t".repeat(
+                prefix
+                    .chars()
+                    .filter(|character| *character == '\t')
+                    .count()
+            ),
+            " ".repeat(width(&prefix.replace('\t', ""))),
             "^".repeat(carets)
         ),
     ))
@@ -1015,12 +1030,29 @@ fn summary(reports: &[FileReport], options: &FormatOptions<'_>) -> String {
     output
 }
 
-/// The path as RuboCop prints it: relative to the run's directory, with `/` separators on every
-/// platform. Ruby normalizes separators, so a Windows run that emitted `lib\a.rb` would not match
-/// upstream output nor the `Include`/`Exclude` patterns users copy out of it.
+/// The path in the form every formatter is handed one. RuboCop's file discovery expands each
+/// target before inspecting it, so what reaches a formatter is always an absolute path rather than
+/// the literal the user typed: a run given `./sub/a.rb` reports `sub/a.rb`, not `./sub/a.rb`.
+fn expanded(path: &Path, cwd: &Path) -> PathBuf {
+    normalize(&if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        cwd.join(path)
+    })
+}
+
+/// The path as RuboCop prints it (`PathUtil.smart_path`, `path_util.rb:50-62`): relative to the
+/// run's directory when it lies inside, and left absolute when it does not.
+///
+/// Separators are forced to `/` on every platform. Ruby normalizes them, so a Windows run that
+/// emitted `lib\a.rb` would match neither upstream output nor the `Include`/`Exclude` patterns
+/// users copy out of it.
 pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
-    path.strip_prefix(cwd)
-        .unwrap_or(path)
+    let target = expanded(path, cwd);
+    let base = normalize(cwd);
+    target
+        .strip_prefix(&base)
+        .unwrap_or(&target)
         .to_string_lossy()
         .replace('\\', "/")
 }
@@ -1028,23 +1060,14 @@ pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
 /// The path RuboCop opened the file under: file discovery expands every target, so the absolute
 /// path is what a `Parser::Source::Buffer` is named after and what `Range#to_s` prints.
 fn absolute_path(path: &Path, cwd: &Path) -> String {
-    let absolute = if path.is_absolute() {
-        normalize(path)
-    } else {
-        normalize(&cwd.join(path))
-    };
-    absolute.to_string_lossy().replace('\\', "/")
+    expanded(path, cwd).to_string_lossy().replace('\\', "/")
 }
 
 /// RuboCop's `PathUtil.relative_path` (`path_util.rb:25-41`), which `markdown` and `html` use in
 /// place of `smart_path`. The difference shows on a target outside the run's directory: this one
 /// walks back out through `..`, where `smart_path` gives up and prints the absolute path.
 fn relative_path(path: &Path, cwd: &Path) -> String {
-    let target = normalize(&if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        cwd.join(path)
-    });
+    let target = expanded(path, cwd);
     let base = normalize(cwd);
     let segments = target.components().collect::<Vec<_>>();
     let base_segments = base.components().collect::<Vec<_>>();
@@ -2132,7 +2155,7 @@ TvFXMeuCkZPcaEBLqvgPBhCuiZo8+sAAAAAASUVORK5CYII=
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{offenses_by_cop, render_autogenconf, yaml_single_quoted};
+    use super::{offenses_by_cop, render_autogenconf, smart_path, yaml_single_quoted};
     use crate::diagnostic::{FileReport, Offense, Severity};
     use crate::source::SourceFile;
 
@@ -2149,7 +2172,9 @@ mod tests {
 
     #[test]
     fn counts_every_offense_but_lists_each_file_once() {
-        let cwd = Path::new("project");
+        // An absolute directory, which is the only shape a run produces: the working directory
+        // comes from `current_dir`, and file discovery expands every target against it.
+        let cwd = Path::new("/project");
         let reports = [
             report(
                 cwd.join("a.rb"),
@@ -2177,6 +2202,22 @@ mod tests {
         assert_eq!(by_cop["Style/FrozenStringLiteralComment"].offense_count, 1);
     }
 
+    /// A target typed as `./a.rb` reaches RuboCop's formatters as `/project/a.rb`, because file
+    /// discovery expands it before inspection, and so reports as `a.rb`. Leaving the `./` on would
+    /// change the path in every formatter that shortens one -- `simple`, `clang`, `tap`, `github`
+    /// and `json` among them.
+    #[test]
+    fn smart_path_expands_a_target_before_shortening_it() {
+        let cwd = Path::new("/project");
+
+        assert_eq!(smart_path(Path::new("./a.rb"), cwd), "a.rb");
+        assert_eq!(smart_path(Path::new("./sub/./a.rb"), cwd), "sub/a.rb");
+        assert_eq!(smart_path(Path::new("a.rb"), cwd), "a.rb");
+        assert_eq!(smart_path(Path::new("/project/a.rb"), cwd), "a.rb");
+        // Outside the run's directory RuboCop stops shortening and prints the expanded path.
+        assert_eq!(smart_path(Path::new("../other/a.rb"), cwd), "/other/a.rb");
+    }
+
     #[test]
     fn single_quoted_scalars_double_an_embedded_quote() {
         assert_eq!(yaml_single_quoted("plain.rb"), "'plain.rb'");
@@ -2185,7 +2226,9 @@ mod tests {
 
     #[test]
     fn autogenconf_escapes_quotes_in_excluded_paths() {
-        let cwd = Path::new("project");
+        // An absolute directory, which is the only shape a run produces: the working directory
+        // comes from `current_dir`, and file discovery expands every target against it.
+        let cwd = Path::new("/project");
         let reports = [report(cwd.join("it's.rb"), &["Layout/TrailingWhitespace"])];
 
         assert_eq!(

@@ -17,14 +17,5 @@ alpha.rb:3:1: C: [Correctable] Layout/TrailingWhitespace: Trailing whitespace de
 beta/gamma.rb:3:5: C: [Correctable] Style/WordArray: Use %w or %W for an array of words.
 z = [ ...
     ^
-fmt.rb:3:9: C: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
-format('%s %s', 1, 2)
-        ^^
-fmt.rb:3:12: C: Style/FormatStringToken: Prefer annotated tokens (like %<foo>s) over unannotated tokens (like %s).
-format('%s %s', 1, 2)
-           ^^
-tabbed.rb:4:2: W: [Correctable] Lint/UselessAssignment: Useless assignment to variable - value.
-	value = 1
-	^^^^^
 
-5 files inspected, 10 offenses detected, 8 offenses autocorrectable
+2 files inspected, 7 offenses detected, 7 offenses autocorrectable

@@ -1,0 +1,2 @@
+
+::error file=BadName.rb,line=1,col=1::Naming/FileName: The name of this source file (`BadName.rb`) should use snake_case.
