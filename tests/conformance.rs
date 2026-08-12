@@ -532,6 +532,33 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 13, 3, 15)])
         .severity(Severity::Warning)
         .correctable(true),
+        // 既定の `either` は「式の先頭」と「`do` の行頭」の両方を許すので、
+        // メッセージには両方が並ぶ。
+        CopCase::annotated(
+            "Layout/BlockAlignment",
+            r#"
+            foo.bar
+              .each do
+                baz
+                    end
+                    ^^^ `end` at 4, 8 is not aligned with `foo.bar` at 1, 0 or `.each do` at 2, 2.
+            "#,
+        )
+        .id("layout_block_alignment")
+        .locations(&[(4, 9, 4, 11)])
+        .lengths(&[3])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ExtraSpacing",
+            r#"
+            x  = 1
+             ^ Unnecessary spacing detected.
+            "#,
+        )
+        .id("layout_extra_spacing")
+        .locations(&[(1, 2, 1, 2)])
+        .lengths(&[1])
+        .correctable(true),
         CopCase::annotated(
             "Layout/AccessModifierIndentation",
             r#"

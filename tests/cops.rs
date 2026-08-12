@@ -15285,3 +15285,393 @@ mod hash_like_case {
         );
     }
 }
+
+/// `Layout/ExtraSpacing` は本家がトークン列を 2 個ずつ舐めて実装されているので、
+/// レキサのトークン境界そのものが仕様になる。ヒアドキュメント本体の位置、
+/// パーセント配列の語間、リテラル内部の空白がいずれも「隣接トークンの隙間」に
+/// 化けないことを、本家 1.89.0 の実測を期待値に据えて固定する。
+mod layout_extra_spacing {
+    use super::*;
+
+    const COP: &str = "Layout/ExtraSpacing";
+
+    #[test]
+    fn reports_the_run_of_spaces_minus_the_one_that_stays() {
+        expect_offense(
+            COP,
+            r#"
+            x  = 1
+             ^ Unnecessary spacing detected.
+            "#,
+        );
+        expect_correction(COP, "x  = 1\n", "x = 1\n");
+        expect_no_offenses(COP, "x = 1\n");
+    }
+
+    /// ヒアドキュメント本体は本家では**開始トークンの直後**に字句化されるので、
+    /// `foo(<<~B,  bar)` の `,` の隣は `bar` であって本体ではない。本体を位置順に
+    /// 並べると `<<~B` と `,` が隣り合い、その間の空白を誤って報告してしまう。
+    /// 本体の先頭も開始行の改行の**次**から始まる。
+    #[test]
+    fn a_heredoc_body_is_lexed_where_its_opener_stands() {
+        CopCase::new(
+            COP,
+            concat!(
+                "x  = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B,  bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "s = \"a  b\"\n",
+                "q = /a  b/\n",
+                "w  = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+            vec![
+                Annotation::new(1, 2, 1, "Unnecessary spacing detected."),
+                Annotation::new(4, 10, 1, "Unnecessary spacing detected."),
+                Annotation::new(10, 2, 1, "Unnecessary spacing detected."),
+            ],
+        )
+        .run();
+    }
+
+    #[test]
+    fn corrects_only_outside_literals_and_stops_at_the_data_section() {
+        expect_correction(
+            COP,
+            concat!(
+                "x  = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B,  bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "w  = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+            concat!(
+                "x = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B, bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "w = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+        );
+    }
+
+    /// 複数行ハッシュのキーと値の間は `Layout/HashAlignment` の担当なので除外される。
+    /// 単一行のものは除外されない。中括弧付きは括弧の行も `single_line?` に効く。
+    #[test]
+    fn the_gap_inside_a_multiline_hash_belongs_to_hash_alignment() {
+        CopCase::new(
+            COP,
+            concat!(
+                "h = {\n",
+                "  a:   1,\n",
+                "  bbb: 2,\n",
+                "}\n",
+                "g = { a:   1, bbb: 2 }\n",
+            ),
+            vec![Annotation::new(5, 9, 2, "Unnecessary spacing detected.")],
+        )
+        .run();
+        expect_correction(COP, "g = { a:   1, bbb: 2 }\n", "g = { a: 1, bbb: 2 }\n");
+    }
+
+    /// `AllowForAlignment` は上下の行と揃っている空白を見逃す。コメントは
+    /// 「隣り合うコメントが同じ桁で始まる」ときだけ揃っていると見なされる。
+    #[test]
+    fn alignment_with_a_neighbouring_line_is_allowed() {
+        CopCase::new(
+            COP,
+            concat!(
+                "a = 1  # one\n",
+                "bb = 2 # two\n",
+                "foo(1)     # x\n",
+                "barbaz(2)  # y\n",
+                "c = 3  # z\n",
+            ),
+            vec![Annotation::new(5, 6, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            concat!(
+                "name      = \"RuboCop\"\n",
+                "\n",
+                "website  += \"/rubocop/rubocop\" unless cond\n",
+                "set_app(\"RuboCop\")\n",
+                "website  = \"https://github.com/rubocop/rubocop\"\n",
+            ),
+            vec![Annotation::new(5, 8, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+    }
+
+    /// `AllowBeforeTrailingComments` は行末コメントの前だけを見逃す。既定では
+    /// 見逃さない。
+    #[test]
+    fn trailing_comments_need_the_option() {
+        CopCase::new(
+            COP,
+            "object.method(arg)  # this is a comment\n",
+            vec![Annotation::new(1, 19, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+        CopCase::new(COP, "object.method(arg)  # this is a comment\n", Vec::new())
+            .config("Layout/ExtraSpacing:\n  AllowBeforeTrailingComments: true\n")
+            .run();
+    }
+
+    /// `ForceEqualSignAlignment` は同じブロックの `=` を最も右の桁へ揃える。
+    /// 空行がブロックを切るので、そこから先は別の並びになる。
+    #[test]
+    fn force_equal_sign_alignment_moves_the_whole_run() {
+        let source = concat!("a = 1\n", "bbb = 2\n", "cc = 3\n", "\n", "dd = 4\n");
+        CopCase::new(
+            COP,
+            source,
+            vec![
+                Annotation::new(2, 5, 1, "`=` is not aligned with the preceding assignment."),
+                Annotation::new(3, 4, 1, "`=` is not aligned with the preceding assignment."),
+            ],
+        )
+        .config("Layout/ExtraSpacing:\n  ForceEqualSignAlignment: true\n")
+        .corrected(concat!(
+            "a   = 1\n",
+            "bbb = 2\n",
+            "cc  = 3\n",
+            "\n",
+            "dd = 4\n"
+        ))
+        .run();
+    }
+
+    /// 1 行に収まる `"` / `'` の文字列は本家では `tSTRING` **1 個**で、区切りと中身に
+    /// 割れない。トークンの本文をそのまま隣の行と突き合わせる `aligned_words?` は
+    /// 長さで結論が変わるので、割ってしまうと `">= 2.2.4"` が隣の行の `"` と
+    /// 一致して揃っていることにされてしまう。ラベルの `:` も名前と 1 トークン
+    /// (`tLABEL`) になる。`g:` と `j:` の後ろが咎められないのは、値の `1` が
+    /// 上下の行で同じ桁に来ているため。
+    #[test]
+    fn a_single_line_string_and_a_label_are_each_one_token() {
+        CopCase::new(
+            COP,
+            concat!(
+                "s.add_dependency \"nokogiri\", \">= 1.8.5\"\n",
+                "s.add_dependency \"rack\",      \">= 2.2.4\"\n",
+                "s.add_dependency \"rack-session\", \">= 1.0.1\"\n",
+                "f = { g:   1, \"h\":   2 }\n",
+                "def m(j:   1, k: 2)\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(2, 25, 5, "Unnecessary spacing detected."),
+                Annotation::new(4, 19, 2, "Unnecessary spacing detected."),
+            ],
+        )
+        .run();
+    }
+
+    /// 本家は `processed_source.blank?` のファイルを一切見ない。
+    #[test]
+    fn a_file_holding_only_comments_is_skipped() {
+        expect_no_offenses(COP, "# a  b\n#  c\n");
+    }
+}
+
+/// `Layout/BlockAlignment` の既定 `either` は「式の先頭」と「`do` の行頭」の
+/// どちらでも許す。`do` が複数行引数の継続行にあるときだけ、その行の字下げは
+/// 括弧が決めたもので作者の意図ではないので、呼び出し側の行が基準になる。
+mod layout_block_alignment {
+    use super::*;
+
+    const COP: &str = "Layout/BlockAlignment";
+
+    #[test]
+    fn either_style_names_both_targets() {
+        expect_offense(
+            COP,
+            r#"
+            foo.bar
+              .each do
+                baz
+                    end
+                    ^^^ `end` at 4, 8 is not aligned with `foo.bar` at 1, 0 or `.each do` at 2, 2.
+            "#,
+        );
+        expect_no_offenses(COP, "foo.bar\n  .each do\n    baz\nend\n");
+        expect_no_offenses(COP, "foo.bar\n  .each do\n    baz\n  end\n");
+    }
+
+    /// 代入の右辺にあるブロックの `end` は変数のほうに揃える。`{ }` も同じ扱い。
+    #[test]
+    fn an_assignment_takes_the_end_over() {
+        CopCase::new(
+            COP,
+            concat!(
+                "x = [1].map do |y|\n",
+                "  y\n",
+                "    end\n",
+                "[1].each { |z|\n",
+                "  z\n",
+                "    }\n",
+            ),
+            vec![
+                Annotation::new(
+                    3,
+                    5,
+                    3,
+                    "`end` at 3, 4 is not aligned with `x = [1].map do |y|` at 1, 0.",
+                ),
+                Annotation::new(
+                    6,
+                    5,
+                    1,
+                    "`}` at 6, 4 is not aligned with `[1].each { |z|` at 4, 0.",
+                ),
+            ],
+        )
+        .corrected(concat!(
+            "x = [1].map do |y|\n",
+            "  y\n",
+            "end\n",
+            "[1].each { |z|\n",
+            "  z\n",
+            "}\n",
+        ))
+        .run();
+    }
+
+    /// `do` の行が `(` で開いた継続行なら基準は呼び出し行に戻るので、代替の
+    /// 候補が消えてメッセージが 1 つになる。括弧のない引数列では継続行の
+    /// 字下げが作者の意図なので、そのまま候補に残る。
+    #[test]
+    fn a_continuation_line_holding_the_do_is_not_an_alignment_target() {
+        CopCase::new(
+            COP,
+            concat!(
+                "q = foo(bar,\n",
+                "        baz) do |i|\n",
+                "  i\n",
+                "   end\n",
+                "r = foo bar,\n",
+                "        baz do |i|\n",
+                "  i\n",
+                "   end\n",
+            ),
+            vec![
+                Annotation::new(
+                    4,
+                    4,
+                    3,
+                    "`end` at 4, 3 is not aligned with `q = foo(bar,` at 1, 0.",
+                ),
+                Annotation::new(
+                    8,
+                    4,
+                    3,
+                    "`end` at 8, 3 is not aligned with `r = foo bar,` at 5, 0 or `baz do |i|` at 6, 8.",
+                ),
+            ],
+        )
+        .corrected(concat!(
+            "q = foo(bar,\n",
+            "        baz) do |i|\n",
+            "  i\n",
+            "end\n",
+            "r = foo bar,\n",
+            "        baz do |i|\n",
+            "  i\n",
+            "end\n",
+        ))
+        .run();
+        // `)` で閉じた継続行に `do` があるとき、その行頭も `end` の置き場所として
+        // 認められる。
+        expect_no_offenses(
+            COP,
+            concat!(
+                "q = foo(bar,\n",
+                "        baz) do |i|\n",
+                "  i\n",
+                "        end\n",
+            ),
+        );
+    }
+
+    /// メッセージが名指しするのは `find_lhs_node` が畳んだ左辺。畳まれるのは
+    /// `op_asgn` と `masgn` だけで、`||=` / `&&=` は `or_asgn` / `and_asgn` なので
+    /// 代入式まるごとが出る。
+    #[test]
+    fn only_op_asgn_and_masgn_are_reduced_to_their_left_hand_side() {
+        CopCase::new(
+            COP,
+            concat!(
+                "@dimensions ||= depth.times.map do |index|\n",
+                "  index\n",
+                "                  end\n",
+                "@plus += foo.map do |i|\n",
+                "  i\n",
+                "           end\n",
+                "a, b = foo.map do |i|\n",
+                "  i\n",
+                "         end\n",
+            ),
+            vec![
+                Annotation::new(
+                    3,
+                    19,
+                    3,
+                    "`end` at 3, 18 is not aligned with `@dimensions ||= depth.times.map do |index|` at 1, 0.",
+                ),
+                Annotation::new(6, 12, 3, "`end` at 6, 11 is not aligned with `@plus` at 4, 0."),
+                Annotation::new(9, 10, 3, "`end` at 9, 9 is not aligned with `a, b` at 7, 0."),
+            ],
+        )
+        .corrected(concat!(
+            "@dimensions ||= depth.times.map do |index|\n",
+            "  index\n",
+            "end\n",
+            "@plus += foo.map do |i|\n",
+            "  i\n",
+            "end\n",
+            "a, b = foo.map do |i|\n",
+            "  i\n",
+            "end\n",
+        ))
+        .run();
+    }
+
+    /// `start_of_block` は `do` の行頭だけ、`start_of_line` は式の行頭だけを許す。
+    #[test]
+    fn the_two_strict_styles_each_accept_one_target() {
+        let source = concat!("foo.bar\n", "  .each do\n", "    baz\n", "  end\n");
+        CopCase::new(COP, source, Vec::new())
+            .config("Layout/BlockAlignment:\n  EnforcedStyleAlignWith: start_of_block\n")
+            .run();
+        CopCase::new(
+            COP,
+            source,
+            vec![Annotation::new(
+                4,
+                3,
+                3,
+                "`end` at 4, 2 is not aligned with `foo.bar` at 1, 0.",
+            )],
+        )
+        .config("Layout/BlockAlignment:\n  EnforcedStyleAlignWith: start_of_line\n")
+        .corrected(concat!("foo.bar\n", "  .each do\n", "    baz\n", "end\n"))
+        .run();
+    }
+}

@@ -7,7 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
-use super::space_around_operators::Alignment;
+use super::alignment::Alignment;
 use super::support::{final_pos, grouped_arguments};
 
 const MSG: &str = "Put one space between the method name and the first argument.";
@@ -101,10 +101,4 @@ fn expects_space<'src>(
 fn is_name(method: &str) -> bool {
     method.starts_with(|character: char| character.is_alphabetic() || character == '_')
         && !method.ends_with('=')
-}
-
-fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
 }
