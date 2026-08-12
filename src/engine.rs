@@ -159,6 +159,12 @@ impl RulePlan {
             directive_registry,
         }
     }
+
+    /// Whether the run reports redundant directives at all, which decides whether the autocorrect
+    /// loop has to leave a pass for that cop.
+    fn checks_directives(&self) -> bool {
+        self.directive_registry.is_some()
+    }
 }
 
 /// The cop that reports parse failures. Every file is put to it before any other cop runs, so it
@@ -185,17 +191,23 @@ pub fn inspect_source(
         config,
         selection,
         &RulePlan::build(config, selection),
+        true,
     )
 }
 
 /// Inspects one file against an already-resolved [`RulePlan`], which must have been built from
 /// `config` and `selection`.
+///
+/// `check_directives` is off for the passes of an autocorrect loop that follow the one the
+/// directive cop was given: RuboCop mobilizes that cop once and the loop it then runs does not
+/// carry it, so a directive that only became redundant afterwards goes unreported.
 fn inspect_planned(
     path: impl Into<PathBuf>,
     text: String,
     config: &Config,
     selection: &Selection,
     plan: &RulePlan,
+    check_directives: bool,
 ) -> Result<FileReport> {
     // Settled before the file is parsed, so every cop sees the source Ruby would have read rather
     // than only the one that reports the parse.
@@ -291,6 +303,7 @@ fn inspect_planned(
     // handed the offenses as they were found -- the ones a directive suppressed included, since a
     // directive that suppressed something was plainly needed.
     if valid_syntax
+        && check_directives
         && let Some(registry) = &plan.directive_registry
         && let Some(planned) = plan
             .entries
@@ -380,6 +393,7 @@ pub fn inspect_files_with_store(
             &config,
             selection,
             own_plan.as_ref().unwrap_or(&root_plan),
+            true,
         )
     };
     // Collecting every outcome rather than short-circuiting keeps the surfaced error the first one
@@ -1122,7 +1136,38 @@ fn anchor_range(offense: &Offense, source: &str) -> (usize, usize) {
     }
 }
 
-pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, usize) {
+/// Which cops a correction pass takes edits from.
+///
+/// RuboCop runs the cop that reads directives on a team of its own, after the inspection loop has
+/// stopped changing the file, and then lets the loop run once more. Its removals therefore never
+/// share a corrector with another cop's rewrite -- and since removing a directive comment shifts
+/// every line under it, sharing one would land the other cop's edit a column out.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Correcting {
+    /// Every cop, which is what a caller correcting a single file in isolation wants.
+    Everything,
+    /// The inspection loop: everything but the cop that reads directives.
+    ExceptDirectives,
+    /// The pass that cop gets to itself once the loop has settled.
+    DirectivesOnly,
+}
+
+impl Correcting {
+    fn takes(self, cop_name: &str) -> bool {
+        let directives = cop_name == REDUNDANT_COP_DISABLE_DIRECTIVE;
+        match self {
+            Self::Everything => true,
+            Self::ExceptDirectives => !directives,
+            Self::DirectivesOnly => directives,
+        }
+    }
+}
+
+pub fn corrected_text(
+    report: &mut FileReport,
+    mode: CorrectMode,
+    correcting: Correcting,
+) -> (String, usize) {
     if mode == CorrectMode::None {
         return (report.source.text().to_owned(), 0);
     }
@@ -1135,7 +1180,8 @@ pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, us
         .iter()
         .enumerate()
         .filter(|(_, offense)| {
-            !offense.corrections.is_empty()
+            correcting.takes(offense.cop_name)
+                && !offense.corrections.is_empty()
                 && (mode == CorrectMode::All || offense.corrections.iter().all(|edit| edit.safe))
                 && edits_are_addressable(offense, source)
         })
@@ -1266,14 +1312,25 @@ struct CorrectionLog {
 }
 
 impl CorrectionLog {
-    fn record_pass(&mut self, report: &mut FileReport) {
+    /// `keep_uncorrected` for the pass RuboCop gives the directive cop to itself. The inspection
+    /// loop had already settled by then, so `Runner#add_redundant_disables` unions that whole
+    /// offense list -- corrected or not -- with what the loop finds afterwards. Removing a
+    /// directive comment moves every line under it, so the same offense turns up in both lists at
+    /// two different line numbers and both are reported.
+    fn record_pass(&mut self, report: &mut FileReport, keep_uncorrected: bool) {
         let source = &report.source;
         let mut cops: Vec<&'static str> = Vec::new();
         for offense in &mut report.offenses {
-            if !offense.corrected {
+            if !(offense.corrected || keep_uncorrected) {
                 continue;
             }
             offense.freeze_location(source);
+            if !offense.corrected {
+                if self.keys.insert(offense_key(offense, source)) {
+                    self.offenses.push(offense.clone());
+                }
+                continue;
+            }
             if !cops.contains(&offense.cop_name) {
                 cops.push(offense.cop_name);
             }
@@ -1346,8 +1403,18 @@ pub fn correct_file(
     // Every pass re-inspects the same file under the same configuration, so the plan is resolved
     // once for the whole fixed-point loop.
     let plan = RulePlan::build(config, selection);
+    // `Runner#add_redundant_disables` runs once, after the loop has settled, and the loop that
+    // follows it does not carry the directive cop at all.
+    let mut directives_pending = plan.checks_directives();
     for pass in 0..=MAX_CORRECTION_PASSES {
-        let (corrected, count) = corrected_text(&mut report, mode);
+        let (mut corrected, mut count) =
+            corrected_text(&mut report, mode, Correcting::ExceptDirectives);
+        let mut directive_pass = false;
+        if count == 0 && directives_pending {
+            directives_pending = false;
+            directive_pass = true;
+            (corrected, count) = corrected_text(&mut report, mode, Correcting::DirectivesOnly);
+        }
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
             return Ok(CorrectionOutcome {
@@ -1357,7 +1424,7 @@ pub fn correct_file(
                 infinite_loop: None,
             });
         }
-        log.record_pass(&mut report);
+        log.record_pass(&mut report, directive_pass);
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
         // repeat tells us which pass the cycle closed on.
@@ -1379,7 +1446,14 @@ pub fn correct_file(
 
         sources.push(corrected.clone());
         text = corrected;
-        report = inspect_planned(path.clone(), text.clone(), config, selection, &plan)?;
+        report = inspect_planned(
+            path.clone(),
+            text.clone(),
+            config,
+            selection,
+            &plan,
+            directives_pending,
+        )?;
     }
     unreachable!("the autocorrect loop always returns before exhausting its passes")
 }
@@ -1482,8 +1556,8 @@ mod tests {
     use crate::source::SourceFile;
 
     use super::{
-        CorrectMode, Selection, correct_file, corrected_text, discover_targets, inspect_files,
-        inspect_source,
+        CorrectMode, Correcting, Selection, correct_file, corrected_text, discover_targets,
+        inspect_files, inspect_source,
     };
 
     /// One cop's corrections: the cop's name, then an offense per inner slice, then the edits that
@@ -1525,7 +1599,7 @@ mod tests {
             source: SourceFile::new("test.rb", source.to_owned()),
             offenses,
         };
-        corrected_text(&mut report, CorrectMode::All).0
+        corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0
     }
 
     /// Every expectation below is what `Parser::Source::TreeRewriter` produces under the policies
@@ -1756,7 +1830,7 @@ mod tests {
         };
 
         assert_eq!(
-            corrected_text(&mut report, CorrectMode::All).0,
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0,
             "abcd _efghij"
         );
     }
@@ -1789,7 +1863,7 @@ mod tests {
         };
 
         assert_eq!(
-            corrected_text(&mut report, CorrectMode::All).0,
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0,
             "ab[(cdefgh)]ij"
         );
     }
@@ -1809,7 +1883,8 @@ mod tests {
             ],
         };
 
-        let (text, corrected) = corrected_text(&mut report, CorrectMode::All);
+        let (text, corrected) =
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
 
         assert_eq!(text, "abcdefghij");
         assert_eq!(corrected, 0);
