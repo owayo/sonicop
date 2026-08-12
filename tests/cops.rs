@@ -12085,10 +12085,22 @@ mod lint_late_additions {
     /// widen to the whole literal for an `Array.new`.
     #[test]
     fn redundant_splat_expansion_corrects_each_position() {
-        expect_correction("Lint/RedundantSplatExpansion", "foo(*[1, 2])\n", "foo(1, 2)\n");
-        expect_correction("Lint/RedundantSplatExpansion", "x = *[1, 2]\n", "x = [1, 2]\n");
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "foo(*[1, 2])\n",
+            "foo(1, 2)\n",
+        );
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "x = *[1, 2]\n",
+            "x = [1, 2]\n",
+        );
         expect_correction("Lint/RedundantSplatExpansion", "x = *'a'\n", "x = ['a']\n");
-        expect_correction("Lint/RedundantSplatExpansion", "return *[1, 2]\n", "return [1, 2]\n");
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "return *[1, 2]\n",
+            "return [1, 2]\n",
+        );
         expect_correction(
             "Lint/RedundantSplatExpansion",
             "case x\nwhen *[1, 2] then y\nend\n",

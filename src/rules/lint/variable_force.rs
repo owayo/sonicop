@@ -51,6 +51,14 @@ pub(super) enum AssignmentKind {
     RegexpNamedCapture,
 }
 
+/// One read of a variable, as `VariableForce::Reference` records it.
+pub(super) struct Reference<'tree> {
+    pub node: Node<'tree>,
+    /// `Reference#explicit?`: false for the two reads nobody wrote, a zero-arity `super` and a
+    /// `binding` call.
+    pub explicit: bool,
+}
+
 pub(super) struct Assignment<'tree> {
     /// The name being written, or the regexp of a named capture: what `loc.name` covers.
     pub name: Node<'tree>,
@@ -63,6 +71,9 @@ pub(super) struct Assignment<'tree> {
     pub value: Option<Node<'tree>>,
     pub kind: AssignmentKind,
     pub referenced: bool,
+    /// The reads this write answered, which is how `Lint/ShadowedArgument` tells a read of the
+    /// argument apart from a read of what overwrote it.
+    pub references: Vec<Node<'tree>>,
     reassigned: bool,
     branch: Option<usize>,
 }
@@ -87,6 +98,7 @@ pub(super) struct Variable<'tree> {
     /// The scope the variable belongs to, known while it is still being walked.
     scope_node: Node<'tree>,
     pub assignments: Vec<Assignment<'tree>>,
+    pub references: Vec<Reference<'tree>>,
     pub referenced: bool,
     /// Whether any of the references was written out. `Reference#explicit?` is false for the two
     /// that stand for a read nobody wrote: a zero-arity `super` and a `binding` call.
@@ -224,6 +236,21 @@ const COMMA_SEPARATED_LISTS: &[&str] = &[
     "keyword_parameter",
     "right_assignment_list",
 ];
+
+/// Whether the `=` the grammar found is really the left half of a `=~`.
+fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
+    let Some(right) = node.child_by_field_name("right") else {
+        return false;
+    };
+    let mut cursor = node.walk();
+    let Some(operator) = node
+        .children(&mut cursor)
+        .find(|child| !child.is_named() && source.node_text(*child) == "=")
+    else {
+        return false;
+    };
+    operator.end_byte() == right.start_byte() && source.node_text(right).starts_with('~')
+}
 
 pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
     // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
@@ -487,6 +514,7 @@ impl<'tree> Force<'tree, '_> {
             scope: 0,
             scope_node: frame.node,
             assignments: Vec::new(),
+            references: Vec::new(),
             referenced: false,
             referenced_explicitly: false,
             captured_by_block: false,
@@ -542,6 +570,7 @@ impl<'tree> Force<'tree, '_> {
             value,
             kind,
             referenced: false,
+            references: Vec::new(),
             reassigned: false,
             branch,
         });
@@ -550,13 +579,20 @@ impl<'tree> Force<'tree, '_> {
     fn reference(&mut self, variable: usize, node: Node<'tree>) {
         self.capture_if_needed(variable);
         self.variables[variable].referenced_explicitly = true;
-        self.reference_without_capture(variable, node);
+        self.record_reference(variable, node, true);
+        self.mark_assignments_read(variable, node);
     }
 
     /// `Variable#reference!` on its own. `process_send` and `process_zero_arity_super` reach past
     /// the variable table and so never mark the variable as captured by a block, which is what
     /// keeps `binding = proc { binding }` reportable.
     fn reference_without_capture(&mut self, variable: usize, node: Node<'tree>) {
+        self.record_reference(variable, node, false);
+        self.mark_assignments_read(variable, node);
+    }
+
+    /// The rest of `Variable#reference!`: which of the writes so far the read consumed.
+    fn mark_assignments_read(&mut self, variable: usize, node: Node<'tree>) {
         self.variables[variable].referenced = true;
         let reference_branch = self.branch_of(node);
         let mut consumed: Vec<usize> = Vec::new();
@@ -567,6 +603,9 @@ impl<'tree> Force<'tree, '_> {
             }
             if !self.exclusive(branch, reference_branch) {
                 self.variables[variable].assignments[index].referenced = true;
+                self.variables[variable].assignments[index]
+                    .references
+                    .push(node);
             }
             let assignment_node = self.variables[variable].assignments[index].node;
             if in_modifier_conditional(assignment_node, node) {
@@ -580,6 +619,14 @@ impl<'tree> Force<'tree, '_> {
                 consumed.push(branch);
             }
         }
+    }
+
+    /// `Variable#reference!` pushing the read itself, which `reference` does before it walks the
+    /// assignments and the implicit readers do on their own.
+    fn record_reference(&mut self, variable: usize, node: Node<'tree>, explicit: bool) {
+        self.variables[variable]
+            .references
+            .push(Reference { node, explicit });
     }
 
     fn reference_by_name(&mut self, name: &str, node: Node<'tree>) {
@@ -603,6 +650,13 @@ impl<'tree> Force<'tree, '_> {
     // -- handlers ----------------------------------------------------------
 
     fn process_assignment(&mut self, node: Node<'tree>) {
+        // `f(nil, r =~ x)` is no assignment: Ruby's lexer reads `=~` as one token wherever the two
+        // characters touch, while the grammar here splits them and invents a multiple assignment
+        // out of the argument list it was written in.
+        if mislexed_match_operator(node, self.source) {
+            self.process_children(node);
+            return;
+        }
         let Some(left) = node.child_by_field_name("left") else {
             self.process_children(node);
             return;

@@ -75,12 +75,23 @@ pub(super) fn body_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 /// becomes a node, except inside `begin ... end` and `(...)`, which are nodes however little they
 /// hold.
 pub(super) fn begin_groups<'tree>(context: &'tree RuleContext<'_>) -> Vec<Vec<Node<'tree>>> {
+    begin_containers(context)
+        .into_iter()
+        .map(|(_, statements)| statements)
+        .collect()
+}
+
+/// The same, paired with the node that holds the sequence, for the cops that ask what the `begin`
+/// upstream builds is written inside of.
+pub(super) fn begin_containers<'tree>(
+    context: &'tree RuleContext<'_>,
+) -> Vec<(Node<'tree>, Vec<Node<'tree>>)> {
     context
         .nodes_of_any(CONTAINERS)
         .filter_map(|container| {
             let statements = statements(container);
             let always = matches!(container.kind(), "begin" | "parenthesized_statements");
-            (always || statements.len() > 1).then_some(statements)
+            (always || statements.len() > 1).then_some((container, statements))
         })
         .collect()
 }
