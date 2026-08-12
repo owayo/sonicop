@@ -1751,6 +1751,110 @@ fn catalogue() -> Vec<CopCase> {
         .severity(Severity::Warning)
         .correctable(true),
         CopCase::annotated(
+            "Lint/ErbNewArguments",
+            r#"
+            ERB.new(str, nil, '-')
+                         ^^^ Passing safe_level with the 2nd argument of `ERB.new` is deprecated. Do not use it, and specify other arguments as keyword arguments.
+                              ^^^ Passing trim_mode with the 3rd argument of `ERB.new` is deprecated. Use keyword argument like `ERB.new(str, trim_mode: '-')` instead.
+            "#,
+        )
+        .id("lint_erb_new_arguments")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("ERB.new(str, trim_mode: '-')\n"),
+        CopCase::annotated(
+            "Lint/NonDeterministicRequireOrder",
+            r#"
+            Dir.glob('./lib/*.rb').each do |file|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Sort files before requiring them.
+              require file
+            end
+            "#,
+        )
+        .id("lint_non_deterministic_require_order")
+        .target_ruby("2.7")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("Dir.glob('./lib/*.rb').sort.each do |file|\n  require file\nend\n"),
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            foo&.bar.baz
+                    ^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .id("lint_safe_navigation_chain")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SafeNavigationConsistency",
+            r#"
+            foo&.bar && foo&.baz
+                           ^^ Use `.` instead of unnecessary `&.`.
+            "#,
+        )
+        .id("lint_safe_navigation_consistency")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantSafeNavigation",
+            r#"
+            do_something.to_s&.strip
+                             ^^ Redundant safe navigation detected, use `.` instead.
+            "#,
+        )
+        .id("lint_redundant_safe_navigation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantSplatExpansion",
+            r#"
+            foo(*[1, 2])
+                ^^^^^^^ Pass array contents as separate arguments.
+            "#,
+        )
+        .id("lint_redundant_splat_expansion")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("foo(1, 2)\n"),
+        CopCase::annotated(
+            "Lint/ShadowedException",
+            r#"
+            begin
+              do_something
+            rescue StandardError, RuntimeError
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not shadow rescued Exceptions.
+              handle
+            end
+            "#,
+        )
+        .id("lint_shadowed_exception")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessSetterCall",
+            r#"
+            def foo
+              x = Object.new
+              x.attr = 1
+              ^ Useless setter call to local variable `x`.
+            end
+            "#,
+        )
+        .id("lint_useless_setter_call")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // 本家は `File.exist?` が偽のソースを実行可能とみなして見送る。ハーネスは
+        // ファイルを書き出さないので、ここで検証できるのはその陰性側だけ。実ファイルの
+        // 権限を見る陽性ケースは `tests/cops.rs` にある。
+        CopCase::new(
+            "Lint/ScriptPermission",
+            "#!/usr/bin/env ruby\nputs 1\n".to_owned(),
+            Vec::new(),
+        )
+        .id("lint_script_permission")
+        .path("script.rb"),
+        CopCase::annotated(
             "Lint/EmptyConditionalBody",
             r#"
             if condition
