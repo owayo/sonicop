@@ -1041,6 +1041,27 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_syntax"),
+        CopCase::annotated(
+            "Style/CommentedKeyword",
+            r#"
+            def foo # comment
+                    ^^^^^^^^^ Do not place comments on the same line as the `def` keyword.
+              1
+            end
+            "#,
+        )
+        .id("style_commented_keyword")
+        .correctable(true),
+        // 組み込みのグローバル変数は既定で許される。
+        CopCase::annotated(
+            "Style/GlobalVars",
+            r#"
+            $global = 1
+            ^^^^^^^ Do not introduce global variables.
+            "#,
+        )
+        .id("style_global_vars")
+        .correctable(false),
         // 既定の `line_count_based` では、1 行のブロックは波括弧、複数行は `do...end`。
         CopCase::annotated(
             "Style/BlockDelimiters",

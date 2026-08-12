@@ -1,5 +1,6 @@
-/// Shared analyses that belong to no single cop: what a `rescue` clause covers, and RuboCop's
-/// local variable tracking.
+/// Shared analyses that belong to no single cop: how RuboCop's `SendNode` reads an access
+/// modifier, what a `rescue` clause covers, and RuboCop's local variable tracking.
+mod access_modifier;
 mod rescue_clause;
 mod variable_force;
 
@@ -10,6 +11,7 @@ department_rules! {
     boolean_symbol => ("BooleanSymbol", Warning),
     constant_definition_in_block => ("ConstantDefinitionInBlock", Warning),
     duplicate_methods => ("DuplicateMethods", Warning),
+    ineffective_access_modifier => ("IneffectiveAccessModifier", Warning),
     interpolation_check => ("InterpolationCheck", Warning),
     literal_in_interpolation => ("LiteralInInterpolation", Warning),
     missing_super => ("MissingSuper", Warning),

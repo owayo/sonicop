@@ -15,6 +15,7 @@ department_rules! {
     space_after_comma => ("SpaceAfterComma", Convention),
     space_around_operators => ("SpaceAroundOperators", Convention),
     space_inside_array_literal_brackets => ("SpaceInsideArrayLiteralBrackets", Convention),
+    space_inside_block_braces => ("SpaceInsideBlockBraces", Convention),
     space_inside_parens => ("SpaceInsideParens", Convention),
     space_inside_percent_literal_delimiters => ("SpaceInsidePercentLiteralDelimiters", Convention),
     trailing_empty_lines => ("TrailingEmptyLines", Convention),

@@ -7748,3 +7748,65 @@ mod layout_indentation {
         );
     }
 }
+
+/// `Style/CommentedKeyword`: キーワードと同じ行にコメントを置かない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/CommentedKeyword` と `-A` の実測。
+mod commented_keyword {
+    use super::*;
+
+    const COP: &str = "Style/CommentedKeyword";
+
+    #[test]
+    fn a_comment_on_a_keyword_line_moves_above_it() {
+        expect_offense(
+            COP,
+            r#"
+            def foo # comment
+                    ^^^^^^^^^ Do not place comments on the same line as the `def` keyword.
+              1
+            end # another
+                ^^^^^^^^^ Do not place comments on the same line as the `end` keyword.
+            "#,
+        );
+        // `end` は説明する対象を持たないので、移さず落とす。
+        expect_correction(
+            COP,
+            "def foo # comment\n  1\nend # another\n",
+            "# comment\ndef foo\n  1\nend\n",
+        );
+    }
+
+    /// `:nodoc:` と `:yields:`、`rubocop:` ディレクティブ、`steep:ignore` は免除。
+    #[test]
+    fn documentation_markers_and_directives_are_left_alone() {
+        expect_no_offenses(COP, "class Bar # :nodoc:\nend\n");
+        expect_no_offenses(COP, "def foo # rubocop:disable Style/For\n  1\nend\n");
+        expect_no_offenses(COP, "def foo # steep:ignore\n  1\nend\n");
+    }
+}
+
+/// `Style/GlobalVars`: 自前のグローバル変数を作らない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/GlobalVars` の実測。
+mod global_vars {
+    use super::*;
+
+    const COP: &str = "Style/GlobalVars";
+
+    #[test]
+    fn only_a_variable_the_interpreter_does_not_own_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            $global = 1
+            ^^^^^^^ Do not introduce global variables.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        // 組み込みのものと、`nth_ref` として読まれる `$1` は対象外。
+        expect_no_offenses(COP, "$stdout.puts $1\n");
+        expect_no_offenses(COP, "$LOAD_PATH << '.'\n");
+    }
+}

@@ -31,6 +31,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .map(|name| (*name).to_owned())
                 .collect()
         }),
+        allowed_patterns: context
+            .setting::<Vec<String>>("AllowedPatterns")
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|pattern| regex::Regex::new(pattern).ok())
+            .collect(),
     };
 
     // `on_send`: a block standing in an argument list without parentheses binds to the inner call,
@@ -76,6 +82,7 @@ struct Cop<'a> {
     style: String,
     braces_required_methods: Vec<String>,
     allowed_methods: Vec<String>,
+    allowed_patterns: Vec<regex::Regex>,
 }
 
 /// One block: its delimiters, the call it hangs off, and the body between them.
@@ -221,7 +228,12 @@ impl Cop<'_> {
         if self.require_do_end(block) {
             return true;
         }
-        if self.allowed_methods.contains(&block.method) {
+        if self.allowed_methods.contains(&block.method)
+            || self
+                .allowed_patterns
+                .iter()
+                .any(|pattern| pattern.is_match(&block.method))
+        {
             return true;
         }
         if self.braces_required_method(&block.method) {

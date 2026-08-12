@@ -587,7 +587,7 @@ pub(super) fn body_statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>>
 
 /// Where the node upstream's parser builds for `node` starts. A block literal is a `block` node
 /// there that spans the call it hangs off, so it begins at the receiver rather than at `do`.
-fn parser_node_start(node: Node<'_>) -> usize {
+pub(super) fn parser_node_start(node: Node<'_>) -> usize {
     match node.kind() {
         "block" | "do_block" => node.parent().unwrap_or(node).start_byte(),
         _ => node.start_byte(),
