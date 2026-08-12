@@ -12514,3 +12514,360 @@ mod style_literals_and_calls {
         expect_no_offenses("Style/VariableInterpolation", "g = \"#\u{7b}@baz}\"\n");
     }
 }
+
+/// `Layout/FirstArgumentIndentation` / `Layout/FirstParameterIndentation` /
+/// `Layout/ParameterAlignment`。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_first_argument_and_parameters {
+    use super::*;
+
+    const FIRST_ARGUMENT: &str = "Layout/FirstArgumentIndentation";
+    const FIRST_PARAMETER: &str = "Layout/FirstParameterIndentation";
+    const PARAMETER: &str = "Layout/ParameterAlignment";
+    const PREVIOUS_LINE: &str =
+        "Indent the first argument one step more than the start of the previous line.";
+    const NESTED: &str = "Bad indentation of the first argument.";
+    const PARAMETER_MSG: &str =
+        "Align the parameters of a method definition if they span more than one line.";
+    const FIRST_PARAMETER_MSG: &str = "Use 2 spaces for indentation in method args, relative to \
+                                       the start of the line where the left parenthesis is.";
+
+    /// 既定は `special_for_inner_method_call_in_parentheses`。括弧付きの呼び出しの
+    /// 引数になっている呼び出しだけが自分の桁を基準にし、それ以外は直前のコード行の
+    /// 字下げを基準にする。
+    #[test]
+    fn the_base_is_the_previous_code_line_unless_the_call_is_an_inner_one() {
+        CopCase::new(
+            FIRST_ARGUMENT,
+            concat!(
+                "some_method(\n",
+                "first_param,\n",
+                "second_param)\n",
+                "\n",
+                "foo = some_method(nested_call(\n",
+                "nested_first_param),\n",
+                "second_param)\n",
+                "\n",
+                "some_method nested_call(\n",
+                "nested_first_param),\n",
+                "second_param\n",
+            ),
+            vec![
+                Annotation::new(2, 1, 11, PREVIOUS_LINE),
+                Annotation::new(
+                    6,
+                    1,
+                    18,
+                    "Indent the first argument one step more than `nested_call(`.",
+                ),
+                Annotation::new(10, 1, 18, PREVIOUS_LINE),
+            ],
+        )
+        .run();
+    }
+
+    /// 外側の呼び出しの補正がすでにその範囲を動かしているので、内側の offense は
+    /// メッセージが変わり corrector を持たない。
+    #[test]
+    fn an_argument_inside_a_span_already_being_moved_carries_no_correction() {
+        let report = CopCase::new(
+            FIRST_ARGUMENT,
+            concat!(
+                "foo = some_method(\n",
+                "nested_call(\n",
+                "nested_first_param),\n",
+                "second_param)\n",
+            ),
+            vec![
+                // 注記は 1 行分しか表せないので、行を跨ぐレンジは `locations` で見る。
+                Annotation::new(2, 1, 12, PREVIOUS_LINE),
+                Annotation::new(3, 1, 18, NESTED),
+            ],
+        )
+        .locations(&[(2, 1, 3, 19), (3, 1, 3, 18)])
+        .lengths(&[32, 18])
+        .run();
+        let correctable: Vec<bool> = report
+            .offenses
+            .iter()
+            .map(sonicop::diagnostic::Offense::is_correctable)
+            .collect();
+        assert_eq!(correctable, vec![true, false]);
+    }
+
+    /// `on_super` と `on_csend` も同じ扱い。`[]` と `+` は dot 無しで書かれた
+    /// 演算子なので対象外で、`&.` は `dot?` ではないから `obj&.+(...)` も外れる。
+    /// 波括弧の無いハッシュ引数は 1 個の `hash` なので、最初の引数は run 全体。
+    #[test]
+    fn bare_operators_are_left_alone_but_super_and_safe_navigation_are_not() {
+        CopCase::new(
+            FIRST_ARGUMENT,
+            concat!(
+                "super(\n",
+                "1)\n",
+                "a[\n",
+                "0]\n",
+                "x = 1 +\n",
+                "2\n",
+                "obj&.meth(\n",
+                "1)\n",
+                "obj&.+(\n",
+                "1)\n",
+                "obj.+(\n",
+                "1)\n",
+                "foo(\n",
+                "a: 1,\n",
+                "b: 2)\n",
+                "foo(*bar(\n",
+                "1))\n",
+            ),
+            vec![
+                Annotation::new(2, 1, 1, PREVIOUS_LINE),
+                Annotation::new(8, 1, 1, PREVIOUS_LINE),
+                Annotation::new(12, 1, 1, PREVIOUS_LINE),
+                Annotation::new(14, 1, 5, PREVIOUS_LINE),
+                Annotation::new(17, 1, 1, PREVIOUS_LINE),
+            ],
+        )
+        .locations(&[
+            (2, 1, 2, 1),
+            (8, 1, 8, 1),
+            (12, 1, 12, 1),
+            (14, 1, 15, 4),
+            (17, 1, 17, 1),
+        ])
+        .lengths(&[1, 1, 1, 10, 1])
+        .run();
+    }
+
+    /// 直前の行がコメントだけの行なら、その 1 つ上のコード行が基準になり、
+    /// メッセージもそう名乗る。
+    #[test]
+    fn a_comment_only_line_is_skipped_when_looking_for_the_previous_line() {
+        CopCase::annotated(
+            FIRST_ARGUMENT,
+            r#"
+            some_method(
+            # comment
+            first_param)
+            ^^^^^^^^^^^ Indent the first argument one step more than the start of the previous line (not counting the comment).
+            "#,
+        )
+        .run();
+    }
+
+    /// `Layout/ArgumentAlignment` が固定字下げなら、最初の引数もそちらの持ち物に
+    /// なるのでこの cop は下りる。
+    #[test]
+    fn a_fixed_argument_indentation_stands_the_cop_down() {
+        CopCase::new(
+            FIRST_ARGUMENT,
+            "some_method(\nfirst_param,\nsecond_param)\n",
+            Vec::new(),
+        )
+        .config("Layout/ArgumentAlignment:\n  EnforcedStyle: with_fixed_indentation\n")
+        .run();
+    }
+
+    /// `consistent_relative_to_receiver` は括弧の有無を問わず呼び出しの桁を基準にする。
+    #[test]
+    fn consistent_relative_to_receiver_measures_from_the_call() {
+        CopCase::annotated(
+            FIRST_ARGUMENT,
+            r#"
+            foo = some_method(
+            first_param,
+            ^^^^^^^^^^^ Indent the first argument one step more than `some_method(`.
+            second_param)
+            "#,
+        )
+        .config(
+            "Layout/FirstArgumentIndentation:\n  EnforcedStyle: consistent_relative_to_receiver\n",
+        )
+        .run();
+    }
+
+    /// 定義の仮引数は `Layout/FirstParameterIndentation` と
+    /// `Layout/ParameterAlignment` の分担。前者は左括弧の行の字下げ基準、後者は
+    /// 最初の仮引数の桁基準。
+    #[test]
+    fn the_first_parameter_and_the_rest_are_measured_separately() {
+        CopCase::new(
+            FIRST_PARAMETER,
+            concat!(
+                "def some_method(\n",
+                "first_param,\n",
+                "second_param)\n",
+                "  123\n",
+                "end\n",
+            ),
+            vec![Annotation::new(2, 1, 11, FIRST_PARAMETER_MSG)],
+        )
+        .run();
+        CopCase::new(
+            PARAMETER,
+            concat!("def foo(bar,\n", "     baz)\n", "  123\n", "end\n"),
+            vec![Annotation::new(2, 6, 3, PARAMETER_MSG)],
+        )
+        .run();
+        expect_no_offenses(
+            PARAMETER,
+            concat!("def foo(bar,\n", "        baz)\n", "  123\n", "end\n"),
+        );
+        expect_no_offenses(
+            FIRST_PARAMETER,
+            concat!("def foo(\n", "  bar,\n", "  baz)\n", "  123\n", "end\n"),
+        );
+    }
+
+    /// 括弧の無い定義には左括弧が無いので `Layout/FirstParameterIndentation` は
+    /// 何も言わないが、`Layout/ParameterAlignment` は仮引数を揃える。
+    #[test]
+    fn a_definition_without_parentheses_only_reaches_the_alignment_cop() {
+        expect_no_offenses(FIRST_PARAMETER, concat!("def foo a,\n", "  b\n", "end\n"));
+        CopCase::new(
+            PARAMETER,
+            concat!("def foo a,\n", "  b\n", "end\n"),
+            vec![Annotation::new(2, 3, 1, PARAMETER_MSG)],
+        )
+        .run();
+    }
+
+    /// 既定値付きの仮引数が連続すると、tree-sitter は 1 個の `optional_parameter` に
+    /// 潰して既定値を多重代入として読む。上流の parser は `optarg` を人数分持つので、
+    /// 畳まれた列をほどかないと 2 個目以降が見えなくなる。
+    #[test]
+    fn a_folded_run_of_defaulted_parameters_is_unfolded() {
+        CopCase::new(
+            PARAMETER,
+            concat!("def foo(bar = nil,\n", "     baz = nil)\n", "end\n"),
+            vec![Annotation::new(2, 6, 9, PARAMETER_MSG)],
+        )
+        .run();
+        CopCase::new(
+            PARAMETER,
+            concat!(
+                "def zz(a = nil, b = nil, c = nil,\n",
+                "   d = nil)\n",
+                "end\n"
+            ),
+            vec![Annotation::new(2, 4, 7, PARAMETER_MSG)],
+        )
+        .run();
+        CopCase::new(
+            FIRST_PARAMETER,
+            concat!("def qux(\n", "bar = nil,\n", "baz = nil)\n", "end\n"),
+            vec![Annotation::new(2, 1, 9, FIRST_PARAMETER_MSG)],
+        )
+        .run();
+    }
+
+    /// `align_parentheses` は左括弧そのものを基準にし、`with_fixed_indentation` は
+    /// `def` の行の字下げに 1 段足した桁を基準にする。
+    #[test]
+    fn the_alternative_styles_change_the_base_and_the_message() {
+        CopCase::annotated(
+            FIRST_PARAMETER,
+            r#"
+            def some_method(
+            first_param,
+            ^^^^^^^^^^^ Use 2 spaces for indentation in method args, relative to the position of the opening parenthesis.
+            second_param)
+              123
+            end
+            "#,
+        )
+        .config("Layout/FirstParameterIndentation:\n  EnforcedStyle: align_parentheses\n")
+        .run();
+        CopCase::annotated(
+            PARAMETER,
+            r#"
+            def some_method(
+            first_param,
+            ^^^^^^^^^^^ Use one level of indentation for parameters following the first line of a multi-line method definition.
+            second_param)
+            ^^^^^^^^^^^^ Use one level of indentation for parameters following the first line of a multi-line method definition.
+              123
+            end
+            "#,
+        )
+        .config("Layout/ParameterAlignment:\n  EnforcedStyle: with_fixed_indentation\n")
+        .run();
+    }
+
+    /// autocorrect は `AlignmentCorrector.correct` そのもので、node が跨ぐ行を
+    /// まとめて横に動かす。内側の呼び出しは外側が動いた次の周回で揃う。
+    #[test]
+    fn correction_moves_every_line_the_reported_node_spans() {
+        CopCase::new(
+            FIRST_ARGUMENT,
+            concat!(
+                "some_method(\n",
+                "first_param,\n",
+                "second_param)\n",
+                "\n",
+                "foo = some_method(nested_call(\n",
+                "nested_first_param),\n",
+                "second_param)\n",
+                "\n",
+                "foo = some_method(\n",
+                "nested_call(\n",
+                "nested_first_param),\n",
+                "second_param)\n",
+                "\n",
+                "some_method nested_call(\n",
+                "nested_first_param),\n",
+                "second_param\n",
+            ),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(concat!(
+            "some_method(\n",
+            "  first_param,\n",
+            "second_param)\n",
+            "\n",
+            "foo = some_method(nested_call(\n",
+            "                    nested_first_param),\n",
+            "second_param)\n",
+            "\n",
+            "foo = some_method(\n",
+            "  nested_call(\n",
+            "    nested_first_param),\n",
+            "second_param)\n",
+            "\n",
+            "some_method nested_call(\n",
+            "  nested_first_param),\n",
+            "second_param\n",
+        ))
+        .run();
+    }
+
+    /// 定義側の 2 つの cop は互いの結果の上で収束する。最初の仮引数が字下げされ、
+    /// 残りがその桁に揃う。
+    #[test]
+    fn the_definition_cops_settle_on_each_other() {
+        expect_correction(
+            FIRST_PARAMETER,
+            concat!(
+                "def some_method(\n",
+                "first_param,\n",
+                "second_param)\n",
+                "  123\n",
+                "end\n",
+            ),
+            concat!(
+                "def some_method(\n",
+                "  first_param,\n",
+                "second_param)\n",
+                "  123\n",
+                "end\n",
+            ),
+        );
+        expect_correction(
+            PARAMETER,
+            concat!("def foo(bar,\n", "     baz)\n", "  123\n", "end\n"),
+            concat!("def foo(bar,\n", "        baz)\n", "  123\n", "end\n"),
+        );
+    }
+}

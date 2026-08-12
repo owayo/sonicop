@@ -231,6 +231,45 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/FirstArgumentIndentation",
+            r#"
+            some_method(
+            first_param,
+            ^^^^^^^^^^^ Indent the first argument one step more than the start of the previous line.
+            second_param)
+            "#,
+        )
+        .id("layout_first_argument_indentation")
+        .locations(&[(2, 1, 2, 11)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstParameterIndentation",
+            r#"
+            def some_method(
+            first_param,
+            ^^^^^^^^^^^ Use 2 spaces for indentation in method args, relative to the start of the line where the left parenthesis is.
+            second_param)
+              123
+            end
+            "#,
+        )
+        .id("layout_first_parameter_indentation")
+        .locations(&[(2, 1, 2, 11)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ParameterAlignment",
+            r#"
+            def foo(bar,
+                 baz)
+                 ^^^ Align the parameters of a method definition if they span more than one line.
+              123
+            end
+            "#,
+        )
+        .id("layout_parameter_alignment")
+        .locations(&[(2, 6, 2, 8)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterMagicComment",
             r#"
             # encoding: utf-8
