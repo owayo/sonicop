@@ -1298,6 +1298,16 @@ mod lint {
         );
     }
 
+    /// 範囲リテラルが条件の位置にあるときだけ flip-flop になる。
+    #[test]
+    fn flip_flop_needs_a_condition_position() {
+        expect_no_offenses("Lint/FlipFlop", "x = 1..2\nz = [1..2]\n");
+        expect_offense(
+            "Lint/FlipFlop",
+            "while (a..b)\n       ^^^^ Avoid the use of flip-flop operators.\n  p 2\nend\n",
+        );
+    }
+
     /// ブロックの中は呼び出しを抜けたあとなので、その正規表現の捕獲数が効く。
     #[test]
     fn out_of_range_regexp_ref_sees_the_call_before_its_block() {

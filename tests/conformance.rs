@@ -1600,6 +1600,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_out_of_range_regexp_ref")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/FlipFlop",
+            r#"
+            if (1..2)
+                ^^^^ Avoid the use of flip-flop operators.
+              do_something
+            end
+            "#,
+        )
+        .id("lint_flip_flop")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

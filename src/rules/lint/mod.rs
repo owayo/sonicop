@@ -3,6 +3,7 @@
 /// RuboCop's local variable tracking.
 mod access_modifier;
 mod blocks;
+mod conditions;
 mod flow;
 mod literals;
 mod locals;
@@ -43,6 +44,7 @@ department_rules! {
     empty_interpolation => ("EmptyInterpolation", Warning),
     empty_when => ("EmptyWhen", Warning),
     ensure_return => ("EnsureReturn", Warning),
+    flip_flop => ("FlipFlop", Warning),
     float_comparison => ("FloatComparison", Warning),
     float_out_of_range => ("FloatOutOfRange", Warning),
     hash_compare_by_identity => ("HashCompareByIdentity", Warning),
