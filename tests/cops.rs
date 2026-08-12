@@ -12813,3 +12813,357 @@ mod dir {
         expect_no_offenses(COP, "path = File.expand_path(__FILE__)\n");
     }
 }
+
+/// `Style/Attr`: `attr` ではなく `attr_reader` / `attr_accessor`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Attr` と `-A` の実測。
+mod attr {
+    use super::*;
+
+    const COP: &str = "Style/Attr";
+
+    #[test]
+    fn the_trailing_boolean_decides_which_macro_is_meant() {
+        expect_correction(
+            COP,
+            "class K\n  attr :something, true\nend\n",
+            "class K\n  attr_accessor :something\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class K\n  attr :one, :two, :three\nend\n",
+            "class K\n  attr_reader :one, :two, :three\nend\n",
+        );
+        // `module` は `each_ancestor(:class, :block)` に入らないので、そこも対象。
+        expect_correction(
+            COP,
+            "module M\n  attr :a\nend\n",
+            "module M\n  attr_reader :a\nend\n",
+        );
+    }
+
+    /// 引数のないもの、受け手のあるもの、`attr` を自前で定義しているクラスは対象外。
+    #[test]
+    fn a_receiver_or_a_locally_defined_attr_is_left_alone() {
+        expect_no_offenses(COP, "class K\n  attr\nend\n");
+        expect_no_offenses(COP, "class K\n  foo.attr :a\nend\n");
+        expect_no_offenses(COP, "class K\n  attr :a\n  def attr(x); end\nend\n");
+        expect_no_offenses(COP, "foo do\n  attr :a\nend\n");
+    }
+}
+
+/// `Style/NestedParenthesizedCalls`: 括弧つき呼び出しの中の引数も括弧をつける。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NestedParenthesizedCalls` と `-A` の実測。
+mod nested_parenthesized_calls {
+    use super::*;
+
+    const COP: &str = "Style/NestedParenthesizedCalls";
+
+    #[test]
+    fn the_nested_call_gains_parentheses() {
+        expect_correction(COP, "method1(method2 arg)\n", "method1(method2(arg))\n");
+    }
+
+    /// 既に括弧つきのもの、引数のないもの、演算子、既定の許可メソッドは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "method1(method2(arg))\n");
+        expect_no_offenses(COP, "method1(method2)\n");
+        expect_no_offenses(COP, "expect(x).to eq foo\n");
+        expect_no_offenses(COP, "method1 method2 arg\n");
+        // 文法上は block 引数だが、本家の字句解析では二項 `&`。
+        expect_no_offenses(COP, "assert_equal(0x8, info.attr&0x8)\n");
+    }
+}
+
+/// `Style/RedundantSelfAssignment`: 破壊的メソッドの結果を自分に代入し直さない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantSelfAssignment` と `-A` の実測。
+mod redundant_self_assignment {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSelfAssignment";
+
+    #[test]
+    fn the_assignment_goes_and_the_call_stays() {
+        expect_correction(COP, "args = args.concat(ary)\n", "args.concat(ary)\n");
+        expect_correction(COP, "@h = @h.merge!(other)\n", "@h.merge!(other)\n");
+        expect_correction(
+            COP,
+            "obj.list = obj.list.concat(more)\n",
+            "obj.list.concat(more)\n",
+        );
+    }
+
+    #[test]
+    fn a_different_receiver_or_method_is_left_alone() {
+        expect_no_offenses(COP, "args = foo.concat(ary)\n");
+        expect_no_offenses(COP, "args = args.map { |x| x }\n");
+        expect_no_offenses(COP, "args.concat(ary)\n");
+    }
+}
+
+/// `Style/ExpandPathArguments`: `File.expand_path('..', __FILE__)` は `__dir__` で書く。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ExpandPathArguments` と `-A` の実測。
+mod expand_path_arguments {
+    use super::*;
+
+    const COP: &str = "Style/ExpandPathArguments";
+
+    #[test]
+    fn the_depth_of_the_path_decides_the_replacement() {
+        expect_correction(
+            COP,
+            "File.expand_path('..', __FILE__)\n",
+            "File.expand_path(__dir__)\n",
+        );
+        expect_correction(
+            COP,
+            "File.expand_path('../..', __FILE__)\n",
+            "File.expand_path('..', __dir__)\n",
+        );
+        expect_correction(
+            COP,
+            "File.expand_path('.', __FILE__)\n",
+            "File.expand_path(__FILE__)\n",
+        );
+        // 末尾の `/` は `String#split` が落とすので、深さは変わらない。
+        expect_correction(
+            COP,
+            "File.expand_path('../../', __FILE__)\n",
+            "File.expand_path('..', __dir__)\n",
+        );
+    }
+
+    #[test]
+    fn the_pathname_spellings_lose_their_parent_call() {
+        expect_correction(
+            COP,
+            "Pathname(__FILE__).parent.expand_path\n",
+            "Pathname(__dir__).expand_path\n",
+        );
+        expect_correction(
+            COP,
+            "Pathname.new(__FILE__).parent.expand_path\n",
+            "Pathname.new(__dir__).expand_path\n",
+        );
+    }
+
+    #[test]
+    fn another_base_directory_is_left_alone() {
+        expect_no_offenses(COP, "File.expand_path('..', __dir__)\n");
+        expect_no_offenses(COP, "File.expand_path(path, base)\n");
+        expect_no_offenses(COP, "Pathname(__dir__).expand_path\n");
+    }
+}
+
+/// `Style/RedundantSort`: 並べ替えてから端を取るなら `min` / `max`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantSort` と `-A` の実測。
+mod redundant_sort {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSort";
+
+    #[test]
+    fn every_way_of_taking_an_end_is_reported() {
+        expect_correction(COP, "[2, 1, 3].sort.first\n", "[2, 1, 3].min\n");
+        expect_correction(COP, "[2, 1, 3].sort[0]\n", "[2, 1, 3].min\n");
+        expect_correction(COP, "[2, 1, 3].sort.at(-1)\n", "[2, 1, 3].max\n");
+        expect_correction(COP, "arr.sort_by(&:foo).last\n", "arr.max_by(&:foo)\n");
+        expect_correction(
+            COP,
+            "arr.sort_by { |x| x.foo }.first\n",
+            "arr.min_by { |x| x.foo }\n",
+        );
+    }
+
+    /// 論理演算子が続くときは、演算子を並べ替え呼び出しの直後へ移す。
+    #[test]
+    fn a_logical_operator_after_it_is_moved() {
+        expect_correction(COP, "[2, 1, 3].sort.first && x\n", "[2, 1, 3].min &&  x\n");
+    }
+
+    #[test]
+    fn taking_anything_but_an_end_is_left_alone() {
+        expect_no_offenses(COP, "[2, 1, 3].sort\n");
+        expect_no_offenses(COP, "[2, 1, 3].sort[1]\n");
+        expect_no_offenses(COP, "[2, 1, 3].min\n");
+    }
+}
+
+/// `Style/OrAssignment`: 既定値の代入は `||=`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/OrAssignment` と `-A` の実測。
+mod or_assignment {
+    use super::*;
+
+    const COP: &str = "Style/OrAssignment";
+
+    #[test]
+    fn both_the_ternary_and_the_unless_forms_are_reported() {
+        expect_correction(COP, "name = name ? name : 'B'\n", "name ||= 'B'\n");
+        expect_correction(COP, "name = 'B' unless name\n", "name ||= 'B'\n");
+        // 先に代入されていて初めて条件の `name` が `lvar` になる。
+        expect_correction(
+            COP,
+            "name = nil\nunless name\n  name = 'B'\nend\n",
+            "name = nil\nname ||= 'B'\n",
+        );
+        expect_correction(COP, "@name = @name ? @name : 'B'\n", "@name ||= 'B'\n");
+    }
+
+    #[test]
+    fn a_different_variable_or_an_else_branch_is_left_alone() {
+        expect_no_offenses(COP, "name = other ? other : 'B'\n");
+        expect_no_offenses(COP, "name = name ? other : 'B'\n");
+        expect_no_offenses(COP, "name ||= 'B'\n");
+        // 未代入の名前は本家では `send` なので、パターンに当たらない。
+        expect_no_offenses(COP, "unless other\n  other = 'C'\nend\n");
+    }
+}
+
+/// `Style/EvenOdd`: `% 2 == 0` は `even?`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EvenOdd` と `-A` の実測。
+mod even_odd {
+    use super::*;
+
+    const COP: &str = "Style/EvenOdd";
+
+    #[test]
+    fn the_four_combinations_map_onto_the_two_predicates() {
+        expect_correction(COP, "x % 2 == 0\n", "x.even?\n");
+        expect_correction(COP, "x % 2 != 0\n", "x.odd?\n");
+        expect_correction(COP, "x % 2 == 1\n", "x.odd?\n");
+        expect_correction(COP, "x % 2 != 1\n", "x.even?\n");
+        // 演算子の受け手は括弧で包む。
+        expect_correction(COP, "(a * b) % 2 == 0\n", "(a * b).even?\n");
+    }
+
+    #[test]
+    fn another_divisor_or_another_comparison_is_left_alone() {
+        expect_no_offenses(COP, "x % 3 == 0\n");
+        expect_no_offenses(COP, "x % 2 > 0\n");
+        expect_no_offenses(COP, "x.even?\n");
+    }
+}
+
+/// `Style/ExponentialNotation`: 既定では仮数が 1 以上 10 未満。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ExponentialNotation` の実測。
+mod exponential_notation {
+    use super::*;
+
+    const COP: &str = "Style/ExponentialNotation";
+
+    #[test]
+    fn the_scientific_style_wants_a_single_leading_digit() {
+        expect_offense(
+            COP,
+            r#"
+            10e6
+            ^^^^ Use a mantissa >= 1 and < 10.
+            "#,
+        );
+        expect_no_offenses(COP, "1e7\n");
+        expect_no_offenses(COP, "1.17e6\n");
+        expect_no_offenses(COP, "3.14\n");
+    }
+
+    #[test]
+    fn the_integral_style_wants_no_decimal_part() {
+        CopCase::annotated(
+            COP,
+            r#"
+            3.2e7
+            ^^^^^ Use an integer as mantissa, without trailing zero.
+            "#,
+        )
+        .config("Style/ExponentialNotation:\n  EnforcedStyle: integral\n")
+        .correctable(false)
+        .run();
+    }
+}
+
+/// `Style/MixinUsage`: `include` はクラス/モジュールの中で。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MixinUsage` の実測。
+mod mixin_usage {
+    use super::*;
+
+    const COP: &str = "Style/MixinUsage";
+
+    #[test]
+    fn a_top_level_mixin_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            include M
+            ^^^^^^^^^ `include` is used at the top level. Use inside `class` or `module`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            extend M
+            ^^^^^^^^ `extend` is used at the top level. Use inside `class` or `module`.
+            "#,
+        );
+    }
+
+    #[test]
+    fn a_mixin_inside_a_class_or_module_is_fine() {
+        expect_no_offenses(COP, "class C\n  include M\nend\n");
+        expect_no_offenses(COP, "module M2\n  extend M\nend\n");
+        expect_no_offenses(COP, "obj.include M\n");
+        expect_no_offenses(COP, "include foo\n");
+    }
+}
+
+/// `Style/HashLikeCase`: 1 対 1 対応の `case-when` はハッシュ引き。
+///
+/// 期待値は本家 1.89.0 の `--only Style/HashLikeCase` の実測。
+mod hash_like_case {
+    use super::*;
+
+    const COP: &str = "Style/HashLikeCase";
+
+    #[test]
+    fn three_literal_branches_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            case country
+            ^^^^^^^^^^^^ Consider replacing `case-when` with a hash lookup.
+            when 'europe'
+              'eu'
+            when 'america'
+              'us'
+            when 'australia'
+              'au'
+            end
+            "#,
+        );
+    }
+
+    /// 分岐が足りないもの、`else` を持つもの、型が揃わないものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "case c\nwhen 'a'\n  1\nwhen 'b'\n  2\nend\n");
+        expect_no_offenses(
+            COP,
+            "case c\nwhen 'a'\n  1\nwhen 'b'\n  2\nwhen 'c'\n  3\nelse\n  4\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "case c\nwhen 'a'\n  1\nwhen 'b'\n  'x'\nwhen 'c'\n  3\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "case c\nwhen 'a'\n  foo\nwhen 'b'\n  bar\nwhen 'c'\n  baz\nend\n",
+        );
+    }
+}

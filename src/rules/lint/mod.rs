@@ -6,7 +6,9 @@ mod blocks;
 mod conditions;
 mod flow;
 mod literals;
-mod locals;
+/// Reachable from `style` too: whether a bare identifier reads a local variable is a question
+/// several Style cops ported from node patterns have to answer the same way.
+pub(crate) mod locals;
 mod node_equality;
 mod parameters;
 mod percent_literal;

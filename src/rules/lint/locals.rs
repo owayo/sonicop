@@ -18,14 +18,14 @@ use crate::source::SourceFile;
 
 use super::variable_force::Analysis;
 
-pub(super) struct LocalVariables<'a> {
+pub(crate) struct LocalVariables<'a> {
     root: Node<'a>,
     source: &'a SourceFile,
     analysis: OnceCell<Analysis<'a>>,
 }
 
 impl<'a> LocalVariables<'a> {
-    pub(super) fn new(context: &'a RuleContext<'_>) -> Self {
+    pub(crate) fn new(context: &'a RuleContext<'_>) -> Self {
         Self {
             root: context.root_node(),
             source: context.source,
@@ -34,7 +34,7 @@ impl<'a> LocalVariables<'a> {
     }
 
     /// Whether upstream's parser would have built an `lvar` here rather than a receiverless call.
-    pub(super) fn is_lvar(&self, node: Node<'_>) -> bool {
+    pub(crate) fn is_lvar(&self, node: Node<'_>) -> bool {
         self.analysis
             .get_or_init(|| Analysis::run(self.root, self.source))
             .is_variable_reference(node)

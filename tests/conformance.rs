@@ -2944,6 +2944,107 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_dir")
         .correctable(true),
+        CopCase::annotated(
+            "Style/Attr",
+            r#"
+            class K
+              attr :something, true
+              ^^^^ Do not use `attr`. Use `attr_accessor` instead.
+            end
+            "#,
+        )
+        .id("style_attr")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NestedParenthesizedCalls",
+            r#"
+            method1(method2 arg)
+                    ^^^^^^^^^^^ Add parentheses to nested method call `method2 arg`.
+            "#,
+        )
+        .id("style_nested_parenthesized_calls")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSelfAssignment",
+            r#"
+            args = args.concat(ary)
+                 ^ Redundant self assignment detected. Method `concat` modifies its receiver in place.
+            "#,
+        )
+        .id("style_redundant_self_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExpandPathArguments",
+            r#"
+            File.expand_path('..', __FILE__)
+                 ^^^^^^^^^^^ Use `expand_path(__dir__)` instead of `expand_path('..', __FILE__)`.
+            "#,
+        )
+        .id("style_expand_path_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSort",
+            r#"
+            [2, 1, 3].sort.first
+                      ^^^^^^^^^^ Use `min` instead of `sort...first`.
+            "#,
+        )
+        .id("style_redundant_sort")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OrAssignment",
+            r#"
+            name = name ? name : 'B'
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Use the double pipe equals operator `||=` instead.
+            "#,
+        )
+        .id("style_or_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EvenOdd",
+            r#"
+            if a % 2 == 0
+               ^^^^^^^^^^ Replace with `Integer#even?`.
+            end
+            "#,
+        )
+        .id("style_even_odd")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExponentialNotation",
+            r#"
+            10e6
+            ^^^^ Use a mantissa >= 1 and < 10.
+            "#,
+        )
+        .id("style_exponential_notation")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/MixinUsage",
+            r#"
+            include M
+            ^^^^^^^^^ `include` is used at the top level. Use inside `class` or `module`.
+            "#,
+        )
+        .id("style_mixin_usage")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/HashLikeCase",
+            r#"
+            case country
+            ^^^^^^^^^^^^ Consider replacing `case-when` with a hash lookup.
+            when 'europe'
+              'eu'
+            when 'america'
+              'us'
+            when 'australia'
+              'au'
+            end
+            "#,
+        )
+        .id("style_hash_like_case")
+        .locations(&[(1, 1, 8, 3)])
+        .correctable(false),
     ]
 }
 
