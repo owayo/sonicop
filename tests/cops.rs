@@ -11985,3 +11985,540 @@ mod layout_punctuation_spacing {
         .run();
     }
 }
+
+/// `Style/BeginBlock` / `Style/EndBlock`: Perl 由来のブロック。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod begin_and_end_blocks {
+    use super::*;
+
+    #[test]
+    fn the_keyword_is_reported_and_only_end_is_correctable() {
+        expect_offense(
+            "Style/BeginBlock",
+            r#"
+            BEGIN { test }
+            ^^^^^ Avoid the use of `BEGIN` blocks.
+            "#,
+        );
+        expect_correction(
+            "Style/EndBlock",
+            "END { puts 'x' }\n",
+            "at_exit { puts 'x' }\n",
+        );
+        expect_no_offenses("Style/BeginBlock", "at_exit { puts 'x' }\n");
+        expect_no_offenses("Style/EndBlock", "BEGIN { test }\n");
+    }
+}
+
+/// `Style/BlockComments`: `=begin ... =end` を行コメントへ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/BlockComments` と `-A` の実測。
+mod block_comments {
+    use super::*;
+
+    const COP: &str = "Style/BlockComments";
+
+    #[test]
+    fn the_fences_go_and_every_line_gains_a_hash() {
+        expect_correction(
+            COP,
+            "=begin\nMultiple lines\nof comments...\n=end\nx = 1\n",
+            "# Multiple lines\n# of comments...\nx = 1\n",
+        );
+        // 空行は `#` だけの行になり、その次の行にも `# ` が付く。
+        expect_correction(COP, "=begin\na\n\n\nb\n=end\n", "# a\n#\n# \n# b\n");
+        expect_no_offenses(COP, "# a\n# b\n");
+    }
+
+    /// 本家は `=end` ではなくコメント末尾から 5 文字を数えるので、行末に何か
+    /// 書いてあるとそちらが消える。`=begin\n=end` は範囲が逆転して本家自身が
+    /// 落ちるため、何も報告しない。
+    #[test]
+    fn the_end_fence_is_measured_from_the_comment_end() {
+        expect_correction(
+            COP,
+            "=begin extra\nfoo\n=end tail\nx=1\n",
+            "# extra\n# foo\n# =end x=1\n",
+        );
+        expect_correction(COP, "=begin\nx\n=end", "nd");
+        expect_no_offenses(COP, "=begin\n=end");
+    }
+}
+
+/// `Style/ClassMethods`: クラス名ではなく `self` で特異メソッドを定義する。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ClassMethods` と `-A` の実測。
+mod class_methods {
+    use super::*;
+
+    const COP: &str = "Style/ClassMethods";
+
+    #[test]
+    fn the_name_part_of_the_receiver_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class SomeClass
+              def SomeClass.class_method
+                  ^^^^^^^^^ Use `self.class_method` instead of `SomeClass.class_method`.
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "module Foo\n  def Foo.bar; end\nend\n",
+            "module Foo\n  def self.bar; end\nend\n",
+        );
+    }
+
+    /// 名前が食い違うもの、`self` で書かれたもの、本体の直下にないものは対象外。
+    #[test]
+    fn only_a_direct_child_naming_this_very_class_counts() {
+        expect_no_offenses(COP, "class Foo\n  def Bar.baz; end\nend\n");
+        expect_no_offenses(COP, "class Foo\n  def self.baz; end\nend\n");
+        expect_no_offenses(COP, "class Foo\n  if x\n    def Foo.baz; end\n  end\nend\n");
+    }
+}
+
+/// `Style/ColonMethodCall` / `Style/ColonMethodDefinition`: `::` はメソッドに使わない。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod colon_methods {
+    use super::*;
+
+    #[test]
+    fn the_operator_is_reported_and_becomes_a_dot() {
+        expect_offense(
+            "Style/ColonMethodCall",
+            r#"
+            Timeout::timeout(500) { do_something }
+                   ^^ Do not use `::` for method calls.
+            "#,
+        );
+        expect_correction(
+            "Style/ColonMethodDefinition",
+            "def self::bar\nend\n",
+            "def self.bar\nend\n",
+        );
+    }
+
+    /// 定数参照と JRuby の `Java::` は対象外。受け手のない呼び出しも同じ。
+    #[test]
+    fn constants_and_java_interop_are_left_alone() {
+        expect_no_offenses("Style/ColonMethodCall", "Timeout::Error\n");
+        expect_no_offenses("Style/ColonMethodCall", "Java::int\n");
+        expect_no_offenses("Style/ColonMethodCall", "Java::com::example::Foo.bar\n");
+        expect_no_offenses("Style/ColonMethodCall", "Timeout.timeout(500)\n");
+        expect_no_offenses("Style/ColonMethodDefinition", "def self.bar\nend\n");
+    }
+}
+
+/// `Style/DefWithParentheses`: 引数を取らない定義の `()` は書かない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/DefWithParentheses` と `-A` の実測。
+mod def_with_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/DefWithParentheses";
+
+    #[test]
+    fn the_empty_parentheses_are_reported_and_removed() {
+        expect_offense(
+            COP,
+            r#"
+            def foo()
+                   ^^ Omit the parentheses in defs when the method doesn't accept any arguments.
+              do_something
+            end
+            "#,
+        );
+        expect_correction(COP, "def Baz.foo()\nend\n", "def Baz.foo\nend\n");
+        // `;` が続けば 1 行でも外せる。
+        expect_correction(COP, "def foo(); end\n", "def foo; end\n");
+        CopCase::annotated(COP, "def foo() = do_something\n")
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected("def foo = do_something\n")
+            .run();
+    }
+
+    /// 外すと構文エラーになる書き方は残る。
+    #[test]
+    fn the_parentheses_that_are_load_bearing_stay() {
+        expect_no_offenses(COP, "def foo() do_something end\n");
+        CopCase::annotated(COP, "def foo()=do_something\n")
+            .target_ruby("3.0")
+            .corrected("def foo()=do_something\n")
+            .run();
+        expect_no_offenses(COP, "def foo(a)\nend\n");
+        expect_no_offenses(COP, "def foo\nend\n");
+    }
+}
+
+/// `Style/EachForSimpleLoop`: 定数回の `(a..b).each` は `Integer#times`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EachForSimpleLoop` と `-A` の実測。
+mod each_for_simple_loop {
+    use super::*;
+
+    const COP: &str = "Style/EachForSimpleLoop";
+
+    #[test]
+    fn the_call_is_replaced_by_the_number_of_iterations() {
+        expect_offense(
+            COP,
+            r#"
+            (1..5).each { }
+            ^^^^^^^^^^^ Use `Integer#times` for a simple loop which iterates a fixed number of times.
+            "#,
+        );
+        expect_correction(COP, "(0...10).each {}\n", "10.times {}\n");
+        expect_correction(COP, "(1..5).each do\nend\n", "5.times do\nend\n");
+    }
+
+    /// ブロック引数を取るもの、範囲がリテラルでないもの、`each` でないものは対象外。
+    #[test]
+    fn a_block_taking_anything_or_a_non_literal_range_is_left_alone() {
+        expect_no_offenses(COP, "(1..5).each { |n| }\n");
+        expect_no_offenses(COP, "(1..n).each { }\n");
+        expect_no_offenses(COP, "(1..5).map { }\n");
+        expect_no_offenses(COP, "1..5\n");
+        // `_1` を読むブロックは `numblock` で、本家の `on_block` は呼ばれない。
+        expect_no_offenses(COP, "(1..5).each { _1 }\n");
+    }
+}
+
+/// `Style/EmptyBlockParameter` / `Style/EmptyLambdaParameter`: 空の仮引数は書かない。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod empty_parameters {
+    use super::*;
+
+    #[test]
+    fn the_empty_delimiters_are_reported_and_removed() {
+        expect_offense(
+            "Style/EmptyBlockParameter",
+            r#"
+            a do ||
+                 ^^ Omit pipes for the empty block parameters.
+              do_something
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/EmptyBlockParameter",
+            "a { || do_something }\n",
+            "a { do_something }\n",
+        );
+        expect_correction(
+            "Style/EmptyLambdaParameter",
+            "-> () { do_something }\n",
+            "-> { do_something }\n",
+        );
+        expect_correction("Style/EmptyLambdaParameter", "->() { x }\n", "-> { x }\n");
+    }
+
+    /// 引数を取るもの、区切りを書いていないものは対象外。`->` は片方だけの担当。
+    #[test]
+    fn each_cop_keeps_to_its_own_kind_of_block() {
+        expect_no_offenses("Style/EmptyBlockParameter", "a do\nend\n");
+        expect_no_offenses("Style/EmptyBlockParameter", "a { |x| }\n");
+        expect_no_offenses("Style/EmptyBlockParameter", "-> () { x }\n");
+        expect_no_offenses("Style/EmptyLambdaParameter", "-> { x }\n");
+        expect_no_offenses("Style/EmptyLambdaParameter", "lambda { || x }\n");
+        expect_no_offenses("Style/EmptyLambdaParameter", "-> (a) { a }\n");
+    }
+}
+
+/// `Style/UnlessElse`: `unless/else` は肯定形に書き換える。
+///
+/// 期待値は本家 1.89.0 の `--only Style/UnlessElse` と `-A` の実測。
+mod unless_else {
+    use super::*;
+
+    const COP: &str = "Style/UnlessElse";
+
+    #[test]
+    fn the_two_branches_swap_and_the_keyword_flips() {
+        expect_correction(
+            COP,
+            "unless foo\n  a\nelse\n  b\nend\n",
+            "if foo\n  b\nelse\n  a\nend\n",
+        );
+        // `then` が書かれていれば本体はその後ろから始まる。
+        expect_correction(
+            COP,
+            "unless foo then a else b end\n",
+            "if foo then b else a end\n",
+        );
+    }
+
+    #[test]
+    fn an_unless_without_else_is_left_alone() {
+        expect_no_offenses(COP, "unless foo\n  a\nend\n");
+        expect_no_offenses(COP, "if foo\n  a\nelse\n  b\nend\n");
+    }
+}
+
+/// `Style/WhileUntilDo`: 複数行の `while`/`until` に `do` は要らない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/WhileUntilDo` と `-A` の実測。
+mod while_until_do {
+    use super::*;
+
+    const COP: &str = "Style/WhileUntilDo";
+
+    #[test]
+    fn the_do_is_reported_and_removed_with_the_space_before_it() {
+        expect_offense(
+            COP,
+            r#"
+            while x.any? do
+                         ^^ Do not use `do` with multi-line `while`.
+              do_something(x.pop)
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "until x.empty? do\n  x.pop\nend\n",
+            "until x.empty?\n  x.pop\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_single_line_loop_and_one_without_do_are_left_alone() {
+        expect_no_offenses(COP, "while x.any?\n  x.pop\nend\n");
+        expect_no_offenses(COP, "x.pop while x.any?\n");
+    }
+}
+
+/// `Style/MultilineIfThen` / `Style/MultilineWhenThen`: 複数行の `then` は冗長。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod multiline_then {
+    use super::*;
+
+    #[test]
+    fn the_then_is_reported_under_the_keyword_that_owns_it() {
+        expect_offense(
+            "Style/MultilineIfThen",
+            r#"
+            if cond then
+                    ^^^^ Do not use `then` for multi-line `if`.
+              a
+            end
+            "#,
+        );
+        // `elsif` は本家では `if` ノードなので、自分のキーワードで報告される。
+        expect_offense(
+            "Style/MultilineIfThen",
+            r#"
+            if a
+              x
+            elsif b then
+                    ^^^^ Do not use `then` for multi-line `elsif`.
+              y
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/MultilineIfThen",
+            "unless d then\n  w\nend\n",
+            "unless d\n  w\nend\n",
+        );
+        expect_correction(
+            "Style/MultilineWhenThen",
+            "case foo\nwhen bar then\nend\n",
+            "case foo\nwhen bar\nend\n",
+        );
+    }
+
+    /// `then` と同じ行に本体があるなら残す。
+    #[test]
+    fn a_body_on_the_then_line_keeps_it() {
+        expect_no_offenses("Style/MultilineIfThen", "if e then f\nend\n");
+        expect_no_offenses("Style/MultilineIfThen", "if e\n  f\nend\n");
+        expect_no_offenses(
+            "Style/MultilineWhenThen",
+            "case foo\nwhen bar then baz\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultilineWhenThen",
+            "case foo\nwhen bar\n  baz\nend\n",
+        );
+    }
+}
+
+/// `Style/NegatedWhile` / `Style/NegatedUnless`: 否定条件は逆のキーワードで。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod negated_conditionals {
+    use super::*;
+
+    #[test]
+    fn the_keyword_flips_and_the_negation_goes() {
+        expect_correction(
+            "Style/NegatedWhile",
+            "while !foo\n  bar\nend\n",
+            "until foo\n  bar\nend\n",
+        );
+        expect_correction("Style/NegatedWhile", "bar until !foo\n", "bar while foo\n");
+        expect_correction(
+            "Style/NegatedUnless",
+            "unless !foo\n  bar\nend\n",
+            "if foo\n  bar\nend\n",
+        );
+        expect_correction("Style/NegatedUnless", "bar unless !foo\n", "bar if foo\n");
+    }
+
+    /// 二重否定と、否定が条件の一部でしかないものは対象外。`else` 付きも同じ。
+    #[test]
+    fn a_condition_that_is_not_a_single_negation_is_left_alone() {
+        expect_no_offenses("Style/NegatedWhile", "bar while !foo && baz\n");
+        expect_no_offenses("Style/NegatedWhile", "bar while !!foo\n");
+        expect_no_offenses("Style/NegatedWhile", "bar while foo\n");
+        expect_no_offenses("Style/NegatedUnless", "unless !foo\n  a\nelse\n  b\nend\n");
+        expect_no_offenses("Style/NegatedUnless", "bar if !foo\n");
+    }
+}
+
+/// `Style/Not`: `not` ではなく `!`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Not` と `-A` の実測。
+mod not {
+    use super::*;
+
+    const COP: &str = "Style/Not";
+
+    #[test]
+    fn the_keyword_is_reported_and_becomes_a_bang() {
+        expect_offense(
+            COP,
+            r#"
+            x = (not something)
+                 ^^^ Use `!` instead of `not`.
+            "#,
+        );
+        expect_correction(COP, "x = (not something)\n", "x = (!something)\n");
+    }
+
+    /// 比較なら演算子を裏返し、束縛が変わるものは括弧で包む。
+    #[test]
+    fn a_comparison_flips_and_a_looser_expression_gains_parentheses() {
+        expect_correction(COP, "x = (not a == b)\n", "x = (a != b)\n");
+        expect_correction(COP, "x = (not a <= b)\n", "x = (a > b)\n");
+        expect_correction(COP, "x = (not a && b)\n", "x = (!(a && b))\n");
+        expect_correction(COP, "x = (not a + b)\n", "x = (!(a + b))\n");
+        expect_no_offenses(COP, "x = !something\n");
+    }
+}
+
+/// `Style/MinMax`: `[x.min, x.max]` は `x.minmax`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MinMax` と `-A` の実測。
+mod min_max {
+    use super::*;
+
+    const COP: &str = "Style/MinMax";
+
+    #[test]
+    fn the_pair_is_reported_and_replaced() {
+        expect_offense(
+            COP,
+            r#"
+            bar = [foo.min, foo.max]
+                  ^^^^^^^^^^^^^^^^^^ Use `foo.minmax` instead of `[foo.min, foo.max]`.
+            "#,
+        );
+        expect_correction(COP, "bar = [foo.min, foo.max]\n", "bar = foo.minmax\n");
+        // `return` は括弧を持たないので、引数の範囲だけが対象。
+        expect_correction(
+            COP,
+            "def m\n  return foo.min, foo.max\nend\n",
+            "def m\n  return foo.minmax\nend\n",
+        );
+    }
+
+    /// 受け手が食い違うもの、順序が逆のもの、受け手がないものは対象外。
+    #[test]
+    fn the_two_calls_have_to_be_min_then_max_on_the_same_receiver() {
+        expect_no_offenses(COP, "bar = [foo.min, baz.max]\n");
+        expect_no_offenses(COP, "bar = [foo.max, foo.min]\n");
+        expect_no_offenses(COP, "bar = [min, max]\n");
+        expect_no_offenses(COP, "bar = [foo.min, foo.max, foo.size]\n");
+    }
+}
+
+/// `Style/MultilineMemoization`: 複数行の `||=` は `begin`/`end` で包む。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MultilineMemoization` と `-A` の実測。
+mod multiline_memoization {
+    use super::*;
+
+    const COP: &str = "Style/MultilineMemoization";
+
+    #[test]
+    fn the_parentheses_become_keywords() {
+        expect_correction(
+            COP,
+            "foo ||= (\n  bar\n  baz\n)\n",
+            "foo ||= begin\n  bar\n  baz\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_single_line_or_a_begin_block_is_left_alone() {
+        expect_no_offenses(COP, "foo ||= (bar)\n");
+        expect_no_offenses(COP, "foo ||= begin\n  bar\n  baz\nend\n");
+        expect_no_offenses(COP, "foo = (\n  bar\n  baz\n)\n");
+    }
+
+    /// `braces` では逆に `begin`/`end` を括弧へ。
+    #[test]
+    fn the_braces_style_reverses_the_rule() {
+        CopCase::annotated(COP, "foo ||= begin\n  bar\n  baz\nend\n")
+            .config("Style/MultilineMemoization:\n  EnforcedStyle: braces\n")
+            .without_offense_check()
+            .corrected("foo ||= (\n  bar\n  baz\n)\n")
+            .run();
+    }
+}
+
+/// `Style/IfUnlessModifierOfIfUnless`: 条件式の後ろに条件修飾子を重ねない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/IfUnlessModifierOfIfUnless` と `-A` の実測。
+mod if_unless_modifier_of_if_unless {
+    use super::*;
+
+    const COP: &str = "Style/IfUnlessModifierOfIfUnless";
+
+    #[test]
+    fn the_outer_condition_moves_in_front_of_the_body() {
+        expect_offense(
+            COP,
+            r#"
+            'stop' if tired? if running?
+                             ^^ Avoid modifier `if` after another conditional.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "'stop' if tired? if running?\n",
+            "if running?\n'stop' if tired?\nend\n",
+        );
+        expect_correction(
+            COP,
+            "tired? ? 'stop' : 'go' unless running?\n",
+            "unless running?\ntired? ? 'stop' : 'go'\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_body_that_is_not_a_conditional_is_left_alone() {
+        expect_no_offenses(COP, "'stop' if running?\n");
+        expect_no_offenses(COP, "foo(bar) if running?\n");
+    }
+}

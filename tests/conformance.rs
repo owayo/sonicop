@@ -2610,6 +2610,216 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_preferred_hash_methods")
         .correctable(true),
+        CopCase::annotated(
+            "Style/BeginBlock",
+            r#"
+            BEGIN { test }
+            ^^^^^ Avoid the use of `BEGIN` blocks.
+            "#,
+        )
+        .id("style_begin_block")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/EndBlock",
+            r#"
+            END { puts 'x' }
+            ^^^ Avoid the use of `END` blocks. Use `Kernel#at_exit` instead.
+            "#,
+        )
+        .id("style_end_block")
+        .correctable(true),
+        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        CopCase::annotated(
+            "Style/BlockComments",
+            "=begin\nMultiple lines\n=end\nx = 1\n",
+        )
+        .id("style_block_comments")
+        .without_offense_check()
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[27])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassMethods",
+            r#"
+            class SomeClass
+              def SomeClass.class_method
+                  ^^^^^^^^^ Use `self.class_method` instead of `SomeClass.class_method`.
+              end
+            end
+            "#,
+        )
+        .id("style_class_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ColonMethodCall",
+            r#"
+            Timeout::timeout(500) { do_something }
+                   ^^ Do not use `::` for method calls.
+            "#,
+        )
+        .id("style_colon_method_call")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ColonMethodDefinition",
+            r#"
+            def self::bar
+                    ^^ Do not use `::` for defining class methods.
+            end
+            "#,
+        )
+        .id("style_colon_method_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DefWithParentheses",
+            r#"
+            def foo()
+                   ^^ Omit the parentheses in defs when the method doesn't accept any arguments.
+              do_something
+            end
+            "#,
+        )
+        .id("style_def_with_parentheses")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EachForSimpleLoop",
+            r#"
+            (1..5).each { }
+            ^^^^^^^^^^^ Use `Integer#times` for a simple loop which iterates a fixed number of times.
+            "#,
+        )
+        .id("style_each_for_simple_loop")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyBlockParameter",
+            r#"
+            a do ||
+                 ^^ Omit pipes for the empty block parameters.
+              do_something
+            end
+            "#,
+        )
+        .id("style_empty_block_parameter")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyLambdaParameter",
+            r#"
+            -> () { do_something }
+               ^^ Omit parentheses for the empty lambda parameters.
+            "#,
+        )
+        .id("style_empty_lambda_parameter")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/UnlessElse",
+            r#"
+            unless foo
+            ^^^^^^^^^^ Do not use `unless` with `else`. Rewrite these with the positive case first.
+              a
+            else
+              b
+            end
+            "#,
+        )
+        .id("style_unless_else")
+        .locations(&[(1, 1, 5, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/WhileUntilDo",
+            r#"
+            while x.any? do
+                         ^^ Do not use `do` with multi-line `while`.
+              do_something(x.pop)
+            end
+            "#,
+        )
+        .id("style_while_until_do")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineIfThen",
+            r#"
+            if cond then
+                    ^^^^ Do not use `then` for multi-line `if`.
+              a
+            end
+            "#,
+        )
+        .id("style_multiline_if_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineWhenThen",
+            r#"
+            case foo
+            when bar then
+                     ^^^^ Do not use `then` for multiline `when` statement.
+            end
+            "#,
+        )
+        .id("style_multiline_when_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NegatedWhile",
+            r#"
+            while !foo
+            ^^^^^^^^^^ Favor `until` over `while` for negative conditions.
+              bar
+            end
+            "#,
+        )
+        .id("style_negated_while")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NegatedUnless",
+            r#"
+            unless !foo
+            ^^^^^^^^^^^ Favor `if` over `unless` for negative conditions.
+              bar
+            end
+            "#,
+        )
+        .id("style_negated_unless")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Not",
+            r#"
+            x = (not something)
+                 ^^^ Use `!` instead of `not`.
+            "#,
+        )
+        .id("style_not")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MinMax",
+            r#"
+            bar = [foo.min, foo.max]
+                  ^^^^^^^^^^^^^^^^^^ Use `foo.minmax` instead of `[foo.min, foo.max]`.
+            "#,
+        )
+        .id("style_min_max")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineMemoization",
+            r#"
+            foo ||= (
+            ^^^^^^^^^ Wrap multiline memoization blocks in `begin` and `end`.
+              bar
+              baz
+            )
+            "#,
+        )
+        .id("style_multiline_memoization")
+        .locations(&[(1, 1, 4, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/IfUnlessModifierOfIfUnless",
+            r#"
+            'stop' if tired? if running?
+                             ^^ Avoid modifier `if` after another conditional.
+            "#,
+        )
+        .id("style_if_unless_modifier_of_if_unless")
+        .correctable(true),
     ]
 }
 
