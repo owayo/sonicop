@@ -938,6 +938,255 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_return_in_void_context")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/BigDecimalNew",
+            r#"
+            BigDecimal.new(123.456, 3)
+                       ^^^ `BigDecimal.new()` is deprecated. Use `BigDecimal()` instead.
+            "#,
+        )
+        .id("lint_big_decimal_new")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DeprecatedClassMethods",
+            r#"
+            File.exists?(path)
+            ^^^^^^^^^^^^ `File.exists?` is deprecated in favor of `File.exist?`.
+            "#,
+        )
+        .id("lint_deprecated_class_methods")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateCaseCondition",
+            r#"
+            case x
+            when 1
+              a
+            when 1
+                 ^ Duplicate `when` condition detected.
+              b
+            end
+            "#,
+        )
+        .id("lint_duplicate_case_condition")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateElsifCondition",
+            r#"
+            if a
+              x
+            elsif a
+                  ^ Duplicate `elsif` condition detected.
+              y
+            end
+            "#,
+        )
+        .id("lint_duplicate_elsif_condition")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateHashKey",
+            r#"
+            { food: 1, food: 2 }
+                       ^^^^ Duplicated key in hash literal.
+            "#,
+        )
+        .id("lint_duplicate_hash_key")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateRequire",
+            r#"
+            require 'foo'
+            require 'foo'
+            ^^^^^^^^^^^^^ Duplicate `require` detected.
+            "#,
+        )
+        .id("lint_duplicate_require")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateRescueException",
+            r#"
+            begin
+              x
+            rescue A
+              y
+            rescue A
+                   ^ Duplicate `rescue` exception detected.
+              z
+            end
+            "#,
+        )
+        .id("lint_duplicate_rescue_exception")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyEnsure",
+            r#"
+            def m
+              x
+            ensure
+            ^^^^^^ Empty `ensure` block detected.
+            end
+            "#,
+        )
+        .id("lint_empty_ensure")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EnsureReturn",
+            r#"
+            def n
+              x
+            ensure
+              return 1
+              ^^^^^^^^ Do not return from an `ensure` block.
+            end
+            "#,
+        )
+        .id("lint_ensure_return")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/IdentityComparison",
+            r#"
+            foo.object_id == bar.object_id
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `equal?` instead of `==` when comparing `object_id`.
+            "#,
+        )
+        .id("lint_identity_comparison")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RandOne",
+            r#"
+            rand 1
+            ^^^^^^ `rand 1` always returns `0`. Perhaps you meant `rand(2)` or `rand`?
+            "#,
+        )
+        .id("lint_rand_one")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnifiedInteger",
+            r#"
+            1.is_a?(Fixnum)
+                    ^^^^^^ Use `Integer` instead of `Fixnum`.
+            "#,
+        )
+        .id("lint_unified_integer")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UnreachableCode",
+            r#"
+            def dead
+              return
+              do_something
+              ^^^^^^^^^^^^ Unreachable code detected.
+            end
+            "#,
+        )
+        .id("lint_unreachable_code")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnreachableLoop",
+            r#"
+            while node
+            ^^^^^^^^^^ This loop will have at most one iteration.
+              do_something(node)
+              break
+            end
+            "#,
+        )
+        .id("lint_unreachable_loop")
+        .locations(&[(1, 1, 4, 3)])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UriEscapeUnescape",
+            r#"
+            URI.escape('http://example.com')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `URI.escape` method is obsolete and should not be used. Instead, use `CGI.escape`, `URI.encode_www_form` or `URI.encode_www_form_component` depending on your specific use case.
+            "#,
+        )
+        .id("lint_uri_escape_unescape")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // 置き換え先の parser 定数は `TargetRubyVersion` で変わる。ハーネス既定の 2.7 では
+        // `DEFAULT_PARSER`、3.4 以降は `RFC2396_PARSER`。
+        CopCase::annotated(
+            "Lint/UriRegexp",
+            r#"
+            URI.regexp('http://example.com')
+                ^^^^^^ `URI.regexp('http://example.com')` is obsolete and should not be used. Instead, use `URI::DEFAULT_PARSER.make_regexp('http://example.com')`.
+            "#,
+        )
+        .id("lint_uri_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EachWithObjectArgument",
+            r#"
+            x.each_with_object(1) { |a, b| b }
+            ^^^^^^^^^^^^^^^^^^^^^ The argument to each_with_object cannot be immutable.
+            "#,
+        )
+        .id("lint_each_with_object_argument")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/NextWithoutAccumulator",
+            r#"
+            [1, 2].reduce(0) do |acc, e|
+              acc + e
+              next
+              ^^^^ Use `next` with an accumulator argument in a `reduce`.
+            end
+            "#,
+        )
+        .id("lint_next_without_accumulator")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/ToJSON",
+            r#"
+            def to_json
+            ^^^^^^^^^^^ `#to_json` requires an optional argument to be parsable via JSON.generate(obj).
+            end
+            "#,
+        )
+        .id("lint_to_json")
+        .locations(&[(1, 1, 2, 3)])
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/TopLevelReturnWithArgument",
+            r#"
+            return 1
+            ^^^^^^^^ Top level return with argument detected.
+            "#,
+        )
+        .id("lint_top_level_return_with_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/TrailingCommaInAttributeDeclaration",
+            r#"
+            attr_reader :foo,
+                            ^ Avoid leaving a trailing comma in attribute declarations.
+            def bar
+            end
+            "#,
+        )
+        .id("lint_trailing_comma_in_attribute_declaration")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

@@ -542,6 +542,460 @@ mod lint {
         );
         expect_no_offenses("Lint/UselessAssignment", "x = 1\nputs x\n");
     }
+
+    /// 本家のパターンは `(const {nil? cbase} {:Fixnum :Bignum})`。`::Fixnum` は一致して
+    /// `::` ごと指すが、名前空間の付いた `Foo::Fixnum` は別の定数なので見逃す。
+    #[test]
+    fn unified_integer_matches_only_a_top_level_constant() {
+        CopCase::annotated(
+            "Lint/UnifiedInteger",
+            r#"
+            1.is_a?(::Bignum)
+                    ^^^^^^^^ Use `Integer` instead of `Bignum`.
+            "#,
+        )
+        .run();
+        expect_no_offenses("Lint/UnifiedInteger", "1.is_a?(Foo::Fixnum)\n");
+        expect_correction(
+            "Lint/UnifiedInteger",
+            "1.is_a?(::Fixnum)\n",
+            "1.is_a?(::Integer)\n",
+        );
+    }
+
+    /// 補正は `remove` 3 回 (selector / dot / cbase) で、置換 1 個ではない。
+    #[test]
+    fn big_decimal_new_removes_the_selector_the_dot_and_the_cbase() {
+        expect_correction(
+            "Lint/BigDecimalNew",
+            "::BigDecimal.new(1)\nBigDecimal.new(2)\n",
+            "BigDecimal(1)\nBigDecimal(2)\n",
+        );
+        expect_no_offenses("Lint/BigDecimalNew", "Foo::BigDecimal.new(1)\n");
+    }
+
+    /// `rand(-1)` は本家では `(int -1)` 1 個に畳まれる。`rand(2)` と裸の `rand` は無傷。
+    #[test]
+    fn rand_one_folds_the_sign_into_the_literal() {
+        CopCase::annotated(
+            "Lint/RandOne",
+            r#"
+            Kernel.rand(-1)
+            ^^^^^^^^^^^^^^^ `Kernel.rand(-1)` always returns `0`. Perhaps you meant `rand(2)` or `rand`?
+            "#,
+        )
+        .run();
+        expect_no_offenses("Lint/RandOne", "rand(2)\nrand\nrand(1, 2)\nFoo.rand(1)\n");
+    }
+
+    /// 両辺とも `object_id` の呼び出しでなければ一致しない。ワイルドカードはレシーバ無しに
+    /// 当たらないので、裸の `object_id` を含む比較は offense にならない。
+    #[test]
+    fn identity_comparison_needs_a_receiver_on_both_sides() {
+        expect_no_offenses(
+            "Lint/IdentityComparison",
+            "foo.object_id == object_id\nobject_id == bar.object_id\nfoo.object_id == bar\n",
+        );
+        expect_correction(
+            "Lint/IdentityComparison",
+            "foo.object_id != baz.object_id\n",
+            "!foo.equal?(baz)\n",
+        );
+    }
+
+    /// `Socket` だけは置き換え先が別クラスなので補正が付かない。`attr` は引数が 2 個で
+    /// 2 番目が真偽値のときだけ、`ENV.freeze` は式全体が `ENV` になる。
+    #[test]
+    fn deprecated_class_methods_leaves_socket_uncorrected() {
+        CopCase::annotated(
+            "Lint/DeprecatedClassMethods",
+            r#"
+            Socket.gethostbyaddr(host)
+            ^^^^^^^^^^^^^^^^^^^^ `Socket.gethostbyaddr` is deprecated in favor of `Addrinfo#getnameinfo`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_no_offenses(
+            "Lint/DeprecatedClassMethods",
+            "attr :name\nattr :name, other\nENV.freeze(1)\nFile.exists?\n",
+        );
+        expect_correction(
+            "Lint/DeprecatedClassMethods",
+            "ENV.freeze\nENV.dup\nattr :name, false\niterator?\n",
+            "ENV\nENV.to_h\nattr_reader :name\nblock_given?\n",
+        );
+    }
+
+    /// メッセージは `::URI` と `URI` を書き分ける。
+    #[test]
+    fn uri_escape_unescape_spells_the_cbase_in_the_message() {
+        expect_offense(
+            "Lint/UriEscapeUnescape",
+            r#"
+            ::URI.decode(x)
+            ^^^^^^^^^^^^^^^ `::URI.decode` method is obsolete and should not be used. Instead, use `CGI.unescape`, `URI.decode_www_form` or `URI.decode_www_form_component` depending on your specific use case.
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/UriEscapeUnescape",
+            "Foo::URI.escape(x)\nCGI.escape(x)\n",
+        );
+    }
+
+    /// 引数の無い形は置き換え先にも引数を付けない。
+    #[test]
+    fn uri_regexp_keeps_the_argument_list_only_when_one_was_written() {
+        expect_correction(
+            "Lint/UriRegexp",
+            "::URI.regexp\nURI.regexp(a, b)\n",
+            "::URI::DEFAULT_PARSER.make_regexp\nURI::DEFAULT_PARSER.make_regexp(a)\n",
+        );
+    }
+
+    /// `if` の両辺がどちらも脱出するときだけ、その後ろが到達不能になる。
+    #[test]
+    fn unreachable_code_needs_both_branches_of_a_condition() {
+        expect_offense(
+            "Lint/UnreachableCode",
+            r#"
+            def m
+              if c
+                return
+              else
+                raise
+              end
+              dead
+              ^^^^ Unreachable code detected.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/UnreachableCode",
+            "def m\n  if c\n    return\n  end\n  alive\nend\n",
+        );
+    }
+
+    /// ファイル内で `raise` が定義されると、それ以降の裸の `raise` は脱出と見なされない。
+    /// `instance_eval` の中も、`self` が何か分からないので同じく見逃す。
+    #[test]
+    fn unreachable_code_honours_a_redefinition_and_instance_eval() {
+        expect_no_offenses(
+            "Lint/UnreachableCode",
+            "def foo\n  def raise\n  end\n  x\nend\ndef bar\n  raise\n  y\nend\n",
+        );
+        expect_no_offenses(
+            "Lint/UnreachableCode",
+            "x.instance_eval do\n  raise\n  y\nend\n",
+        );
+    }
+
+    /// `AllowedPatterns` の既定は RSpec の `exactly(2).times` を逃がす。`break` の前に
+    /// `next` があるループも、2 周目に入り得るので offense にならない。
+    #[test]
+    fn unreachable_loop_honours_allowed_patterns_and_a_preceding_next() {
+        expect_offense(
+            "Lint/UnreachableLoop",
+            r#"
+            2.times { raise ArgumentError }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ This loop will have at most one iteration.
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/UnreachableLoop",
+            "exactly(2).times { raise StandardError }\nloop do\n  next if a\n  break\nend\n",
+        );
+    }
+
+    /// `ensure` の中の `return` は、内側の `def` と lambda の中に書かれたものだけ免除される。
+    /// 素のブロックと `proc` の中では外側のメソッドから返ってしまう。
+    #[test]
+    fn ensure_return_only_excuses_an_inner_def_or_lambda() {
+        expect_offense(
+            "Lint/EnsureReturn",
+            r#"
+            def m
+              x
+            ensure
+              [1].each { return 1 }
+                         ^^^^^^^^ Do not return from an `ensure` block.
+              proc { return 2 }
+                     ^^^^^^^^ Do not return from an `ensure` block.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/EnsureReturn",
+            "def m\n  x\nensure\n  lambda { return 1 }\n  -> { return 2 }\n  def inner\n    return 3\n  end\nend\n",
+        );
+    }
+
+    /// `ensure` を消すのはキーワードだけで、空行はそのまま残る。
+    #[test]
+    fn empty_ensure_removes_only_the_keyword() {
+        expect_correction(
+            "Lint/EmptyEnsure",
+            "def m\n  x\nensure\nend\n",
+            "def m\n  x\n\nend\n",
+        );
+        expect_no_offenses("Lint/EmptyEnsure", "def m\n  x\nensure\n  y\nend\n");
+    }
+
+    /// キーは本家のノード等価で比べる。`'a'` と `:a` は型が違うので別のキー、`1` と `1.0`
+    /// も別、`0x1` は `1` と同じ。`**splat` はキーを持たない。
+    #[test]
+    fn duplicate_hash_key_compares_the_parsed_value() {
+        expect_offense(
+            "Lint/DuplicateHashKey",
+            r#"
+            { 'a' => 1, a: 2, :a => 3, 1 => 4, 1.0 => 5, 0x1 => 6 }
+                              ^^ Duplicated key in hash literal.
+                                                         ^^^ Duplicated key in hash literal.
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/DuplicateHashKey",
+            "{ **other, x: 1, y: 2 }\n{ a => 1, a => 2 }\n",
+        );
+    }
+
+    /// 条件は `when` をまたいで数える。
+    #[test]
+    fn duplicate_case_condition_counts_across_when_branches() {
+        expect_offense(
+            "Lint/DuplicateCaseCondition",
+            r#"
+            case x
+            when 1, 2
+              a
+            when 2, 3
+                 ^ Duplicate `when` condition detected.
+              b
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/DuplicateCaseCondition",
+            "case x\nwhen 1\n  a\nwhen 2\n  b\nelse\n  c\nend\n",
+        );
+    }
+
+    /// `unless` は `if?` にも `elsif?` にも当たらないので、鎖をたどらない。
+    #[test]
+    fn duplicate_elsif_condition_ignores_unless() {
+        expect_no_offenses(
+            "Lint/DuplicateElsifCondition",
+            "unless a\n  x\nelse\n  y\nend\na if a\n",
+        );
+        expect_offense(
+            "Lint/DuplicateElsifCondition",
+            r#"
+            if a
+              w
+            elsif b
+              x
+            elsif a
+                  ^ Duplicate `elsif` condition detected.
+              y
+            end
+            "#,
+        );
+    }
+
+    /// 例外は節をまたいで数える。`rescue A, B` の後の `rescue B` は重複。
+    #[test]
+    fn duplicate_rescue_exception_counts_across_clauses() {
+        expect_offense(
+            "Lint/DuplicateRescueException",
+            r#"
+            begin
+              x
+            rescue A, B
+              y
+            rescue B
+                   ^ Duplicate `rescue` exception detected.
+              z
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/DuplicateRescueException",
+            "begin\n  x\nrescue A\n  y\nrescue B\n  z\nend\n",
+        );
+    }
+
+    /// 重複の単位は本家の親ノード。`if` と `else` に 1 文ずつ書かれた `require` は同じ
+    /// `if` ノードにぶら下がるので重複するが、`when` の枝は枝ごとに別のノードになる。
+    /// `require_relative` は別のメソッドなので `require` とは衝突しない。
+    #[test]
+    fn duplicate_require_groups_by_the_parser_parent() {
+        expect_offense(
+            "Lint/DuplicateRequire",
+            r#"
+            if cond
+              require 'y'
+            else
+              require 'y'
+              ^^^^^^^^^^^ Duplicate `require` detected.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/DuplicateRequire",
+            "require 'foo'\nrequire_relative 'foo'\ncase x\nwhen 1 then require 'z'\nwhen 2 then require 'z'\nend\n",
+        );
+    }
+
+    /// 補正は行ごと (末尾の改行込み) 消す。レシーバ付きの `Kernel.require` も同じキーに
+    /// 数えられる。
+    #[test]
+    fn duplicate_require_removes_the_whole_line() {
+        expect_correction(
+            "Lint/DuplicateRequire",
+            "require 'a'\nrequire 'a'\nKernel.require 'a'\n",
+            "require 'a'\n",
+        );
+    }
+
+    /// `rescue` 節の付いた `begin ... end` は、本家では `kwbegin` が `rescue` ノード 1 個だけを
+    /// 持つ。中の `return` は外から見えないので、その後ろは到達不能にならない。
+    #[test]
+    fn unreachable_code_stops_at_a_rescue_clause() {
+        expect_offense(
+            "Lint/UnreachableCode",
+            r#"
+            def n1
+              begin
+                return
+                dead1
+                ^^^^^ Unreachable code detected.
+              rescue
+                x
+              end
+              alive
+            end
+            "#,
+        );
+        expect_offense(
+            "Lint/UnreachableCode",
+            r#"
+            def n2
+              begin
+                return
+                dead3
+                ^^^^^ Unreachable code detected.
+              end
+              dead4
+              ^^^^^ Unreachable code detected.
+            end
+            "#,
+        );
+    }
+
+    /// 同じ理由で、`begin ... rescue ... end` の中の `break` は外側のループから見えない。
+    #[test]
+    fn unreachable_loop_stops_at_a_rescue_clause() {
+        expect_no_offenses(
+            "Lint/UnreachableLoop",
+            "[1].each do\n  break\nrescue\n  z\nend\nwhile c\n  begin\n    break\n  rescue\n    z\n  end\nend\n",
+        );
+    }
+
+    /// `ensure` は本家では本体と後始末をまとめて 1 つのノードにする。どちらも 1 文なら
+    /// 親が同じになるので、同じ `require` は重複と数えられる。
+    #[test]
+    fn duplicate_require_shares_the_parent_an_ensure_introduces() {
+        expect_offense(
+            "Lint/DuplicateRequire",
+            r#"
+            def m1
+              require 'a'
+            ensure
+              require 'a'
+              ^^^^^^^^^^^ Duplicate `require` detected.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Lint/DuplicateRequire",
+            "def m2\n  require 'b'\n  require 'c'\nensure\n  require 'b'\nend\ndef m3\n  require 'd'\nrescue\n  require 'd'\nend\n",
+        );
+    }
+
+    /// `BEGIN { }` と `END { }` も本家では文の並びを `begin` で包む。
+    #[test]
+    fn unreachable_code_covers_begin_and_end_blocks() {
+        expect_offense(
+            "Lint/UnreachableCode",
+            r#"
+            END {
+              exit
+              puts "x"
+              ^^^^^^^^ Unreachable code detected.
+            }
+            "#,
+        );
+    }
+
+    /// 既に空の括弧があるときは中へ、無いときは名前の後ろへ挿す。
+    #[test]
+    fn to_json_inserts_the_argument_where_the_parentheses_are() {
+        expect_correction(
+            "Lint/ToJSON",
+            "def to_json\nend\ndef to_json()\nend\n",
+            "def to_json(*_args)\nend\ndef to_json(*_args)\nend\n",
+        );
+        expect_no_offenses("Lint/ToJSON", "def to_json(a)\nend\ndef to_s\nend\n");
+    }
+
+    /// ブロックやメソッドの中の `return` はトップレベルではない。
+    #[test]
+    fn top_level_return_with_argument_ignores_inner_scopes() {
+        expect_no_offenses(
+            "Lint/TopLevelReturnWithArgument",
+            "return\ndef m\n  return 1\nend\n[1].each { return 2 }\n",
+        );
+        expect_correction("Lint/TopLevelReturnWithArgument", "return 1\n", "return\n");
+    }
+
+    /// 引数が immutable なリテラルのときだけ。`{}` や `[]` は積み上げられる。
+    #[test]
+    fn each_with_object_argument_only_reports_immutable_literals() {
+        expect_no_offenses(
+            "Lint/EachWithObjectArgument",
+            "x.each_with_object({}) { }\nx.each_with_object([]) { }\nx.each_with_object(y) { }\n",
+        );
+        expect_offense(
+            "Lint/EachWithObjectArgument",
+            r#"
+            x&.each_with_object(nil) { |a, b| b }
+            ^^^^^^^^^^^^^^^^^^^^^^^^ The argument to each_with_object cannot be immutable.
+            "#,
+        );
+    }
+
+    /// 本家のパターンは `reduce` に引数が 1 個あることを求める。裸の `reduce` は当たらない。
+    #[test]
+    fn next_without_accumulator_needs_a_seed_argument() {
+        expect_no_offenses(
+            "Lint/NextWithoutAccumulator",
+            "[1, 2].reduce do |acc, e|\n  acc + e\n  next\nend\n[1, 2].reduce(:+)\n",
+        );
+    }
+
+    /// `def` が最後の引数で、かつ引数が 2 個以上あるときだけ。
+    #[test]
+    fn trailing_comma_in_attribute_declaration_needs_a_preceding_name() {
+        expect_no_offenses(
+            "Lint/TrailingCommaInAttributeDeclaration",
+            "attr_reader :a, :b\nattr_reader def foo\nend\n",
+        );
+        expect_correction(
+            "Lint/TrailingCommaInAttributeDeclaration",
+            "attr_accessor :foo,\ndef bar\nend\n",
+            "attr_accessor :foo\ndef bar\nend\n",
+        );
+    }
 }
 
 mod metrics {
