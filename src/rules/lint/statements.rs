@@ -96,6 +96,15 @@ pub(super) fn begin_containers<'tree>(
         .collect()
 }
 
+/// Whether the body was split by a `rescue` or an `ensure`, which puts that clause between the
+/// container and the sequence upstream.
+pub(super) fn has_clause(container: Node<'_>) -> bool {
+    let mut cursor = container.walk();
+    container
+        .named_children(&mut cursor)
+        .any(|child| CLAUSES.contains(&child.kind()))
+}
+
 /// A body as `if body.begin_type? then body.children else [body]` reads it: the statements of the
 /// sequence, or the single expression the body is.
 ///

@@ -136,6 +136,26 @@ pub(super) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<
         "hash" => "hash",
         "regex" => "regexp",
         "range" => range_type(node, context),
+        // The parser folds a sign written before a numeric literal into the literal itself, so
+        // `-1` is an `int` and only `-x` stays a call.
+        "unary" => {
+            let operator = node.child_by_field_name("operator")?;
+            if !matches!(context.source.node_text(operator), "-" | "+") {
+                return None;
+            }
+            let operand = node.child_by_field_name("operand")?;
+            match literal_type(operand, context)? {
+                kind @ ("int" | "float" | "rational" | "complex") => kind,
+                _ => return None,
+            }
+        }
+        // `emit_file_line_as_literals`: the parser resolves these while it parses, and a cop only
+        // ever sees the literal they stood for.
+        "identifier" => match context.source.node_text(node) {
+            "__FILE__" => "str",
+            "__LINE__" => "int",
+            _ => return None,
+        },
         _ => return None,
     })
 }
