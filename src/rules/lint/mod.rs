@@ -46,6 +46,7 @@ department_rules! {
     parentheses_as_grouped_expression => ("ParenthesesAsGroupedExpression", Warning),
     raise_exception => ("RaiseException", Warning),
     rand_one => ("RandOne", Warning),
+    redundant_cop_disable_directive => ("RedundantCopDisableDirective", Warning),
     rescue_exception => ("RescueException", Warning),
     return_in_void_context => ("ReturnInVoidContext", Warning),
     self_assignment => ("SelfAssignment", Warning),

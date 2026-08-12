@@ -50,6 +50,10 @@ pub struct CopCase {
     pub correctable: Option<bool>,
     /// offense の cop 名の期待多重集合。`None` なら `only` に含まれることだけ見る。
     pub cop_names: Option<Vec<String>>,
+    /// `only` を `--only` として渡すか。`Lint/RedundantCopDisableDirective` は本家が
+    /// `--only` と併用できないので、この cop のケースだけ偽にして、選択を
+    /// 「他の実装済み cop を全部 `--except` する」形で表す。
+    pub uses_only: bool,
     /// `(start_line, start_column, last_line, last_column)` の期待。
     pub locations: Option<Vec<(usize, usize, usize, usize)>>,
     /// `location.length` の期待。本家は文字数で出す。
@@ -72,6 +76,7 @@ impl CopCase {
             severity: None,
             correctable: None,
             cop_names: None,
+            uses_only: true,
             locations: None,
             lengths: None,
             correct_mode: CorrectMode::All,
@@ -175,6 +180,13 @@ impl CopCase {
         self
     }
 
+    /// `--only` を使わずに cop を絞る。本家が `--only` と併用を拒む
+    /// `Lint/RedundantCopDisableDirective` 専用。
+    pub fn without_only(mut self) -> Self {
+        self.uses_only = false;
+        self
+    }
+
     /// 検査だけ行い、報告をそのまま返す。ハーネスで表現しきれない検証を
     /// テスト側で書きたいときの逃げ道。
     pub fn inspect(&self) -> FileReport {
@@ -246,6 +258,18 @@ impl CopCase {
     /// 実行と `-a` / `-A` の実行では偽と真になるので、offense の突き合わせと autocorrect
     /// の突き合わせは別々の値で検査し直す必要がある。
     fn selection_for(&self, correcting: bool) -> Selection {
+        if !self.uses_only {
+            // `--only` を渡すと本家は `Lint/RedundantCopDisableDirective` を走らせない。
+            // 同じ 1 cop に絞るために、選ばれていない実装済み cop を全部 `--except` する。
+            return Selection {
+                except: sonicop::rules::rule_names()
+                    .filter(|name| !self.selects(name))
+                    .map(ToOwned::to_owned)
+                    .collect(),
+                correcting,
+                ..Selection::default()
+            };
+        }
         Selection {
             only: self.only.clone(),
             correcting,

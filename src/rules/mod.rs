@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::config::Config;
 use crate::diagnostic::{Offense, Severity};
+use crate::directives::{CommentConfig, CopRegistry};
 use crate::formatter::smart_path;
 use crate::ruby_version::RubyVersion;
 use crate::source::SourceFile;
@@ -107,6 +108,21 @@ pub(crate) struct RuleContext<'a> {
     severity: Severity,
     /// RuboCop's `autocorrect?`. See [`crate::engine::Selection::correcting`].
     correcting: bool,
+    /// Set only for the cop that reads the file's directives rather than its syntax tree.
+    directive_review: Option<&'a DirectiveReview<'a>>,
+}
+
+/// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
+///
+/// RuboCop mobilizes that cop on its own once every other cop has finished and assigns it
+/// `offenses_to_check`, because whether a `rubocop:disable` was needed can only be answered from
+/// the offenses the rest of the run found. Nothing else in the registry has that shape, so the
+/// input travels here rather than widening every cop's signature.
+pub(crate) struct DirectiveReview<'a> {
+    /// Every offense the run found in this file, including the ones a directive suppressed.
+    pub offenses: &'a [Offense],
+    pub comments: &'a CommentConfig,
+    pub registry: &'a CopRegistry,
 }
 
 impl<'a> RuleContext<'a> {
@@ -125,7 +141,14 @@ impl<'a> RuleContext<'a> {
             rule,
             severity,
             correcting,
+            directive_review: None,
         }
+    }
+
+    /// Hands the cop that reads directives what the rest of the run found. See [`DirectiveReview`].
+    pub(crate) fn reviewing_directives(mut self, review: &'a DirectiveReview<'a>) -> Self {
+        self.directive_review = Some(review);
+        self
     }
 }
 
@@ -135,6 +158,12 @@ impl RuleContext<'_> {
     /// attaches its edits and lets the engine decide whether to apply them.
     pub fn correcting(&self) -> bool {
         self.correcting
+    }
+
+    /// The offenses and directive analysis `Lint/RedundantCopDisableDirective` runs on, or `None`
+    /// for every other cop and for the passes that do not check directives at all.
+    pub fn directive_review(&self) -> Option<&DirectiveReview<'_>> {
+        self.directive_review
     }
 
     /// One of the cop's own configuration parameters, such as `Max` or `EnforcedStyle`.

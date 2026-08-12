@@ -1379,6 +1379,22 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_rand_one")
         .severity(Severity::Warning)
         .correctable(false),
+        // 本家はこの cop を `--only` と併用できない (`OptionArgumentError`)。ハーネスも
+        // 同じ形にそろえるため、選択は `--except` 側で表す。
+        CopCase::annotated(
+            "Lint/RedundantCopDisableDirective",
+            r#"
+            # rubocop:disable Layout/LineLength
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            x = 1
+            # rubocop:enable Layout/LineLength
+            "#,
+        )
+        .id("lint_redundant_cop_disable_directive")
+        .without_only()
+        .corrected("x = 1\n# rubocop:enable Layout/LineLength\n")
+        .severity(Severity::Warning)
+        .correctable(true),
         CopCase::annotated(
             "Lint/UnifiedInteger",
             r#"
