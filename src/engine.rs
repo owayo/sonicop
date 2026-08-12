@@ -109,7 +109,10 @@ impl RulePlan {
                     .cop_value::<String>(rule.name, "Severity")
                     .and_then(|value| Severity::parse(&value))
                     .unwrap_or(rule.severity),
-                safe_autocorrect: config.rule_safe_autocorrect(rule.name),
+                // `AutocorrectLogic#safe_autocorrect?` is both halves: a cop whose analysis is
+                // unsafe cannot have a safe correction either, however `SafeAutoCorrect` was left.
+                safe_autocorrect: config.rule_safe(rule.name)
+                    && config.rule_safe_autocorrect(rule.name),
             })
             .collect();
         Self { entries }
@@ -154,8 +157,9 @@ fn inspect_planned(
 ) -> Result<FileReport> {
     // Settled before the file is parsed, so every cop sees the source Ruby would have read rather
     // than only the one that reports the parse.
+    let length_as_read = text.len();
     let text = crate::nul_bytes::as_ruby_reads_it(&text).unwrap_or(text);
-    let source = SourceFile::new(path, text);
+    let source = SourceFile::new(path, text).read_as_long_as(length_as_read);
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_ruby::LANGUAGE.into())
@@ -890,8 +894,11 @@ fn edits_are_addressable(offense: &Offense, source: &str) -> bool {
 
 /// The range an insertion of this offense is taken to hang off. See [`Action::from_edit`].
 fn anchor_range(offense: &Offense, source: &str) -> (usize, usize) {
-    match is_addressable(offense.start, offense.end, source) {
-        true => (offense.start, offense.end),
+    let (start, end) = offense
+        .correction_anchor
+        .unwrap_or((offense.start, offense.end));
+    match is_addressable(start, end, source) {
+        true => (start, end),
         false => (0, 0),
     }
 }

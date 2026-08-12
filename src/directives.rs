@@ -80,6 +80,29 @@ impl DirectiveState {
         Self { line_states }
     }
 
+    /// The inclusive line ranges over which `cop` is disabled, which is what
+    /// `ProcessedSource#disabled_line_ranges` hands the cops that reason about their own
+    /// directives. A range left open at the end of the file stops at its last line.
+    pub fn disabled_line_ranges(&self, cop: &str, source: &SourceFile) -> Vec<Range<usize>> {
+        let mut ranges: Vec<Range<usize>> = Vec::new();
+        for line in 1..=source.line_count() {
+            let Some(state) = self.line_states.get(line - 1) else {
+                break;
+            };
+            if !(state.all
+                || state.cops.contains_key(cop)
+                || state.cops.contains_key(department(cop)))
+            {
+                continue;
+            }
+            match ranges.last_mut() {
+                Some(last) if last.end + 1 == line => last.end = line,
+                _ => ranges.push(line..line),
+            }
+        }
+        ranges
+    }
+
     pub fn suppression(&self, offense: &Offense, source: &SourceFile) -> Option<Option<String>> {
         // `DirectiveComment` drops `Lint/Syntax` from the cop list of every directive -- named,
         // by department and by `all` (`#parsed_cop_names`, `#exclude_lint_department_cops`) -- so

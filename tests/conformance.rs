@@ -387,6 +387,64 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
+            "Lint/BinaryOperatorWithIdenticalOperands",
+            r#"
+            x = a == a
+                ^^^^^^ Binary operator `==` has identical operands.
+            "#,
+        )
+        .id("lint_binary_operator_with_identical_operands")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // `add_global_offense`。空であること自体が offense なので、指す構文が無い。
+        CopCase::new(
+            "Lint/EmptyFile",
+            "",
+            vec![support::annotation::Annotation::new(
+                1,
+                1,
+                0,
+                "Empty file detected.",
+            )],
+        )
+        .id("lint_empty_file")
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyWhen",
+            r#"
+            case x
+            when 1
+            ^^^^^^ Avoid `when` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_when")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/InheritException",
+            r#"
+            class C < Exception; end
+                      ^^^^^^^^^ Inherit from `StandardError` instead of `Exception`.
+            "#,
+        )
+        .id("lint_inherit_exception")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RaiseException",
+            r#"
+            raise Exception, 'boom'
+                  ^^^^^^^^^ Use `StandardError` over `Exception`.
+            "#,
+        )
+        .id("lint_raise_exception")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
             "Lint/AmbiguousBlockAssociation",
             r#"
             some_method a { |val| puts val }
@@ -607,6 +665,19 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_useless_assignment")
         .severity(Severity::Warning),
         CopCase::annotated(
+            "Lint/UselessAccessModifier",
+            r#"
+            class Foo
+              public
+              ^^^^^^ Useless `public` access modifier.
+              def a; end
+            end
+            "#,
+        )
+        .id("lint_useless_access_modifier")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
             "Lint/UselessMethodDefinition",
             r#"
             def foo
@@ -616,8 +687,8 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("lint_useless_method_definition")
-        .locations(&[(1, 1, 3, 4)])
-        .lengths(&[21])
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[19])
         .severity(Severity::Warning)
         .correctable(true),
         // ---- Metrics ----

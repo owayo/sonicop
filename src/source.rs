@@ -10,6 +10,10 @@ pub struct SourceFile {
     line_starts: Vec<usize>,
     /// Whether the file opened with a UTF-8 byte order mark, which `text` no longer carries.
     byte_order_mark: bool,
+    /// How long the file was before a NUL in code cut `text` short. RuboCop's buffer holds every
+    /// byte of the file even past the point Ruby's lexer stopped reading, so a cop that asks about
+    /// the file rather than about the program has to ask about this.
+    length_as_read: usize,
 }
 
 /// The UTF-8 byte order mark, which `parser` strips before handing the source to a cop but which
@@ -31,10 +35,23 @@ impl SourceFile {
         );
         Self {
             path: path.into(),
+            length_as_read: text.len(),
             text,
             line_starts,
             byte_order_mark,
         }
+    }
+
+    /// Records that the file was longer than `text` before a NUL in code cut it short.
+    pub fn read_as_long_as(mut self, length: usize) -> Self {
+        self.length_as_read = length;
+        self
+    }
+
+    /// Whether the file itself held nothing, which is not the same as the program being empty: a
+    /// file that opens with a NUL byte has no program and plenty of content.
+    pub fn is_empty_as_read(&self) -> bool {
+        self.length_as_read == 0
     }
 
     /// Whether the source opens with a byte order mark. A cop that reads a raw line rather than a

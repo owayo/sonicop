@@ -10,25 +10,107 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 
+/// The names `bare_access_modifier_declaration?` matches, interned so a visibility can be carried
+/// around as a `&'static str` rather than borrowed from the source it was read out of.
+pub(super) fn modifier_name(name: &str) -> Option<&'static str> {
+    match name {
+        "public" => Some("public"),
+        "protected" => Some("protected"),
+        "private" => Some("private"),
+        "module_function" => Some("module_function"),
+        _ => None,
+    }
+}
+
+/// The name of the call `node` spells, when it is a `send` at all.
+///
+/// A call written with `&.` is a `csend` upstream and a call carrying a block is wrapped in a
+/// `block`; neither is a `send`, so neither can be an access modifier. A bare identifier is a
+/// `send` only where the parser would not have built a binding instead.
+pub(super) fn send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
+    match node.kind() {
+        "identifier" if is_send_identifier(node) => Some(context.source.node_text(node)),
+        "call" if node.child_by_field_name("block").is_none() => {
+            let method = node.child_by_field_name("method")?;
+            crate::rules::send_node::is_plain_send(node, context)
+                .then(|| context.source.node_text(method))
+        }
+        _ => None,
+    }
+}
+
 /// The name of the receiverless call `node` spells, when it is one that takes no arguments.
 ///
 /// `bare_access_modifier?` needs both halves of that: a receiver makes the call a message to
 /// something else, and an argument makes it a *non*-bare modifier that governs only what it names.
 pub(super) fn bare_send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
-        "identifier" => Some(context.source.node_text(node)),
-        "call" => {
-            if node.child_by_field_name("receiver").is_some() {
-                return None;
-            }
-            let empty = node
+    let name = send_name(node, context)?;
+    let bare = node.kind() == "identifier"
+        || (node.child_by_field_name("receiver").is_none()
+            && node
                 .child_by_field_name("arguments")
-                .is_none_or(|arguments| arguments.named_child_count() == 0);
-            let no_block = node.child_by_field_name("block").is_none();
-            let method = node.child_by_field_name("method")?;
-            (empty && no_block).then(|| context.source.node_text(method))
+                .is_none_or(|arguments| arguments.named_child_count() == 0));
+    bare.then_some(name)
+}
+
+/// `bare_access_modifier?`: the visibility `node` declares, when it declares one.
+pub(super) fn bare_access_modifier(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+) -> Option<&'static str> {
+    let name = modifier_name(bare_send_name(node, context)?)?;
+    in_macro_scope(node, context).then_some(name)
+}
+
+/// Whether a bare identifier stands where the parser would have built `(send nil :name)` rather
+/// than a name being bound. A binding -- an assignment target, a parameter, the variable of a
+/// `rescue` clause -- is a node of its own upstream and never a call.
+///
+/// What this cannot tell is a read of a local variable, which is an `lvar` upstream and a plain
+/// identifier here as well. Only a file that assigned `private` (or one of its siblings) to a
+/// local could be misread, and the name would have to be one of five.
+fn is_send_identifier(node: Node<'_>) -> bool {
+    let Some(parent) = node.parent() else {
+        return true;
+    };
+    let field = field_name(node, parent);
+    match parent.kind() {
+        "call" => field != Some("method"),
+        "method" | "singleton_method" => field != Some("name"),
+        "assignment" | "operator_assignment" => field != Some("left"),
+        "left_assignment_list"
+        | "rest_assignment"
+        | "destructured_left_assignment"
+        | "method_parameters"
+        | "block_parameters"
+        | "lambda_parameters"
+        | "destructured_parameter"
+        | "exception_variable"
+        | "alias"
+        | "undef"
+        | "setter" => false,
+        "optional_parameter"
+        | "keyword_parameter"
+        | "splat_parameter"
+        | "hash_splat_parameter"
+        | "block_parameter" => field != Some("name"),
+        "for" => field != Some("pattern"),
+        _ => true,
+    }
+}
+
+fn field_name<'tree>(node: Node<'tree>, parent: Node<'tree>) -> Option<&'static str> {
+    let mut cursor = parent.walk();
+    if !cursor.goto_first_child() {
+        return None;
+    }
+    loop {
+        if cursor.node().id() == node.id() {
+            return cursor.field_name();
         }
-        _ => None,
+        if !cursor.goto_next_sibling() {
+            return None;
+        }
     }
 }
 
@@ -67,6 +149,15 @@ pub(super) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>) -> bool 
             | "do_block"
             | "block"
             | "lambda" => current = parent,
+            // A block is a node of its own upstream, wrapped *around* the call it hangs off
+            // rather than held by it, so the scope a block sits in is the one the call sits in.
+            "call"
+                if parent
+                    .child_by_field_name("block")
+                    .is_some_and(|block| block.id() == current.id()) =>
+            {
+                current = parent;
+            }
             // Only the branches of a conditional are in scope; its condition is not.
             "if" | "unless" | "elsif" | "if_modifier" | "unless_modifier" | "conditional" => {
                 if parent
@@ -135,6 +226,19 @@ fn top_level_constant_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> 
 pub(super) fn begin_statements<'tree>(body: Node<'tree>) -> Option<Vec<Node<'tree>>> {
     let statements = statements(body)?;
     (statements.len() >= 2).then_some(statements)
+}
+
+/// The children `each_child_node` yields, mapped onto tree-sitter's tree.
+///
+/// Upstream keeps a call's method name as a symbol rather than a node, so the identifier
+/// tree-sitter puts in the `method` field is dropped: a walk that kept it would read the `private`
+/// of `foo.private` as a modifier standing on its own.
+pub(super) fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let method = node.child_by_field_name("method").map(|method| method.id());
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind() != "comment" && Some(child.id()) != method)
+        .collect()
 }
 
 /// The children `each_child_node` yields for a body node: its statements, unless a `rescue`,

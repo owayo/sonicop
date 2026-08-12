@@ -68,23 +68,32 @@ fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
     // after a shebang and an encoding comment rather than displacing them. `source_range` defaults
     // to a length of one, so the reported range covers the first character instead of collapsing to
     // a caret.
-    let edit = match last_special_comment_line(context) {
+    // The range the correction hangs off is not the reported one: upstream passes `line_range` of
+    // the comment it follows, or the whole buffer when there is none. That range decides whether
+    // the insertion nests inside another cop's correction or wraps it, so it has to be declared.
+    let (edit, anchor) = match last_special_comment_line(context) {
         // Inserted at the end of that line's text, so the newline already there ends the new line.
         Some(line_number) => {
             let end = line_content_end(context, line_number);
-            Edit {
-                start: end,
-                end,
-                replacement: "\n# frozen_string_literal: true".to_owned(),
-                safe: false,
-            }
+            (
+                Edit {
+                    start: end,
+                    end,
+                    replacement: "\n# frozen_string_literal: true".to_owned(),
+                    safe: false,
+                },
+                context.source.line_start(line_number)..end,
+            )
         }
-        None => Edit {
-            start: 0,
-            end: 0,
-            replacement: "# frozen_string_literal: true\n".to_owned(),
-            safe: false,
-        },
+        None => (
+            Edit {
+                start: 0,
+                end: 0,
+                replacement: "# frozen_string_literal: true\n".to_owned(),
+                safe: false,
+            },
+            0..context.source.text().len(),
+        ),
     };
     // `source_range` counts a length of one in characters, so the range has to span the whole first
     // character -- a byte order mark is three bytes and still just one of them.
@@ -97,6 +106,7 @@ fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
     context
         .offense(message, 0..first_character)
         .corrected_by(edit)
+        .corrections_anchored_at(anchor)
 }
 
 /// The shebang and the encoding comment the new comment has to follow. RuboCop only recognizes a

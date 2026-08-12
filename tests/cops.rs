@@ -7810,3 +7810,677 @@ mod global_vars {
         expect_no_offenses(COP, "$LOAD_PATH << '.'\n");
     }
 }
+
+/// `Lint/IneffectiveAccessModifier`。`private` / `protected` は特異メソッドに効かない。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/IneffectiveAccessModifier --format json` の実測。
+mod ineffective_access_modifier {
+    use super::*;
+
+    const COP: &str = "Lint/IneffectiveAccessModifier";
+    const PRIVATE: &str = "`private` (on line 2) does not make singleton methods private. \
+                           Use `private_class_method` or `private` inside a `class << self` \
+                           block instead.";
+
+    #[test]
+    fn a_singleton_method_after_a_bare_private_is_reported_at_the_keyword() {
+        CopCase::new(
+            COP,
+            "class C\n  private\n\n  def self.a\n  end\nend\n",
+            vec![Annotation::new(4, 3, 3, PRIVATE)],
+        )
+        .severity(Severity::Warning)
+        .correctable(false)
+        .run();
+    }
+
+    /// `protected` は `class << self` の中に書けとだけ言う。
+    #[test]
+    fn protected_names_only_the_singleton_class_alternative() {
+        CopCase::new(
+            COP,
+            "module M\n  protected\n  def self.a\n  end\nend\n",
+            vec![Annotation::new(
+                3,
+                3,
+                3,
+                "`protected` (on line 2) does not make singleton methods protected. \
+                 Use `protected` inside a `class << self` block instead.",
+            )],
+        )
+        .run();
+    }
+
+    /// `module_function` は特異メソッドの可視性を変えるとは誰も思わないので対象外。
+    /// `public` は既定の可視性なので、それ以降の定義は正しい可視性を持つ。
+    #[test]
+    fn module_function_and_public_are_not_ineffective() {
+        expect_no_offenses(
+            COP,
+            "class C\n  module_function\n\n  def self.a\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "class C\n  public\n\n  def self.a\n  end\nend\n");
+        // `public` が救うのはその後ろの定義だけで、手前の定義は `private` のまま。
+        CopCase::new(
+            COP,
+            "class C\n  private\n  def self.a; end\n  public\n  def self.b; end\nend\n",
+            vec![Annotation::new(3, 3, 3, PRIVATE)],
+        )
+        .run();
+    }
+
+    /// `private_class_method` に**シンボルで**渡された名前は既に private なので除外される。
+    /// 文字列は `method_name` (Symbol) と一致しないため除外されない。
+    #[test]
+    fn only_a_symbol_passed_to_private_class_method_exempts_the_definition() {
+        expect_no_offenses(
+            COP,
+            "class C\n  private\n  private_class_method :a\n  def self.a\n  end\nend\n",
+        );
+        CopCase::new(
+            COP,
+            "class C\n  private\n  private_class_method 'a'\n  def self.a\n  end\nend\n",
+            vec![Annotation::new(4, 3, 3, PRIVATE)],
+        )
+        .run();
+    }
+
+    /// `begin ... end` の中は同じ修飾子を引き継いで走査するが、`if` の中は見ない。
+    #[test]
+    fn a_kwbegin_is_walked_and_a_conditional_is_not() {
+        CopCase::new(
+            COP,
+            "class C\n  private\n  begin\n    def self.a\n    end\n  end\nend\n",
+            vec![Annotation::new(4, 5, 3, PRIVATE)],
+        )
+        .run();
+        expect_no_offenses(
+            COP,
+            "class C\n  private\n  if x\n    def self.a\n    end\n  end\nend\n",
+        );
+    }
+
+    /// 本体が 1 文だけのクラスは `begin` にならないので走査されない。
+    /// `class << self` の中では修飾子が効くので、そもそも対象外。
+    #[test]
+    fn a_single_statement_body_and_a_singleton_class_are_left_alone() {
+        expect_no_offenses(COP, "class C\n  def self.a; end\nend\n");
+        expect_no_offenses(
+            COP,
+            "class C\n  class << self\n    private\n    def a; end\n  end\nend\n",
+        );
+    }
+}
+
+/// `Lint/UselessAccessModifier`。可視性の状態機械を本家の
+/// `check_child_nodes` / `check_new_visibility` どおりに追う。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/UselessAccessModifier --format json` の実測。
+mod useless_access_modifier {
+    use super::*;
+
+    const COP: &str = "Lint/UselessAccessModifier";
+
+    #[test]
+    fn a_modifier_repeating_the_current_visibility_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              public
+              ^^^^^^ Useless `public` access modifier.
+              def a; end
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private
+              def a; end
+              private
+              ^^^^^^^ Useless `private` access modifier.
+              def b; end
+            end
+            "#,
+        );
+    }
+
+    /// 何も定義しないまま次の修飾子が来たら、**前の**修飾子が報告される。
+    /// 走査の最後に残った修飾子も同じ扱い。
+    #[test]
+    fn the_modifier_left_with_nothing_to_govern_is_the_one_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              protected
+              ^^^^^^^^^ Useless `protected` access modifier.
+              private
+              def a; end
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private
+              ^^^^^^^ Useless `private` access modifier.
+            end
+            "#,
+        );
+    }
+
+    /// 特異メソッドは可視性を受け取らないので、`private` は依然として宙に浮く。
+    /// `define_method` と `attr_*` はメソッドを作るので浮かない。
+    #[test]
+    fn what_counts_as_defining_a_method() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private
+              ^^^^^^^ Useless `private` access modifier.
+              def self.a; end
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "class Foo\n  private\n  define_method(:a) {}\nend\n");
+        expect_no_offenses(COP, "class Foo\n  private\n  attr_reader :a\nend\n");
+        expect_no_offenses(
+            COP,
+            "class Foo\n  private\n  if x\n    def a; end\n  end\nend\n",
+        );
+    }
+
+    /// トップレベルの修飾子は何も変えないので、必ず報告される。ただし
+    /// `on_begin` は根の `begin` にしか反応しないので、文が 1 つだけのファイルは対象外。
+    #[test]
+    fn a_top_level_modifier_is_always_useless() {
+        expect_offense(
+            COP,
+            r#"
+            private
+            ^^^^^^^ Useless `private` access modifier.
+
+            def a; end
+            "#,
+        );
+        expect_no_offenses(COP, "private\n");
+    }
+
+    /// `class_eval` / `instance_eval` / クラスコンストラクタのブロックは新しい可視性の
+    /// スコープを開く。素のブロックは開かないので、外側の状態がそのまま続く。
+    #[test]
+    fn only_some_blocks_open_a_new_scope() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              class_eval do
+                private
+                ^^^^^^^ Useless `private` access modifier.
+              end
+              def a; end
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              ::Class.new do
+                private
+                ^^^^^^^ Useless `private` access modifier.
+              end
+              def a; end
+            end
+            "#,
+        );
+        expect_no_offenses(
+            COP,
+            "class Foo\n  [1].each do\n    private\n  end\n  def a; end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class Foo\n  Foo::Class.new do\n    private\n  end\n  def a; end\nend\n",
+        );
+    }
+
+    /// 引数付きの `private_class_method` は上流で `nil` を返し、可視性と保留中の修飾子を
+    /// どちらも捨てる。引数無しならそれ自体が報告される。
+    #[test]
+    fn private_class_method_resets_the_state_when_it_has_arguments() {
+        expect_no_offenses(
+            COP,
+            "class Foo\n  private\n  private_class_method :a\n  private\n  def b; end\nend\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private_class_method
+              ^^^^^^^^^^^^^^^^^^^^ Useless `private_class_method` access modifier.
+              def a; end
+            end
+            "#,
+        );
+        // 本体が 1 文のクラスは `bare_access_modifier?` だけを見るので、
+        // `private_class_method` は素通りする。
+        expect_no_offenses(COP, "class Foo\n  private_class_method\nend\n");
+    }
+
+    /// autocorrect は修飾子が乗っている行を丸ごと、行末の改行ごと消す。
+    #[test]
+    fn the_correction_removes_the_whole_line() {
+        expect_correction(
+            COP,
+            "class Foo\n  public\n  def a; end\nend\n",
+            "class Foo\n  def a; end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class G\n  private\n  def a; end\n  x; private\nend\n",
+            "class G\n  private\n  def a; end\nend\n",
+        );
+    }
+}
+
+/// `Lint/UselessMethodDefinition`。`super` へ丸投げするだけの定義を報告する。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/UselessMethodDefinition --format json` の実測。
+mod useless_method_definition {
+    use super::*;
+
+    const COP: &str = "Lint/UselessMethodDefinition";
+    const MSG: &str = "Useless method definition detected.";
+
+    #[test]
+    fn a_body_that_is_only_super_is_reported_over_the_whole_definition() {
+        CopCase::new(
+            COP,
+            "class A\n  def a\n    super\n  end\nend\n",
+            vec![Annotation::new(2, 3, 5, MSG)],
+        )
+        .lengths(&[21])
+        .severity(Severity::Warning)
+        .correctable(true)
+        .run();
+    }
+
+    /// 引数付きの `super` は、渡した引数の**ソース**が仮引数のそれと一致したときだけ委譲。
+    #[test]
+    fn arguments_are_compared_by_source() {
+        CopCase::new(
+            COP,
+            "class A\n  def a(x)\n    super(x)\n  end\nend\n",
+            vec![Annotation::new(2, 3, 8, MSG)],
+        )
+        .lengths(&[27])
+        .run();
+        expect_no_offenses(COP, "class A\n  def a(x)\n    super(y)\n  end\nend\n");
+        // `x:` と `x: x` は違うソースなので委譲ではない。
+        expect_no_offenses(COP, "class A\n  def a(x:)\n    super(x: x)\n  end\nend\n");
+    }
+
+    /// `*args` / `x = 1` / `x: 1` を取るメソッドは、親と同じ呼び方ができるとは限らない。
+    #[test]
+    fn rest_and_optional_parameters_are_exempt() {
+        expect_no_offenses(COP, "class A\n  def a(*x)\n    super\n  end\nend\n");
+        expect_no_offenses(COP, "class A\n  def a(x = 1)\n    super\n  end\nend\n");
+        expect_no_offenses(COP, "class A\n  def a(x: 1)\n    super\n  end\nend\n");
+        // `x:` は `kwarg` であって `kwoptarg` ではない。
+        CopCase::new(
+            COP,
+            "class A\n  def a(x:)\n    super\n  end\nend\n",
+            vec![Annotation::new(2, 3, 9, MSG)],
+        )
+        .lengths(&[25])
+        .run();
+    }
+
+    /// `super` にブロックが付くと上流では `block` ノードになり、委譲ではなくなる。
+    /// `super.foo` も同様に `send` の受け手でしかない。
+    #[test]
+    fn super_with_a_block_or_a_receiver_is_not_a_delegation() {
+        expect_no_offenses(
+            COP,
+            "class A\n  def a\n    super do\n      1\n    end\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "class A\n  def a\n    super.foo\n  end\nend\n");
+        expect_no_offenses(COP, "class A\n  def a\n    super\n    other\n  end\nend\n");
+    }
+
+    /// マクロの引数として書かれた定義はそのマクロの領分。アクセス修飾子だけは例外で、
+    /// 報告は `def` を指し、修正は修飾子ごと消す。
+    #[test]
+    fn a_definition_handed_to_a_macro_is_left_alone_unless_the_macro_is_an_access_modifier() {
+        expect_no_offenses(COP, "class A\n  memoize def a\n    super\n  end\nend\n");
+        CopCase::new(
+            COP,
+            "class A\n  private def a\n    super\n  end\nend\n",
+            vec![Annotation::new(2, 11, 5, MSG)],
+        )
+        .lengths(&[21])
+        .run();
+        expect_correction(
+            COP,
+            "class A\n  private def a\n    super\n  end\nend\n",
+            "class A\n  \nend\n",
+        );
+    }
+
+    /// `super()` は引数 0 個の `super` なので、引数を取らない定義とは一致する。
+    #[test]
+    fn an_explicitly_empty_super_matches_a_definition_without_parameters() {
+        CopCase::new(
+            COP,
+            "class A\n  def a\n    super()\n  end\nend\n",
+            vec![Annotation::new(2, 3, 5, MSG)],
+        )
+        .lengths(&[23])
+        .run();
+    }
+}
+
+/// `Lint/BinaryOperatorWithIdenticalOperands`。左右が**同じノード**かを見る。
+/// 本家は `Node#==` で構造比較するので、綴りの違いは差にならない。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod binary_operator_with_identical_operands {
+    use super::*;
+
+    const COP: &str = "Lint/BinaryOperatorWithIdenticalOperands";
+
+    #[test]
+    fn comparison_operators_with_the_same_operands_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            x = a == a
+                ^^^^^^ Binary operator `==` has identical operands.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = a.b <=> a.b
+                ^^^^^^^^^^^ Binary operator `<=>` has identical operands.
+            "#,
+        );
+    }
+
+    /// `&&` / `||` / `and` / `or` は `on_and` / `on_or` の担当。演算子はソースの綴りで出る。
+    #[test]
+    fn logical_operators_report_the_spelling_that_was_used() {
+        expect_offense(
+            COP,
+            r#"
+            x = (a and a)
+                 ^^^^^^^ Binary operator `and` has identical operands.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = a && a
+                ^^^^^^ Binary operator `&&` has identical operands.
+            "#,
+        );
+        // `a or a` は `(x = a) or a` と解釈されるので、左右は同じではない。
+        expect_no_offenses(COP, "x = a or a\n");
+    }
+
+    /// 算術演算子は対象外。左右が違えばもちろん報告しない。
+    #[test]
+    fn arithmetic_and_differing_operands_are_left_alone() {
+        expect_no_offenses(COP, "x = a + a\n");
+        expect_no_offenses(COP, "x = a == b\n");
+        expect_no_offenses(COP, "x = a&.b == a.b\n");
+    }
+
+    /// リテラルは本家のパーサが解決した**値**で比較される。綴りが違っても同じ値なら同じノード。
+    #[test]
+    fn literals_are_compared_by_the_value_the_parser_resolved() {
+        for source in [
+            "x = (?a == \"a\")\n",
+            "x = ('a' == \"a\")\n",
+            "x = (0x10 == 16)\n",
+            "x = (:ruby == :\"ruby\")\n",
+            "x = (-0.0 <=> 0.0)\n",
+            "x = (?\\C-a == \"\\1\")\n",
+        ] {
+            CopCase::new(
+                COP,
+                source,
+                vec![Annotation::new(
+                    1,
+                    6,
+                    source.trim_end().len() - 6,
+                    format!(
+                        "Binary operator `{}` has identical operands.",
+                        if source.contains("<=>") { "<=>" } else { "==" }
+                    ),
+                )],
+            )
+            .run();
+        }
+        // `1` と `1.0` は別のリテラル。
+        expect_no_offenses(COP, "x = (1 == 1.0)\n");
+    }
+
+    /// ドット付きの演算子呼び出しも `binary_operation?` を満たす。
+    #[test]
+    fn the_dotted_spelling_of_an_operator_is_still_a_binary_operation() {
+        expect_offense(
+            COP,
+            r#"
+            x = obj.<=>(obj)
+                ^^^^^^^^^^^^ Binary operator `<=>` has identical operands.
+            "#,
+        );
+        // 演算子でないメソッドは対象外。`scope.or(scope)` は比較ではない。
+        expect_no_offenses(COP, "x = obj.or(obj)\n");
+    }
+}
+
+/// `Lint/EmptyFile` / `Lint/EmptyWhen`。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod empty_file_and_when {
+    use super::*;
+
+    const EMPTY_FILE: &str = "Lint/EmptyFile";
+    const EMPTY_WHEN: &str = "Lint/EmptyWhen";
+    const WHEN_MSG: &str = "Avoid `when` branches without a body.";
+
+    /// `add_global_offense` はファイル先頭の長さ 0 のレンジ。
+    #[test]
+    fn only_a_file_with_nothing_in_it_is_reported() {
+        CopCase::new(
+            EMPTY_FILE,
+            "",
+            vec![Annotation::new(1, 1, 0, "Empty file detected.")],
+        )
+        .lengths(&[0])
+        .severity(Severity::Warning)
+        .correctable(false)
+        .run();
+        // `AllowComments` は既定で真なので、コメントだけのファイルは対象外。
+        expect_no_offenses(EMPTY_FILE, "# just a comment\n");
+        expect_no_offenses(EMPTY_FILE, "\n\n");
+    }
+
+    /// `when` のレンジは最後の条件で終わる。`;` や `then` は本体の側に属する。
+    #[test]
+    fn the_reported_range_stops_at_the_last_condition() {
+        CopCase::new(
+            EMPTY_WHEN,
+            "case a\nwhen 1 then\nend\n",
+            vec![Annotation::new(2, 1, 6, WHEN_MSG)],
+        )
+        .severity(Severity::Warning)
+        .correctable(false)
+        .run();
+        CopCase::new(
+            EMPTY_WHEN,
+            "case c\nwhen foo, bar;\nend\n",
+            vec![Annotation::new(2, 1, 13, WHEN_MSG)],
+        )
+        .run();
+    }
+
+    /// `AllowComments` が既定で真なので、コメントのある枝は見逃される。枝の範囲は
+    /// 次の枝が始まる行の**手前**まで。
+    #[test]
+    fn a_branch_that_explains_itself_is_allowed() {
+        expect_no_offenses(
+            EMPTY_WHEN,
+            "case y\nwhen 2 then\n  # why\nwhen 3\n  z\nend\n",
+        );
+        expect_no_offenses(EMPTY_WHEN, "case w\nwhen 4\n  # why\nend\n");
+        // 次の枝の行にあるコメントはその枝のもの。
+        CopCase::new(
+            EMPTY_WHEN,
+            "case y\nwhen 2\nwhen 3 # why\n  z\nend\n",
+            vec![Annotation::new(2, 1, 6, WHEN_MSG)],
+        )
+        .run();
+    }
+}
+
+/// `Lint/InheritException`。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod inherit_exception {
+    use super::*;
+
+    const COP: &str = "Lint/InheritException";
+    const MSG: &str = "Inherit from `StandardError` instead of `Exception`.";
+
+    #[test]
+    fn a_superclass_or_a_class_new_argument_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class C < Exception; end
+                      ^^^^^^^^^ Inherit from `StandardError` instead of `Exception`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            E = Class.new(Exception)
+                          ^^^^^^^^^ Inherit from `StandardError` instead of `Exception`.
+            "#,
+        );
+        // `::` を付けても同じ定数。
+        CopCase::new(
+            COP,
+            "class D < ::Exception; end\n",
+            vec![Annotation::new(1, 11, 11, MSG)],
+        )
+        .run();
+    }
+
+    /// 名前空間の付いた `Exception` は別の定数。`Class` 以外のコンストラクタも対象外。
+    #[test]
+    fn a_namespaced_constant_is_a_different_class() {
+        expect_no_offenses(COP, "class C < Foo::Exception; end\n");
+        expect_no_offenses(COP, "class C < StandardError; end\n");
+        expect_no_offenses(COP, "E = Foo::Class.new(Exception)\n");
+        expect_no_offenses(COP, "E = Class.new(Exception, 1)\n");
+    }
+
+    /// 同じ本体で先に `Exception` が定義されていれば、修飾無しの `Exception` はそれを指す。
+    /// `::` を書いた場合はトップレベルの `Exception` なので報告される。
+    #[test]
+    fn a_locally_defined_exception_shadows_the_built_in_one() {
+        expect_no_offenses(COP, "class Exception; end\nclass C < Exception; end\n");
+        CopCase::new(
+            COP,
+            "class Exception; end\nclass C < ::Exception; end\n",
+            vec![Annotation::new(2, 11, 11, MSG)],
+        )
+        .run();
+    }
+
+    /// autocorrect は定数を置き換える。`EnforcedStyle: runtime_error` なら `RuntimeError`。
+    #[test]
+    fn the_correction_replaces_the_constant() {
+        expect_correction(
+            COP,
+            "class C < Exception; end\n",
+            "class C < StandardError; end\n",
+        );
+        CopCase::new(COP, "class C < Exception; end\n", Vec::new())
+            .without_offense_check()
+            .config("Lint/InheritException:\n  EnforcedStyle: runtime_error\n")
+            .corrected("class C < RuntimeError; end\n")
+            .run();
+    }
+}
+
+/// `Lint/RaiseException`。`raise` / `fail` が `Exception` を投げるのを禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod raise_exception {
+    use super::*;
+
+    const COP: &str = "Lint/RaiseException";
+    const MSG: &str = "Use `StandardError` over `Exception`.";
+
+    #[test]
+    fn the_class_itself_and_a_new_instance_are_both_reported() {
+        expect_offense(
+            COP,
+            r#"
+            raise Exception, 'boom'
+                  ^^^^^^^^^ Use `StandardError` over `Exception`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            fail Exception.new('boom')
+                 ^^^^^^^^^ Use `StandardError` over `Exception`.
+            "#,
+        );
+        // `Exception.new` を渡す形は引数 1 個のときだけ。
+        expect_no_offenses(COP, "raise Exception.new('a'), 'b'\n");
+        expect_no_offenses(COP, "raise Foo::Exception\n");
+        expect_no_offenses(COP, "obj.raise Exception\n");
+    }
+
+    /// `AllowedImplicitNamespaces` (既定は `Gem`) の中では、修飾無しの `Exception` は
+    /// そのモジュールのものを指しうるので見逃す。`::` を書けば別。
+    #[test]
+    fn an_allowed_namespace_hides_the_unqualified_name() {
+        expect_no_offenses(COP, "module Gem\n  raise Exception\nend\n");
+        expect_no_offenses(
+            COP,
+            "module Gem\n  module Inner\n    raise Exception\n  end\nend\n",
+        );
+        CopCase::new(
+            COP,
+            "module Gem\n  raise ::Exception\nend\n",
+            vec![Annotation::new(2, 9, 11, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "module Other\n  raise Exception\nend\n",
+            vec![Annotation::new(2, 9, 9, MSG)],
+        )
+        .run();
+    }
+
+    /// autocorrect は `::` の有無を保つ。
+    #[test]
+    fn the_correction_keeps_the_leading_colons() {
+        expect_correction(COP, "raise Exception\n", "raise StandardError\n");
+        expect_correction(COP, "raise ::Exception\n", "raise ::StandardError\n");
+    }
+}

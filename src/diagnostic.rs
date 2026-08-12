@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops::Range;
 
 use serde::Serialize;
 
@@ -93,6 +94,16 @@ pub struct Offense {
     /// output only while nothing else wants to correct inside it, which stops being true as the
     /// registry fills out.
     pub corrections: Vec<Edit>,
+    /// The range this offense's insertions hang off, when it is not the reported range.
+    ///
+    /// RuboCop's `insert_before` / `insert_after` are `wrap` on a range the cop chooses, and that
+    /// range -- not the offset the text lands at -- is what decides where the action sits in the
+    /// correction tree. A cop usually passes the range it reported, which is what
+    /// [`Offense::start`] and [`Offense::end`] already say; this records the cases where it does
+    /// not. `Style/FrozenStringLiteralComment` is one: it reports the first character but calls
+    /// `insert_before(processed_source.buffer.source_range, ...)`, so its insertion is the parent
+    /// of everything else corrected in the file rather than a child of whatever covers the head.
+    pub correction_anchor: Option<(usize, usize)>,
     pub snapshot: Option<OffenseSnapshot>,
 }
 
@@ -119,12 +130,20 @@ impl Offense {
             suppressed: false,
             justification: None,
             corrections: Vec::new(),
+            correction_anchor: None,
             snapshot: None,
         }
     }
 
     pub fn corrected_by(self, edit: Edit) -> Self {
         self.corrected_by_all([edit])
+    }
+
+    /// Declare the range the cop handed its corrector, for the cops whose `insert_before` /
+    /// `insert_after` range is not the range they reported. See [`Offense::correction_anchor`].
+    pub fn corrections_anchored_at(mut self, range: Range<usize>) -> Self {
+        self.correction_anchor = Some((range.start, range.end.max(range.start)));
+        self
     }
 
     /// For a cop whose single offense rewrites more than one place at once.
