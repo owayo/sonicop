@@ -4,10 +4,7 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
-use super::support::{
-    GroupedArgument, alignment_corrections, begins_its_line, display_column, grouped_arguments,
-    holds_block_comment, string_interiors,
-};
+use super::support::{AlignmentPass, GroupedArgument, display_column, grouped_arguments};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -36,9 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ALIGN_PARAMS_MSG
     };
 
-    // `@current_offenses` is the cop's whole list for the file, so an item nested inside a span
-    // already being realigned is reported without a correction of its own.
-    let mut reported: Vec<Range<usize>> = Vec::new();
+    let mut pass = AlignmentPass::new();
     for node in context.nodes_of_any(&["call", "element_reference"]) {
         if is_super(node) || is_index_assignment(context, node) {
             continue;
@@ -52,7 +47,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let base = base_column(context, node, &items, fixed, width);
-        check_alignment(context, &items, base, message, &mut reported, offenses);
+        for (item, delta) in AlignmentPass::misaligned(context, &items, base) {
+            pass.register(
+                context,
+                item.clone(),
+                item,
+                delta,
+                |_| message.to_owned(),
+                offenses,
+            );
+        }
     }
 }
 
@@ -152,46 +156,4 @@ fn base_column(
     let text = context.source.line(line);
     let indentation = text.len() - text.trim_start().len();
     indentation as i64 + width
-}
-
-fn check_alignment(
-    context: &RuleContext<'_>,
-    items: &[Range<usize>],
-    base: i64,
-    message: &str,
-    reported: &mut Vec<Range<usize>>,
-    offenses: &mut Vec<Offense>,
-) {
-    let mut previous_line = 0usize;
-    for item in items {
-        let line = context.source.line_column(item.start).0;
-        if line > previous_line && begins_its_line(context, item.start) {
-            let delta = base - display_column(context, item.start);
-            if delta != 0 {
-                report(context, item, delta, message, reported, offenses);
-            }
-        }
-        previous_line = line;
-    }
-}
-
-fn report(
-    context: &RuleContext<'_>,
-    item: &Range<usize>,
-    delta: i64,
-    message: &str,
-    reported: &mut Vec<Range<usize>>,
-    offenses: &mut Vec<Offense>,
-) {
-    let nested = reported
-        .iter()
-        .any(|outer| item.start >= outer.start && item.end <= outer.end);
-    let mut offense = context.offense(message, item.clone());
-    if !nested && !holds_block_comment(context, item) {
-        let taboo = string_interiors(context, item);
-        offense =
-            offense.corrected_by_all(alignment_corrections(context, item.clone(), delta, &taboo));
-    }
-    reported.push(item.clone());
-    offenses.push(offense);
 }

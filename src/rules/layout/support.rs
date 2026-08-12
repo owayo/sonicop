@@ -1,5 +1,6 @@
 //! Scanning and node grouping shared by more than one Layout cop.
 
+use std::collections::VecDeque;
 use std::ops::Range;
 
 use tree_sitter::Node;
@@ -279,6 +280,150 @@ pub(super) fn grouped_arguments<'tree>(call: Node<'tree>) -> Vec<GroupedArgument
         }
     }
     arguments
+}
+
+/// The `Alignment` mixin: items measured against a base column, and the offenses the ones that
+/// miss it turn into.
+///
+/// `register_offense` consults the cop's own offense list, so one instance stands for one cop's
+/// pass over one file.
+pub(super) struct AlignmentPass {
+    /// `@current_offenses`: the ranges this cop has already reported for the file.
+    reported: Vec<Range<usize>>,
+}
+
+impl AlignmentPass {
+    pub(super) fn new() -> Self {
+        Self {
+            reported: Vec::new(),
+        }
+    }
+
+    /// `Alignment#each_bad_alignment`: the items that begin a line of their own at a column other
+    /// than `base`, each with the delta that would put it right. An item sharing its line with the
+    /// item before it is left to whichever cop owns line breaks.
+    pub(super) fn misaligned(
+        context: &RuleContext<'_>,
+        items: &[Range<usize>],
+        base: i64,
+    ) -> Vec<(Range<usize>, i64)> {
+        let mut previous_line = 0;
+        let mut found = Vec::new();
+        for item in items {
+            let line = context.source.line_column(item.start).0;
+            if line > previous_line && begins_its_line(context, item.start) {
+                let delta = base - display_column(context, item.start);
+                if delta != 0 {
+                    found.push((item.clone(), delta));
+                }
+            }
+            previous_line = line;
+        }
+        found
+    }
+
+    /// `Alignment#register_offense`: an item lying inside a span this cop is already realigning is
+    /// reported without a correction of its own, since two rewrites of one area by the same cop
+    /// cannot be composed. The next pass finds the offense again and corrects it then.
+    ///
+    /// `correct` is the range handed to `AlignmentCorrector`, which is the reported item for every
+    /// cop but `Layout/FirstArgumentIndentation`.
+    pub(super) fn register(
+        &mut self,
+        context: &RuleContext<'_>,
+        item: Range<usize>,
+        correct: Range<usize>,
+        delta: i64,
+        message: impl FnOnce(bool) -> String,
+        offenses: &mut Vec<Offense>,
+    ) {
+        let nested = self
+            .reported
+            .iter()
+            .any(|outer| item.start >= outer.start && item.end <= outer.end);
+        let mut offense = context.offense(message(nested), item.clone());
+        if !nested && !holds_block_comment(context, &correct) {
+            let taboo = string_interiors(context, &correct);
+            offense =
+                offense.corrected_by_all(alignment_corrections(context, correct, delta, &taboo));
+        }
+        self.reported.push(item);
+        offenses.push(offense);
+    }
+}
+
+/// The parameters of a method definition, in the shape upstream's parser gives them.
+///
+/// The grammar reads `def m(a = nil, b = nil)` as one `optional_parameter` whose default is the
+/// multiple assignment `nil, b = nil`, because `nil` is spelled the same as an assignment target
+/// there. Upstream has two `optarg`s, so the run has to be unfolded before a cop can say where each
+/// parameter begins.
+pub(super) fn definition_parameters(definition: Node<'_>) -> Vec<Range<usize>> {
+    let Some(list) = definition.child_by_field_name("parameters") else {
+        return Vec::new();
+    };
+    let mut cursor = list.walk();
+    let mut found = Vec::new();
+    for child in list.named_children(&mut cursor) {
+        if matches!(child.kind(), "comment" | "heredoc_body") {
+            continue;
+        }
+        match unfolded_defaults(child) {
+            Some(parameters) => found.extend(parameters),
+            None => found.push(child.byte_range()),
+        }
+    }
+    found
+}
+
+/// The parameters one `optional_parameter` node really stands for, or `None` when its default is
+/// the expression it looks like.
+///
+/// Each `left_assignment_list` in the folded chain holds the previous parameter's default followed
+/// by the name the fold swallowed, so unwinding it recovers the pairs the source spells out.
+fn unfolded_defaults(parameter: Node<'_>) -> Option<Vec<Range<usize>>> {
+    if parameter.kind() != "optional_parameter" {
+        return None;
+    }
+    let name = parameter.child_by_field_name("name")?;
+    let mut current = parameter.child_by_field_name("value")?;
+    folded_targets(current)?;
+
+    let mut pending: VecDeque<Node<'_>> = VecDeque::from([name]);
+    let mut found: Vec<Range<usize>> = Vec::new();
+    loop {
+        let Some(targets) = folded_targets(current) else {
+            if let Some(name) = pending.pop_front() {
+                found.push(name.start_byte()..current.end_byte());
+            }
+            return Some(found);
+        };
+        let Some((default, names)) = targets.split_first() else {
+            return Some(found);
+        };
+        if let Some(name) = pending.pop_front() {
+            found.push(name.start_byte()..default.end_byte());
+        }
+        pending.extend(names.iter().copied());
+        let Some(right) = current.child_by_field_name("right") else {
+            return Some(found);
+        };
+        current = right;
+    }
+}
+
+/// The targets of the multiple assignment a folded run of defaults was read as. `def m(x = y = 1)`
+/// assigns for real and has a single target, which is what tells the two apart.
+fn folded_targets<'tree>(value: Node<'tree>) -> Option<Vec<Node<'tree>>> {
+    if value.kind() != "assignment" {
+        return None;
+    }
+    let left = value.child_by_field_name("left")?;
+    if left.kind() != "left_assignment_list" {
+        return None;
+    }
+    let mut cursor = left.walk();
+    Some(left.named_children(&mut cursor).collect())
 }
 
 /// `Alignment#display_column`: how far into its line a range starts, measured the way a terminal
