@@ -46,7 +46,9 @@ department_rules! {
     multiline_block_layout => ("MultilineBlockLayout", Convention),
     multiline_hash_brace_layout => ("MultilineHashBraceLayout", Convention),
     multiline_method_call_brace_layout => ("MultilineMethodCallBraceLayout", Convention),
+    multiline_method_call_indentation => ("MultilineMethodCallIndentation", Convention),
     multiline_method_definition_brace_layout => ("MultilineMethodDefinitionBraceLayout", Convention),
+    multiline_operation_indentation => ("MultilineOperationIndentation", Convention),
     space_after_colon => ("SpaceAfterColon", Convention),
     space_after_comma => ("SpaceAfterComma", Convention),
     space_after_method_name => ("SpaceAfterMethodName", Convention),
@@ -77,4 +79,5 @@ department_rules! {
 
 mod empty_lines_around_body;
 mod multiline_brace;
+mod multiline_expression;
 mod support;

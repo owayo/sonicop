@@ -572,6 +572,30 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 1, 3, 1)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/MultilineMethodCallIndentation",
+            r#"
+            Thing.a
+               .b
+               ^^ Align `.b` with `.a` on line 1.
+            "#,
+        )
+        .id("layout_multiline_method_call_indentation")
+        .locations(&[(2, 4, 2, 5)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineOperationIndentation",
+            r#"
+            if a +
+                b
+                ^ Align the operands of a condition in an `if` statement spanning multiple lines.
+              c
+            end
+            "#,
+        )
+        .id("layout_multiline_operation_indentation")
+        .locations(&[(2, 5, 2, 5)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceBeforeSemicolon",
             r#"
             foo ; bar

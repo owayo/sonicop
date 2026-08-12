@@ -13270,3 +13270,136 @@ mod layout_spacing_and_alignment {
         expect_no_offenses(COP, "def foo(a,\n  b\n)\nend\n");
     }
 }
+
+/// `Layout/MultilineMethodCallIndentation` と `Layout/MultilineOperationIndentation`。
+/// 期待値は本家 1.89.0 の `--only <cop> --format json` / `-A` 実測。
+mod layout_multiline_indentation {
+    use super::*;
+
+    const CALL: &str = "Layout/MultilineMethodCallIndentation";
+    const OPERATION: &str = "Layout/MultilineOperationIndentation";
+
+    /// 既定の `aligned` は連鎖の先頭のドットに揃える。先頭行にドットが無ければ
+    /// レシーバの開始位置が基準になる。
+    #[test]
+    fn aligned_style_measures_against_the_first_dot_of_the_chain() {
+        expect_offense(
+            CALL,
+            r#"
+            Thing.a
+               .b
+               ^^ Align `.b` with `.a` on line 1.
+              .c
+              ^^ Align `.c` with `.a` on line 1.
+            "#,
+        );
+        expect_offense(
+            CALL,
+            r#"
+            x = Thing
+               .a
+               ^^ Align `.a` with `Thing` on line 1.
+            "#,
+        );
+        expect_no_offenses(CALL, "Thing.a\n     .b\n     .c\n");
+    }
+
+    /// `BlockNode#single_line?` はブロック自身の区切り記号で判定するので、
+    /// `Thing\n  .a { |x| x }` は「1 行のブロック」であり、連鎖の基準は `.a` になる。
+    #[test]
+    fn a_single_line_block_in_the_chain_keeps_its_own_dot_as_the_base() {
+        expect_offense(
+            CALL,
+            r#"
+            Thing
+              .a { |x| x }
+                 .b
+                 ^^ Align `.b` with `.a` on line 2.
+            "#,
+        );
+    }
+
+    /// ハッシュのペアの中では値の開始位置が基準。
+    #[test]
+    fn inside_a_hash_pair_the_value_is_the_base() {
+        expect_offense(
+            CALL,
+            r#"
+            h = { k: value
+              .call }
+              ^^^^^ Align `.call` with `value` on line 1.
+            "#,
+        );
+    }
+
+    /// 引数リストの括弧の中は `not_for_this_cop?` で対象外。
+    #[test]
+    fn calls_inside_an_argument_list_are_not_this_cops_business() {
+        expect_no_offenses(CALL, "foo(bar\n     .baz)\n");
+        expect_no_offenses(CALL, "x = \"#\u{7b}a\n  .b}\"\n");
+    }
+
+    /// ブロック付きの呼び出しは、自分の行とブロックの本体・`end` の行だけを動かす。
+    #[test]
+    fn a_call_with_a_block_moves_its_selector_line_and_the_block() {
+        expect_correction(
+            CALL,
+            "obj\n.foo do |x|\n  x\n  end\n",
+            "obj\n  .foo do |x|\n    x\n    end\n",
+        );
+        expect_correction(CALL, "Thing.a\n   .b\n", "Thing.a\n     .b\n");
+    }
+
+    /// `aligned` は `if` / `while` の条件と、行頭から始まる代入の右辺では
+    /// 演算子を揃え、それ以外では字下げを見る。
+    #[test]
+    fn operands_are_aligned_in_conditions_and_indented_elsewhere() {
+        expect_offense(
+            OPERATION,
+            r#"
+            if a +
+                b
+                ^ Align the operands of a condition in an `if` statement spanning multiple lines.
+              c
+            end
+            "#,
+        );
+        expect_offense(
+            OPERATION,
+            r#"
+            def m
+              a &&
+              b
+              ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+            end
+            "#,
+        );
+        expect_offense(
+            OPERATION,
+            r#"
+            x = a &&
+              b
+              ^ Align the operands of an expression in an assignment spanning multiple lines.
+            "#,
+        );
+        expect_no_offenses(OPERATION, "if a +\n   b\n  c\nend\n");
+    }
+
+    /// ドット付きの呼び出しは `relevant_node?` で除かれるので、こちらの cop は
+    /// 触らない。単項演算子も同じ。
+    #[test]
+    fn dotted_calls_and_unary_operators_belong_to_the_other_cop() {
+        expect_no_offenses(OPERATION, "Thing.a\n   .b\n");
+        expect_no_offenses(OPERATION, "x = !foo\n");
+    }
+
+    #[test]
+    fn operation_correction_moves_the_right_operand() {
+        expect_correction(
+            OPERATION,
+            "if a +\n    b\n  c\nend\n",
+            "if a +\n   b\n  c\nend\n",
+        );
+        expect_correction(OPERATION, "x = a &&\n  b\n", "x = a &&\n    b\n");
+    }
+}
