@@ -830,6 +830,33 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_leading_empty_lines")
         .correctable(true),
+        CopCase::new(
+            "Layout/AssignmentIndentation",
+            "value =\nif foo\n  1\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                6,
+                "Indent the first line of the right-hand-side of a multi-line assignment.",
+            )],
+        )
+        .id("layout_assignment_indentation")
+        .locations(&[(2, 1, 4, 3)])
+        .lengths(&[14])
+        .correctable(true),
+        CopCase::new(
+            "Layout/ConditionPosition",
+            "if\n  x\n  puts 1\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                3,
+                1,
+                "Place the condition on the same line as `if`.",
+            )],
+        )
+        .id("layout_condition_position")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",

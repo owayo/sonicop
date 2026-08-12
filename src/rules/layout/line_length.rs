@@ -88,7 +88,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             line_start + byte_offset(line, start_column)..line_start + byte_offset(line, reported),
         );
         offenses.push(match break_edits.get(&line_number) {
-            Some(edit) => offense.corrected_by(edit.clone()),
+            Some((edit, anchor)) => offense
+                .corrected_by(edit.clone())
+                .corrections_anchored_at(anchor.clone()),
             None => offense,
         });
     }
@@ -432,7 +434,10 @@ fn visit_order(node: Node<'_>, order: &HashMap<usize, u32>) -> (u32, u8) {
 /// RuboCop builds one table for the whole file, and the order it is filled in decides the ties:
 /// semicolons first, then a single walk of the AST in which a single-line block overwrites whatever
 /// its line already held while every other node only fills a line that is still empty.
-fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edit> {
+fn line_break_edits(
+    context: &RuleContext<'_>,
+    max: usize,
+) -> HashMap<usize, (Edit, std::ops::Range<usize>)> {
     let breaker = Breaker {
         context,
         max,
@@ -442,12 +447,15 @@ fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edi
             .map(|node| node.byte_range())
             .collect(),
     };
-    let mut positions: HashMap<usize, usize> = HashMap::new();
+    // The range each break hangs off, which is not the range the offense is reported on: upstream
+    // calls `insert_before(breakable_range, ...)` with the element it would break in front of, and
+    // that range is what orders this insertion against another cop's at the same offset.
+    let mut positions: HashMap<usize, std::ops::Range<usize>> = HashMap::new();
 
     // Reversed, so that the first semicolon on a line is the one whose position survives.
     if context.source.text().contains(';') {
         for offset in semicolon_break_positions(context).into_iter().rev() {
-            positions.insert(context.source.line_column(offset).0, offset);
+            positions.insert(context.source.line_column(offset).0, offset..(offset + 1));
         }
     }
 
@@ -461,26 +469,29 @@ fn line_break_edits(context: &RuleContext<'_>, max: usize) -> HashMap<usize, Edi
                 // Upstream's block node starts at the receiver, not at the brace, so a call split
                 // over two lines files its break under the line the receiver is on.
                 let owner = node.parent().unwrap_or(node);
-                positions.insert(owner.start_position().row + 1, offset);
+                positions.insert(owner.start_position().row + 1, offset..(offset + 1));
             }
         } else if let Some(element) = breaker.breakable_element(node) {
             positions
                 .entry(element.start_position().row + 1)
-                .or_insert_with(|| element.start_byte());
+                .or_insert_with(|| element.byte_range());
         }
     }
 
     positions
         .into_iter()
-        .map(|(line, start)| {
+        .map(|(line, anchor)| {
             (
                 line,
-                Edit {
-                    start,
-                    end: start,
-                    replacement: "\n".to_owned(),
-                    safe: true,
-                },
+                (
+                    Edit {
+                        start: anchor.start,
+                        end: anchor.start,
+                        replacement: "\n".to_owned(),
+                        safe: true,
+                    },
+                    anchor,
+                ),
             )
         })
         .collect()

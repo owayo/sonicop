@@ -11985,3 +11985,49 @@ mod layout_punctuation_spacing {
         .run();
     }
 }
+
+/// 代入の右辺の字下げと条件の位置。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_assignment_and_condition {
+    use super::*;
+
+    /// 右辺が自分の行から始まるときだけ見る。基準は代入の左端 + インデント幅。
+    #[test]
+    fn assignment_indentation() {
+        const COP: &str = "Layout/AssignmentIndentation";
+        CopCase::new(
+            COP,
+            "value =\nif foo\n  1\nend\n",
+            vec![Annotation::new(
+                2,
+                1,
+                6,
+                "Indent the first line of the right-hand-side of a multi-line assignment.",
+            )],
+        )
+        .locations(&[(2, 1, 4, 3)])
+        .lengths(&[14])
+        .corrected("value =\n  if foo\n    1\n  end\n")
+        .run();
+        expect_no_offenses(COP, "value =\n  if foo\n    1\n  end\n");
+        // 右辺が演算子と同じ行にあるものは対象外。
+        expect_no_offenses(COP, "value = if foo\n  1\nend\n");
+    }
+
+    /// キーワードと違う行から始まる条件だけを見る。行をまたぐだけの条件は対象外。
+    #[test]
+    fn condition_position() {
+        const COP: &str = "Layout/ConditionPosition";
+        CopCase::new(
+            COP,
+            "if\n  x\n  puts 1\nend\n",
+            vec![Annotation::new(2, 3, 1, "Place the condition on the same line as `if`.")],
+        )
+        .severity(Severity::Warning)
+        .corrected("if x\n  puts 1\nend\n")
+        .run();
+        CopCase::new("Layout/ConditionPosition", "if a &&\n   b\n  puts 1\nend\n", Vec::new()).run();
+        expect_no_offenses(COP, "puts 1 if x\n");
+        expect_no_offenses(COP, "x ? 1 : 2\n");
+    }
+}
