@@ -594,6 +594,33 @@ pub(super) fn parser_node_start(node: Node<'_>) -> usize {
     }
 }
 
+/// Every heredoc of the file, as the offset of its opener paired with the range of its terminator.
+///
+/// The opener and the body are far apart in the tree -- the body hangs off the statement the
+/// opener was written in -- but both appear in source order, so the nth of one belongs to the nth
+/// of the other.
+pub(super) fn heredoc_terminators(context: &RuleContext<'_>) -> Vec<(usize, Range<usize>)> {
+    let openers: Vec<usize> = context
+        .nodes_of("heredoc_beginning")
+        .map(|node| node.start_byte())
+        .collect();
+    if openers.is_empty() {
+        return Vec::new();
+    }
+    context
+        .nodes_of("heredoc_body")
+        .enumerate()
+        .filter_map(|(index, body)| {
+            let opener = *openers.get(index)?;
+            let mut cursor = body.walk();
+            let terminator = body
+                .named_children(&mut cursor)
+                .find(|child| child.kind() == "heredoc_end")?;
+            Some((opener, terminator.byte_range()))
+        })
+        .collect()
+}
+
 fn has_clause(container: Node<'_>) -> bool {
     let mut cursor = container.walk();
     container
