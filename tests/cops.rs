@@ -8587,3 +8587,566 @@ mod raise_exception {
         expect_correction(COP, "raise ::Exception\n", "raise ::StandardError\n");
     }
 }
+/// `Lint/HashCompareByIdentity`。`object_id` を鍵にしたハッシュ操作を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod hash_compare_by_identity {
+    use super::*;
+
+    const COP: &str = "Lint/HashCompareByIdentity";
+    const MSG: &str = "Use `Hash#compare_by_identity` instead of using `object_id` for keys.";
+
+    /// `[]` と `[]=` は角括弧でもドットでも同じ send。`[]=` は代入式全体を指す。
+    #[test]
+    fn both_spellings_of_every_restricted_method_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            hash[foo.object_id] = 1
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `Hash#compare_by_identity` instead of using `object_id` for keys.
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "hash[foo.object_id]\n",
+            vec![Annotation::new(1, 1, 19, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "hash.has_key?(foo.object_id)\n",
+            vec![Annotation::new(1, 1, 28, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "hash&.fetch(foo.object_id)\n",
+            vec![Annotation::new(1, 1, 26, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "hash.[]=(foo.object_id, 1)\n",
+            vec![Annotation::new(1, 1, 26, MSG)],
+        )
+        .run();
+        // 多重代入の中では `[]=` に値が渡らないので、send は角括弧で終わる。
+        CopCase::new(
+            COP,
+            "hash[foo.object_id], x = 1, 2\n",
+            vec![Annotation::new(1, 1, 19, MSG)],
+        )
+        .run();
+        // ブロックは send の外。
+        CopCase::new(
+            COP,
+            "hash.fetch(foo.object_id) { 1 }\n",
+            vec![Annotation::new(1, 1, 25, MSG)],
+        )
+        .run();
+    }
+
+    /// 鍵は `(send _ :object_id)` ちょうど。`&.`、引数付き、ブロック付きはどれも別の節点。
+    #[test]
+    fn only_a_plain_object_id_call_counts() {
+        expect_no_offenses(COP, "hash.key?(foo&.object_id)\n");
+        expect_no_offenses(COP, "hash.key?(foo.object_id { })\n");
+        expect_no_offenses(COP, "hash.key?(foo.object_id(1))\n");
+        expect_no_offenses(COP, "hash.key?(foo.object_id2)\n");
+        expect_no_offenses(COP, "hash.size(foo.object_id)\n");
+        // 引数無しの括弧は upstream でも引数無しの send。
+        CopCase::new(
+            COP,
+            "hash.key?(foo.object_id())\n",
+            vec![Annotation::new(1, 1, 26, MSG)],
+        )
+        .run();
+    }
+
+    /// レシーバ無しの `object_id` は、ローカル変数でなければ `(send nil :object_id)`。
+    #[test]
+    fn a_bare_name_counts_only_while_it_is_not_a_local_variable() {
+        CopCase::new(
+            COP,
+            "hash.key?(object_id)\n",
+            vec![Annotation::new(1, 1, 20, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "object_id = 1\nhash.key?(object_id)\n");
+    }
+}
+
+/// `Lint/SelfAssignment`。左辺と右辺が同じものを指す代入を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod self_assignment {
+    use super::*;
+
+    const COP: &str = "Lint/SelfAssignment";
+    const MSG: &str = "Self-assignment detected.";
+
+    #[test]
+    fn every_kind_of_variable_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            foo = foo
+            ^^^^^^^^^ Self-assignment detected.
+            "#,
+        );
+        CopCase::new(COP, "@foo = @foo\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        CopCase::new(COP, "@@foo = @@foo\n", vec![Annotation::new(1, 1, 13, MSG)]).run();
+        CopCase::new(COP, "$foo = $foo\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        CopCase::new(COP, "foo ||= foo\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        CopCase::new(COP, "foo &&= foo\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        expect_no_offenses(COP, "foo = bar\n");
+        expect_no_offenses(COP, "foo = foo.dup\n");
+        // `+=` は or/and 代入ではないので対象外。
+        expect_no_offenses(COP, "obj.attr += obj.attr\n");
+    }
+
+    /// 定数は名前空間まで一致して初めて同じ定数。
+    #[test]
+    fn a_constant_has_to_agree_on_its_namespace() {
+        CopCase::new(COP, "Foo = Foo\n", vec![Annotation::new(1, 1, 9, MSG)]).run();
+        CopCase::new(COP, "A::B = A::B\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        CopCase::new(COP, "::Foo = ::Foo\n", vec![Annotation::new(1, 1, 13, MSG)]).run();
+        CopCase::new(COP, "Foo ||= Foo\n", vec![Annotation::new(1, 1, 11, MSG)]).run();
+        expect_no_offenses(COP, "A::B = B\n");
+        expect_no_offenses(COP, "B = A::B\n");
+    }
+
+    /// 多重代入は右辺が配列で、位置ごとに同じ変数を読み返しているときだけ。
+    #[test]
+    fn a_multiple_assignment_matches_position_by_position() {
+        CopCase::new(
+            COP,
+            "foo, bar = foo, bar\n",
+            vec![Annotation::new(1, 1, 19, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "foo, bar = [foo, bar]\n",
+            vec![Annotation::new(1, 1, 21, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "foo, bar = bar, foo\n");
+        expect_no_offenses(COP, "a, b = *c\n");
+        expect_no_offenses(COP, "a, b = c\n");
+        // 定数と setter は `ASSIGNMENT_TYPE_TO_RHS_TYPE` に載っていない。
+        expect_no_offenses(COP, "A, B = A, B\n");
+        expect_no_offenses(COP, "obj.a, obj.b = obj.a, obj.b\n");
+    }
+
+    /// 鍵の代入は、鍵自身がメソッド呼び出しでないときだけ。二度目が同じ答えとは限らない。
+    #[test]
+    fn a_key_assignment_needs_a_key_that_is_not_a_call() {
+        CopCase::new(
+            COP,
+            "hash['foo'] = hash['foo']\n",
+            vec![Annotation::new(1, 1, 25, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "hash['a'] ||= hash['a']\n",
+            vec![Annotation::new(1, 1, 23, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "hash.[]=(1, hash.[](1))\n",
+            vec![Annotation::new(1, 1, 23, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "hash[foo] = hash[foo]\n");
+        expect_no_offenses(COP, "hash[foo] ||= hash[foo]\n");
+        // 引数がローカル変数なら呼び出しではない。
+        CopCase::new(
+            COP,
+            "foo = 1\nhash[foo] = hash[foo]\n",
+            vec![Annotation::new(2, 1, 21, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "hash['a'] = hash['b']\n");
+    }
+
+    /// setter は同名の reader を、引数無しで、同じレシーバに対して呼んでいるときだけ。
+    #[test]
+    fn an_attribute_assignment_needs_the_matching_reader() {
+        CopCase::new(
+            COP,
+            "obj.attr = obj.attr\n",
+            vec![Annotation::new(1, 1, 19, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "self.foo = self.foo\n",
+            vec![Annotation::new(1, 1, 19, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "obj&.attr = obj&.attr\n",
+            vec![Annotation::new(1, 1, 21, MSG)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "obj.attr ||= obj.attr\n",
+            vec![Annotation::new(1, 1, 21, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "obj.attr = obj.attr2\n");
+        expect_no_offenses(COP, "obj.attr ||= obj.attr(1)\n");
+        // 括弧を挟むと右辺は `begin` になり、呼び出しではなくなる。
+        expect_no_offenses(COP, "obj.attr=(obj.attr)\n");
+    }
+}
+/// `Lint/EmptyInterpolation`。何も差し込まない `#{}` を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod empty_interpolation {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyInterpolation";
+    const MSG: &str = "Empty interpolation detected.";
+
+    /// `nil` と空文字列リテラルは取り除かれてから「残ったか」を見る。
+    #[test]
+    fn a_child_that_contributes_nothing_still_counts_as_empty() {
+        expect_offense(COP, "x = \"#{}\"\n     ^^^ Empty interpolation detected.\n");
+        CopCase::new(COP, "x = \"#{ }\"\n", vec![Annotation::new(1, 6, 4, MSG)]).run();
+        CopCase::new(COP, "x = \"#{nil}\"\n", vec![Annotation::new(1, 6, 6, MSG)]).run();
+        CopCase::new(COP, "x = \"#{''}\"\n", vec![Annotation::new(1, 6, 5, MSG)]).run();
+        // `;` は `begin` の子ではなく区切り。
+        CopCase::new(COP, "x = \"#{;}\"\n", vec![Annotation::new(1, 6, 4, MSG)]).run();
+        expect_no_offenses(COP, "x = \"#{1}\"\n");
+        expect_no_offenses(COP, "x = \"#{'a'}\"\n");
+    }
+
+    /// dstr 以外の補間も同じ。`%W`/`%I` の中だけは要素そのものなので見逃す。
+    #[test]
+    fn every_interpolating_literal_is_inspected_except_percent_arrays() {
+        CopCase::new(COP, "x = :\"#{}\"\n", vec![Annotation::new(1, 7, 3, MSG)]).run();
+        CopCase::new(COP, "x = /#{}/\n", vec![Annotation::new(1, 6, 3, MSG)]).run();
+        CopCase::new(COP, "x = `#{}`\n", vec![Annotation::new(1, 6, 3, MSG)]).run();
+        CopCase::new(COP, "x = [\"#{}\"]\n", vec![Annotation::new(1, 7, 3, MSG)]).run();
+        expect_no_offenses(COP, "x = %W[#{}]\n");
+        expect_no_offenses(COP, "x = %I[#{}]\n");
+    }
+
+    /// autocorrect は補間ごと消す。
+    #[test]
+    fn the_correction_removes_the_interpolation() {
+        expect_correction(COP, "x = \"a#{}b#{nil}c\"\n", "x = \"abc\"\n");
+        expect_correction(COP, "x = :\"#{}\"\n", "x = :\"\"\n");
+    }
+}
+
+/// `Lint/FloatComparison`。浮動小数点数の等値比較を禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod float_comparison {
+    use super::*;
+
+    const COP: &str = "Lint/FloatComparison";
+    const MSG_EQ: &str = "Avoid equality comparisons of floats as they are unreliable.";
+    const MSG_NE: &str = "Avoid inequality comparisons of floats as they are unreliable.";
+    const MSG_CASE: &str =
+        "Avoid float literal comparisons in case statements as they are unreliable.";
+
+    #[test]
+    fn the_four_equality_methods_are_reported_with_two_messages() {
+        expect_offense(
+            COP,
+            r#"
+            x == 0.1
+            ^^^^^^^^ Avoid equality comparisons of floats as they are unreliable.
+            "#,
+        );
+        CopCase::new(COP, "x != 0.1\n", vec![Annotation::new(1, 1, 8, MSG_NE)]).run();
+        CopCase::new(
+            COP,
+            "x.eql?(0.1)\n",
+            vec![Annotation::new(1, 1, 11, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "x.equal?(0.1)\n",
+            vec![Annotation::new(1, 1, 13, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(COP, "0.1 == x\n", vec![Annotation::new(1, 1, 8, MSG_EQ)]).run();
+        // 引数がちょうど 1 個のときだけ。
+        expect_no_offenses(COP, "x.eql?(0.1, 2)\n");
+        expect_no_offenses(COP, "x == 1\n");
+        expect_no_offenses(COP, "x == y\n");
+    }
+
+    /// ゼロと `nil` はどちらの側にあっても正確に比べられる。
+    #[test]
+    fn a_zero_or_nil_on_either_side_is_exempt() {
+        expect_no_offenses(COP, "x == 0.0\n");
+        expect_no_offenses(COP, "x != 0.0\n");
+        expect_no_offenses(COP, "x == nil\n");
+        CopCase::new(COP, "-0.1 == x\n", vec![Annotation::new(1, 1, 9, MSG_EQ)]).run();
+    }
+
+    /// 浮動小数点数を返すと分かる式も対象。丸めは引数次第、`angle` は符号次第。
+    #[test]
+    fn an_expression_known_to_produce_a_float_counts() {
+        CopCase::new(
+            COP,
+            "x.to_f == y\n",
+            vec![Annotation::new(1, 1, 11, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "Float(x) == y\n",
+            vec![Annotation::new(1, 1, 13, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "x.fdiv(2) == y\n",
+            vec![Annotation::new(1, 1, 14, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "(x + 0.1) == y\n",
+            vec![Annotation::new(1, 1, 14, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(COP, "x == (0.1)\n", vec![Annotation::new(1, 1, 10, MSG_EQ)]).run();
+        CopCase::new(
+            COP,
+            "1.0.abs == x\n",
+            vec![Annotation::new(1, 1, 12, MSG_EQ)],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            "1.0.ceil(2) == x\n",
+            vec![Annotation::new(1, 1, 16, MSG_EQ)],
+        )
+        .run();
+        expect_no_offenses(COP, "1.0.ceil == x\n");
+        CopCase::new(
+            COP,
+            "-1.0.angle == x\n",
+            vec![Annotation::new(1, 1, 15, MSG_EQ)],
+        )
+        .run();
+        expect_no_offenses(COP, "1.0.angle == x\n");
+        expect_no_offenses(COP, "x.round == y\n");
+    }
+
+    /// `case` の `when` は条件ひとつずつ、別のメッセージで報告する。
+    #[test]
+    fn a_when_condition_is_reported_on_its_own() {
+        CopCase::new(
+            COP,
+            "case v\nwhen 1.0\n  a\nwhen 0.0\n  b\nwhen x.to_f\n  c\nend\n",
+            vec![
+                Annotation::new(2, 6, 3, MSG_CASE),
+                Annotation::new(6, 6, 6, MSG_CASE),
+            ],
+        )
+        .run();
+    }
+}
+
+/// `Lint/Loop`。`begin ... end while` を `Kernel#loop` に導く。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod loop_construct {
+    use super::*;
+
+    const COP: &str = "Lint/Loop";
+    const MSG: &str = "Use `Kernel#loop` with `break` rather than `begin/end/until`(or `while`).";
+
+    /// 本体が `begin ... end` のときだけ。指すのは後置キーワード。
+    #[test]
+    fn only_a_post_condition_loop_over_a_begin_block_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              a
+            end while b
+                ^^^^^ Use `Kernel#loop` with `break` rather than `begin/end/until`(or `while`).
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "begin\n  a\nend until b\n",
+            vec![Annotation::new(3, 5, 5, MSG)],
+        )
+        .run();
+        expect_no_offenses(COP, "a while b\n");
+        expect_no_offenses(COP, "while b\n  a\nend\n");
+        // 代入を挟むと本体は `begin` そのものではなくなる。
+        expect_no_offenses(COP, "x = begin\n  a\nend while b\n");
+    }
+
+    /// autocorrect は `loop do` へ書き換え、`end` の直前へ `break` 行を字下げ付きで足す。
+    #[test]
+    fn the_correction_rewrites_the_block_and_inserts_a_break() {
+        expect_correction(
+            COP,
+            "begin\n  a\nend while b\n",
+            "loop do\n  a\nbreak unless b\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  a\nend until b\n",
+            "loop do\n  a\nbreak if b\nend\n",
+        );
+        // 字下げは while_post 節点自身の桁。
+        expect_correction(
+            COP,
+            "def m\n  begin\n    a\n  end while c\nend\n",
+            "def m\n  loop do\n    a\n  break unless c\n  end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin; a; end while c\n",
+            "loop do; a; break unless c\nend\n",
+        );
+    }
+}
+
+/// `Lint/NonLocalExitFromIterator`。値を返さない `return` でイテレータを抜けるのを禁じる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod non_local_exit_from_iterator {
+    use super::*;
+
+    const COP: &str = "Lint/NonLocalExitFromIterator";
+    const MSG: &str = "Non-local exit from iterator, without return value. \
+                       `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.";
+
+    /// レシーバ付きの呼び出しに渡した、引数を取るブロックの中だけ。
+    #[test]
+    fn a_valueless_return_inside_a_chained_block_with_arguments_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            foo.each { |x| return }
+                           ^^^^^^ Non-local exit from iterator, without return value. `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "Foo.bar.baz { |x| return }\n",
+            vec![Annotation::new(1, 19, 6, MSG)],
+        )
+        .run();
+        // 値を返す `return` は意図した脱出。
+        expect_no_offenses(COP, "foo.each { |x| return 1 }\n");
+        // レシーバが無い呼び出しは連鎖ではない。
+        expect_no_offenses(COP, "each { |x| return }\n");
+        // 引数を取らないブロックは外側へ委ねる。
+        expect_no_offenses(COP, "foo.each { return }\n");
+        expect_no_offenses(COP, "foo.each { || return }\n");
+    }
+
+    /// 自前のスコープを開くもの (`def` / lambda) と `define_method` は探索を止める。
+    #[test]
+    fn a_scope_of_its_own_stops_the_search() {
+        expect_no_offenses(COP, "lambda { |x| return }\n");
+        expect_no_offenses(COP, "->(x) { return }\n");
+        expect_no_offenses(COP, "define_method(:x) { |y| return }\n");
+        expect_no_offenses(COP, "define_singleton_method(:x) { |y| return }\n");
+        expect_no_offenses(COP, "obj.define_method(:x) { |y| return }\n");
+        expect_no_offenses(COP, "foo.each do |x|\n  def m\n    return\n  end\nend\n");
+        expect_no_offenses(COP, "foo.each do |x|\n  ->(y) { return }\nend\n");
+    }
+
+    /// 引数無しのブロックは外側のブロックへ判定を渡す。
+    #[test]
+    fn a_block_without_arguments_passes_the_question_outwards() {
+        expect_no_offenses(COP, "transaction do\n  return unless c\nend\n");
+        expect_no_offenses(
+            COP,
+            "transaction do\n  find_each do |item|\n    return if item.a\n  end\nend\n",
+        );
+        CopCase::new(
+            COP,
+            "foo.map { |x| foo.each { |y| return } }\n",
+            vec![Annotation::new(1, 30, 6, MSG)],
+        )
+        .run();
+    }
+}
+
+/// `Lint/StructNewOverride`。`Struct.new` の member が既存メソッドを覆うのを警告する。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod struct_new_override {
+    use super::*;
+
+    const COP: &str = "Lint/StructNewOverride";
+
+    fn message(quoted: &str, name: &str) -> String {
+        format!("`{quoted}` member overrides `Struct#{name}` and it may be unexpected.")
+    }
+
+    #[test]
+    fn every_member_naming_a_struct_method_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            Bad = Struct.new(:members, :clone)
+                             ^^^^^^^^ `:members` member overrides `Struct#members` and it may be unexpected.
+                                       ^^^^^^ `:clone` member overrides `Struct#clone` and it may be unexpected.
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "U = ::Struct.new(:size)\n",
+            vec![Annotation::new(1, 18, 5, &message(":size", "size"))],
+        )
+        .run();
+        // 演算子名も member になりうる。
+        CopCase::new(
+            COP,
+            "Z = Struct.new(:<=>)\n",
+            vec![Annotation::new(1, 16, 4, &message(":<=>", "<=>"))],
+        )
+        .run();
+        expect_no_offenses(COP, "Good = Struct.new(:id, :name)\n");
+    }
+
+    /// 先頭の文字列は struct の名前で member ではない。名前空間付きと `&.` は別の呼び出し。
+    #[test]
+    fn the_leading_name_argument_and_other_receivers_are_skipped() {
+        expect_no_offenses(COP, "W = Struct.new(\"count\")\n");
+        CopCase::new(
+            COP,
+            "S = Struct.new(\"Name\", :count)\n",
+            vec![Annotation::new(1, 24, 6, &message(":count", "count"))],
+        )
+        .run();
+        expect_no_offenses(COP, "V = Foo::Struct.new(:size)\n");
+        expect_no_offenses(COP, "Y = Struct&.new(:count)\n");
+        expect_no_offenses(COP, "A = Struct.new(*args)\n");
+    }
+
+    /// 引用符付きシンボルはメッセージだけ `inspect` の形になる。
+    #[test]
+    fn a_quoted_symbol_reports_the_plain_name() {
+        CopCase::new(
+            COP,
+            "X = Struct.new(:\"count\")\n",
+            vec![Annotation::new(1, 16, 8, &message(":count", "count"))],
+        )
+        .run();
+    }
+}

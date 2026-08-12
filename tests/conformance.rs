@@ -691,6 +691,78 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[19])
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/HashCompareByIdentity",
+            r#"
+            hash.key?(foo.object_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Use `Hash#compare_by_identity` instead of using `object_id` for keys.
+            "#,
+        )
+        .id("lint_hash_compare_by_identity")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/SelfAssignment",
+            r#"
+            foo = foo
+            ^^^^^^^^^ Self-assignment detected.
+            "#,
+        )
+        .id("lint_self_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyInterpolation",
+            "x = \"a#{}b\"\n      ^^^ Empty interpolation detected.\n",
+        )
+        .id("lint_empty_interpolation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/FloatComparison",
+            r#"
+            x == 0.1
+            ^^^^^^^^ Avoid equality comparisons of floats as they are unreliable.
+            "#,
+        )
+        .id("lint_float_comparison")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/Loop",
+            r#"
+            begin
+              x
+            end while y
+                ^^^^^ Use `Kernel#loop` with `break` rather than `begin/end/until`(or `while`).
+            "#,
+        )
+        .id("lint_loop")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NonLocalExitFromIterator",
+            r#"
+            foo.each do |x|
+              return if x
+              ^^^^^^ Non-local exit from iterator, without return value. `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.
+              x
+            end
+            "#,
+        )
+        .id("lint_non_local_exit_from_iterator")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/StructNewOverride",
+            r#"
+            Bad = Struct.new(:count)
+                             ^^^^^^ `:count` member overrides `Struct#count` and it may be unexpected.
+            "#,
+        )
+        .id("lint_struct_new_override")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
