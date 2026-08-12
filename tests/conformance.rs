@@ -1528,6 +1528,78 @@ fn catalogue() -> Vec<CopCase> {
         .target_ruby("2.5")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/DeprecatedOpenSSLConstant",
+            r#"
+            OpenSSL::Cipher::AES.new(128, :GCM)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `OpenSSL::Cipher.new('aes-128-gcm')` instead of `OpenSSL::Cipher::AES.new(128, :GCM)`.
+            "#,
+        )
+        .id("lint_deprecated_open_ssl_constant")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/Debugger",
+            r#"
+            binding.pry
+            ^^^^^^^^^^^ Remove debugger entry point `binding.pry`.
+            "#,
+        )
+        .id("lint_debugger")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/SafeNavigationWithEmpty",
+            r#"
+            return if foo&.empty?
+                      ^^^^^^^^^^^ Avoid calling `empty?` with the safe navigation operator in conditionals.
+            "#,
+        )
+        .id("lint_safe_navigation_with_empty")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyConditionalBody",
+            r#"
+            if condition
+            ^^^^^^^^^^^^ Avoid `if` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_conditional_body")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessTimes",
+            r#"
+            1.times { |i| do_something(i) }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Useless call to `1.times` detected.
+            "#,
+        )
+        .id("lint_useless_times")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MixedRegexpCaptureTypes",
+            r#"
+            /(?<foo>bar)(baz)/
+            ^^^^^^^^^^^^^^^^^^ Do not mix named captures and numbered captures in a Regexp literal.
+            "#,
+        )
+        .id("lint_mixed_regexp_capture_types")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OutOfRangeRegexpRef",
+            r#"
+            "foo" =~ /(f)oo/
+            puts $2
+                 ^^ $2 is out of range (1 regexp capture group detected).
+            "#,
+        )
+        .id("lint_out_of_range_regexp_ref")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

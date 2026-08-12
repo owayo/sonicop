@@ -10,6 +10,7 @@ mod node_equality;
 mod parameters;
 mod percent_literal;
 mod ranges;
+mod regexp;
 mod rescue_clause;
 mod statements;
 mod variable_force;
@@ -23,7 +24,9 @@ department_rules! {
     boolean_symbol => ("BooleanSymbol", Warning),
     circular_argument_reference => ("CircularArgumentReference", Warning),
     constant_definition_in_block => ("ConstantDefinitionInBlock", Warning),
+    debugger => ("Debugger", Warning),
     deprecated_class_methods => ("DeprecatedClassMethods", Warning),
+    deprecated_open_ssl_constant => ("DeprecatedOpenSSLConstant", Warning),
     disjunctive_assignment_in_constructor => ("DisjunctiveAssignmentInConstructor", Warning),
     duplicate_case_condition => ("DuplicateCaseCondition", Warning),
     duplicate_elsif_condition => ("DuplicateElsifCondition", Warning),
@@ -33,6 +36,7 @@ department_rules! {
     duplicate_rescue_exception => ("DuplicateRescueException", Warning),
     each_with_object_argument => ("EachWithObjectArgument", Warning),
     else_layout => ("ElseLayout", Warning),
+    empty_conditional_body => ("EmptyConditionalBody", Warning),
     empty_ensure => ("EmptyEnsure", Warning),
     empty_expression => ("EmptyExpression", Warning),
     empty_file => ("EmptyFile", Warning),
@@ -50,12 +54,14 @@ department_rules! {
     literal_in_interpolation => ("LiteralInInterpolation", Warning),
     r#loop => ("Loop", Warning),
     missing_super => ("MissingSuper", Warning),
+    mixed_regexp_capture_types => ("MixedRegexpCaptureTypes", Warning),
     multiple_comparison => ("MultipleComparison", Warning),
     nested_method_definition => ("NestedMethodDefinition", Warning),
     nested_percent_literal => ("NestedPercentLiteral", Warning),
     next_without_accumulator => ("NextWithoutAccumulator", Warning),
     non_local_exit_from_iterator => ("NonLocalExitFromIterator", Warning),
     ordered_magic_comments => ("OrderedMagicComments", Warning),
+    out_of_range_regexp_ref => ("OutOfRangeRegexpRef", Warning),
     parentheses_as_grouped_expression => ("ParenthesesAsGroupedExpression", Warning),
     percent_string_array => ("PercentStringArray", Warning),
     percent_symbol_array => ("PercentSymbolArray", Warning),
@@ -70,6 +76,7 @@ department_rules! {
     rescue_exception => ("RescueException", Warning),
     rescue_type => ("RescueType", Warning),
     return_in_void_context => ("ReturnInVoidContext", Warning),
+    safe_navigation_with_empty => ("SafeNavigationWithEmpty", Warning),
     self_assignment => ("SelfAssignment", Warning),
     send_with_mixin_argument => ("SendWithMixinArgument", Warning),
     struct_new_override => ("StructNewOverride", Warning),
@@ -90,4 +97,5 @@ department_rules! {
     useless_assignment => ("UselessAssignment", Warning),
     useless_else_without_rescue => ("UselessElseWithoutRescue", Warning),
     useless_method_definition => ("UselessMethodDefinition", Warning),
+    useless_times => ("UselessTimes", Warning),
 }

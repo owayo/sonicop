@@ -1221,6 +1221,95 @@ mod lint {
             "begin\n  do_something\nelse\n  handle\nend\n",
         );
     }
+
+    /// `OpenSSL::Digest` を直に呼ぶ形は対象外。アルゴリズム名は 3 文字ずつ区切られる。
+    #[test]
+    fn deprecated_open_ssl_constant_needs_an_algorithm_constant() {
+        expect_no_offenses(
+            "Lint/DeprecatedOpenSSLConstant",
+            "OpenSSL::Digest.new('SHA256')\nOpenSSL::Cipher::AES.new(key)\n",
+        );
+        expect_correction(
+            "Lint/DeprecatedOpenSSLConstant",
+            "OpenSSL::Cipher::AES128.new(:GCM)\nOpenSSL::Digest::SHA256.digest('foo')\nOpenSSL::Cipher::BF.new\n",
+            "OpenSSL::Cipher.new('aes-128-gcm')\nOpenSSL::Digest.digest('SHA256', 'foo')\nOpenSSL::Cipher.new('bf')\n",
+        );
+    }
+
+    /// 引数を取らないエントリポイントが値の位置に立っているときは名前とみなす。
+    #[test]
+    fn debugger_ignores_an_entry_point_used_as_a_value() {
+        expect_no_offenses("Lint/Debugger", "p byebug\nsomething_else\n");
+        expect_offense(
+            "Lint/Debugger",
+            "Kernel.binding.irb\n^^^^^^^^^^^^^^^^^^ Remove debugger entry point `Kernel.binding.irb`.\n",
+        );
+    }
+
+    /// レシーバがまた安全呼び出しなら当たらない。
+    #[test]
+    fn safe_navigation_with_empty_needs_a_plain_receiver() {
+        expect_no_offenses(
+            "Lint/SafeNavigationWithEmpty",
+            "if qux&.quux&.empty?\n  p 2\nend\nfoo&.empty?\n",
+        );
+        expect_correction(
+            "Lint/SafeNavigationWithEmpty",
+            "p 1 if baz&.empty?\n",
+            "p 1 if baz && baz.empty?\n",
+        );
+    }
+
+    /// `then` と `end` が同じ行なら意図された空、コメントがあれば説明とみなす。
+    #[test]
+    fn empty_conditional_body_allows_comments_and_one_line_forms() {
+        expect_no_offenses(
+            "Lint/EmptyConditionalBody",
+            "unless true; end\nif a\n  # explanation\nend\n",
+        );
+        expect_correction(
+            "Lint/EmptyConditionalBody",
+            "if h\nelse\n  i\nend\n",
+            "unless h\n  i\nend\n",
+        );
+    }
+
+    /// 2 回以上回るなら無駄ではない。符号はリテラルへ畳み込まれる。
+    #[test]
+    fn useless_times_counts_the_folded_sign() {
+        expect_no_offenses("Lint/UselessTimes", "2.times { |i| p i }\n");
+        expect_correction(
+            "Lint/UselessTimes",
+            "-2.times { |i| p i }\n1.times { |i| p i }\n",
+            "p 0\n",
+        );
+    }
+
+    /// 文字クラスの中と `(?#...)` の中の丸括弧は捕獲ではない。
+    #[test]
+    fn mixed_regexp_capture_types_reads_the_pattern() {
+        expect_no_offenses(
+            "Lint/MixedRegexpCaptureTypes",
+            "a = /(?<n>x)(?<m>y)/\nb = /(x)(y)/\nc = /#{x}(?<n>a)(b)/\n",
+        );
+        expect_offense(
+            "Lint/MixedRegexpCaptureTypes",
+            "d = /[()](b)(?<c>d)/\n    ^^^^^^^^^^^^^^^^ Do not mix named captures and numbered captures in a Regexp literal.\n",
+        );
+    }
+
+    /// ブロックの中は呼び出しを抜けたあとなので、その正規表現の捕獲数が効く。
+    #[test]
+    fn out_of_range_regexp_ref_sees_the_call_before_its_block() {
+        expect_no_offenses(
+            "Lint/OutOfRangeRegexpRef",
+            "\"foo\".sub(/(a)(b)/) { $2 + $1 }\n",
+        );
+        expect_offense(
+            "Lint/OutOfRangeRegexpRef",
+            "case x\nwhen /(a)/\n  puts $2\n       ^^ $2 is out of range (1 regexp capture group detected).\nend\n",
+        );
+    }
 }
 
 mod metrics {
