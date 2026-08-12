@@ -151,6 +151,9 @@ fn inspect_planned(
     selection: &Selection,
     plan: &RulePlan,
 ) -> Result<FileReport> {
+    // Settled before the file is parsed, so every cop sees the source Ruby would have read rather
+    // than only the one that reports the parse.
+    let text = crate::nul_bytes::as_ruby_reads_it(&text).unwrap_or(text);
     let source = SourceFile::new(path, text);
     let mut parser = Parser::new();
     parser

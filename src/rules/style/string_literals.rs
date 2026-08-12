@@ -267,7 +267,7 @@ fn body_parts(source: &str) -> Vec<&str> {
 /// Whether the literal is a `dstr` upstream. Every literal in the file reaches this, so the common
 /// case -- a body that holds no line break at all, and so cannot be cut into more than one part --
 /// is answered without a scan.
-fn is_dstr(source: &str) -> bool {
+pub(super) fn is_dstr(source: &str) -> bool {
     if !source.contains('\n') {
         return false;
     }
@@ -276,7 +276,7 @@ fn is_dstr(source: &str) -> bool {
     parts > 1
 }
 
-fn has_interpolation(node: Node<'_>) -> bool {
+pub(super) fn has_interpolation(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .any(|child| child.kind() == "interpolation")
@@ -285,7 +285,7 @@ fn has_interpolation(node: Node<'_>) -> bool {
 /// RuboCop's `StringHelp#inside_interpolation?`: from the innermost interpolation outwards, is the
 /// literal owned by a `dstr`, `dsym` or `regexp`? The walk continues past the first interpolation
 /// because a command literal nested in a string -- `"#{`cmd #{'x'}`}"` -- is still inside one.
-fn inside_interpolation(node: Node<'_>) -> bool {
+pub(super) fn inside_interpolation(node: Node<'_>) -> bool {
     let mut current = node;
     let mut interpolated = false;
     while let Some(parent) = current.parent() {
@@ -301,7 +301,7 @@ fn inside_interpolation(node: Node<'_>) -> bool {
 
 /// A quoted hash key such as `'a': 1` is a symbol rather than a string, so re-quoting it would
 /// change what it means.
-fn quoted_label_key(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+pub(super) fn quoted_label_key(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
@@ -315,7 +315,7 @@ fn quoted_label_key(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// RuboCop's `StringLiteralsHelp#wrong_quotes?`. The test runs over the literal's *source*, quotes
 /// included, not over its value: what matters is whether swapping the delimiters would leave the
 /// same text. `%`- and `?`-literals have no delimiter to swap.
-fn wrong_quotes(source: &str, single_quotes: bool) -> bool {
+pub(super) fn wrong_quotes(source: &str, single_quotes: bool) -> bool {
     if source.starts_with('%') || source.starts_with('?') {
         return false;
     }
@@ -382,7 +382,7 @@ fn single_quotes_required(source: &str) -> bool {
 
 /// RuboCop's `StringLiteralCorrector`: the literal is rebuilt from its *value*, so escapes that
 /// only existed to satisfy the old delimiter disappear.
-fn corrected_literal(source: &str, single_quotes: bool) -> String {
+pub(super) fn corrected_literal(source: &str, single_quotes: bool) -> String {
     // Only `"` and `'` reach here -- `%`-literals never offend -- so the delimiters are one byte.
     let inner = &source[1..source.len() - 1];
     if single_quotes {

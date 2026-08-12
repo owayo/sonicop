@@ -88,6 +88,9 @@ pub(super) struct Variable<'tree> {
     scope_node: Node<'tree>,
     pub assignments: Vec<Assignment<'tree>>,
     pub referenced: bool,
+    /// Whether any of the references was written out. `Reference#explicit?` is false for the two
+    /// that stand for a read nobody wrote: a zero-arity `super` and a `binding` call.
+    pub referenced_explicitly: bool,
     pub captured_by_block: bool,
 }
 
@@ -485,6 +488,7 @@ impl<'tree> Force<'tree, '_> {
             scope_node: frame.node,
             assignments: Vec::new(),
             referenced: false,
+            referenced_explicitly: false,
             captured_by_block: false,
         });
         if let Some(replaced) = frame.names.insert(name.to_owned(), index) {
@@ -545,6 +549,7 @@ impl<'tree> Force<'tree, '_> {
 
     fn reference(&mut self, variable: usize, node: Node<'tree>) {
         self.capture_if_needed(variable);
+        self.variables[variable].referenced_explicitly = true;
         self.reference_without_capture(variable, node);
     }
 

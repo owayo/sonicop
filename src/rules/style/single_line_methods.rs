@@ -70,15 +70,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
-        let correction =
+        let corrections =
             match body.filter(|body| endless_allowed && correct_to_endless(context, node, body)) {
-                Some(body) => endless_correction(context, node, &body),
+                Some(body) => vec![endless_correction(context, node, &body)],
                 None => multiline_correction(context, node, closing, width),
             };
         offenses.push(
             context
                 .offense(MSG, node.byte_range())
-                .corrected_by(correction),
+                .corrected_by_all(corrections),
         );
     }
 }
@@ -285,50 +285,47 @@ fn find_child<'tree>(body: Node<'tree>, id: usize) -> Option<Node<'tree>> {
 
 /// `correct_to_multiline`: a line break in front of every statement, one in front of the `end`, and
 /// a trailing comment lifted to its own line above the definition.
+///
+/// Every piece is its own insertion, exactly as upstream writes them, so the statements the breaks
+/// are placed around remain available to the other cops running in the same pass.
 fn multiline_correction(
     context: &RuleContext<'_>,
     node: Node<'_>,
     closing: Node<'_>,
     width: usize,
-) -> Edit {
+) -> Vec<Edit> {
     let text = context.source.text();
     let (line, column) = context.source.line_column(node.start_byte());
     let indent = " ".repeat(column - 1);
     let inner = " ".repeat(column - 1 + width);
-    let comment = trailing_comment(context, line, node.end_byte());
-
-    let mut replacement = String::new();
-    if let Some(comment) = &comment {
-        replacement.push_str(&text[comment.clone()]);
-        replacement.push('\n');
-        replacement.push_str(&indent);
-    }
-    let mut cursor = node.start_byte();
-    for offset in statement_starts(node) {
-        replacement.push_str(&text[cursor..offset]);
-        replacement.push('\n');
-        replacement.push_str(&inner);
-        cursor = offset;
-    }
-    replacement.push_str(&text[cursor..closing.start_byte()]);
-    replacement.push('\n');
-    replacement.push_str(&indent);
-    replacement.push_str(&text[closing.start_byte()..node.end_byte()]);
-
-    let end = match &comment {
-        // The comment moves rather than being copied, so the blanks in front of it stay behind.
-        Some(range) => {
-            replacement.push_str(&text[node.end_byte()..range.start]);
-            range.end
-        }
-        None => node.end_byte(),
-    };
-    Edit {
-        start: node.start_byte(),
-        end,
+    let insert = |offset: usize, replacement: String| Edit {
+        start: offset,
+        end: offset,
         replacement,
         safe: true,
+    };
+
+    let mut edits = Vec::new();
+    if let Some(comment) = trailing_comment(context, line, node.end_byte()) {
+        // The comment moves rather than being copied, so the blanks in front of it stay behind.
+        edits.push(insert(
+            node.start_byte(),
+            format!("{}\n{indent}", &text[comment.clone()]),
+        ));
+        edits.push(Edit {
+            start: comment.start,
+            end: comment.end,
+            replacement: String::new(),
+            safe: true,
+        });
     }
+    edits.extend(
+        statement_starts(node)
+            .into_iter()
+            .map(|offset| insert(offset, format!("\n{inner}"))),
+    );
+    edits.push(insert(closing.start_byte(), format!("\n{indent}")));
+    edits
 }
 
 /// Where each line break goes, which is the start of every statement upstream's `each_part` yields.

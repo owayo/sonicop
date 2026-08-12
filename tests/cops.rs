@@ -6332,3 +6332,869 @@ mod layout_blank_lines {
         );
     }
 }
+
+/// `Lint/ConstantDefinitionInBlock`。本家の判定は「ブロック本体の文として直接書かれて
+/// いるか」。`rescue` / `else` / `ensure` 節が付くと本体がもう 1 段深いノードになるので、
+/// 同じ見た目でも対象から外れる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod constant_definition_in_block {
+    use super::*;
+
+    const COP: &str = "Lint/ConstantDefinitionInBlock";
+    const MSG: &str = "Do not define constants this way within a block.";
+
+    #[test]
+    fn a_constant_or_a_class_written_in_a_block_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            [1].each do
+              FOO = 1
+              ^^^^^^^ Do not define constants this way within a block.
+              BAR = 2
+              ^^^^^^^ Do not define constants this way within a block.
+            end
+            "#,
+        );
+        CopCase::new(
+            COP,
+            "[1].each do\n  class Qux\n  end\n\n  module Mod\n  end\nend\n",
+            vec![
+                Annotation::new(2, 3, 9, MSG),
+                Annotation::new(5, 3, 10, MSG),
+            ],
+        )
+        .locations(&[(2, 3, 3, 5), (5, 3, 6, 5)])
+        .lengths(&[15, 16])
+        .run();
+    }
+
+    /// 修飾された名前は置き場所を自分で決めているので対象外。ブロックの直下でない
+    /// もの、`ensure` の付いたブロックの中も同じ。`AllowedMethods` の既定は `enums`。
+    #[test]
+    fn only_a_bare_name_written_directly_in_the_block_counts() {
+        expect_no_offenses(COP, "[1].each do\n  Foo::BAZ = 1\nend\n");
+        expect_no_offenses(COP, "[1].each do\n  if x\n    QUUX = 1\n  end\nend\n");
+        expect_no_offenses(COP, "[1].each do\n  CORGE = 1\nensure\n  y\nend\n");
+        expect_no_offenses(COP, "enums do\n  GRAULT = 1\nend\n");
+    }
+}
+
+/// `Lint/MissingSuper`。`initialize` は「状態を持つ親クラスの中」でだけ、ライフサイクル
+/// コールバックはクラス/モジュールの中なら常に対象。親を名指しするのは
+/// `class Foo < Bar` と `Class.new(Bar) do ... end` の 2 つだけで、それ以外のブロックの
+/// 中に書かれた `initialize` は親が見えないので対象外。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod missing_super {
+    use super::*;
+
+    const COP: &str = "Lint/MissingSuper";
+    const CONSTRUCTOR: &str = "Call `super` to initialize state of the parent class.";
+    const CALLBACK: &str = "Call `super` to invoke callback defined in the parent class.";
+
+    #[test]
+    fn a_constructor_of_a_subclass_has_to_call_super() {
+        CopCase::new(
+            COP,
+            "class Foo < Bar\n  def initialize\n    @x = 1\n  end\nend\n",
+            vec![Annotation::new(2, 3, 14, CONSTRUCTOR)],
+        )
+        .locations(&[(2, 3, 4, 5)])
+        .lengths(&[31])
+        .run();
+        expect_no_offenses(
+            COP,
+            "class Grault < Bar\n  def initialize\n    super\n  end\nend\n",
+        );
+    }
+
+    /// `Object` と `BasicObject` は状態を持たないので、そこから継いだ constructor は
+    /// 呼ぶ先が無い。親を書いていないクラスも同じ。
+    #[test]
+    fn a_stateless_parent_or_none_at_all_needs_no_super() {
+        expect_no_offenses(COP, "class Baz < Object\n  def initialize\n  end\nend\n");
+        expect_no_offenses(COP, "class Qux\n  def initialize\n  end\nend\n");
+    }
+
+    /// `Class.new(Parent) do ... end` は親を名指ししているので対象。引数の無い
+    /// `Class.new do ... end` は名指ししていない。
+    #[test]
+    fn a_class_new_block_names_its_parent_only_when_given_one() {
+        CopCase::new(
+            COP,
+            "Class.new(Bar) do\n  def initialize\n  end\nend\n",
+            vec![Annotation::new(2, 3, 14, CONSTRUCTOR)],
+        )
+        .locations(&[(2, 3, 3, 5)])
+        .lengths(&[20])
+        .run();
+        expect_no_offenses(COP, "Class.new do\n  def initialize\n  end\nend\n");
+    }
+
+    /// ライフサイクルコールバックはクラスの中なら親の有無に関わらず対象。
+    /// 特異メソッドとして書いても同じ。
+    #[test]
+    fn a_lifecycle_callback_is_reported_whatever_the_parent_is() {
+        CopCase::new(
+            COP,
+            "class Corge\n  def self.inherited(sub)\n  end\n\n  def method_added(name)\n  end\nend\n",
+            vec![Annotation::new(2, 3, 23, CALLBACK), Annotation::new(5, 3, 22, CALLBACK)],
+        )
+        .locations(&[(2, 3, 3, 5), (5, 3, 6, 5)])
+        .lengths(&[29, 28])
+        .run();
+    }
+}
+
+/// `Lint/SuppressedException`。offense の範囲がこの cop の難所で、本家のノードは本体を
+/// 導く `;` や `then` までは含み、その後ろのコメントや区切りの `;` は含まない。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod suppressed_exception {
+    use super::*;
+
+    const COP: &str = "Lint/SuppressedException";
+
+    #[test]
+    fn an_empty_rescue_is_reported_at_the_clause() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              do_something
+            rescue
+            ^^^^^^ Do not suppress exceptions.
+            end
+            "#,
+        );
+    }
+
+    /// `AllowNil` と `AllowComments` の既定。`nil` だけの本体と、`rescue` の次の行から
+    /// `end` までにコメントがあるものは見逃す。行末コメントは `rescue` と同じ行なので
+    /// 数えない。
+    #[test]
+    fn a_nil_body_or_a_comment_below_the_rescue_excuses_it() {
+        expect_no_offenses(COP, "begin\n  do_something\nrescue\n  nil\nend\n");
+        expect_no_offenses(
+            COP,
+            "begin\n  do_something\nrescue Foo => e\n  # handled\nend\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            begin
+              do_something
+            rescue LoadError # trailing
+            ^^^^^^^^^^^^^^^^ Do not suppress exceptions.
+            end
+            "#,
+        );
+    }
+
+    /// 本体を導く `;` は本家のノードに含まれる。本体の中の `;` (空文) は含まれない。
+    #[test]
+    fn the_separator_that_introduces_the_body_is_part_of_the_clause() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              a
+            rescue; end
+            ^^^^^^^ Do not suppress exceptions.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            begin
+              a
+            rescue EOFError
+            ^^^^^^^^^^^^^^^ Do not suppress exceptions.
+              ;
+            end
+            "#,
+        );
+    }
+}
+
+/// `Lint/Syntax` と NUL バイト。tree-sitter は生成レキサの終端番兵に NUL を予約して
+/// いるので、ソースに書かれた NUL をトークンとして読めず、そこに構文エラーを立てる。
+/// Ruby のレキサはコード中の NUL を入力の終わりとして扱い、コメント中の NUL は
+/// コメントの本文として読み飛ばす。
+///
+/// 期待値はすべて本家 1.89.0 の `--only Lint/Syntax --format json` 実測。
+mod syntax_nul_bytes {
+    use super::*;
+
+    const COP: &str = "Lint/Syntax";
+
+    /// コード中の NUL から後ろは、何が書いてあっても読まれない。
+    #[test]
+    fn a_nul_written_in_code_ends_the_program() {
+        expect_no_offenses(COP, "x = 1\n\0 this is ) not ( ruby at all\n");
+    }
+
+    /// コメント中の NUL はコメントの一部。行末までがコメントのままなので、
+    /// 続く行はふつうに解析される。
+    #[test]
+    fn a_nul_written_in_a_comment_is_part_of_it() {
+        expect_no_offenses(COP, "# comment \0 with nul\nx = 1\n");
+    }
+
+    /// BOM 無しの UTF-16 は Ruby から見ると 1 バイト目が NUL のファイル。先頭が
+    /// NUL なら空のプログラムで、`#` で始まっていれば 1 行目がまるごとコメント。
+    #[test]
+    fn a_utf16_source_reads_as_an_empty_program_or_one_comment() {
+        expect_no_offenses(COP, "\0#\0 \0h\0i\0\n");
+        expect_no_offenses(COP, "#\0 \0h\0i\0\n\0p\0u\0t\0s\0\n");
+    }
+}
+
+/// 整列系。期待値は本家 1.89.0 の `--only <cop>` の実出力から取った。
+mod layout_alignment {
+    use super::*;
+
+    const HASH: &str = "Layout/HashAlignment";
+    const ARGUMENT: &str = "Layout/ArgumentAlignment";
+    const FIRST_HASH: &str = "Layout/FirstHashElementIndentation";
+    const FIRST_ARRAY: &str = "Layout/FirstArrayElementIndentation";
+    const KEY_MSG: &str = "Align the keys of a hash literal if they span more than one line.";
+    const KWSPLAT_MSG: &str =
+        "Align keyword splats with the rest of the hash if it spans more than one line.";
+    const ARG_MSG: &str = "Align the arguments of a method call if they span more than one line.";
+
+    /// 既定は `key` 揃え。行頭に来た要素だけが鍵の桁で比べられ、`**splat` は専用の
+    /// メッセージで報告される。鍵と値の間の余分な空白も同じ offense に入る。
+    #[test]
+    fn keys_are_measured_against_the_first_pair() {
+        CopCase::new(
+            HASH,
+            concat!(
+                "h = {\n",
+                "  a: 1,\n",
+                "   bb: 2,\n",
+                " c: 3,\n",
+                "  **d,\n",
+                "   **e,\n",
+                "}\n",
+                "r = {\n",
+                "  'a'  => 1,\n",
+                "  'b' =>  2,\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 4, 5, KEY_MSG),
+                Annotation::new(4, 2, 4, KEY_MSG),
+                Annotation::new(6, 4, 3, KWSPLAT_MSG),
+                Annotation::new(9, 3, 9, KEY_MSG),
+                Annotation::new(10, 3, 9, KEY_MSG),
+            ],
+        )
+        .run();
+    }
+
+    /// 波括弧の無いハッシュ引数も本家では 1 つの `hash` にまとまる。`Hash[...]` は
+    /// `[]` の呼び出しなので引数整列の対象で、`super` は別の node なので対象外。
+    #[test]
+    fn a_brace_less_hash_argument_is_one_hash() {
+        CopCase::new(
+            ARGUMENT,
+            concat!(
+                "foo :bar,\n",
+                "  :baz,\n",
+                "      :qux\n",
+                "Hash[a: 1,\n",
+                "  b: 2]\n",
+                "bar(\n",
+                "  1,\n",
+                "    2\n",
+                ")\n",
+            ),
+            vec![
+                Annotation::new(2, 3, 4, ARG_MSG),
+                Annotation::new(3, 7, 4, ARG_MSG),
+                Annotation::new(5, 3, 4, ARG_MSG),
+                Annotation::new(8, 5, 1, ARG_MSG),
+            ],
+        )
+        .run();
+        expect_no_offenses(ARGUMENT, "super a: 1,\n  b: 2\n");
+    }
+
+    /// 整列の autocorrect は要素が跨る行を丸ごと動かす。
+    #[test]
+    fn the_correction_moves_every_line_of_the_element() {
+        expect_correction(
+            HASH,
+            concat!("h = {\n", "  a: 1,\n", "   bb: 2,\n", "}\n"),
+            concat!("h = {\n", "  a: 1,\n", "  bb: 2,\n", "}\n"),
+        );
+        expect_correction(
+            ARGUMENT,
+            concat!("foo :bar,\n", "  :baz,\n", "      :qux\n"),
+            concat!("foo :bar,\n", "    :baz,\n", "    :qux\n"),
+        );
+    }
+
+    /// 先頭要素の字下げは、既定では括弧の直後 (`special_inside_parentheses`)、
+    /// それ以外は左波括弧のある行の頭が基準。親のハッシュキーが基準になる形もある。
+    #[test]
+    fn the_first_element_is_measured_against_the_opening_line() {
+        CopCase::new(
+            FIRST_HASH,
+            concat!(
+                "x = {\n",
+                "    a: 1,\n",
+                "  }\n",
+                "foo({\n",
+                "  a: 1,\n",
+                "})\n",
+                "z = {\n",
+                "  k: {\n",
+                "      a: 1,\n",
+                "    },\n",
+                "  other: 2,\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(
+                    2,
+                    5,
+                    4,
+                    "Use 2 spaces for indentation in a hash, relative to the start of the line \
+                     where the left curly brace is.",
+                ),
+                Annotation::new(
+                    3,
+                    3,
+                    1,
+                    "Indent the right brace the same as the start of the line where the left \
+                     brace is.",
+                ),
+                Annotation::new(
+                    5,
+                    3,
+                    4,
+                    "Use 2 spaces for indentation in a hash, relative to the first position \
+                     after the preceding left parenthesis.",
+                ),
+                Annotation::new(
+                    6,
+                    1,
+                    1,
+                    "Indent the right brace the same as the first position after the preceding \
+                     left parenthesis.",
+                ),
+                Annotation::new(
+                    9,
+                    7,
+                    4,
+                    "Use 2 spaces for indentation in a hash, relative to the parent hash key.",
+                ),
+                Annotation::new(
+                    10,
+                    5,
+                    1,
+                    "Indent the right brace the same as the parent hash key.",
+                ),
+            ],
+        )
+        .run();
+    }
+
+    /// 配列側も同じ形。`%w[]` も本家では array なので対象になる。
+    #[test]
+    fn an_array_and_a_percent_literal_share_the_rule() {
+        CopCase::new(
+            FIRST_ARRAY,
+            concat!(
+                "y = [\n",
+                "    1,\n",
+                "  ]\n",
+                "w = %w[\n",
+                "    a\n",
+                "  ]\n",
+            ),
+            vec![
+                Annotation::new(
+                    2,
+                    5,
+                    1,
+                    "Use 2 spaces for indentation in an array, relative to the start of the line \
+                     where the left square bracket is.",
+                ),
+                Annotation::new(
+                    3,
+                    3,
+                    1,
+                    "Indent the right bracket the same as the start of the line where the left \
+                     bracket is.",
+                ),
+                Annotation::new(
+                    5,
+                    5,
+                    1,
+                    "Use 2 spaces for indentation in an array, relative to the start of the line \
+                     where the left square bracket is.",
+                ),
+                Annotation::new(
+                    6,
+                    3,
+                    1,
+                    "Indent the right bracket the same as the start of the line where the left \
+                     bracket is.",
+                ),
+            ],
+        )
+        .run();
+    }
+}
+
+/// `Layout/ArrayAlignment`。
+mod layout_array_alignment {
+    use super::*;
+
+    const COP: &str = "Layout/ArrayAlignment";
+    const MSG: &str = "Align the elements of an array literal if they span more than one line.";
+
+    /// 括弧の有無を問わず「本家が array と呼ぶもの」が対象。多重代入の右辺だけは
+    /// `masgn` の子なので除外される。
+    #[test]
+    fn every_shape_the_parser_calls_an_array_is_checked() {
+        CopCase::new(
+            COP,
+            concat!(
+                "x = [1,\n",
+                "  2,\n",
+                "      3]\n",
+                "y = [\n",
+                "  1,\n",
+                "   2,\n",
+                "]\n",
+                "a, b = [1,\n",
+                "  2]\n",
+                "c = 1,\n",
+                "  2\n",
+            ),
+            vec![
+                Annotation::new(2, 3, 1, MSG),
+                Annotation::new(3, 7, 1, MSG),
+                Annotation::new(6, 4, 1, MSG),
+                Annotation::new(11, 3, 1, MSG),
+            ],
+        )
+        .run();
+    }
+
+    /// `return 1, 2` の値は array にならない。keyword の子のままなので対象外。
+    #[test]
+    fn the_values_of_a_return_are_not_an_array() {
+        expect_no_offenses(COP, "def f\n  return 1,\n    2\nend\n");
+    }
+
+    #[test]
+    fn the_correction_lines_the_elements_up_with_the_first() {
+        expect_correction(
+            COP,
+            concat!("x = [1,\n", "  2,\n", "      3]\n"),
+            concat!("x = [1,\n", "     2,\n", "     3]\n"),
+        );
+    }
+}
+
+/// 文字列まわりの残り 3 cop。
+///
+/// 期待値は本家 1.89.0 の `--format json` と `-A` の実測。
+mod style_strings {
+    use super::*;
+
+    /// 補間の中の文字列は `Style/StringLiterals` ではなくこちらが見る。正規表現の
+    /// 中の補間も対象で、コマンドリテラル (`` ` ``) の中だけは対象外。
+    #[test]
+    fn string_literals_in_interpolation() {
+        expect_offense(
+            "Style/StringLiteralsInInterpolation",
+            r##"
+            a = "#{"x"}"
+                   ^^^ Prefer single-quoted strings inside interpolations.
+            "##,
+        );
+        expect_no_offenses("Style/StringLiteralsInInterpolation", "b = \"#{'y'}\"\n");
+        expect_no_offenses(
+            "Style/StringLiteralsInInterpolation",
+            "c = \"#{ \"it's\" }\"\n",
+        );
+        expect_no_offenses("Style/StringLiteralsInInterpolation", "g = `#{\"cmd\"}`\n");
+        expect_correction(
+            "Style/StringLiteralsInInterpolation",
+            "d = /#{\"z\"}/\ne = :\"#{\"s\"}\"\n",
+            "d = /#{'z'}/\ne = :\"#{'s'}\"\n",
+        );
+    }
+
+    /// 既定は `annotated`。`%{foo}` はどこにあっても報告されるが、書き換えられる
+    /// のは書式文字列として使われている literal だけ。
+    #[test]
+    fn format_string_token() {
+        expect_offense(
+            "Style/FormatStringToken",
+            r#"
+            c = "%{foo}"
+                 ^^^^^^ Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).
+            "#,
+        );
+        expect_correction(
+            "Style/FormatStringToken",
+            "a = format(\"%{foo}\", foo: 1)\n",
+            "a = format(\"%<foo>s\", foo: 1)\n",
+        );
+    }
+
+    /// 注記のないトークンは `format` / `sprintf` / `printf` の第 1 引数か `%` の
+    /// 受け手にあるときだけ、しかも `MaxUnannotatedPlaceholdersAllowed` を超えた
+    /// ときだけ報告される。
+    #[test]
+    fn unannotated_tokens_need_a_format_context_and_a_crowd() {
+        expect_no_offenses("Style/FormatStringToken", "b = \"%s %s\"\n");
+        expect_no_offenses("Style/FormatStringToken", "f = format(\"%s\", x)\n");
+        expect_no_offenses("Style/FormatStringToken", "i = /%{foo}/\n");
+        expect_offense(
+            "Style/FormatStringToken",
+            r#"
+            e = format("%s %s", x, y)
+                        ^^ Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
+                           ^^ Prefer annotated tokens (like `%<foo>s`) over unannotated tokens (like `%s`).
+            "#,
+        );
+    }
+
+    /// 既定の `prefer_alias` は、字句スコープの `alias_method` を keyword へ寄せ、
+    /// `alias :a :b` のコロンを落とす。メソッドや `instance_eval` の中、
+    /// グローバル変数の別名は対象外。
+    #[test]
+    fn alias_prefers_the_keyword_in_a_lexical_scope() {
+        expect_offense(
+            "Style/Alias",
+            r#"
+            alias_method :foo, :bar
+            ^^^^^^^^^^^^ Use `alias` instead of `alias_method` at the top level.
+            "#,
+        );
+        expect_offense(
+            "Style/Alias",
+            r#"
+            class K
+              alias_method :a, :b
+              ^^^^^^^^^^^^ Use `alias` instead of `alias_method` in a class body.
+            end
+            "#,
+        );
+        expect_offense(
+            "Style/Alias",
+            r#"
+            alias :foo :bar
+                  ^^^^^^^^^ Use `alias foo bar` instead of `alias :foo :bar`.
+            "#,
+        );
+        expect_no_offenses("Style/Alias", "alias foo bar\n");
+        expect_no_offenses("Style/Alias", "alias $a $b\n");
+        expect_no_offenses("Style/Alias", "def m\n  alias_method :a, :b\nend\n");
+        expect_no_offenses("Style/Alias", "Class.new { alias_method :a, :b }\n");
+        expect_correction(
+            "Style/Alias",
+            "alias :foo :bar\nalias_method :a, :b\n",
+            "alias foo bar\nalias a b\n",
+        );
+    }
+
+    /// `class << self` は `scope_type` が名前を挙げるどの型でもないので、外側が
+    /// 何であるかで決まる。ブロックやメソッドの中なら keyword は使えない。
+    ///
+    /// 実測: rails の `activerecord/test/cases/adapter_test.rb:226` がこの形。
+    #[test]
+    fn a_singleton_class_does_not_stop_the_scope_walk() {
+        expect_no_offenses(
+            "Style/Alias",
+            "def m\n  class << @c\n    alias_method :a, :b\n  end\nend\n",
+        );
+        expect_offense(
+            "Style/Alias",
+            r#"
+            class K
+              class << self
+                alias_method :a, :b
+                ^^^^^^^^^^^^ Use `alias` instead of `alias_method` in a class body.
+              end
+            end
+            "#,
+        );
+    }
+}
+
+/// `Lint/RescueException`。offense の範囲は `rescue` 節そのもので、`Lint/SuppressedException`
+/// と同じ端の取り方をする (`src/rules/lint/rescue_clause.rs` を共有)。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod rescue_exception {
+    use super::*;
+
+    const COP: &str = "Lint/RescueException";
+    const MSG: &str =
+        "Avoid rescuing the `Exception` class. Perhaps you meant to rescue `StandardError`?";
+
+    /// 先頭に `::` が付いても同じ定数。名前空間が付いたものは別の定数。
+    #[test]
+    fn only_the_top_level_exception_class_counts() {
+        CopCase::new(
+            COP,
+            "begin\n  a\nrescue Exception\n  b\nend\n",
+            vec![Annotation::new(3, 1, 16, MSG)],
+        )
+        .locations(&[(3, 1, 4, 3)])
+        .lengths(&[20])
+        .run();
+        CopCase::new(
+            COP,
+            "begin\n  a\nrescue ::Exception => e\n  b\nend\n",
+            vec![Annotation::new(3, 1, 23, MSG)],
+        )
+        .locations(&[(3, 1, 4, 3)])
+        .lengths(&[27])
+        .run();
+        expect_no_offenses(COP, "begin\n  a\nrescue Foo::Exception\n  b\nend\n");
+    }
+
+    /// 並べたうちの 1 つでも `Exception` なら対象。
+    #[test]
+    fn one_of_several_listed_classes_is_enough() {
+        CopCase::new(
+            COP,
+            "begin\n  a\nrescue StandardError, Exception\n  b\nend\n",
+            vec![Annotation::new(3, 1, 31, MSG)],
+        )
+        .locations(&[(3, 1, 4, 3)])
+        .lengths(&[35])
+        .run();
+    }
+}
+
+/// `Lint/UnderscorePrefixedVariableName`。`_` を付けた名前を読んでいたら報告する。
+/// ただし「読んだ」に数えるのは書かれた読みだけで、引数無しの `super` や `binding` が
+/// 暗黙に読むものは数えない。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod underscore_prefixed_variable_name {
+    use super::*;
+
+    const COP: &str = "Lint/UnderscorePrefixedVariableName";
+    const MSG: &str = "Do not use prefix `_` for a variable that is used.";
+
+    #[test]
+    fn an_underscored_name_that_is_read_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def m(_foo)
+                  ^^^^ Do not use prefix `_` for a variable that is used.
+              _foo
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            _bar = 1
+            ^^^^ Do not use prefix `_` for a variable that is used.
+            puts _bar
+            "#,
+        );
+    }
+
+    /// 引数無しの `super` はメソッドの引数を暗黙に渡すだけで、書かれた読みではない。
+    #[test]
+    fn a_zero_arity_super_is_not_a_read_that_was_written() {
+        expect_no_offenses(COP, "class A < B\n  def m(_foo)\n    super\n  end\nend\n");
+    }
+
+    /// 正規表現の名前付きキャプチャが作る変数は、名前ではなく正規表現リテラル全体を指す。
+    #[test]
+    fn a_named_capture_is_reported_at_the_regexp() {
+        CopCase::new(
+            COP,
+            "/(?<_year>\\d+)/ =~ text\nputs _year\n",
+            vec![Annotation::new(1, 1, 15, MSG)],
+        )
+        .run();
+    }
+}
+
+/// `Lint/BooleanSymbol`。`:true` / `:false` を報告する。`%i[]` の要素は本家では
+/// パーセントリテラルの配列として除外され、tree-sitter でもそこだけ別のノードになる。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod boolean_symbol {
+    use super::*;
+
+    const COP: &str = "Lint/BooleanSymbol";
+
+    #[test]
+    fn a_boolean_named_symbol_is_reported_in_every_spelling() {
+        expect_offense(
+            COP,
+            r#"
+            a = :true
+                ^^^^^ Symbol with a boolean name - you probably meant to use `true`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            c = { true: 1 }
+                  ^^^^ Symbol with a boolean name - you probably meant to use `true`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            f = :"false"
+                ^^^^^^^^ Symbol with a boolean name - you probably meant to use `false`.
+            "#,
+        );
+    }
+
+    /// `%i[]` / `%I[]` の要素と、補間を含むものは対象外。キーワード引数の `true:` も
+    /// シンボルではない。
+    #[test]
+    fn a_percent_literal_element_is_not_reported() {
+        expect_no_offenses(COP, "i = %I[true]\n");
+        expect_no_offenses(COP, "e = %i[true false]\n");
+        expect_no_offenses(COP, "j = :\"tr#{x}ue\"\n");
+        expect_no_offenses(COP, "def m(true: 1)\nend\n");
+    }
+
+    /// autocorrect はコロンを落とす。`true:` のキーはコロンが後ろに付いているので、
+    /// ハッシュロケットに書き換える。
+    #[test]
+    fn correction_drops_the_colon_or_moves_it_to_a_hash_rocket() {
+        expect_correction(COP, "a = :true\n", "a = true\n");
+        expect_correction(COP, "c = { true: 1 }\n", "c = { true => 1 }\n");
+        expect_correction(COP, "d = { :true => 1 }\n", "d = { true => 1 }\n");
+        expect_correction(COP, "h = { \"true\": 1 }\n", "h = { \"true\" => 1 }\n");
+    }
+}
+
+/// `Lint/LiteralInInterpolation`。offense はリテラルに付き、autocorrect は `#{}` ごと
+/// リテラルが表す値へ置き換える。値の書き方が本家と 1 バイトでも違うと autocorrect が
+/// 崩れるので、種類ごとに固定する。
+///
+/// 期待値はすべて本家 1.89.0 の実測。
+mod literal_in_interpolation {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralInInterpolation";
+
+    #[test]
+    fn the_offense_covers_the_literal_not_the_interpolation() {
+        expect_offense(
+            COP,
+            r##"
+            x = "a#{1}b"
+                    ^ Literal interpolation detected.
+            "##,
+        );
+    }
+
+    /// `#{}` に複数の文があれば、値になるのは最後の 1 つ。
+    #[test]
+    fn only_the_last_statement_is_the_value() {
+        expect_offense(
+            COP,
+            r##"
+            o = "#{1; 2}"
+                      ^ Literal interpolation detected.
+            "##,
+        );
+    }
+
+    /// 呼び出しや括弧はリテラルではない。`__FILE__` と `__LINE__`、終端の無い範囲、
+    /// 正規表現に直接書かれた配列も対象外。
+    #[test]
+    fn only_a_literal_that_prints_as_itself_is_reported() {
+        expect_no_offenses(COP, "a = \"#{foo}\"\n");
+        expect_no_offenses(COP, "n = \"#{(1)}\"\n");
+        expect_no_offenses(COP, "a = \"#{__FILE__}\"\n");
+        expect_no_offenses(COP, "b = \"#{__LINE__}\"\n");
+        expect_no_offenses(COP, "c = \"#{1..}\"\n");
+        expect_no_offenses(COP, "j = /a#{[1,2]}b/\n");
+    }
+
+    /// 値の書き方。数値は 10 進へ、シンボルは名前へ、ハッシュと配列は `to_s` の形へ。
+    #[test]
+    fn correction_writes_the_value_the_literal_stands_for() {
+        expect_correction(COP, "a = \"#{-1}\"\n", "a = \"-1\"\n");
+        expect_correction(COP, "c = \"#{1_000}\"\n", "c = \"1000\"\n");
+        expect_correction(COP, "d = \"#{0b101}\"\n", "d = \"5\"\n");
+        expect_correction(COP, "f = \"#{1e3}\"\n", "f = \"1000.0\"\n");
+        expect_correction(COP, "g = \"#{:abc}\"\n", "g = \"abc\"\n");
+        expect_correction(COP, "h = \"#{nil}\"\n", "h = \"\"\n");
+        expect_correction(COP, "i = \"#{[1, [2, 3]]}\"\n", "i = \"[1, [2, 3]]\"\n");
+        expect_correction(
+            COP,
+            "j = \"#{%w[a b]}\"\n",
+            "j = \"[\\\"a\\\", \\\"b\\\"]\"\n",
+        );
+        expect_correction(
+            COP,
+            "k = \"#{{ a: { b: 1 } }}\"\n",
+            "k = \"{:a=>{:b=>1}}\"\n",
+        );
+        expect_correction(
+            COP,
+            "l = \"#{{ 'x' => [1, :y] }}\"\n",
+            "l = \"{\\\"x\\\"=>[1, :y]}\"\n",
+        );
+        expect_correction(COP, "m = \"#{'a\"b'}\"\n", "m = \"a\\\"b\"\n");
+    }
+}
+
+/// `Style/CaseEquality`: `===` を直接書かない。
+///
+/// 期待値は本家 1.89.0 の `--format json` と `-A` の実測。
+mod case_equality {
+    use super::*;
+
+    #[test]
+    fn reports_the_operator_and_rewrites_what_it_can() {
+        expect_offense(
+            "Style/CaseEquality",
+            r#"
+            Integer === x
+                    ^^^ Avoid the use of the case equality operator `===`.
+            "#,
+        );
+        expect_correction(
+            "Style/CaseEquality",
+            "Integer === x\n(1..3) === y\nself.class === z\nArray === a + b\n",
+            "x.is_a?(Integer)\n(1..3).include?(y)\nz.is_a?(self.class)\n(a + b).is_a?(Array)\n",
+        );
+    }
+
+    /// 正規表現と、小文字を含まない定数 (値としての定数) は対象外。書き換えられ
+    /// ない受け手は報告だけで、修正は付かない。
+    #[test]
+    fn a_regexp_and_a_screaming_constant_are_left_alone() {
+        expect_no_offenses("Style/CaseEquality", "/re/ === w\n");
+        expect_no_offenses("Style/CaseEquality", "FOO === v\n");
+        CopCase::annotated(
+            "Style/CaseEquality",
+            r#"
+            a === b
+              ^^^ Avoid the use of the case equality operator `===`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+}

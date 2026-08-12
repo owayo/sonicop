@@ -143,6 +143,41 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // ---- Layout ----
         CopCase::annotated(
+            "Layout/ArgumentAlignment",
+            r#"
+            foo :bar,
+              :baz
+              ^^^^ Align the arguments of a method call if they span more than one line.
+            "#,
+        )
+        .id("layout_argument_alignment")
+        .locations(&[(2, 3, 2, 6)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/HashAlignment",
+            r#"
+            x = {
+              a: 1,
+               b: 2,
+               ^^^^ Align the keys of a hash literal if they span more than one line.
+            }
+            "#,
+        )
+        .id("layout_hash_alignment")
+        .locations(&[(3, 4, 3, 7)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ArrayAlignment",
+            r#"
+            x = [1,
+              2]
+              ^ Align the elements of an array literal if they span more than one line.
+            "#,
+        )
+        .id("layout_array_alignment")
+        .locations(&[(2, 3, 2, 3)])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterGuardClause",
             r#"
             def foo
@@ -168,6 +203,32 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_empty_lines_around_access_modifier")
         .locations(&[(3, 3, 3, 9)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstArrayElementIndentation",
+            r#"
+            y = [
+                1,
+                ^ Use 2 spaces for indentation in an array, relative to the start of the line where the left square bracket is.
+              ]
+              ^ Indent the right bracket the same as the start of the line where the left bracket is.
+            "#,
+        )
+        .id("layout_first_array_element_indentation")
+        .locations(&[(2, 5, 2, 5), (3, 3, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementIndentation",
+            r#"
+            x = {
+                a: 1,
+                ^^^^ Use 2 spaces for indentation in a hash, relative to the start of the line where the left curly brace is.
+              }
+              ^ Indent the right brace the same as the start of the line where the left brace is.
+            "#,
+        )
+        .id("layout_first_hash_element_indentation")
+        .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
         .correctable(true),
         CopCase::annotated(
             "Layout/EmptyLineAfterMagicComment",
@@ -280,6 +341,40 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
+            "Lint/AmbiguousBlockAssociation",
+            r#"
+            some_method a { |val| puts val }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Parenthesize the param `a { |val| puts val }` to make sure that the block will be associated with the `a` method call.
+            "#,
+        )
+        .id("lint_ambiguous_block_association")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/AssignmentInCondition",
+            r#"
+            if x = 1
+                 ^ Use `==` if you meant to do a comparison or wrap the expression in parentheses to indicate you meant to assign in a condition.
+              1
+            end
+            "#,
+        )
+        .id("lint_assignment_in_condition")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ConstantDefinitionInBlock",
+            r#"
+            [1].each do
+              FOO = 1
+              ^^^^^^^ Do not define constants this way within a block.
+            end
+            "#,
+        )
+        .id("lint_constant_definition_in_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
             "Lint/DuplicateMethods",
             r#"
             def foo
@@ -343,6 +438,85 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_syntax_static_regexp_validation"),
         CopCase::annotated(
+            "Lint/InterpolationCheck",
+            "foo = 'a#{b}'\n      ^^^^^^^ Interpolation in single quoted string detected. Use double quoted strings if you need interpolation.\n",
+        )
+        .id("lint_interpolation_check")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::new(
+            "Lint/MissingSuper",
+            "class Foo < Bar\n  def initialize\n  end\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                3,
+                14,
+                "Call `super` to initialize state of the parent class.",
+            )],
+        )
+        .id("lint_missing_super")
+        .locations(&[(2, 3, 3, 5)])
+        .lengths(&[20])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/BooleanSymbol",
+            r#"
+            a = :true
+                ^^^^^ Symbol with a boolean name - you probably meant to use `true`.
+            "#,
+        )
+        .id("lint_boolean_symbol")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/LiteralInInterpolation",
+            "x = \"a#{1}b\"\n        ^ Literal interpolation detected.\n",
+        )
+        .id("lint_literal_in_interpolation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::new(
+            "Lint/RescueException",
+            "begin\n  a\nrescue Exception\n  b\nend\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                1,
+                16,
+                "Avoid rescuing the `Exception` class. Perhaps you meant to rescue `StandardError`?",
+            )],
+        )
+        .id("lint_rescue_exception")
+        .locations(&[(3, 1, 4, 3)])
+        .lengths(&[20])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnderscorePrefixedVariableName",
+            r#"
+            def m(_foo)
+                  ^^^^ Do not use prefix `_` for a variable that is used.
+              _foo
+            end
+            "#,
+        )
+        .id("lint_underscore_prefixed_variable_name")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/SuppressedException",
+            r#"
+            begin
+              a
+            rescue
+            ^^^^^^ Do not suppress exceptions.
+            end
+            "#,
+        )
+        .id("lint_suppressed_exception")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
             "Lint/UnusedBlockArgument",
             r#"
             [1].each { |x| puts 1 }
@@ -350,6 +524,18 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("lint_unused_block_argument"),
+        CopCase::annotated(
+            "Lint/UnusedMethodArgument",
+            r#"
+            def m(a)
+                  ^ Unused method argument - `a`. If it's necessary, use `_` or `_a` as an argument name to indicate that it won't be used. If it's unnecessary, remove it. You can also write as `m(*)` if you want the method to accept any arguments but don't care about them.
+              1
+            end
+            "#,
+        )
+        .id("lint_unused_method_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
         CopCase::annotated(
             "Lint/UselessAssignment",
             r#"
@@ -756,6 +942,60 @@ fn catalogue() -> Vec<CopCase> {
         .severity(Severity::Convention)
         .correctable(true),
         // ---- Style ----
+        // 既定の `prefer_alias` では、字句スコープで書かれた `alias_method` が対象。
+        CopCase::annotated(
+            "Style/Alias",
+            r#"
+            alias_method :foo, :bar
+            ^^^^^^^^^^^^ Use `alias` instead of `alias_method` at the top level.
+            "#,
+        )
+        .id("style_alias")
+        .correctable(true),
+        // 定数が受け手のときは、名前が小文字を含む (=クラス名らしい) ものだけ対象。
+        CopCase::annotated(
+            "Style/CaseEquality",
+            r#"
+            Integer === x
+                    ^^^ Avoid the use of the case equality operator `===`.
+            "#,
+        )
+        .id("style_case_equality")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassAndModuleChildren",
+            r#"
+            class Foo::Bar
+                  ^^^^^^^^ Use nested module/class definitions instead of compact style.
+              X = 1
+            end
+            "#,
+        )
+        .id("style_class_and_module_children")
+        .correctable(true),
+        // 本体を持つクラスと、本体の有無を問わないモジュールが対象。直上の本物の
+        // コメント、`:nodoc:`、名前空間だけの本体は免除される。
+        CopCase::annotated(
+            "Style/Documentation",
+            r#"
+            class Foo
+            ^^^^^^^^^ Missing top-level documentation comment for `class Foo`.
+              def bar; end
+            end
+            "#,
+        )
+        .id("style_documentation")
+        .correctable(false),
+        // 書式文字列の中でだけ直せる。`format` の第 1 引数でなければ報告だけになる。
+        CopCase::annotated(
+            "Style/FormatStringToken",
+            r#"
+            x = format("%{foo}", foo: 1)
+                        ^^^^^^ Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).
+            "#,
+        )
+        .id("style_format_string_token")
+        .correctable(true),
         CopCase::annotated(
             "Style/FrozenStringLiteralComment",
             r#"
@@ -781,6 +1021,16 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_numeric_literals"),
+        // 既定の希望区切りは `%w` / `%i` が `[]`、`%r` が `{}`、それ以外が `()`。
+        CopCase::annotated(
+            "Style/PercentLiteralDelimiters",
+            r#"
+            %w(a b)
+            ^^^^^^^ `%w`-literals should be delimited by `[` and `]`.
+            "#,
+        )
+        .id("style_percent_literal_delimiters")
+        .correctable(true),
         CopCase::annotated(
             "Style/RedundantReturn",
             r#"
@@ -792,6 +1042,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_return")
         .locations(&[(2, 13, 2, 18)])
         .correctable(true),
+        // 既定の `slashes` では、スラッシュを含まない `%r` がスラッシュ形へ、
+        // スラッシュを含むスラッシュリテラルが `%r` 形へ回る。
+        CopCase::annotated(
+            "Style/RegexpLiteral",
+            r#"
+            x = %r{foo}
+                ^^^^^^^ Use `//` around regular expression.
+            "#,
+        )
+        .id("style_regexp_literal")
+        .correctable(true),
         CopCase::annotated(
             "Style/Semicolon",
             r#"
@@ -800,6 +1061,16 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_semicolon")
+        .correctable(true),
+        // 本体を持たない定義は `AllowIfMethodIsEmpty` で免除される。
+        CopCase::annotated(
+            "Style/SingleLineMethods",
+            r#"
+            def foo; bar; end
+            ^^^^^^^^^^^^^^^^^ Avoid single-line method definitions.
+            "#,
+        )
+        .id("style_single_line_methods")
         .correctable(true),
         CopCase::annotated(
             "Style/StringLiterals",
@@ -821,6 +1092,64 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_string_literals_multibyte")
         .locations(&[(1, 6, 1, 8)])
         .lengths(&[3]),
+        // 補間の中は `Style/StringLiterals` ではなくこちらが見る。既定は単引用符。
+        CopCase::annotated(
+            "Style/StringLiteralsInInterpolation",
+            r##"
+            a = "#{"x"}"
+                   ^^^ Prefer single-quoted strings inside interpolations.
+            "##,
+        )
+        .id("style_string_literals_in_interpolation")
+        .correctable(true),
+        // `MinSize` は 2。名前に空白や釣り合わない括弧を持つ配列は対象外。
+        CopCase::annotated(
+            "Style/SymbolArray",
+            r#"
+            a = [:foo, :bar]
+                ^^^^^^^^^^^^ Use `%i` or `%I` for an array of symbols.
+            "#,
+        )
+        .id("style_symbol_array")
+        .correctable(true),
+        // 既定の `no_comma` は、括弧付きの呼び出しと添字参照だけを見る。
+        CopCase::annotated(
+            "Style/TrailingCommaInArguments",
+            r#"
+            foo(1, 2,)
+                    ^ Avoid comma after the last parameter of a method call.
+            "#,
+        )
+        .id("style_trailing_comma_in_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingCommaInArrayLiteral",
+            r#"
+            a = [1, 2,]
+                     ^ Avoid comma after the last item of an array.
+            "#,
+        )
+        .id("style_trailing_comma_in_array_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingCommaInHashLiteral",
+            r#"
+            b = { c: 1, }
+                      ^ Avoid comma after the last item of a hash.
+            "#,
+        )
+        .id("style_trailing_comma_in_hash_literal")
+        .correctable(true),
+        // 単語に見えない中身 (空白・記号) を持つ配列は角括弧のまま残る。
+        CopCase::annotated(
+            "Style/WordArray",
+            r#"
+            b = ['one', 'two']
+                ^^^^^^^^^^^^^^ Use `%w` or `%W` for an array of words.
+            "#,
+        )
+        .id("style_word_array")
+        .correctable(true),
     ]
 }
 

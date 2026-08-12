@@ -1,7 +1,7 @@
-use tree_sitter::Node;
-
+use super::rescue_clause::{body, end};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use tree_sitter::Node;
 
 const MSG: &str = "Do not suppress exceptions.";
 
@@ -18,56 +18,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        offenses.push(context.offense(MSG, node.start_byte()..clause_end(node, &statements)));
+        offenses.push(context.offense(MSG, node.start_byte()..end(node, &statements)));
     }
-}
-
-/// Where the clause really ends. The grammar lets a `rescue` node run on over the trailing
-/// comments and the `;` that separates it from what comes next, which upstream's node stops short
-/// of -- but the `;` or `then` that introduces the body *is* part of it, empty body or not.
-fn clause_end(node: Node<'_>, statements: &[Node<'_>]) -> usize {
-    let mut end = node.start_byte();
-    let parts = ["exceptions", "variable"]
-        .iter()
-        .filter_map(|field| node.child_by_field_name(field));
-    for part in node
-        .child(0)
-        .into_iter()
-        .chain(parts)
-        .chain(statements.iter().copied())
-    {
-        end = end.max(part.end_byte());
-    }
-    let first_statement = statements
-        .first()
-        .map_or(usize::MAX, |statement| statement.start_byte());
-    let mut cursor = node.walk();
-    let mut tokens: Vec<Node<'_>> = node.children(&mut cursor).collect();
-    if let Some(body) = node.child_by_field_name("body") {
-        let mut body_cursor = body.walk();
-        tokens.extend(body.children(&mut body_cursor));
-    }
-    for token in tokens {
-        if !token.is_named()
-            && matches!(token.kind(), ";" | "then")
-            && token.start_byte() < first_statement
-        {
-            end = end.max(token.end_byte());
-        }
-    }
-    end
-}
-
-/// The statements the clause handles the exception with. A `;` is not one of them, and neither is
-/// a comment -- which is exactly why `AllowComments` has to look at the source lines instead.
-fn body<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(body) = node.child_by_field_name("body") else {
-        return Vec::new();
-    };
-    let mut cursor = body.walk();
-    body.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "empty_statement" | "comment" | "heredoc_body"))
-        .collect()
 }
 
 /// Whether a comment stands between the `rescue` and the `end` that closes what it belongs to.

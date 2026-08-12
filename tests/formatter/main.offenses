@@ -1,0 +1,9 @@
+
+2  Layout/TrailingWhitespace [Safe Correctable]
+1  Lint/UselessAssignment [Safe Correctable]
+1  Style/FrozenStringLiteralComment [Unsafe Correctable]
+1  Style/StringLiterals [Safe Correctable]
+1  Style/WordArray [Safe Correctable]
+--
+6  Total in 3 files
+

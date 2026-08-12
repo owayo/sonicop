@@ -11,6 +11,7 @@ mod directives;
 pub mod engine;
 mod formatter;
 mod magic_comment;
+mod nul_bytes;
 mod ruby_version;
 pub mod rules;
 pub mod source;

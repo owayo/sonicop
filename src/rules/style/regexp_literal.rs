@@ -53,23 +53,41 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             true => (format!("%r{}", preferred.0), preferred.1.to_string()),
             false => ("/".to_owned(), "/".to_owned()),
         };
+        // `correct_delimiters` rewrites the two delimiters and `correct_inner_slashes` each slash
+        // inside them, all as separate replacements: the parts of the body they do not name stay
+        // available to the other cops running in the same pass.
         let before = inner_slash_for(literal.opener);
         let after = inner_slash_for(&opening);
-        let text = context.source.text();
-        let replacement = format!(
-            "{opening}{}{closing}{}",
-            literal.body_text.replace(before, after),
-            &text[literal.close.end..node.end_byte()],
-        );
+        let mut edits = vec![Edit {
+            start: literal.begin.start,
+            end: literal.begin.end,
+            replacement: opening,
+            safe: true,
+        }];
+        if before != after {
+            let body_start = literal.begin.end;
+            edits.extend(
+                literal
+                    .body_text
+                    .match_indices(before)
+                    .map(|(offset, _)| Edit {
+                        start: body_start + offset,
+                        end: body_start + offset + before.len(),
+                        replacement: after.to_owned(),
+                        safe: true,
+                    }),
+            );
+        }
+        edits.push(Edit {
+            start: literal.close.start,
+            end: literal.close.end,
+            replacement: closing,
+            safe: true,
+        });
         offenses.push(
             context
                 .offense(message, node.byte_range())
-                .corrected_by(Edit {
-                    start: node.start_byte(),
-                    end: node.end_byte(),
-                    replacement,
-                    safe: true,
-                }),
+                .corrected_by_all(edits),
         );
     }
 }
@@ -78,6 +96,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 struct Literal<'a> {
     /// `loc.begin.source`: `/`, `%r{`, `%r/` and so on.
     opener: &'a str,
+    /// The span of that opener, which the correction replaces whole.
+    begin: std::ops::Range<usize>,
     /// The span of the closing delimiter alone, without any options that follow it.
     close: std::ops::Range<usize>,
     /// Everything between the delimiters, which is what the inner-slash correction rewrites.
@@ -116,6 +136,7 @@ impl<'a> Literal<'a> {
             opener: context.source.node_text(begin),
             body_text: &text[begin.end_byte()..close.start],
             literal_text,
+            begin: begin.byte_range(),
             close,
         })
     }
@@ -167,11 +188,7 @@ fn delimiters_conflict(body: &str, preferred: (char, char)) -> bool {
 
 /// `allowed_omit_parentheses_with_percent_r_literal?`: a `%r` literal handed to a method without
 /// parentheses, where a slash literal would read as division.
-fn omits_parentheses(
-    node: Node<'_>,
-    literal: &Literal<'_>,
-    omit_parentheses: bool,
-) -> bool {
+fn omits_parentheses(node: Node<'_>, literal: &Literal<'_>, omit_parentheses: bool) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };

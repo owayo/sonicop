@@ -19,34 +19,55 @@ pub(super) enum Quoting {
     Word,
 }
 
+/// A literal's content as the parser holds it: the value, and whether the bytes it names are text at
+/// all. A `\xFF` escape puts a byte in the string that UTF-8 has no character for, which upstream
+/// reads as `valid_encoding?` being false.
+pub(super) struct Decoded {
+    pub value: String,
+    pub valid: bool,
+}
+
 /// The value of a literal body, as the parser hands it to a cop.
-pub(super) fn decode(body: &str, quoting: Quoting, delimiters: &[char]) -> String {
-    let mut out = String::with_capacity(body.len());
+pub(super) fn decode(body: &str, quoting: Quoting, delimiters: &[char]) -> Decoded {
+    let bytes = decode_bytes(body, quoting, delimiters);
+    match String::from_utf8(bytes) {
+        Ok(value) => Decoded { value, valid: true },
+        Err(error) => Decoded {
+            value: String::from_utf8_lossy(error.as_bytes()).into_owned(),
+            valid: false,
+        },
+    }
+}
+
+fn decode_bytes(body: &str, quoting: Quoting, delimiters: &[char]) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::with_capacity(body.len());
     let mut characters = body.chars().peekable();
     while let Some(character) = characters.next() {
         if character != '\\' {
-            out.push(character);
+            push_char(character, &mut out);
             continue;
         }
         let Some(next) = characters.next() else {
-            out.push('\\');
+            out.push(b'\\');
             break;
         };
         match quoting {
             Quoting::Single => match next {
-                '\\' => out.push('\\'),
-                _ if delimiters.contains(&next) => out.push(next),
+                '\\' => out.push(b'\\'),
+                _ if delimiters.contains(&next) => push_char(next, &mut out),
                 _ => {
-                    out.push('\\');
-                    out.push(next);
+                    out.push(b'\\');
+                    push_char(next, &mut out);
                 }
             },
             Quoting::Word => match next {
-                '\\' => out.push('\\'),
-                _ if next.is_whitespace() || delimiters.contains(&next) => out.push(next),
+                '\\' => out.push(b'\\'),
+                _ if next.is_whitespace() || delimiters.contains(&next) => {
+                    push_char(next, &mut out)
+                }
                 _ => {
-                    out.push('\\');
-                    out.push(next);
+                    out.push(b'\\');
+                    push_char(next, &mut out);
                 }
             },
             Quoting::Double => decode_double_escape(next, &mut characters, &mut out),
@@ -55,21 +76,26 @@ pub(super) fn decode(body: &str, quoting: Quoting, delimiters: &[char]) -> Strin
     out
 }
 
+fn push_char(character: char, out: &mut Vec<u8>) {
+    let mut buffer = [0u8; 4];
+    out.extend_from_slice(character.encode_utf8(&mut buffer).as_bytes());
+}
+
 fn decode_double_escape(
     next: char,
     characters: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    out: &mut String,
+    out: &mut Vec<u8>,
 ) {
     match next {
-        'n' => out.push('\n'),
-        't' => out.push('\t'),
-        'r' => out.push('\r'),
-        'f' => out.push('\x0c'),
-        'v' => out.push('\x0b'),
-        'a' => out.push('\x07'),
-        'b' => out.push('\x08'),
-        'e' => out.push('\x1b'),
-        's' => out.push(' '),
+        'n' => out.push(b'\n'),
+        't' => out.push(b'\t'),
+        'r' => out.push(b'\r'),
+        'f' => out.push(0x0c),
+        'v' => out.push(0x0b),
+        'a' => out.push(0x07),
+        'b' => out.push(0x08),
+        'e' => out.push(0x1b),
+        's' => out.push(b' '),
         '\n' => {}
         'u' => decode_unicode(characters, out),
         'x' => {
@@ -85,7 +111,8 @@ fn decode_double_escape(
                     None => break,
                 }
             }
-            push_code_point(value, out);
+            // `\xNN` names a byte, not a character: `"\xFF"` is not text at all.
+            out.push(value as u8);
         }
         '0'..='7' => {
             let mut value = next.to_digit(8).unwrap_or(0);
@@ -100,13 +127,13 @@ fn decode_double_escape(
                     None => break,
                 }
             }
-            push_code_point(value, out);
+            out.push(value as u8);
         }
-        other => out.push(other),
+        other => push_char(other, out),
     }
 }
 
-fn decode_unicode(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, out: &mut String) {
+fn decode_unicode(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, out: &mut Vec<u8>) {
     if characters.peek() == Some(&'{') {
         characters.next();
         let mut value = 0u32;
@@ -147,9 +174,9 @@ fn decode_unicode(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, out
     push_code_point(value, out);
 }
 
-fn push_code_point(value: u32, out: &mut String) {
+fn push_code_point(value: u32, out: &mut Vec<u8>) {
     if let Some(character) = char::from_u32(value) {
-        out.push(character);
+        push_char(character, out);
     }
 }
 
@@ -301,10 +328,15 @@ pub(super) fn trim_interpolation_escape(value: &str) -> String {
 }
 
 /// The value of one string or symbol node, and whether it is a literal at all.
-pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
+pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Decoded> {
     let text = context.source.node_text(node);
     match node.kind() {
-        "simple_symbol" => Some(text.trim_start_matches(':').to_owned()),
+        "simple_symbol" => Some(Decoded {
+            value: text.trim_start_matches(':').to_owned(),
+            valid: true,
+        }),
+        // `?a` is a one-character `str` upstream, escapes and all.
+        "character" => Some(decode(text.trim_start_matches('?'), Quoting::Double, &[])),
         "string" | "delimited_symbol" | "subshell" => {
             let begin = node.child(0)?;
             let close = node.child(node.child_count().saturating_sub(1) as u32)?;

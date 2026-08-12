@@ -109,11 +109,11 @@ fn inspect(
         }
     };
 
-    let mut offense = context.offense(message, node.byte_range());
-    if let Some(edit) = correction(context, style, node, line, before, after) {
-        offense = offense.corrected_by(edit);
-    }
-    offenses.push(offense);
+    offenses.push(
+        context
+            .offense(message, node.byte_range())
+            .corrected_by_all(corrections(context, style, node, line, before, after)),
+    );
 }
 
 /// `allowed_only_before_style?`.
@@ -165,62 +165,52 @@ fn is_comment_line(text: &str) -> bool {
     text.trim_start_matches([' ', '\t']).starts_with('#')
 }
 
-fn correction(
+fn corrections(
     context: &RuleContext<'_>,
     style: &str,
     node: Node<'_>,
     line: usize,
     before: bool,
     after: bool,
-) -> Option<Edit> {
+) -> Vec<Edit> {
     let start = context.source.line_start(line);
     let text = context.source.text();
     let end = start + context.source.line(line).trim_end_matches('\n').len();
-    let insert_before = !before && should_insert_line_before(node);
+    let mut edits = Vec::new();
+    if !before && should_insert_line_before(node) {
+        edits.push(Edit {
+            start,
+            end: start,
+            replacement: "\n".to_owned(),
+            safe: true,
+        });
+    }
     match style {
+        // The blank line after the modifier goes away one character at a time, exactly as
+        // `next_empty_line_range` describes it.
         "only_before" => {
-            // The blank line after the modifier is removed one character at a time, exactly as
-            // `next_empty_line_range` describes it.
             if should_insert_line_after(node) && after && line + 1 != context.source.line_count() {
                 let removal = context.source.line_start(line + 1);
-                let mut replacement = String::new();
-                if insert_before {
-                    replacement.push('\n');
-                }
-                replacement.push_str(&text[start..end]);
-                replacement.push_str(&text[end..removal]);
-                return Some(Edit {
-                    start,
+                edits.push(Edit {
+                    start: removal,
                     end: removal + next_character_length(text, removal),
-                    replacement,
+                    replacement: String::new(),
                     safe: true,
                 });
             }
-            if !insert_before {
-                return None;
-            }
-            Some(Edit {
-                start,
-                end,
-                replacement: format!("\n{}", &text[start..end]),
-                safe: true,
-            })
         }
         _ => {
-            let insert_after = should_insert_line_after(node) && !after;
-            if !insert_before && !insert_after {
-                return None;
+            if should_insert_line_after(node) && !after {
+                edits.push(Edit {
+                    start: end,
+                    end,
+                    replacement: "\n".to_owned(),
+                    safe: true,
+                });
             }
-            let head = if insert_before { "\n" } else { "" };
-            let tail = if insert_after { "\n" } else { "" };
-            Some(Edit {
-                start,
-                end,
-                replacement: format!("{head}{}{tail}", &text[start..end]),
-                safe: true,
-            })
         }
     }
+    edits
 }
 
 fn next_character_length(text: &str, offset: usize) -> usize {

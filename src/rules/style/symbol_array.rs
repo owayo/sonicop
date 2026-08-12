@@ -55,7 +55,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("symbol_array") {
         let items = elements(context, node);
-        let values = percent_values(context, node, &items);
+        let values: Vec<String> = percent_values(context, node, &items)
+            .into_iter()
+            .map(|decoded| decoded.value)
+            .collect();
         let text = context.source.text();
         let sources: Vec<&str> = items.iter().map(|item| &text[item.range.clone()]).collect();
         let interpolations: Vec<bool> = items.iter().map(|item| item.interpolated).collect();
@@ -90,7 +93,7 @@ fn interpolated(node: Node<'_>) -> bool {
 fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Option<Vec<String>> {
     items
         .iter()
-        .map(|item| node_value(context, *item))
+        .map(|item| node_value(context, *item).map(|decoded| decoded.value))
         .collect()
 }
 

@@ -221,9 +221,7 @@ impl Reporter<'_, '_> {
             .context
             .offense(format!("{command} space inside array brackets."), range);
         if self.corrected.insert(node.id()) {
-            if let Some(edit) = self.correction(node) {
-                offense = offense.corrected_by(edit);
-            }
+            offense = offense.corrected_by_all(self.corrections(node));
         }
         offenses.push(offense);
     }
@@ -231,57 +229,93 @@ impl Reporter<'_, '_> {
     /// The whole of the node's correction, which upstream applies in one go from the first offense
     /// it reports. Both bracket sides are rewritten together, so a side that was excused from
     /// reporting still gets corrected.
-    fn correction(&self, node: Node<'_>) -> Option<Edit> {
-        let (left, right) = brackets(node);
-        let (left, right) = (left?, right?);
+    fn corrections(&self, node: Node<'_>) -> Vec<Edit> {
+        let (Some(left), Some(right)) = brackets(node) else {
+            return Vec::new();
+        };
         let text = self.context.source.text();
-        let inner = left.end_byte()..right.start_byte();
-        let between = &text[inner.clone()];
-        let replacement = match self.style {
+        let mut edits = Vec::new();
+        match self.style {
             "space" => {
-                let head = if extra_space_after(text, &left) {
-                    ""
-                } else {
-                    " "
-                };
-                let tail = if extra_space_before(text, &right) {
-                    ""
-                } else {
-                    " "
-                };
-                format!("{head}{between}{tail}")
-            }
-            "compact" => {
-                let head = if next_is_left_bracket(text, left.end_byte()) {
-                    between.trim_start_matches([' ', '\t', '\n']).to_owned()
-                } else if has_space_after(text, left.end_byte()) {
-                    between.to_owned()
-                } else {
-                    format!(" {between}")
-                };
-                if previous_is_right_bracket(text, right.start_byte()) {
-                    head.trim_end_matches([' ', '\t', '\n']).to_owned()
-                } else if has_space_before(text, right.start_byte()) {
-                    head
-                } else {
-                    format!("{head} ")
+                // `add_space` looks at any whitespace, so a bracket followed by a line break is
+                // already spaced out.
+                if !has_space_after(text, left.end_byte()) {
+                    edits.push(insert(left.end_byte()));
+                }
+                if !has_space_before(text, right.start_byte()) {
+                    edits.push(insert(right.start_byte()));
                 }
             }
-            _ => between
-                .trim_start_matches([' ', '\t'])
-                .trim_end_matches([' ', '\t'])
-                .to_owned(),
-        };
-        if replacement == between {
-            return None;
+            "compact" => {
+                if next_is_left_bracket(text, left.end_byte()) {
+                    let range = whitespace_after(text, left.end_byte());
+                    if !range.is_empty() {
+                        edits.push(remove(range));
+                    }
+                } else if !has_space_after(text, left.end_byte()) {
+                    edits.push(insert(left.end_byte()));
+                }
+                if previous_is_right_bracket(text, right.start_byte()) {
+                    let range = whitespace_before(text, right.start_byte());
+                    if !range.is_empty() {
+                        edits.push(remove(range));
+                    }
+                } else if !has_space_before(text, right.start_byte()) {
+                    edits.push(insert(right.start_byte()));
+                }
+            }
+            _ => {
+                // `remove_space` clears the run of spaces and tabs beside each bracket, which is
+                // empty when only a line break separates them.
+                let head = space_after(text, left.end_byte());
+                if has_space_after(text, left.end_byte()) && !head.is_empty() {
+                    edits.push(remove(head));
+                }
+                let tail = space_before(text, right.start_byte());
+                if has_space_before(text, right.start_byte()) && !tail.is_empty() {
+                    edits.push(remove(tail));
+                }
+            }
         }
-        Some(Edit {
-            start: inner.start,
-            end: inner.end,
-            replacement,
-            safe: true,
-        })
+        edits
     }
+}
+
+fn insert(offset: usize) -> Edit {
+    Edit {
+        start: offset,
+        end: offset,
+        replacement: " ".to_owned(),
+        safe: true,
+    }
+}
+
+fn remove(range: Range<usize>) -> Edit {
+    Edit {
+        start: range.start,
+        end: range.end,
+        replacement: String::new(),
+        safe: true,
+    }
+}
+
+/// Whitespace runs including line breaks, which `compact` collapses.
+fn whitespace_after(text: &str, offset: usize) -> Range<usize> {
+    let bytes = text.as_bytes();
+    let mut end = offset;
+    while matches!(bytes.get(end), Some(b' ' | b'\t' | b'\r' | b'\n')) {
+        end += 1;
+    }
+    offset..end
+}
+
+fn whitespace_before(text: &str, offset: usize) -> Range<usize> {
+    let bytes = text.as_bytes();
+    let mut start = offset;
+    while start > 0 && matches!(bytes[start - 1], b' ' | b'\t' | b'\r' | b'\n') {
+        start -= 1;
+    }
+    start..offset
 }
 
 /// The node's own `[` and `]`. Nested brackets belong to child nodes, so scanning direct children

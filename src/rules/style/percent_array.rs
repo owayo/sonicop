@@ -8,7 +8,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
-use super::literal::{Quoting, decode, escape_string, needs_escaping};
+use super::literal::{Decoded, Quoting, decode, escape_string, needs_escaping};
 
 /// One array literal written with brackets, ready to be judged against the percent form.
 pub(super) struct Bracketed<'tree> {
@@ -109,13 +109,17 @@ pub(super) fn allowed_bracket_array(context: &RuleContext<'_>, array: &Bracketed
 
 /// `comments_in_array?`: a comment anywhere but the literal's last line, which the percent form
 /// would have nowhere to put.
+///
+/// The comment spans are in source order, so the run covering the literal is found by bisection
+/// rather than by reading every comment in the file once per literal.
 fn comments_in_array(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let first = node.start_position().row + 1;
-    let last = node.end_position().row + 1;
-    context.comment_ranges().iter().any(|comment| {
-        let (line, _) = context.source.line_column(comment.start);
-        line >= first && line < last
-    })
+    let comments = context.comment_ranges();
+    let first = context.source.line_start(node.start_position().row + 1);
+    let last = context.source.line_start(node.end_position().row + 1);
+    let start = comments.partition_point(|comment| comment.start < first);
+    comments
+        .get(start)
+        .is_some_and(|comment| comment.start < last)
 }
 
 /// `invalid_percent_array_context?`: Ruby cannot parse a percent array where a block would follow.
@@ -246,7 +250,7 @@ pub(super) fn percent_values(
     context: &RuleContext<'_>,
     node: Node<'_>,
     elements: &[Element],
-) -> Vec<String> {
+) -> Vec<Decoded> {
     let text = context.source.text();
     let Some(begin) = node.child(0) else {
         return Vec::new();

@@ -38,13 +38,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
-        let text = context.source.text();
-        let replacement = format!(
-            "{}{opening}{}{closing}{}",
-            literal.percent_type,
-            &text[literal.begin.end..literal.close.start],
-            &text[literal.close.end..node.end_byte()],
-        );
+        // Upstream rewrites the opener and the closing delimiter and leaves everything between them
+        // alone, so another cop may still correct the contents in the same pass.
         offenses.push(
             context
                 .offense(
@@ -54,12 +49,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     ),
                     node.byte_range(),
                 )
-                .corrected_by(Edit {
-                    start: node.start_byte(),
-                    end: node.end_byte(),
-                    replacement,
-                    safe: true,
-                }),
+                .corrected_by_all([
+                    Edit {
+                        start: literal.begin.start,
+                        end: literal.begin.end,
+                        replacement: format!("{}{opening}", literal.percent_type),
+                        safe: true,
+                    },
+                    Edit {
+                        start: literal.close.start,
+                        end: literal.close.end,
+                        replacement: closing.to_string(),
+                        safe: true,
+                    },
+                ]),
         );
     }
 }

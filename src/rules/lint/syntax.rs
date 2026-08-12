@@ -54,6 +54,8 @@ struct Diagnostic {
     range: Range<usize>,
 }
 
+/// A source holding a NUL byte reaches every cop already rewritten the way Ruby's lexer reads one
+/// (see `crate::nul_bytes`), so there is nothing left to account for here.
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let target = context.target_ruby_version();
     let mut diagnostics = Vec::new();

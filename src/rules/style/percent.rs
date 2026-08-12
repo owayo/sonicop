@@ -119,7 +119,7 @@ pub(super) fn literal_segments<'a>(
 /// is modulo and `"%s" %[x]` is a `send` whose argument is an array. tree-sitter chains the two into
 /// one literal anyway, which would otherwise hand every such call a percent literal that upstream
 /// never saw.
-fn is_modulo_operand(node: Node<'_>) -> bool {
+pub(super) fn is_modulo_operand(node: Node<'_>) -> bool {
     node.parent()
         .is_some_and(|parent| parent.kind() == "chained_string")
         && node.prev_named_sibling().is_some()

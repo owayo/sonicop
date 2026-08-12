@@ -115,7 +115,7 @@ fn check_nested(
     }
     let offense = context.offense(NESTED_MSG, name.byte_range());
     offenses.push(match nested_correction(context, node, name) {
-        Some(edit) => offense.corrected_by(edit),
+        Some(edits) => offense.corrected_by_all(edits),
         None => offense,
     });
 }
@@ -145,9 +145,13 @@ fn body_statements<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 
 /// `nest_definition`: turn `class Foo::Bar` into a `Foo` wrapper holding `class Bar`.
 ///
-/// Upstream writes three separate replacements -- the keyword, the `::` and the closing `end` --
-/// which together span the whole definition, so they are emitted here as the one rewrite of it.
-fn nested_correction(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) -> Option<Edit> {
+/// Three replacements -- the keyword, the `::` and the closing `end` -- with the body between them
+/// left untouched, so the cops that correct inside it still can in the same pass.
+fn nested_correction(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    name: Node<'_>,
+) -> Option<Vec<Edit>> {
     let keyword = node.child(0)?;
     let closing = node.child(node.child_count().saturating_sub(1) as u32)?;
     if closing.kind() != "end" {
@@ -158,7 +162,6 @@ fn nested_correction(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
         .children(&mut cursor)
         .find(|child| child.kind() == "::")?;
 
-    let text = context.source.text();
     let (_, column) = context.source.line_column(node.start_byte());
     let (_, end_column) = context.source.line_column(closing.start_byte());
     let width: usize = context
@@ -169,20 +172,31 @@ fn nested_correction(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
     let leading = leading_spaces(context, node.start_byte());
     let padding = " ".repeat(column - 1 + width) + &leading;
     let keyword_source = context.source.node_text(keyword);
-    let replacement = format!(
-        "{}{}\n{padding}{keyword_source} {}{}end\n{leading}end",
-        namespace_keyword(context, node, name),
-        &text[keyword.end_byte()..separator.start_byte()],
-        &text[separator.end_byte()..closing.start_byte()],
-        drop_one_run(&padding, end_column - 1),
-    );
-    Some(Edit {
-        start: node.start_byte(),
-        end: node.end_byte(),
-        replacement,
-        // The cop is declared `SafeAutoCorrect: false`: the wrapper's kind is only a guess.
-        safe: false,
-    })
+    // The cop is declared `SafeAutoCorrect: false`: the wrapper's kind is only a guess.
+    let safe = false;
+    Some(vec![
+        Edit {
+            start: keyword.start_byte(),
+            end: keyword.end_byte(),
+            replacement: namespace_keyword(context, node, name).to_owned(),
+            safe,
+        },
+        Edit {
+            start: separator.start_byte(),
+            end: separator.end_byte(),
+            replacement: format!("\n{padding}{keyword_source} "),
+            safe,
+        },
+        Edit {
+            start: closing.start_byte(),
+            end: closing.end_byte(),
+            replacement: format!(
+                "{}end\n{leading}end",
+                drop_one_run(&padding, end_column - 1)
+            ),
+            safe,
+        },
+    ])
 }
 
 /// `padding.sub(' ' * column, '')`: one run of that many spaces comes back out of the padding.

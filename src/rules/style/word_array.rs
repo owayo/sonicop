@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use regex::Regex;
@@ -6,7 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
-use super::literal::{node_value, to_string_literal, trim_interpolation_escape};
+use super::literal::{Decoded, node_value, to_string_literal, trim_interpolation_escape};
 use super::nodes;
 use super::percent_array::{
     Bracketed, Element, allowed_bracket_array, bracketed_replacement, elements,
@@ -25,17 +26,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "percent".to_owned());
     let word = word_regex(context);
+    // Upstream caches this for the same reason: without it every row of a matrix re-reads the whole
+    // matrix, which turns a table of literals into quadratic work.
+    let mut matrix = HashMap::new();
 
     for node in context.nodes_of("array") {
         let items = nodes::children(node);
         if items.is_empty() || !items.iter().all(|item| is_word(context, *item)) {
             continue;
         }
-        let Some(values) = values(context, &items) else {
-            continue;
-        };
+        let values = values(context, &items);
         if complex_content(&values, word.as_ref())
-            || within_matrix_of_complex_content(context, node, word.as_ref())
+            || within_matrix_of_complex_content(context, node, word.as_ref(), &mut matrix)
         {
             continue;
         }
@@ -43,7 +45,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if allowed_bracket_array(context, &array) || style != "percent" {
             continue;
         }
-        let replacement = percent_replacement(context, &array, 'w', &values);
+        let contents: Vec<String> = values
+            .iter()
+            .map(|value| value.as_ref().map_or_else(String::new, |v| v.value.clone()))
+            .collect();
+        let replacement = percent_replacement(context, &array, 'w', &contents);
         offenses.push(
             context
                 .offense(PERCENT_MSG, node.byte_range())
@@ -58,7 +64,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("string_array") {
         let items = elements(context, node);
-        let values = percent_values(context, node, &items);
+        let decoded = percent_values(context, node, &items);
+        // An interpolated word is a `dstr`, whose `str_content` is nil and which upstream therefore
+        // never measures.
+        let values: Vec<Option<Decoded>> = items
+            .iter()
+            .zip(&decoded)
+            .map(|(item, value)| match item.interpolated {
+                true => None,
+                false => Some(Decoded {
+                    value: value.value.clone(),
+                    valid: value.valid,
+                }),
+            })
+            .collect();
         // `invalid_percent_array_contents?` drops the word test: only a blank forces brackets.
         let brackets_required = complex_content(&values, None);
         if style != "brackets" && !brackets_required {
@@ -67,8 +86,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let text = context.source.text();
         let written: Vec<String> = items
             .iter()
-            .zip(&values)
-            .map(|(item, value)| word_source(&text[item.range.clone()], item, value))
+            .zip(&decoded)
+            .map(|(item, value)| word_source(&text[item.range.clone()], item, &value.value))
             .collect();
         let bracketed = bracketed_replacement(context, node, &items, &written);
         offenses.push(percent_array_offense(context, node, ARRAY_MSG, bracketed));
@@ -76,11 +95,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 /// `bracketed_array_of?(:str, node)`: a plain string, so neither interpolated nor split across
-/// lines, both of which upstream's parser turns into a `dstr`.
+/// lines, both of which upstream's parser turns into a `dstr`. A `?a` character literal is a `str`
+/// there too.
 fn is_word(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "string"
-        && !interpolated(node)
-        && !context.source.node_text(node).contains('\n')
+    match node.kind() {
+        "character" => true,
+        "string" => !interpolated(node) && !context.source.node_text(node).contains('\n'),
+        _ => false,
+    }
 }
 
 fn interpolated(node: Node<'_>) -> bool {
@@ -89,18 +111,25 @@ fn interpolated(node: Node<'_>) -> bool {
         .any(|child| child.kind() == "interpolation")
 }
 
-fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Option<Vec<String>> {
+/// The values upstream measures, with a `None` where `str_content` is nil -- anything that is not a
+/// plain string, which `complex_content?` skips rather than judges.
+fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Vec<Option<Decoded>> {
     items
         .iter()
-        .map(|item| node_value(context, *item))
+        .map(|item| match is_word(context, *item) {
+            true => node_value(context, *item),
+            false => None,
+        })
         .collect()
 }
 
-/// `complex_content?`: a word that does not look like one, or that holds a blank.
-fn complex_content(values: &[String], word: Option<&Regex>) -> bool {
-    values
-        .iter()
-        .any(|value| word.is_some_and(|pattern| !pattern.is_match(value)) || value.contains(' '))
+/// `complex_content?`: a word that does not look like one, holds a blank, or is not text at all.
+fn complex_content(values: &[Option<Decoded>], word: Option<&Regex>) -> bool {
+    values.iter().flatten().any(|decoded| {
+        !decoded.valid
+            || word.is_some_and(|pattern| !pattern.is_match(&decoded.value))
+            || decoded.value.contains(' ')
+    })
 }
 
 /// `within_matrix_of_complex_content?`: a row of a table whose other rows hold phrases keeps its
@@ -109,6 +138,7 @@ fn within_matrix_of_complex_content(
     context: &RuleContext<'_>,
     node: Node<'_>,
     word: Option<&Regex>,
+    cache: &mut HashMap<usize, bool>,
 ) -> bool {
     let Some(parent) = node.parent() else {
         return false;
@@ -116,12 +146,16 @@ fn within_matrix_of_complex_content(
     if parent.kind() != "array" {
         return false;
     }
+    if let Some(known) = cache.get(&parent.id()) {
+        return *known;
+    }
     let rows = nodes::children(parent);
-    rows.iter().all(|row| row.kind() == "array")
-        && rows.iter().any(|row| {
-            let items = nodes::children(*row);
-            values(context, &items).is_some_and(|values| complex_content(&values, word))
-        })
+    let matrix = rows.iter().all(|row| row.kind() == "array")
+        && rows
+            .iter()
+            .any(|row| complex_content(&values(context, &nodes::children(*row)), word));
+    cache.insert(parent.id(), matrix);
+    matrix
 }
 
 /// `build_bracketed_array`'s per-element source: a `dstr` keeps its written form, a plain word is

@@ -1,0 +1,23 @@
+Inspecting 4 files
+CC.W
+
+Offenses:
+
+alpha.rb:1:1: C: [Correctable] Style/FrozenStringLiteralComment: Missing frozen string literal comment.
+x = "a<b>&c"
+^
+alpha.rb:1:5: C: [Correctable] Style/StringLiterals: Prefer single-quoted strings when you don't need string interpolation or special symbols.
+x = "a<b>&c"
+    ^^^^^^^^
+alpha.rb:2:6: C: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected.
+y = 1  
+     ^^
+alpha.rb:3:1: C: [Correctable] Layout/TrailingWhitespace: Trailing whitespace detected.
+beta/gamma.rb:3:5: C: [Correctable] Style/WordArray: Use %w or %W for an array of words.
+z = [ ...
+    ^
+tabbed.rb:4:2: W: [Correctable] Lint/UselessAssignment: Useless assignment to variable - value.
+	value = 1
+	^^^^^
+
+4 files inspected, 6 offenses detected, 6 offenses autocorrectable

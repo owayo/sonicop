@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::Range;
 
 use crate::cop_name::department;
@@ -23,15 +23,25 @@ impl DirectiveState {
         let mut current = Snapshot::default();
         let mut stack = Vec::new();
         let mut line_states = Vec::with_capacity(source.line_count());
-        let comment_starts: HashSet<usize> =
-            comment_ranges.iter().map(|range| range.start).collect();
+        // Where the first comment written on each line begins, as an offset into that line. Only
+        // the parse knows this: a `#` can open a comment, an interpolation or nothing at all
+        // depending on what it stands inside of.
+        let mut comment_starts: HashMap<usize, usize> = HashMap::new();
+        for range in comment_ranges {
+            let (line_number, _) = source.line_column(range.start);
+            let column = range.start - source.line_start(line_number);
+            comment_starts
+                .entry(line_number)
+                .and_modify(|first| *first = (*first).min(column))
+                .or_insert(column);
+        }
 
         for line_number in 1..=source.line_count() {
             let line = source.line(line_number);
             let before = current.clone();
-            let directive = find_comment_start(line)
-                .filter(|start| comment_starts.contains(&(source.line_start(line_number) + start)))
-                .and_then(|_| parse_directive(line));
+            let directive = comment_starts
+                .get(&line_number)
+                .and_then(|&start| parse_directive(line, start));
 
             if let Some(directive) = directive {
                 if directive.inline && matches!(directive.action, Action::Disable) {
@@ -129,9 +139,8 @@ struct Directive {
     inline: bool,
 }
 
-fn parse_directive(line: &str) -> Option<Directive> {
-    let comment_start = find_comment_start(line)?;
-    let comment = &line[comment_start..];
+fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
+    let comment = line.get(comment_start..)?;
     let marker_end = marker_end(comment)?;
     let command = comment[marker_end..].trim_start();
     let mode_end = command.find(char::is_whitespace).unwrap_or(command.len());
@@ -242,33 +251,6 @@ fn cop_name_length(text: &str) -> Option<usize> {
         }
         index += 1;
     }
-}
-
-fn find_comment_start(line: &str) -> Option<usize> {
-    let mut escaped = false;
-    let mut quote = None;
-    for (index, character) in line.char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        if character == '\\' {
-            escaped = true;
-            continue;
-        }
-        if matches!(character, '\'' | '"') {
-            if quote == Some(character) {
-                quote = None;
-            } else if quote.is_none() {
-                quote = Some(character);
-            }
-            continue;
-        }
-        if character == '#' && quote.is_none() {
-            return Some(index);
-        }
-    }
-    None
 }
 
 fn marker_end(comment: &str) -> Option<usize> {

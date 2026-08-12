@@ -342,11 +342,11 @@ impl Hash {
         let Some(element) = self.elements.iter().find(|element| element.id == id) else {
             return;
         };
-        let mut offense = context.offense(message, element.range.clone());
-        if let Some(edit) = correction(context, element, delta) {
-            offense = offense.corrected_by(edit);
-        }
-        offenses.push(offense);
+        offenses.push(
+            context
+                .offense(message, element.range.clone())
+                .corrected_by_all(corrections(context, element, delta)),
+        );
     }
 
     fn deltas_for_first_pair(&self, style: Style, first: &Element) -> Deltas {
@@ -523,7 +523,7 @@ fn separator_value_delta(first: &Element, current: &Element) -> i64 {
     a.column - b.column
 }
 
-fn correction(context: &RuleContext<'_>, element: &Element, delta: Deltas) -> Option<Edit> {
+fn corrections(context: &RuleContext<'_>, element: &Element, delta: Deltas) -> Vec<Edit> {
     let mut edits = Edits::new(context.source.text());
     if element.kwsplat || element.omitted_value || element.value_start.is_none() {
         edits.adjust(element.range.start, delta.key.unwrap_or(0));
