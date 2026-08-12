@@ -12971,3 +12971,292 @@ mod redundant_cop_disable_directive {
         );
     }
 }
+
+/// 空白・整列まわりの Layout cop。期待値は本家 1.89.0 の
+/// `--only <cop> --format json` と `-A` の実測。
+mod layout_spacing_and_alignment {
+    use super::*;
+
+    /// `.` と `&.` と `::` の周りの空白。`::` はメソッド呼び出しでは見ない。
+    #[test]
+    fn space_around_method_call_operator() {
+        const COP: &str = "Layout/SpaceAroundMethodCallOperator";
+        expect_offense(
+            COP,
+            r#"
+            foo. bar
+                ^ Avoid using spaces around a method call operator.
+            "#,
+        );
+        expect_correction(COP, "foo. bar\n", "foo.bar\n");
+        expect_correction(COP, "foo &.bar\n", "foo&.bar\n");
+        expect_correction(COP, "RuboCop:: Cop\n", "RuboCop::Cop\n");
+        // 代入先の定数パスは本家では `casgn` なので `on_const` が呼ばれない。
+        expect_no_offenses(COP, "Foo:: Bar = 1\n");
+        // 行をまたぐチェーンは空白ではない。
+        expect_no_offenses(COP, "foo\n  .bar\n");
+        // `::` を使ったメソッド呼び出しは `dot?` でも `safe_navigation?` でもない。
+        expect_no_offenses(COP, "foo:: bar\n");
+    }
+
+    /// 添字の括弧の内側。1 ノードにつき corrector は 1 回しか回らない。
+    #[test]
+    fn space_inside_reference_brackets() {
+        const COP: &str = "Layout/SpaceInsideReferenceBrackets";
+        CopCase::new(
+            COP,
+            "a[ :k ]\n",
+            vec![
+                Annotation::new(1, 3, 1, "Do not use space inside reference brackets."),
+                Annotation::new(1, 6, 1, "Do not use space inside reference brackets."),
+            ],
+        )
+        .corrected("a[:k]\n")
+        .run();
+        expect_no_offenses(COP, "b[]\n");
+        expect_no_offenses(COP, "a[:k]\n");
+        // 複数行の添字は空でない限り対象外。
+        expect_no_offenses(COP, "a[\n  :k\n]\n");
+    }
+
+    /// `{` の左の空白。`do` ブロックは対象外。
+    #[test]
+    fn space_before_block_braces() {
+        const COP: &str = "Layout/SpaceBeforeBlockBraces";
+        expect_offense(
+            COP,
+            r#"
+            7.times{}
+                   ^ Space missing to the left of {.
+            "#,
+        );
+        expect_correction(COP, "7.times{}\n", "7.times {}\n");
+        expect_correction(COP, "x = [1].map{ |a| a }\n", "x = [1].map { |a| a }\n");
+        expect_no_offenses(COP, "7.times {}\n");
+        expect_no_offenses(COP, "7.times do\nend\n");
+    }
+
+    /// 既定引数の `=` の周り。値は 3 番目のトークンから始まる。
+    #[test]
+    fn space_around_equals_in_parameter_default() {
+        const COP: &str = "Layout/SpaceAroundEqualsInParameterDefault";
+        expect_offense(
+            COP,
+            r#"
+            def m(a=1)
+                   ^ Surrounding space missing in default value assignment.
+            end
+            "#,
+        );
+        expect_correction(COP, "def m(a=1)\nend\n", "def m(a = 1)\nend\n");
+        expect_no_offenses(COP, "def m(a = 1)\nend\n");
+        // キーワード引数は `kwoptarg` なので対象外。
+        expect_no_offenses(COP, "def m(a: 1)\nend\n");
+    }
+
+    /// パイプの内側と閉じパイプの後ろ。
+    #[test]
+    fn space_around_block_parameters() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        CopCase::new(
+            COP,
+            "[1].each { | a | a }\n",
+            vec![
+                Annotation::new(1, 13, 1, "Space before first block parameter detected."),
+                Annotation::new(1, 15, 1, "Space after last block parameter detected."),
+            ],
+        )
+        .corrected("[1].each { |a| a }\n")
+        .run();
+        expect_offense(
+            COP,
+            r#"
+            [2].each { |b|b }
+                         ^ Space after closing `|` missing.
+            "#,
+        );
+        expect_correction(COP, "[2].each { |b|b }\n", "[2].each { |b| b }\n");
+        expect_no_offenses(COP, "[1].each { |a, b| a }\n");
+    }
+
+    /// 行末コメントの手前の空白。ヒアドキュメント本文中の `#` は数えない。
+    #[test]
+    fn space_before_comment() {
+        const COP: &str = "Layout/SpaceBeforeComment";
+        expect_offense(
+            COP,
+            r#"
+            y = 1#comment
+                 ^^^^^^^^ Put a space before an end-of-line comment.
+            "#,
+        );
+        expect_correction(COP, "y = 1#comment\n", "y = 1 #comment\n");
+        expect_no_offenses(COP, "y = 1 #comment\n");
+        expect_no_offenses(COP, "# comment\n");
+        expect_no_offenses(COP, "x = <<~T\n  a#b\nT\n");
+    }
+
+    /// ヒアドキュメントの終端の字下げ。`loc.heredoc_end` は行頭から始まる。
+    #[test]
+    fn closing_heredoc_indentation() {
+        const COP: &str = "Layout/ClosingHeredocIndentation";
+        CopCase::new(
+            COP,
+            "def foo\n  <<~SQL\n    Hi\n      SQL\nend\n",
+            vec![Annotation::new(
+                4,
+                1,
+                9,
+                "`SQL` is not aligned with `<<~SQL`.",
+            )],
+        )
+        .corrected("def foo\n  <<~SQL\n    Hi\n  SQL\nend\n")
+        .run();
+        expect_no_offenses(COP, "def foo\n  <<~SQL\n    Hi\n  SQL\nend\n");
+        // `<<EOS` の終端は行頭に置くしかないので見ない。
+        expect_no_offenses(COP, "def foo\n  <<SQL\n    Hi\nSQL\nend\n");
+    }
+
+    /// 引数の周りの空行。消えるのは直前の 1 行だけ。
+    #[test]
+    fn empty_lines_around_arguments() {
+        const COP: &str = "Layout/EmptyLinesAroundArguments";
+        CopCase::new(
+            COP,
+            "foo(a,\n\n  b\n)\n",
+            vec![Annotation::new(
+                2,
+                1,
+                1,
+                "Empty line detected around arguments.",
+            )],
+        )
+        .locations(&[(2, 1, 3, 1)])
+        .corrected("foo(a,\n  b\n)\n")
+        .run();
+        expect_no_offenses(COP, "foo(a,\n  b\n)\n");
+        expect_no_offenses(COP, "foo(a, b)\n");
+    }
+
+    /// ブロックの引数と本体の位置。2 つの検査は同時には発火しない。
+    #[test]
+    fn multiline_block_layout() {
+        const COP: &str = "Layout/MultilineBlockLayout";
+        CopCase::new(
+            COP,
+            "bar { |a,\n  b| a }\n",
+            vec![Annotation::new(
+                1,
+                7,
+                8,
+                "Block argument expression is not on the same line as the block start.",
+            )],
+        )
+        .locations(&[(1, 7, 2, 4)])
+        .corrected("bar { |a, b|\n  a }\n")
+        .run();
+        CopCase::new(
+            COP,
+            "baz {\n  |a| a }\n",
+            vec![Annotation::new(
+                2,
+                3,
+                3,
+                "Block argument expression is not on the same line as the block start.",
+            )],
+        )
+        .corrected("baz { |a|\n  a }\n")
+        .run();
+        expect_no_offenses(COP, "bar { |a, b|\n  a\n}\n");
+        expect_no_offenses(COP, "bar { |a| a }\n");
+    }
+
+    /// `rescue` と `ensure` の位置。既定では行頭に揃える。
+    #[test]
+    fn rescue_ensure_alignment() {
+        const COP: &str = "Layout/RescueEnsureAlignment";
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n  rescue StandardError\n  baz\n  ensure\n  qux\nend\n",
+            vec![
+                Annotation::new(
+                    3,
+                    3,
+                    6,
+                    "`rescue` at 3, 2 is not aligned with `def foo` at 1, 0.",
+                ),
+                Annotation::new(
+                    5,
+                    3,
+                    6,
+                    "`ensure` at 5, 2 is not aligned with `def foo` at 1, 0.",
+                ),
+            ],
+        )
+        .corrected("def foo\n  bar\nrescue StandardError\n  baz\nensure\n  qux\nend\n")
+        .run();
+        expect_no_offenses(COP, "def foo\n  bar\nrescue StandardError\n  baz\nend\n");
+        // 修飾子の `rescue` は別のノードなので見ない。
+        expect_no_offenses(COP, "def foo\n  bar rescue baz\nend\n");
+    }
+
+    /// 自分の行に書かれたコメントの字下げ。基準は次の非空行。
+    #[test]
+    fn comment_indentation() {
+        const COP: &str = "Layout/CommentIndentation";
+        CopCase::new(
+            COP,
+            "def a\n    # comment\n  b\nend\n",
+            vec![Annotation::new(
+                2,
+                5,
+                9,
+                "Incorrect indentation detected (column 4 instead of 2).",
+            )],
+        )
+        .corrected("def a\n  # comment\n  b\nend\n")
+        .run();
+        expect_no_offenses(COP, "def a\n  # comment\n  b\nend\n");
+        // 行末コメントは対象外。
+        expect_no_offenses(COP, "def a\n  b # comment\nend\n");
+        // `end` の手前は 1 段深い方に揃える。
+        expect_no_offenses(COP, "def a\n  b\n  # comment\nend\n");
+    }
+
+    /// キーワードの前後の空白。`(` を許すキーワードは決まっている。
+    #[test]
+    fn space_around_keyword() {
+        const COP: &str = "Layout/SpaceAroundKeyword";
+        expect_offense(
+            COP,
+            r#"
+            if(x)
+            ^^ Space after keyword `if` is missing.
+            end
+            "#,
+        );
+        expect_correction(COP, "if(x)\nend\n", "if (x)\nend\n");
+        expect_correction(COP, "while(y)\nend\n", "while (y)\nend\n");
+        expect_no_offenses(COP, "if (x)\nend\n");
+        // `return` / `super` / `yield` は `(` をそのまま続けてよい。
+        expect_no_offenses(COP, "def a\n  return(1)\nend\n");
+        expect_no_offenses(COP, "def a\n  yield(1)\nend\n");
+    }
+
+    /// 閉じ括弧の字下げ。引数が無いときは 3 つの候補のどれかであればよい。
+    #[test]
+    fn closing_parenthesis_indentation() {
+        const COP: &str = "Layout/ClosingParenthesisIndentation";
+        CopCase::new(
+            COP,
+            "foo(a,\n  b\n    )\n",
+            vec![Annotation::new(3, 5, 1, "Indent `)` to column 0 (not 4)")],
+        )
+        .corrected("foo(a,\n  b\n)\n")
+        .run();
+        expect_no_offenses(COP, "foo(a,\n  b\n)\n");
+        expect_no_offenses(COP, "baz(\n  a\n)\n");
+        expect_no_offenses(COP, "qux(\n)\n");
+        expect_no_offenses(COP, "def foo(a,\n  b\n)\nend\n");
+    }
+}

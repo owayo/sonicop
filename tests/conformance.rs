@@ -857,6 +857,179 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_condition_position")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::new(
+            "Layout/ClosingHeredocIndentation",
+            "def foo\n  <<~SQL\n    Hi\n      SQL\nend\n",
+            vec![support::annotation::Annotation::new(
+                4,
+                1,
+                9,
+                "`SQL` is not aligned with `<<~SQL`.",
+            )],
+        )
+        .id("layout_closing_heredoc_indentation")
+        .correctable(true),
+        CopCase::new(
+            "Layout/ClosingParenthesisIndentation",
+            "foo(a,\n  b\n    )\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                5,
+                1,
+                "Indent `)` to column 0 (not 4)",
+            )],
+        )
+        .id("layout_closing_parenthesis_indentation")
+        .correctable(true),
+        CopCase::new(
+            "Layout/CommentIndentation",
+            "def a\n    # comment\n  b\nend\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                5,
+                9,
+                "Incorrect indentation detected (column 4 instead of 2).",
+            )],
+        )
+        .id("layout_comment_indentation")
+        .correctable(true),
+        CopCase::new(
+            "Layout/EmptyLinesAroundArguments",
+            "foo(a,\n\n  b\n)\n",
+            vec![support::annotation::Annotation::new(
+                2,
+                1,
+                1,
+                "Empty line detected around arguments.",
+            )],
+        )
+        .id("layout_empty_lines_around_arguments")
+        .locations(&[(2, 1, 3, 1)])
+        .correctable(true),
+        CopCase::new(
+            "Layout/MultilineBlockLayout",
+            "bar { |a,\n  b| a }\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                7,
+                8,
+                "Block argument expression is not on the same line as the block start.",
+            )],
+        )
+        .id("layout_multiline_block_layout")
+        .locations(&[(1, 7, 2, 4)])
+        .correctable(true),
+        CopCase::new(
+            "Layout/RescueEnsureAlignment",
+            "def foo\n  bar\n  rescue StandardError\n  baz\nend\n",
+            vec![support::annotation::Annotation::new(
+                3,
+                3,
+                6,
+                "`rescue` at 3, 2 is not aligned with `def foo` at 1, 0.",
+            )],
+        )
+        .id("layout_rescue_ensure_alignment")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceAroundBlockParameters",
+            "[1].each { | a | a }\n",
+            vec![
+                support::annotation::Annotation::new(
+                    1,
+                    13,
+                    1,
+                    "Space before first block parameter detected.",
+                ),
+                support::annotation::Annotation::new(
+                    1,
+                    15,
+                    1,
+                    "Space after last block parameter detected.",
+                ),
+            ],
+        )
+        .id("layout_space_around_block_parameters")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceAroundEqualsInParameterDefault",
+            "def m(a=1)\nend\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                8,
+                1,
+                "Surrounding space missing in default value assignment.",
+            )],
+        )
+        .id("layout_space_around_equals_in_parameter_default")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceAroundKeyword",
+            "if(x)\nend\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                1,
+                2,
+                "Space after keyword `if` is missing.",
+            )],
+        )
+        .id("layout_space_around_keyword")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceAroundMethodCallOperator",
+            "foo. bar\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                5,
+                1,
+                "Avoid using spaces around a method call operator.",
+            )],
+        )
+        .id("layout_space_around_method_call_operator")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceBeforeBlockBraces",
+            "7.times{}\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                8,
+                1,
+                "Space missing to the left of {.",
+            )],
+        )
+        .id("layout_space_before_block_braces")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceBeforeComment",
+            "y = 1#comment\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                6,
+                8,
+                "Put a space before an end-of-line comment.",
+            )],
+        )
+        .id("layout_space_before_comment")
+        .correctable(true),
+        CopCase::new(
+            "Layout/SpaceInsideReferenceBrackets",
+            "a[ :k ]\n",
+            vec![
+                support::annotation::Annotation::new(
+                    1,
+                    3,
+                    1,
+                    "Do not use space inside reference brackets.",
+                ),
+                support::annotation::Annotation::new(
+                    1,
+                    6,
+                    1,
+                    "Do not use space inside reference brackets.",
+                ),
+            ],
+        )
+        .id("layout_space_inside_reference_brackets"),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",
