@@ -2004,6 +2004,111 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_word_array")
         .correctable(true),
+        // 空の定義は 1 行に。行で見るコメント判定に引っかからないもののみ。
+        CopCase::annotated(
+            "Style/EmptyMethod",
+            r#"
+            def foo(bar)
+            ^^^^^^^^^^^^ Put empty method definitions on a single line.
+            end
+            "#,
+        )
+        .id("style_empty_method")
+        .correctable(true),
+        // 単線の lambda は `->` で書く。報告は send のレンジだけ。
+        CopCase::annotated(
+            "Style/Lambda",
+            r#"
+            a = lambda { |x| x }
+                ^^^^^^ Use the `-> { ... }` lambda literal syntax for single line lambdas.
+            "#,
+        )
+        .id("style_lambda")
+        .correctable(true),
+        // 大文字の基数接頭辞は小文字へ。
+        CopCase::annotated(
+            "Style/NumericLiteralPrefix",
+            r#"
+            a = 0O1234
+                ^^^^^^ Use 0o for octal literals.
+            "#,
+        )
+        .id("style_numeric_literal_prefix")
+        .correctable(true),
+        // `== 0` は述語で書ける。既定は unsafe なので `-A` でだけ直る。
+        CopCase::annotated(
+            "Style/NumericPredicate",
+            r#"
+            a = foo == 0
+                ^^^^^^^^ Use `foo.zero?` instead of `foo == 0`.
+            "#,
+        )
+        .id("style_numeric_predicate")
+        .correctable(true),
+        // Perl 由来の後方参照は `Regexp.last_match` へ。
+        CopCase::annotated(
+            "Style/PerlBackrefs",
+            r#"
+            puts $1
+                 ^^ Prefer `Regexp.last_match(1)` over `$1`.
+            "#,
+        )
+        .id("style_perl_backrefs")
+        .correctable(true),
+        // 連鎖の頂点で 1 度だけ報告する。
+        CopCase::annotated(
+            "Style/StringConcatenation",
+            r#"
+            a = 'x' + y + 'z'
+                ^^^^^^^^^^^^^ Prefer string interpolation to string concatenation.
+            "#,
+        )
+        .id("style_string_concatenation")
+        .correctable(true),
+        // 配列末尾の裸のハッシュは波括弧で包む。
+        CopCase::annotated(
+            "Style/HashAsLastArrayItem",
+            r#"
+            a = [1, 2, one: 1, two: 2]
+                       ^^^^^^^^^^^^^^ Wrap hash in `{` and `}`.
+            "#,
+        )
+        .id("style_hash_as_last_array_item")
+        .correctable(true),
+        // 既定の explicit では、クラスを名指ししない `rescue` を報告する。
+        CopCase::annotated(
+            "Style/RescueStandardError",
+            r#"
+            begin
+              foo
+            rescue
+            ^^^^^^ Avoid rescuing without specifying an error class.
+              bar
+            end
+            "#,
+        )
+        .id("style_rescue_standard_error")
+        .correctable(true),
+        // 標準ストリームは定数ではなくグローバル変数で綴る。
+        CopCase::annotated(
+            "Style/GlobalStdStream",
+            r#"
+            STDOUT.puts 'a'
+            ^^^^^^ Use `$stdout` instead of `STDOUT`.
+            "#,
+        )
+        .id("style_global_std_stream")
+        .correctable(true),
+        // 既定の short では `has_key?` の側を報告する。
+        CopCase::annotated(
+            "Style/PreferredHashMethods",
+            r#"
+            h.has_key?(:a)
+              ^^^^^^^^ Use `Hash#key?` instead of `Hash#has_key?`.
+            "#,
+        )
+        .id("style_preferred_hash_methods")
+        .correctable(true),
     ]
 }
 

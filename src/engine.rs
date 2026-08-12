@@ -361,6 +361,40 @@ fn encoding_declaration(head: &str) -> Option<String> {
     MagicComment::parse(line).encoding()
 }
 
+/// How a source's declared encoding reads the bytes of a string literal.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum LiteralEncoding {
+    /// Bytes above ASCII join into the character their UTF-8 spells.
+    Text,
+    /// Only ASCII is text. A literal written with nothing but ASCII keeps that encoding, so an
+    /// escaped byte stays a byte; one holding a character of its own is retagged as text.
+    SevenBit,
+    /// Every byte is its own character, however its neighbours read.
+    Binary,
+}
+
+/// The encoding a source declares, as it bears on writing a string literal's value back out.
+///
+/// A cop that does that needs this: `String#inspect` spells a byte its string's encoding cannot
+/// read as `\xNN`, and only where the string is text do `"\xE5\xBE\x8C"`'s three bytes join into
+/// the one character they spell.
+pub(crate) fn declared_literal_encoding(text: &str) -> LiteralEncoding {
+    // `encoding_declaration` reads the opening line or two and stops, so the whole text costs no
+    // more than a prefix would -- and slicing one would have to find a character boundary first.
+    match encoding_declaration(text) {
+        Some(label) if is_binary_label(&label) => LiteralEncoding::Binary,
+        Some(label)
+            if matches!(
+                label.to_ascii_lowercase().as_str(),
+                "us-ascii" | "ascii" | "ansi_x3.4-1968" | "646"
+            ) =>
+        {
+            LiteralEncoding::SevenBit
+        }
+        _ => LiteralEncoding::Text,
+    }
+}
+
 /// Ruby's names for "no encoding at all", where one byte is one character.
 fn is_binary_label(label: &str) -> bool {
     matches!(
