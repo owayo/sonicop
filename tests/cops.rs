@@ -11196,3 +11196,214 @@ mod preferred_hash_methods {
         .run();
     }
 }
+
+/// `Proc.new` / クラス変数 / 真偽値の既定引数 / stabby lambda / `.()` / 否定 `if` /
+/// クォート付きシンボル / `when x;` / `kind_of?` / `$stderr.puts` の回帰。
+mod style_conventions {
+    use super::*;
+
+    #[test]
+    fn proc_new_needs_a_block_and_a_top_level_receiver() {
+        expect_offense(
+            "Style/Proc",
+            r#"
+            p = Proc.new { |n| n }
+                ^^^^^^^^ Use `proc` instead of `Proc.new`.
+            "#,
+        );
+        expect_correction(
+            "Style/Proc",
+            "q = ::Proc.new do |n| n end\n",
+            "q = proc do |n| n end\n",
+        );
+        // ブロックの無い `Proc.new` は proc リテラルではない。
+        expect_no_offenses("Style/Proc", "r = Proc.new\n");
+        expect_no_offenses("Style/Proc", "s = Proc.new(1) { |n| n }\n");
+        expect_no_offenses("Style/Proc", "t = Foo::Proc.new { |n| n }\n");
+    }
+
+    #[test]
+    fn class_vars_reports_assignment_and_the_reflective_setter() {
+        expect_offense(
+            "Style/ClassVars",
+            r#"
+            @@test = 10
+            ^^^^^^ Replace class var @@test with a class instance var.
+            "#,
+        );
+        expect_offense(
+            "Style/ClassVars",
+            r#"
+            class_variable_set(:@@test, 10)
+                               ^^^^^^^ Replace class var :@@test with a class instance var.
+            "#,
+        );
+        expect_offense(
+            "Style/ClassVars",
+            r#"
+            begin
+              x
+            rescue => @@error
+                      ^^^^^^^ Replace class var @@error with a class instance var.
+              y
+            end
+            "#,
+        );
+        // 読み出しは対象外。
+        expect_no_offenses("Style/ClassVars", "def read\n  @@test\nend\n");
+        expect_no_offenses("Style/ClassVars", "class_variable_get(:@@test)\n");
+    }
+
+    /// 文法は `a = nil, b = false` を 1 個の多重代入と読むので、上流の `optarg` 2 個へ
+    /// 戻してから既定値を見る必要がある。
+    #[test]
+    fn optional_boolean_parameter_splits_a_misread_default_run() {
+        expect_offense(
+            "Style/OptionalBooleanParameter",
+            r#"
+            def tag(name = nil, open = false, escape = true)
+                                ^^^^^^^^^^^^ Prefer keyword arguments for arguments with a boolean default value; use `open: false` instead of `open = false`.
+                                              ^^^^^^^^^^^^^ Prefer keyword arguments for arguments with a boolean default value; use `escape: true` instead of `escape = true`.
+              name
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Style/OptionalBooleanParameter",
+            "def respond_to_missing?(name, include_private = false)\n  name\nend\n",
+        );
+        expect_no_offenses(
+            "Style/OptionalBooleanParameter",
+            "def m(bar: false)\n  bar\nend\n",
+        );
+    }
+
+    #[test]
+    fn stabby_lambda_parentheses_wraps_bare_arguments() {
+        expect_offense(
+            "Style/StabbyLambdaParentheses",
+            r#"
+            f = ->a, b { a + b }
+                  ^^^^ Wrap stabby lambda arguments with parentheses.
+            "#,
+        );
+        expect_correction(
+            "Style/StabbyLambdaParentheses",
+            "f = ->a, b { a + b }\n",
+            "f = ->(a, b) { a + b }\n",
+        );
+        expect_no_offenses("Style/StabbyLambdaParentheses", "g = ->(a) { a }\n");
+        expect_no_offenses("Style/StabbyLambdaParentheses", "h = -> { 1 }\n");
+        expect_no_offenses("Style/StabbyLambdaParentheses", "i = ->() { 1 }\n");
+    }
+
+    #[test]
+    fn lambda_call_prefers_the_written_selector() {
+        expect_offense(
+            "Style/LambdaCall",
+            r#"
+            h = f.(1, 2)
+                ^^^^^^^^ Prefer the use of `f.call(1, 2)` over `f.(1, 2)`.
+            "#,
+        );
+        expect_correction("Style/LambdaCall", "h = f.(1, 2)\n", "h = f.call(1, 2)\n");
+        expect_no_offenses("Style/LambdaCall", "i = f.call(1, 2)\n");
+        // 引数リストの中のコメントは書き換えで消えるので手当てしない。
+        expect_no_offenses("Style/LambdaCall", "j = f.( # why\n  1\n)\n");
+    }
+
+    #[test]
+    fn negated_if_covers_both_forms_but_not_an_else() {
+        expect_offense(
+            "Style/NegatedIf",
+            r#"
+            z if !w
+            ^^^^^^^ Favor `unless` over `if` for negative conditions.
+            "#,
+        );
+        expect_correction("Style/NegatedIf", "z if !w\n", "z unless w\n");
+        expect_correction(
+            "Style/NegatedIf",
+            "if !x\n  y\nend\n",
+            "unless x\n  y\nend\n",
+        );
+        expect_correction(
+            "Style/NegatedIf",
+            "if (!a)\n  b\nend\n",
+            "unless (a)\n  b\nend\n",
+        );
+        expect_no_offenses("Style/NegatedIf", "if !s\n  t\nelse\n  u\nend\n");
+        expect_no_offenses("Style/NegatedIf", "unless !v\n  u\nend\n");
+        expect_no_offenses("Style/NegatedIf", "if !!s\n  t\nend\n");
+    }
+
+    #[test]
+    fn symbol_literal_drops_quotes_only_from_word_like_names() {
+        expect_offense(
+            "Style/SymbolLiteral",
+            r##"
+            :"foo"
+            ^^^^^^ Do not use strings for word-like symbol literals.
+            "##,
+        );
+        expect_correction("Style/SymbolLiteral", ":'bar'\n", ":bar\n");
+        expect_no_offenses("Style/SymbolLiteral", ":\"foo bar\"\n");
+        expect_no_offenses("Style/SymbolLiteral", ":\"1foo\"\n");
+        expect_no_offenses("Style/SymbolLiteral", ":foo\n");
+    }
+
+    #[test]
+    fn when_then_replaces_a_semicolon_on_a_single_line() {
+        expect_offense(
+            "Style/WhenThen",
+            r#"
+            case n
+            when 1, 2; puts 1
+                     ^ Do not use `when 1, 2;`. Use `when 1, 2 then` instead.
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/WhenThen",
+            "case n\nwhen 1; puts 1\nend\n",
+            "case n\nwhen 1 then puts 1\nend\n",
+        );
+        expect_no_offenses("Style/WhenThen", "case n\nwhen 2 then puts 2\nend\n");
+        expect_no_offenses("Style/WhenThen", "case n\nwhen 1;\n  puts 1\nend\n");
+    }
+
+    #[test]
+    fn class_check_renames_the_selector_only() {
+        expect_offense(
+            "Style/ClassCheck",
+            r#"
+            n.kind_of?(Integer)
+              ^^^^^^^^ Prefer `Object#is_a?` over `Object#kind_of?`.
+            "#,
+        );
+        expect_correction(
+            "Style/ClassCheck",
+            "n&.kind_of?(Integer)\n",
+            "n&.is_a?(Integer)\n",
+        );
+        expect_no_offenses("Style/ClassCheck", "n.is_a?(Integer)\n");
+    }
+
+    #[test]
+    fn stderr_puts_needs_a_stream_receiver_and_an_argument() {
+        expect_offense(
+            "Style/StderrPuts",
+            r#"
+            $stderr.puts "oops"
+            ^^^^^^^^^^^^ Use `warn` instead of `$stderr.puts` to allow such output to be disabled.
+            "#,
+        );
+        expect_correction(
+            "Style/StderrPuts",
+            "STDERR.puts(\"bad\")\n",
+            "warn(\"bad\")\n",
+        );
+        expect_no_offenses("Style/StderrPuts", "$stderr.puts\n");
+        expect_no_offenses("Style/StderrPuts", "$stdout.puts 'x'\n");
+    }
+}
