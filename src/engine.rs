@@ -1483,6 +1483,73 @@ mod tests {
     }
 
     #[test]
+    fn an_insertion_hangs_off_the_range_its_offense_was_reported_on() {
+        // `Layout/SpaceAfterComma` reports the comma and puts a space after it; `Lint/`
+        // `UnusedBlockArgument` reports the argument and puts an underscore before it. Both land on
+        // the same offset, and upstream orders them by the ranges the cops passed their correctors:
+        // the comma comes first, so the space does. Ordering them by cop instead would spell the
+        // argument `_ v`.
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", "abcdefghij".to_owned()),
+            offenses: vec![
+                Offense::new("Layout/SpaceAfterComma", Severity::Convention, "test", 3, 4)
+                    .corrected_by(Edit {
+                        start: 4,
+                        end: 4,
+                        replacement: " ".to_owned(),
+                        safe: true,
+                    }),
+                Offense::new("Lint/UnusedBlockArgument", Severity::Warning, "test", 4, 5)
+                    .corrected_by(Edit {
+                        start: 4,
+                        end: 4,
+                        replacement: "_".to_owned(),
+                        safe: true,
+                    }),
+            ],
+        };
+
+        assert_eq!(
+            corrected_text(&mut report, CorrectMode::All).0,
+            "abcd _efghij"
+        );
+    }
+
+    #[test]
+    fn a_pair_of_insertions_around_an_offense_wraps_it() {
+        // A cop bracketing what it reported puts one insertion at either end of the offense, which
+        // is the `wrap` upstream records as a single action. Two cops wrapping the same thing nest,
+        // rather than crossing the way two bare insertions at those offsets would.
+        let bracket = |cop, open: &str, close: &str| {
+            Offense::new(cop, Severity::Convention, "test", 2, 8).corrected_by_all([
+                Edit {
+                    start: 2,
+                    end: 2,
+                    replacement: open.to_owned(),
+                    safe: true,
+                },
+                Edit {
+                    start: 8,
+                    end: 8,
+                    replacement: close.to_owned(),
+                    safe: true,
+                },
+            ])
+        };
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", "abcdefghij".to_owned()),
+            offenses: vec![bracket("Layout/A", "(", ")"), bracket("Layout/B", "[", "]")],
+        };
+
+        assert_eq!(
+            corrected_text(&mut report, CorrectMode::All).0,
+            "ab[(cdefgh)]ij"
+        );
+    }
+
+    #[test]
     fn an_offense_whose_edits_change_nothing_is_not_corrected() {
         let mut report = FileReport {
             path: "test.rb".into(),

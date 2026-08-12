@@ -16,6 +16,7 @@ department_rules! {
     documentation => ("Documentation", Convention),
     format_string_token => ("FormatStringToken", Convention),
     frozen_string_literal_comment => ("FrozenStringLiteralComment", Convention),
+    guard_clause => ("GuardClause", Convention),
     hash_syntax => ("HashSyntax", Convention),
     if_unless_modifier => ("IfUnlessModifier", Convention),
     numeric_literals => ("NumericLiterals", Convention),
