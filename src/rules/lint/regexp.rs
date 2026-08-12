@@ -101,6 +101,19 @@ fn group(rest: &str, found: &mut Captures) -> usize {
             }
             bytes.len()
         }
+        // `(?(cond)yes|no)` tests a group rather than opening one, and its condition -- `(1)`,
+        // `(<name>)` or `('name')` -- is no group either.
+        Some(b'(') => {
+            let mut index = 3;
+            while index < bytes.len() {
+                match bytes[index] {
+                    b'\\' => index += 2,
+                    b')' => return index + 1,
+                    _ => index += 1,
+                }
+            }
+            bytes.len()
+        }
         // `(?<name>` captures, while `(?<=` and `(?<!` look behind.
         Some(b'<') if !matches!(bytes.get(3), Some(b'=' | b'!')) => {
             found.named += 1;
