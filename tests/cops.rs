@@ -13813,3 +13813,27 @@ mod layout_first_argument_and_parameters {
         );
     }
 }
+
+/// メソッド名と第一引数の間の空白。整列のための空白は許される。
+mod layout_space_before_first_arg {
+    use super::*;
+
+    #[test]
+    fn space_before_first_arg() {
+        const COP: &str = "Layout/SpaceBeforeFirstArg";
+        expect_offense(
+            COP,
+            r#"
+            foo  1
+               ^^ Put one space between the method name and the first argument.
+            "#,
+        );
+        expect_correction(COP, "foo  1\n", "foo 1\n");
+        expect_no_offenses(COP, "foo 1\n");
+        expect_no_offenses(COP, "foo(1)\n");
+        // 引数が次の行にあるものは対象外。
+        expect_no_offenses(COP, "foo \\\n  1\n");
+        // 演算子とセッターは `regular_method_call_with_arguments?` で落ちる。
+        expect_no_offenses(COP, "a  +  b\n");
+    }
+}

@@ -1077,6 +1077,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_space_before_comment")
         .correctable(true),
         CopCase::new(
+            "Layout/SpaceBeforeFirstArg",
+            "foo  1\n",
+            vec![support::annotation::Annotation::new(
+                1,
+                4,
+                2,
+                "Put one space between the method name and the first argument.",
+            )],
+        )
+        .id("layout_space_before_first_arg")
+        .correctable(true),
+        CopCase::new(
             "Layout/SpaceInsideReferenceBrackets",
             "a[ :k ]\n",
             vec![

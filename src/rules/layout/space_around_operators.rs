@@ -605,7 +605,7 @@ struct EqualsToken {
 
 /// Everything `PrecedingFollowingAlignment` reads out of a file: the lines, the comment lines it
 /// will not align against, and the `=`-ish operators it aligns with.
-struct Alignment<'src> {
+pub(super) struct Alignment<'src> {
     source: &'src SourceFile,
     /// The file's lines without their line breaks, as `processed_source.lines` holds them.
     lines: Vec<&'src str>,
@@ -620,7 +620,7 @@ struct Alignment<'src> {
 }
 
 impl<'src> Alignment<'src> {
-    fn new(context: &RuleContext<'src>) -> Self {
+    pub(super) fn new(context: &RuleContext<'src>) -> Self {
         let source: &'src SourceFile = context.source;
         // `Parser::Source::Buffer#source_lines` keeps a trailing empty line for a file ending in
         // a newline, which is exactly what `SourceFile::line_count` counts.
@@ -731,7 +731,7 @@ impl<'src> Alignment<'src> {
         &self.source.text()[range.clone()]
     }
 
-    fn aligned_with_something(&self, range: &Range<usize>) -> bool {
+    pub(super) fn aligned_with_something(&self, range: &Range<usize>) -> bool {
         self.aligned_with_adjacent_line(range, Predicate::Token)
     }
 

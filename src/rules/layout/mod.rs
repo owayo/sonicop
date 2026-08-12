@@ -62,6 +62,7 @@ department_rules! {
     space_around_block_parameters => ("SpaceAroundBlockParameters", Convention),
     space_around_equals_in_parameter_default => ("SpaceAroundEqualsInParameterDefault", Convention),
     space_around_keyword => ("SpaceAroundKeyword", Convention),
+    space_before_first_arg => ("SpaceBeforeFirstArg", Convention),
     space_before_comma => ("SpaceBeforeComma", Convention),
     space_before_comment => ("SpaceBeforeComment", Convention),
     space_before_block_braces => ("SpaceBeforeBlockBraces", Convention),
