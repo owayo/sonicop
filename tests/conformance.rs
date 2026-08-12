@@ -2637,6 +2637,214 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_preferred_hash_methods")
         .correctable(true),
+        CopCase::annotated(
+            "Style/Proc",
+            r#"
+            p = Proc.new { |n| n }
+                ^^^^^^^^ Use `proc` instead of `Proc.new`.
+            "#,
+        )
+        .id("style_proc")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassVars",
+            r#"
+            @@test = 10
+            ^^^^^^ Replace class var @@test with a class instance var.
+            "#,
+        )
+        .id("style_class_vars")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/OptionalBooleanParameter",
+            r#"
+            def some_method(bar = false)
+                            ^^^^^^^^^^^ Prefer keyword arguments for arguments with a boolean default value; use `bar: false` instead of `bar = false`.
+              bar
+            end
+            "#,
+        )
+        .id("style_optional_boolean_parameter")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/StabbyLambdaParentheses",
+            r#"
+            f = ->a, b { a + b }
+                  ^^^^ Wrap stabby lambda arguments with parentheses.
+            "#,
+        )
+        .id("style_stabby_lambda_parentheses")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/LambdaCall",
+            r#"
+            h = f.(1, 2)
+                ^^^^^^^^ Prefer the use of `f.call(1, 2)` over `f.(1, 2)`.
+            "#,
+        )
+        .id("style_lambda_call")
+        .correctable(true),
+        // 修飾形も対象。ブロック形は `if` から `end` までを報告する。
+        CopCase::annotated(
+            "Style/NegatedIf",
+            r#"
+            z if !w
+            ^^^^^^^ Favor `unless` over `if` for negative conditions.
+            "#,
+        )
+        .id("style_negated_if")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SymbolLiteral",
+            r##"
+            :"foo"
+            ^^^^^^ Do not use strings for word-like symbol literals.
+            "##,
+        )
+        .id("style_symbol_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/WhenThen",
+            r#"
+            case n
+            when 1; puts 1
+                  ^ Do not use `when 1;`. Use `when 1 then` instead.
+            end
+            "#,
+        )
+        .id("style_when_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassCheck",
+            r#"
+            n.kind_of?(Integer)
+              ^^^^^^^^ Prefer `Object#is_a?` over `Object#kind_of?`.
+            "#,
+        )
+        .id("style_class_check")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/StderrPuts",
+            r#"
+            $stderr.puts 'oops'
+            ^^^^^^^^^^^^ Use `warn` instead of `$stderr.puts` to allow such output to be disabled.
+            "#,
+        )
+        .id("style_stderr_puts")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FormatString",
+            r#"
+            puts sprintf('%10s', 'foo')
+                 ^^^^^^^ Favor `format` over `sprintf`.
+            "#,
+        )
+        .id("style_format_string")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/BarePercentLiterals",
+            r#"
+            a = %Q(hi)
+                ^^^ Use `%` instead of `%Q`.
+            "#,
+        )
+        .id("style_bare_percent_literals")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/PercentQLiterals",
+            r#"
+            b = %Q(hi)
+                ^^^ Do not use `%Q` unless interpolation is needed. Use `%q`.
+            "#,
+        )
+        .id("style_percent_q_literals")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantPercentQ",
+            r#"
+            c = %q(hi)
+                ^^^^^^ Use `%q` only for strings that contain both single quotes and double quotes.
+            "#,
+        )
+        .id("style_redundant_percent_q")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantCapitalW",
+            r#"
+            d = %W[a b]
+                ^^^^^^^ Do not use `%W` unless interpolation is needed. If not, use `%w`.
+            "#,
+        )
+        .id("style_redundant_capital_w")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RaiseArgs",
+            r#"
+            raise RuntimeError.new('msg')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Provide an exception class and message as arguments to `raise`.
+            "#,
+        )
+        .id("style_raise_args")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ZeroLengthPredicate",
+            r#"
+            x = a.size.zero?
+                  ^^^^^^^^^^ Use `empty?` instead of `size.zero?`.
+            "#,
+        )
+        .id("style_zero_length_predicate")
+        .correctable(true),
+        // 同じスコープに `respond_to_missing?` があれば咎めない。
+        CopCase::annotated(
+            "Style/MissingRespondToMissing",
+            r#"
+            class Q
+              def method_missing(name)
+              ^^^^^^^^^^^^^^^^^^^^^^^^ When using `method_missing`, define `respond_to_missing?`.
+                nil
+              end
+            end
+            "#,
+        )
+        .id("style_missing_respond_to_missing")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ArrayJoin",
+            r#"
+            a = [1, 2] * ', '
+                       ^ Favor `Array#join` over `Array#*`.
+            "#,
+        )
+        .id("style_array_join")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CharacterLiteral",
+            r#"
+            c = ?a
+                ^^ Do not use the character literal - use string literal instead.
+            "#,
+        )
+        .id("style_character_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantException",
+            r#"
+            raise RuntimeError, 'msg'
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ Redundant `RuntimeError` argument can be removed.
+            "#,
+        )
+        .id("style_redundant_exception")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/VariableInterpolation",
+            r##"
+            e = "#@foo"
+                  ^^^^ Replace interpolated variable `@foo` with expression `#{@foo}`.
+            "##,
+        )
+        .id("style_variable_interpolation")
+        .correctable(true),
     ]
 }
 

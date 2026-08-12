@@ -5,7 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
-use super::format_string::{Sequence, SequenceStyle, sequences};
+use super::format_sequences::{Sequence, SequenceStyle, sequences};
 
 /// The methods whose first argument is a format string, which is what `aggressive` mode still
 /// treats as a place where an unannotated token is worth reporting.
@@ -195,9 +195,9 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     // first literal as its receiver.
     if parent.kind() == "chained_string" {
         return node.prev_named_sibling().is_none()
-            && node.next_named_sibling().is_some_and(|sibling| {
-                context.source.node_text(sibling).starts_with('%')
-            });
+            && node
+                .next_named_sibling()
+                .is_some_and(|sibling| context.source.node_text(sibling).starts_with('%'));
     }
     if parent.kind() != "argument_list" {
         return false;
