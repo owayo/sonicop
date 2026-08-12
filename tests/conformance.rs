@@ -385,6 +385,143 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_trailing_whitespace")
         .locations(&[(1, 6, 1, 7)])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLines",
+            "a = 1\n\n\n^{} Extra blank line detected.\nb = 2\n",
+        )
+        .id("layout_empty_lines")
+        .locations(&[(3, 1, 4, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLineBetweenDefs",
+            r#"
+            def a
+            end
+            def b
+            ^^^^^ Expected 1 empty line between method definitions; found 0.
+            end
+            "#,
+        )
+        .id("layout_empty_line_between_defs")
+        .locations(&[(3, 1, 3, 5)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceInLambdaLiteral",
+            r#"
+            f = -> (x) { x }
+                  ^ Do not use spaces between `->` and `(` in lambda literals.
+            "#,
+        )
+        .id("layout_space_in_lambda_literal")
+        .locations(&[(1, 7, 1, 7)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            r#"
+            class Foo
+              attr_reader :a
+              ^^^^^^^^^^^^^^ Add an empty line after attribute accessor.
+              def b; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_around_attribute_accessor")
+        .locations(&[(2, 3, 2, 16)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/DotPosition",
+            r#"
+            x = foo.
+                   ^ Place the . on the next line, together with the method name.
+              bar
+            "#,
+        )
+        .id("layout_dot_position")
+        .locations(&[(1, 8, 1, 8)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ElseAlignment",
+            r#"
+            if a
+              b
+             else
+             ^^^^ Align `else` with `if`.
+              c
+            end
+            "#,
+        )
+        .id("layout_else_alignment")
+        .locations(&[(3, 2, 3, 5)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EndAlignment",
+            r#"
+            if a
+              b
+              end
+              ^^^ `end` at 3, 2 is not aligned with `if` at 1, 0.
+            "#,
+        )
+        .id("layout_end_alignment")
+        .locations(&[(3, 3, 3, 5)])
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/BeginEndAlignment",
+            r#"
+            x = begin
+              1
+                end
+                ^^^ `end` at 3, 4 is not aligned with `x = begin` at 1, 0.
+            "#,
+        )
+        .id("layout_begin_end_alignment")
+        .locations(&[(3, 5, 3, 7)])
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/DefEndAlignment",
+            r#"
+            private def foo
+              1
+                        end
+                        ^^^ `end` at 3, 12 is not aligned with `private def` at 1, 0.
+            "#,
+        )
+        .id("layout_def_end_alignment")
+        .locations(&[(3, 13, 3, 15)])
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/AccessModifierIndentation",
+            r#"
+            class Foo
+              def a; end
+
+            private
+            ^^^^^^^ Indent access modifiers like `private`.
+
+              def b; end
+            end
+            "#,
+        )
+        .id("layout_access_modifier_indentation")
+        .locations(&[(4, 1, 4, 7)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/CaseIndentation",
+            r#"
+            case x
+              when 1
+              ^^^^ Indent `when` as deep as `case`.
+              a
+            end
+            "#,
+        )
+        .id("layout_case_indentation")
+        .locations(&[(2, 3, 2, 6)])
+        .correctable(true),
         // ---- Lint ----
         CopCase::annotated(
             "Lint/BinaryOperatorWithIdenticalOperands",

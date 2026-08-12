@@ -8587,3 +8587,388 @@ mod raise_exception {
         expect_correction(COP, "raise ::Exception\n", "raise ::StandardError\n");
     }
 }
+
+/// `Layout/EmptyLines` と `Layout/EmptyLineBetweenDefs`。
+///
+/// 期待値は本家 1.89.0 の `--only <cop> --format json` と `-A` の実測。
+mod layout_empty_line_runs {
+    use super::*;
+
+    /// 空行が 2 行続いたら 2 行目以降を報告する。文字列やヒアドキュメントの中の
+    /// 空行は行ごとに token を持つので対象外。`=begin` ブロックは token が 1 個
+    /// しかないため、中の空行は報告される。
+    #[test]
+    fn only_runs_of_blank_lines_outside_a_literal_are_reported() {
+        expect_no_offenses("Layout/EmptyLines", "a = 1\n\nb = 2\n");
+        expect_no_offenses("Layout/EmptyLines", "x = \"a\n\n\nb\"\n");
+        expect_no_offenses("Layout/EmptyLines", "y = <<~FOO\n  a\n\n\n  b\nFOO\n");
+        CopCase::new(
+            "Layout/EmptyLines",
+            "a = 1\n\n\n\nb = 2\n",
+            vec![
+                Annotation::new(3, 1, 0, "Extra blank line detected."),
+                Annotation::new(4, 1, 0, "Extra blank line detected."),
+            ],
+        )
+        .run();
+        CopCase::new(
+            "Layout/EmptyLines",
+            "a = 1\n=begin\n\n\n=end\nb = 2\n",
+            vec![Annotation::new(4, 1, 0, "Extra blank line detected.")],
+        )
+        .run();
+    }
+
+    /// `__END__` の後ろは字句解析されないので、data セクションの空行は数えない。
+    #[test]
+    fn a_data_section_holds_no_tokens() {
+        expect_no_offenses("Layout/EmptyLines", "x = 1\n__END__\n\n\ntext\n");
+    }
+
+    /// コメントも token なので、コメント行の後ろの空行 2 行は報告される。
+    #[test]
+    fn comments_count_as_tokens() {
+        CopCase::new(
+            "Layout/EmptyLines",
+            "a = 1\n# c\n\n\n# d\nb = 2\n",
+            vec![Annotation::new(4, 1, 0, "Extra blank line detected.")],
+        )
+        .run();
+    }
+
+    #[test]
+    fn empty_lines_correction_leaves_one_blank_line() {
+        expect_correction(
+            "Layout/EmptyLines",
+            "a = 1\n\n\n\nb = 2\n",
+            "a = 1\n\nb = 2\n",
+        );
+    }
+
+    /// 1 行 def が隣り合っているのは既定で許され、間にコメントを挟んだ空行 2 群は
+    /// 「複数の空行グループ」として見逃される。
+    #[test]
+    fn adjacent_one_liners_and_split_blank_runs_are_left_alone() {
+        expect_no_offenses("Layout/EmptyLineBetweenDefs", "def a; end\ndef b; end\n");
+        expect_no_offenses(
+            "Layout/EmptyLineBetweenDefs",
+            "def a\nend\n\n# c\n\ndef b\nend\n",
+        );
+        expect_no_offenses("Layout/EmptyLineBetweenDefs", "def a\nend\n\ndef b\nend\n");
+    }
+
+    /// class / module の定義も既定で対象。`class << self` は sclass なので対象外。
+    #[test]
+    fn classes_and_modules_are_checked_but_singleton_classes_are_not() {
+        CopCase::new(
+            "Layout/EmptyLineBetweenDefs",
+            "class A\nend\nclass B\nend\n",
+            vec![Annotation::new(
+                3,
+                1,
+                7,
+                "Expected 1 empty line between class definitions; found 0.",
+            )],
+        )
+        .run();
+        expect_no_offenses(
+            "Layout/EmptyLineBetweenDefs",
+            "class Foo\n  class << self\n  end\n  class << Foo\n  end\nend\n",
+        );
+    }
+
+    /// 空行が多すぎるときは削り、足りないときは足す。
+    #[test]
+    fn between_defs_correction_adds_and_removes_blank_lines() {
+        expect_correction(
+            "Layout/EmptyLineBetweenDefs",
+            "def a\nend\ndef b\nend\n\n\n\ndef c\nend\n",
+            "def a\nend\n\ndef b\nend\n\ndef c\nend\n",
+        );
+    }
+}
+
+/// `Layout/SpaceInLambdaLiteral`、`Layout/EmptyLinesAroundAttributeAccessor`、
+/// `Layout/DotPosition`。
+///
+/// 期待値は本家 1.89.0 の `--only <cop> --format json` と `-A` の実測。
+mod layout_lambda_accessor_dot {
+    use super::*;
+
+    /// 引数の無い `-> () { }` は上流では引数が空なので対象外。空白が無ければ何も
+    /// 言わない。括弧の無い `-> x, y { }` の空白も報告される。
+    #[test]
+    fn only_a_lambda_with_parameters_is_measured() {
+        expect_no_offenses("Layout/SpaceInLambdaLiteral", "a = ->(x) { x }\n");
+        expect_no_offenses("Layout/SpaceInLambdaLiteral", "a = -> () { 1 }\n");
+        expect_no_offenses("Layout/SpaceInLambdaLiteral", "a = lambda { |x| x }\n");
+        CopCase::new(
+            "Layout/SpaceInLambdaLiteral",
+            "a = -> x, y { x }\n",
+            vec![Annotation::new(
+                1,
+                7,
+                1,
+                "Do not use spaces between `->` and `(` in lambda literals.",
+            )],
+        )
+        .run();
+    }
+
+    #[test]
+    fn lambda_correction_removes_the_whole_run_of_spaces() {
+        expect_correction(
+            "Layout/SpaceInLambdaLiteral",
+            "f = ->  (x, y) { x }\n",
+            "f = ->(x, y) { x }\n",
+        );
+    }
+
+    /// 次に来るのが別のアクセサ、`alias`、`AllowedMethods` のメソッドなら 1 群として
+    /// 扱う。引数の無い `attr_reader` はそもそもアクセサではない。
+    #[test]
+    fn an_accessor_group_needs_no_blank_line_inside_it() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            "class Foo\n  attr_reader :a\n  attr_writer :b\n\n  def c; end\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            "class Foo\n  attr_reader :a\n  alias :b :a\n\n  def c; end\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            "class Foo\n  attr_reader :a\n  private :a\n\n  def c; end\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            "class Foo\n  attr_reader :a\nend\n",
+        );
+    }
+
+    #[test]
+    fn accessor_correction_inserts_a_blank_line_after_the_accessor() {
+        expect_correction(
+            "Layout/EmptyLinesAroundAttributeAccessor",
+            "class Foo\n  attr_reader :a\n  def b; end\nend\n",
+            "class Foo\n  attr_reader :a\n\n  def b; end\nend\n",
+        );
+    }
+
+    /// メソッド名が receiver と同じ行にあるか、間に空行やコメントの行があるものは
+    /// 対象外。`::` の呼び出しも見ない。
+    #[test]
+    fn dot_position_skips_same_line_calls_and_gaps() {
+        expect_no_offenses("Layout/DotPosition", "x = foo\n  .bar\n");
+        expect_no_offenses("Layout/DotPosition", "x = foo.bar\n");
+        expect_no_offenses("Layout/DotPosition", "x = foo.\n\n  bar\n");
+        expect_no_offenses("Layout/DotPosition", "x = Foo::bar\n");
+    }
+
+    #[test]
+    fn dot_position_correction_moves_the_dot_to_the_method_name() {
+        expect_correction(
+            "Layout/DotPosition",
+            "x = foo.\n  bar.\n  baz\n",
+            "x = foo\n  .bar\n  .baz\n",
+        );
+    }
+}
+
+/// `Layout/ElseAlignment` と end 系 3 cop。
+///
+/// 期待値は本家 1.89.0 の `--only <cop> --format json` と `-A` の実測。
+mod layout_else_and_end_alignment {
+    use super::*;
+
+    /// `elsif` は外側の `if` に、`case` の `else` は最後の `when` に、`rescue` の
+    /// `else` は本体の持ち主に揃える。
+    #[test]
+    fn each_kind_of_else_has_its_own_base() {
+        CopCase::new(
+            "Layout/ElseAlignment",
+            "if a\n  b\n elsif c\n  d\nend\n",
+            vec![Annotation::new(3, 2, 5, "Align `elsif` with `if`.")],
+        )
+        .run();
+        CopCase::new(
+            "Layout/ElseAlignment",
+            "case x\nwhen 1\n  a\n   else\n  b\nend\n",
+            vec![Annotation::new(4, 4, 4, "Align `else` with `when`.")],
+        )
+        .run();
+        CopCase::new(
+            "Layout/ElseAlignment",
+            "begin\n  a\nrescue\n  b\n   else\n  c\nend\n",
+            vec![Annotation::new(5, 4, 4, "Align `else` with `begin`.")],
+        )
+        .run();
+        CopCase::new(
+            "Layout/ElseAlignment",
+            "foo do\n  a\nrescue\n  b\n   else\n  c\nend\n",
+            vec![Annotation::new(5, 4, 4, "Align `else` with `foo`.")],
+        )
+        .run();
+        CopCase::new(
+            "Layout/ElseAlignment",
+            "private def bar\n  a\nrescue\n  b\n   else\n  c\nend\n",
+            vec![Annotation::new(5, 4, 4, "Align `else` with `private`.")],
+        )
+        .run();
+    }
+
+    #[test]
+    fn else_alignment_correction_moves_only_the_keyword_line() {
+        expect_correction(
+            "Layout/ElseAlignment",
+            "if a\n  b\n   else\n  c\nend\n",
+            "if a\n  b\nelse\n  c\nend\n",
+        );
+    }
+
+    /// `end` がキーワードと同じ行にあるか同じ桁なら報告しない。ループの `end` は
+    /// 文法上 body の中にあるが、上流ではループ自身のものとして数える。
+    #[test]
+    fn an_end_on_the_keyword_line_or_column_is_aligned() {
+        expect_no_offenses("Layout/EndAlignment", "if a\n  b\nend\n");
+        expect_no_offenses("Layout/EndAlignment", "x = if a then b end\n");
+        CopCase::new(
+            "Layout/EndAlignment",
+            "x = while a\n  b\n  end\n",
+            vec![Annotation::new(
+                3,
+                3,
+                3,
+                "`end` at 3, 2 is not aligned with `while` at 1, 4.",
+            )],
+        )
+        .severity(Severity::Warning)
+        .run();
+    }
+
+    #[test]
+    fn end_alignment_correction_reindents_the_end() {
+        expect_correction(
+            "Layout/EndAlignment",
+            "if a\n  b\n    end\n",
+            "if a\n  b\nend\n",
+        );
+        expect_correction(
+            "Layout/BeginEndAlignment",
+            "x = begin\n  1\n      end\n",
+            "x = begin\n  1\nend\n",
+        );
+        expect_correction(
+            "Layout/DefEndAlignment",
+            "private def foo\n  1\n  end\n",
+            "private def foo\n  1\nend\n",
+        );
+    }
+
+    /// `Layout/BeginEndAlignment` は既定で行頭に、`Layout/DefEndAlignment` は既定で
+    /// 修飾子の行頭に揃える。修飾子の無い `def` は `def` そのもの。
+    #[test]
+    fn the_end_family_defaults_to_the_start_of_the_line() {
+        expect_no_offenses("Layout/BeginEndAlignment", "x = begin\n  1\nend\n");
+        expect_no_offenses("Layout/DefEndAlignment", "private def foo\n  1\nend\n");
+        expect_no_offenses("Layout/DefEndAlignment", "def foo\n  1\nend\n");
+        CopCase::new(
+            "Layout/DefEndAlignment",
+            "  def foo\n    1\n end\n",
+            vec![Annotation::new(
+                3,
+                2,
+                3,
+                "`end` at 3, 1 is not aligned with `def` at 1, 2.",
+            )],
+        )
+        .severity(Severity::Warning)
+        .run();
+    }
+}
+
+/// `Layout/AccessModifierIndentation` と `Layout/CaseIndentation`。
+///
+/// 期待値は本家 1.89.0 の `--only <cop> --format json` と `-A` の実測。
+mod layout_modifier_and_case_indentation {
+    use super::*;
+
+    /// 修飾子は `end` の桁 + 字下げ幅に置かれる。引数を取った修飾子は「bare」では
+    /// ないので対象外、本体が 1 文しかない class も対象外。
+    #[test]
+    fn only_a_bare_modifier_in_a_multi_statement_body_is_measured() {
+        expect_no_offenses(
+            "Layout/AccessModifierIndentation",
+            "class Foo\n  def a; end\n\n  private\n\n  def b; end\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/AccessModifierIndentation",
+            "class Foo\n  def a; end\n\nprivate :a\n\n  def b; end\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/AccessModifierIndentation",
+            "class Foo\nprivate\nend\n",
+        );
+        CopCase::new(
+            "Layout/AccessModifierIndentation",
+            "foo do\n  def a; end\n\nprivate\n\n  def b; end\nend\n",
+            vec![Annotation::new(
+                4,
+                1,
+                7,
+                "Indent access modifiers like `private`.",
+            )],
+        )
+        .run();
+    }
+
+    #[test]
+    fn modifier_correction_shifts_the_modifier_line() {
+        expect_correction(
+            "Layout/AccessModifierIndentation",
+            "class Foo\n  def a; end\n\nprivate\n\n  def b; end\nend\n",
+            "class Foo\n  def a; end\n\n  private\n\n  def b; end\nend\n",
+        );
+    }
+
+    /// `when` / `in` は既定で `case` と同じ桁。1 行の `case` は対象外。
+    #[test]
+    fn branches_line_up_with_the_case_keyword() {
+        expect_no_offenses("Layout/CaseIndentation", "case x\nwhen 1\n  a\nend\n");
+        expect_no_offenses("Layout/CaseIndentation", "case x\nin 1\n  a\nend\n");
+        expect_no_offenses("Layout/CaseIndentation", "x = case a; when 1 then 2; end\n");
+        CopCase::new(
+            "Layout/CaseIndentation",
+            "case x\n  in 1\n  a\nend\n",
+            vec![Annotation::new(2, 3, 2, "Indent `in` as deep as `case`.")],
+        )
+        .run();
+    }
+
+    /// 行の途中に書かれた `when` には字下げが無いので、報告はしても corrector は
+    /// 空のままになる。
+    #[test]
+    fn a_branch_sharing_its_line_with_code_is_not_correctable() {
+        CopCase::new(
+            "Layout/CaseIndentation",
+            "case x\nwhen 1 then a; when 2 then b\nend\n",
+            vec![Annotation::new(
+                2,
+                16,
+                4,
+                "Indent `when` as deep as `case`.",
+            )],
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn case_indentation_correction_reindents_every_branch() {
+        expect_correction(
+            "Layout/CaseIndentation",
+            "case x\n  when 1\n  a\n  when 2\n  b\nend\n",
+            "case x\nwhen 1\n  a\nwhen 2\n  b\nend\n",
+        );
+    }
+}

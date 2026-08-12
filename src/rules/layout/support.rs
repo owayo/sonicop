@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
-use crate::diagnostic::Edit;
+use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 /// The run of spaces and tabs ending at `offset`.
@@ -592,6 +592,92 @@ pub(super) fn parser_node_start(node: Node<'_>) -> usize {
         "block" | "do_block" => node.parent().unwrap_or(node).start_byte(),
         _ => node.start_byte(),
     }
+}
+
+/// `first_part_of_call_chain`: the receiver a chain of calls hangs off, which is what an
+/// assignment's right-hand side really begins with.
+pub(super) fn first_part_of_call_chain(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node;
+    while current.kind() == "call" {
+        current = current.child_by_field_name("receiver")?;
+    }
+    Some(current)
+}
+
+/// `node.loc.end`: the `end` keyword a construct closes with. A loop keeps it inside the body
+/// node the grammar gives it, so the token is one level further down there than for everything
+/// else.
+pub(super) fn end_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let last = last_child(node)?;
+    if last.kind() == "end" {
+        return Some(last);
+    }
+    last_child(last).filter(|inner| last.kind() == "do" && inner.kind() == "end")
+}
+
+fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)
+}
+
+/// `start_line_range`: the line an offset sits on, without its indentation or its trailing blanks.
+pub(super) fn start_line_range(context: &RuleContext<'_>, offset: usize) -> Range<usize> {
+    let line = context.source.line_column(offset).0;
+    let start = context.source.line_start(line);
+    let text = context.source.line(line);
+    let first = text.len() - text.trim_start().len();
+    let last = text.trim_end().len();
+    (start + first)..(start + last.max(first))
+}
+
+/// `EndKeywordAlignment#check_end_kw_alignment` and the `AlignmentCorrector.align_end` it corrects
+/// with: an `end` is aligned when it shares a line with what it belongs to or opens at the same
+/// column, and is moved to `align_to` when it does not.
+pub(super) fn end_keyword_alignment(
+    context: &RuleContext<'_>,
+    end: Range<usize>,
+    base: Range<usize>,
+    align_to: i64,
+) -> Option<Offense> {
+    let end_line = context.source.line_column(end.start).0;
+    let end_column = character_column(context, end.start);
+    let base_line = context.source.line_column(base.start).0;
+    let base_column = character_column(context, base.start);
+    if end_line == base_line || end_column == base_column {
+        return None;
+    }
+    let message = format!(
+        "`end` at {end_line}, {end_column} is not aligned with `{}` at {base_line}, {base_column}.",
+        &context.source.text()[base]
+    );
+    // `whitespace_range`: everything on the `end`'s line before it.
+    let whitespace = context.source.line_start(end_line)..end.start;
+    let filler = match context
+        .setting_of::<String>("Layout/IndentationStyle", "EnforcedStyle")
+        .as_deref()
+    {
+        Some("tabs") => "\t",
+        _ => " ",
+    };
+    let indentation = filler.repeat(usize::try_from(align_to).unwrap_or(0));
+    let offense = context.offense(message, end);
+    Some(
+        match context.source.text()[whitespace.clone()].trim().is_empty() {
+            true => offense.corrected_by(Edit {
+                start: whitespace.start,
+                end: whitespace.end,
+                replacement: indentation,
+                safe: true,
+            }),
+            false => offense
+                .corrected_by(Edit {
+                    start: whitespace.end,
+                    end: whitespace.end,
+                    replacement: format!("\n{indentation}"),
+                    safe: true,
+                })
+                .corrections_anchored_at(whitespace),
+        },
+    )
 }
 
 /// Every heredoc of the file, as the offset of its opener paired with the range of its terminator.

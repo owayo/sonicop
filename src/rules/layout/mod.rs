@@ -1,11 +1,16 @@
 department_rules! {
     "Layout";
     empty_line_after_magic_comment => ("EmptyLineAfterMagicComment", Convention),
+    access_modifier_indentation => ("AccessModifierIndentation", Convention),
     argument_alignment => ("ArgumentAlignment", Convention),
     array_alignment => ("ArrayAlignment", Convention),
+    begin_end_alignment => ("BeginEndAlignment", Warning),
+    case_indentation => ("CaseIndentation", Convention),
+    def_end_alignment => ("DefEndAlignment", Warning),
     dot_position => ("DotPosition", Convention),
     else_alignment => ("ElseAlignment", Convention),
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
+    end_alignment => ("EndAlignment", Warning),
     empty_line_between_defs => ("EmptyLineBetweenDefs", Convention),
     empty_lines => ("EmptyLines", Convention),
     empty_lines_around_attribute_accessor => ("EmptyLinesAroundAttributeAccessor", Convention),

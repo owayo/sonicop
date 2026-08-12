@@ -5,7 +5,10 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
-use super::support::{alignment_corrections, begins_its_line, character_column};
+use super::support::{
+    alignment_corrections, begins_its_line, character_column, first_part_of_call_chain,
+    start_line_range,
+};
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
 
@@ -146,7 +149,7 @@ impl Checker<'_, '_> {
             "method" | "singleton_method" => Some(self.base_for_method_definition(owner)),
             "block" | "do_block" => {
                 let block = owner.parent()?;
-                Some(self.start_line_range(block.start_byte()))
+                Some(start_line_range(self.context, block.start_byte()))
             }
             _ => None,
         }
@@ -167,17 +170,6 @@ impl Checker<'_, '_> {
         };
         call.child_by_field_name("method")
             .map_or(keyword, |method| method.byte_range())
-    }
-
-    /// `start_line_range`: the line the node opens on, without its indentation or its trailing
-    /// blanks.
-    fn start_line_range(&self, offset: usize) -> Range<usize> {
-        let line = self.context.source.line_column(offset).0;
-        let start = self.context.source.line_start(line);
-        let text = self.context.source.line(line);
-        let first = text.len() - text.trim_start().len();
-        let last = text.trim_end().len();
-        (start + first)..(start + last.max(first))
     }
 
     /// `check_assignment`: the right-hand side of an assignment is checked against the assignment
@@ -239,15 +231,6 @@ impl Checker<'_, '_> {
 fn first_word(text: &str) -> &str {
     let end = text.find(char::is_whitespace).unwrap_or(text.len());
     &text[..end]
-}
-
-/// `first_part_of_call_chain`: the receiver a chain of calls hangs off.
-fn first_part_of_call_chain(node: Node<'_>) -> Option<Node<'_>> {
-    let mut current = node;
-    while current.kind() == "call" {
-        current = current.child_by_field_name("receiver")?;
-    }
-    Some(current)
 }
 
 fn last_argument<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
