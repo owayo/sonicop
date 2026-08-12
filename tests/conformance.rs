@@ -3301,6 +3301,441 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_variable_interpolation")
         .correctable(true),
+        CopCase::annotated(
+            "Style/BeginBlock",
+            r#"
+            BEGIN { test }
+            ^^^^^ Avoid the use of `BEGIN` blocks.
+            "#,
+        )
+        .id("style_begin_block")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/EndBlock",
+            r#"
+            END { puts 'x' }
+            ^^^ Avoid the use of `END` blocks. Use `Kernel#at_exit` instead.
+            "#,
+        )
+        .id("style_end_block")
+        .correctable(true),
+        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        CopCase::annotated(
+            "Style/BlockComments",
+            "=begin\nMultiple lines\n=end\nx = 1\n",
+        )
+        .id("style_block_comments")
+        .without_offense_check()
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[27])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassMethods",
+            r#"
+            class SomeClass
+              def SomeClass.class_method
+                  ^^^^^^^^^ Use `self.class_method` instead of `SomeClass.class_method`.
+              end
+            end
+            "#,
+        )
+        .id("style_class_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ColonMethodCall",
+            r#"
+            Timeout::timeout(500) { do_something }
+                   ^^ Do not use `::` for method calls.
+            "#,
+        )
+        .id("style_colon_method_call")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ColonMethodDefinition",
+            r#"
+            def self::bar
+                    ^^ Do not use `::` for defining class methods.
+            end
+            "#,
+        )
+        .id("style_colon_method_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DefWithParentheses",
+            r#"
+            def foo()
+                   ^^ Omit the parentheses in defs when the method doesn't accept any arguments.
+              do_something
+            end
+            "#,
+        )
+        .id("style_def_with_parentheses")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EachForSimpleLoop",
+            r#"
+            (1..5).each { }
+            ^^^^^^^^^^^ Use `Integer#times` for a simple loop which iterates a fixed number of times.
+            "#,
+        )
+        .id("style_each_for_simple_loop")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyBlockParameter",
+            r#"
+            a do ||
+                 ^^ Omit pipes for the empty block parameters.
+              do_something
+            end
+            "#,
+        )
+        .id("style_empty_block_parameter")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyLambdaParameter",
+            r#"
+            -> () { do_something }
+               ^^ Omit parentheses for the empty lambda parameters.
+            "#,
+        )
+        .id("style_empty_lambda_parameter")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/UnlessElse",
+            r#"
+            unless foo
+            ^^^^^^^^^^ Do not use `unless` with `else`. Rewrite these with the positive case first.
+              a
+            else
+              b
+            end
+            "#,
+        )
+        .id("style_unless_else")
+        .locations(&[(1, 1, 5, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/WhileUntilDo",
+            r#"
+            while x.any? do
+                         ^^ Do not use `do` with multi-line `while`.
+              do_something(x.pop)
+            end
+            "#,
+        )
+        .id("style_while_until_do")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineIfThen",
+            r#"
+            if cond then
+                    ^^^^ Do not use `then` for multi-line `if`.
+              a
+            end
+            "#,
+        )
+        .id("style_multiline_if_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineWhenThen",
+            r#"
+            case foo
+            when bar then
+                     ^^^^ Do not use `then` for multiline `when` statement.
+            end
+            "#,
+        )
+        .id("style_multiline_when_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NegatedWhile",
+            r#"
+            while !foo
+            ^^^^^^^^^^ Favor `until` over `while` for negative conditions.
+              bar
+            end
+            "#,
+        )
+        .id("style_negated_while")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NegatedUnless",
+            r#"
+            unless !foo
+            ^^^^^^^^^^^ Favor `if` over `unless` for negative conditions.
+              bar
+            end
+            "#,
+        )
+        .id("style_negated_unless")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Not",
+            r#"
+            x = (not something)
+                 ^^^ Use `!` instead of `not`.
+            "#,
+        )
+        .id("style_not")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MinMax",
+            r#"
+            bar = [foo.min, foo.max]
+                  ^^^^^^^^^^^^^^^^^^ Use `foo.minmax` instead of `[foo.min, foo.max]`.
+            "#,
+        )
+        .id("style_min_max")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineMemoization",
+            r#"
+            foo ||= (
+            ^^^^^^^^^ Wrap multiline memoization blocks in `begin` and `end`.
+              bar
+              baz
+            )
+            "#,
+        )
+        .id("style_multiline_memoization")
+        .locations(&[(1, 1, 4, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/IfUnlessModifierOfIfUnless",
+            r#"
+            'stop' if tired? if running?
+                             ^^ Avoid modifier `if` after another conditional.
+            "#,
+        )
+        .id("style_if_unless_modifier_of_if_unless")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Strip",
+            r#"
+            'abc'.lstrip.rstrip
+                  ^^^^^^^^^^^^^ Use `strip` instead of `lstrip.rstrip`.
+            "#,
+        )
+        .id("style_strip")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSortBy",
+            r#"
+            array.sort_by { |x| x }
+                  ^^^^^^^^^^^^^^^^^ Use `sort` instead of `sort_by { |x| x }`.
+            "#,
+        )
+        .id("style_redundant_sort_by")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DoubleCopDisableDirective",
+            r#"
+            def f # rubocop:disable Style/For # rubocop:disable Metrics/AbcSize
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ More than one disable comment on one line.
+            end
+            "#,
+        )
+        .id("style_double_cop_disable_directive")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingMethodEndStatement",
+            r#"
+            def some_method
+            do_stuff; end
+                      ^^^ Place the end statement of a multi-line method on its own line.
+            "#,
+        )
+        .id("style_trailing_method_end_statement")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnClass",
+            r#"
+            class Foo; def foo; end
+                       ^^^^^^^^^^^^ Place the first line of class body on its own line.
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_class")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnModule",
+            r#"
+            module Bar extend self
+                       ^^^^^^^^^^^ Place the first line of module body on its own line.
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_module")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnMethodDefinition",
+            r#"
+            def g(x); b = foo
+                      ^^^^^^^ Place the first line of a multi-line method definition's body on its own line.
+              b[c: x]
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_method_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantConditional",
+            r#"
+            z = (x == y ? true : false)
+                 ^^^^^^^^^^^^^^^^^^^^^ This conditional expression can just be replaced by `x == y`.
+            "#,
+        )
+        .id("style_redundant_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NilComparison",
+            r#"
+            if x == nil
+                 ^^ Prefer the use of the `nil?` predicate.
+            end
+            "#,
+        )
+        .id("style_nil_comparison")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SingleArgumentDig",
+            r#"
+            [1, 2, 3].dig(0)
+            ^^^^^^^^^^^^^^^^ Use `[1, 2, 3][0]` instead of `[1, 2, 3].dig(0)`.
+            "#,
+        )
+        .id("style_single_argument_dig")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFileExtensionInRequire",
+            r#"
+            require 'foo.rb'
+                        ^^^ Redundant `.rb` file extension detected.
+            "#,
+        )
+        .id("style_redundant_file_extension_in_require")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/UnpackFirst",
+            r#"
+            'foo'.unpack('h*').first
+                  ^^^^^^^^^^^^^^^^^^ Use `unpack1('h*')` instead of `unpack('h*').first`.
+            "#,
+        )
+        .id("style_unpack_first")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Dir",
+            r#"
+            path = File.expand_path(File.dirname(__FILE__))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `__dir__` to get an absolute path to the current file's directory.
+            "#,
+        )
+        .id("style_dir")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Attr",
+            r#"
+            class K
+              attr :something, true
+              ^^^^ Do not use `attr`. Use `attr_accessor` instead.
+            end
+            "#,
+        )
+        .id("style_attr")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NestedParenthesizedCalls",
+            r#"
+            method1(method2 arg)
+                    ^^^^^^^^^^^ Add parentheses to nested method call `method2 arg`.
+            "#,
+        )
+        .id("style_nested_parenthesized_calls")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSelfAssignment",
+            r#"
+            args = args.concat(ary)
+                 ^ Redundant self assignment detected. Method `concat` modifies its receiver in place.
+            "#,
+        )
+        .id("style_redundant_self_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExpandPathArguments",
+            r#"
+            File.expand_path('..', __FILE__)
+                 ^^^^^^^^^^^ Use `expand_path(__dir__)` instead of `expand_path('..', __FILE__)`.
+            "#,
+        )
+        .id("style_expand_path_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSort",
+            r#"
+            [2, 1, 3].sort.first
+                      ^^^^^^^^^^ Use `min` instead of `sort...first`.
+            "#,
+        )
+        .id("style_redundant_sort")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OrAssignment",
+            r#"
+            name = name ? name : 'B'
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Use the double pipe equals operator `||=` instead.
+            "#,
+        )
+        .id("style_or_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EvenOdd",
+            r#"
+            if a % 2 == 0
+               ^^^^^^^^^^ Replace with `Integer#even?`.
+            end
+            "#,
+        )
+        .id("style_even_odd")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExponentialNotation",
+            r#"
+            10e6
+            ^^^^ Use a mantissa >= 1 and < 10.
+            "#,
+        )
+        .id("style_exponential_notation")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/MixinUsage",
+            r#"
+            include M
+            ^^^^^^^^^ `include` is used at the top level. Use inside `class` or `module`.
+            "#,
+        )
+        .id("style_mixin_usage")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/HashLikeCase",
+            r#"
+            case country
+            ^^^^^^^^^^^^ Consider replacing `case-when` with a hash lookup.
+            when 'europe'
+              'eu'
+            when 'america'
+              'us'
+            when 'australia'
+              'au'
+            end
+            "#,
+        )
+        .id("style_hash_like_case")
+        .locations(&[(1, 1, 8, 3)])
+        .correctable(false),
     ]
 }
 

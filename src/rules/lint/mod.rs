@@ -12,8 +12,11 @@ mod format_string;
 mod literals;
 // `Layout/MultilineMethodCallIndentation` needs the same lvar/send distinction, so the analysis
 // is visible to the other departments rather than duplicated there.
+/// Reachable from `style` too: whether a bare identifier reads a local variable is a question
+/// several Style cops ported from node patterns have to answer the same way.
 mod locals;
 mod nil_methods;
+pub(crate) mod locals;
 pub(in crate::rules) mod locals;
 mod node_equality;
 mod parameters;
