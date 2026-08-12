@@ -2281,6 +2281,42 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_missing_respond_to_missing")
         .correctable(false),
+        CopCase::annotated(
+            "Style/ArrayJoin",
+            r#"
+            a = [1, 2] * ', '
+                       ^ Favor `Array#join` over `Array#*`.
+            "#,
+        )
+        .id("style_array_join")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CharacterLiteral",
+            r#"
+            c = ?a
+                ^^ Do not use the character literal - use string literal instead.
+            "#,
+        )
+        .id("style_character_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantException",
+            r#"
+            raise RuntimeError, 'msg'
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ Redundant `RuntimeError` argument can be removed.
+            "#,
+        )
+        .id("style_redundant_exception")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/VariableInterpolation",
+            r##"
+            e = "#@foo"
+                  ^^^^ Replace interpolated variable `@foo` with expression `#{@foo}`.
+            "##,
+        )
+        .id("style_variable_interpolation")
+        .correctable(true),
     ]
 }
 

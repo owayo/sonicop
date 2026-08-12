@@ -12,10 +12,12 @@ mod trailing_comma;
 department_rules! {
     "Style";
     alias => ("Alias", Convention),
+    array_join => ("ArrayJoin", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
     block_delimiters => ("BlockDelimiters", Convention),
     case_equality => ("CaseEquality", Convention),
     class_and_module_children => ("ClassAndModuleChildren", Convention),
+    character_literal => ("CharacterLiteral", Convention),
     class_check => ("ClassCheck", Convention),
     class_vars => ("ClassVars", Convention),
     commented_keyword => ("CommentedKeyword", Convention),
@@ -48,6 +50,7 @@ department_rules! {
     proc => ("Proc", Convention),
     raise_args => ("RaiseArgs", Convention),
     redundant_capital_w => ("RedundantCapitalW", Convention),
+    redundant_exception => ("RedundantException", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
     redundant_return => ("RedundantReturn", Convention),
     regexp_literal => ("RegexpLiteral", Convention),
@@ -64,6 +67,7 @@ department_rules! {
     trailing_comma_in_arguments => ("TrailingCommaInArguments", Convention),
     trailing_comma_in_array_literal => ("TrailingCommaInArrayLiteral", Convention),
     trailing_comma_in_hash_literal => ("TrailingCommaInHashLiteral", Convention),
+    variable_interpolation => ("VariableInterpolation", Convention),
     when_then => ("WhenThen", Convention),
     word_array => ("WordArray", Convention),
     zero_length_predicate => ("ZeroLengthPredicate", Convention),

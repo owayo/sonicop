@@ -11575,3 +11575,97 @@ mod style_formatting {
         );
     }
 }
+
+/// `Array#*` / 文字リテラル / `RuntimeError` の冗長指定 / 短い補間の回帰。
+mod style_literals_and_calls {
+    use super::*;
+
+    #[test]
+    fn array_join_needs_an_array_literal_and_a_string() {
+        expect_offense(
+            "Style/ArrayJoin",
+            r#"
+            a = [1, 2] * ', '
+                       ^ Favor `Array#join` over `Array#*`.
+            "#,
+        );
+        expect_correction(
+            "Style/ArrayJoin",
+            "a = [1, 2] * ', '\n",
+            "a = [1, 2].join(', ')\n",
+        );
+        expect_correction(
+            "Style/ArrayJoin",
+            "b = %w[x y] * '-'\n",
+            "b = %w[x y].join('-')\n",
+        );
+        expect_no_offenses("Style/ArrayJoin", "c = [1, 2] * 3\n");
+        expect_no_offenses("Style/ArrayJoin", "d = x * ', '\n");
+    }
+
+    #[test]
+    fn character_literal_picks_the_quote_from_what_it_holds() {
+        expect_offense(
+            "Style/CharacterLiteral",
+            r#"
+            c = ?a
+                ^^ Do not use the character literal - use string literal instead.
+            "#,
+        );
+        expect_correction("Style/CharacterLiteral", "c = ?a\n", "c = 'a'\n");
+        expect_correction("Style/CharacterLiteral", "d = ?\\n\n", "d = \"\\n\"\n");
+        expect_no_offenses("Style/CharacterLiteral", "e = 'a'\n");
+    }
+
+    #[test]
+    fn redundant_exception_covers_both_spellings() {
+        expect_offense(
+            "Style/RedundantException",
+            r#"
+            raise RuntimeError, 'msg'
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ Redundant `RuntimeError` argument can be removed.
+            "#,
+        );
+        expect_correction(
+            "Style/RedundantException",
+            "raise RuntimeError, 'msg'\n",
+            "raise 'msg'\n",
+        );
+        expect_correction(
+            "Style/RedundantException",
+            "raise RuntimeError.new('msg')\n",
+            "raise 'msg'\n",
+        );
+        // 文字列以外は `to_s` を挟む。括弧付きの呼び出しは括弧のまま。
+        expect_correction(
+            "Style/RedundantException",
+            "fail RuntimeError, msg\n",
+            "fail msg.to_s\n",
+        );
+        expect_correction(
+            "Style/RedundantException",
+            "raise(RuntimeError, 'msg')\n",
+            "raise('msg')\n",
+        );
+        expect_no_offenses("Style/RedundantException", "raise ArgumentError, 'ok'\n");
+    }
+
+    /// 上流の parser が変数そのものを dstr の子に置くのは短い綴りだけで、`#{...}` は
+    /// `begin` に包まれるため対象外。
+    #[test]
+    fn variable_interpolation_only_sees_the_short_spelling() {
+        expect_offense(
+            "Style/VariableInterpolation",
+            r##"
+            e = "#@foo"
+                  ^^^^ Replace interpolated variable `@foo` with expression `#{@foo}`.
+            "##,
+        );
+        expect_correction(
+            "Style/VariableInterpolation",
+            "f = \"#$bar\"\n",
+            "f = \"#{$bar}\"\n",
+        );
+        expect_no_offenses("Style/VariableInterpolation", "g = \"#\u{7b}@baz}\"\n");
+    }
+}
