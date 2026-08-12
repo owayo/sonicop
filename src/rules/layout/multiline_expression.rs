@@ -21,6 +21,7 @@ use tree_sitter::Node;
 
 use super::support::{begins_its_line, character_column, line_indentation};
 use crate::rules::RuleContext;
+use crate::rules::lint::locals::LocalVariables;
 
 /// Which of the nodes upstream's parser builds for one piece of source this stands for.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -32,6 +33,9 @@ enum Role {
     /// The `hash` upstream folds a brace-less run of pairs into. The node is the container the
     /// pairs were written in.
     Hash,
+    /// The `array` upstream wraps a lone splat assigned to something in: `x = *y` is
+    /// `(lvasgn :x (array (splat ...)))` there and a bare splat here.
+    Array,
 }
 
 /// One node of the tree upstream's parser would have built.
@@ -148,6 +152,7 @@ impl<'tree> UpNode<'tree> {
         match self.role {
             Role::Block => UpKind::Block,
             Role::Hash => UpKind::Hash,
+            Role::Array => UpKind::Array,
             Role::Plain => plain_kind(context, self.node),
         }
     }
@@ -155,7 +160,7 @@ impl<'tree> UpNode<'tree> {
     /// `node.source_range`.
     pub(super) fn range(self, context: &RuleContext<'_>) -> Range<usize> {
         match self.role {
-            Role::Block => self.node.byte_range(),
+            Role::Block | Role::Array => self.node.byte_range(),
             Role::Hash => hash_run_range(self.node),
             Role::Plain => {
                 if self.node.kind() == "lambda" {
@@ -209,21 +214,25 @@ impl<'tree> UpNode<'tree> {
         !self.single_line(context)
     }
 
-    /// `Node#receiver`, which reaches through a `block` to the call it was written on.
+    /// `Node#receiver`, whose pattern only matches a `send` and the `block` wrapped around one, so
+    /// everything else -- `super`, `yield`, `defined?` -- answers with nothing.
     pub(super) fn receiver(self, context: &RuleContext<'_>) -> Option<Self> {
         let node = self.node;
+        if self.role != Role::Plain && self.role != Role::Block {
+            return None;
+        }
+        if !plain_kind(context, node).call_type() {
+            return None;
+        }
         match node.kind() {
             "call" | "method_call" => node.child_by_field_name("receiver").map(Self::of),
             "element_reference" => node.child_by_field_name("object").map(Self::of),
-            "binary" if plain_kind(context, node) == UpKind::Send => {
-                node.child_by_field_name("left").map(Self::of)
-            }
+            "binary" => node.child_by_field_name("left").map(Self::of),
             "unary" => node.child_by_field_name("operand").map(Self::of),
             "assignment" => {
                 let left = node.child_by_field_name("left")?;
                 Self::plain(left).receiver(context)
             }
-            "lambda" => None,
             _ => None,
         }
     }
@@ -416,6 +425,11 @@ impl<'tree> UpNode<'tree> {
         self.node.kind()
     }
 
+    /// The grammar node itself, for the analyses that work on the tree rather than on the model.
+    pub(super) fn raw(self) -> Node<'tree> {
+        self.node
+    }
+
     /// Whether the call was fused into the setter send its assignment builds.
     pub(super) fn is_fused_setter_target(self) -> bool {
         self.role == Role::Plain && is_fused_setter_target(self.node)
@@ -450,7 +464,7 @@ impl<'tree> UpNode<'tree> {
 
     pub(super) fn parent(self) -> Option<Self> {
         match self.role {
-            Role::Block => raw_parent(self.node),
+            Role::Block | Role::Array => raw_parent(self.node),
             Role::Hash => {
                 if self.node.kind() == "argument_list" {
                     raw_parent(self.node)
@@ -463,6 +477,12 @@ impl<'tree> UpNode<'tree> {
                     return Some(Self {
                         node: self.node,
                         role: Role::Block,
+                    });
+                }
+                if is_lone_assigned_splat(self.node) {
+                    return Some(Self {
+                        node: self.node,
+                        role: Role::Array,
                     });
                 }
                 raw_parent(self.node)
@@ -564,7 +584,10 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
                 role: Role::Hash,
             });
         }
-        if TRANSPARENT.contains(&parent.kind()) || is_fused_setter_target(parent) {
+        if TRANSPARENT.contains(&parent.kind())
+            || is_fused_setter_target(parent)
+            || is_defined_parentheses(parent)
+        {
             current = parent;
             continue;
         }
@@ -574,7 +597,12 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
 
 fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
     match node.kind() {
-        "call" | "method_call" => call_kind(context, node),
+        // `super args` and `super(args)` are one call node here and a `super` upstream, which is
+        // no `send` at all: nothing that looks for an enclosing method call may stop at one.
+        "call" | "method_call" => match node.child_by_field_name("method") {
+            Some(method) if method.kind() == "super" => UpKind::Other,
+            _ => call_kind(context, node),
+        },
         "element_reference" => UpKind::Send,
         "binary" => match node.child_by_field_name("operator") {
             Some(operator) => match context.source.node_text(operator) {
@@ -584,7 +612,11 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
             },
             None => UpKind::Send,
         },
-        "unary" => UpKind::Send,
+        // `defined?` is a node of its own upstream rather than a call to `!`.
+        "unary" => match node.child_by_field_name("operator") {
+            Some(operator) if context.source.node_text(operator) == "defined?" => UpKind::Other,
+            _ => UpKind::Send,
+        },
         "assignment" => match node.child_by_field_name("left") {
             Some(left) if left.kind() == "call" => call_kind(context, left),
             Some(left) if left.kind() == "element_reference" => UpKind::Send,
@@ -608,6 +640,9 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
         "return" => UpKind::Return,
         "array" | "right_assignment_list" => UpKind::Array,
         "begin" => UpKind::Kwbegin,
+        // The parentheses of `defined?(x)` belong to the `defined?` node upstream, so they are not
+        // the `begin` a written-out group would be.
+        "parenthesized_statements" if is_defined_parentheses(node) => UpKind::Other,
         "parenthesized_statements" | "interpolation" => UpKind::Begin,
         "pair" => UpKind::Pair,
         "hash" => UpKind::Hash,
@@ -622,6 +657,30 @@ fn call_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
         Some(operator) if context.source.node_text(operator) == "&." => UpKind::Csend,
         _ => UpKind::Send,
     }
+}
+
+/// Whether the splat is the whole right-hand side of an assignment, which upstream's parser wraps
+/// in an `array` -- one of the types that stops the walk looking for an assignment to align under.
+fn is_lone_assigned_splat(node: Node<'_>) -> bool {
+    node.kind() == "splat_argument"
+        && node.parent().is_some_and(|parent| {
+            parent.kind() == "assignment"
+                && parent
+                    .child_by_field_name("right")
+                    .is_some_and(|right| right.id() == node.id())
+        })
+}
+
+/// Whether the group is the argument list `defined?` was written with, which upstream keeps in the
+/// `defined?` node's own location rather than as a node.
+fn is_defined_parentheses(node: Node<'_>) -> bool {
+    node.kind() == "parenthesized_statements"
+        && node.parent().is_some_and(|parent| {
+            parent.kind() == "unary"
+                && parent
+                    .child_by_field_name("operator")
+                    .is_some_and(|operator| operator.kind() == "defined?")
+        })
 }
 
 fn post_loop(node: Node<'_>) -> bool {
@@ -641,6 +700,9 @@ pub(super) struct Mixin<'a, 'tree> {
     pub(super) width: i64,
     /// `Layout/IndentationWidth`'s own `Width`, which prefix keywords add on top.
     pub(super) keyword_width: i64,
+    /// Which bare identifiers upstream's parser reads as local variables rather than as calls
+    /// without a receiver. The analysis is deferred until a chain actually asks.
+    locals: LocalVariables<'a>,
 }
 
 /// The tail `operation_description` appends to a message.
@@ -672,7 +734,17 @@ impl<'tree> Mixin<'_, 'tree> {
             context,
             width: cop_width.unwrap_or(keyword_width),
             keyword_width,
+            locals: LocalVariables::new(context),
         }
+    }
+
+    /// `Node#call_type?`, including the bare identifiers upstream's parser turns into a `send`
+    /// without a receiver. Only a name it has seen assigned in the enclosing scope is an `lvar`.
+    pub(super) fn call_type(&self, node: UpNode<'tree>) -> bool {
+        if node.kind(self.context).call_type() {
+            return true;
+        }
+        node.ts_kind() == "identifier" && !self.locals.is_lvar(node.raw())
     }
 
     /// `MultilineExpressionIndentation#left_hand_side`: in a chain of calls the top call is the

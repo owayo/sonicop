@@ -13393,6 +13393,94 @@ mod layout_multiline_indentation {
         expect_no_offenses(OPERATION, "x = !foo\n");
     }
 
+    /// `super` / `yield` / `defined?` は本家では send ではない別のノードなので、
+    /// 「メソッド呼び出しの引数か」を見る `argument_in_method_call` は止まらないし、
+    /// `defined?(...)` の括弧は書かれた括弧グループでもない。
+    #[test]
+    fn super_and_defined_are_not_method_calls() {
+        expect_offense(
+            OPERATION,
+            r#"
+            class Z
+              def m
+                defined?(a &&
+                b)
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                super(c &&
+                d)
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                super e &&
+                f
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+                yield g &&
+                h
+                ^ Use 2 (not 0) spaces for indenting an expression spanning multiple lines.
+              end
+            end
+            "#,
+        );
+        // 通常の呼び出しの括弧の中は対象外のまま。
+        expect_no_offenses(OPERATION, "def m\n  puts(i &&\n  j)\nend\n");
+    }
+
+    /// `x = *y` の右辺は本家では `array` に包まれるので、`part_of_assignment_rhs` は
+    /// そこで打ち切られて代入は基準にならない。
+    #[test]
+    fn a_lone_splat_on_the_right_of_an_assignment_is_wrapped_in_an_array() {
+        expect_no_offenses(CALL, "def m(y)\n  x = *y\n    .to_a\n  x\nend\n");
+        expect_offense(
+            CALL,
+            r#"
+            def m(y)
+              x = y
+                .to_a
+                ^^^^^ Align `.to_a` with `y` on line 2.
+              x
+            end
+            "#,
+        );
+    }
+
+    /// `foo.(1)` は `loc.selector` を持たないので、ハッシュのペアの中で連鎖すると
+    /// 本家の `first_dot_alignment_base` が `dot.join(nil)` で cop エラーになり、
+    /// そのノードの offense は落ちる。同じ位置で報告してはいけない。
+    #[test]
+    fn an_implicit_call_in_a_hash_pair_drops_the_offense_like_upstream_does() {
+        expect_no_offenses(CALL, "h = { k: obj.(1)\n          .b\n }\n");
+        expect_no_offenses(CALL, "foo(k: obj.(1)\n        .b\n)\n");
+    }
+
+    /// 連鎖の途中に複数行ブロックがあるとき、レシーバが「レシーバなしの呼び出し」なら
+    /// それ自身が基準になり、局所変数ならブロックの親が基準になる。tree-sitter は
+    /// どちらも `identifier` なので、本家と同じく代入の有無で見分ける必要がある。
+    #[test]
+    fn a_bare_receiver_is_a_call_unless_the_name_is_a_local_variable() {
+        expect_no_offenses(
+            CALL,
+            concat!(
+                "foo\n",
+                "  .bar(k: obj.a do |x|\n",
+                "            x\n",
+                "          end\n",
+                "          .b\n",
+                ")\n",
+            ),
+        );
+        expect_offense(
+            CALL,
+            r#"
+            foo = 1
+            foo
+              .bar(k: obj.a do |x|
+              ^^^^ Align `.bar` with `.b` on line 6.
+                        x
+                      end
+                      .b
+            )
+            "#,
+        );
+    }
+
     #[test]
     fn operation_correction_moves_the_right_operand() {
         expect_correction(

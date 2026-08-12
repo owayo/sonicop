@@ -14,6 +14,11 @@ enum Style {
     IndentedRelativeToReceiver,
 }
 
+/// Upstream joins `loc.dot` to `loc.selector` without guarding the selector in three places, so a
+/// call written as `foo.(1)` -- which has a dot and no name -- raises there. RuboCop catches the
+/// cop error per node and drops the offense with it, which is what this stands for.
+struct Aborted;
+
 /// What `offending_range` leaves behind for `message` and `autocorrect`: the range to report, how
 /// far it has to move, and the base it was measured against.
 struct Offending {
@@ -56,7 +61,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let lhs = mixin.left_hand_side(receiver);
-        let Some(offending) = offending_range(&mixin, style, node, lhs, &rhs) else {
+        let Ok(Some(offending)) = offending_range(&mixin, style, node, lhs, &rhs) else {
             continue;
         };
         offenses.push(report(&mixin, style, node, lhs, offending));
@@ -164,10 +169,10 @@ fn offending_range<'tree>(
     node: UpNode<'tree>,
     lhs: UpNode<'tree>,
     rhs: &Range<usize>,
-) -> Option<Offending> {
+) -> Result<Option<Offending>, Aborted> {
     let context = mixin.context;
     if !mixin.begins_its_line(rhs) {
-        return None;
+        return Ok(None);
     }
     let pair_ancestor = find_pair_ancestor(mixin, node);
     if pair_ancestor.is_some() && style == Style::Aligned {
@@ -177,14 +182,14 @@ fn offending_range<'tree>(
         && style == Style::Indented
         && find_base_receiver(context, node).kind(context) == UpKind::Hash
     {
-        return check_hash_pair_indented_style(mixin, rhs, pair);
+        return Ok(check_hash_pair_indented_style(mixin, rhs, pair));
     }
     let skip = match pair_ancestor {
         Some(_) => inside_multiline_chain_arg(mixin, pair_ancestor),
         None => mixin.not_for_this_cop(node),
     };
     if skip {
-        return None;
+        return Ok(None);
     }
     check_regular_indentation(mixin, style, node, lhs, rhs)
 }
@@ -238,6 +243,14 @@ fn dot_through_selector(context: &RuleContext<'_>, node: UpNode<'_>) -> Option<R
     Some(dot.start..selector.end)
 }
 
+/// The same join at the three call sites upstream leaves unguarded.
+fn dot_through_selector_or_abort(
+    context: &RuleContext<'_>,
+    node: UpNode<'_>,
+) -> Result<Range<usize>, Aborted> {
+    dot_through_selector(context, node).ok_or(Aborted)
+}
+
 /// `MultilineMethodCallIndentation#check_hash_pair_indentation`.
 fn check_hash_pair_indentation<'tree>(
     mixin: &Mixin<'_, 'tree>,
@@ -245,32 +258,45 @@ fn check_hash_pair_indentation<'tree>(
     lhs: UpNode<'tree>,
     rhs: &Range<usize>,
     pair_ancestor: Option<UpNode<'tree>>,
-) -> Option<Offending> {
+) -> Result<Option<Offending>, Aborted> {
     let context = mixin.context;
-    let mut base = find_hash_pair_alignment_base(context, node);
+    let mut base = find_hash_pair_alignment_base(context, node)?;
     if base.is_none() && inside_multiline_chain_arg(mixin, pair_ancestor) {
-        return None;
+        return Ok(None);
     }
     if base.is_none() {
-        base = first_dot_alignment_base(mixin, node, rhs).or_else(|| Some(lhs.range(context)));
+        base = first_dot_alignment_base(mixin, node, rhs)?.or_else(|| Some(lhs.range(context)));
     }
     if aligned_with_first_line_dot(mixin, node, rhs) {
-        return None;
+        return Ok(None);
     }
-    let base = base?;
-    delta_offense(mixin, rhs, mixin.column(base.start), Some(base), None)
+    let Some(base) = base else {
+        return Ok(None);
+    };
+    Ok(delta_offense(
+        mixin,
+        rhs,
+        mixin.column(base.start),
+        Some(base),
+        None,
+    ))
 }
 
 /// `MultilineMethodCallIndentation#find_hash_pair_alignment_base`.
 fn find_hash_pair_alignment_base(
     context: &RuleContext<'_>,
     node: UpNode<'_>,
-) -> Option<Range<usize>> {
-    let receiver = node.receiver(context)?;
+) -> Result<Option<Range<usize>>, Aborted> {
+    let Some(receiver) = node.receiver(context) else {
+        return Ok(None);
+    };
     if find_base_receiver(context, receiver).kind(context) != UpKind::Hash {
-        return None;
+        return Ok(None);
     }
-    dot_through_selector(context, first_call_has_a_dot(context, node)?)
+    let Some(first_call) = first_call_has_a_dot(context, node) else {
+        return Ok(None);
+    };
+    dot_through_selector_or_abort(context, first_call).map(Some)
 }
 
 /// `MultilineMethodCallIndentation#first_dot_alignment_base`.
@@ -278,24 +304,30 @@ fn first_dot_alignment_base<'tree>(
     mixin: &Mixin<'_, 'tree>,
     node: UpNode<'tree>,
     rhs: &Range<usize>,
-) -> Option<Range<usize>> {
+) -> Result<Option<Range<usize>>, Aborted> {
     let context = mixin.context;
     if !starts_with_dot(context, rhs) {
-        return None;
+        return Ok(None);
     }
-    let first_call = first_call_has_a_dot(context, node)?;
-    let dot = first_call.dot(context)?;
+    let (Some(first_call), ..) = (first_call_has_a_dot(context, node), ()) else {
+        return Ok(None);
+    };
+    let Some(dot) = first_call.dot(context) else {
+        return Ok(None);
+    };
     if first_call.same(node) {
-        return None;
+        return Ok(None);
     }
-    if let Some(after_block) = after_multiline_block_base(mixin, first_call, node) {
-        return Some(after_block);
+    if let Some(after_block) = after_multiline_block_base(mixin, first_call, node)? {
+        return Ok(Some(after_block));
     }
-    let receiver = first_call.receiver(context)?;
+    let Some(receiver) = first_call.receiver(context) else {
+        return Ok(None);
+    };
     if mixin.line(dot.start) != mixin.line(receiver.range(context).start) {
-        return None;
+        return Ok(None);
     }
-    dot_through_selector(context, first_call)
+    dot_through_selector_or_abort(context, first_call).map(Some)
 }
 
 /// `MultilineMethodCallIndentation#after_multiline_block_base`.
@@ -303,20 +335,24 @@ fn after_multiline_block_base<'tree>(
     mixin: &Mixin<'_, 'tree>,
     first_call: UpNode<'tree>,
     node: UpNode<'tree>,
-) -> Option<Range<usize>> {
+) -> Result<Option<Range<usize>>, Aborted> {
     let context = mixin.context;
-    let block = first_call.block_node()?;
+    let (Some(block), ..) = (first_call.block_node(), ()) else {
+        return Ok(None);
+    };
     if !block.multiline(context) {
-        return None;
+        return Ok(None);
     }
-    let after_block = block.parent()?;
+    let Some(after_block) = block.parent() else {
+        return Ok(None);
+    };
     if !after_block.kind(context).call_type()
         || after_block.dot(context).is_none()
         || after_block.same(node)
     {
-        return None;
+        return Ok(None);
     }
-    dot_through_selector(context, after_block)
+    dot_through_selector_or_abort(context, after_block).map(Some)
 }
 
 /// `MultilineMethodCallIndentation#inside_multiline_chain_arg?`.
@@ -407,9 +443,9 @@ fn check_regular_indentation<'tree>(
     node: UpNode<'tree>,
     lhs: UpNode<'tree>,
     rhs: &Range<usize>,
-) -> Option<Offending> {
+) -> Result<Option<Offending>, Aborted> {
     let context = mixin.context;
-    let base = alignment_base(mixin, style, node, rhs);
+    let base = alignment_base(mixin, style, node, rhs)?;
     let correct_column = match &base {
         Some(base) => {
             let parent =
@@ -422,7 +458,7 @@ fn check_regular_indentation<'tree>(
         }
         None => mixin.indentation(lhs) + mixin.correct_indentation(node),
     };
-    delta_offense(mixin, rhs, correct_column, base, None)
+    Ok(delta_offense(mixin, rhs, correct_column, base, None))
 }
 
 /// `MultilineMethodCallIndentation#calculate_column_delta_offense`.
@@ -468,12 +504,12 @@ fn alignment_base<'tree>(
     style: Style,
     node: UpNode<'tree>,
     rhs: &Range<usize>,
-) -> Option<Range<usize>> {
+) -> Result<Option<Range<usize>>, Aborted> {
     match style {
-        Style::Aligned => semantic_alignment_base(mixin, node, rhs)
-            .or_else(|| syntactic_alignment_base(mixin, node, rhs)),
+        Style::Aligned => Ok(semantic_alignment_base(mixin, node, rhs)
+            .or_else(|| syntactic_alignment_base(mixin, node, rhs))),
         Style::IndentedRelativeToReceiver => receiver_alignment_base(mixin, node),
-        Style::Indented => None,
+        Style::Indented => Ok(None),
     }
 }
 
@@ -640,7 +676,7 @@ fn handle_descendant_block<'tree>(
     if !block.multiline(context) {
         return None;
     }
-    match receiver.kind(context).call_type() {
+    match mixin.call_type(receiver) {
         true => Some(receiver),
         false => block.parent(),
     }
@@ -688,20 +724,24 @@ fn method_on_receiver_last_line<'tree>(
 fn receiver_alignment_base<'tree>(
     mixin: &Mixin<'_, 'tree>,
     node: UpNode<'tree>,
-) -> Option<Range<usize>> {
+) -> Result<Option<Range<usize>>, Aborted> {
     let context = mixin.context;
-    if let Some(base) = find_hash_method_base_in_receiver_chain(mixin, node) {
-        return Some(base);
+    if let Some(base) = find_hash_method_base_in_receiver_chain(mixin, node)? {
+        return Ok(Some(base));
     }
-    let first_call = first_call_has_a_dot(context, node)?;
-    Some(first_call.receiver(context)?.range(context))
+    let Some(first_call) = first_call_has_a_dot(context, node) else {
+        return Ok(None);
+    };
+    Ok(first_call
+        .receiver(context)
+        .map(|receiver| receiver.range(context)))
 }
 
 /// `MultilineMethodCallIndentation#find_hash_method_base_in_receiver_chain`.
 fn find_hash_method_base_in_receiver_chain<'tree>(
     mixin: &Mixin<'_, 'tree>,
     node: UpNode<'tree>,
-) -> Option<Range<usize>> {
+) -> Result<Option<Range<usize>>, Aborted> {
     let context = mixin.context;
     let mut chain = node.receiver(context).map(UpNode::send_node);
     while let Some(current) = chain.filter(|current| current.kind(context).call_type()) {
@@ -711,11 +751,11 @@ fn find_hash_method_base_in_receiver_chain<'tree>(
                 method_on_receiver_last_line(mixin, current, base, UpKind::Begin)
             });
         if hash_base {
-            return dot_through_selector(context, current);
+            return dot_through_selector_or_abort(context, current).map(Some);
         }
         chain = base_receiver;
     }
-    None
+    Ok(None)
 }
 
 fn starts_with_dot(context: &RuleContext<'_>, range: &Range<usize>) -> bool {

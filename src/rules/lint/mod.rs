@@ -7,8 +7,11 @@ mod conditions;
 mod exception_hierarchy;
 mod flow;
 mod literals;
+// `Layout/MultilineMethodCallIndentation` needs the same lvar/send distinction, so the analysis
+// is visible to the other departments rather than duplicated there.
 mod locals;
 mod nil_methods;
+pub(in crate::rules) mod locals;
 mod node_equality;
 mod parameters;
 mod percent_literal;
