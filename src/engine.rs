@@ -897,6 +897,69 @@ fn cop_merge_order(cop_name: &str) -> (usize, &str) {
     (index, cop_name)
 }
 
+/// `Cop::Base.autocorrect_incompatible_with`: the cops whose corrections are dropped for the rest
+/// of the pass once this one has corrected something.
+///
+/// `Team#each_corrector` walks the cops in registry order and collects these into a skip set, so a
+/// pair listed here never corrects the same file in the same pass however disjoint their edits
+/// look. The correction they were denied is not lost: the next pass re-inspects the text the first
+/// cop produced, where the second usually no longer has anything to say. `Style/IfUnlessModifier`
+/// and `Style/Next` are the pair this matters most for -- folding an inner conditional into a
+/// modifier shortens the body the outer one was going to rewrite.
+///
+/// Transcribed from the 1.89.0 sources; the unqualified names upstream writes (`RedundantSelf`,
+/// `ColonMethodCall`) resolve to the declaring cop's own department.
+fn autocorrect_incompatible_with(cop_name: &str) -> &'static [&'static str] {
+    match cop_name {
+        "Layout/DotPosition" => &["Style/RedundantSelf"],
+        "Layout/EmptyLineBetweenDefs" => &["Layout/EmptyLines"],
+        "Layout/HeredocArgumentClosingParenthesis" => &["Style/TrailingCommaInArguments"],
+        "Layout/LineContinuationLeadingSpace" => &["Style/StringLiterals"],
+        "Layout/SingleLineBlockChain" => &["Style/MapToHash"],
+        "Layout/SpaceAroundOperators" => &["Style/SelfAssignment"],
+        "Layout/SpaceBeforeBlockBraces" => &["Style/SymbolProc"],
+        "Layout/SpaceBeforeFirstArg" => &["Style/MethodCallWithArgsParentheses"],
+        "Layout/SpaceInsideBlockBraces" => &["Style/BlockDelimiters"],
+        "Lint/AmbiguousOperator" => &["Naming/BlockForwarding"],
+        "Lint/ConstantOverwrittenInRescue" => &[
+            "Naming/RescuedExceptionsVariableName",
+            "Style/RescueStandardError",
+        ],
+        "Lint/UnusedMethodArgument" => &["Style/ExplicitBlockArgument"],
+        "Naming/BlockForwarding" => &[
+            "Lint/AmbiguousOperator",
+            "Style/ArgumentsForwarding",
+            "Style/ExplicitBlockArgument",
+        ],
+        "Style/ArgumentsForwarding" => &["Naming/BlockForwarding", "Style/MethodDefParentheses"],
+        "Style/BlockDelimiters" => &["Style/RedundantBegin"],
+        "Style/ColonMethodCall" => &["Style/RedundantSelf"],
+        "Style/ExplicitBlockArgument" => &["Lint/UnusedMethodArgument"],
+        "Style/IfUnlessModifier" => &["Style/Next", "Style/SoleNestedConditional"],
+        "Style/InverseMethods" => &["Style/Not", "Style/SymbolProc"],
+        "Style/Lambda" => &["Style/SymbolProc"],
+        "Style/LineEndConcatenation" => &["Style/RedundantInterpolation"],
+        "Style/MapToHash" => &["Layout/SingleLineBlockChain"],
+        "Style/MethodCallWithArgsParentheses" => {
+            &["Style/NestedParenthesizedCalls", "Style/RescueModifier"]
+        }
+        "Style/MethodDefParentheses" => &["Style/ArgumentsForwarding"],
+        "Style/NegatedIfElseCondition" => &["Style/InverseMethods", "Style/Not"],
+        "Style/NestedParenthesizedCalls" => &["Style/MethodCallWithArgsParentheses"],
+        "Style/Next" => &["Style/SafeNavigation"],
+        "Style/RedundantBegin" => &["Style/BlockDelimiters"],
+        "Style/RedundantInterpolation" => &["Style/LineEndConcatenation"],
+        "Style/RedundantSelf" => &["Style/ColonMethodCall", "Layout/DotPosition"],
+        "Style/RescueModifier" => &["Style/MethodCallWithArgsParentheses"],
+        "Style/SelfAssignment" => &["Layout/SpaceAroundOperators"],
+        "Style/Semicolon" => &["Style/SingleLineMethods"],
+        "Style/SoleNestedConditional" => &["Style/NegatedIf", "Style/NegatedUnless"],
+        "Style/SymbolProc" => &["Layout/SpaceBeforeBlockBraces"],
+        "Style/TrailingCommaInArguments" => &["Layout/HeredocArgumentClosingParenthesis"],
+        _ => &[],
+    }
+}
+
 /// Whether the span addresses text that is actually there. Nothing a cop reports should fail this;
 /// an offense whose edits do is dropped whole rather than half-applied.
 fn is_addressable(start: usize, end: usize, source: &str) -> bool {
@@ -947,7 +1010,15 @@ pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, us
     candidates.sort_by_key(|index| cop_merge_order(report.offenses[*index].cop_name));
 
     let mut run = Action::root();
-    let mut corrected = Vec::new();
+    // Offenses whose own cop accepted their edits. RuboCop stamps an offense corrected while the
+    // cop is filling its corrector, before the team decides whether to take it, so an offense a
+    // skip or a clash later denies is still reported as corrected.
+    let mut corrected: Vec<usize> = Vec::new();
+    // Offenses whose edits actually reached the run's corrector, which is what says the pass
+    // changed anything and another one is worth running.
+    let mut applied = 0;
+    // `Team#each_corrector`'s skip set. See [`autocorrect_incompatible_with`].
+    let mut skips: HashSet<&'static str> = HashSet::new();
     let mut rest = candidates.as_slice();
     while let Some(&first) = rest.first() {
         let cop_name = report.offenses[first].cop_name;
@@ -957,6 +1028,8 @@ pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, us
             .count();
         let (group, remainder) = rest.split_at(taken);
         rest = remainder;
+
+        let skipped = skips.contains(cop_name);
 
         // The cop's own corrector. An offense that cannot be placed in it is the cop error RuboCop
         // reports and steps over, so it costs that offense alone.
@@ -983,18 +1056,31 @@ pub fn corrected_text(report: &mut FileReport, mode: CorrectMode) -> (String, us
             placed.push(index);
         }
 
+        if cop.children.is_empty() {
+            continue;
+        }
+        corrected.extend(&placed);
+        // `Team#each_corrector` reads the corrector before merging it, so a cop that filled one
+        // bars the cops it declared itself incompatible with whatever the merge then does.
+        skips.extend(autocorrect_incompatible_with(cop_name));
+
+        // A cop an earlier one declared itself incompatible with is passed over: its corrections
+        // wait for the pass after the one that provoked the incompatibility.
+        if skipped {
+            continue;
+        }
         // `Team#merge_corrector!`: a cop whose corrections clash with what is already scheduled
         // loses every correction it asked for in this file, not just the one that clashed.
         if let Ok(merged) = run.clone().combine_children(&cop.children) {
             run = merged;
-            corrected.extend(placed);
+            applied += placed.len();
         }
     }
 
     for index in &corrected {
         report.offenses[*index].corrected = true;
     }
-    (run.rewrite(source), corrected.len())
+    (run.rewrite(source), applied)
 }
 
 const MAX_CORRECTION_PASSES: usize = 200;
