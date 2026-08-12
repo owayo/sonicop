@@ -27,19 +27,27 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         else {
             continue;
         };
-        // `node.parenthesized?`
-        if child_of_kind(node, "argument_list")
-            .and_then(|list| list.child(0))
-            .is_none_or(|first| first.kind() == "(")
+        // `node.parenthesized?` is `loc.begin&.is?('(')`, which only a parenthesis written right
+        // against the selector satisfies: `foo ("x")` is a command call with a grouped argument.
+        if text[selector.end_byte()..].starts_with('(') {
+            continue;
+        }
+        let Some(argument) = grouped_arguments(node).into_iter().next() else {
+            continue;
+        };
+        let first = argument.range.clone();
+        // `foo&blk` written without a space is the binary operator upstream's parser builds, not a
+        // call taking a block: only a blank in front of the `&` makes it an argument.
+        if first.start == selector.end_byte()
+            && argument.parts.first().is_some_and(|part| {
+                matches!(
+                    part.kind(),
+                    "block_argument" | "splat_argument" | "hash_splat_argument"
+                )
+            })
         {
             continue;
         }
-        let Some(first) = grouped_arguments(node)
-            .first()
-            .map(|argument| argument.range.clone())
-        else {
-            continue;
-        };
 
         let space = final_pos(text, first.start, false, true, false)..first.start;
         if text[space.clone()].chars().count() == 1 {
