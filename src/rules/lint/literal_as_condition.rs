@@ -9,6 +9,77 @@ use crate::rules::send_node::named_children;
 use super::literals::{is_basic_literal, is_falsey_literal, is_literal, is_truthy_literal};
 use super::statements::{Branch, statements};
 
+/// The nodes whose `condition` the parser rewrites: a range there becomes a flip-flop and a regexp
+/// a match against `$_`, and neither is a literal any more.
+const CONDITION_OWNERS: &[&str] = &[
+    "if",
+    "elsif",
+    "unless",
+    "if_modifier",
+    "unless_modifier",
+    "conditional",
+    "while",
+    "until",
+    "while_modifier",
+    "until_modifier",
+];
+
+/// `Builder#check_condition`, which reaches through the parentheses and the `and`/`or` operators
+/// a condition may be written with.
+fn rewritten_in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if !matches!(node.kind(), "range" | "regex") {
+        return false;
+    }
+    let mut current = node;
+    loop {
+        let Some(parent) = current.parent() else {
+            return false;
+        };
+        let reaches_through = match parent.kind() {
+            "parenthesized_statements" => statements(parent).len() == 1,
+            "binary" => parent
+                .child_by_field_name("operator")
+                .is_some_and(|operator| {
+                    matches!(
+                        context.source.node_text(operator),
+                        "&&" | "and" | "||" | "or"
+                    )
+                }),
+            _ => false,
+        };
+        if reaches_through {
+            current = parent;
+            continue;
+        }
+        // `Builder#not_op` runs its operand through `check_condition` too, wherever it is written.
+        if parent.kind() == "unary"
+            && parent
+                .child_by_field_name("operator")
+                .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
+        {
+            return parent
+                .child_by_field_name("operand")
+                .is_some_and(|operand| operand.id() == current.id());
+        }
+        return CONDITION_OWNERS.contains(&parent.kind())
+            && parent
+                .child_by_field_name("condition")
+                .is_some_and(|condition| condition.id() == current.id());
+    }
+}
+
+fn truthy(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    !rewritten_in_condition(node, context) && is_truthy_literal(node, context)
+}
+
+fn falsey(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    !rewritten_in_condition(node, context) && is_falsey_literal(node, context)
+}
+
+fn literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    !rewritten_in_condition(node, context) && is_literal(node, context)
+}
+
 /// Every node kind the cop has a handler for, in the order the commissioner reaches them.
 const HANDLED: &[&str] = &[
     "binary",
@@ -72,9 +143,9 @@ fn check_operator_keyword(node: Node<'_>, context: &RuleContext<'_>, offenses: &
         return;
     };
     let decisive = if conjunction {
-        is_truthy_literal(left, context)
+        truthy(left, context)
     } else {
-        is_falsey_literal(left, context)
+        falsey(left, context)
     };
     if !decisive {
         return;
@@ -106,7 +177,7 @@ fn check_negation(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<
     let Some(operand) = node.child_by_field_name("operand") else {
         return;
     };
-    if is_literal(operand, context) {
+    if literal(operand, context) {
         offenses.push(report(operand.byte_range(), context));
         return;
     }
@@ -154,7 +225,7 @@ fn check_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offe
 
 /// `handle_node`.
 fn handle_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    if is_literal(node, context) {
+    if literal(node, context) {
         // The left operand of an `and` is already `on_and`'s to report.
         if node.parent().is_some_and(|parent| {
             parent.kind() == "binary"
@@ -191,8 +262,8 @@ fn check_loop(
     if context.source.node_text(condition) == keep {
         return;
     }
-    let truthy = is_truthy_literal(condition, context);
-    let falsey = is_falsey_literal(condition, context);
+    let truthy = truthy(condition, context);
+    let falsey = falsey(condition, context);
     if !truthy && !falsey {
         return;
     }
@@ -246,7 +317,7 @@ fn check_loop(
 /// `on_case`.
 fn check_case(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if let Some(condition) = node.child_by_field_name("value") {
-        if !is_truthy_literal(condition, context) && !is_falsey_literal(condition, context) {
+        if !truthy(condition, context) && !falsey(condition, context) {
             return;
         }
         check_case_condition(condition, context, offenses);
@@ -264,7 +335,7 @@ fn check_case(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offe
         if conditions.is_empty()
             || !conditions
                 .iter()
-                .all(|condition| is_literal(*condition, context))
+                .all(|condition| literal(*condition, context))
         {
             continue;
         }
@@ -345,8 +416,8 @@ fn check_if(
     let Some(condition) = node.child_by_field_name("condition") else {
         return;
     };
-    let truthy = is_truthy_literal(condition, context);
-    if !truthy && !is_falsey_literal(condition, context) {
+    let truthy = truthy(condition, context);
+    if !truthy && !falsey(condition, context) {
         return;
     }
     let is_unless = matches!(node.kind(), "unless" | "unless_modifier");

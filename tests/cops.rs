@@ -13925,3 +13925,181 @@ mod layout_space_before_first_arg {
         expect_no_offenses(COP, "a  +  b\n");
     }
 }
+
+/// Lint 部門の後発 cop (第 2 陣)。期待値は本家 1.89.0 の実出力から。
+mod lint_late_additions_two {
+    use super::*;
+
+    /// `each` の最後の式は捨てられないので、ブロックの中は void ではない。
+    #[test]
+    fn void_leaves_the_last_expression_of_an_each_block_alone() {
+        expect_no_offenses("Lint/Void", "[1].each do |x|\n  x\nend\n");
+    }
+
+    #[test]
+    fn void_reports_the_last_expression_of_a_void_context() {
+        CopCase::annotated(
+            "Lint/Void",
+            r#"
+            def initialize
+              @a = 1
+              self
+              ^^^^ `self` used in void context.
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `def foo=` の最後の式は Ruby が捨てるが、返り値を当てにできるので免除される。
+    #[test]
+    fn void_leaves_the_last_expression_of_a_setter_alone() {
+        expect_no_offenses("Lint/Void", "def foo=(v)\n  v\nend\n");
+    }
+
+    #[test]
+    fn void_reports_a_literal_in_an_ensure_clause() {
+        CopCase::annotated(
+            "Lint/Void",
+            r#"
+            begin
+              x
+            ensure
+              1
+              ^ Literal `1` used in void context.
+              2
+              ^ Literal `2` used in void context.
+            end
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn format_parameter_mismatch_counts_percent_fields() {
+        CopCase::annotated(
+            "Lint/FormatParameterMismatch",
+            r#"
+            "%s" % [1, 2]
+                 ^ Number of arguments (2) to `String#%` doesn't match the number of fields (1).
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn format_parameter_mismatch_reports_mixed_sequence_types() {
+        CopCase::annotated(
+            "Lint/FormatParameterMismatch",
+            r#"
+            format("%1$s %s", 1, 2)
+            ^^^^^^ Format string is invalid because formatting sequence types (numbered, named or unnumbered) are mixed.
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn format_parameter_mismatch_accepts_a_matching_call() {
+        expect_no_offenses("Lint/FormatParameterMismatch", "format(\"%s %s\", 1, 2)\n");
+    }
+
+    /// 括弧付きの引数リストは字句解析が迷わないので対象外。
+    #[test]
+    fn ambiguous_operator_accepts_parenthesized_arguments() {
+        expect_no_offenses("Lint/AmbiguousOperator", "foo(*[])\n");
+    }
+
+    /// 演算子の右に空白があれば曖昧ではない。
+    #[test]
+    fn ambiguous_operator_accepts_a_spaced_operator() {
+        expect_no_offenses("Lint/AmbiguousOperator", "foo * []\n");
+    }
+
+    #[test]
+    fn ambiguous_operator_reports_yield_and_super() {
+        CopCase::annotated(
+            "Lint/AmbiguousOperator",
+            r#"
+            def m
+              yield *[]
+                    ^ Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.
+            end
+            "#,
+        )
+        .corrected("def m\n  yield(*[])\nend\n")
+        .run();
+    }
+
+    #[test]
+    fn ambiguous_operator_names_the_keyword_splat() {
+        CopCase::annotated(
+            "Lint/AmbiguousOperator",
+            r#"
+            foo **{a: 1}
+                ^^ Ambiguous keyword splat operator. Parenthesize the method arguments if it's surely a keyword splat operator, or add a whitespace to the right of the `**` if it should be an exponent.
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn ambiguous_regexp_literal_accepts_a_division() {
+        expect_no_offenses("Lint/AmbiguousRegexpLiteral", "foo / re / 1\n");
+    }
+
+    /// `# rubocop:disable all` はこの cop 自身も止めるので、報告は残らない。
+    #[test]
+    fn missing_cop_enable_directive_ignores_a_blanket_disable() {
+        expect_no_offenses(
+            "Lint/MissingCopEnableDirective",
+            "# rubocop:disable all\nfoo = 1\n",
+        );
+    }
+
+    #[test]
+    fn missing_cop_enable_directive_names_a_department() {
+        CopCase::annotated(
+            "Lint/MissingCopEnableDirective",
+            "# rubocop:disable Layout\n^^^^^^^^^^^^^^^^^^^^^^^^ Re-enable Layout department with `# rubocop:enable` after disabling it.\nfoo = 1\n",
+        )
+        .run();
+    }
+
+    #[test]
+    fn missing_cop_enable_directive_accepts_a_closed_range() {
+        expect_no_offenses(
+            "Lint/MissingCopEnableDirective",
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout/LineLength\n",
+        );
+    }
+
+    #[test]
+    fn redundant_cop_enable_directive_reports_only_the_second_enable() {
+        CopCase::annotated(
+            "Lint/RedundantCopEnableDirective",
+            "x = 1\n# rubocop:disable Layout/LineLength\ny = 2\n# rubocop:enable Layout/LineLength\n# rubocop:enable Layout/LineLength\n                 ^^^^^^^^^^^^^^^^^ Unnecessary enabling of Layout/LineLength.\n",
+        )
+        .run();
+    }
+
+    #[test]
+    fn redundant_cop_enable_directive_reports_the_extra_name_of_a_list() {
+        CopCase::annotated(
+            "Lint/RedundantCopEnableDirective",
+            "# rubocop:disable Layout/LineLength, Lint/Void\ny = 2\n# rubocop:enable Layout/LineLength, Lint/Void, Style/IfUnlessModifier\n                                               ^^^^^^^^^^^^^^^^^^^^^^ Unnecessary enabling of Style/IfUnlessModifier.\n",
+        )
+        .corrected("# rubocop:disable Layout/LineLength, Lint/Void\ny = 2\n# rubocop:enable Layout/LineLength, Lint/Void\n")
+        .run();
+    }
+
+    #[test]
+    fn redundant_cop_enable_directive_names_all_cops() {
+        CopCase::annotated(
+            "Lint/RedundantCopEnableDirective",
+            "# rubocop:enable all\n                 ^^^ Unnecessary enabling of all cops.\nfoo = 1\n",
+        )
+        .corrected("foo = 1\n")
+        .run();
+    }
+}

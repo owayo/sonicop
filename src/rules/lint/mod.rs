@@ -2,10 +2,13 @@
 /// modifier, what a `rescue` clause covers, whether a bare name reads a local variable, and
 /// RuboCop's local variable tracking.
 mod access_modifier;
+mod ambiguity;
 mod blocks;
 mod conditions;
+mod cop_directives;
 mod exception_hierarchy;
 mod flow;
+mod format_string;
 mod literals;
 // `Layout/MultilineMethodCallIndentation` needs the same lvar/send distinction, so the analysis
 // is visible to the other departments rather than duplicated there.
@@ -24,6 +27,8 @@ mod variable_force;
 department_rules! {
     "Lint";
     ambiguous_block_association => ("AmbiguousBlockAssociation", Warning),
+    ambiguous_operator => ("AmbiguousOperator", Warning),
+    ambiguous_regexp_literal => ("AmbiguousRegexpLiteral", Warning),
     assignment_in_condition => ("AssignmentInCondition", Warning),
     big_decimal_new => ("BigDecimalNew", Warning),
     binary_operator_with_identical_operands => ("BinaryOperatorWithIdenticalOperands", Warning),
@@ -53,6 +58,7 @@ department_rules! {
     flip_flop => ("FlipFlop", Warning),
     float_comparison => ("FloatComparison", Warning),
     float_out_of_range => ("FloatOutOfRange", Warning),
+    format_parameter_mismatch => ("FormatParameterMismatch", Warning),
     hash_compare_by_identity => ("HashCompareByIdentity", Warning),
     identity_comparison => ("IdentityComparison", Warning),
     implicit_string_concatenation => ("ImplicitStringConcatenation", Warning),
@@ -62,6 +68,7 @@ department_rules! {
     literal_as_condition => ("LiteralAsCondition", Warning),
     literal_in_interpolation => ("LiteralInInterpolation", Warning),
     r#loop => ("Loop", Warning),
+    missing_cop_enable_directive => ("MissingCopEnableDirective", Warning),
     missing_super => ("MissingSuper", Warning),
     mixed_regexp_capture_types => ("MixedRegexpCaptureTypes", Warning),
     multiple_comparison => ("MultipleComparison", Warning),
@@ -78,6 +85,7 @@ department_rules! {
     raise_exception => ("RaiseException", Warning),
     rand_one => ("RandOne", Warning),
     redundant_cop_disable_directive => ("RedundantCopDisableDirective", Warning),
+    redundant_cop_enable_directive => ("RedundantCopEnableDirective", Warning),
     redundant_require_statement => ("RedundantRequireStatement", Warning),
     redundant_safe_navigation => ("RedundantSafeNavigation", Warning),
     redundant_splat_expansion => ("RedundantSplatExpansion", Warning),
@@ -117,4 +125,5 @@ department_rules! {
     useless_method_definition => ("UselessMethodDefinition", Warning),
     useless_setter_call => ("UselessSetterCall", Warning),
     useless_times => ("UselessTimes", Warning),
+    void => ("Void", Warning),
 }

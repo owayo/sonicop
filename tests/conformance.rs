@@ -2174,6 +2174,66 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(true)
         .corrected("do_something\n"),
         CopCase::annotated(
+            "Lint/Void",
+            r#"
+            def some_method
+              some_num * 10
+                       ^ Operator `*` used in void context.
+              do_something
+            end
+            "#,
+        )
+        .id("lint_void")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/FormatParameterMismatch",
+            r#"
+            format("%s %s", 1)
+            ^^^^^^ Number of arguments (1) to `format` doesn't match the number of fields (2).
+            "#,
+        )
+        .id("lint_format_parameter_mismatch")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/AmbiguousOperator",
+            r#"
+            foo *[]
+                ^ Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.
+            "#,
+        )
+        .id("lint_ambiguous_operator")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("foo(*[])\n"),
+        CopCase::annotated(
+            "Lint/AmbiguousRegexpLiteral",
+            r#"
+            foo /re/, 1
+                ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+            "#,
+        )
+        .id("lint_ambiguous_regexp_literal")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("foo(/re/, 1)\n"),
+        CopCase::annotated(
+            "Lint/MissingCopEnableDirective",
+            "# rubocop:disable Layout/LineLength\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Re-enable Layout/LineLength cop with `# rubocop:enable` after disabling it.\nfoo = 1\n",
+        )
+        .id("lint_missing_cop_enable_directive")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantCopEnableDirective",
+            "# rubocop:enable Layout/LineLength\n                 ^^^^^^^^^^^^^^^^^ Unnecessary enabling of Layout/LineLength.\nfoo = 1\n",
+        )
+        .id("lint_redundant_cop_enable_directive")
+        .severity(Severity::Warning)
+        .correctable(true)
+        .corrected("foo = 1\n"),
+        CopCase::annotated(
             "Lint/EmptyConditionalBody",
             r#"
             if condition
