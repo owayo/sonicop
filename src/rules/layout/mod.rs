@@ -4,6 +4,7 @@ department_rules! {
     argument_alignment => ("ArgumentAlignment", Convention),
     array_alignment => ("ArrayAlignment", Convention),
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
+    empty_lines => ("EmptyLines", Convention),
     empty_lines_around_access_modifier => ("EmptyLinesAroundAccessModifier", Convention),
     end_of_line => ("EndOfLine", Convention),
     first_array_element_indentation => ("FirstArrayElementIndentation", Convention),
