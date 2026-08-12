@@ -554,6 +554,19 @@ impl FailLevel {
 }
 
 fn validate_compatibility(cli: &Cli) -> Result<()> {
+    // `Lint/RedundantCopDisableDirective` reports directives that switched off cops with nothing
+    // to say, so a run narrowed to a handful of cops could only ever report every directive in the
+    // file. RuboCop refuses the combination rather than answering wrongly.
+    if cli.only.as_deref().is_some_and(|value| {
+        csv(Some(value)).iter().any(|name| {
+            matches!(
+                name.as_str(),
+                "Lint/RedundantCopDisableDirective" | "RedundantCopDisableDirective"
+            )
+        })
+    }) {
+        bail!("Lint/RedundantCopDisableDirective cannot be used with --only.");
+    }
     if cli.except.as_deref().is_some_and(|value| {
         csv(Some(value))
             .iter()

@@ -14,9 +14,9 @@ use tree_sitter::Parser;
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
 use crate::diagnostic::{FileReport, Offense, Severity};
-use crate::directives::DirectiveState;
+use crate::directives::{CommentConfig, CopRegistry, DirectiveState};
 use crate::magic_comment::MagicComment;
-use crate::rules::{AstIndex, Rule, RuleContext, rules};
+use crate::rules::{AstIndex, DirectiveReview, Rule, RuleContext, rules};
 use crate::source::SourceFile;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,6 +53,16 @@ pub fn is_mandatory_cop(name: &str) -> bool {
     matches!(name, "Lint/Syntax" | "Syntax")
 }
 
+/// The cop that reads the file's own `rubocop:disable` comments back to it.
+pub const REDUNDANT_COP_DISABLE_DIRECTIVE: &str = "Lint/RedundantCopDisableDirective";
+
+/// `Runner::REDUNDANT_COP_DISABLE_DIRECTIVE_RULES`: the selectors that switch the check off.
+const REDUNDANT_COP_DISABLE_DIRECTIVE_RULES: [&str; 3] = [
+    "Lint/RedundantCopDisableDirective",
+    "RedundantCopDisableDirective",
+    "Lint",
+];
+
 impl Selection {
     pub fn includes(&self, name: &str, configured_enabled: bool, safe: bool) -> bool {
         if is_mandatory_cop(name) {
@@ -80,6 +90,20 @@ impl Selection {
                 .iter()
                 .any(|except| selector_matches(except, name))
     }
+
+    /// `Runner#check_for_redundant_disables?`.
+    ///
+    /// RuboCop never runs `Lint/RedundantCopDisableDirective` under `--only`: the cop asks whether
+    /// the rest of the run had anything to say, and a run narrowed to a few cops cannot answer
+    /// that. `-l` and `-x` go through `--only` too, so they switch it off as well. Naming the cop
+    /// in `--except`, by department or without one, switches it off outright.
+    pub fn checks_redundant_directives(&self) -> bool {
+        self.only.is_empty()
+            && !self
+                .except
+                .iter()
+                .any(|except| REDUNDANT_COP_DISABLE_DIRECTIVE_RULES.contains(&except.as_str()))
+    }
 }
 
 /// The cops a run applies, with every configuration decision that does not depend on the file
@@ -90,6 +114,9 @@ impl Selection {
 /// `Exclude` reads the path being inspected, so it is all that stays per-file.
 pub(crate) struct RulePlan {
     entries: Vec<PlannedRule>,
+    /// What the cop that reads directives needs to know about the cops that exist. Built once per
+    /// configuration because it depends on nothing in the file, and only when that cop will run.
+    directive_registry: Option<CopRegistry>,
 }
 
 struct PlannedRule {
@@ -121,8 +148,16 @@ impl RulePlan {
                 safe_autocorrect: config.rule_safe(rule.name)
                     && config.rule_safe_autocorrect(rule.name),
             })
-            .collect();
-        Self { entries }
+            .collect::<Vec<_>>();
+        let directive_registry = (selection.checks_redundant_directives()
+            && entries
+                .iter()
+                .any(|planned| planned.rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE))
+        .then(|| CopRegistry::new(config, selection));
+        Self {
+            entries,
+            directive_registry,
+        }
     }
 }
 
@@ -216,6 +251,10 @@ fn inspect_planned(
             offenses.append(&mut syntax_offenses);
             continue;
         }
+        // The directive cop reads what every other cop found, so it cannot run in the same pass.
+        if rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE {
+            continue;
+        }
         if !valid_syntax {
             continue;
         }
@@ -245,6 +284,47 @@ fn inspect_planned(
                     correction.safe = false;
                 }
             }
+        }
+    }
+
+    // `Runner#add_redundant_disables`, which happens once the inspection loop is done and is
+    // handed the offenses as they were found -- the ones a directive suppressed included, since a
+    // directive that suppressed something was plainly needed.
+    if valid_syntax
+        && let Some(registry) = &plan.directive_registry
+        && let Some(planned) = plan
+            .entries
+            .iter()
+            .find(|planned| planned.rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE)
+        && config.rule_included(planned.rule.name, source.path())
+        && !config.rule_excluded(planned.rule.name, source.path())
+    {
+        let comments = CommentConfig::analyze(&source, ast.comment_ranges(), registry);
+        if !comments.is_empty() {
+            let review = DirectiveReview {
+                offenses: &offenses,
+                comments: &comments,
+                registry,
+            };
+            let context = RuleContext::new(
+                &source,
+                &ast,
+                config,
+                planned.rule,
+                planned.severity,
+                selection.correcting,
+            )
+            .reviewing_directives(&review);
+            let mut reported = Vec::new();
+            (planned.rule.check)(&context, &mut reported);
+            if !planned.safe_autocorrect {
+                for offense in &mut reported {
+                    for correction in &mut offense.corrections {
+                        correction.safe = false;
+                    }
+                }
+            }
+            offenses.append(&mut reported);
         }
     }
 

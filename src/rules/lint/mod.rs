@@ -73,6 +73,7 @@ department_rules! {
     percent_symbol_array => ("PercentSymbolArray", Warning),
     raise_exception => ("RaiseException", Warning),
     rand_one => ("RandOne", Warning),
+    redundant_cop_disable_directive => ("RedundantCopDisableDirective", Warning),
     redundant_require_statement => ("RedundantRequireStatement", Warning),
     redundant_safe_navigation => ("RedundantSafeNavigation", Warning),
     redundant_splat_expansion => ("RedundantSplatExpansion", Warning),

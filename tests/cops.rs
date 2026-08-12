@@ -12752,3 +12752,222 @@ mod lint_late_additions {
         assert!(case.inspect().offenses.is_empty());
     }
 }
+
+/// `Lint/RedundantCopDisableDirective`.
+///
+/// 本家はこの cop を `--only` と併用できないので、ケースは `--except` 側で選ぶ
+/// ([`CopCase::without_only`])。期待値は本家 1.89.0 を
+/// `--except <この cop 以外の全 cop>` で走らせた実測から取っている。
+mod redundant_cop_disable_directive {
+    use super::*;
+
+    fn case(annotated: &str) -> CopCase {
+        CopCase::annotated("Lint/RedundantCopDisableDirective", annotated).without_only()
+    }
+
+    /// 何も報告していない cop を無効化した block 形式は、コメントごと消える。
+    /// ファイル先頭のコメントだけは末尾の改行も食う。
+    #[test]
+    fn a_leading_block_directive_takes_its_newline_with_it() {
+        case(
+            r#"
+            # rubocop:disable Layout/LineLength
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            x = 1
+            # rubocop:enable Layout/LineLength
+            "#,
+        )
+        .corrected("x = 1\n# rubocop:enable Layout/LineLength\n")
+        .run();
+    }
+
+    /// 前の行が空でなければ、コメントは手前の改行ごと消える。
+    #[test]
+    fn a_block_directive_after_code_takes_the_preceding_newline() {
+        case(
+            r#"
+            y = 0
+            # rubocop:disable Layout/LineLength
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            x = 1
+            # rubocop:enable Layout/LineLength
+            "#,
+        )
+        .corrected("y = 0\nx = 1\n# rubocop:enable Layout/LineLength\n")
+        .run();
+    }
+
+    /// 前の行が空なら空行は残す。
+    #[test]
+    fn a_blank_line_before_the_directive_is_kept() {
+        case(
+            r#"
+            y = 0
+
+            # rubocop:disable Layout/LineLength
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            x = 1
+            # rubocop:enable Layout/LineLength
+            "#,
+        )
+        .corrected("y = 0\n\nx = 1\n# rubocop:enable Layout/LineLength\n")
+        .run();
+    }
+
+    /// 行末ディレクティブはその行の 1 行分だけを覆う。レンジはコメント本体ではなく
+    /// ディレクティブがマッチした範囲。
+    #[test]
+    fn a_trailing_directive_reports_the_matched_range_only() {
+        case(
+            r#"
+            y = 0
+            x = 1 # rubocop:disable Layout/LineLength
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            "#,
+        )
+        .corrected("y = 0\nx = 1\n")
+        .run();
+    }
+
+    /// ディレクティブの後ろに自由記述が残るなら、消すのではなく ` # ` に置き換える。
+    /// 本家はこのとき手前の改行まで食うので、記述は前の行の末尾へ回る。
+    #[test]
+    fn a_free_comment_after_the_directive_is_left_behind() {
+        case(
+            r#"
+            y = 0
+            # rubocop:disable Layout/LineLength -- keep
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout/LineLength`.
+            x = 1
+            # rubocop:enable Layout/LineLength
+            "#,
+        )
+        .corrected("y = 0 # -- keep\nx = 1\n# rubocop:enable Layout/LineLength\n")
+        .run();
+    }
+
+    /// `disable all` は 1 件にまとまり、文言は `all cops`。
+    #[test]
+    fn disabling_everything_reports_one_offense_for_all_cops() {
+        case(
+            r#"
+            y = 0
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of all cops.
+            x = 1
+            # rubocop:enable all
+            "#,
+        )
+        .corrected("y = 0\nx = 1\n# rubocop:enable all\n")
+        .run();
+    }
+
+    /// 列挙した cop が全部不要なら、コメント全体で 1 件。部門指定は `department` と読む。
+    #[test]
+    fn a_wholly_redundant_list_reports_the_comment_once() {
+        case(r#"
+            y = 0
+            # rubocop:disable Layout, Style/StringLiterals
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Layout` department, `Style/StringLiterals`.
+            x = 1
+            # rubocop:enable Layout, Style/StringLiterals
+            "#)
+        .corrected("y = 0\nx = 1\n# rubocop:enable Layout, Style/StringLiterals\n")
+        .run();
+    }
+
+    /// 知らない cop 名には綴りの近いものを添える。無ければ `(unknown cop)`。
+    #[test]
+    fn an_unknown_cop_name_gets_a_suggestion() {
+        case(r#"
+            # rubocop:disable Lint/Foo
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Lint/Foo` (did you mean `Lint/Loop`?).
+            x = 1
+            # rubocop:enable Lint/Foo
+            "#)
+        .corrected("x = 1\n# rubocop:enable Lint/Foo\n")
+        .run();
+    }
+
+    /// 設定で無効な cop をファイル末尾まで無効化し直すのは `expected_final_disable?`
+    /// で見送られる…が、`inject_disabled_cops_directives` が入れる `-Infinity` 始まりの
+    /// レンジと連続するため、`each_already_disabled` 側が拾う。
+    #[test]
+    fn re_disabling_a_configuration_disabled_cop_is_still_reported() {
+        case(
+            r#"
+            # rubocop:disable Style/Copyright
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Unnecessary disabling of `Style/Copyright`.
+            x = 1
+            "#,
+        )
+        .corrected("x = 1\n")
+        .run();
+    }
+
+    /// 実際に offense を抑止しているディレクティブは残す。
+    #[test]
+    fn a_directive_that_suppressed_something_is_left_alone() {
+        CopCase::new(
+            "Lint/RedundantCopDisableDirective",
+            "x = \"a\" # rubocop:disable Style/StringLiterals\n",
+            Vec::new(),
+        )
+        .cops(&["Lint/RedundantCopDisableDirective", "Style/StringLiterals"])
+        .cop_names(&[])
+        .without_only()
+        .run();
+    }
+
+    /// 列挙のうち 1 件だけが不要なら、その cop 名とカンマだけを消す。
+    #[test]
+    fn only_the_redundant_entry_of_a_list_is_removed() {
+        CopCase::new(
+            "Lint/RedundantCopDisableDirective",
+            "x = \"a\" # rubocop:disable Layout/LineLength, Style/StringLiterals\n",
+            vec![Annotation::new(
+                1,
+                27,
+                17,
+                "Unnecessary disabling of `Layout/LineLength`.",
+            )],
+        )
+        .cops(&[
+            "Lint/RedundantCopDisableDirective",
+            "Style/StringLiterals",
+            "Layout/LineLength",
+        ])
+        .cop_names(&["Lint/RedundantCopDisableDirective"])
+        .without_only()
+        .correct_mode(sonicop::engine::CorrectMode::None)
+        .run();
+    }
+
+    /// 行末に来る不要な cop は左のカンマごと消える。
+    #[test]
+    fn a_redundant_entry_at_the_end_of_a_list_eats_the_comma_on_its_left() {
+        CopCase::new(
+            "Lint/RedundantCopDisableDirective",
+            "x = \"a\" # rubocop:disable Style/StringLiterals, Layout/LineLength\n",
+            Vec::new(),
+        )
+        .cops(&[
+            "Lint/RedundantCopDisableDirective",
+            "Style/StringLiterals",
+            "Layout/LineLength",
+        ])
+        .without_offense_check()
+        .without_only()
+        .corrected("x = \"a\" # rubocop:disable Style/StringLiterals\n")
+        .run();
+    }
+
+    /// `--only` を渡した実行ではこの cop 自体を走らせない。
+    #[test]
+    fn the_cop_does_not_run_under_only() {
+        expect_no_offenses(
+            "Lint/RedundantCopDisableDirective",
+            "# rubocop:disable Layout/LineLength\nx = 1\n# rubocop:enable Layout/LineLength\n",
+        );
+    }
+}
