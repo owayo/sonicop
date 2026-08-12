@@ -8,6 +8,7 @@ mod nodes;
 mod percent;
 mod percent_array;
 mod ranges;
+mod trailing_body;
 mod trailing_comma;
 
 department_rules! {
@@ -23,7 +24,9 @@ department_rules! {
     colon_method_definition => ("ColonMethodDefinition", Convention),
     commented_keyword => ("CommentedKeyword", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
+    dir => ("Dir", Convention),
     documentation => ("Documentation", Convention),
+    double_cop_disable_directive => ("DoubleCopDisableDirective", Convention),
     each_for_simple_loop => ("EachForSimpleLoop", Convention),
     empty_block_parameter => ("EmptyBlockParameter", Convention),
     empty_lambda_parameter => ("EmptyLambdaParameter", Convention),
@@ -46,6 +49,7 @@ department_rules! {
     negated_unless => ("NegatedUnless", Convention),
     negated_while => ("NegatedWhile", Convention),
     next => ("Next", Convention),
+    nil_comparison => ("NilComparison", Convention),
     not => ("Not", Convention),
     numeric_literal_prefix => ("NumericLiteralPrefix", Convention),
     numeric_predicate => ("NumericPredicate", Convention),
@@ -55,19 +59,29 @@ department_rules! {
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     perl_backrefs => ("PerlBackrefs", Convention),
     preferred_hash_methods => ("PreferredHashMethods", Convention),
+    redundant_conditional => ("RedundantConditional", Convention),
+    redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
     redundant_return => ("RedundantReturn", Convention),
+    redundant_sort_by => ("RedundantSortBy", Convention),
     regexp_literal => ("RegexpLiteral", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     semicolon => ("Semicolon", Convention),
+    single_argument_dig => ("SingleArgumentDig", Convention),
     single_line_methods => ("SingleLineMethods", Convention),
     string_concatenation => ("StringConcatenation", Convention),
     string_literals => ("StringLiterals", Convention),
     string_literals_in_interpolation => ("StringLiteralsInInterpolation", Convention),
+    strip => ("Strip", Convention),
     symbol_array => ("SymbolArray", Convention),
+    trailing_body_on_class => ("TrailingBodyOnClass", Convention),
+    trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
+    trailing_body_on_module => ("TrailingBodyOnModule", Convention),
     trailing_comma_in_arguments => ("TrailingCommaInArguments", Convention),
     trailing_comma_in_array_literal => ("TrailingCommaInArrayLiteral", Convention),
     trailing_comma_in_hash_literal => ("TrailingCommaInHashLiteral", Convention),
+    trailing_method_end_statement => ("TrailingMethodEndStatement", Convention),
     unless_else => ("UnlessElse", Convention),
+    unpack_first => ("UnpackFirst", Convention),
     while_until_do => ("WhileUntilDo", Convention),
     word_array => ("WordArray", Convention),
 }

@@ -2820,6 +2820,130 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_if_unless_modifier_of_if_unless")
         .correctable(true),
+        CopCase::annotated(
+            "Style/Strip",
+            r#"
+            'abc'.lstrip.rstrip
+                  ^^^^^^^^^^^^^ Use `strip` instead of `lstrip.rstrip`.
+            "#,
+        )
+        .id("style_strip")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSortBy",
+            r#"
+            array.sort_by { |x| x }
+                  ^^^^^^^^^^^^^^^^^ Use `sort` instead of `sort_by { |x| x }`.
+            "#,
+        )
+        .id("style_redundant_sort_by")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DoubleCopDisableDirective",
+            r#"
+            def f # rubocop:disable Style/For # rubocop:disable Metrics/AbcSize
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ More than one disable comment on one line.
+            end
+            "#,
+        )
+        .id("style_double_cop_disable_directive")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingMethodEndStatement",
+            r#"
+            def some_method
+            do_stuff; end
+                      ^^^ Place the end statement of a multi-line method on its own line.
+            "#,
+        )
+        .id("style_trailing_method_end_statement")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnClass",
+            r#"
+            class Foo; def foo; end
+                       ^^^^^^^^^^^^ Place the first line of class body on its own line.
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_class")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnModule",
+            r#"
+            module Bar extend self
+                       ^^^^^^^^^^^ Place the first line of module body on its own line.
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_module")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrailingBodyOnMethodDefinition",
+            r#"
+            def g(x); b = foo
+                      ^^^^^^^ Place the first line of a multi-line method definition's body on its own line.
+              b[c: x]
+            end
+            "#,
+        )
+        .id("style_trailing_body_on_method_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantConditional",
+            r#"
+            z = (x == y ? true : false)
+                 ^^^^^^^^^^^^^^^^^^^^^ This conditional expression can just be replaced by `x == y`.
+            "#,
+        )
+        .id("style_redundant_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NilComparison",
+            r#"
+            if x == nil
+                 ^^ Prefer the use of the `nil?` predicate.
+            end
+            "#,
+        )
+        .id("style_nil_comparison")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SingleArgumentDig",
+            r#"
+            [1, 2, 3].dig(0)
+            ^^^^^^^^^^^^^^^^ Use `[1, 2, 3][0]` instead of `[1, 2, 3].dig(0)`.
+            "#,
+        )
+        .id("style_single_argument_dig")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFileExtensionInRequire",
+            r#"
+            require 'foo.rb'
+                        ^^^ Redundant `.rb` file extension detected.
+            "#,
+        )
+        .id("style_redundant_file_extension_in_require")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/UnpackFirst",
+            r#"
+            'foo'.unpack('h*').first
+                  ^^^^^^^^^^^^^^^^^^ Use `unpack1('h*')` instead of `unpack('h*').first`.
+            "#,
+        )
+        .id("style_unpack_first")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Dir",
+            r#"
+            path = File.expand_path(File.dirname(__FILE__))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `__dir__` to get an absolute path to the current file's directory.
+            "#,
+        )
+        .id("style_dir")
+        .correctable(true),
     ]
 }
 

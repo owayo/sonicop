@@ -12522,3 +12522,294 @@ mod if_unless_modifier_of_if_unless {
         expect_no_offenses(COP, "foo(bar) if running?\n");
     }
 }
+
+/// `Style/Strip`: `lstrip.rstrip` は `strip`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Strip` と `-A` の実測。
+mod strip {
+    use super::*;
+
+    const COP: &str = "Style/Strip";
+
+    #[test]
+    fn either_order_is_reported_from_the_first_selector() {
+        expect_correction(COP, "'abc'.lstrip.rstrip\n", "'abc'.strip\n");
+        expect_correction(COP, "'abc'.rstrip.lstrip\n", "'abc'.strip\n");
+    }
+
+    #[test]
+    fn one_of_the_two_alone_is_left_alone() {
+        expect_no_offenses(COP, "'abc'.lstrip\n");
+        expect_no_offenses(COP, "'abc'.strip\n");
+        expect_no_offenses(COP, "'abc'.lstrip.lstrip\n");
+    }
+}
+
+/// `Style/RedundantSortBy`: `sort_by { |x| x }` は `sort`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantSortBy` と `-A` の実測。
+mod redundant_sort_by {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSortBy";
+
+    #[test]
+    fn a_block_returning_its_own_parameter_is_reported() {
+        expect_correction(COP, "array.sort_by { |x| x }\n", "array.sort\n");
+        expect_correction(COP, "array.sort_by do |var|\n  var\nend\n", "array.sort\n");
+    }
+
+    #[test]
+    fn a_block_doing_anything_else_is_left_alone() {
+        expect_no_offenses(COP, "array.sort_by { |x| x.foo }\n");
+        expect_no_offenses(COP, "array.sort_by { |x, y| x }\n");
+        expect_no_offenses(COP, "array.sort { |a, b| a }\n");
+    }
+}
+
+/// `Style/DoubleCopDisableDirective`: 1 行に disable 指示は 1 つ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/DoubleCopDisableDirective` と `-A` の実測。
+mod double_cop_disable_directive {
+    use super::*;
+
+    const COP: &str = "Style/DoubleCopDisableDirective";
+
+    #[test]
+    fn the_second_directive_becomes_a_comma() {
+        expect_correction(
+            COP,
+            "def f # rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\nend\n",
+            "def f # rubocop:disable Style/For, Metrics/AbcSize\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_single_directive_is_left_alone() {
+        expect_no_offenses(COP, "def f # rubocop:disable Style/For\nend\n");
+        expect_no_offenses(COP, "# rubocop:disable Style/For\n");
+    }
+}
+
+/// `Style/TrailingMethodEndStatement` と `Style/TrailingBodyOn*`: 本体と `end` は自分の行に。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` と `-A` の実測。
+mod trailing_body_and_end {
+    use super::*;
+
+    #[test]
+    fn the_body_moves_below_the_signature() {
+        expect_correction(
+            "Style/TrailingBodyOnClass",
+            "class Foo; def foo; end\nend\n",
+            "class Foo \n  def foo; end\nend\n",
+        );
+        expect_correction(
+            "Style/TrailingBodyOnModule",
+            "module Bar extend self\nend\n",
+            "module Bar \n  extend self\nend\n",
+        );
+        expect_correction(
+            "Style/TrailingBodyOnMethodDefinition",
+            "def g(x); b = foo\n  b[c: x]\nend\n",
+            "def g(x) \n  b = foo\n  b[c: x]\nend\n",
+        );
+        expect_correction(
+            "Style/TrailingMethodEndStatement",
+            "def some_method\ndo_stuff; end\n",
+            "def some_method\ndo_stuff; \nend\n",
+        );
+    }
+
+    #[test]
+    fn a_body_already_on_its_own_line_is_left_alone() {
+        expect_no_offenses(
+            "Style/TrailingBodyOnClass",
+            "class Foo\n  def foo; end\nend\n",
+        );
+        expect_no_offenses(
+            "Style/TrailingBodyOnModule",
+            "module Bar\n  extend self\nend\n",
+        );
+        expect_no_offenses(
+            "Style/TrailingBodyOnMethodDefinition",
+            "def g(x)\n  b = foo\nend\n",
+        );
+        expect_no_offenses("Style/TrailingMethodEndStatement", "def m\n  x\nend\n");
+        expect_no_offenses("Style/TrailingMethodEndStatement", "def m; x; end\n");
+    }
+}
+
+/// `Style/RedundantConditional`: 真偽値だけを返す条件式は条件そのもの。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantConditional` と `-A` の実測。
+mod redundant_conditional {
+    use super::*;
+
+    const COP: &str = "Style/RedundantConditional";
+
+    #[test]
+    fn both_orders_are_reported_and_the_inverted_one_gains_a_bang() {
+        expect_correction(COP, "z = (x == y ? true : false)\n", "z = (x == y)\n");
+        expect_correction(COP, "z = (x == y ? false : true)\n", "z = (!(x == y))\n");
+        expect_correction(COP, "if x == y\n  true\nelse\n  false\nend\n", "x == y\n");
+    }
+
+    /// 条件が比較でないもの、枝が真偽値でないものは対象外。
+    #[test]
+    fn anything_but_a_comparison_returning_booleans_is_left_alone() {
+        expect_no_offenses(COP, "z = (x ? true : false)\n");
+        expect_no_offenses(COP, "z = (x == y ? 1 : false)\n");
+        expect_no_offenses(COP, "z = (x == y)\n");
+    }
+}
+
+/// `Style/NilComparison`: 既定では `== nil` より `nil?`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NilComparison` と `-A` の実測。
+mod nil_comparison {
+    use super::*;
+
+    const COP: &str = "Style/NilComparison";
+
+    #[test]
+    fn the_comparison_becomes_the_predicate() {
+        expect_offense(
+            COP,
+            r#"
+            if x == nil
+                 ^^ Prefer the use of the `nil?` predicate.
+            end
+            "#,
+        );
+        expect_correction(COP, "x == nil\n", "x.nil?\n");
+        expect_correction(COP, "x === nil\n", "x.nil?\n");
+        expect_no_offenses(COP, "x.nil?\n");
+        expect_no_offenses(COP, "x != nil\n");
+    }
+
+    /// `comparison` では逆向きになる。
+    #[test]
+    fn the_comparison_style_reverses_the_rule() {
+        CopCase::annotated(
+            COP,
+            r#"
+            x.nil?
+              ^^^^ Prefer the use of the `==` comparison.
+            "#,
+        )
+        .config("Style/NilComparison:\n  EnforcedStyle: comparison\n")
+        .corrected("x == nil\n")
+        .run();
+    }
+}
+
+/// `Style/SingleArgumentDig`: 引数 1 つの `dig` は `[]`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/SingleArgumentDig` と `-A` の実測。
+mod single_argument_dig {
+    use super::*;
+
+    const COP: &str = "Style/SingleArgumentDig";
+
+    #[test]
+    fn the_call_is_replaced_by_an_index() {
+        expect_correction(COP, "[1, 2, 3].dig(0)\n", "[1, 2, 3][0]\n");
+        expect_correction(COP, "{ key: 'v' }.dig(:key)\n", "{ key: 'v' }[:key]\n");
+    }
+
+    /// 引数が 2 つ以上、splat、安全参照、受け手なしは対象外。
+    #[test]
+    fn anything_but_one_plain_argument_is_left_alone() {
+        expect_no_offenses(COP, "{ a: { b: 'v' } }.dig(:a, :b)\n");
+        expect_no_offenses(COP, "h.dig(*keys)\n");
+        expect_no_offenses(COP, "hash&.dig(:key)\n");
+        expect_no_offenses(COP, "dig(:key)\n");
+    }
+}
+
+/// `Style/RedundantFileExtensionInRequire`: `require 'foo.rb'` の `.rb` は不要。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantFileExtensionInRequire` と `-A` の実測。
+mod redundant_file_extension_in_require {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFileExtensionInRequire";
+
+    #[test]
+    fn the_extension_is_reported_and_removed() {
+        expect_correction(COP, "require 'foo.rb'\n", "require 'foo'\n");
+        expect_correction(
+            COP,
+            "require_relative '../foo.rb'\n",
+            "require_relative '../foo'\n",
+        );
+    }
+
+    #[test]
+    fn another_extension_or_a_receiver_is_left_alone() {
+        expect_no_offenses(COP, "require 'foo.so'\n");
+        expect_no_offenses(COP, "require 'foo'\n");
+        expect_no_offenses(COP, "Kernel.require 'foo.rb'\n");
+        expect_no_offenses(COP, "require \"#{x}.rb\"\n");
+    }
+}
+
+/// `Style/UnpackFirst`: `unpack(...).first` は `unpack1`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/UnpackFirst` と `-A` の実測。
+mod unpack_first {
+    use super::*;
+
+    const COP: &str = "Style/UnpackFirst";
+
+    #[test]
+    fn every_way_of_taking_the_first_element_is_reported() {
+        expect_correction(COP, "'foo'.unpack('h*').first\n", "'foo'.unpack1('h*')\n");
+        expect_correction(COP, "'foo'.unpack('h*')[0]\n", "'foo'.unpack1('h*')\n");
+        expect_correction(
+            COP,
+            "'foo'.unpack('h*').slice(0)\n",
+            "'foo'.unpack1('h*')\n",
+        );
+        expect_correction(COP, "'foo'.unpack('h*').at(0)\n", "'foo'.unpack1('h*')\n");
+    }
+
+    #[test]
+    fn taking_anything_else_is_left_alone() {
+        expect_no_offenses(COP, "'foo'.unpack('h*')\n");
+        expect_no_offenses(COP, "'foo'.unpack('h*')[1]\n");
+        expect_no_offenses(COP, "'foo'.unpack('h*').last\n");
+        expect_no_offenses(COP, "'foo'.unpack1('h*')\n");
+    }
+}
+
+/// `Style/Dir`: `File.expand_path(File.dirname(__FILE__))` は `__dir__`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Dir` と `-A` の実測。
+mod dir {
+    use super::*;
+
+    const COP: &str = "Style/Dir";
+
+    #[test]
+    fn both_spellings_collapse_to_the_keyword() {
+        expect_correction(
+            COP,
+            "path = File.expand_path(File.dirname(__FILE__))\n",
+            "path = __dir__\n",
+        );
+        expect_correction(
+            COP,
+            "path = File.dirname(File.realpath(__FILE__))\n",
+            "path = __dir__\n",
+        );
+    }
+
+    #[test]
+    fn another_path_or_another_order_is_left_alone() {
+        expect_no_offenses(COP, "path = File.expand_path(File.dirname(other))\n");
+        expect_no_offenses(COP, "path = File.dirname(File.expand_path(__FILE__))\n");
+        expect_no_offenses(COP, "path = File.expand_path(__FILE__)\n");
+    }
+}
