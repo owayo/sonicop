@@ -12514,3 +12514,241 @@ mod style_literals_and_calls {
         expect_no_offenses("Style/VariableInterpolation", "g = \"#\u{7b}@baz}\"\n");
     }
 }
+
+/// Lint 部門の後発 cop。期待値は本家 1.89.0 の `--only <cop> --format json` の実測から。
+mod lint_late_additions {
+    use super::*;
+
+    #[test]
+    fn erb_new_arguments_rewrites_every_legacy_position_at_once() {
+        CopCase::annotated(
+            "Lint/ErbNewArguments",
+            r#"
+            ERB.new(str, nil, '-', '@output')
+                         ^^^ Passing safe_level with the 2nd argument of `ERB.new` is deprecated. Do not use it, and specify other arguments as keyword arguments.
+                              ^^^ Passing trim_mode with the 3rd argument of `ERB.new` is deprecated. Use keyword argument like `ERB.new(str, trim_mode: '-')` instead.
+                                   ^^^^^^^^^ Passing eoutvar with the 4th argument of `ERB.new` is deprecated. Use keyword argument like `ERB.new(str, eoutvar: '@output')` instead.
+            "#,
+        )
+        .corrected("ERB.new(str, trim_mode: '-', eoutvar: '@output')\n")
+        .run();
+    }
+
+    #[test]
+    fn erb_new_arguments_accepts_the_keyword_form() {
+        expect_no_offenses("Lint/ErbNewArguments", "ERB.new(str, trim_mode: '-')\n");
+    }
+
+    /// `Dir.glob` sorts from Ruby 3.0 on, so the cop is off above its maximum target version.
+    #[test]
+    fn non_deterministic_require_order_is_gated_on_the_target_version() {
+        CopCase::new(
+            "Lint/NonDeterministicRequireOrder",
+            "Dir.glob('./lib/*.rb').each do |file|\n  require file\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    #[test]
+    fn non_deterministic_require_order_sorts_a_block_pass() {
+        CopCase::annotated(
+            "Lint/NonDeterministicRequireOrder",
+            r#"
+            Dir.glob('./lib/*.rb', &method(:require))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Sort files before requiring them.
+            "#,
+        )
+        .target_ruby("2.7")
+        .corrected("Dir.glob('./lib/*.rb').sort.each(&method(:require))\n")
+        .run();
+    }
+
+    #[test]
+    fn safe_navigation_chain_accepts_a_chain_of_safe_calls() {
+        expect_no_offenses("Lint/SafeNavigationChain", "foo&.bar&.baz\n");
+    }
+
+    /// `nil` answers `to_s`, so a call the receiver cannot fail is no chain to report.
+    #[test]
+    fn safe_navigation_chain_accepts_a_method_nil_responds_to() {
+        expect_no_offenses("Lint/SafeNavigationChain", "foo&.bar.to_s\n");
+    }
+
+    #[test]
+    fn safe_navigation_consistency_asks_for_the_operator_the_group_already_uses() {
+        CopCase::annotated(
+            "Lint/SafeNavigationConsistency",
+            r#"
+            foo&.bar || foo.baz
+                           ^ Use `&.` for consistency with safe navigation.
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn redundant_safe_navigation_reports_a_class_name_receiver() {
+        CopCase::annotated(
+            "Lint/RedundantSafeNavigation",
+            r#"
+            Foo&.bar
+               ^^ Redundant safe navigation detected, use `.` instead.
+            "#,
+        )
+        .run();
+    }
+
+    #[test]
+    fn redundant_safe_navigation_accepts_an_ordinary_receiver() {
+        expect_no_offenses("Lint/RedundantSafeNavigation", "foo&.bar\n");
+    }
+
+    #[test]
+    fn redundant_splat_expansion_keeps_a_percent_literal_argument() {
+        expect_no_offenses("Lint/RedundantSplatExpansion", "foo(*%w[a b])\n");
+    }
+
+    /// The four shapes the correction takes: drop the brackets, drop the star, wrap a scalar, and
+    /// widen to the whole literal for an `Array.new`.
+    #[test]
+    fn redundant_splat_expansion_corrects_each_position() {
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "foo(*[1, 2])\n",
+            "foo(1, 2)\n",
+        );
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "x = *[1, 2]\n",
+            "x = [1, 2]\n",
+        );
+        expect_correction("Lint/RedundantSplatExpansion", "x = *'a'\n", "x = ['a']\n");
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "return *[1, 2]\n",
+            "return [1, 2]\n",
+        );
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "case x\nwhen *[1, 2] then y\nend\n",
+            "case x\nwhen 1, 2 then y\nend\n",
+        );
+        expect_correction(
+            "Lint/RedundantSplatExpansion",
+            "[*Array.new(3)]\n",
+            "Array.new(3)\n",
+        );
+    }
+
+    #[test]
+    fn redundant_splat_expansion_accepts_an_empty_array() {
+        expect_no_offenses("Lint/RedundantSplatExpansion", "foo(*[])\n");
+    }
+
+    #[test]
+    fn shadowed_exception_reports_a_group_of_two_levels() {
+        CopCase::annotated(
+            "Lint/ShadowedException",
+            r#"
+            begin
+              do_something
+            rescue StandardError, RuntimeError
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not shadow rescued Exceptions.
+              handle
+            end
+            "#,
+        )
+        .locations(&[(3, 1, 4, 8)])
+        .run();
+    }
+
+    #[test]
+    fn shadowed_exception_reports_clauses_written_out_of_order() {
+        CopCase::annotated(
+            "Lint/ShadowedException",
+            r#"
+            begin
+              x
+            rescue StandardError
+            ^^^^^^^^^^^^^^^^^^^^ Do not shadow rescued Exceptions.
+              y
+            rescue ArgumentError
+              z
+            end
+            "#,
+        )
+        .locations(&[(3, 1, 4, 3)])
+        .run();
+    }
+
+    /// Two `Errno` classes are unrelated however they are ordered, so neither shadows the other.
+    #[test]
+    fn shadowed_exception_accepts_two_errno_classes() {
+        expect_no_offenses(
+            "Lint/ShadowedException",
+            "begin\n  x\nrescue Errno::ENOENT, Errno::EACCES\n  y\nend\n",
+        );
+    }
+
+    /// A name no constant answers to compares to nothing, which is what keeps an application's own
+    /// exception classes from being read as a hierarchy.
+    #[test]
+    fn shadowed_exception_accepts_unresolvable_names() {
+        expect_no_offenses(
+            "Lint/ShadowedException",
+            "begin\n  x\nrescue MyError\n  y\nrescue OtherError\n  z\nend\n",
+        );
+    }
+
+    #[test]
+    fn useless_setter_call_follows_the_variable_the_object_was_copied_into() {
+        CopCase::annotated(
+            "Lint/UselessSetterCall",
+            r#"
+            def foo
+              x = Object.new
+              y = x
+              y.attr = 1
+              ^ Useless setter call to local variable `y`.
+            end
+            "#,
+        )
+        .corrected("def foo\n  x = Object.new\n  y = x\n  y.attr = 1\n  y\nend\n")
+        .run();
+    }
+
+    #[test]
+    fn useless_setter_call_accepts_an_object_that_came_from_outside() {
+        expect_no_offenses(
+            "Lint/UselessSetterCall",
+            "def foo(bar)\n  x = bar\n  x.attr = 1\nend\n",
+        );
+    }
+
+    /// The permission is read off the file the source came from, so a source with no file behind
+    /// it is left alone -- which is what upstream's `File.exist?` guard does.
+    #[test]
+    fn script_permission_reads_the_mode_of_the_file_on_disk() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("script.rb");
+        let source = "#!/usr/bin/env ruby\nputs 1\n";
+        std::fs::write(&path, source).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let case = CopCase::new("Lint/ScriptPermission", source.to_owned(), Vec::new())
+            .path(path.to_str().unwrap());
+        let report = case.inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert_eq!(
+            report.offenses[0].message,
+            "Script file script.rb doesn't have execute permission."
+        );
+        assert!(!report.offenses[0].is_correctable());
+
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(case.inspect().offenses.is_empty());
+    }
+}

@@ -4,9 +4,11 @@
 mod access_modifier;
 mod blocks;
 mod conditions;
+mod exception_hierarchy;
 mod flow;
 mod literals;
 mod locals;
+mod nil_methods;
 mod node_equality;
 mod parameters;
 mod percent_literal;
@@ -44,6 +46,7 @@ department_rules! {
     empty_interpolation => ("EmptyInterpolation", Warning),
     empty_when => ("EmptyWhen", Warning),
     ensure_return => ("EnsureReturn", Warning),
+    erb_new_arguments => ("ErbNewArguments", Warning),
     flip_flop => ("FlipFlop", Warning),
     float_comparison => ("FloatComparison", Warning),
     float_out_of_range => ("FloatOutOfRange", Warning),
@@ -61,6 +64,7 @@ department_rules! {
     nested_method_definition => ("NestedMethodDefinition", Warning),
     nested_percent_literal => ("NestedPercentLiteral", Warning),
     next_without_accumulator => ("NextWithoutAccumulator", Warning),
+    non_deterministic_require_order => ("NonDeterministicRequireOrder", Warning),
     non_local_exit_from_iterator => ("NonLocalExitFromIterator", Warning),
     ordered_magic_comments => ("OrderedMagicComments", Warning),
     out_of_range_regexp_ref => ("OutOfRangeRegexpRef", Warning),
@@ -70,6 +74,8 @@ department_rules! {
     raise_exception => ("RaiseException", Warning),
     rand_one => ("RandOne", Warning),
     redundant_require_statement => ("RedundantRequireStatement", Warning),
+    redundant_safe_navigation => ("RedundantSafeNavigation", Warning),
+    redundant_splat_expansion => ("RedundantSplatExpansion", Warning),
     redundant_string_coercion => ("RedundantStringCoercion", Warning),
     redundant_with_index => ("RedundantWithIndex", Warning),
     redundant_with_object => ("RedundantWithObject", Warning),
@@ -78,9 +84,13 @@ department_rules! {
     rescue_exception => ("RescueException", Warning),
     rescue_type => ("RescueType", Warning),
     return_in_void_context => ("ReturnInVoidContext", Warning),
+    safe_navigation_chain => ("SafeNavigationChain", Warning),
+    safe_navigation_consistency => ("SafeNavigationConsistency", Warning),
     safe_navigation_with_empty => ("SafeNavigationWithEmpty", Warning),
+    script_permission => ("ScriptPermission", Warning),
     self_assignment => ("SelfAssignment", Warning),
     send_with_mixin_argument => ("SendWithMixinArgument", Warning),
+    shadowed_exception => ("ShadowedException", Warning),
     struct_new_override => ("StructNewOverride", Warning),
     suppressed_exception => ("SuppressedException", Warning),
     syntax => ("Syntax", Fatal),
@@ -99,5 +109,6 @@ department_rules! {
     useless_assignment => ("UselessAssignment", Warning),
     useless_else_without_rescue => ("UselessElseWithoutRescue", Warning),
     useless_method_definition => ("UselessMethodDefinition", Warning),
+    useless_setter_call => ("UselessSetterCall", Warning),
     useless_times => ("UselessTimes", Warning),
 }

@@ -180,3 +180,8 @@ fn range_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
         .is_some_and(|operator| context.source.node_text(operator) == "...");
     if exclusive { "erange" } else { "irange" }
 }
+
+/// `node.literal?`.
+pub(super) fn is_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    literal_type(node, context).is_some()
+}
