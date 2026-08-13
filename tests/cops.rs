@@ -16561,3 +16561,165 @@ mod explicit_block_argument {
         expect_no_offenses(COP, "bar { |x| yield x }\n");
     }
 }
+
+/// `Style/RedundantRegexpEscape`: 正規表現の中で意味を持たないエスケープ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantRegexpEscape` の実測。
+mod redundant_regexp_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpEscape";
+
+    #[test]
+    fn an_escape_that_changes_nothing_is_dropped() {
+        expect_correction(COP, "/\\-/\n", "/-/\n");
+        expect_correction(COP, "/\\;/\n", "/;/\n");
+        expect_correction(COP, "/[\\;]/\n", "/[;]/\n");
+        // A hyphen written first or last in a class is literal already.
+        expect_correction(COP, "/[\\-a]/\n", "/[-a]/\n");
+        expect_correction(COP, "/[a\\-]/\n", "/[a-]/\n");
+    }
+
+    #[test]
+    fn an_escape_that_carries_meaning_stays() {
+        expect_no_offenses(COP, "/\\./\n");
+        expect_no_offenses(COP, "%r{\\}}\n");
+        expect_no_offenses(COP, "/\\/foo/\n");
+        expect_no_offenses(COP, "/\\d\\w\\s\\A\\z/\n");
+        expect_no_offenses(COP, "/\\n\\t/\n");
+        expect_no_offenses(COP, "/\\\\/\n");
+        expect_no_offenses(COP, "/\\#{x}/\n");
+        expect_no_offenses(COP, "/[\\]]/\n");
+        // A hyphen between two ends of a range has to stay escaped.
+        expect_no_offenses(COP, "/[a\\-b]/\n");
+        expect_no_offenses(COP, "/\\ /x\n");
+    }
+}
+
+/// `Style/OneLineConditional`: 1 行の `if/then/else/end` は三項演算子か複数行に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/OneLineConditional` の実測。
+mod one_line_conditional {
+    use super::*;
+
+    const COP: &str = "Style/OneLineConditional";
+
+    #[test]
+    fn a_one_line_conditional_becomes_a_ternary() {
+        expect_offense(
+            COP,
+            r#"
+            if foo then bar else baz end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+            "#,
+        );
+        expect_correction(COP, "if foo then bar else baz end\n", "foo ? bar : baz\n");
+        // An `unless` keeps its branches in the order the parser stores them.
+        expect_correction(
+            COP,
+            "unless foo then bar else baz end\n",
+            "foo ? baz : bar\n",
+        );
+        expect_correction(
+            COP,
+            "if foo then puts 1 else puts 2 end\n",
+            "foo ? (puts 1) : (puts 2)\n",
+        );
+        // An operator around the conditional binds tighter than the ternary.
+        expect_correction(
+            COP,
+            "1 + if foo then bar else baz end\n",
+            "1 + (foo ? bar : baz)\n",
+        );
+    }
+
+    /// 三項演算子にできない形は複数行に開く。
+    #[test]
+    fn what_has_no_ternary_form_is_written_over_several_lines() {
+        expect_offense(
+            COP,
+            r#"
+            if foo then bar else baz; qux end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor multi-line `if` over single-line `if/then/else/end` constructs.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo then bar else baz; qux end\n",
+            "if foo\n  bar\nelse\n  baz; qux\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if foo then bar elsif x then y else z end\n",
+            "if foo\n  bar\nelsif x\n  y\nelse\n  z\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_conditional_without_an_else_is_left_alone() {
+        expect_no_offenses(COP, "if foo then bar end\n");
+        expect_no_offenses(COP, "bar if foo\n");
+        expect_no_offenses(COP, "if foo\n  bar\nelse\n  baz\nend\n");
+        // A then-branch holding more than one statement has no ternary arm to become.
+        expect_no_offenses(COP, "if foo then bar; baz else qux end\n");
+    }
+}
+
+/// `Style/RedundantCondition`: 条件と分岐が同じなら `||` で足りる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantCondition` の実測。
+mod redundant_condition {
+    use super::*;
+
+    const COP: &str = "Style/RedundantCondition";
+
+    #[test]
+    fn a_branch_that_repeats_the_condition_becomes_a_double_pipe() {
+        expect_offense(
+            COP,
+            r#"
+            a ? a : b
+              ^^^^^ Use double pipes `||` instead.
+            "#,
+        );
+        expect_correction(COP, "a ? a : b\n", "a || b\n");
+        expect_correction(COP, "if a\n  a\nelse\n  b\nend\n", "a || b\n");
+        expect_correction(COP, "foo(a) ? foo(a) : b\n", "foo(a) || b\n");
+        // Both branches assigning the same name, and both calling the same method.
+        expect_correction(COP, "if a\n  x = a\nelse\n  x = b\nend\n", "x = a || b\n");
+        expect_correction(
+            COP,
+            "if a\n  foo(a)\nelse\n  foo(b)\nend\n",
+            "foo(a || b)\n",
+        );
+        expect_correction(COP, "a.zero? ? true : b\n", "a.zero? || b\n");
+    }
+
+    /// `else` の無い形は条件そのものが不要。
+    #[test]
+    fn a_condition_without_an_else_is_not_needed_at_all() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+            ^^^^ This condition is not needed.
+              a
+            end
+            "#,
+        );
+        expect_correction(COP, "if a\n  a\nend\n", "a\n");
+    }
+
+    #[test]
+    fn anything_that_is_not_the_same_expression_twice_is_left_alone() {
+        expect_no_offenses(COP, "if x\n  y\nelse\n  z\nend\n");
+        expect_no_offenses(COP, "b if a\n");
+        expect_no_offenses(COP, "if a\n  a\nelsif b\n  c\nend\n");
+        // A multi-line `begin` as the else branch is not a ternary arm.
+        expect_no_offenses(COP, "if a\n  a\nelse\n  b\n  c\nend\n");
+        // A hash key assignment is not an either-or.
+        expect_no_offenses(COP, "if a\n  h[a] = 1\nelse\n  h[b] = 1\nend\n");
+        expect_no_offenses(COP, "a ? true : b\n");
+        expect_no_offenses(COP, "if a.nonzero?\n  a\nelse\n  b\nend\n");
+    }
+}

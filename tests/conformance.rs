@@ -3916,6 +3916,33 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_explicit_block_argument")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpEscape",
+            r#"
+            /\-/
+             ^^ Redundant escape inside regexp literal
+            "#,
+        )
+        .id("style_redundant_regexp_escape")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OneLineConditional",
+            r#"
+            if foo then bar else baz end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+            "#,
+        )
+        .id("style_one_line_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantCondition",
+            r#"
+            a ? a : b
+              ^^^^^ Use double pipes `||` instead.
+            "#,
+        )
+        .id("style_redundant_condition")
+        .correctable(true),
     ]
 }
 
