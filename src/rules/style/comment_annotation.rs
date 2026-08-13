@@ -29,9 +29,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let start = range.start + annotation.margin.len();
         let end =
             start + annotation.keyword.len() + annotation.colon.len() + annotation.space.len();
-        let keyword = annotation.keyword.to_uppercase();
+        // The message quotes the keyword as it was written; only the correction upper-cases it.
+        let keyword = annotation.keyword;
+        let upper = keyword.to_uppercase();
         let message = match annotation.note.is_empty() {
-            true => format!("Annotation comment, with keyword `{keyword}`, is missing a note.",),
+            true => format!("Annotation comment, with keyword `{keyword}`, is missing a note."),
             false if requires_colon => format!(
                 "Annotation keywords like `{keyword}` should be all upper case, followed by a \
                  colon, and a space, then a note describing the problem."
@@ -48,8 +50,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 start,
                 end,
                 replacement: match requires_colon {
-                    true => format!("{keyword}: "),
-                    false => format!("{keyword} "),
+                    true => format!("{upper}: "),
+                    false => format!("{upper} "),
                 },
                 safe: true,
             }),
@@ -63,8 +65,7 @@ fn trails_code(context: &RuleContext<'_>, line: usize) -> bool {
     !context.source.line(line).trim_start().starts_with('#')
 }
 
-/// The message keyword is upper-cased for display, so the offense message names `TODO` however the
-/// comment spelled it.
+/// The five parts `AnnotationComment` splits a comment into.
 struct Annotation<'a> {
     margin: &'a str,
     keyword: &'a str,

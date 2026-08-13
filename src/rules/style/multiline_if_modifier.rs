@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ) else {
             continue;
         };
-        if body.start_position().row == body.end_position().row {
+        if !is_multiline(body) {
             continue;
         }
         // `part_of_ignored_node?`: a modifier written inside one already reported is left for the
@@ -49,6 +49,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 }),
         );
     }
+}
+
+/// `multiline?`, which `BlockNode` overrides to compare the braces rather than the whole
+/// expression: a chain broken over several lines ending in a one-line block is not multiline.
+fn is_multiline(node: Node<'_>) -> bool {
+    let span = match node.kind() {
+        "call" => node.child_by_field_name("block"),
+        "lambda" => node.child_by_field_name("body"),
+        _ => None,
+    }
+    .unwrap_or(node);
+    span.start_position().row != span.end_position().row
 }
 
 /// `to_normal_if`: the condition on its own line, the body indented one step further, and an `end`
