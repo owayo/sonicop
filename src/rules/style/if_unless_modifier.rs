@@ -1,13 +1,13 @@
 //! `Style/IfUnlessModifier`: a body of one statement belongs behind its condition, and a modifier
 //! that made its line too long belongs back in block form.
 
-use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::LazyLock;
 
 use regex::Regex;
 use tree_sitter::Node;
 
+use super::comments::CommentIndex;
 use super::conditional::{
     UpstreamParent, descendants, first_line, last_line, self_statements, token, upstream_parent,
 };
@@ -774,36 +774,6 @@ fn unwrap_begin<'t>(node: Node<'t>) -> Option<Node<'t>> {
     match node.kind() {
         "parenthesized_statements" => super::nodes::children(node).first().copied(),
         _ => Some(node),
-    }
-}
-
-/// The comments of the file indexed by line, as `processed_source.comment_index` holds them.
-struct CommentIndex {
-    by_line: HashMap<usize, Range<usize>>,
-}
-
-impl CommentIndex {
-    fn new(context: &RuleContext<'_>) -> Self {
-        Self {
-            by_line: context
-                .comment_ranges()
-                .iter()
-                .map(|range| (context.source.line_column(range.start).0, range.clone()))
-                .collect(),
-        }
-    }
-
-    fn at_line(&self, line: usize) -> Option<Range<usize>> {
-        self.by_line.get(&line).cloned()
-    }
-
-    fn on_line(&self, line: usize) -> bool {
-        self.by_line.contains_key(&line)
-    }
-
-    /// `contains_comment?`, which asks about whole lines rather than the range itself.
-    fn in_lines(&self, lines: Range<usize>) -> bool {
-        lines.into_iter().any(|line| self.on_line(line))
     }
 }
 

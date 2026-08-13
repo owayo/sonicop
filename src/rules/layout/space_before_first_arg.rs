@@ -102,9 +102,3 @@ fn is_name(method: &str) -> bool {
     method.starts_with(|character: char| character.is_alphabetic() || character == '_')
         && !method.ends_with('=')
 }
-
-fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
-}

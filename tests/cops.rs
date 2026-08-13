@@ -15285,3 +15285,339 @@ mod hash_like_case {
         );
     }
 }
+
+/// `Style/EmptyCaseCondition`: 主語のない `case` は `if` に書き換える。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EmptyCaseCondition` と `-A` の実測。
+mod empty_case_condition {
+    use super::*;
+
+    const COP: &str = "Style/EmptyCaseCondition";
+
+    #[test]
+    fn the_keyword_is_reported_and_the_branches_become_a_chain() {
+        expect_offense(
+            COP,
+            r#"
+            case
+            ^^^^ Do not use empty `case` condition, instead use an `if` expression.
+            when a
+              b
+            end
+            puts 1
+            "#,
+        );
+        expect_correction(
+            COP,
+            "x = case\n    when a == 0 then puts 1\n    when b == 0, c == 1\n      puts 2\n    else\n      puts 3\n    end\n",
+            "x = if a == 0\n puts 1\n    elsif b == 0 || c == 1\n      puts 2\n    else\n      puts 3\n    end\n",
+        );
+    }
+
+    /// 置換に飲まれるコメントは `case` の桁に合わせて行頭へ戻す。条件が `||` より緩く
+    /// 結合するものは括弧で包む。
+    #[test]
+    fn a_swallowed_comment_is_kept_and_loose_conditions_are_parenthesized() {
+        expect_correction(
+            COP,
+            "case\n# a comment\nwhen a || b, c..d then puts 1\nend\ny = 1\n",
+            "# a comment\nif (a || b) || (c..d)\n puts 1\nend\ny = 1\n",
+        );
+    }
+
+    /// 主語のあるもの、`return` を含む枝、`send` などの親を持つものは対象外。
+    /// ファイル全体が `case` 1 文のときは本家が `then` を書き換えない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "case n\nwhen 1\n  a\nend\n");
+        expect_no_offenses(COP, "foo(case\n    when a then 1\n    end)\n");
+        expect_no_offenses(COP, "x = case\n    when a then return 1\n    end\n");
+        expect_correction(COP, "case\nwhen a then b\nend\n", "if a then b\nend\n");
+    }
+}
+
+/// `Style/EmptyElse`: 空の `else`、`nil` だけの `else` は落とす。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EmptyElse` と `-A` の実測。
+mod empty_else {
+    use super::*;
+
+    const COP: &str = "Style/EmptyElse";
+
+    #[test]
+    fn an_empty_or_nil_else_is_reported_and_removed() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+              b
+            else
+            ^^^^ Redundant `else`-clause.
+            end
+            "#,
+        );
+        expect_correction(COP, "if a\n  b\nelse\nend\n", "if a\n  b\nend\n");
+        expect_correction(COP, "if a\n  b\nelse\n  nil\nend\n", "if a\n  b\nend\n");
+        expect_correction(
+            COP,
+            "case x\nwhen 1\n  a\nelse\nend\n",
+            "case x\nwhen 1\n  a\nend\n",
+        );
+        // `elsif` の `else` は外側の `end` まで落とす。
+        expect_correction(
+            COP,
+            "if a\n  b\nelsif c\n  d\nelse\nend\n",
+            "if a\n  b\nelsif c\n  d\nend\n",
+        );
+    }
+
+    /// 中身のある `else`、`else` の無いもの、`elsif` そのものは対象外。
+    /// `else` 以降にコメントがあると報告はするが書き換えない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "if a\n  b\nelse\n  c\nend\n");
+        expect_no_offenses(COP, "if a\n  b\nend\n");
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nend\n");
+        expect_correction(
+            COP,
+            "if a\n  b\nelse\n  # note\nend\n",
+            "if a\n  b\nelse\n  # note\nend\n",
+        );
+    }
+}
+
+/// `Style/StructInheritance`: `Struct.new` の継承はブロックに書き換える。
+///
+/// 期待値は本家 1.89.0 の `--only Style/StructInheritance` と `-A` の実測。
+mod struct_inheritance {
+    use super::*;
+
+    const COP: &str = "Style/StructInheritance";
+
+    #[test]
+    fn the_superclass_is_reported_and_the_class_becomes_an_assignment() {
+        expect_offense(
+            COP,
+            r#"
+            class Person < Struct.new(:a, :b)
+                           ^^^^^^^^^^^^^^^^^^ Don't extend an instance initialized by `Struct.new`. Use a block to customize the struct.
+              def age
+                42
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "class Person < Struct.new(:a, :b)\n  def age\n    42\n  end\nend\n",
+            "Person = Struct.new(:a, :b) do\n  def age\n    42\n  end\nend\n",
+        );
+    }
+
+    /// 本体が無いものは `end` ごと落とし、括弧の無い引数は括弧を補い、
+    /// 既にブロックを持つものはその `end` を落とす。
+    #[test]
+    fn each_shape_opens_the_block_where_it_belongs() {
+        expect_correction(
+            COP,
+            "class Person < Struct.new(:a, :b)\nend\n",
+            "Person = Struct.new(:a, :b)\n",
+        );
+        expect_correction(
+            COP,
+            "class Person < Struct.new(:a, :b); end\n",
+            "Person = Struct.new(:a, :b)\n",
+        );
+        expect_correction(
+            COP,
+            "class Person < Struct.new :a, :b\n  def age; 42; end\nend\n",
+            "Person = Struct.new(:a, :b) do\n  def age; 42; end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class Person < ::Struct.new(:a) do\n  def x; end\nend\nend\n",
+            "Person = ::Struct.new(:a) do\n  def x; end\n\nend\n",
+        );
+    }
+
+    /// `Struct` 以外、`new` 以外を継承したものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "class Person < Base\nend\n");
+        expect_no_offenses(COP, "class Person < Struct\nend\n");
+        expect_no_offenses(COP, "class Person < Foo::Struct.new(:a)\nend\n");
+        expect_no_offenses(COP, "Person = Struct.new(:a, :b)\n");
+    }
+}
+
+/// `Style/WhileUntilModifier`: 本体が 1 行なら修飾子形にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/WhileUntilModifier` と `-A` の実測。
+mod while_until_modifier {
+    use super::*;
+
+    const COP: &str = "Style/WhileUntilModifier";
+
+    #[test]
+    fn the_keyword_is_reported_and_the_loop_folds_onto_one_line() {
+        expect_offense(
+            COP,
+            r#"
+            while a
+            ^^^^^ Favor modifier `while` usage when having a single-line body.
+              b
+            end
+            "#,
+        );
+        expect_correction(COP, "while a\n  b\nend\n", "b while a\n");
+        expect_correction(COP, "until a\n  b\nend\n", "b until a\n");
+        expect_correction(COP, "x = while a\n  b\nend\n", "x = (b while a)\n");
+    }
+
+    /// 本体が空・複数文・条件文のもの、コメントを挟むもの、条件が局所変数を束縛する
+    /// もの、修飾子形が長すぎるものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "while a\nend\n");
+        expect_no_offenses(COP, "while a\n  b\n  c\nend\n");
+        expect_no_offenses(COP, "while a\n  if b\n    c\n  end\nend\n");
+        expect_no_offenses(COP, "while a\n  # note\n  b\nend\n");
+        expect_no_offenses(COP, "while (x = gets)\n  b\nend\n");
+        expect_no_offenses(COP, "b while a\n");
+        expect_no_offenses(COP, &format!("while a\n  {}\nend\n", "b".repeat(130)));
+    }
+}
+
+/// `Style/CommandLiteral`: コマンドリテラルはバッククォートで書く。
+///
+/// 期待値は本家 1.89.0 の `--only Style/CommandLiteral` と `-A` の実測。
+mod command_literal {
+    use super::*;
+
+    const COP: &str = "Style/CommandLiteral";
+
+    #[test]
+    fn a_percent_x_literal_is_reported_and_gets_backticks() {
+        expect_offense(
+            COP,
+            r#"
+            a = %x(ls)
+                ^^^^^^ Use backticks around command string.
+            "#,
+        );
+        expect_correction(COP, "a = %x(ls)\n", "a = `ls`\n");
+        expect_correction(COP, "a = %x[ls -l]\n", "a = `ls -l`\n");
+    }
+
+    /// 内側にバッククォートを持つものは `%x` を勧めるが書き換えない。
+    #[test]
+    fn an_inner_backtick_is_reported_the_other_way_round_and_left_alone() {
+        expect_offense(
+            COP,
+            r#"
+            a = `echo \`x\``
+                ^^^^^^^^^^^^ Use `%x` around command string.
+            "#,
+        );
+        expect_correction(COP, "a = `echo \\`x\\``\n", "a = `echo \\`x\\``\n");
+        expect_no_offenses(COP, "a = `ls`\n");
+        expect_no_offenses(COP, "a = %x(foo `bar`)\n");
+    }
+}
+
+/// `Style/DoubleNegation`: `!!` は避ける。既定では戻り値の位置だけ許す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/DoubleNegation` と `-A` の実測。
+mod double_negation {
+    use super::*;
+
+    const COP: &str = "Style/DoubleNegation";
+
+    #[test]
+    fn the_outer_bang_is_reported_and_becomes_a_nil_check() {
+        expect_offense(
+            COP,
+            r#"
+            x = !!y
+                ^ Avoid the use of double negation (`!!`).
+            "#,
+        );
+        expect_correction(COP, "x = !!y\n", "x = !y.nil?\n");
+        expect_correction(
+            COP,
+            "def foo\n  !!bar\n  baz\nend\n",
+            "def foo\n  !bar.nil?\n  baz\nend\n",
+        );
+    }
+
+    /// メソッドの戻り値、`return` の引数、`define_method` の末尾は既定の
+    /// `allowed_in_returns` で許される。配列やハッシュの要素は許されない。
+    #[test]
+    fn what_the_default_style_allows() {
+        expect_no_offenses(COP, "def foo\n  !!bar\nend\n");
+        expect_no_offenses(COP, "def foo\n  x = !!bar\nend\n");
+        expect_no_offenses(COP, "def foo\n  return !!bar\nend\n");
+        expect_no_offenses(COP, "def foo\n  if x\n    !!bar\n  end\nend\n");
+        expect_no_offenses(COP, "define_method(:m) do\n  !!bar\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def foo
+              [!!bar]
+               ^ Avoid the use of double negation (`!!`).
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            def foo
+              { a: !!bar }
+                   ^ Avoid the use of double negation (`!!`).
+            end
+            "#,
+        );
+        // `not not x` は同じ木でも報告する `!` ではない。
+        expect_no_offenses(COP, "x = (not not y)\n");
+    }
+}
+
+/// `Style/ClassEqualityComparison`: クラスの比較は `instance_of?` に書き換える。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ClassEqualityComparison` と `-A` の実測。
+mod class_equality_comparison {
+    use super::*;
+
+    const COP: &str = "Style/ClassEqualityComparison";
+
+    #[test]
+    fn the_comparison_is_reported_from_the_class_selector() {
+        expect_offense(
+            COP,
+            r#"
+            x.class == Foo
+              ^^^^^^^^^^^^ Use `instance_of?(Foo)` instead of comparing classes.
+            "#,
+        );
+        expect_correction(COP, "x.class == Foo\n", "x.instance_of?(Foo)\n");
+        expect_correction(COP, "y.class.name == 'Bar'\n", "y.instance_of?(Bar)\n");
+        expect_correction(COP, "x.class.equal?(Foo)\n", "x.instance_of?(Foo)\n");
+    }
+
+    /// 型の分からない相手は書き換えず報告だけする。`==` などを定義しているメソッドの
+    /// 中は既定の `AllowedMethods` で見送る。
+    #[test]
+    fn what_the_cop_reports_without_rewriting_and_what_it_skips() {
+        expect_offense(
+            COP,
+            r#"
+            z.class == 'Baz'
+              ^^^^^^^^^^^^^^ Use `instance_of?` instead of comparing classes.
+            "#,
+        );
+        expect_correction(COP, "z.class == 'Baz'\n", "z.class == 'Baz'\n");
+        expect_no_offenses(COP, "def ==(other)\n  x.class == other.class\nend\n");
+        expect_no_offenses(COP, "x.class < Foo\n");
+        expect_no_offenses(COP, "x == Foo\n");
+    }
+}
