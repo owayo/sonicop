@@ -14,6 +14,7 @@ use crate::directives::{
     CONFIG_DISABLED_LINE, CommentEntry, CopRegistry, DirectiveComment, DirectiveMode,
     END_OF_FILE_LINE, LineRange,
 };
+use crate::rules::support::final_pos;
 use crate::rules::{DirectiveReview, RuleContext};
 use crate::source::SourceFile;
 
@@ -438,28 +439,12 @@ fn trailing_range(source: &SourceFile, ranges: &[Range<usize>], range: &Range<us
 
 /// `range_with_surrounding_space(side: :left, newlines: true)`.
 fn grow_left(source: &SourceFile, range: Range<usize>) -> Range<usize> {
-    let bytes = source.text().as_bytes();
-    let mut start = range.start;
-    while start > 0 && matches!(bytes[start - 1], b' ' | b'\t') {
-        start -= 1;
-    }
-    while start > 0 && bytes[start - 1] == b'\n' {
-        start -= 1;
-    }
-    start..range.end
+    final_pos(source.text(), range.start, false, true, false)..range.end
 }
 
 /// `range_with_surrounding_space(side: :right)`, with the newline eaten only when asked.
 fn grow_right(source: &SourceFile, range: Range<usize>, newlines: bool) -> Range<usize> {
-    let bytes = source.text().as_bytes();
-    let mut end = range.end;
-    while end < bytes.len() && matches!(bytes[end], b' ' | b'\t') {
-        end += 1;
-    }
-    while newlines && end < bytes.len() && bytes[end] == b'\n' {
-        end += 1;
-    }
-    range.start..end
+    range.start..final_pos(source.text(), range.end, true, newlines, false)
 }
 
 fn grow_right_spaces_only(source: &SourceFile, range: Range<usize>) -> Range<usize> {

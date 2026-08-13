@@ -20060,3 +20060,48 @@ mod redundant_parentheses {
         );
     }
 }
+
+/// `Lint/RedundantCopEnableDirective` が directive 行ごと消すときに巻き込む空白の範囲。
+///
+/// `range_with_surrounding_space(side: :right)` は `RangeHelp#final_pos` の 3 段の並び
+/// (空白・タブ → 改行 → 残りの空白) で、`whitespace` を渡さない呼び出しは改行の**先**へは
+/// 進まない。つまり directive の下の行の字下げは残る。ここを「空白なら何でも食う」ループに
+/// すると次の行が 2 桁ぶん左へ動き、`-A` の途中経過が本家と変わってしまう。
+///
+/// 実害は rubocop_rubocop の全 cop `-A` で出た。過剰に食った結果 `Layout/IndentationWidth` /
+/// `Layout/IndentationConsistency` が発火せず、本家が通る中間状態へ到達できなかった。
+mod lint_redundant_cop_enable_directive_removal_range {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantCopEnableDirective";
+
+    /// 消えた行の字下げと次の行の字下げが並ぶ。本家もこうなる。
+    #[test]
+    fn the_indentation_of_the_line_below_stays_put() {
+        expect_correction(
+            COP,
+            "def foo\n  x = 1\n  # rubocop:enable Style/For\n  y = 2\nend\n",
+            "def foo\n  x = 1\n    y = 2\nend\n",
+        );
+    }
+
+    /// 間の空行は改行として食われるが、その下の字下げは残る。
+    #[test]
+    fn a_blank_line_below_goes_but_the_indentation_below_it_stays() {
+        expect_correction(
+            COP,
+            "def foo\n  x = 1\n  # rubocop:enable Style/For\n\n  y = 2\nend\n",
+            "def foo\n  x = 1\n    y = 2\nend\n",
+        );
+    }
+
+    /// 同じ行の末尾の空白は改行より前なので食われる。
+    #[test]
+    fn trailing_spaces_on_the_directive_line_go_with_it() {
+        expect_correction(
+            COP,
+            "x = 1\n# rubocop:enable Style/For   \n  y = 2\n",
+            "x = 1\n  y = 2\n",
+        );
+    }
+}
