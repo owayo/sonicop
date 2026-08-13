@@ -326,6 +326,16 @@ fn local_reads<'a>(
         if node.kind() == "identifier" && locals.is_lvar(node) {
             found.push(context.source.node_text(node));
         }
+        // `foo(bar:)` is `(pair (sym :bar) (lvar :bar))` once `bar` is a local, and the name a
+        // block parameter binds always is one -- the grammar leaves the value unwritten, so the
+        // read has no node of its own to find.
+        if node.kind() == "pair" && node.child_by_field_name("value").is_none() {
+            if let Some(key) = node.child_by_field_name("key") {
+                if let Some(name) = send_node::symbol_name(key, context) {
+                    found.push(name);
+                }
+            }
+        }
         false
     });
     found
