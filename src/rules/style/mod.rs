@@ -144,6 +144,7 @@ department_rules! {
     single_argument_dig => ("SingleArgumentDig", Convention),
     single_line_methods => ("SingleLineMethods", Convention),
     slicing_with_range => ("SlicingWithRange", Convention),
+    sole_nested_conditional => ("SoleNestedConditional", Convention),
     special_global_vars => ("SpecialGlobalVars", Convention),
     stabby_lambda_parentheses => ("StabbyLambdaParentheses", Convention),
     stderr_puts => ("StderrPuts", Convention),
@@ -155,6 +156,7 @@ department_rules! {
     symbol_array => ("SymbolArray", Convention),
     symbol_literal => ("SymbolLiteral", Convention),
     symbol_proc => ("SymbolProc", Convention),
+    ternary_parentheses => ("TernaryParentheses", Convention),
     trailing_body_on_class => ("TrailingBodyOnClass", Convention),
     trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
     trailing_body_on_module => ("TrailingBodyOnModule", Convention),
@@ -170,5 +172,6 @@ department_rules! {
     while_until_do => ("WhileUntilDo", Convention),
     while_until_modifier => ("WhileUntilModifier", Convention),
     word_array => ("WordArray", Convention),
+    yoda_condition => ("YodaCondition", Convention),
     zero_length_predicate => ("ZeroLengthPredicate", Convention),
 }

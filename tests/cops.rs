@@ -18217,7 +18217,11 @@ mod mutable_constant {
         expect_correction(COP, "H = { a: 1 }\n", "H = { a: 1 }.freeze\n");
         expect_correction(COP, "S = 'str'\n", "S = 'str'.freeze\n");
         expect_correction(COP, "W = %w[a b]\n", "W = %w[a b].freeze\n");
-        expect_correction(COP, "X = <<~HD\n  text\nHD\n", "X = <<~HD.freeze\n  text\nHD\n");
+        expect_correction(
+            COP,
+            "X = <<~HD\n  text\nHD\n",
+            "X = <<~HD.freeze\n  text\nHD\n",
+        );
         expect_correction(COP, "M::NESTED = [1]\n", "M::NESTED = [1].freeze\n");
         expect_correction(COP, "C ||= [1]\n", "C ||= [1].freeze\n");
     }
@@ -18363,5 +18367,289 @@ mod infinite_loop {
         expect_no_offenses(COP, "while (true)\n  a\nend\n");
         expect_no_offenses(COP, "while x\n  a\nend\n");
         expect_no_offenses(COP, "until true\n  a\nend\n");
+    }
+}
+
+/// `Style/YodaCondition`: リテラル側を左に置いた比較は向きを戻す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/YodaCondition` と `-A` の実測。
+mod yoda_condition {
+    use super::*;
+
+    const COP: &str = "Style/YodaCondition";
+
+    #[test]
+    fn a_literal_on_the_left_is_reversed() {
+        expect_offense(
+            COP,
+            r#"
+            99 == foo
+            ^^^^^^^^^ Reverse the order of the operands `99 == foo`.
+            "#,
+        );
+        expect_correction(COP, "99 == foo\n", "foo == 99\n");
+        expect_correction(COP, "\"bar\" != foo\n", "foo != \"bar\"\n");
+        // 不等号は向きも入れ替わる。
+        expect_correction(COP, "42 >= foo\n", "foo <= 42\n");
+        expect_correction(COP, "10 < bar\n", "bar > 10\n");
+        // `.==(x)` と書いても同じ send。
+        expect_correction(COP, "99.==(foo)\n", "foo == 99\n");
+    }
+
+    /// 両辺が定数、両辺が非定数、左辺が補間のいずれも「向きが決まらない」ので報告しない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo == 99\n");
+        expect_no_offenses(COP, "1 == 2\n");
+        expect_no_offenses(COP, "foo == bar\n");
+        // `CONST` も定数側なので、リテラルと並べても向きは決まらない。
+        expect_no_offenses(COP, "99 == CONST\n");
+        expect_no_offenses(COP, "\"#{interpolation}\" == foo\n");
+        expect_no_offenses(COP, "/#{interpolation}/ == foo\n");
+        // `===` は可換でないので対象外。
+        expect_no_offenses(COP, "99 === foo\n");
+        expect_no_offenses(COP, "99 <=> foo\n");
+        // `__FILE__ == $0` はスクリプト判定のイディオムなので免除。
+        expect_no_offenses(COP, "__FILE__ == $0\n");
+        expect_no_offenses(COP, "__FILE__ != $PROGRAM_NAME\n");
+        // `on_csend` を実装していないので安全参照は届かない。
+        expect_no_offenses(COP, "99&.==(foo)\n");
+    }
+
+    /// パーサが値に解決するキーワードはリテラル側に立つ。`__ENCODING__` は定数。
+    #[test]
+    fn the_keyword_literals_count_as_the_constant_side() {
+        expect_offense(
+            COP,
+            r#"
+            __FILE__ == foo
+            ^^^^^^^^^^^^^^^ Reverse the order of the operands `__FILE__ == foo`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            __ENCODING__ == foo
+            ^^^^^^^^^^^^^^^^^^^ Reverse the order of the operands `__ENCODING__ == foo`.
+            "#,
+        );
+    }
+
+    /// `EnforcedStyle` は 4 種。`*_for_equality_operators_only` は `==` / `!=` だけを見る。
+    #[test]
+    fn the_other_enforced_styles() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo == 99
+            ^^^^^^^^^ Reverse the order of the operands `foo == 99`.
+            "#,
+        )
+        .config("Style/YodaCondition:\n  EnforcedStyle: require_for_all_comparison_operators\n")
+        .run();
+        CopCase::new(COP, "42 >= foo\n", Vec::new())
+            .config("Style/YodaCondition:\n  EnforcedStyle: forbid_for_equality_operators_only\n")
+            .run();
+    }
+}
+
+/// `Style/TernaryParentheses`: 三項演算子の条件を括弧で包むかどうか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/TernaryParentheses` と `-A` の実測。
+mod ternary_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/TernaryParentheses";
+
+    #[test]
+    fn parentheses_around_the_condition_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            foo = (bar?) ? a : b
+                  ^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        );
+        expect_correction(COP, "foo = (bar?) ? a : b\n", "foo = bar? ? a : b\n");
+        expect_correction(
+            COP,
+            "foo = (bar && baz) ? a : b\n",
+            "foo = bar && baz ? a : b\n",
+        );
+        // `)` を外すと述語の `?` が三項の `?` に食い込むので、空白を足す。
+        expect_correction(COP, "(bar?)? a : b\n", "bar? ? a : b\n");
+        // 括弧が引数リストの代わりをしていたら、引数側に括弧を移す。
+        expect_correction(COP, "(foo bar) ? a : b\n", "foo(bar) ? a : b\n");
+        expect_correction(COP, "(a.b c) ? x : y\n", "a.b(c) ? x : y\n");
+        expect_correction(COP, "(defined? x) ? a : b\n", "defined?(x) ? a : b\n");
+    }
+
+    /// `and` / `or` / `not` は三項より結合が弱く、括弧を外すと意味が変わる。
+    /// 報告はするが corrector を触らないので correctable にならない。
+    #[test]
+    fn the_word_operators_are_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            (a and b) ? x : y
+            ^^^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            (not x) ? a : b
+            ^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo = bar? ? a : b\n");
+        // `AllowSafeAssignment: true` (既定)。
+        expect_no_offenses(COP, "foo = (bar = baz) ? a : b\n");
+        expect_no_offenses(COP, "foo = (bar.baz = 1) ? a : b\n");
+        // 修飾子 `if` とワンライナーパターンマッチは括弧が要る。
+        expect_no_offenses(COP, "(x if y) ? a : b\n");
+        expect_no_offenses(COP, "(x in Integer) ? a : b\n");
+        // 最終行が `)` だけの条件は行を跨いで書かれたもの。
+        expect_no_offenses(COP, "(\n  x\n) ? a : b\n");
+        // `while` 修飾子は `if` ではないので免除されない。
+        expect_correction(COP, "(a while b) ? x : y\n", "a while b ? x : y\n");
+    }
+
+    #[test]
+    fn require_parentheses_asks_for_the_other_direction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo = bar? ? a : b
+                  ^^^^^^^^^^^^ Use parentheses for ternary conditions.
+            "#,
+        )
+        .config("Style/TernaryParentheses:\n  EnforcedStyle: require_parentheses\n")
+        .corrected("foo = (bar?) ? a : b\n")
+        .run();
+    }
+}
+
+/// `Style/SoleNestedConditional`: 分岐が条件文 1 個だけなら外側の条件に畳める。
+///
+/// 期待値は本家 1.89.0 の `--only Style/SoleNestedConditional` と `-A` の実測。
+mod sole_nested_conditional {
+    use super::*;
+
+    const COP: &str = "Style/SoleNestedConditional";
+
+    #[test]
+    fn a_nested_conditional_is_merged_into_the_outer_one() {
+        expect_offense(
+            COP,
+            r#"
+            if condition_a
+              if condition_b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                do_something
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if condition_a\n  if condition_b\n    do_something\n  end\nend\n",
+            "if condition_a && condition_b\n    do_something\n  end\n",
+        );
+        // 内側が修飾子形なら、条件だけが外に出る。
+        expect_correction(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+        // 外側が修飾子形なら、外側の条件が内側に降りる。
+        expect_correction(
+            COP,
+            "if condition_b\n  do_something\nend if condition_a\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+    }
+
+    /// `unless` は条件を否定して畳む。`&&` を否定するときだけ括弧が要る。
+    #[test]
+    fn an_unless_contributes_its_condition_negated() {
+        expect_correction(
+            COP,
+            "unless condition_a\n  if condition_b\n    x\n  end\nend\n",
+            "if !condition_a && condition_b\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "unless a && b\n  if c\n    x\n  end\nend\n",
+            "if !(a && b) && c\n    x\n  end\n",
+        );
+    }
+
+    /// 引数を括弧で括っていない呼び出しや代入は、連結すると読み方が変わるので包む。
+    #[test]
+    fn the_conditions_that_need_parentheses_of_their_own() {
+        expect_correction(
+            COP,
+            "if foo bar\n  if c\n    x\n  end\nend\n",
+            "if foo(bar) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a = b\n  if c\n    x\n  end\nend\n",
+            "if (a = b) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a && (b = 1)\n  if c\n    x\n  end\nend\n",
+            "if a && (b = 1) && c\n    x\n  end\n",
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `else` を持つ側はどちらも畳めない。
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  else\n    d\n  end\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  end\nelse\n  d\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  elsif d\n    e\n  end\nend\n");
+        // 分岐が条件文 1 個ではない。
+        expect_no_offenses(COP, "if a\n  x\n  if b\n    c\n  end\nend\n");
+        // 外側の条件が代入した名前を内側が読んでいると、畳むと順序が変わる。
+        expect_no_offenses(COP, "if a = compute\n  if a\n    b\n  end\nend\n");
+        // `AllowModifier: true` なら修飾子形は対象外。
+        CopCase::new(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            Vec::new(),
+        )
+        .config("Style/SoleNestedConditional:\n  AllowModifier: true\n")
+        .run();
+    }
+
+    /// 入れ子が 3 段のときは、外側 1 組だけが補正され、内側の報告は correctable にならない。
+    #[test]
+    fn only_the_outermost_pair_carries_the_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              if b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                if c
+                ^^ Consider merging nested conditions into outer `if` conditions.
+                  x
+                end
+              end
+            end
+            "#,
+        )
+        .run();
     }
 }

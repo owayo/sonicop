@@ -46,9 +46,18 @@ const COMPOSITE: &[&str] = &[
 /// result.
 const RECURSIVE_METHODS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<", "*", "!", "<=>"];
 
-pub(super) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+/// `Node#recursive_basic_literal?`, which upstream also spells `recursive_literal?`: the two differ
+/// only in the branch reached for a type outside `LITERAL_RECURSIVE_TYPES`, and every type that
+/// separates `literal?` from `basic_literal?` is inside it, so the two predicates agree everywhere.
+///
+/// Reachable from `style` too: `Style/YodaCondition` asks the same question of a comparison's two
+/// operands.
+pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     match node.kind() {
         kind if BASIC.contains(&kind) => true,
+        // `emit_file_line_as_literals`: the parser resolves these before a cop sees them, so what
+        // reaches one is the `str` or the `int` they stood for rather than the keyword.
+        "identifier" => matches!(context.source.node_text(node), "__FILE__" | "__LINE__"),
         // A quoted literal interpolates or it does not, and only the plain one is basic -- but a
         // `dstr` and a `dsym` are composite literals, so both answers come out the same here as
         // long as everything interpolated into them is a literal too.
@@ -98,8 +107,18 @@ fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 /// `node.const_type?`: a constant, however it was reached.
-pub(super) fn is_constant(node: Node<'_>) -> bool {
-    matches!(node.kind(), "constant" | "scope_resolution")
+///
+/// `__ENCODING__` is one: the parser resolves the keyword into the constant it names, the same way
+/// it resolves `__FILE__` and `__LINE__` into literals, while the grammar leaves all three as bare
+/// identifiers.
+///
+/// Reachable from `style` too, for the cops whose patterns pair a constant with a literal.
+pub(crate) fn is_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    match node.kind() {
+        "constant" | "scope_resolution" => true,
+        "identifier" => context.source.node_text(node) == "__ENCODING__",
+        _ => false,
+    }
 }
 
 /// The name upstream's parser gives a literal node, for the cops whose pattern lists types.
@@ -108,7 +127,9 @@ pub(super) fn is_constant(node: Node<'_>) -> bool {
 /// not list, so everything else is `None` rather than a name of its own. The three pairs the
 /// grammar spells with one node each -- `str`/`dstr`, `sym`/`dsym`, `irange`/`erange` -- are told
 /// apart here, since a cop that lists one of a pair and not the other depends on the difference.
-pub(super) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
+///
+/// Reachable from `style` too: telling a `str` from a `dstr` is what several Style cops branch on.
+pub(crate) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
     Some(match node.kind() {
         "integer" => "int",
         "float" => "float",

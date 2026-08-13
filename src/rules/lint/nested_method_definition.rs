@@ -62,7 +62,7 @@ fn is_allowed_subject(subject: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(
         subject.kind(),
         "instance_variable" | "class_variable" | "global_variable" | "call"
-    ) || is_constant(subject)
+    ) || is_constant(subject, context)
 }
 
 fn has_enclosing_definition(node: Node<'_>) -> bool {

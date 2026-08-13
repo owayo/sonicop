@@ -4285,6 +4285,39 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_condition")
         .correctable(true),
+        CopCase::annotated(
+            "Style/YodaCondition",
+            r#"
+            99 == foo
+            ^^^^^^^^^ Reverse the order of the operands `99 == foo`.
+            "#,
+        )
+        .id("style_yoda_condition")
+        .corrected("foo == 99\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TernaryParentheses",
+            r#"
+            foo = (bar?) ? a : b
+                  ^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .id("style_ternary_parentheses")
+        .corrected("foo = bar? ? a : b\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SoleNestedConditional",
+            r#"
+            if condition_a
+              if condition_b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                do_something
+              end
+            end
+            "#,
+        )
+        .id("style_sole_nested_conditional")
+        .correctable(true),
     ]
 }
 
