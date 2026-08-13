@@ -140,6 +140,7 @@ department_rules! {
     redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_interpolation => ("RedundantInterpolation", Convention),
+    redundant_parentheses => ("RedundantParentheses", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
     redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
     redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
