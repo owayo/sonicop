@@ -193,12 +193,9 @@ fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_
     match node.kind() {
         "call" | "element_reference" => true,
         "identifier" => !locals.is_lvar(node),
-        "unary" => node
-            .child_by_field_name("operator")
-            .is_some_and(|operator| {
-                super::nodes::is_operator_method(context.source.node_text(operator))
-                    || context.source.node_text(operator) == "!"
-            }),
+        // `-1` is folded into one `int` by upstream's parser, so only a sign applied to something
+        // other than an adjacent numeric literal is a call.
+        "unary" => !is_signed_literal(node, context),
         "binary" => node
             .child_by_field_name("operator")
             .is_some_and(|operator| {
@@ -206,6 +203,22 @@ fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_
             }),
         _ => false,
     }
+}
+
+/// Whether the node is a numeric literal upstream's parser folded a leading sign into.
+fn is_signed_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let (Some(operator), Some(operand)) = (
+        node.child_by_field_name("operator"),
+        node.child_by_field_name("operand"),
+    ) else {
+        return false;
+    };
+    matches!(context.source.node_text(operator), "-" | "+")
+        && operator.end_byte() == operand.start_byte()
+        && matches!(
+            operand.kind(),
+            "integer" | "float" | "rational" | "complex"
+        )
 }
 
 /// Whether the node is what upstream's parser builds an `or` for.
