@@ -3736,6 +3736,98 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_hash_like_case")
         .locations(&[(1, 1, 8, 3)])
         .correctable(false),
+        CopCase::annotated(
+            "Style/SelfAssignment",
+            r#"
+            x = x + 1
+            ^^^^^^^^^ Use self-assignment shorthand `+=`.
+            "#,
+        )
+        .id("style_self_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SlicingWithRange",
+            r#"
+            items[1..-1]
+                 ^^^^^^^ Prefer `[1..]` over `[1..-1]`.
+            "#,
+        )
+        .id("style_slicing_with_range")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MethodCallWithoutArgsParentheses",
+            r#"
+            foo.bar()
+                   ^^ Do not use parentheses for method calls with no arguments.
+            "#,
+        )
+        .id("style_method_call_without_args_parentheses")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/KeywordParametersOrder",
+            r#"
+            def m(a: 1, b:)
+                  ^^^^ Place optional keyword parameters at the end of the parameters list.
+              1
+            end
+            "#,
+        )
+        .id("style_keyword_parameters_order")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineBlockChain",
+            r#"
+            foo.each do |x|
+              x
+            end.map do |y|
+            ^^^^^^^ Avoid multi-line chains of blocks.
+              y
+            end
+            "#,
+        )
+        .id("style_multiline_block_chain")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/MultilineIfModifier",
+            r#"
+            do_something(1,
+            ^^^^^^^^^^^^^^^ Favor a normal if-statement over a modifier clause in a multiline statement.
+                         2) if condition
+            "#,
+        )
+        .id("style_multiline_if_modifier")
+        .locations(&[(1, 1, 2, 28)])
+        .lengths(&[44])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyLiteral",
+            r#"
+            a = Array.new
+                ^^^^^^^^^ Use array literal `[]` instead of `Array.new`.
+            "#,
+        )
+        .id("style_empty_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CommentAnnotation",
+            r#"
+            # TODO make better
+              ^^^^^ Annotation keywords like `TODO` should be all upper case, followed by a colon, and a space, then a note describing the problem.
+            "#,
+        )
+        .id("style_comment_annotation")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ModuleFunction",
+            r#"
+            module M
+              extend self
+              ^^^^^^^^^^^ Use `module_function` instead of `extend self`.
+            end
+            "#,
+        )
+        .id("style_module_function")
+        .correctable(true),
     ]
 }
 

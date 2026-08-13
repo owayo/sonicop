@@ -2,6 +2,8 @@
 
 use tree_sitter::Node;
 
+use crate::rules::RuleContext;
+
 /// Node kinds tree-sitter parks in the tree that upstream's AST has no child for.
 ///
 /// A heredoc's body is spelled as a sibling of the statement that opened it, so a literal holding
@@ -40,4 +42,15 @@ pub(super) fn children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     node.named_children(&mut cursor)
         .filter(|child| is_child(*child))
         .collect()
+}
+
+/// `ProcessedSource#contains_comment?`: whether a comment sits on any line the range spans. It
+/// reads *lines* rather than the range itself, so a trailing comment on the closing line counts.
+pub(super) fn contains_comment(range: &std::ops::Range<usize>, context: &RuleContext<'_>) -> bool {
+    let first = context.source.line_column(range.start).0;
+    let last = context.source.line_column(range.end).0;
+    context.comment_ranges().iter().any(|comment| {
+        let line = context.source.line_column(comment.start).0;
+        (first..=last).contains(&line)
+    })
 }

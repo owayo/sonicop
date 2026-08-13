@@ -15285,3 +15285,189 @@ mod hash_like_case {
         );
     }
 }
+
+/// Style 部門の追加分 (前半)。
+mod style_batch_a {
+    use super::*;
+
+    #[test]
+    fn self_assignment_covers_operators_and_boolean_shorthands() {
+        expect_offense(
+            "Style/SelfAssignment",
+            r#"
+            x = x + 1
+            ^^^^^^^^^ Use self-assignment shorthand `+=`.
+            "#,
+        );
+        expect_correction("Style/SelfAssignment", "x = x + 1\n", "x += 1\n");
+        expect_correction("Style/SelfAssignment", "@a = @a || 2\n", "@a ||= 2\n");
+        expect_correction("Style/SelfAssignment", "@@b = @@b && 2\n", "@@b &&= 2\n");
+        // `$g` には対応する hook が無い。
+        expect_no_offenses("Style/SelfAssignment", "$g = $g + 1\n");
+        expect_no_offenses("Style/SelfAssignment", "x = y + 1\n");
+        expect_no_offenses("Style/SelfAssignment", "x = 1 + x\n");
+        expect_no_offenses("Style/SelfAssignment", "x = x + 1 + 2\n");
+    }
+
+    #[test]
+    fn slicing_with_range_reads_both_call_forms() {
+        expect_offense(
+            "Style/SlicingWithRange",
+            r#"
+            items[0..-1]
+                 ^^^^^^^ Remove the useless `[0..-1]`.
+            "#,
+        );
+        expect_correction("Style/SlicingWithRange", "items[0..-1]\n", "items\n");
+        expect_correction("Style/SlicingWithRange", "items[1..nil]\n", "items[1..]\n");
+        expect_correction("Style/SlicingWithRange", "items[nil..42]\n", "items[..42]\n");
+        expect_offense(
+            "Style/SlicingWithRange",
+            r#"
+            items.[](1..-1)
+                 ^^^^^^^^^^ Prefer `1..` over `1..-1`.
+            "#,
+        );
+        // `[]=` は別のメソッドなので対象外。`0...-1` も意味が変わる。
+        expect_no_offenses("Style/SlicingWithRange", "items[0..-1] = 1\n");
+        expect_no_offenses("Style/SlicingWithRange", "items[0...-1]\n");
+        expect_no_offenses("Style/SlicingWithRange", "items[1..]\n");
+        expect_no_offenses("Style/SlicingWithRange", "items[0, 2]\n");
+    }
+
+    #[test]
+    fn method_call_without_args_parentheses_keeps_the_ambiguous_ones() {
+        expect_offense(
+            "Style/MethodCallWithoutArgsParentheses",
+            r#"
+            foo.bar()
+                   ^^ Do not use parentheses for method calls with no arguments.
+            "#,
+        );
+        expect_correction(
+            "Style/MethodCallWithoutArgsParentheses",
+            "foo.bar()\n",
+            "foo.bar\n",
+        );
+        // 同名の変数へ代入している間は括弧が唯一の呼び出しの印。
+        expect_no_offenses("Style/MethodCallWithoutArgsParentheses", "foo = foo()\n");
+        expect_no_offenses("Style/MethodCallWithoutArgsParentheses", "x = Integer()\n");
+        expect_no_offenses("Style/MethodCallWithoutArgsParentheses", "foo.bar(1)\n");
+        expect_no_offenses(
+            "Style/MethodCallWithoutArgsParentheses",
+            "def m(a = foo())\n  a\nend\n",
+        );
+    }
+
+    #[test]
+    fn keyword_parameters_order_moves_the_required_ones_forward() {
+        expect_offense(
+            "Style/KeywordParametersOrder",
+            r#"
+            def m(a: 1, b:)
+                  ^^^^ Place optional keyword parameters at the end of the parameters list.
+              1
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/KeywordParametersOrder",
+            "def m(a: 1, b:)\n  1\nend\n",
+            "def m(b:, a: 1)\n  1\nend\n",
+        );
+        expect_no_offenses("Style/KeywordParametersOrder", "def m(b:, a: 1)\n  1\nend\n");
+    }
+
+    #[test]
+    fn multiline_block_chain_points_at_the_end_of_the_inner_block() {
+        expect_offense(
+            "Style/MultilineBlockChain",
+            r#"
+            foo.each do |x|
+              x
+            end.map do |y|
+            ^^^^^^^ Avoid multi-line chains of blocks.
+              y
+            end
+            "#,
+        );
+        expect_no_offenses(
+            "Style/MultilineBlockChain",
+            "foo.each { |x| x }.map do |y|\n  y\nend\n",
+        );
+    }
+
+    #[test]
+    fn multiline_if_modifier_expands_the_modifier() {
+        expect_correction(
+            "Style/MultilineIfModifier",
+            "do_something(1,\n             2) if condition\n",
+            "if condition\n  do_something(1,\n               2)\nend\n",
+        );
+        expect_no_offenses("Style/MultilineIfModifier", "do_something(1, 2) if condition\n");
+    }
+
+    #[test]
+    fn empty_literal_prefers_the_literal_over_the_constructor() {
+        expect_offense(
+            "Style/EmptyLiteral",
+            r#"
+            a = Array.new
+                ^^^^^^^^^ Use array literal `[]` instead of `Array.new`.
+            "#,
+        );
+        expect_correction("Style/EmptyLiteral", "a = Hash.new\n", "a = {}\n");
+        expect_correction("Style/EmptyLiteral", "a = Array[]\n", "a = []\n");
+        // ブロック付きの `Hash.new` は既定値を持つので置き換えられない。
+        expect_no_offenses("Style/EmptyLiteral", "a = Hash.new { |h, k| h[k] = [] }\n");
+        expect_no_offenses("Style/EmptyLiteral", "a = Array.new(5)\n");
+        // 既定では文字列リテラルが凍結されている前提なので `String.new` は残す。
+        expect_no_offenses("Style/EmptyLiteral", "a = String.new\n");
+    }
+
+    #[test]
+    fn comment_annotation_reports_only_the_first_line_of_a_block() {
+        expect_offense(
+            "Style/CommentAnnotation",
+            r#"
+            # TODO make better
+              ^^^^^ Annotation keywords like `TODO` should be all upper case, followed by a colon, and a space, then a note describing the problem.
+            "#,
+        );
+        expect_correction(
+            "Style/CommentAnnotation",
+            "# TODO make better\n",
+            "# TODO: make better\n",
+        );
+        expect_no_offenses("Style/CommentAnnotation", "# TODO: make better\n");
+        // 段落の途中の語は注記ではない。
+        expect_no_offenses(
+            "Style/CommentAnnotation",
+            "# first line\n# TODO make better\n",
+        );
+    }
+
+    #[test]
+    fn module_function_replaces_extend_self() {
+        expect_offense(
+            "Style/ModuleFunction",
+            r#"
+            module M
+              extend self
+              ^^^^^^^^^^^ Use `module_function` instead of `extend self`.
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/ModuleFunction",
+            "module M\n  extend self\nend\n",
+            "module M\n  module_function\nend\n",
+        );
+        // `private` を持つモジュールは `module_function` にできない。
+        expect_no_offenses(
+            "Style/ModuleFunction",
+            "module M\n  extend self\n  private\nend\n",
+        );
+        expect_no_offenses("Style/ModuleFunction", "module M\n  module_function\nend\n");
+    }
+}
