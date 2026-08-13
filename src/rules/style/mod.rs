@@ -2,6 +2,7 @@ mod block_args;
 mod comments;
 mod conditional;
 mod format_sequences;
+mod hash_transform;
 mod line_length_help;
 mod literal;
 mod nodes;
@@ -55,6 +56,8 @@ department_rules! {
     hash_as_last_array_item => ("HashAsLastArrayItem", Convention),
     hash_like_case => ("HashLikeCase", Convention),
     hash_syntax => ("HashSyntax", Convention),
+    hash_transform_keys => ("HashTransformKeys", Convention),
+    hash_transform_values => ("HashTransformValues", Convention),
     if_unless_modifier => ("IfUnlessModifier", Convention),
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),

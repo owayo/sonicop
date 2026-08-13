@@ -3863,6 +3863,24 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_each_with_object")
         .correctable(true),
+        CopCase::annotated(
+            "Style/HashTransformKeys",
+            r#"
+            {a: 1}.map { |k, v| [k.to_s, v] }.to_h
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `transform_keys` over `map {...}.to_h`.
+            "#,
+        )
+        .id("style_hash_transform_keys")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashTransformValues",
+            r#"
+            {a: 1}.map { |k, v| [k, v.to_s] }.to_h
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `transform_values` over `map {...}.to_h`.
+            "#,
+        )
+        .id("style_hash_transform_values")
+        .correctable(true),
     ]
 }
 

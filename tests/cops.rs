@@ -16305,3 +16305,68 @@ mod each_with_object {
         expect_no_offenses(COP, "[1, 2].inject({}) do |h, i, j|\n  h\nend\n");
     }
 }
+
+/// `Style/HashTransformKeys` / `Style/HashTransformValues`: ハッシュの片側だけを書き換える畳み込み。
+///
+/// 期待値は本家 1.89.0 の `--only <cop>` の実測。
+mod hash_transform {
+    use super::*;
+
+    const KEYS: &str = "Style/HashTransformKeys";
+    const VALUES: &str = "Style/HashTransformValues";
+
+    #[test]
+    fn the_four_shapes_all_become_one_call() {
+        expect_correction(
+            KEYS,
+            "{a: 1}.each_with_object({}) { |(k, v), h| h[k.to_s] = v }\n",
+            "{a: 1}.transform_keys { |k| k.to_s }\n",
+        );
+        expect_correction(
+            KEYS,
+            "Hash[{a: 1}.map { |k, v| [k.to_s, v] }]\n",
+            "{a: 1}.transform_keys { |k| k.to_s }\n",
+        );
+        expect_correction(
+            KEYS,
+            "{a: 1}.map { |k, v| [k.to_s, v] }.to_h\n",
+            "{a: 1}.transform_keys { |k| k.to_s }\n",
+        );
+        expect_correction(
+            KEYS,
+            "{a: 1}.to_h { |k, v| [k.to_s, v] }\n",
+            "{a: 1}.transform_keys { |k| k.to_s }\n",
+        );
+        expect_correction(
+            VALUES,
+            "{a: 1}.map { |k, v| [k, v.to_s] }.to_h\n",
+            "{a: 1}.transform_values { |v| v.to_s }\n",
+        );
+    }
+
+    /// 受け手がハッシュだと分かるものに限る。片方だけを書き換えていることも必要。
+    #[test]
+    fn anything_that_is_not_plainly_a_hash_rewrite_is_left_alone() {
+        expect_no_offenses(KEYS, "x.map { |k, v| [k.to_s, v] }.to_h\n");
+        expect_no_offenses(
+            KEYS,
+            "x.each_with_object({}) { |(k, v), h| h[k.to_s] = v }\n",
+        );
+        expect_no_offenses(KEYS, "{a: 1}.map { |k, v| [k, v] }.to_h\n");
+        expect_no_offenses(KEYS, "{a: 1}.map { |k, v| [v, k] }.to_h\n");
+        expect_no_offenses(KEYS, "{a: 1}.map { |k, v| [foo(k, v), v] }.to_h\n");
+        expect_no_offenses(VALUES, "{a: 1}.map { |k, v| [k.to_s, v] }.to_h\n");
+        // A hash-producing call with a block and no arguments counts as a hash receiver.
+        expect_offense(
+            KEYS,
+            r#"
+            {a: 1}.group_by { |x| x }.map { |k, v| [k.to_s, v] }.to_h
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `transform_keys` over `map {...}.to_h`.
+            "#,
+        );
+        expect_no_offenses(
+            KEYS,
+            "{a: 1}.transform_keys(&:to_s).map { |k, v| [k.to_s, v] }.to_h\n",
+        );
+    }
+}
