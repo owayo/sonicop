@@ -16563,3 +16563,78 @@ mod class_equality_comparison {
         expect_no_offenses(COP, "x == Foo\n");
     }
 }
+
+/// `Style/RandomWithOffset`: 乱数に足し引きするより範囲を渡す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RandomWithOffset` と `-A` の実測。
+mod random_with_offset {
+    use super::*;
+
+    const COP: &str = "Style/RandomWithOffset";
+
+    #[test]
+    fn every_shape_of_offset_becomes_a_range() {
+        expect_offense(
+            COP,
+            r#"
+            a = 1 + rand(6)
+                ^^^^^^^^^^^ Prefer ranges when generating random numbers instead of integers with offsets.
+            "#,
+        );
+        expect_correction(COP, "a = 1 + rand(6)\n", "a = rand(1..6)\n");
+        expect_correction(COP, "b = rand(6) + 1\n", "b = rand(1..6)\n");
+        expect_correction(COP, "c = rand(6) - 1\n", "c = rand(-1..4)\n");
+        expect_correction(COP, "d = 1 - rand(6)\n", "d = rand(-4..1)\n");
+        expect_correction(COP, "e = rand(1..6).succ\n", "e = rand(2..7)\n");
+        expect_correction(COP, "f = rand(1...6).pred\n", "f = rand(0..4)\n");
+        expect_correction(COP, "g = Random.rand(5) + 2\n", "g = Random.rand(2..6)\n");
+        expect_correction(
+            COP,
+            "h = Kernel.rand(1..5).next\n",
+            "h = Kernel.rand(2..6)\n",
+        );
+    }
+
+    /// 引数の無い `rand`、整数でない引数、整数でないオフセットは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "i = rand + 1\n");
+        expect_no_offenses(COP, "j = rand(x) + 1\n");
+        expect_no_offenses(COP, "k = 1 + rand(1.0)\n");
+        expect_no_offenses(COP, "l = 1 + foo.rand(6)\n");
+    }
+}
+
+/// `Style/NonNilCheck`: `x != nil` は `!x.nil?` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NonNilCheck` と `-A` の実測。
+mod non_nil_check {
+    use super::*;
+
+    const COP: &str = "Style/NonNilCheck";
+
+    #[test]
+    fn the_comparison_is_reported_and_becomes_a_predicate() {
+        expect_offense(
+            COP,
+            r#"
+            y = x != nil
+                ^^^^^^^^ Prefer `!x.nil?` over `x != nil`.
+            "#,
+        );
+        expect_correction(COP, "y = x != nil\n", "y = !x.nil?\n");
+        expect_correction(
+            COP,
+            "def bar\n  x != nil\nend\n",
+            "def bar\n  !x.nil?\nend\n",
+        );
+    }
+
+    /// 述語メソッドの戻り値は既定の設定では見送る。`!x.nil?` と `== nil` は担当外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "def foo?\n  x != nil\nend\n");
+        expect_no_offenses(COP, "z = x == nil\n");
+        expect_no_offenses(COP, "z = !x.nil?\n");
+    }
+}
