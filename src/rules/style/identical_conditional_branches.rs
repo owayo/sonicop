@@ -33,6 +33,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         expand_elses(node.child_by_field_name("alternative"), &mut branches);
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
     }
+    // A ternary is an `if` upstream, so it is reported -- though never corrected, since it has no
+    // lines to move an expression between.
+    for node in context.nodes_of("conditional") {
+        let branches = vec![
+            node.child_by_field_name("consequence").map(|only| vec![only]),
+            node.child_by_field_name("alternative").map(|only| vec![only]),
+        ];
+        check_branches(context, &locals, node, &branches, &mut reported, offenses);
+    }
     for node in context.nodes_of_any(&["case", "case_match"]) {
         let children = super::nodes::children(node);
         let Some(otherwise) = children.iter().find(|child| child.kind() == "else") else {
@@ -227,6 +236,9 @@ fn hoist(
 
 /// `node.ternary? || node.then?`: a conditional whose branches share a line with it.
 fn written_inline(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    if node.kind() == "conditional" {
+        return true;
+    }
     if !matches!(node.kind(), "if" | "unless") {
         return false;
     }

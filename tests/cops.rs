@@ -19309,6 +19309,25 @@ mod style_identical_conditional_branches {
         expect_no_offenses(COP, "x = 1\nif x == 1\n  y = x\nelse\n  y = x\nend\n");
     }
 
+    /// 三項演算子も本家では `if` ノード。報告はするが、式を移す行が無いので直せない。
+    #[test]
+    fn a_ternary_is_reported_but_never_corrected() {
+        let report = expect_offense(
+            COP,
+            r#"
+            assert_equal(cond ? false : false, x)
+                                ^^^^^ Move `false` out of the conditional.
+                                        ^^^^^ Move `false` out of the conditional.
+            "#,
+        );
+        assert!(
+            report
+                .offenses
+                .iter()
+                .all(|offense| !offense.is_correctable())
+        );
+    }
+
     #[test]
     fn the_expression_moves_out_of_the_conditional() {
         expect_correction(
