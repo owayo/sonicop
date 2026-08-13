@@ -2,9 +2,60 @@
 
 use std::ops::Range;
 
-use tree_sitter::Node;
+use tree_sitter::{Node, Parser};
 
+use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
+
+/// `ReparsedEquivalence#correction_parses?`: whether the exact correction a cop is about to offer
+/// leaves source that still parses.
+///
+/// A cop that rewrites a construct into a differently shaped one cannot assert that the result
+/// means the same thing, but it can insist that the result is Ruby at all. Upstream turns that into
+/// the gate an offense is reported behind, which is what keeps a corrector that cannot handle an
+/// unusual shape from emitting broken code rather than staying quiet.
+pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bool {
+    // `Parser::ClobberingError`: a rewrite whose parts collide is no correction to begin with.
+    let Some(corrected) = apply_edits(context.source.text(), edits) else {
+        return false;
+    };
+    parses(&corrected)
+}
+
+/// The source with every edit applied, or `None` when two of them overlap.
+///
+/// Sorting by span puts an insertion at a span's start before the span itself and one at its end
+/// after it, which is the order `insert_before` and `insert_after` schedule them in.
+fn apply_edits(text: &str, edits: &[Edit]) -> Option<String> {
+    let mut ordered: Vec<&Edit> = edits.iter().collect();
+    ordered.sort_by_key(|edit| (edit.start, edit.end));
+    let mut out = String::with_capacity(text.len());
+    let mut cursor = 0;
+    for edit in ordered {
+        if edit.start < cursor || edit.end < edit.start || edit.end > text.len() {
+            return None;
+        }
+        out.push_str(text.get(cursor..edit.start)?);
+        out.push_str(&edit.replacement);
+        cursor = edit.end;
+    }
+    out.push_str(text.get(cursor..)?);
+    Some(out)
+}
+
+/// `ProcessedSource#valid_syntax?` for a source the run did not start from.
+fn parses(text: &str) -> bool {
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .is_err()
+    {
+        return false;
+    }
+    parser
+        .parse(text, None)
+        .is_some_and(|tree| !tree.root_node().has_error())
+}
 
 /// Pushes `node`'s named children so that popping the stack yields them in
 /// source order, making a `pop`-driven loop reproduce depth-first pre-order.
