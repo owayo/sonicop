@@ -78,7 +78,7 @@ pub(super) const NIL_METHODS: &[&str] = &[
 const OTHER_STDLIB_METHODS: &[&str] = &["to_d"];
 
 /// `nil_methods`: the interpreter's list, the one stdlib addition, and the cop's `AllowedMethods`.
-pub(super) fn nil_methods(context: &RuleContext<'_>) -> Vec<String> {
+pub(crate) fn nil_methods(context: &RuleContext<'_>) -> Vec<String> {
     let mut methods: Vec<String> = NIL_METHODS
         .iter()
         .chain(OTHER_STDLIB_METHODS)

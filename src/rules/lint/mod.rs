@@ -18,7 +18,9 @@ mod literals;
 /// Reachable from `style` too: whether a bare identifier reads a local variable is a question
 /// several Style cops ported from node patterns have to answer the same way.
 pub(crate) mod locals;
-mod nil_methods;
+/// Reachable from `style` too: `Style/SafeNavigation` measures a chained call against the same
+/// `nil.methods` list that the `NilMethods` mixin gives the Lint cops.
+pub(crate) mod nil_methods;
 /// Reachable from `style` too: `Node#==` is the same question wherever a cop ported from a node
 /// pattern compares two subtrees, and answering it by source text instead would call `a.b` and
 /// `a. b` different nodes.

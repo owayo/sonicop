@@ -144,6 +144,7 @@ department_rules! {
     redundant_sort_by => ("RedundantSortBy", Convention),
     regexp_literal => ("RegexpLiteral", Convention),
     rescue_modifier => ("RescueModifier", Convention),
+    safe_navigation => ("SafeNavigation", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     self_assignment => ("SelfAssignment", Convention),
