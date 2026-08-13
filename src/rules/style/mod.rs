@@ -7,6 +7,7 @@ mod line_length_help;
 mod literal;
 mod nodes;
 mod parameters;
+mod parens;
 mod percent;
 mod percent_array;
 mod ranges;
@@ -16,6 +17,7 @@ mod trailing_comma;
 department_rules! {
     "Style";
     alias => ("Alias", Convention),
+    accessor_grouping => ("AccessorGrouping", Convention),
     array_join => ("ArrayJoin", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
@@ -122,6 +124,7 @@ department_rules! {
     redundant_sort => ("RedundantSort", Convention),
     redundant_sort_by => ("RedundantSortBy", Convention),
     regexp_literal => ("RegexpLiteral", Convention),
+    rescue_modifier => ("RescueModifier", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     self_assignment => ("SelfAssignment", Convention),
@@ -130,6 +133,7 @@ department_rules! {
     single_argument_dig => ("SingleArgumentDig", Convention),
     single_line_methods => ("SingleLineMethods", Convention),
     slicing_with_range => ("SlicingWithRange", Convention),
+    special_global_vars => ("SpecialGlobalVars", Convention),
     stabby_lambda_parentheses => ("StabbyLambdaParentheses", Convention),
     stderr_puts => ("StderrPuts", Convention),
     string_concatenation => ("StringConcatenation", Convention),
@@ -139,6 +143,7 @@ department_rules! {
     struct_inheritance => ("StructInheritance", Convention),
     symbol_array => ("SymbolArray", Convention),
     symbol_literal => ("SymbolLiteral", Convention),
+    symbol_proc => ("SymbolProc", Convention),
     trailing_body_on_class => ("TrailingBodyOnClass", Convention),
     trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
     trailing_body_on_module => ("TrailingBodyOnModule", Convention),

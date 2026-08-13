@@ -17091,3 +17091,284 @@ mod hash_transform {
         );
     }
 }
+
+/// `Style/SymbolProc` — ブロックが引数にメソッドを 1 つ呼ぶだけなら `&:sym`。
+/// 期待値は本家 1.89.0 の `--only Style/SymbolProc` 実出力から取った。
+mod style_symbol_proc {
+    use super::*;
+
+    const COP: &str = "Style/SymbolProc";
+
+    #[test]
+    fn a_block_that_only_calls_one_method_is_reported_from_brace_to_brace() {
+        expect_offense(
+            COP,
+            r#"
+            something.map { |s| s.upcase }
+                          ^^^^^^^^^^^^^^^^ Pass `&:upcase` as an argument to `map` instead of a block.
+            "#,
+        );
+        // 演算子も本家では `send`。`!x` は `:!`、`-x` は `:-@`。
+        expect_offense(
+            COP,
+            r#"
+            foo.map { |x| !x }
+                    ^^^^^^^^^^ Pass `&:!` as an argument to `map` instead of a block.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            arr.map { _1.upcase }
+                    ^^^^^^^^^^^^^ Pass `&:upcase` as an argument to `map` instead of a block.
+            "#,
+        );
+        // `zsuper` / `super` の method_name は `super`。
+        expect_offense(
+            COP,
+            r#"
+            super { |x| x.foo }
+                  ^^^^^^^^^^^^^ Pass `&:foo` as an argument to `super` instead of a block.
+            "#,
+        );
+    }
+
+    #[test]
+    fn blocks_that_do_more_than_one_call_are_left_alone() {
+        expect_no_offenses(COP, "foo.map { |x| x&.bar }\n");
+        expect_no_offenses(COP, "foo.map { |x| x.bar 1 }\n");
+        expect_no_offenses(COP, "foo.map { |x| x.bar { 1 } }\n");
+        // `|a,|` は先頭要素を取り出す分解なので `&:sym` と同じ呼び出しではない。
+        expect_no_offenses(COP, "foo.map { |a,| a.bar }\n");
+        expect_no_offenses(COP, "foo.map { |(a, b)| a.bar }\n");
+        // `AllowedMethods` の既定。
+        expect_no_offenses(COP, "define_method(:x) { |a| a.bar }\n");
+        // ハッシュの `reject` と配列の `min`/`max` はブロックに 2 つ渡す。
+        expect_no_offenses(COP, "{a: 1}.reject { |x| x.foo }\n");
+        expect_no_offenses(COP, "[1, 2].max { |x| x.foo }\n");
+        expect_no_offenses(COP, "arr.map { _1.merge(_2) }\n");
+    }
+
+    #[test]
+    fn the_block_becomes_a_block_argument() {
+        expect_correction(
+            COP,
+            "something.map { |s| s.upcase }\n",
+            "something.map(&:upcase)\n",
+        );
+        expect_correction(COP, "foo() { |x| x.bar }\n", "foo(&:bar)\n");
+        expect_correction(COP, "foo(1) { |x| x.bar }\n", "foo(1, &:bar)\n");
+        expect_correction(COP, "foo(1,) { |x| x.bar }\n", "foo(1, &:bar)\n");
+        expect_correction(COP, "super { |x| x.foo }\n", "super(&:foo)\n");
+        expect_correction(COP, "super(1) { |x| x.foo }\n", "super(1, &:foo)\n");
+        // `->` はそのままでは `&:sym` を渡す先がないので `lambda` に書き換わる。
+        expect_correction(COP, "->(x) { x.foo }\n", "lambda(&:foo)\n");
+        expect_correction(COP, "foo.map do |x|\n  x.bar\nend\n", "foo.map(&:bar)\n");
+    }
+}
+
+/// `Style/AccessorGrouping` — `attr_reader` は 1 つにまとめる。
+mod style_accessor_grouping {
+    use super::*;
+
+    const COP: &str = "Style/AccessorGrouping";
+
+    #[test]
+    fn each_groupable_accessor_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              attr_reader :bar
+              ^^^^^^^^^^^^^^^^ Group together all `attr_reader` attributes.
+              attr_reader :baz
+              ^^^^^^^^^^^^^^^^ Group together all `attr_reader` attributes.
+            end
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_sets_an_accessor_apart_keeps_it_apart() {
+        // 直前の行のコメントは意図的な区切り。
+        expect_no_offenses(
+            COP,
+            "class Foo\n  # comment\n  attr_reader :a\n  attr_reader :b\nend\n",
+        );
+        // 可視性が違えば別の宣言。
+        expect_no_offenses(
+            COP,
+            "class Foo\n  attr_reader :a\n  private\n  attr_reader :b\nend\n",
+        );
+        // Sorbet の `sig` はその 1 つの属性のためのもの。
+        expect_no_offenses(
+            COP,
+            "class Foo\n  sig { returns(String) }\n  attr_reader :a\n  attr_reader :b\nend\n",
+        );
+        expect_no_offenses(COP, "class Foo\n  attr_reader :a\nend\n");
+        expect_no_offenses(COP, "class Foo\n  attr_reader :a\n  attr_writer :b\nend\n");
+    }
+
+    #[test]
+    fn the_first_accessor_takes_the_group_and_the_rest_go() {
+        expect_correction(
+            COP,
+            "class Foo\n  attr_reader :bar\n  attr_reader :baz\nend\n",
+            "class Foo\n  attr_reader :bar, :baz\nend\n",
+        );
+        // 定数が間にあるときは定数の下にまとめる。
+        expect_correction(
+            COP,
+            "class Foo\n  attr_reader :a\n  CONST = 1\n  attr_reader :b\nend\n",
+            "class Foo\n  CONST = 1\n  attr_reader :a, :b\nend\n",
+        );
+        // 同じ名前は 1 度だけ書く。
+        expect_correction(
+            COP,
+            "class Foo\n  attr_reader :a, :b\n  attr_reader :b, :c\nend\n",
+            "class Foo\n  attr_reader :a, :b, :c\nend\n",
+        );
+    }
+}
+
+/// `Style/SpecialGlobalVars` — Perl 由来の特殊変数は `English` の名前で書く。
+mod style_special_global_vars {
+    use super::*;
+
+    const COP: &str = "Style/SpecialGlobalVars";
+
+    #[test]
+    fn a_perl_style_global_names_its_english_replacement() {
+        expect_offense(
+            COP,
+            r#"
+            puts $!
+                 ^^ Prefer `$ERROR_INFO` from the stdlib 'English' module (don't forget to require it) over `$!`.
+            "#,
+        );
+        // 別名が 2 つあるものは両方を挙げる。
+        expect_offense(
+            COP,
+            r#"
+            p $;
+              ^^ Prefer `$FIELD_SEPARATOR` or `$FS` from the stdlib 'English' module (don't forget to require it) over `$;`.
+            "#,
+        );
+        // `English` を要らない組み込みの名前は `require` の話をしない。
+        expect_offense(
+            COP,
+            r#"
+            p $:
+              ^^ Prefer `$LOAD_PATH` over `$:`.
+            "#,
+        );
+        // 片方だけが組み込みのときは両方を挙げる。
+        expect_offense(
+            COP,
+            r#"
+            p $*
+              ^^ Prefer `$ARGV` from the stdlib 'English' module (don't forget to require it) or `ARGV` over `$*`.
+            "#,
+        );
+    }
+
+    #[test]
+    fn a_global_being_written_is_a_gvasgn_the_cop_never_sees() {
+        expect_no_offenses(COP, "$; = \",\"\n");
+        expect_no_offenses(COP, "p $ERROR_INFO\n");
+        expect_no_offenses(COP, "p $LOAD_PATH\n");
+    }
+
+    #[test]
+    fn the_library_is_required_once_at_the_top_of_the_file() {
+        expect_correction(COP, "puts $!\n", "require 'English'\nputs $ERROR_INFO\n");
+        // 既に上で require されていれば足さない。
+        expect_correction(
+            COP,
+            "require 'English'\nputs $!\n",
+            "require 'English'\nputs $ERROR_INFO\n",
+        );
+        // 下に書かれていたものは先頭へ移る。
+        expect_correction(
+            COP,
+            "puts $!\nrequire 'English'\n",
+            "require 'English'\nputs $ERROR_INFO\n",
+        );
+        // 組み込みの名前しか要らないなら `require` は入らない。
+        expect_correction(COP, "p $:\n", "p $LOAD_PATH\n");
+        // 補間の中は `#{}` を保ったまま置き換える。
+        expect_correction(
+            COP,
+            "y = \"#{$@}\"\n",
+            "require 'English'\ny = \"#{$ERROR_POSITION}\"\n",
+        );
+        // `#$;` の短縮形は `#{...}` に開く。
+        expect_correction(
+            COP,
+            "z = \"#$;\"\n",
+            "require 'English'\nz = \"#{$FIELD_SEPARATOR}\"\n",
+        );
+        // 括弧 1 つだけを包むものはまとめて置き換わる。
+        expect_correction(COP, "x = ($!)\n", "require 'English'\nx = $ERROR_INFO\n");
+    }
+}
+
+/// `Style/RescueModifier` — 修飾形の `rescue` は `begin ... rescue ... end` に開く。
+mod style_rescue_modifier {
+    use super::*;
+
+    const COP: &str = "Style/RescueModifier";
+
+    #[test]
+    fn the_reported_range_is_the_rescue_expression_the_parser_built() {
+        expect_offense(
+            COP,
+            r#"
+            x.foo rescue nil
+            ^^^^^^^^^^^^^^^^ Avoid using `rescue` in its modifier form.
+            "#,
+        );
+        // 単一代入では右辺だけが `rescue` の中身。
+        expect_offense(
+            COP,
+            r#"
+            a = b rescue c
+                ^^^^^^^^^^ Avoid using `rescue` in its modifier form.
+            "#,
+        );
+        // 多値代入は代入ごと包まれる。
+        expect_offense(
+            COP,
+            r#"
+            w = 1, 2 rescue nil
+            ^^^^^^^^^^^^^^^^^^^ Avoid using `rescue` in its modifier form.
+            "#,
+        );
+        expect_no_offenses(COP, "begin\n  foo\nrescue\n  bar\nend\n");
+    }
+
+    #[test]
+    fn the_block_is_written_where_the_expression_stood() {
+        expect_correction(
+            COP,
+            "x.foo rescue nil\n",
+            "begin\n  x.foo\nrescue\n  nil\nend\n",
+        );
+        expect_correction(
+            COP,
+            "a = b rescue c\n",
+            "a = begin\n      b\n    rescue\n      c\n    end\n",
+        );
+        // 括弧はまとめて外れ、字下げが 1 桁分戻る。
+        expect_correction(
+            COP,
+            "y = (z.foo rescue nil)\n",
+            "y = begin\n      z.foo\n    rescue\n      nil\n    end\n",
+        );
+        expect_correction(
+            COP,
+            "def m\n  x.foo rescue handle\nend\n",
+            "def m\n  begin\n    x.foo\n  rescue\n    handle\n  end\nend\n",
+        );
+    }
+}
