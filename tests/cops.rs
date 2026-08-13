@@ -17648,3 +17648,83 @@ mod style_c_corpus_regressions {
         );
     }
 }
+
+/// コメントの途中に書かれた `# rubocop:` directive の回帰。
+///
+/// `DirectiveComment` はコメントの先頭に marker を固定せず、テキストのどこにあっても
+/// 拾う。拾わないのは marker の前が `#` と空白だけのとき、つまり directive 自身が
+/// コメントアウトされているときだけ。説明用のコメントに書かれた
+/// `#   def f # rubocop:disable Style/For` は本家では本物の directive で、これを
+/// 取りこぼすと後続の `# rubocop:enable Style/For` が「不要な enable」に化ける。
+mod lint_directives_inside_a_comment {
+    use super::*;
+
+    const ENABLE: &str = "Lint/RedundantCopEnableDirective";
+    const MISSING: &str = "Lint/MissingCopEnableDirective";
+
+    /// 前置きのあるコメントの中の `disable` も数える。
+    #[test]
+    fn a_directive_behind_prose_counts_as_a_disable() {
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable Style/Documentation\n\
+             #   def f # rubocop:disable Style/For\n\
+             x = 1\n\
+             # rubocop:enable Style/For, Style/Documentation\n",
+        );
+    }
+
+    /// marker の前が `#` と空白だけなら、コメントアウトされた directive なので数えない。
+    #[test]
+    fn a_commented_out_directive_does_not_count() {
+        expect_offense(
+            ENABLE,
+            r#"
+            #   # rubocop:disable Style/For
+            x = 1
+            # rubocop:enable Style/For
+                             ^^^^^^^^^ Unnecessary enabling of Style/For.
+            "#,
+        );
+        expect_correction(
+            ENABLE,
+            "#   # rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For\n",
+            "#   # rubocop:disable Style/For\nx = 1\n",
+        );
+    }
+
+    /// 並んだ名前のうち余分な 1 つだけが消える。
+    #[test]
+    fn only_the_extra_name_of_a_list_goes() {
+        expect_offense(
+            ENABLE,
+            r#"
+            # rubocop:disable Style/For
+            x = 1
+            # rubocop:enable Style/For, Style/Documentation
+                                        ^^^^^^^^^^^^^^^^^^^ Unnecessary enabling of Style/Documentation.
+            "#,
+        );
+        expect_correction(
+            ENABLE,
+            "# rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For, Style/Documentation\n",
+            "# rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For\n",
+        );
+    }
+
+    /// `analyze_single_line`: コードと同じ行の directive も、コメントの途中の directive も
+    /// その行だけに効くので、`enable` が無くても咎められない。
+    #[test]
+    fn single_line_disables_need_no_enable() {
+        expect_no_offenses(MISSING, "x = 1 # rubocop:disable Style/For\ny = 2\n");
+        expect_no_offenses(MISSING, "#   def f # rubocop:disable Style/For\ny = 2\n");
+        expect_offense(
+            MISSING,
+            r#"
+            # rubocop:disable Style/For
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Re-enable Style/For cop with `# rubocop:enable` after disabling it.
+            y = 2
+            "#,
+        );
+    }
+}

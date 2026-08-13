@@ -396,6 +396,44 @@ fn directive_regex() -> &'static Regex {
     })
 }
 
+/// Where the directive pattern matched inside a comment, and the mode it named.
+pub(crate) struct DirectiveHeader<'a> {
+    /// Offset in the comment text where the match begins. It is not always zero: the pattern is
+    /// searched for anywhere in the comment, so a directive can sit behind prose.
+    pub start: usize,
+    /// Offset just past the mode keyword, which is where the argument list is looked for.
+    pub mode_end: usize,
+    pub mode: &'a str,
+}
+
+/// `DirectiveComment#initialize`, for the cops that keep their own model of these comments.
+///
+/// Two rules of the original are easy to lose by anchoring the marker at the start of the comment,
+/// and both matter: `#   def f # rubocop:disable Style/For` written inside a documentation comment
+/// *is* a directive, while `#   # rubocop:disable Style/For` is not, because everything before its
+/// marker is a `#` and whitespace -- a directive that has itself been commented out.
+pub(crate) fn directive_header(text: &str) -> Option<DirectiveHeader<'_>> {
+    let captures = directive_regex().captures(text)?;
+    let whole = captures.get(0).expect("group zero always participates");
+    if commented_out(&text[..whole.start()]) {
+        return None;
+    }
+    let mode = captures.get(1).expect("the mode always participates");
+    Some(DirectiveHeader {
+        start: whole.start(),
+        mode_end: mode.end(),
+        mode: mode.as_str(),
+    })
+}
+
+/// Whether everything before the marker is a `#` and whitespace.
+fn commented_out(prefix: &str) -> bool {
+    prefix.starts_with('#')
+        && prefix[1..]
+            .bytes()
+            .all(|byte| matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c))
+}
+
 /// A `# rubocop:` comment, parsed the way `RuboCop::DirectiveComment` parses one.
 #[derive(Clone, Debug)]
 pub struct DirectiveComment {
@@ -415,14 +453,7 @@ impl DirectiveComment {
         let text = source.slice(comment.clone());
         let captures = directive_regex().captures(text)?;
         let whole = captures.get(0).expect("group zero always participates");
-        // `DirectiveComment#initialize` throws the match away when everything before it is a `#`
-        // and whitespace, which is a directive that has itself been commented out.
-        let prefix = &text[..whole.start()];
-        if prefix.starts_with('#')
-            && prefix[1..]
-                .bytes()
-                .all(|byte| matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c))
-        {
+        if commented_out(&text[..whole.start()]) {
             return None;
         }
         Some(Self {
