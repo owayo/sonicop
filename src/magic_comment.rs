@@ -41,20 +41,33 @@ static SIMPLE_SHAREABLE: LazyLock<Regex> = LazyLock::new(|| {
 static SIMPLE_TYPED: LazyLock<Regex> =
     LazyLock::new(|| compile(&format!(r"(?i)^\s*#\s*typed:\s*({TOKEN})\s*$")));
 
+/// The settings an editor comment holds, split the way RuboCop's `tokens` does. Ruby's `split`
+/// drops the empty strings a trailing separator leaves, which is what decides whether a Vim comment
+/// carries more than one setting.
+fn editor_tokens<'a>(payload: &'a str, separator: &str) -> Vec<&'a str> {
+    let mut tokens: Vec<&str> = payload.split(separator).collect();
+    while tokens.last().is_some_and(|token| token.is_empty()) {
+        tokens.pop();
+    }
+    tokens
+}
+
 /// One `keyword: value` pair inside an editor comment, such as `coding` in `# -*- coding: utf-8 -*-`.
-fn editor_value(payload: &str, separator: char, operator: char, keyword: &Regex) -> Option<String> {
-    payload.split(separator).find_map(|token| {
-        let token = token.trim();
-        let (name, value) = token.split_once(operator)?;
-        if !keyword.is_match(name.trim()) {
-            return None;
-        }
-        let value = value.trim();
-        // The token pattern is anchored, so a trailing `-*-` or a second setting cannot leak in.
-        TOKEN_ONLY
-            .is_match(value)
-            .then(|| value.to_ascii_lowercase())
-    })
+fn editor_value(payload: &str, separator: &str, operator: char, keyword: &Regex) -> Option<String> {
+    editor_tokens(payload, separator)
+        .into_iter()
+        .find_map(|token| {
+            let token = token.trim();
+            let (name, value) = token.split_once(operator)?;
+            if !keyword.is_match(name.trim()) {
+                return None;
+            }
+            let value = value.trim();
+            // The token pattern is anchored, so a trailing `-*-` or a second setting cannot leak in.
+            TOKEN_ONLY
+                .is_match(value)
+                .then(|| value.to_ascii_lowercase())
+        })
 }
 
 static TOKEN_ONLY: LazyLock<Regex> = LazyLock::new(|| compile(&format!(r"^{TOKEN}$")));
@@ -102,7 +115,7 @@ impl<'a> MagicComment<'a> {
         match self {
             // Vim comments cannot carry this setting.
             Self::Vim(_) => None,
-            Self::Emacs(payload) => editor_value(payload, ';', ':', &KEYWORD_FROZEN),
+            Self::Emacs(payload) => editor_value(payload, ";", ':', &KEYWORD_FROZEN),
             Self::Simple(comment) => capture(&SIMPLE_FROZEN, comment),
         }
     }
@@ -131,17 +144,46 @@ impl<'a> MagicComment<'a> {
     /// anything else, which is how a file that is not valid UTF-8 still gets linted.
     pub(crate) fn encoding(&self) -> Option<String> {
         match self {
-            Self::Emacs(payload) => editor_value(payload, ';', ':', &KEYWORD_ENCODING),
+            Self::Emacs(payload) => editor_value(payload, ";", ':', &KEYWORD_ENCODING),
             Self::Vim(payload) => {
                 // A lone `fileencoding` is ignored by Vim itself, so RuboCop needs a second token
-                // before it honours one.
-                let tokens = payload.split(',').filter(|token| !token.trim().is_empty());
-                if tokens.count() < 2 {
+                // before it honours one. The separator is `, ` and not a bare comma, so a comment
+                // written without the space carries one setting however many commas it holds.
+                if editor_tokens(payload, VIM_SEPARATOR).len() < 2 {
                     return None;
                 }
-                editor_value(payload, ',', '=', &KEYWORD_FILEENCODING)
+                editor_value(payload, VIM_SEPARATOR, '=', &KEYWORD_FILEENCODING)
             }
             Self::Simple(comment) => capture(&SIMPLE_ENCODING, comment),
+        }
+    }
+
+    /// Whether RuboCop counts this line as a magic comment at all: `@comment.start_with?('#')`
+    /// leaves no room for indentation, so the first indented line ends the run.
+    pub(crate) fn valid(&self, line: &str) -> bool {
+        line.starts_with('#') && self.any()
+    }
+
+    /// `without(:encoding)`: the comment rewritten with its encoding setting dropped, or an empty
+    /// string when nothing else was set.
+    pub(crate) fn without_encoding(&self, line: &str) -> String {
+        match self {
+            Self::Emacs(payload) => {
+                without_token(payload, ";", ";", "# -*- ", " -*-", &LEADING_ENCODING)
+            }
+            Self::Vim(payload) => without_token(
+                payload,
+                VIM_SEPARATOR,
+                VIM_SEPARATOR,
+                "# vim: ",
+                "",
+                &LEADING_FILEENCODING,
+            ),
+            // A comment that is not the encoding one is left exactly as it was written.
+            Self::Simple(_) => match SIMPLE_LEADING_ENCODING.is_match(line) {
+                true => String::new(),
+                false => line.to_owned(),
+            },
         }
     }
 
@@ -157,7 +199,7 @@ impl<'a> MagicComment<'a> {
     fn shareable_constant_value(&self) -> Option<String> {
         match self {
             Self::Vim(_) => None,
-            Self::Emacs(payload) => editor_value(payload, ';', ':', &KEYWORD_SHAREABLE),
+            Self::Emacs(payload) => editor_value(payload, ";", ':', &KEYWORD_SHAREABLE),
             Self::Simple(comment) => capture(&SIMPLE_SHAREABLE, comment),
         }
     }
@@ -168,6 +210,37 @@ impl<'a> MagicComment<'a> {
             Self::Emacs(_) | Self::Vim(_) => None,
             Self::Simple(comment) => capture(&SIMPLE_TYPED, comment),
         }
+    }
+}
+
+/// `\A#{KEYWORDS[type]}` as `without` applies it, which is case-sensitive in an editor comment and
+/// case-insensitive in a simple one.
+/// `VimComment::SEPARATOR`, which is a comma *and a space*.
+const VIM_SEPARATOR: &str = ", ";
+
+static LEADING_ENCODING: LazyLock<Regex> = LazyLock::new(|| compile(r"^(?:en)?coding"));
+static LEADING_FILEENCODING: LazyLock<Regex> = LazyLock::new(|| compile(r"^fileencoding"));
+static SIMPLE_LEADING_ENCODING: LazyLock<Regex> =
+    LazyLock::new(|| compile(r"(?i)^#\s*(?:en)?coding"));
+
+/// An editor comment rewritten without the settings whose name `keyword` matches. Dropping the last
+/// one leaves nothing rather than an empty comment.
+fn without_token(
+    payload: &str,
+    split: &str,
+    join: &str,
+    prefix: &str,
+    suffix: &str,
+    keyword: &Regex,
+) -> String {
+    let remaining: Vec<&str> = editor_tokens(payload, split)
+        .into_iter()
+        .map(str::trim)
+        .filter(|token| !keyword.is_match(token))
+        .collect();
+    match remaining.is_empty() {
+        true => String::new(),
+        false => format!("{prefix}{}{suffix}", remaining.join(join)),
     }
 }
 

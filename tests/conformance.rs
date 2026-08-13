@@ -4036,6 +4036,87 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_method_def_parentheses")
         .correctable(true),
+        CopCase::annotated(
+            "Style/For",
+            r#"
+            for n in [1, 2, 3] do
+            ^^^^^^^^^^^^^^^^^^^^^ Prefer `each` over `for`.
+              puts n
+            end
+            "#,
+        )
+        .id("style_for")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FloatDivision",
+            r#"
+            a.to_f / b.to_f
+            ^^^^^^^^^^^^^^^ Prefer using `.to_f` on one side only.
+            "#,
+        )
+        .id("style_float_division")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NestedModifier",
+            r#"
+            foo if bar if baz
+                ^^ Avoid using nested modifiers.
+            "#,
+        )
+        .id("style_nested_modifier")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ParenthesesAroundCondition",
+            r#"
+            if (foo)
+               ^^^^^ Don't use parentheses around the condition of an `if`.
+              bar
+            end
+            "#,
+        )
+        .id("style_parentheses_around_condition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Encoding",
+            r#"
+            # encoding: utf-8
+            ^^^^^^^^^^^^^^^^^ Unnecessary utf-8 encoding comment.
+            puts 1
+            "#,
+        )
+        .id("style_encoding")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EachWithObject",
+            r#"
+            [1, 2].inject({}) do |h, i|
+                   ^^^^^^ Use `each_with_object` instead of `inject`.
+              h[i] = i
+              h
+            end
+            "#,
+        )
+        .id("style_each_with_object")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashTransformKeys",
+            r#"
+            {a: 1}.map { |k, v| [k.to_s, v] }.to_h
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `transform_keys` over `map {...}.to_h`.
+            "#,
+        )
+        .id("style_hash_transform_keys")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashTransformValues",
+            r#"
+            {a: 1}.map { |k, v| [k, v.to_s] }.to_h
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `transform_values` over `map {...}.to_h`.
+            "#,
+        )
+        .id("style_hash_transform_values")
+        .correctable(true),
     ]
 }
 

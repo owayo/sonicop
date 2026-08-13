@@ -2,6 +2,7 @@ mod block_args;
 mod comments;
 mod conditional;
 mod format_sequences;
+mod hash_transform;
 mod line_length_help;
 mod literal;
 mod nodes;
@@ -39,16 +40,20 @@ department_rules! {
     double_cop_disable_directive => ("DoubleCopDisableDirective", Convention),
     double_negation => ("DoubleNegation", Convention),
     each_for_simple_loop => ("EachForSimpleLoop", Convention),
+    each_with_object => ("EachWithObject", Convention),
     empty_block_parameter => ("EmptyBlockParameter", Convention),
     empty_case_condition => ("EmptyCaseCondition", Convention),
     empty_else => ("EmptyElse", Convention),
     empty_lambda_parameter => ("EmptyLambdaParameter", Convention),
     empty_literal => ("EmptyLiteral", Convention),
     empty_method => ("EmptyMethod", Convention),
+    encoding => ("Encoding", Convention),
     end_block => ("EndBlock", Convention),
     even_odd => ("EvenOdd", Convention),
     expand_path_arguments => ("ExpandPathArguments", Convention),
     exponential_notation => ("ExponentialNotation", Convention),
+    float_division => ("FloatDivision", Convention),
+    r#for => ("For", Convention),
     format_string => ("FormatString", Convention),
     format_string_token => ("FormatStringToken", Convention),
     frozen_string_literal_comment => ("FrozenStringLiteralComment", Convention),
@@ -58,6 +63,8 @@ department_rules! {
     hash_as_last_array_item => ("HashAsLastArrayItem", Convention),
     hash_like_case => ("HashLikeCase", Convention),
     hash_syntax => ("HashSyntax", Convention),
+    hash_transform_keys => ("HashTransformKeys", Convention),
+    hash_transform_values => ("HashTransformValues", Convention),
     if_unless_modifier => ("IfUnlessModifier", Convention),
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),
@@ -80,6 +87,7 @@ department_rules! {
     negated_if => ("NegatedIf", Convention),
     negated_unless => ("NegatedUnless", Convention),
     negated_while => ("NegatedWhile", Convention),
+    nested_modifier => ("NestedModifier", Convention),
     nested_ternary_operator => ("NestedTernaryOperator", Convention),
     nested_parenthesized_calls => ("NestedParenthesizedCalls", Convention),
     next => ("Next", Convention),
@@ -93,6 +101,7 @@ department_rules! {
     optional_boolean_parameter => ("OptionalBooleanParameter", Convention),
     or_assignment => ("OrAssignment", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
+    parentheses_around_condition => ("ParenthesesAroundCondition", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     percent_q_literals => ("PercentQLiterals", Convention),
     perl_backrefs => ("PerlBackrefs", Convention),
