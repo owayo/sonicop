@@ -55,6 +55,44 @@ pub(super) fn contains_comment(range: &std::ops::Range<usize>, context: &RuleCon
     })
 }
 
+/// Whether two nodes are the same node, which is what comparing two AST nodes asks upstream.
+///
+/// Three details of the grammar have to be put back for the answer to be upstream's: an operator
+/// is an anonymous child here and the *name* of the call upstream, a heredoc's body is written as
+/// a sibling of the statement that opened it rather than inside the literal, and a comment is a
+/// child of the statement list it was written in.
+pub(super) fn same_tree(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_>) -> bool {
+    if left.kind() != right.kind() {
+        return false;
+    }
+    let operator = |node: Node<'_>| {
+        node.child_by_field_name("operator")
+            .map(|operator| context.source.node_text(operator))
+    };
+    if operator(left) != operator(right) {
+        return false;
+    }
+    if left.kind() == "heredoc_beginning" {
+        return heredoc_text(context, left) == heredoc_text(context, right);
+    }
+    let (left_children, right_children) = (children(left), children(right));
+    if left_children.is_empty() && right_children.is_empty() {
+        return context.source.node_text(left) == context.source.node_text(right);
+    }
+    left_children.len() == right_children.len()
+        && left_children
+            .iter()
+            .zip(&right_children)
+            .all(|(left, right)| same_tree(context, *left, *right))
+}
+
+/// The text of the heredoc a `heredoc_beginning` opened, which the grammar parks after the
+/// statement rather than inside the literal.
+fn heredoc_text<'a>(context: &'a RuleContext<'_>, beginning: Node<'_>) -> Option<&'a str> {
+    let body = crate::rules::send_node::heredoc_body(beginning, context)?;
+    Some(context.source.node_text(body))
+}
+
 /// Whether an `assignment` node is the grammar's misreading of a `=~` match.
 ///
 /// `a[0] =~ /x/` parses as an assignment of `~ /x/` to `a[0]`, because an indexing is a valid

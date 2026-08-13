@@ -19185,3 +19185,153 @@ mod sole_nested_conditional {
         .run();
     }
 }
+
+/// `Style/MixinGrouping` — 既定の separated では 1 文 1 モジュール。
+mod style_mixin_grouping {
+    use super::*;
+
+    const COP: &str = "Style/MixinGrouping";
+
+    #[test]
+    fn a_statement_naming_more_than_one_module_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              include Bar, Baz
+              ^^^^^^^^^^^^^^^^ Put `include` mixins in separate statements.
+            end
+            "#,
+        );
+        expect_no_offenses(COP, "class Foo\n  include Only\nend\n");
+        // クラス本体の直下でなければ macro ではない。
+        expect_no_offenses(COP, "class Foo\n  def m\n    include A, B\n  end\nend\n");
+    }
+
+    #[test]
+    fn the_modules_are_written_out_in_reverse() {
+        expect_correction(
+            COP,
+            "class Foo\n  include Bar, Baz\nend\n",
+            "class Foo\n  include Baz\n  include Bar\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class Foo\n  prepend X, Y, Z\nend\n",
+            "class Foo\n  prepend Z\n  prepend Y\n  prepend X\nend\n",
+        );
+    }
+}
+
+/// `Style/InverseMethods` — 反転メソッドがあるなら否定しない。
+mod style_inverse_methods {
+    use super::*;
+
+    const COP: &str = "Style/InverseMethods";
+
+    #[test]
+    fn the_negation_names_the_method_it_inverts() {
+        expect_offense(
+            COP,
+            r#"
+            a = !foo.any?
+                ^^^^^^^^^ Use `none?` instead of inverting `any?`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            i = foo.select { |x| !x.bar }
+                ^^^^^^^^^^^^^^^^^^^^^^^^^ Use `reject` instead of inverting `select`.
+            "#,
+        );
+        // 二重否定は打ち消し合うだけ。
+        expect_no_offenses(COP, "o = !!foo.any?\n");
+        // `&.` では `any?` と `none?` が同じ意味にならない。
+        expect_no_offenses(COP, "q = !foo&.any?\n");
+        // クラスの上下関係は順序ではない。
+        expect_no_offenses(COP, "m = !(Integer < Numeric)\n");
+        // `next` は最後の式より前に抜けるので反転では足りない。
+        expect_no_offenses(COP, "s = foo.select { |x| next if x; !x.bar }\n");
+    }
+
+    #[test]
+    fn the_inverse_is_written_and_the_negation_goes() {
+        expect_correction(COP, "a = !foo.any?\n", "a = foo.none?\n");
+        expect_correction(COP, "b = !(foo.any?)\n", "b = foo.none?\n");
+        expect_correction(COP, "d = !(a == b)\n", "d = a != b\n");
+        expect_correction(
+            COP,
+            "h = !foo.any? { |x| x }\n",
+            "h = foo.none? { |x| x }\n",
+        );
+        expect_correction(
+            COP,
+            "i = foo.select { |x| !x.bar }\n",
+            "i = foo.reject { |x| x.bar }\n",
+        );
+        expect_correction(
+            COP,
+            "k = foo.select { |x| x != 1 }\n",
+            "k = foo.reject { |x| x == 1 }\n",
+        );
+        expect_correction(COP, "r = not foo.any?\n", "r = foo.none?\n");
+    }
+}
+
+/// `Style/IdenticalConditionalBranches` — どの分岐でも同じことをするなら外へ。
+mod style_identical_conditional_branches {
+    use super::*;
+
+    const COP: &str = "Style/IdenticalConditionalBranches";
+
+    #[test]
+    fn every_branch_that_shares_an_expression_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+              do_x
+              foo
+              ^^^ Move `foo` out of the conditional.
+            else
+              do_y
+              foo
+              ^^^ Move `foo` out of the conditional.
+            end
+            "#,
+        );
+        // 分岐ごとに違えば動かせない。
+        expect_no_offenses(COP, "if a\n  do_x\nelsif b\n  do_y\nelse\n  do_z\nend\n");
+        // `else` が無ければ比べる相手がいない。
+        expect_no_offenses(COP, "if a\n  foo\n  do_x\nend\n");
+        // 条件が読む変数への代入は条件より前に出せない。
+        expect_no_offenses(COP, "x = 1\nif x == 1\n  y = x\nelse\n  y = x\nend\n");
+    }
+
+    #[test]
+    fn the_expression_moves_out_of_the_conditional() {
+        expect_correction(
+            COP,
+            "if a\n  do_x\n  foo\nelse\n  do_y\n  foo\nend\n",
+            "if a\n  do_x\nelse\n  do_y\nend\nfoo\n",
+        );
+        expect_correction(
+            COP,
+            "def m\n  if a\n    foo\n    do_x\n  else\n    foo\n    do_y\n  end\nend\n",
+            "def m\n  foo\n  if a\n    do_x\n  else\n    do_y\n  end\nend\n",
+        );
+        // 代入の下では代入ごと後ろへ移る。
+        expect_correction(
+            COP,
+            "z = if a\n  do_x\n  foo\nelse\n  do_y\n  foo\nend\n",
+            "if a\n  do_x\nelse\n  do_y\nend\nz = foo\n",
+        );
+        // `case` も同じ。
+        expect_correction(
+            COP,
+            "case x\nwhen 1\n  do_x\n  foo\nwhen 2\n  do_y\n  foo\nelse\n  do_z\n  foo\nend\n",
+            "case x\nwhen 1\n  do_x\nwhen 2\n  do_y\nelse\n  do_z\nend\nfoo\n",
+        );
+    }
+}
