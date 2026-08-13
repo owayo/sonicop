@@ -15919,3 +15919,269 @@ mod method_def_parentheses {
             .run();
     }
 }
+
+/// `Style/For`: 既定では `for` ではなく `each`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/For` の実測。
+mod r#for {
+    use super::*;
+
+    const COP: &str = "Style/For";
+
+    #[test]
+    fn the_head_of_the_loop_becomes_a_block() {
+        expect_correction(
+            COP,
+            "for n in [1, 2, 3] do\n  puts n\nend\n",
+            "[1, 2, 3].each do |n|\n  puts n\nend\n",
+        );
+        // Without `do` the head stops at the collection.
+        expect_correction(
+            COP,
+            "for a, b in x\n  puts a\nend\n",
+            "x.each do |a, b|\n  puts a\nend\n",
+        );
+        expect_correction(
+            COP,
+            "for n in x; puts n; end\n",
+            "x.each do |n|; puts n; end\n",
+        );
+        // Safe navigation carries over to the `each`.
+        expect_correction(
+            COP,
+            "for n in a&.b\n  puts n\nend\n",
+            "a&.b&.each do |n|\n  puts n\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_collection_that_binds_looser_than_a_call_gets_parentheses() {
+        expect_correction(
+            COP,
+            "for n in 1..3\n  puts n\nend\n",
+            "(1..3).each do |n|\n  puts n\nend\n",
+        );
+        expect_correction(
+            COP,
+            "for n in a + b\n  puts n\nend\n",
+            "(a + b).each do |n|\n  puts n\nend\n",
+        );
+        expect_correction(
+            COP,
+            "for n in a and b\n  puts n\nend\n",
+            "(a and b).each do |n|\n  puts n\nend\n",
+        );
+        // A collection already written in parentheses keeps exactly those.
+        expect_correction(
+            COP,
+            "for n in (a + b)\n  puts n\nend\n",
+            "(a + b).each do |n|\n  puts n\nend\n",
+        );
+    }
+
+    #[test]
+    fn an_each_block_is_the_preferred_form() {
+        expect_no_offenses(COP, "x.each do |n|\n  puts n\nend\n");
+    }
+
+    /// `EnforcedStyle: for` は逆向き。1 行の `each` は対象外。
+    #[test]
+    fn the_opposite_style_turns_a_multiline_each_into_a_for() {
+        CopCase::new(
+            COP,
+            "x.each do |n|\n  puts n\nend\n",
+            vec![Annotation::new(1, 1, 13, "Prefer `for` over `each`.")],
+        )
+        .config("Style/For:\n  EnforcedStyle: for\n")
+        .corrected("for n in x do\n  puts n\nend\n")
+        .run();
+        CopCase::new(COP, "x.each { |n| puts n }\n", Vec::new())
+            .config("Style/For:\n  EnforcedStyle: for\n")
+            .run();
+    }
+}
+
+/// `Style/FloatDivision`: 既定では `to_f` は片側だけ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/FloatDivision` の実測。
+mod float_division {
+    use super::*;
+
+    const COP: &str = "Style/FloatDivision";
+
+    #[test]
+    fn coercing_both_sides_is_one_too_many() {
+        expect_correction(COP, "a.to_f / b.to_f\n", "a.to_f / b\n");
+        expect_correction(COP, "foo.to_f / bar.baz.to_f\n", "foo.to_f / bar.baz\n");
+        expect_no_offenses(COP, "a.to_f / b\n");
+        expect_no_offenses(COP, "a / b.to_f\n");
+        expect_no_offenses(COP, "1 / 2\n");
+    }
+
+    /// 正規表現のマッチ結果は文字列なので、両側の `to_f` が要る。
+    #[test]
+    fn a_match_result_keeps_both_coercions() {
+        expect_no_offenses(COP, "Regexp.last_match(1).to_f / b.to_f\n");
+        expect_no_offenses(COP, "$1.to_f / b.to_f\n");
+    }
+
+    #[test]
+    fn the_other_styles_move_or_replace_the_coercion() {
+        CopCase::new(
+            COP,
+            "a / b.to_f\n",
+            vec![Annotation::new(
+                1,
+                1,
+                10,
+                "Prefer using `.to_f` on the left side.",
+            )],
+        )
+        .config("Style/FloatDivision:\n  EnforcedStyle: left_coerce\n")
+        .corrected("a.to_f / b\n")
+        .run();
+        CopCase::new(
+            COP,
+            "a.to_f / b\n",
+            vec![Annotation::new(
+                1,
+                1,
+                10,
+                "Prefer using `.to_f` on the right side.",
+            )],
+        )
+        .config("Style/FloatDivision:\n  EnforcedStyle: right_coerce\n")
+        .corrected("a / b.to_f\n")
+        .run();
+        CopCase::new(
+            COP,
+            "a.to_f / b.to_f\n",
+            vec![Annotation::new(
+                1,
+                1,
+                15,
+                "Prefer using `fdiv` for float divisions.",
+            )],
+        )
+        .config("Style/FloatDivision:\n  EnforcedStyle: fdiv\n")
+        .corrected("a.fdiv(b)\n")
+        .run();
+    }
+}
+
+/// `Style/NestedModifier`: 入れ子の修飾子は 1 つの条件にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/NestedModifier` の実測。
+mod nested_modifier {
+    use super::*;
+
+    const COP: &str = "Style/NestedModifier";
+
+    #[test]
+    fn two_modifiers_become_one_condition() {
+        expect_offense(
+            COP,
+            r#"
+            foo if bar if baz
+                ^^ Avoid using nested modifiers.
+            "#,
+        );
+        expect_correction(COP, "foo if bar if baz\n", "foo if baz && bar\n");
+        // A mismatched pair of keywords negates the inner condition.
+        expect_correction(COP, "foo if bar unless baz\n", "foo unless baz || !bar\n");
+        expect_correction(COP, "foo unless bar if baz\n", "foo if baz && !bar\n");
+        // An `or` on either side keeps its own parentheses.
+        expect_correction(COP, "foo if a || b if c\n", "foo if c && (a || b)\n");
+        expect_correction(COP, "foo if a if b || c\n", "foo if (b || c) && a\n");
+        expect_correction(COP, "foo if a == b if c\n", "foo if c && (a == b)\n");
+        // A call written without parentheses gets them.
+        expect_correction(COP, "foo if puts 1 if c\n", "foo if c && puts(1)\n");
+        expect_correction(COP, "foo if x.y 1, 2 if c\n", "foo if c && x.y(1, 2)\n");
+    }
+
+    /// 3 重でも報告は 1 件。内側は無視される。
+    #[test]
+    fn only_the_outermost_pair_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            foo if a if b if c
+                     ^^ Avoid using nested modifiers.
+            "#,
+        );
+    }
+
+    /// ループ同士は結合できないので、報告だけして書き換えない。
+    #[test]
+    fn a_loop_is_reported_but_not_rewritten() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo while bar if baz
+                ^^^^^ Avoid using nested modifiers.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_no_offenses(COP, "foo if bar\n");
+    }
+}
+
+/// `Style/ParenthesesAroundCondition`: 条件を括弧で囲まない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ParenthesesAroundCondition` の実測。
+mod parentheses_around_condition {
+    use super::*;
+
+    const COP: &str = "Style/ParenthesesAroundCondition";
+
+    #[test]
+    fn each_keyword_names_itself_in_the_message() {
+        expect_offense(
+            COP,
+            r#"
+            if (foo)
+               ^^^^^ Don't use parentheses around the condition of an `if`.
+              bar
+            end
+            "#,
+        );
+        expect_correction(COP, "if (foo)\n  bar\nend\n", "if foo\n  bar\nend\n");
+        expect_correction(
+            COP,
+            "unless (foo)\n  bar\nend\n",
+            "unless foo\n  bar\nend\n",
+        );
+        expect_correction(COP, "while (foo)\n  bar\nend\n", "while foo\n  bar\nend\n");
+        expect_correction(COP, "until (foo)\n  bar\nend\n", "until foo\n  bar\nend\n");
+        expect_correction(COP, "foo if (bar)\n", "foo if bar\n");
+        expect_correction(
+            COP,
+            "a\nif b\n  c\nelsif (d)\n  e\nend\n",
+            "a\nif b\n  c\nelsif d\n  e\nend\n",
+        );
+    }
+
+    #[test]
+    fn parentheses_that_carry_meaning_are_left_alone() {
+        // A letter written against the parenthesis makes it a call rather than a grouping.
+        expect_no_offenses(COP, "if(foo)\n  bar\nend\n");
+        // A parenthesized assignment says the assignment was meant.
+        expect_no_offenses(COP, "if (x = 1)\n  bar\nend\n");
+        expect_no_offenses(COP, "if (x; y)\n  bar\nend\n");
+        expect_no_offenses(COP, "if (bar if baz)\n  x\nend\n");
+        // A `do ... end` block would attach to the loop without them.
+        expect_no_offenses(COP, "while (x.each do |y| end)\n  bar\nend\n");
+        expect_no_offenses(COP, "if foo\n  bar\nend\n");
+        expect_no_offenses(COP, "x = (foo)\n");
+    }
+
+    /// 既定では複数行の条件も対象。`AllowInMultilineConditions` で外れる。
+    #[test]
+    fn a_multiline_condition_is_reported_unless_it_is_allowed() {
+        expect_correction(COP, "if (\n  foo\n)\n  bar\nend\n", "if foo\n  bar\nend\n");
+        CopCase::new(COP, "if (\n  foo\n)\n  bar\nend\n", Vec::new())
+            .config("Style/ParenthesesAroundCondition:\n  AllowInMultilineConditions: true\n")
+            .run();
+    }
+}

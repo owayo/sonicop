@@ -3800,6 +3800,47 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_method_def_parentheses")
         .correctable(true),
+        CopCase::annotated(
+            "Style/For",
+            r#"
+            for n in [1, 2, 3] do
+            ^^^^^^^^^^^^^^^^^^^^^ Prefer `each` over `for`.
+              puts n
+            end
+            "#,
+        )
+        .id("style_for")
+        .locations(&[(1, 1, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FloatDivision",
+            r#"
+            a.to_f / b.to_f
+            ^^^^^^^^^^^^^^^ Prefer using `.to_f` on one side only.
+            "#,
+        )
+        .id("style_float_division")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NestedModifier",
+            r#"
+            foo if bar if baz
+                ^^ Avoid using nested modifiers.
+            "#,
+        )
+        .id("style_nested_modifier")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ParenthesesAroundCondition",
+            r#"
+            if (foo)
+               ^^^^^ Don't use parentheses around the condition of an `if`.
+              bar
+            end
+            "#,
+        )
+        .id("style_parentheses_around_condition")
+        .correctable(true),
     ]
 }
 
