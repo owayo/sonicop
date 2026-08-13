@@ -16723,3 +16723,62 @@ mod redundant_condition {
         expect_no_offenses(COP, "if a.nonzero?\n  a\nelse\n  b\nend\n");
     }
 }
+
+/// コーパスで見つかった取りこぼしの回帰。
+mod style_c_corpus_regressions {
+    use super::*;
+
+    /// `*x` も名前で突き合わせる。`yield` の引数の数はブロックの引数の数と一致していること。
+    #[test]
+    fn explicit_block_argument_matches_a_splat_parameter_by_name() {
+        expect_correction(
+            "Style/ExplicitBlockArgument",
+            "def each6; @body.each { |*x| yield(x) } end\n",
+            "def each6(&block); @body.each(&block) end\n",
+        );
+        expect_no_offenses(
+            "Style/ExplicitBlockArgument",
+            "def each5; @body.each { |*x| yield(*x) } end\n",
+        );
+        // A `->` block is a `lambda` send upstream, and its parameters are the block's.
+        expect_correction(
+            "Style/ExplicitBlockArgument",
+            "def a\n  ->{ yield }.call\nend\n",
+            "def a(&block)\n  ->(&block).call\nend\n",
+        );
+        // A yield with arguments but no block parameters pairs them with nothing.
+        expect_no_offenses(
+            "Style/ExplicitBlockArgument",
+            "def a\n  bar { yield x }\nend\n",
+        );
+    }
+
+    /// `<<` のような演算子も `send` なので、両分岐が同じメソッドかどうかの対象になる。
+    #[test]
+    fn redundant_condition_reads_an_operator_call_as_a_send() {
+        expect_correction(
+            "Style/RedundantCondition",
+            "if ruby_version\n  output << ruby_version\nelse\n  output << \"no\"\nend\n",
+            "output << ruby_version || \"no\"\n",
+        );
+        // A condition that takes a block is a `block` node, not a predicate call.
+        expect_no_offenses(
+            "Style/RedundantCondition",
+            "@valid = if lines.all? { |l| l.hidden? }\n  true\nelse\n  other\nend\n",
+        );
+    }
+
+    /// エンコーディング指定の flag が付いた正規表現は本家が解析できず、何も報告しない。
+    #[test]
+    fn redundant_regexp_escape_leaves_an_encoding_flagged_literal_alone() {
+        expect_no_offenses("Style/RedundantRegexpEscape", "%r{\\\"}mosx\n");
+        expect_no_offenses("Style/RedundantRegexpEscape", "/\\\"/s\n");
+        expect_offense(
+            "Style/RedundantRegexpEscape",
+            r#"
+            %r{\"}m
+               ^^ Redundant escape inside regexp literal
+            "#,
+        );
+    }
+}

@@ -16,6 +16,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(literal) = Literal::read(context, node) else {
             continue;
         };
+        if !literal.parsed {
+            continue;
+        }
         for escape in literal.escapes() {
             if literal.is_allowed(&escape) {
                 continue;
@@ -47,6 +50,9 @@ struct Literal {
     start: usize,
     delimiters: [char; 2],
     extended: bool,
+    /// Whether upstream's `Regexp::Parser` gets a tree at all. An encoding flag leaves
+    /// `parsed_tree` nil, and a cop with no tree reports nothing.
+    parsed: bool,
 }
 
 impl Literal {
@@ -76,6 +82,12 @@ impl Literal {
                 context.source.node_text(closing).chars().next()?,
             ],
             extended: context.source.node_text(closing).contains('x'),
+            parsed: !context
+                .source
+                .node_text(closing)
+                .chars()
+                .skip(1)
+                .any(|flag| matches!(flag, 's' | 'e')),
         })
     }
 
