@@ -19,7 +19,10 @@ mod literals;
 /// several Style cops ported from node patterns have to answer the same way.
 pub(crate) mod locals;
 mod nil_methods;
-mod node_equality;
+/// Reachable from `style` too: `Node#==` is the same question wherever a cop ported from a node
+/// pattern compares two subtrees, and answering it by source text instead would call `a.b` and
+/// `a. b` different nodes.
+pub(crate) mod node_equality;
 mod parameters;
 mod percent_literal;
 mod ranges;
