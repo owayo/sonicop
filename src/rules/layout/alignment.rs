@@ -1,10 +1,11 @@
 //! `PrecedingFollowingAlignment`: whether a token lines up with something on a neighbouring line.
 //!
 //! RuboCop's mixin lets a cop excuse padding that was written to align code with the line above or
-//! below it -- `Layout/SpaceAroundOperators` and `Layout/ExtraSpacing` both ask it before
-//! reporting a run of spaces. The two cops disagree about almost everything else, so the shared
-//! state (the file's lines, the comment lines that do not count as alignment targets, and the
-//! `=`-ish operators that do) is gathered once here.
+//! below it -- `Layout/SpaceAroundOperators`, `Layout/ExtraSpacing` and
+//! `Layout/SpaceBeforeFirstArg` all ask it before reporting a run of spaces. The three cops
+//! disagree about almost everything else, so the shared state (the file's lines, the comment lines
+//! that do not count as alignment targets, and the `=`-ish operators that do) is gathered once
+//! here.
 
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
