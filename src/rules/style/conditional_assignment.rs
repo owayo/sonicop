@@ -11,12 +11,17 @@ use crate::rules::support;
 const MSG: &str = "Use the return of the conditional for variable assignment and comparison.";
 const ASSIGN_TO_CONDITION_MSG: &str = "Assign variables inside of conditionals.";
 
-/// The operator methods `assignment_type?` accepts alongside a setter, which upstream's parser
-/// writes as a `send` like any other call.
+/// The operator methods `assignment_type?` accepts alongside every name ending in `=`, which
+/// upstream's parser writes as a `send` like any other call.
 const ASSIGNMENT_OPERATORS: &[&str] = &["[]=", "<<", "=~", "!~", "<=>", "<", ">"];
 
-/// The comparison operators a name ending in `=` is not a setter for.
-const COMPARISON_OPERATORS: &[&str] = &["==", "===", "!=", "<=", ">="];
+/// `Node::COMPARISON_OPERATORS`, the names ending in `=` that assign nothing.
+const COMPARISON_OPERATORS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<"];
+
+/// `assignment_type?` for a call: an operator method the cop names, or any setter.
+fn is_assignment_method(name: &str) -> bool {
+    ASSIGNMENT_OPERATORS.contains(&name) || name.ends_with('=')
+}
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let cop = Cop {
@@ -104,11 +109,15 @@ impl Cop<'_> {
         if matches!(node.kind(), "case" | "case_match") {
             let children = super::nodes::children(node);
             let otherwise = children.iter().find(|child| child.kind() == "else")?;
-            let mut branches: Vec<Node<'t>> = children
+            // `branches.all?`: a `when` with an empty body has nothing to compare, and drops the
+            // conditional out of the check rather than out of the list.
+            let mut branches: Vec<Node<'t>> = Vec::new();
+            for clause in children
                 .iter()
                 .filter(|child| matches!(child.kind(), "when" | "in_clause"))
-                .filter_map(|clause| branch(clause.child_by_field_name("body")))
-                .collect();
+            {
+                branches.push(branch(clause.child_by_field_name("body"))?);
+            }
             branches.push(branch(Some(*otherwise))?);
             return Some(Conditional {
                 node,
@@ -294,11 +303,11 @@ impl Cop<'_> {
                     element_setter: false,
                 })
             }
-            // `a << b` and `a =~ /x/` are calls upstream, named after the operator.
+            // `a << b` and `a == b` are calls upstream, named after the operator.
             "binary" => {
                 let operator = node.child_by_field_name("operator")?;
                 let written = self.context.source.node_text(operator);
-                if !ASSIGNMENT_OPERATORS.contains(&written) {
+                if !is_assignment_method(written) {
                     return None;
                 }
                 let left = node.child_by_field_name("left")?;
@@ -310,20 +319,30 @@ impl Cop<'_> {
                     element_setter: false,
                 })
             }
-            // `a.b = 1` written with an argument list rather than as an assignment.
+            // A call written with an argument list rather than as an assignment.
             "call" => {
-                let method = left_setter(self.context, node)?;
+                let method = node.child_by_field_name("method")?;
+                let name = self.context.source.node_text(method);
+                if !is_assignment_method(name) {
+                    return None;
+                }
                 let arguments = send_node::arguments(node);
                 let value = arguments.last()?.first();
                 let receiver = node
                     .child_by_field_name("receiver")
                     .map_or_else(String::new, text);
+                // `lhs_for_send`: a setter is written with an `=`, and every other operator with
+                // the name it was called by.
+                let lhs = match name.ends_with('=') && !COMPARISON_OPERATORS.contains(&name) {
+                    true => format!("{receiver}.{} = ", &name[..name.len() - 1]),
+                    false => format!("{receiver} {name} "),
+                };
                 Some(Assignment {
                     kind: Kind::Send,
-                    lhs: format!("{receiver}.{method} = "),
+                    lhs,
                     value,
                     node,
-                    element_setter: false,
+                    element_setter: name == "[]=",
                 })
             }
             _ => None,
@@ -567,14 +586,6 @@ fn strip_parentheses<'t>(node: Node<'t>) -> Node<'t> {
         [only] => *only,
         _ => node,
     }
-}
-
-/// The name a call written as a setter assigns to, without its `=`.
-fn left_setter<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    let method = node.child_by_field_name("method")?;
-    let name = context.source.node_text(method);
-    (name.ends_with('=') && !COMPARISON_OPERATORS.contains(&name) && name != "=")
-        .then(|| &name[..name.len() - 1])
 }
 
 fn end_keyword<'t>(node: Node<'t>) -> Option<Node<'t>> {
