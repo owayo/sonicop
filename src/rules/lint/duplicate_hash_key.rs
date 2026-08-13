@@ -14,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .named_children(&mut cursor)
             .filter(|child| child.kind() == "pair")
             .filter_map(|pair| pair.child_by_field_name("key"))
-            .filter(|key| recursive_basic_literal(*key, context) || is_constant(*key))
+            .filter(|key| recursive_basic_literal(*key, context) || is_constant(*key, context))
             .collect();
         // `consecutive_duplicates` keeps every key but the first of its group, which is every key
         // an earlier one is equal to.

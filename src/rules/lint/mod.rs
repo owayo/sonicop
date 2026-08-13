@@ -12,14 +12,19 @@ mod cop_directives;
 mod exception_hierarchy;
 mod flow;
 mod format_string;
-mod literals;
+/// Reachable from `style` too: what the parser knows the value of, and what it calls the node it
+/// parked that value in, are questions the Style cops ported from node patterns share.
+pub(crate) mod literals;
 // `Layout/MultilineMethodCallIndentation` needs the same lvar/send distinction, so the analysis
 // is visible to the other departments rather than duplicated there.
 /// Reachable from `style` too: whether a bare identifier reads a local variable is a question
 /// several Style cops ported from node patterns have to answer the same way.
 pub(crate) mod locals;
 mod nil_methods;
-mod node_equality;
+/// Reachable from `style` too: `Node#==` is the same question wherever a cop ported from a node
+/// pattern compares two subtrees, and answering it by source text instead would call `a.b` and
+/// `a. b` different nodes.
+pub(crate) mod node_equality;
 mod parameters;
 mod percent_literal;
 mod ranges;

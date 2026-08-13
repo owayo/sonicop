@@ -18370,6 +18370,371 @@ mod infinite_loop {
     }
 }
 
+/// `Style/EvalWithLocation`: `eval` 族には `__FILE__` と `__LINE__` を渡す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EvalWithLocation` と `-A` の実測。
+mod eval_with_location {
+    use super::*;
+
+    const COP: &str = "Style/EvalWithLocation";
+
+    /// 位置引数がまったく無い場合。`eval` は binding が無いと補正できない。
+    #[test]
+    fn a_missing_location_is_reported_on_the_call() {
+        expect_offense(
+            COP,
+            r#"
+            C.class_eval "x = 1"
+            ^^^^^^^^^^^^^^^^^^^^ Pass `__FILE__` and `__LINE__` to `class_eval`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "C.class_eval \"x = 1\"\n",
+            "C.class_eval \"x = 1\", __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        );
+        // binding が無いので corrector を持たない。
+        CopCase::annotated(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_correction(
+            COP,
+            "eval \"x = 1\", binding\n",
+            "eval \"x = 1\", binding, __FILE__, __LINE__\n",
+        );
+    }
+
+    /// ヒアドキュメントは本文の開始行を基準に `__LINE__ + 1` になる。
+    #[test]
+    fn a_heredoc_counts_from_its_body() {
+        expect_correction(
+            COP,
+            "C.class_eval <<-RUBY\n  def x\n  end\nRUBY\n",
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+        expect_no_offenses(
+            COP,
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+    }
+
+    /// ファイルと行の値そのものが違うときは、その引数の上に報告する。
+    #[test]
+    fn a_wrong_file_or_line_is_reported_on_the_argument() {
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, "file.rb", 1
+                         ^^^^^^^^^ Incorrect file for `eval`; use `__FILE__` instead of `"file.rb"`.
+                                    ^ Incorrect line number for `eval`; use `__LINE__` instead of `1`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "eval \"x\", b, \"file.rb\", 1\n",
+            "eval \"x\", b, __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, __LINE__ + 2
+                                   ^^^^^^^^^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `__LINE__ + 2`.
+            "#,
+        );
+        // 定数は値が読めるものとして扱われるので報告される。
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, LINE
+                                   ^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `LINE`.
+            "#,
+        );
+    }
+
+    /// 行の値が読めない引数 (変数・`+` 以外の呼び出し) は見送る。
+    #[test]
+    fn an_opaque_line_argument_is_left_alone() {
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, @line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, foo(1)\n");
+        expect_no_offenses(COP, "C.instance_eval \"x\", __FILE__, __LINE__ - 3\n");
+        // `+` は読める側なので、こちらは報告される。`n + __LINE__` の向きも見る。
+        expect_offense(
+            COP,
+            r#"
+            class_eval "x", __FILE__, 1 + __LINE__
+                                      ^^^^^^^^^^^^ Incorrect line number for `class_eval`; use `__LINE__` instead of `1 + __LINE__`.
+            "#,
+        );
+    }
+
+    /// 引数リストの末尾を tree-sitter が多重代入に読み違える形。本家は
+    /// `line = __LINE__` を 3 つ目の引数として見る。
+    #[test]
+    fn an_assignment_written_as_the_line_argument_is_still_one_argument() {
+        expect_offense(
+            COP,
+            r#"
+            m.module_eval "A = 1", __FILE__, line = __LINE__
+                                             ^^^^^^^^^^^^^^^ Incorrect line number for `module_eval`; use `__LINE__` instead of `line = __LINE__`.
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `eval` は receiver が無いか `Kernel` のときだけ見る。
+        expect_no_offenses(COP, "Foo.eval \"x\", binding\n");
+        // コード文字列がリテラルでなければ何も言わない。
+        expect_no_offenses(COP, "eval code, binding\n");
+        expect_no_offenses(COP, "eval :sym, binding\n");
+        expect_no_offenses(COP, "eval <<~A + <<~B, b\n  x\nA\n  y\nB\n");
+        // 安全参照は `send` ではない。
+        expect_no_offenses(COP, "obj&.instance_eval \"x\"\n");
+        expect_no_offenses(COP, "C.class_eval \"x\", __FILE__, __LINE__\n");
+    }
+}
+
+/// `Style/MultilineTernaryOperator` — 複数行の三項演算子。
+mod style_multiline_ternary_operator {
+    use super::*;
+
+    const COP: &str = "Style/MultilineTernaryOperator";
+
+    #[test]
+    fn where_the_value_is_handed_on_the_ternary_is_only_asked_to_fit_on_one_line() {
+        expect_offense(
+            COP,
+            r#"
+            x = cond ?
+                ^^^^^^ Avoid multi-line ternary operators, use `if` or `unless` instead.
+              a :
+              b
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            return cond ?
+                   ^^^^^^ Avoid multi-line ternary operators, use single-line instead.
+              a :
+              b
+            "#,
+        );
+        expect_no_offenses(COP, "y = cond ? a : b\n");
+    }
+
+    #[test]
+    fn the_ternary_becomes_an_if_or_is_folded_onto_one_line() {
+        expect_correction(
+            COP,
+            "x = cond ?\n  a :\n  b\n",
+            "x = if cond\n  a\nelse\n  b\nend\n",
+        );
+        expect_correction(COP, "return cond ?\n  a :\n  b\n", "return cond ? a : b\n");
+        expect_correction(COP, "foo(cond ?\n  a :\n  b)\n", "foo(cond ? a : b)\n");
+        // `foo.bar =` は代入なので `if` が置ける。
+        expect_correction(
+            COP,
+            "self.foo = cond ?\n  a :\n  b\n",
+            "self.foo = if cond\n  a\nelse\n  b\nend\n",
+        );
+    }
+}
+
+/// `Style/TrailingUnderscoreVariable` — 多重代入の末尾の `_`。
+mod style_trailing_underscore_variable {
+    use super::*;
+
+    const COP: &str = "Style/TrailingUnderscoreVariable";
+
+    #[test]
+    fn only_a_run_of_bare_underscores_at_the_end_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            a, b, _ = foo()
+                  ^^ Do not use trailing `_`s in parallel assignment. Prefer `a, b, = foo()`.
+            "#,
+        );
+        // `AllowNamedUnderscoreVariables` の既定は真なので `_c` は残す。
+        expect_no_offenses(COP, "a, b, _c = foo()\n");
+        expect_no_offenses(COP, "a, _, b = foo()\n");
+        // 手前に splat があると末尾の `_` が何を指すか決まらない。
+        expect_no_offenses(COP, "_, *rest, _ = foo()\n");
+        expect_no_offenses(COP, "a, b, * = foo()\n");
+    }
+
+    #[test]
+    fn the_names_and_what_separates_them_go() {
+        expect_correction(COP, "a, b, _, _ = foo()\n", "a, b, = foo()\n");
+        // すべてが `_` なら左辺ごと消える。
+        expect_correction(COP, "_, _, _ = foo()\n", "foo()\n");
+        // 入れ子の分解では閉じ括弧を残す。
+        expect_correction(COP, "a, (b, _) = foo()\n", "a, (b,) = foo()\n");
+        expect_correction(COP, "a, *_ = foo()\n", "a, = foo()\n");
+        expect_correction(COP, "(a, b), _ = foo()\n", "(a, b), = foo()\n");
+    }
+}
+
+/// `Style/IfInsideElse` — `else` の中の `if` は `elsif`。
+mod style_if_inside_else {
+    use super::*;
+
+    const COP: &str = "Style/IfInsideElse";
+
+    #[test]
+    fn the_inner_if_keyword_is_what_the_offense_points_at() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+              x
+            else
+              if b
+              ^^ Convert `if` nested inside `else` to `elsif`.
+                y
+              end
+            end
+            "#,
+        );
+        // `else` と `if` の間のコメントは意図を持つので触らない。
+        expect_no_offenses(
+            COP,
+            "if a\n  x\nelse\n  # note\n  if b\n    y\n  end\nend\n",
+        );
+        // `else` に文が 2 つあれば `elsif` にはならない。
+        expect_no_offenses(COP, "if a\n  x\nelse\n  if b\n    y\n  end\n  w\nend\n");
+        expect_no_offenses(COP, "if a\n  x\nelse\n  unless b\n    y\n  end\nend\n");
+        expect_no_offenses(COP, "if a\n  x\nelsif b\n  y\nend\n");
+    }
+
+    #[test]
+    fn the_else_becomes_an_elsif_and_the_inner_end_goes() {
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  if b\n    y\n  end\nend\n",
+            "if a\n  x\nelsif b\n  y\nend\n",
+        );
+        // 修飾形も同じ `elsif` になる。
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  y if b\nend\n",
+            "if a\n  x\nelsif b\n  y\nend\n",
+        );
+        // 本体が無いときは条件の行ごと消える。
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  if b\n  end\nend\n",
+            "if a\n  x\nelsif b\nend\n",
+        );
+    }
+}
+
+/// `Style/CombinableLoops` — 同じコレクションを 2 度回すループ。
+mod style_combinable_loops {
+    use super::*;
+
+    const COP: &str = "Style/CombinableLoops";
+
+    #[test]
+    fn the_second_loop_over_the_same_collection_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def m
+              items.each { |x| foo(x) }
+              items.each { |x| bar(x) }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ Combine this loop with the previous loop.
+            end
+            "#,
+        );
+        // 受け手が違えば別のループ。
+        expect_no_offenses(
+            COP,
+            "def m\n  a.each { |x| foo(x) }\n  b.each { |x| bar(x) }\nend\n",
+        );
+        // 1 つしか無ければ `begin` に入らない。
+        expect_no_offenses(COP, "items.each { |x| foo(x) }\n");
+    }
+
+    #[test]
+    fn the_second_body_moves_into_the_first_loop() {
+        expect_correction(
+            COP,
+            "def m\n  items.each { |x| foo(x) }\n  items.each { |x| bar(x) }\nend\n",
+            "def m\n  items.each { |x| foo(x)\n  bar(x) }\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def m\n  for x in items\n    foo(x)\n  end\n  for x in items\n    bar(x)\n  end\nend\n",
+            "def m\n  for x in items\n    foo(x)\n  bar(x)\n  end\nend\n",
+        );
+        // ブロック引数が違うと 2 つ目の本体が未定義の名前を読むので直せない。
+        let report = expect_offense(
+            COP,
+            r#"
+            def m
+              items.each { |x| foo(x) }
+              items.each { |y| bar(y) }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ Combine this loop with the previous loop.
+            end
+            "#,
+        );
+        assert!(!report.offenses[0].is_correctable());
+    }
+}
+
+/// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
+mod style_redundant_interpolation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantInterpolation";
+
+    #[test]
+    fn a_string_that_holds_nothing_else_is_reported() {
+        expect_offense(
+            COP,
+            r##"
+            c = "#{foo}"
+                ^^^^^^^^ Prefer `to_s` over string interpolation.
+            "##,
+        );
+        expect_no_offenses(COP, "h = \"#{x}y\"\n");
+        expect_no_offenses(COP, "i = \"a\" \"#{b}\"\n");
+        expect_no_offenses(COP, "j = %W[#{k}]\n");
+        // dsym / regexp / xstr は dstr ではない。
+        expect_no_offenses(COP, "n = :\"#{x}\"\n");
+        expect_no_offenses(COP, "o = /#{x}/\n");
+        expect_no_offenses(COP, "p = `#{x}`\n");
+    }
+
+    #[test]
+    fn what_stands_on_its_own_only_gains_a_to_s() {
+        expect_correction(COP, "a = \"#@foo\"\n", "a = @foo.to_s\n");
+        expect_correction(COP, "b = \"#{@foo}\"\n", "b = @foo.to_s\n");
+        expect_correction(COP, "e = \"#{foo.bar}\"\n", "e = foo.bar.to_s\n");
+        // 括弧なしの引数付き呼び出しは括弧が要る。
+        expect_correction(COP, "d = \"#{foo bar}\"\n", "d = foo(bar).to_s\n");
+        // 演算子メソッドは丸ごと括弧に入る。
+        expect_correction(COP, "f = \"#{a + b}\"\n", "f = (a + b).to_s\n");
+        expect_correction(COP, "m = \"#{[1, 2]}\"\n", "m = ([1, 2]).to_s\n");
+    }
+}
+
 /// `Style/RedundantRegexpCharacterClass`: 要素が 1 つだけの文字クラスは
 /// その要素そのものにする。
 ///
@@ -18534,5 +18899,289 @@ mod redundant_self {
         expect_no_offenses(COP, "def foo\n  y = self.y\nend\n");
         expect_no_offenses(COP, "def foo\n  z = self.z(1)\nend\n");
         expect_no_offenses(COP, "def foo\n  if self.cond\n    cond = 1\n  end\nend\n");
+    }
+}
+
+/// `Style/YodaCondition`: リテラル側を左に置いた比較は向きを戻す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/YodaCondition` と `-A` の実測。
+mod yoda_condition {
+    use super::*;
+
+    const COP: &str = "Style/YodaCondition";
+
+    #[test]
+    fn a_literal_on_the_left_is_reversed() {
+        expect_offense(
+            COP,
+            r#"
+            99 == foo
+            ^^^^^^^^^ Reverse the order of the operands `99 == foo`.
+            "#,
+        );
+        expect_correction(COP, "99 == foo\n", "foo == 99\n");
+        expect_correction(COP, "\"bar\" != foo\n", "foo != \"bar\"\n");
+        // 不等号は向きも入れ替わる。
+        expect_correction(COP, "42 >= foo\n", "foo <= 42\n");
+        expect_correction(COP, "10 < bar\n", "bar > 10\n");
+        // `.==(x)` と書いても同じ send。
+        expect_correction(COP, "99.==(foo)\n", "foo == 99\n");
+    }
+
+    /// 両辺が定数、両辺が非定数、左辺が補間のいずれも「向きが決まらない」ので報告しない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo == 99\n");
+        expect_no_offenses(COP, "1 == 2\n");
+        expect_no_offenses(COP, "foo == bar\n");
+        // `CONST` も定数側なので、リテラルと並べても向きは決まらない。
+        expect_no_offenses(COP, "99 == CONST\n");
+        expect_no_offenses(COP, "\"#{interpolation}\" == foo\n");
+        expect_no_offenses(COP, "/#{interpolation}/ == foo\n");
+        // `===` は可換でないので対象外。
+        expect_no_offenses(COP, "99 === foo\n");
+        expect_no_offenses(COP, "99 <=> foo\n");
+        // `__FILE__ == $0` はスクリプト判定のイディオムなので免除。
+        expect_no_offenses(COP, "__FILE__ == $0\n");
+        expect_no_offenses(COP, "__FILE__ != $PROGRAM_NAME\n");
+        // `on_csend` を実装していないので安全参照は届かない。
+        expect_no_offenses(COP, "99&.==(foo)\n");
+    }
+
+    /// パーサが値に解決するキーワードはリテラル側に立つ。`__ENCODING__` は定数。
+    #[test]
+    fn the_keyword_literals_count_as_the_constant_side() {
+        expect_offense(
+            COP,
+            r#"
+            __FILE__ == foo
+            ^^^^^^^^^^^^^^^ Reverse the order of the operands `__FILE__ == foo`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            __ENCODING__ == foo
+            ^^^^^^^^^^^^^^^^^^^ Reverse the order of the operands `__ENCODING__ == foo`.
+            "#,
+        );
+    }
+
+    /// `EnforcedStyle` は 4 種。`*_for_equality_operators_only` は `==` / `!=` だけを見る。
+    #[test]
+    fn the_other_enforced_styles() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo == 99
+            ^^^^^^^^^ Reverse the order of the operands `foo == 99`.
+            "#,
+        )
+        .config("Style/YodaCondition:\n  EnforcedStyle: require_for_all_comparison_operators\n")
+        .run();
+        CopCase::new(COP, "42 >= foo\n", Vec::new())
+            .config("Style/YodaCondition:\n  EnforcedStyle: forbid_for_equality_operators_only\n")
+            .run();
+    }
+}
+
+/// `Style/TernaryParentheses`: 三項演算子の条件を括弧で包むかどうか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/TernaryParentheses` と `-A` の実測。
+mod ternary_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/TernaryParentheses";
+
+    #[test]
+    fn parentheses_around_the_condition_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            foo = (bar?) ? a : b
+                  ^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        );
+        expect_correction(COP, "foo = (bar?) ? a : b\n", "foo = bar? ? a : b\n");
+        expect_correction(
+            COP,
+            "foo = (bar && baz) ? a : b\n",
+            "foo = bar && baz ? a : b\n",
+        );
+        // `)` を外すと述語の `?` が三項の `?` に食い込むので、空白を足す。
+        expect_correction(COP, "(bar?)? a : b\n", "bar? ? a : b\n");
+        // 括弧が引数リストの代わりをしていたら、引数側に括弧を移す。
+        expect_correction(COP, "(foo bar) ? a : b\n", "foo(bar) ? a : b\n");
+        expect_correction(COP, "(a.b c) ? x : y\n", "a.b(c) ? x : y\n");
+        expect_correction(COP, "(defined? x) ? a : b\n", "defined?(x) ? a : b\n");
+    }
+
+    /// `and` / `or` / `not` は三項より結合が弱く、括弧を外すと意味が変わる。
+    /// 報告はするが corrector を触らないので correctable にならない。
+    #[test]
+    fn the_word_operators_are_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            (a and b) ? x : y
+            ^^^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            (not x) ? a : b
+            ^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo = bar? ? a : b\n");
+        // `AllowSafeAssignment: true` (既定)。
+        expect_no_offenses(COP, "foo = (bar = baz) ? a : b\n");
+        expect_no_offenses(COP, "foo = (bar.baz = 1) ? a : b\n");
+        // 修飾子 `if` とワンライナーパターンマッチは括弧が要る。
+        expect_no_offenses(COP, "(x if y) ? a : b\n");
+        expect_no_offenses(COP, "(x in Integer) ? a : b\n");
+        // 最終行が `)` だけの条件は行を跨いで書かれたもの。
+        expect_no_offenses(COP, "(\n  x\n) ? a : b\n");
+        // `while` 修飾子は `if` ではないので免除されない。
+        expect_correction(COP, "(a while b) ? x : y\n", "a while b ? x : y\n");
+    }
+
+    #[test]
+    fn require_parentheses_asks_for_the_other_direction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo = bar? ? a : b
+                  ^^^^^^^^^^^^ Use parentheses for ternary conditions.
+            "#,
+        )
+        .config("Style/TernaryParentheses:\n  EnforcedStyle: require_parentheses\n")
+        .corrected("foo = (bar?) ? a : b\n")
+        .run();
+    }
+}
+
+/// `Style/SoleNestedConditional`: 分岐が条件文 1 個だけなら外側の条件に畳める。
+///
+/// 期待値は本家 1.89.0 の `--only Style/SoleNestedConditional` と `-A` の実測。
+mod sole_nested_conditional {
+    use super::*;
+
+    const COP: &str = "Style/SoleNestedConditional";
+
+    #[test]
+    fn a_nested_conditional_is_merged_into_the_outer_one() {
+        expect_offense(
+            COP,
+            r#"
+            if condition_a
+              if condition_b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                do_something
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if condition_a\n  if condition_b\n    do_something\n  end\nend\n",
+            "if condition_a && condition_b\n    do_something\n  end\n",
+        );
+        // 内側が修飾子形なら、条件だけが外に出る。
+        expect_correction(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+        // 外側が修飾子形なら、外側の条件が内側に降りる。
+        expect_correction(
+            COP,
+            "if condition_b\n  do_something\nend if condition_a\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+    }
+
+    /// `unless` は条件を否定して畳む。`&&` を否定するときだけ括弧が要る。
+    #[test]
+    fn an_unless_contributes_its_condition_negated() {
+        expect_correction(
+            COP,
+            "unless condition_a\n  if condition_b\n    x\n  end\nend\n",
+            "if !condition_a && condition_b\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "unless a && b\n  if c\n    x\n  end\nend\n",
+            "if !(a && b) && c\n    x\n  end\n",
+        );
+    }
+
+    /// 引数を括弧で括っていない呼び出しや代入は、連結すると読み方が変わるので包む。
+    #[test]
+    fn the_conditions_that_need_parentheses_of_their_own() {
+        expect_correction(
+            COP,
+            "if foo bar\n  if c\n    x\n  end\nend\n",
+            "if foo(bar) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a = b\n  if c\n    x\n  end\nend\n",
+            "if (a = b) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a && (b = 1)\n  if c\n    x\n  end\nend\n",
+            "if a && (b = 1) && c\n    x\n  end\n",
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `else` を持つ側はどちらも畳めない。
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  else\n    d\n  end\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  end\nelse\n  d\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  elsif d\n    e\n  end\nend\n");
+        // 分岐が条件文 1 個ではない。
+        expect_no_offenses(COP, "if a\n  x\n  if b\n    c\n  end\nend\n");
+        // 外側の条件が代入した名前を内側が読んでいると、畳むと順序が変わる。
+        expect_no_offenses(COP, "if a = compute\n  if a\n    b\n  end\nend\n");
+        // `AllowModifier: true` なら修飾子形は対象外。
+        CopCase::new(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            Vec::new(),
+        )
+        .config("Style/SoleNestedConditional:\n  AllowModifier: true\n")
+        .run();
+    }
+
+    /// 入れ子が 3 段のときは、外側 1 組だけが補正され、内側の報告は correctable にならない。
+    #[test]
+    fn only_the_outermost_pair_carries_the_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              if b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                if c
+                ^^ Consider merging nested conditions into outer `if` conditions.
+                  x
+                end
+              end
+            end
+            "#,
+        )
+        .run();
     }
 }

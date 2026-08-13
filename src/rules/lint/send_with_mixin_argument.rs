@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `{nil? self (const _ _)}`: the mixin has to be reached through the module itself.
         if call
             .child_by_field_name("receiver")
-            .is_some_and(|receiver| receiver.kind() != "self" && !is_constant(receiver))
+            .is_some_and(|receiver| receiver.kind() != "self" && !is_constant(receiver, context))
         {
             continue;
         }
@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         if !modules
             .iter()
-            .all(|module| module.parts().len() == 1 && is_constant(module.first()))
+            .all(|module| module.parts().len() == 1 && is_constant(module.first(), context))
         {
             continue;
         }

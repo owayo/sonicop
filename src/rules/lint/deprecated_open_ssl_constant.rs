@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if call_arguments
             .iter()
             .flat_map(|argument| argument.parts())
-            .any(|part| is_opaque(*part))
+            .any(|part| is_opaque(*part, context))
         {
             continue;
         }
@@ -129,11 +129,11 @@ fn openssl_algorithm<'tree>(
 
 /// `arg.variable? || arg.call_type? || arg.const_type?`: an argument whose value the cop cannot
 /// fold into the replacement string.
-fn is_opaque(node: Node<'_>) -> bool {
+fn is_opaque(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(
         node.kind(),
         "instance_variable" | "global_variable" | "class_variable" | "call" | "identifier"
-    ) || is_constant(node)
+    ) || is_constant(node, context)
 }
 
 fn replacement_args(
