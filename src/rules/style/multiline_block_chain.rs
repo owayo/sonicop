@@ -29,15 +29,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// is what `receiver&.any_block_type? && receiver.multiline?` asks for.
 fn chained_block_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     let receiver = receiver_of(node, context)?;
-    if receiver.start_position().row == receiver.end_position().row {
-        return None;
-    }
     // `-> { }` is a block upstream just as `foo { }` is, and the grammar spells the two apart.
     let block = match receiver.kind() {
         "call" => receiver.child_by_field_name("block")?,
         "lambda" => receiver.child_by_field_name("body")?,
         _ => return None,
     };
+    // `BlockNode#single_line?` compares the braces rather than the whole expression, so a chain
+    // broken over several lines with a one-line block on it is not a multiline block.
+    if block.start_position().row == block.end_position().row {
+        return None;
+    }
     block.child(block.child_count().checked_sub(1)? as u32)
 }
 

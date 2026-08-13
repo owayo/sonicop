@@ -21,6 +21,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(method) = node.child_by_field_name("method") else {
             continue;
         };
+        // `super()` is a node of its own upstream rather than a call, so `on_send` never sees it.
+        if method.kind() == "super" {
+            continue;
+        }
         let name = context.source.node_text(method);
         // `camel_case_method?`: `Integer()` reads as a constant without them.
         if name.starts_with(|character: char| character.is_ascii_uppercase()) {

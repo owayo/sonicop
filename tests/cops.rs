@@ -15320,7 +15320,11 @@ mod style_batch_a {
         );
         expect_correction("Style/SlicingWithRange", "items[0..-1]\n", "items\n");
         expect_correction("Style/SlicingWithRange", "items[1..nil]\n", "items[1..]\n");
-        expect_correction("Style/SlicingWithRange", "items[nil..42]\n", "items[..42]\n");
+        expect_correction(
+            "Style/SlicingWithRange",
+            "items[nil..42]\n",
+            "items[..42]\n",
+        );
         expect_offense(
             "Style/SlicingWithRange",
             r#"
@@ -15375,7 +15379,10 @@ mod style_batch_a {
             "def m(a: 1, b:)\n  1\nend\n",
             "def m(b:, a: 1)\n  1\nend\n",
         );
-        expect_no_offenses("Style/KeywordParametersOrder", "def m(b:, a: 1)\n  1\nend\n");
+        expect_no_offenses(
+            "Style/KeywordParametersOrder",
+            "def m(b:, a: 1)\n  1\nend\n",
+        );
     }
 
     #[test]
@@ -15404,7 +15411,10 @@ mod style_batch_a {
             "do_something(1,\n             2) if condition\n",
             "if condition\n  do_something(1,\n               2)\nend\n",
         );
-        expect_no_offenses("Style/MultilineIfModifier", "do_something(1, 2) if condition\n");
+        expect_no_offenses(
+            "Style/MultilineIfModifier",
+            "do_something(1, 2) if condition\n",
+        );
     }
 
     #[test]
@@ -15469,5 +15479,90 @@ mod style_batch_a {
             "module M\n  extend self\n  private\nend\n",
         );
         expect_no_offenses("Style/ModuleFunction", "module M\n  module_function\nend\n");
+    }
+}
+
+/// Style 部門の追加分 (前半・その 2)。
+mod style_batch_a2 {
+    use super::*;
+
+    #[test]
+    fn redundant_fetch_block_folds_a_literal_default() {
+        expect_offense(
+            "Style/RedundantFetchBlock",
+            r#"
+            h.fetch(:key) { 5 }
+              ^^^^^^^^^^^^^^^^^ Use `fetch(:key, 5)` instead of `fetch(:key) { 5 }`.
+            "#,
+        );
+        expect_correction(
+            "Style/RedundantFetchBlock",
+            "h.fetch(:key) { 5 }\n",
+            "h.fetch(:key, 5)\n",
+        );
+        // 文字列は凍結されていないと `fetch` のたびに別のオブジェクトになる。
+        expect_no_offenses("Style/RedundantFetchBlock", "h.fetch(:key) { 'a' }\n");
+        // 定数は既定では対象外 (`SafeForConstants: false`)。
+        expect_no_offenses("Style/RedundantFetchBlock", "h.fetch(:key) { CONST }\n");
+        expect_no_offenses("Style/RedundantFetchBlock", "h.fetch(:key) { compute }\n");
+        expect_no_offenses(
+            "Style/RedundantFetchBlock",
+            "Rails.cache.fetch(:key) { 5 }\n",
+        );
+    }
+
+    #[test]
+    fn multiple_comparison_folds_a_chain_of_equalities() {
+        expect_offense(
+            "Style/MultipleComparison",
+            r#"
+            def m(x)
+              x == 1 || x == 2
+              ^^^^^^^^^^^^^^^^ Avoid comparing a variable with multiple items in a conditional, use `Array#include?` instead.
+            end
+            "#,
+        );
+        expect_correction(
+            "Style/MultipleComparison",
+            "def m(x)\n  x == 1 || x == 2\nend\n",
+            "def m(x)\n  [1, 2].include?(x)\nend\n",
+        );
+        // 変数が揃っていないもの、比較が 1 件だけのものは対象外。
+        expect_no_offenses(
+            "Style/MultipleComparison",
+            "def m(x, y)\n  x == 1 || y == 2\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultipleComparison",
+            "def m(x)\n  x == 1 || x.nil?\nend\n",
+        );
+    }
+
+    #[test]
+    fn signal_exception_rewrites_fail_into_raise() {
+        expect_offense(
+            "Style/SignalException",
+            r#"
+            fail 'a'
+            ^^^^ Always use `raise` to signal exceptions.
+            "#,
+        );
+        expect_correction("Style/SignalException", "fail 'a'\n", "raise 'a'\n");
+        expect_correction(
+            "Style/SignalException",
+            "Kernel.fail 'b'\n",
+            "Kernel.raise 'b'\n",
+        );
+        expect_offense(
+            "Style/SignalException",
+            r#"
+            fail
+            ^^^^ Always use `raise` to signal exceptions.
+            "#,
+        );
+        expect_no_offenses("Style/SignalException", "raise 'c'\n");
+        // 自前の `fail` を定義しているファイルは対象外。
+        expect_no_offenses("Style/SignalException", "def fail\n  1\nend\nfail\n");
+        expect_no_offenses("Style/SignalException", "Foo.fail 'x'\n");
     }
 }

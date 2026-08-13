@@ -84,17 +84,20 @@ impl Literal {
                             return None;
                         }
                         let literal = named_constant(receiver, context)?;
-                        let empty_array_argument = match list.as_slice() {
-                            [] => false,
-                            [only] => match only.parts() {
-                                [argument] => is_empty_array(*argument, context),
-                                _ => return None,
-                            },
-                            _ => return None,
-                        };
-                        // `Array.new([])` is still an empty array; `Hash.new` and `String.new`
+                        // `(send (const _ :Array) :new (array)?)`: `Array.new([])` is still an
+                        // empty array, while `Array.new(5)` is not. `Hash.new` and `String.new`
                         // take no argument at all.
-                        if empty_array_argument && literal != Self::Array {
+                        let takes_nothing = match list.as_slice() {
+                            [] => true,
+                            [only] => match only.parts() {
+                                [argument] => {
+                                    literal == Self::Array && is_empty_array(*argument, context)
+                                }
+                                _ => false,
+                            },
+                            _ => false,
+                        };
+                        if !takes_nothing {
                             return None;
                         }
                         // A block makes the result something other than the bare literal.
