@@ -397,11 +397,10 @@ fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) 
         return false;
     }
     match parent.kind() {
-        // `assignment?`, which does not cover `foo.bar = x` and `foo[0] = x`: the parser reads
-        // both as calls.
-        "assignment" => parent
-            .child_by_field_name("left")
-            .is_some_and(|left| !matches!(left.kind(), "call" | "element_reference")),
+        // `assignment?` includes setter sends upstream. Tree-sitter keeps `foo.bar = x` and
+        // `foo[0] = x` as assignments whose left side is a call/element reference, but their
+        // outer assignment still owns a block nested in the value.
+        "assignment" => true,
         "operator_assignment" => true,
         // `any_def`.
         "method" | "singleton_method" => true,

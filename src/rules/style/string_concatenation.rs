@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::engine::LiteralEncoding;
 use crate::rules::RuleContext;
+use crate::rules::send_node::is_plain_send;
 
 use super::literal::{self, Quoting};
 
@@ -78,7 +79,9 @@ fn operands<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    if !is_plus(context, node) {
+    // Upstream dispatches this cop only for `send`; a safe-navigation call is a `csend` even when
+    // its selector is the operator method `+`.
+    if !is_plus(context, node) || (node.kind() == "call" && !is_plain_send(node, context)) {
         return None;
     }
     match node.kind() {

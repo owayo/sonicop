@@ -11108,6 +11108,8 @@ mod string_concatenation {
         expect_correction(COP, "a = y + 'x'\n", "a = \"#{y}x\"\n");
         expect_correction(COP, "a = ?a + y\n", "a = \"a#{y}\"\n");
         expect_correction(COP, "a = 'x'.+(y)\n", "a = \"x#{y}\"\n");
+        // `&.+` is a `csend` upstream, while this cop listens only for ordinary sends.
+        expect_no_offenses(COP, "a = ENV.fetch(\"HOME\", nil)&.+(\"/bin\")\n");
     }
 
     /// 単引用符の中身は `\\` `\"` `#{` だけを逃がし、二重引用符の中身は
@@ -14029,6 +14031,11 @@ mod lint_late_additions_two {
     #[test]
     fn format_parameter_mismatch_accepts_a_matching_call() {
         expect_no_offenses("Lint/FormatParameterMismatch", "format(\"%s %s\", 1, 2)\n");
+        // The format regexp backtracks the `#` flag so it can open an interpolated width.
+        expect_no_offenses(
+            "Lint/FormatParameterMismatch",
+            "\"%-#{column_width}s   %s\" % [name, value]\n",
+        );
     }
 
     /// 括弧付きの引数リストは字句解析が迷わないので対象外。
@@ -15579,6 +15586,21 @@ mod layout_block_alignment {
             "}\n",
         ))
         .run();
+    }
+
+    /// Attribute and index assignment are setter sends upstream, and `assignment?` makes the
+    /// outer setter the owner of a block nested in its value.
+    #[test]
+    fn an_index_assignment_owns_a_chained_block_in_its_value() {
+        expect_no_offenses(
+            COP,
+            concat!(
+                "ENV[key] = PATH.new(value)\n",
+                "               .reject do |path_value|\n",
+                "  path_value.include?(\"/Homebrew/shims/\")\n",
+                "end.to_s\n",
+            ),
+        );
     }
 
     /// `do` の行が `(` で開いた継続行なら基準は呼び出し行に戻るので、代替の

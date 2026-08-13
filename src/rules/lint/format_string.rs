@@ -70,10 +70,10 @@ pub(super) fn is_valid(sequences: &[Sequence]) -> bool {
 
 /// One sequence starting at the `%`, if the literal has one there.
 fn sequence(bytes: &[u8], start: usize) -> Option<(usize, Sequence)> {
-    let mut index = start + 1;
-    if bytes.get(index) == Some(&b'%') {
+    let after_percent = start + 1;
+    if bytes.get(after_percent) == Some(&b'%') {
         return Some((
-            index + 1,
+            after_percent + 1,
             Sequence {
                 source: String::new(),
                 name: None,
@@ -81,36 +81,42 @@ fn sequence(bytes: &[u8], start: usize) -> Option<(usize, Sequence)> {
             },
         ));
     }
-    index = flags(bytes, index);
-    // The three ordered alternatives that end in a conversion type.
-    for shape in [
-        Shape::WidthPrecisionName,
-        Shape::WidthNamePrecision,
-        Shape::NameFlags,
-    ] {
-        if let Some((end, name)) = shape.matches(bytes, index) {
+    // `FLAG*` is greedy but the regexp backtracks into it when its last flag can begin the width
+    // too. The important real-world case is `%-#{width}s`: `#` is a flag on its own and the first
+    // byte of an interpolated width, so trying only the longest flag run loses that sequence.
+    for index in flag_candidates(bytes, after_percent) {
+        // The three ordered alternatives that end in a conversion type.
+        for shape in [
+            Shape::WidthPrecisionName,
+            Shape::WidthNamePrecision,
+            Shape::NameFlags,
+        ] {
+            if let Some((end, name)) = shape.matches(bytes, index) {
+                return Some((
+                    end,
+                    Sequence {
+                        source: String::new(),
+                        name,
+                        is_percent: false,
+                    },
+                ));
+            }
+        }
+        // `%{name}`, whose `{` must not be the one an interpolation opened.
+        let after_width = optional(bytes, index, width);
+        let after_precision = optional(bytes, after_width, precision);
+        if let Some((end, name)) = template_name(bytes, after_precision) {
             return Some((
                 end,
                 Sequence {
                     source: String::new(),
-                    name,
+                    name: Some(name),
                     is_percent: false,
                 },
             ));
         }
     }
-    // `%{name}`, whose `{` must not be the one an interpolation opened.
-    let after_width = optional(bytes, index, width);
-    let after_precision = optional(bytes, after_width, precision);
-    let (end, name) = template_name(bytes, after_precision)?;
-    Some((
-        end,
-        Sequence {
-            source: String::new(),
-            name: Some(name),
-            is_percent: false,
-        },
-    ))
+    None
 }
 
 /// The three ordered shapes upstream's alternation lists before the template form.
@@ -151,11 +157,12 @@ impl Shape {
             }
             Self::NameFlags => {
                 let (after_name, name) = name(bytes, start)?;
-                let after_flags = flags(bytes, after_name);
-                for after_width in candidates(bytes, after_flags, width) {
-                    for after_precision in candidates(bytes, after_width, precision) {
-                        if let Some(end) = conversion(bytes, after_precision) {
-                            return Some((end, Some(name.clone())));
+                for after_flags in flag_candidates(bytes, after_name) {
+                    for after_width in candidates(bytes, after_flags, width) {
+                        for after_precision in candidates(bytes, after_width, precision) {
+                            if let Some(end) = conversion(bytes, after_precision) {
+                                return Some((end, Some(name.clone())));
+                            }
                         }
                     }
                 }
@@ -184,19 +191,28 @@ fn optional(bytes: &[u8], start: usize, part: fn(&[u8], usize) -> Option<usize>)
     part(bytes, start).unwrap_or(start)
 }
 
-/// `FLAG*`: the punctuation flags and the `N$` argument selectors.
-fn flags(bytes: &[u8], start: usize) -> usize {
+/// Every end position `FLAG*` can backtrack to, longest first.
+fn flag_candidates(bytes: &[u8], start: usize) -> Vec<usize> {
     let mut index = start;
+    let mut ends = vec![start];
     loop {
         match bytes.get(index) {
-            Some(b' ' | b'#' | b'0' | b'+' | b'-') => index += 1,
+            Some(b' ' | b'#' | b'0' | b'+' | b'-') => {
+                index += 1;
+                ends.push(index);
+            }
             Some(byte) if byte.is_ascii_digit() => match digit_dollar(bytes, index) {
-                Some(end) => index = end,
-                None => return index,
+                Some(end) => {
+                    index = end;
+                    ends.push(index);
+                }
+                None => break,
             },
-            _ => return index,
+            _ => break,
         }
     }
+    ends.reverse();
+    ends
 }
 
 /// `\d+\$`.
