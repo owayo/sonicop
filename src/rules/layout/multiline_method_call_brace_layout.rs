@@ -3,6 +3,7 @@
 use super::multiline_brace::{Literal, Messages, check_brace_layout, delimiters, grouped_elements};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGES: Messages = Messages {
     same_line: "Closing method call brace must be on the same line as the last argument when \
@@ -19,14 +20,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // it. The grammar files it under `call` and marks the keyword, which is what tells it apart
         // from the `foo.super(...)` that really is a call.
         if node
-            .child_by_field_name("method")
-            .is_some_and(|method| method.kind() == "super")
+            .field("method")
+            .is_some_and(|method| method.kind_str() == "super")
         {
             continue;
         }
         // An index read is a `send` upstream as well, but the parser gives it no `begin` and `end`
         // to report, so it is an implicit literal there.
-        let Some(list) = node.child_by_field_name("arguments") else {
+        let Some(list) = node.field("arguments") else {
             continue;
         };
         let Some((open, close)) = delimiters(list, &["("]) else {

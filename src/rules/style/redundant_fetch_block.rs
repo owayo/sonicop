@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, has_interpolation, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 /// `basic_literal?`: the literal types that hold one value rather than a structure.
 const BASIC_LITERALS: &[&str] = &["integer", "float", "rational", "complex", "true", "false", "nil"];
@@ -12,19 +13,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let safe_for_constants = context.setting("SafeForConstants").unwrap_or(false);
     let frozen = frozen_string_literals_enabled(context);
     for call in context.nodes_of("call") {
-        let Some(block) = call.child_by_field_name("block") else {
+        let Some(block) = call.field("block") else {
             continue;
         };
         // `(args)`: a block that names a parameter is a `numblock` or takes one, and neither
         // matches the pattern.
-        if block.child_by_field_name("parameters").is_some() {
+        if block.field("parameters").is_some() {
             continue;
         }
-        let Some(method) = call.child_by_field_name("method") else {
+        let Some(method) = call.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "fetch"
-            || call.child_by_field_name("receiver").is_none()
+            || call.field("receiver").is_none()
         {
             continue;
         }
@@ -36,8 +37,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let statements =
-            super::conditional::self_statements(block.child_by_field_name("body").unwrap_or(block));
-        let body = match block.child_by_field_name("body") {
+            super::conditional::self_statements(block.field("body").unwrap_or(block));
+        let body = match block.field("body") {
             Some(_) => match statements.as_slice() {
                 [only] => Some(*only),
                 _ => continue,
@@ -84,7 +85,7 @@ fn is_allowed_body(
     safe_for_constants: bool,
     frozen: bool,
 ) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" | "scope_resolution" => safe_for_constants,
         // A string default is only interchangeable while the literal is frozen; otherwise the
         // block hands out a fresh object each time.
@@ -104,24 +105,24 @@ fn single_line(node: Node<'_>) -> bool {
 
 /// `(send (const _ :Rails) :cache)`.
 fn is_rails_cache(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(receiver) = call.child_by_field_name("receiver") else {
+    let Some(receiver) = call.field("receiver") else {
         return false;
     };
-    if receiver.kind() != "call"
+    if receiver.kind_str() != "call"
         || receiver
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "cache")
     {
         return false;
     }
     // `(const _ :Rails)`: any scope, so a plain `Rails` and a nested `Foo::Rails` both count.
     receiver
-        .child_by_field_name("receiver")
+        .field("receiver")
         .is_some_and(|node| {
             top_level_constant(node, "Rails", context)
-                || (node.kind() == "scope_resolution"
+                || (node.kind_str() == "scope_resolution"
                     && node
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|name| context.source.node_text(name) == "Rails"))
         })
 }

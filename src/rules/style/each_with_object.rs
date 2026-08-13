@@ -5,6 +5,7 @@ use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// `BASIC_LITERALS`: the values `simple_method_arg?` reads as "this fold builds a value rather than
 /// an object to fill in".
@@ -13,7 +14,7 @@ use crate::rules::send_node;
 /// upstream, and those are composite rather than basic.
 fn is_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let node = strip_sign(node);
-    match node.kind() {
+    match node.kind_str() {
         "integer" | "float" | "rational" | "complex" | "true" | "false" | "nil"
         | "simple_symbol" | "character" => true,
         "string" | "delimited_symbol" => {
@@ -30,10 +31,10 @@ fn is_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of("call") {
-        let Some(block) = node.child_by_field_name("block") else {
+        let Some(block) = node.field("block") else {
             continue;
         };
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         let method = context.source.node_text(selector);
@@ -43,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `(call _ {:inject :reduce} _)`: exactly one argument, and not one that is already the
         // value being folded into.
         let arguments = node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .map(super::nodes::children)
             .unwrap_or_default();
         let [seed] = arguments.as_slice() else {
@@ -52,10 +53,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_basic_literal(context, *seed) {
             continue;
         }
-        let Some(body) = block.child_by_field_name("body") else {
+        let Some(body) = block.field("body") else {
             continue;
         };
-        let edits = match block.child_by_field_name("parameters") {
+        let edits = match block.field("parameters") {
             Some(parameters) => block_edits(context, &locals, selector, parameters, body),
             // Before 2.7 a `_1` was a receiverless call, so the block took no parameters at all.
             None if context.target_ruby_version() >= RubyVersion::new(2, 7) => {
@@ -89,7 +90,7 @@ fn block_edits(
     let [accumulator, element] = written.as_slice() else {
         return None;
     };
-    if accumulator.kind() != "identifier" {
+    if accumulator.kind_str() != "identifier" {
         return None;
     }
     let name = context.source.node_text(*accumulator);
@@ -150,7 +151,7 @@ fn rename(selector: Node<'_>) -> Edit {
 }
 
 fn collect_swaps(context: &RuleContext<'_>, node: Node<'_>, edits: &mut Vec<Edit>) {
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         let replacement = match context.source.node_text(node) {
             "_1" => "_2",
             "_2" => "_1",
@@ -178,9 +179,9 @@ fn return_value<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
 /// filling one in.
 fn assigns(context: &RuleContext<'_>, body: Node<'_>, name: &str) -> bool {
     send_node::any_descendant(body, &mut |node| {
-        node.kind() == "assignment"
-            && node.child_by_field_name("left").is_some_and(|left| {
-                left.kind() == "identifier" && context.source.node_text(left) == name
+        node.kind_str() == "assignment"
+            && node.field("left").is_some_and(|left| {
+                left.kind_str() == "identifier" && context.source.node_text(left) == name
             })
     })
 }
@@ -195,10 +196,10 @@ fn numbered_parameters(context: &RuleContext<'_>, body: Node<'_>) -> usize {
 fn scan(context: &RuleContext<'_>, node: Node<'_>, highest: &mut usize) {
     for child in super::nodes::children(node) {
         // A nested block's numbered parameters are its own.
-        if matches!(child.kind(), "block" | "do_block" | "lambda") {
+        if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;
         }
-        if child.kind() == "identifier" {
+        if child.kind_str() == "identifier" {
             let name = context.source.node_text(child).as_bytes();
             if name.len() == 2 && name[0] == b'_' && name[1].is_ascii_digit() && name[1] != b'0' {
                 *highest = (*highest).max(usize::from(name[1] - b'0'));
@@ -234,8 +235,8 @@ fn drop_returned(context: &RuleContext<'_>, returned: Node<'_>) -> Edit {
 
 /// `-1` is one `int` upstream, so a signed literal is a basic literal too.
 fn strip_sign<'tree>(node: Node<'tree>) -> Node<'tree> {
-    match node.kind() {
-        "unary" => node.child_by_field_name("operand").unwrap_or(node),
+    match node.kind_str() {
+        "unary" => node.field("operand").unwrap_or(node),
         _ => node,
     }
 }

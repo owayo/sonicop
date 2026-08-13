@@ -9,6 +9,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The names `bare_access_modifier_declaration?` matches, interned so a visibility can be carried
 /// around as a `&'static str` rather than borrowed from the source it was read out of.
@@ -31,10 +32,10 @@ pub(in crate::rules) fn send_name<'a>(
     node: Node<'_>,
     context: &'a RuleContext<'_>,
 ) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" if is_send_identifier(node) => Some(context.source.node_text(node)),
-        "call" if node.child_by_field_name("block").is_none() => {
-            let method = node.child_by_field_name("method")?;
+        "call" if node.field("block").is_none() => {
+            let method = node.field("method")?;
             crate::rules::send_node::is_plain_send(node, context)
                 .then(|| context.source.node_text(method))
         }
@@ -51,10 +52,10 @@ pub(in crate::rules) fn bare_send_name<'a>(
     context: &'a RuleContext<'_>,
 ) -> Option<&'a str> {
     let name = send_name(node, context)?;
-    let bare = node.kind() == "identifier"
-        || (node.child_by_field_name("receiver").is_none()
+    let bare = node.kind_str() == "identifier"
+        || (node.field("receiver").is_none()
             && node
-                .child_by_field_name("arguments")
+                .field("arguments")
                 .is_none_or(|arguments| arguments.named_child_count() == 0));
     bare.then_some(name)
 }
@@ -80,7 +81,7 @@ fn is_send_identifier(node: Node<'_>) -> bool {
         return true;
     };
     let field = field_name(node, parent);
-    match parent.kind() {
+    match parent.kind_str() {
         "call" => field != Some("method"),
         "method" | "singleton_method" => field != Some("name"),
         "assignment" | "operator_assignment" => field != Some("left"),
@@ -134,7 +135,7 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
         let Some(parent) = current.parent() else {
             return true;
         };
-        match parent.kind() {
+        match parent.kind_str() {
             // The top level is `root?` whether the file holds one statement or many: with many,
             // the statement's parent is a `begin` that is itself the root.
             "program" => return true,
@@ -159,7 +160,7 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
             // rather than held by it, so the scope a block sits in is the one the call sits in.
             "call"
                 if parent
-                    .child_by_field_name("block")
+                    .field("block")
                     .is_some_and(|block| block.id() == current.id()) =>
             {
                 current = parent;
@@ -167,7 +168,7 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
             // Only the branches of a conditional are in scope; its condition is not.
             "if" | "unless" | "elsif" | "if_modifier" | "unless_modifier" | "conditional" => {
                 if parent
-                    .child_by_field_name("condition")
+                    .field("condition")
                     .is_some_and(|condition| condition.id() == current.id())
                 {
                     return false;
@@ -184,24 +185,21 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
 fn has_rescue_clause(body: Node<'_>) -> bool {
     let mut cursor = body.walk();
     body.named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
 }
 
 /// `class_constructor?`: `Class.new`, `Module.new`, `Struct.new` or `Data.define`, with or without
 /// the block that gives the class its body.
 pub(super) fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let call = match node.kind() {
+    let call = match node.kind_str() {
         "do_block" | "block" => match node.parent() {
-            Some(parent) if parent.kind() == "call" => parent,
+            Some(parent) if parent.kind_str() == "call" => parent,
             _ => return false,
         },
         "call" => node,
         _ => return false,
     };
-    let (Some(receiver), Some(method)) = (
-        call.child_by_field_name("receiver"),
-        call.child_by_field_name("method"),
-    ) else {
+    let (Some(receiver), Some(method)) = (call.field("receiver"), call.field("method")) else {
         return false;
     };
     let Some(constant) = top_level_constant_name(receiver, context) else {
@@ -217,10 +215,10 @@ pub(super) fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bo
 /// The name of a constant reached from the top level, which is how `global_const?` spells
 /// `(const {nil? cbase} :Name)`. `Foo::Class` names another constant entirely.
 fn top_level_constant_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
-        "scope_resolution" if node.child_by_field_name("scope").is_none() => {
-            Some(context.source.node_text(node.child_by_field_name("name")?))
+        "scope_resolution" if node.field("scope").is_none() => {
+            Some(context.source.node_text(node.field("name")?))
         }
         _ => None,
     }
@@ -240,10 +238,10 @@ pub(super) fn begin_statements<'tree>(body: Node<'tree>) -> Option<Vec<Node<'tre
 /// tree-sitter puts in the `method` field is dropped: a walk that kept it would read the `private`
 /// of `foo.private` as a modifier standing on its own.
 pub(super) fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let method = node.child_by_field_name("method").map(|method| method.id());
+    let method = node.field("method").map(|method| method.id());
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| child.kind() != "comment" && Some(child.id()) != method)
+        .filter(|child| child.kind_str() != "comment" && Some(child.id()) != method)
         .collect()
 }
 
@@ -253,7 +251,7 @@ pub(in crate::rules) fn statements<'tree>(body: Node<'tree>) -> Option<Vec<Node<
     let mut cursor = body.walk();
     let mut statements = Vec::new();
     for child in body.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             // Comments never reach upstream's syntax tree.
             "comment" => {}
             "rescue" | "else" | "ensure" => return None,

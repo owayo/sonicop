@@ -9,6 +9,7 @@ use super::conditional::descendants;
 use super::literal::{Quoting, decode};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use parallel assignment.";
 
@@ -55,28 +56,28 @@ impl Cop<'_, '_> {
     }
 
     fn on_masgn(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             return;
         };
-        if left.kind() != "left_assignment_list" {
+        if left.kind_str() != "left_assignment_list" {
             return;
         }
-        let Some(rhs) = node.child_by_field_name("right") else {
+        let Some(rhs) = node.field("right") else {
             return;
         };
         // A `rescue` modifier binds tighter than the assignment, so the values are its body.
-        let (rhs, rescue_result) = match rhs.kind() {
+        let (rhs, rescue_result) = match rhs.kind_str() {
             "rescue_modifier" => (
-                match rhs.child_by_field_name("body") {
+                match rhs.field("body") {
                     Some(body) => body,
                     None => return,
                 },
-                rhs.child_by_field_name("handler"),
+                rhs.field("handler"),
             ),
             _ => (rhs, None),
         };
         let lhs_elements = assignments(left);
-        let rhs_elements = match RHS_LISTS.contains(&rhs.kind()) {
+        let rhs_elements = match RHS_LISTS.contains(&rhs.kind_str()) {
             true => super::nodes::children(rhs),
             false => Vec::new(),
         };
@@ -85,11 +86,11 @@ impl Cop<'_, '_> {
         if lhs_elements.len() <= 1
             || lhs_elements
                 .iter()
-                .any(|element| SPLAT_KINDS.contains(&element.kind()))
-            || !RHS_LISTS.contains(&rhs.kind())
+                .any(|element| SPLAT_KINDS.contains(&element.kind_str()))
+            || !RHS_LISTS.contains(&rhs.kind_str())
             || rhs_elements
                 .iter()
-                .any(|element| SPLAT_KINDS.contains(&element.kind()))
+                .any(|element| SPLAT_KINDS.contains(&element.kind_str()))
         {
             return;
         }
@@ -104,7 +105,7 @@ impl Cop<'_, '_> {
         // heredoc's body.
         if descendants(rhs)
             .into_iter()
-            .any(|inner| inner.kind() == "heredoc_beginning")
+            .any(|inner| inner.kind_str() == "heredoc_beginning")
         {
             return;
         }
@@ -153,7 +154,7 @@ impl Cop<'_, '_> {
 
     /// `dependency?`: whether `rhs` reads the value `lhs` overwrites.
     fn depends_on(&self, lhs: Node<'_>, rhs: Node<'_>) -> bool {
-        match lhs.kind() {
+        match lhs.kind_str() {
             "identifier" | "instance_variable" | "global_variable" | "class_variable"
             | "constant" => {
                 let name = self.source(lhs);
@@ -170,7 +171,7 @@ impl Cop<'_, '_> {
     }
 
     fn reads_name(&self, node: Node<'_>, name: &str) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => reads_a_variable(node) && self.source(node) == name,
             "instance_variable" | "global_variable" | "class_variable" | "constant" => {
                 self.source(node) == name
@@ -182,35 +183,35 @@ impl Cop<'_, '_> {
     /// `accesses?` for `obj.attr=`: the reader `obj.attr` written anywhere on the right.
     fn accesses_getter(&self, lhs: Node<'_>, rhs: Node<'_>) -> bool {
         let (Some(receiver), Some(method)) = (
-            lhs.child_by_field_name("receiver"),
-            lhs.child_by_field_name("method"),
+            lhs.field("receiver"),
+            lhs.field("method"),
         ) else {
             return false;
         };
         let receiver = self.source(receiver);
         let method = self.source(method);
         descendants(rhs).into_iter().any(|inner| {
-            matches!(inner.kind(), "call" | "method_call")
+            matches!(inner.kind_str(), "call" | "method_call")
                 && inner
-                    .child_by_field_name("receiver")
+                    .field("receiver")
                     .is_some_and(|other| self.source(other) == receiver)
                 && inner
-                    .child_by_field_name("method")
+                    .field("method")
                     .is_some_and(|other| self.source(other) == method)
         })
     }
 
     /// `accesses?` for `ary[idx]=`: the same index read written anywhere on the right.
     fn accesses_index(&self, lhs: Node<'_>, rhs: Node<'_>) -> bool {
-        let Some(object) = lhs.child_by_field_name("object") else {
+        let Some(object) = lhs.field("object") else {
             return false;
         };
         let object = self.source(object);
         let arguments = index_arguments(self, lhs);
         descendants(rhs).into_iter().any(|inner| {
-            inner.kind() == "element_reference"
+            inner.kind_str() == "element_reference"
                 && inner
-                    .child_by_field_name("object")
+                    .field("object")
                     .is_some_and(|other| self.source(other) == object)
                 && index_arguments(self, inner) == arguments
         })
@@ -232,9 +233,9 @@ impl Cop<'_, '_> {
 
         // `ModifierCorrector`: the modifier keyword opens a block the assignments live in.
         if let Some(modifier) = node.parent().filter(|parent| {
-            MODIFIER_KINDS.contains(&parent.kind())
+            MODIFIER_KINDS.contains(&parent.kind_str())
                 && parent
-                    .child_by_field_name("body")
+                    .field("body")
                     .is_some_and(|body| body.id() == node.id())
         }) {
             let keyword = modifier_range(modifier);
@@ -251,7 +252,7 @@ impl Cop<'_, '_> {
         }
         // `RescueCorrector`: the values were guarded, so the assignments need a `begin` to share.
         if let Some(result) = rescue_result {
-            let Some(rescue) = node.child_by_field_name("right") else {
+            let Some(rescue) = node.field("right") else {
                 return Vec::new();
             };
             return vec![Edit {
@@ -284,7 +285,7 @@ impl Cop<'_, '_> {
             Some('W' | 'I') => Quoting::Double,
             _ => Quoting::Word,
         };
-        match (node.kind(), node.parent()) {
+        match (node.kind_str(), node.parent()) {
             ("bare_string", Some(array)) => {
                 quote(&decode(self.source(node), quoting(array), &[]).value)
             }
@@ -298,7 +299,7 @@ impl Cop<'_, '_> {
 
 fn index_arguments(cop: &Cop<'_, '_>, node: Node<'_>) -> Vec<String> {
     let mut arguments = super::nodes::children(node);
-    if node.child_by_field_name("object").is_some() && !arguments.is_empty() {
+    if node.field("object").is_some() && !arguments.is_empty() {
         arguments.remove(0);
     }
     arguments
@@ -322,7 +323,7 @@ fn modifier_range(modifier: Node<'_>) -> Range<usize> {
 fn assignments<'t>(left: Node<'t>) -> Vec<Node<'t>> {
     super::nodes::children(left)
         .into_iter()
-        .flat_map(|node| match node.kind() {
+        .flat_map(|node| match node.kind_str() {
             // An anonymous splat has nothing beneath it and stands for itself.
             kind if SPLAT_KINDS.contains(&kind) => {
                 vec![
@@ -344,7 +345,7 @@ fn reads_a_variable(node: Node<'_>) -> bool {
         return true;
     };
     parent
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| method.id() != node.id())
 }
 

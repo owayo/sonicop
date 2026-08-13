@@ -10,6 +10,7 @@ use tree_sitter::Node;
 
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The version that made `_1` a block parameter rather than a receiverless call.
 const NUMBERED_VERSION: RubyVersion = RubyVersion::new(2, 7);
@@ -19,10 +20,10 @@ const IT_VERSION: RubyVersion = RubyVersion::new(3, 4);
 
 /// Whether upstream reads this block as a `numblock` or an `itblock` rather than as a `block`.
 pub(super) fn implicit(context: &RuleContext<'_>, block: Node<'_>) -> bool {
-    if block.child_by_field_name("parameters").is_some() {
+    if block.field("parameters").is_some() {
         return false;
     }
-    let Some(body) = block.child_by_field_name("body") else {
+    let Some(body) = block.field("body") else {
         return false;
     };
     let mut numbered = false;
@@ -36,10 +37,10 @@ pub(super) fn implicit(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 /// this one's.
 fn scan(context: &RuleContext<'_>, node: Node<'_>, numbered: &mut bool, it: &mut bool) {
     for child in super::nodes::children(node) {
-        if matches!(child.kind(), "block" | "do_block" | "lambda") {
+        if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;
         }
-        if child.kind() == "identifier" {
+        if child.kind_str() == "identifier" {
             match context.source.node_text(child) {
                 name if is_numbered_parameter(name) => *numbered = true,
                 "it" => *it = true,

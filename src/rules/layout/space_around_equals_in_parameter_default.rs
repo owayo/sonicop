@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -12,8 +13,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
     for node in context.nodes_of("optional_parameter") {
         let (Some(name), Some(value)) = (
-            node.child_by_field_name("name"),
-            node.child_by_field_name("value"),
+            node.field("name"),
+            node.field("value"),
         ) else {
             continue;
         };
@@ -58,17 +59,17 @@ fn optional_parameters(name: Node<'_>, value: Node<'_>) -> Vec<(usize, usize)> {
     let mut name_end = name.end_byte();
     let mut value = value;
     loop {
-        let folded = (value.kind() == "assignment")
-            .then(|| value.child_by_field_name("left"))
+        let folded = (value.kind_str() == "assignment")
+            .then(|| value.field("left"))
             .flatten()
-            .filter(|left| left.kind() == "left_assignment_list")
+            .filter(|left| left.kind_str() == "left_assignment_list")
             .and_then(|left| {
                 let mut cursor = left.walk();
                 let parts: Vec<Node<'_>> = left
                     .named_children(&mut cursor)
-                    .filter(|part| !matches!(part.kind(), "comment" | "heredoc_body"))
+                    .filter(|part| !matches!(part.kind_str(), "comment" | "heredoc_body"))
                     .collect();
-                match (parts.len() == 2, value.child_by_field_name("right")) {
+                match (parts.len() == 2, value.field("right")) {
                     (true, Some(right)) => Some((parts[0], parts[1], right)),
                     _ => None,
                 }

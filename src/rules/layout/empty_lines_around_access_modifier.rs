@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::{RuleContext, walk_named};
+use crate::rules::node_ext::NodeExt;
 
 const MODIFIERS: [&str; 4] = ["public", "protected", "private", "module_function"];
 
@@ -16,10 +17,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // RuboCop keeps the enclosing class and block on instance variables that its callbacks fill in
     // as the walk reaches them, so what a modifier sees is whatever was visited last -- never
     // unwound on the way back out. A single pre-order pass reproduces that.
-    walk_named(context.root_node(), &mut |node| match node.kind() {
+    walk_named(context.root_node(), &mut |node| match node.kind_str() {
         "class" => {
             let header = node
-                .child_by_field_name("superclass")
+                .field("superclass")
                 .and_then(|superclass| superclass.named_child(0))
                 .unwrap_or(node);
             scope.class_first = Some(header.start_position().row + 1);
@@ -30,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             scope.class_last = Some(node.end_position().row + 1);
         }
         "singleton_class" => {
-            let identifier = node.child_by_field_name("value").unwrap_or(node);
+            let identifier = node.field("value").unwrap_or(node);
             scope.class_first = Some(identifier.start_position().row + 1);
             scope.class_last = Some(node.end_position().row + 1);
         }
@@ -253,7 +254,7 @@ struct Body<'tree> {
 fn enclosing_body<'tree>(node: Node<'tree>) -> Option<Body<'tree>> {
     let container = node.parent()?;
     if !matches!(
-        container.kind(),
+        container.kind_str(),
         "body_statement" | "block_body" | "begin" | "program" | "then" | "else"
     ) {
         return None;
@@ -261,11 +262,11 @@ fn enclosing_body<'tree>(node: Node<'tree>) -> Option<Body<'tree>> {
     let mut cursor = container.walk();
     let statements: Vec<Node<'tree>> = container
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "rescue" | "ensure" | "else"))
+        .filter(|child| !matches!(child.kind_str(), "rescue" | "ensure" | "else"))
         .collect();
     let wrapped_in_begin = statements.len() > 1;
     let in_block = matches!(
-        container.parent().map(|parent| parent.kind()),
+        container.parent().map(|parent| parent.kind_str()),
         Some("block" | "do_block")
     );
     Some(Body {
@@ -279,7 +280,7 @@ fn enclosing_body<'tree>(node: Node<'tree>) -> Option<Body<'tree>> {
 fn right_sibling<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let container = node.parent()?;
     if !matches!(
-        container.kind(),
+        container.kind_str(),
         "body_statement" | "block_body" | "begin" | "program"
     ) {
         return None;
@@ -294,7 +295,7 @@ fn in_macro_scope(text: &str, node: Node<'_>) -> bool {
     loop {
         // A block literal spans the call it hangs off upstream, so the call's own parent is what
         // the pattern climbs to.
-        let anchor = match child.kind() {
+        let anchor = match child.kind_str() {
             "block" | "do_block" => match child.parent() {
                 Some(call) => call,
                 None => return true,
@@ -304,7 +305,7 @@ fn in_macro_scope(text: &str, node: Node<'_>) -> bool {
         let Some(parent) = anchor.parent() else {
             return true;
         };
-        match parent.kind() {
+        match parent.kind_str() {
             "class" | "module" | "singleton_class" | "program" => return true,
             "block" | "do_block" if is_class_constructor(text, parent) => return true,
             "block" | "do_block" | "then" | "else" | "elsif" => {}
@@ -316,7 +317,7 @@ fn in_macro_scope(text: &str, node: Node<'_>) -> bool {
                 }
             }
             "if" | "unless" | "if_modifier" | "unless_modifier" => {
-                if parent.child_by_field_name("condition") == Some(anchor) {
+                if parent.field("condition") == Some(anchor) {
                     return false;
                 }
             }
@@ -329,7 +330,7 @@ fn in_macro_scope(text: &str, node: Node<'_>) -> bool {
 fn has_clause(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "rescue" | "ensure" | "else"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "ensure" | "else"))
 }
 
 /// `class_constructor?`: a block over `Class.new`, `Module.new`, `Struct.new` or `Data.define`.
@@ -338,19 +339,19 @@ fn is_class_constructor(text: &str, block: Node<'_>) -> bool {
         return false;
     };
     let (Some(receiver), Some(method)) = (
-        call.child_by_field_name("receiver"),
-        call.child_by_field_name("method"),
+        call.field("receiver"),
+        call.field("method"),
     ) else {
         return false;
     };
     let mut receiver = receiver;
-    if receiver.kind() == "scope_resolution" {
-        match receiver.child_by_field_name("name") {
+    if receiver.kind_str() == "scope_resolution" {
+        match receiver.field("name") {
             Some(name) => receiver = name,
             None => return false,
         }
     }
-    if receiver.kind() != "constant" {
+    if receiver.kind_str() != "constant" {
         return false;
     }
     match &text[method.byte_range()] {

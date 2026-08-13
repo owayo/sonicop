@@ -2,12 +2,13 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Omit the parentheses in defs when the method doesn't accept any arguments.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         // `!node.arguments?`: the list has to be empty, and `node.arguments.source_range` has to
@@ -49,7 +50,7 @@ fn parentheses_required(context: &RuleContext<'_>, node: Node<'_>, parameters: N
     let single_line = node.start_position().row == node.end_position().row;
     let endless = !node
         .child(node.child_count().saturating_sub(1) as u32)
-        .is_some_and(|last| last.kind() == "end");
+        .is_some_and(|last| last.kind_str() == "end");
     if single_line && !endless {
         return true;
     }

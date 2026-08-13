@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, send_range};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "The argument to each_with_object cannot be immutable.";
 
@@ -24,11 +25,11 @@ const IMMUTABLE: &[&str] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "each_with_object"
-            || node.child_by_field_name("receiver").is_none()
+            || node.field("receiver").is_none()
         {
             continue;
         }
@@ -46,13 +47,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `Node#immutable_literal?`. The parser folds a leading sign into the number it precedes, so
 /// `-1` is one `int` here as well.
 fn immutable(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "unary" => {
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .is_some_and(|operator| matches!(context.source.node_text(operator), "-" | "+"))
                 && node
-                    .child_by_field_name("operand")
-                    .is_some_and(|operand| matches!(operand.kind(), "integer" | "float"))
+                    .field("operand")
+                    .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"))
         }
         kind => IMMUTABLE.contains(&kind),
     }

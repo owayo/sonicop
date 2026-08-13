@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const SINGLE_QUOTES_MESSAGE: &str =
     "Prefer single-quoted strings when you don't need string interpolation or special symbols.";
@@ -107,7 +108,7 @@ fn check_dstr(
         for child in node.named_children(&mut node.walk()) {
             // `all_string_literals?`: a chained literal only ever holds `str` and `dstr` parts, so
             // anything else can only come from error recovery, where upstream bails out.
-            if child.kind() != "string" {
+            if child.kind_str() != "string" {
                 children.clear();
                 break;
             }
@@ -279,7 +280,7 @@ pub(super) fn is_dstr(source: &str) -> bool {
 pub(super) fn has_interpolation(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 /// RuboCop's `StringHelp#inside_interpolation?`: from the innermost interpolation outwards, is the
@@ -289,9 +290,9 @@ pub(super) fn inside_interpolation(node: Node<'_>) -> bool {
     let mut current = node;
     let mut interpolated = false;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "interpolation" {
+        if parent.kind_str() == "interpolation" {
             interpolated = true;
-        } else if interpolated && INTERPOLATION_OWNERS.contains(&parent.kind()) {
+        } else if interpolated && INTERPOLATION_OWNERS.contains(&parent.kind_str()) {
             return true;
         }
         current = parent;
@@ -305,9 +306,9 @@ pub(super) fn quoted_label_key(node: Node<'_>, context: &RuleContext<'_>) -> boo
     let Some(parent) = node.parent() else {
         return false;
     };
-    parent.kind() == "pair"
+    parent.kind_str() == "pair"
         && parent
-            .child_by_field_name("key")
+            .field("key")
             .is_some_and(|key| key.byte_range() == node.byte_range())
         && context.source.text().as_bytes().get(node.end_byte()) == Some(&b':')
 }

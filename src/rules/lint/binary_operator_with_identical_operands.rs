@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
 
 use super::node_equality::identical;
+use crate::rules::node_ext::NodeExt;
 
 /// `RESTRICT_ON_SEND`, plus the two keywords that reach `on_and`/`on_or`. Arithmetic is left out on
 /// purpose: `x + x` is not a mistake.
@@ -39,18 +40,18 @@ fn operands<'a, 'tree>(
     node: Node<'tree>,
     context: &'a RuleContext<'_>,
 ) -> Option<(&'a str, Node<'tree>, Node<'tree>)> {
-    if node.kind() == "binary" {
-        let operator = context.source.node_text(node.child_by_field_name("operator")?);
+    if node.kind_str() == "binary" {
+        let operator = context.source.node_text(node.field("operator")?);
         return OPERATORS.contains(&operator).then_some((
             operator,
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("right")?,
+            node.field("left")?,
+            node.field("right")?,
         ));
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let method = node.child_by_field_name("method")?;
+    let receiver = node.field("receiver")?;
+    let method = node.field("method")?;
     let operator = context.source.node_text(method);
-    if method.kind() != "operator" || !OPERATOR_METHODS.contains(&operator) {
+    if method.kind_str() != "operator" || !OPERATOR_METHODS.contains(&operator) {
         return None;
     }
     // `node.first_argument`: the rest of the arguments are no part of the comparison.

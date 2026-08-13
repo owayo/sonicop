@@ -3,6 +3,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{
     arguments, has_interpolation, is_plain_send, string_text, symbol_name, top_level_constant,
 };
+use crate::rules::node_ext::NodeExt;
 
 /// `Struct.instance_methods.sort` in Ruby 4.0.0, transcribed from `STRUCT_METHOD_NAMES`.
 const STRUCT_METHOD_NAMES: [&str; 124] = [
@@ -136,8 +137,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
         // `(send (const {nil? cbase} :Struct) :new ...)`.
         let (Some(receiver), Some(method)) = (
-            node.child_by_field_name("receiver"),
-            node.child_by_field_name("method"),
+            node.field("receiver"),
+            node.field("method"),
         ) else {
             continue;
         };
@@ -156,7 +157,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 Some(name) => (name, format!(":{name}")),
                 None => {
                     // `Struct.new("Name", ...)` names the struct rather than a member.
-                    if index == 0 || member.kind() != "string" || has_interpolation(member) {
+                    if index == 0 || member.kind_str() != "string" || has_interpolation(member) {
                         continue;
                     }
                     let name = string_text(member, context);

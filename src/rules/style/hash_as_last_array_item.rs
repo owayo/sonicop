@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_BRACES: &str = "Wrap hash in `{` and `}`.";
 const MSG_NO_BRACES: &str = "Omit the braces around the hash.";
@@ -154,13 +155,13 @@ fn values<'tree>(context: &RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tr
         .map(|element| Value {
             range: element.byte_range(),
             node: Some(*element),
-            is_hash: element.kind() == "hash",
-            braces: element.kind() == "hash",
-            opens_with_splat: element.kind() == "hash"
+            is_hash: element.kind_str() == "hash",
+            braces: element.kind_str() == "hash",
+            opens_with_splat: element.kind_str() == "hash"
                 && super::nodes::children(*element)
                     .first()
-                    .is_some_and(|first| first.kind() == "hash_splat_argument"),
-            empty: element.kind() == "hash" && super::nodes::children(*element).is_empty(),
+                    .is_some_and(|first| first.kind_str() == "hash_splat_argument"),
+            empty: element.kind_str() == "hash" && super::nodes::children(*element).is_empty(),
         })
         .collect();
     let _ = context;
@@ -170,7 +171,7 @@ fn values<'tree>(context: &RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tr
             node: None,
             is_hash: true,
             braces: false,
-            opens_with_splat: first.kind() == "hash_splat_argument",
+            opens_with_splat: first.kind_str() == "hash_splat_argument",
             empty: false,
         });
     }
@@ -178,7 +179,7 @@ fn values<'tree>(context: &RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tr
 }
 
 fn is_pair(node: Node<'_>) -> bool {
-    matches!(node.kind(), "pair" | "hash_splat_argument")
+    matches!(node.kind_str(), "pair" | "hash_splat_argument")
 }
 
 fn position(context: &RuleContext<'_>, offset: usize) -> (usize, usize) {

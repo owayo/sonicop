@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use `unless` with `else`. Rewrite these with the positive case first.";
 
@@ -13,10 +14,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = node.child(0) else {
             continue;
         };
-        let Some(alternative) = node.child_by_field_name("alternative") else {
+        let Some(alternative) = node.field("alternative") else {
             continue;
         };
-        if alternative.kind() != "else" {
+        if alternative.kind_str() != "else" {
             continue;
         }
         let (Some(else_keyword), Some(end)) = (
@@ -36,11 +37,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
         // `range_between_condition_and_else`: from the `then` if one was written, else from the
         // end of the condition, up to the `else` keyword.
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let body_start = node
-            .child_by_field_name("consequence")
+            .field("consequence")
             .and_then(|consequence| super::conditional::token(consequence, &["then"]))
             .map_or_else(|| condition.end_byte(), |then| then.end_byte());
         let body = body_start..else_keyword.start_byte();

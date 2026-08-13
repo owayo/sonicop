@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::named_children;
 
 use super::variable_force::{Analysis, Assignment, Declaration, Scope, Variable};
+use crate::rules::node_ext::NodeExt;
 
 /// The scope kinds `method_argument?` and `block_argument?` accept: a `def`, a `defs`, and the
 /// `block` a literal lambda is one of.
@@ -57,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `explicit_block_local_variable?` excludes.
 fn is_argument(variable: &Variable<'_>, scope: &Scope<'_>) -> bool {
     matches!(variable.kind, Declaration::Argument(_))
-        && ARGUMENT_SCOPES.contains(&scope.node.kind())
+        && ARGUMENT_SCOPES.contains(&scope.node.kind_str())
 }
 
 /// `shadowing_assignment`: the write that replaced the argument before anything read it.
@@ -112,7 +113,7 @@ fn assignment_without_argument_usage<'tree>(
     for assignment in &variable.assignments {
         let node = meta_assignment_node(assignment);
         // A shorthand assignment always reads what it writes.
-        if node.kind() == "operator_assignment" {
+        if node.kind_str() == "operator_assignment" {
             location_known = false;
             continue;
         }
@@ -136,12 +137,12 @@ fn assignment_without_argument_usage<'tree>(
 /// for a multiple or operator assignment is bigger than the write itself.
 fn meta_assignment_node<'tree>(assignment: &Assignment<'tree>) -> Node<'tree> {
     let node = assignment.node;
-    if node.kind() == "assignment" {
+    if node.kind_str() == "assignment" {
         return node;
     }
     let mut current = node;
     while let Some(parent) = current.parent() {
-        match parent.kind() {
+        match parent.kind_str() {
             "assignment" | "operator_assignment" | "for" => return parent,
             "left_assignment_list" | "rest_assignment" | "splat_argument" => current = parent,
             _ => break,
@@ -157,7 +158,7 @@ fn uses_variable(
     analysis: &Analysis<'_>,
     context: &RuleContext<'_>,
 ) -> bool {
-    if node.kind() == "identifier"
+    if node.kind_str() == "identifier"
         && analysis.is_variable_reference(node)
         && context.source.node_text(node) == name
     {
@@ -165,7 +166,7 @@ fn uses_variable(
     }
     // A heredoc's body is a child of the string upstream and a node of its own here, so the read
     // written inside `x = <<~TEXT ... \#{x} ... TEXT` is not reachable from the assignment.
-    if node.kind() == "heredoc_beginning"
+    if node.kind_str() == "heredoc_beginning"
         && let Some(body) = crate::rules::send_node::heredoc_body(node, context)
         && uses_variable(body, name, analysis, context)
     {
@@ -184,7 +185,7 @@ fn conditional_assignment(node: Node<'_>, stop: Node<'_>) -> bool {
         if current.id() == stop.id() {
             return false;
         }
-        if CONDITIONALS.contains(&current.kind()) || UNCERTAIN.contains(&current.kind()) {
+        if CONDITIONALS.contains(&current.kind_str()) || UNCERTAIN.contains(&current.kind_str()) {
             return true;
         }
         match current.parent() {
@@ -199,10 +200,10 @@ fn conditional_assignment(node: Node<'_>, stop: Node<'_>) -> bool {
 fn reference_position(node: Node<'_>) -> usize {
     match node.parent() {
         Some(parent)
-            if parent.kind() == "assignment"
+            if parent.kind_str() == "assignment"
                 && parent
-                    .child_by_field_name("left")
-                    .is_some_and(|left| left.kind() == "left_assignment_list") =>
+                    .field("left")
+                    .is_some_and(|left| left.kind_str() == "left_assignment_list") =>
         {
             parent.start_byte()
         }

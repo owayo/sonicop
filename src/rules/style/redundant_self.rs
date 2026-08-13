@@ -15,6 +15,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant `self` detected.";
 
@@ -178,7 +179,7 @@ struct Cop<'a, 'tree> {
 
 impl<'tree> Cop<'_, 'tree> {
     fn visit(&mut self, node: Node<'tree>) {
-        match node.kind() {
+        match node.kind_str() {
             "method" | "singleton_method" => self.add_scope(node, Scope::default()),
             kind if PARAMETER_LISTS.contains(&kind) => self.on_args(node),
             "assignment" => self.on_assignment(node),
@@ -189,7 +190,7 @@ impl<'tree> Cop<'_, 'tree> {
             "call" => {
                 // A block is a node of its own upstream, wrapped around the call rather than held
                 // by it, and its scope covers everything the call was written with.
-                if node.child_by_field_name("block").is_some() {
+                if node.field("block").is_some() {
                     self.on_block(node);
                 }
                 self.on_send(node);
@@ -233,7 +234,7 @@ impl<'tree> Cop<'_, 'tree> {
 
     fn on_argument(&mut self, node: Node<'tree>) {
         // A destructured parameter is an `mlhs` holding parameters of its own.
-        if node.kind() == "destructured_parameter" {
+        if node.kind_str() == "destructured_parameter" {
             self.on_args(node);
             return;
         }
@@ -245,12 +246,12 @@ impl<'tree> Cop<'_, 'tree> {
 
     fn on_assignment(&mut self, node: Node<'tree>) {
         let (Some(left), Some(right)) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
+            node.field("left"),
+            node.field("right"),
         ) else {
             return;
         };
-        match left.kind() {
+        match left.kind_str() {
             // `on_masgn`: every name the left-hand side binds.
             "left_assignment_list" => {
                 for target in send_node::named_children(left) {
@@ -267,19 +268,19 @@ impl<'tree> Cop<'_, 'tree> {
     }
 
     fn on_operator_assignment(&mut self, node: Node<'tree>) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             return;
         };
         self.allow_self(left);
         let operator = node
-            .child_by_field_name("operator")
+            .field("operator")
             .map(|operator| self.context.source.node_text(operator));
         // Only `||=` and `&&=` carry a name forward; every other operator reads what is already
         // there rather than introducing it.
         if !matches!(operator, Some("||=") | Some("&&=")) {
             return;
         }
-        let Some(right) = node.child_by_field_name("right") else {
+        let Some(right) = node.field("right") else {
             return;
         };
         let name = self.context.source.node_text(left).to_owned();
@@ -289,13 +290,13 @@ impl<'tree> Cop<'_, 'tree> {
     fn on_resbody(&mut self, node: Node<'tree>) {
         let Some(variable) = send_node::named_children(node)
             .into_iter()
-            .find(|child| child.kind() == "exception_variable")
+            .find(|child| child.kind_str() == "exception_variable")
         else {
             return;
         };
         let Some(name) = send_node::named_children(variable)
             .first()
-            .filter(|bound| bound.kind() == "identifier")
+            .filter(|bound| bound.kind_str() == "identifier")
             .map(|bound| self.context.source.node_text(*bound).to_owned())
         else {
             return;
@@ -319,16 +320,16 @@ impl<'tree> Cop<'_, 'tree> {
     /// `on_if` / `on_while` / `on_until`: a name the body assigns is in scope for the condition
     /// too, because the condition is read again after the first pass through the body.
     fn on_conditional(&mut self, node: Node<'tree>) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             return;
         };
         let mut names = Vec::new();
         let mut stack = send_node::named_children(node);
         while let Some(current) = stack.pop() {
-            if current.kind() == "assignment"
-                && let Some(left) = current.child_by_field_name("left")
+            if current.kind_str() == "assignment"
+                && let Some(left) = current.field("left")
             {
-                match left.kind() {
+                match left.kind_str() {
                     "identifier" => names.push(self.context.source.node_text(left).to_owned()),
                     "left_assignment_list" => names.extend(
                         send_node::named_children(left)
@@ -349,7 +350,7 @@ impl<'tree> Cop<'_, 'tree> {
     /// that expression's arguments when it is a call taking any -- a call with arguments cannot be
     /// the variable itself, but what it was given can name it.
     fn add_lhs_to_scopes(&mut self, right: Node<'tree>, name: String) {
-        let arguments = match right.kind() {
+        let arguments = match right.kind_str() {
             "call" => send_node::arguments(right),
             _ => Vec::new(),
         };
@@ -367,7 +368,7 @@ impl<'tree> Cop<'_, 'tree> {
     /// `allow_self`: the call an assignment is written against keeps its `self`, which is what
     /// stops `self.foo = 1` from being read as binding a local.
     fn allow_self(&mut self, node: Node<'tree>) {
-        if node.kind() == "call" && self.self_receiver(node).is_some() {
+        if node.kind_str() == "call" && self.self_receiver(node).is_some() {
             self.allowed.insert(node.id());
         }
     }
@@ -381,7 +382,7 @@ impl<'tree> Cop<'_, 'tree> {
         }
         if node.parent().is_some_and(|parent| {
             matches!(
-                parent.kind(),
+                parent.kind_str(),
                 "left_assignment_list" | "destructured_left_assignment"
             )
         }) {
@@ -390,7 +391,7 @@ impl<'tree> Cop<'_, 'tree> {
         if self.allowed_send_node(node) || self.it_method_in_block(node) {
             return;
         }
-        let Some(dot) = node.child_by_field_name("operator") else {
+        let Some(dot) = node.field("operator") else {
             return;
         };
         self.offenses.push(
@@ -418,12 +419,12 @@ impl<'tree> Cop<'_, 'tree> {
         if !send_node::is_plain_send(node, self.context) {
             return None;
         }
-        node.child_by_field_name("receiver")
-            .filter(|receiver| receiver.kind() == "self")
+        node.field("receiver")
+            .filter(|receiver| receiver.kind_str() == "self")
     }
 
     fn regular_method_call(&self, node: Node<'tree>) -> bool {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             // `self.()` is an implicit `call`, which has no name to fall back on.
             return false;
         };
@@ -436,9 +437,9 @@ impl<'tree> Cop<'_, 'tree> {
         }
         // `setter_method?`: an assignment writes the `=` into the call's own location.
         !node.parent().is_some_and(|parent| {
-            matches!(parent.kind(), "assignment" | "operator_assignment")
+            matches!(parent.kind_str(), "assignment" | "operator_assignment")
                 && parent
-                    .child_by_field_name("left")
+                    .field("left")
                     .is_some_and(|left| left.id() == node.id())
         })
     }
@@ -447,7 +448,7 @@ impl<'tree> Cop<'_, 'tree> {
         if self.allowed.contains(&node.id()) {
             return true;
         }
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             return false;
         };
         let name = self.context.source.node_text(method);
@@ -471,20 +472,20 @@ impl<'tree> Cop<'_, 'tree> {
     /// block parameter from Ruby 3.4, so `self.it` is how the method is reached.
     fn it_method_in_block(&self, node: Node<'tree>) -> bool {
         if node
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| self.context.source.node_text(method) != "it")
         {
             return false;
         }
-        if !send_node::arguments(node).is_empty() || node.child_by_field_name("block").is_some() {
+        if !send_node::arguments(node).is_empty() || node.field("block").is_some() {
             return false;
         }
         let mut current = node.parent();
         while let Some(visited) = current {
-            if matches!(visited.kind(), "do_block" | "block" | "lambda") {
+            if matches!(visited.kind_str(), "do_block" | "block" | "lambda") {
                 return send_node::named_children(visited)
                     .iter()
-                    .all(|child| child.kind() != "block_parameters");
+                    .all(|child| child.kind_str() != "block_parameters");
             }
             current = visited.parent();
         }
@@ -494,14 +495,14 @@ impl<'tree> Cop<'_, 'tree> {
 
 /// The name a parameter binds, or `None` for one that binds nothing.
 fn parameter_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => Some(context.source.node_text(node).to_owned()),
         "optional_parameter"
         | "keyword_parameter"
         | "splat_parameter"
         | "hash_splat_parameter"
         | "block_parameter" => node
-            .child_by_field_name("name")
+            .field("name")
             .map(|name| context.source.node_text(name).to_owned()),
         _ => None,
     }
@@ -509,14 +510,14 @@ fn parameter_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
 
 /// `match_var`: a name a pattern binds, either on its own or after a `=>`.
 fn is_match_var(node: Node<'_>) -> bool {
-    node.kind() == "identifier"
+    node.kind_str() == "identifier"
         && node.parent().is_some_and(|parent| {
             matches!(
-                parent.kind(),
+                parent.kind_str(),
                 "match_pattern" | "test_pattern" | "as_pattern"
-            ) || parent.kind() == "array_pattern"
-                || parent.kind() == "find_pattern"
-                || parent.kind() == "hash_pattern"
-                || parent.kind() == "alternative_pattern"
+            ) || parent.kind_str() == "array_pattern"
+                || parent.kind_str() == "find_pattern"
+                || parent.kind_str() == "hash_pattern"
+                || parent.kind_str() == "alternative_pattern"
         })
 }

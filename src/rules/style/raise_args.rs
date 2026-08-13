@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range};
+use crate::rules::node_ext::NodeExt;
 
 /// `ACCEPTABLE_ARG_TYPES`: an argument that `new` needs and `raise` cannot pass on.
 const ACCEPTABLE_ARG_KINDS: &[&str] = &[
@@ -22,13 +23,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed: Vec<String> = context.setting("AllowedCompactTypes").unwrap_or_default();
 
     for node in context.nodes_of("call") {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         let method = context.source.node_text(selector);
         // `node.command?`: the keyword is only itself when it is called without a receiver.
         if !matches!(method, "raise" | "fail")
-            || node.child_by_field_name("receiver").is_some()
+            || node.field("receiver").is_some()
             || !is_plain_send(node, context)
         {
             continue;
@@ -73,12 +74,12 @@ fn compact_to_exploded(
     };
     let first = only.first();
     // `use_new_method?`: a call to `new` on something.
-    if first.kind() != "call" || only.parts().len() != 1 {
+    if first.kind_str() != "call" || only.parts().len() != 1 {
         return None;
     }
-    let receiver = first.child_by_field_name("receiver")?;
+    let receiver = first.field("receiver")?;
     if first
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "new")
     {
         return None;
@@ -89,7 +90,7 @@ fn compact_to_exploded(
     if inner.len() > 1
         || inner
             .first()
-            .is_some_and(|argument| ACCEPTABLE_ARG_KINDS.contains(&argument.first().kind()))
+            .is_some_and(|argument| ACCEPTABLE_ARG_KINDS.contains(&argument.first().kind_str()))
     {
         return None;
     }
@@ -125,10 +126,10 @@ fn exploded_to_compact(
     }
     let exception = written[0].first();
     // A call whose own first argument is a hash is `raise Klass, key: value`, which stays.
-    if exception.kind() == "call"
+    if exception.kind_str() == "call"
         && arguments(exception)
             .first()
-            .is_some_and(|argument| matches!(argument.first().kind(), "pair" | "hash"))
+            .is_some_and(|argument| matches!(argument.first().kind_str(), "pair" | "hash"))
     {
         return None;
     }
@@ -136,7 +137,7 @@ fn exploded_to_compact(
         return None;
     }
     let argument = context.source.slice(written[1].range());
-    let exception_class = exception.child_by_field_name("receiver").map_or_else(
+    let exception_class = exception.field("receiver").map_or_else(
         || context.source.node_text(exception),
         |receiver| context.source.node_text(receiver),
     );
@@ -150,7 +151,7 @@ fn exploded_to_compact(
 
 /// The rebuilt call, parenthesized where the keyword binds looser than what surrounds it.
 fn assemble(context: &RuleContext<'_>, node: Node<'_>, arguments: &str) -> String {
-    let Some(selector) = node.child_by_field_name("method") else {
+    let Some(selector) = node.field("method") else {
         return arguments.to_owned();
     };
     let method = context.source.node_text(selector);
@@ -167,9 +168,9 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(
                     context.source.node_text(operator),

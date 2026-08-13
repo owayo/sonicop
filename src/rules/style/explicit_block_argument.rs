@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Consider using explicit block argument in the surrounding method's signature over `yield`.";
@@ -24,7 +25,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // The grammar hangs a `yield`'s arguments off it without a field name.
         let yield_arguments = super::nodes::children(node)
             .into_iter()
-            .find(|child| child.kind() == "argument_list")
+            .find(|child| child.kind_str() == "argument_list")
             .map(super::nodes::children)
             .unwrap_or_default();
         if !yields_its_arguments(context, &block_parameters, &yield_arguments) {
@@ -49,9 +50,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if named.insert(definition.id()) {
             edits.extend(add_block_argument(
                 context,
-                definition.child_by_field_name("parameters"),
+                definition.field("parameters"),
                 definition
-                    .child_by_field_name("name")
+                    .field("name")
                     .map_or(definition.end_byte(), |name| name.end_byte()),
                 &name,
             ));
@@ -76,7 +77,7 @@ struct Target<'tree> {
 /// `(block $_ (args $...) (yield $...))`: a block whose whole body is one `yield`.
 fn yielding_block<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Target<'tree>> {
     let body = node.parent()?;
-    if !matches!(body.kind(), "block_body" | "body_statement") {
+    if !matches!(body.kind_str(), "block_body" | "body_statement") {
         return None;
     }
     match super::nodes::children(body).as_slice() {
@@ -84,23 +85,23 @@ fn yielding_block<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option
         _ => return None,
     }
     let block = body.parent()?;
-    if !matches!(block.kind(), "block" | "do_block") {
+    if !matches!(block.kind_str(), "block" | "do_block") {
         return None;
     }
     let owner = block.parent()?;
-    match owner.kind() {
+    match owner.kind_str() {
         // `-> { yield }` is a block whose send is `(send nil :lambda)`, whose source is the `->`.
         "lambda" => Some(Target {
             node: owner,
             send_end: owner.child(0)?.end_byte(),
-            parameters: owner.child_by_field_name("parameters"),
+            parameters: owner.field("parameters"),
             arguments: None,
         }),
         "call" => Some(Target {
             node: owner,
             send_end: send_node::send_range(owner, context).end,
-            parameters: block.child_by_field_name("parameters"),
-            arguments: owner.child_by_field_name("arguments"),
+            parameters: block.field("parameters"),
+            arguments: owner.field("arguments"),
         }),
         _ => None,
     }
@@ -119,7 +120,7 @@ fn yields_its_arguments(
             .iter()
             .zip(arguments)
             .all(|(parameter, argument)| {
-                argument.kind() == "identifier"
+                argument.kind_str() == "identifier"
                     && parameter_name(context, *parameter)
                         == Some(context.source.node_text(*argument))
             })
@@ -127,11 +128,11 @@ fn yields_its_arguments(
 
 /// The name a parameter declares, which is what upstream compares the yielded variable against.
 fn parameter_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => Some(context.source.node_text(node)),
         "splat_parameter" | "hash_splat_parameter" | "block_parameter" | "keyword_parameter"
         | "optional_parameter" => node
-            .child_by_field_name("name")
+            .field("name")
             .map(|name| context.source.node_text(name)),
         _ => None,
     }
@@ -141,7 +142,7 @@ fn parameter_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'
 fn enclosing_definition<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "method" | "singleton_method") {
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
             return Some(parent);
         }
         current = parent.parent();
@@ -152,11 +153,11 @@ fn enclosing_definition<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// `extract_block_name`: a definition that already declares a block parameter keeps its name.
 fn block_name(context: &RuleContext<'_>, definition: Node<'_>) -> String {
     definition
-        .child_by_field_name("parameters")
+        .field("parameters")
         .map(super::nodes::children)
         .and_then(|parameters| parameters.last().copied())
-        .filter(|last| last.kind() == "block_parameter")
-        .and_then(|last| last.child_by_field_name("name"))
+        .filter(|last| last.kind_str() == "block_parameter")
+        .and_then(|last| last.field("name"))
         .map_or_else(
             || "block".to_owned(),
             |name| context.source.node_text(name).to_owned(),
@@ -173,7 +174,7 @@ fn add_block_argument(
     let written = list.map(super::nodes::children).unwrap_or_default();
     if let Some(last) = written.last() {
         // A block parameter already there needs nothing added.
-        if last.kind() == "block_parameter" || last.kind() == "block_argument" {
+        if last.kind_str() == "block_parameter" || last.kind_str() == "block_argument" {
             return Vec::new();
         }
         // `range_with_surrounding_comma(:right)`: a trailing comma is written over rather than

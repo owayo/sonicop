@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `OnNormalIfUnless` skips the modifier and ternary forms; an `elsif` is an `if` upstream and
@@ -8,7 +9,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if node.start_position().row == node.end_position().row {
             continue;
         }
-        let Some(consequence) = node.child_by_field_name("consequence") else {
+        let Some(consequence) = node.field("consequence") else {
             continue;
         };
         let Some(then) = super::conditional::token(consequence, &["then"]) else {
@@ -22,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let message = format!("Do not use `then` for multi-line `{}`.", node.kind());
+        let message = format!("Do not use `then` for multi-line `{}`.", node.kind_str());
         offenses.push(
             context
                 .offense(message, then.byte_range())

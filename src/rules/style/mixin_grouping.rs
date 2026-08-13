@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// `MIXIN_METHODS`.
 const MIXIN_METHODS: &[&str] = &["extend", "include", "prepend"];
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .is_none_or(|style| style == "separated");
 
     for holder in context.nodes_of_any(&["class", "module", "singleton_class"]) {
-        let Some(body) = holder.child_by_field_name("body") else {
+        let Some(body) = holder.field("body") else {
             continue;
         };
         let statements = super::nodes::children(body);
@@ -56,12 +57,12 @@ impl<'t> Mixin<'t> {
     /// `macro?` narrowed to the mixin methods: a receiverless call written straight in a class or
     /// module body, with at least one module named.
     fn new(context: &RuleContext<'_>, node: Node<'t>) -> Option<Self> {
-        if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+        if node.kind_str() != "call" || node.field("receiver").is_some() {
             return None;
         }
         let method = context
             .source
-            .node_text(node.child_by_field_name("method")?)
+            .node_text(node.field("method")?)
             .to_owned();
         if !MIXIN_METHODS.contains(&method.as_str()) {
             return None;

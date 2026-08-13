@@ -3,20 +3,21 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         if context.source.node_text(selector) != "puts" || !is_plain_send(node, context) {
             continue;
         }
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
         let stream = context.source.node_text(receiver);
-        let is_stderr = (receiver.kind() == "global_variable" && stream == "$stderr")
+        let is_stderr = (receiver.kind_str() == "global_variable" && stream == "$stderr")
             || top_level_constant(receiver, "STDERR", context);
         if !is_stderr {
             continue;

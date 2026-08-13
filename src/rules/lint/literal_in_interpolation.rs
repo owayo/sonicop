@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Literal interpolation detected.";
 
@@ -58,7 +59,7 @@ fn last_statement<'tree>(interpolation: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = interpolation.walk();
     interpolation
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body" | "empty_statement"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body" | "empty_statement"))
         .last()
 }
 
@@ -66,25 +67,25 @@ fn offending(literal: Node<'_>, interpolation: Node<'_>, context: &RuleContext<'
     prints_as_self(literal)
         && !(space_literal(literal, context) && ends_heredoc_line(literal, context))
         // `Lint/ArrayLiteralInRegexp` has this one.
-        && !(literal.kind() == "array"
+        && !(literal.kind_str() == "array"
             && interpolation
                 .parent()
-                .is_some_and(|parent| parent.kind() == "regex"))
+                .is_some_and(|parent| parent.kind_str() == "regex"))
 }
 
 /// `prints_as_self?`: a literal whose source is what it would print, or one built only out of
 /// those. A literal holding an interpolation is a `dstr` or a `dsym` upstream and prints as
 /// whatever the interpolation evaluates to, so it is neither.
 fn prints_as_self(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // A sign written against a numeric literal is part of the literal upstream.
         "unary" => {
             matches!(
-                node.child_by_field_name("operator").map(|op| op.kind()),
+                node.field("operator").map(|op| op.kind_str()),
                 Some("-" | "+")
             ) && node
-                .child_by_field_name("operand")
-                .is_some_and(|operand| numeric(operand.kind()))
+                .field("operand")
+                .is_some_and(|operand| numeric(operand.kind_str()))
         }
         "array" | "hash" | "pair" => {
             let mut cursor = node.walk();
@@ -92,14 +93,14 @@ fn prints_as_self(node: Node<'_>) -> bool {
         }
         // A range missing an end is not one upstream reads as a literal at all.
         "range" => {
-            node.child_by_field_name("begin").is_some()
-                && node.child_by_field_name("end").is_some()
+            node.field("begin").is_some()
+                && node.field("end").is_some()
                 && ["begin", "end"]
                     .iter()
-                    .all(|field| node.child_by_field_name(field).is_some_and(prints_as_self))
+                    .all(|field| node.field(field).is_some_and(prints_as_self))
         }
         "string" | "delimited_symbol" | "bare_symbol" => {
-            !interpolated(node) && BASIC_LITERALS.contains(&node.kind())
+            !interpolated(node) && BASIC_LITERALS.contains(&node.kind_str())
         }
         // The words of a `%w[]` are plain strings, and the whole literal is an array.
         "string_array" | "symbol_array" => {
@@ -118,13 +119,13 @@ fn numeric(kind: &str) -> bool {
 fn interpolated(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 /// A string of nothing but spaces, written where the interpolation is the last thing on a heredoc
 /// line: removing it would leave trailing whitespace that another cop then reports.
 fn space_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "string" && {
+    node.kind_str() == "string" && {
         let text = context.source.node_text(node);
         string_value(node, context).trim().is_empty() && !text.is_empty()
     }
@@ -144,9 +145,9 @@ fn ends_heredoc_line(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn in_array_percent_literal(interpolation: Node<'_>) -> bool {
     interpolation
         .parent()
-        .filter(|parent| matches!(parent.kind(), "bare_string" | "bare_symbol"))
+        .filter(|parent| matches!(parent.kind_str(), "bare_string" | "bare_symbol"))
         .and_then(|parent| parent.parent())
-        .is_some_and(|array| matches!(array.kind(), "string_array" | "symbol_array"))
+        .is_some_and(|array| matches!(array.kind_str(), "string_array" | "symbol_array"))
 }
 
 /// A `/` in a slash-delimited regexp has to keep the number of backslashes it compiles to, which
@@ -154,7 +155,7 @@ fn in_array_percent_literal(interpolation: Node<'_>) -> bool {
 fn regexp_slashes(interpolation: Node<'_>, value: String, context: &RuleContext<'_>) -> String {
     let slash_literal = interpolation
         .parent()
-        .filter(|parent| parent.kind() == "regex")
+        .filter(|parent| parent.kind_str() == "regex")
         .is_some_and(|regex| context.source.node_text(regex).starts_with('/'));
     if !slash_literal || !value.contains('/') {
         return value;
@@ -187,7 +188,7 @@ fn regexp_slashes(interpolation: Node<'_>, value: String, context: &RuleContext<
 // ---------------------------------------------------------------------------
 
 fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    match node.kind() {
+    match node.kind_str() {
         "integer" => integer_value(context.source.node_text(node)),
         "float" => float_value(context.source.node_text(node)),
         "unary" => signed_numeric(node, context),
@@ -204,14 +205,14 @@ fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
 }
 
 fn signed_numeric(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    let Some(operand) = node.child_by_field_name("operand") else {
+    let Some(operand) = node.field("operand") else {
         return context.source.node_text(node).replace('"', "\\\"");
     };
     let negative = node
-        .child_by_field_name("operator")
-        .is_some_and(|operator| operator.kind() == "-");
+        .field("operator")
+        .is_some_and(|operator| operator.kind_str() == "-");
     let magnitude = value(operand, context);
-    match (negative, matches!(operand.kind(), "integer" | "float")) {
+    match (negative, matches!(operand.kind_str(), "integer" | "float")) {
         (true, true) => format!("-{magnitude}"),
         (_, true) => magnitude,
         _ => context.source.node_text(node).replace('"', "\\\""),
@@ -266,7 +267,7 @@ fn float_value(text: &str) -> String {
 /// The text between a symbol's delimiters, which is what upstream takes for the value.
 fn symbol_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
     let text = context.source.node_text(node);
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => text.strip_prefix(':').unwrap_or(text),
         _ => {
             let opener = node.child(0).map_or(0, |open| open.end_byte());
@@ -302,10 +303,10 @@ fn hash_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         .named_children(&mut cursor)
         .map(|pair| {
             let key = pair
-                .child_by_field_name("key")
+                .field("key")
                 .map_or_else(String::new, |key| value_in_hash(key, context));
             let held = pair
-                .child_by_field_name("value")
+                .field("value")
                 .map_or_else(String::new, |held| value_in_hash(held, context));
             format!("{key}=>{held}")
         })
@@ -316,7 +317,7 @@ fn hash_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
 /// Inside a hash, a string or a symbol prints as `inspect` writes it rather than as its bare text,
 /// because that is what `Hash#to_s` does with them.
 fn value_in_hash(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    match node.kind() {
+    match node.kind_str() {
         "integer" => integer_value(context.source.node_text(node)),
         "float" => float_value(context.source.node_text(node)),
         "unary" => signed_numeric(node, context),
@@ -331,7 +332,7 @@ fn value_in_hash(node: Node<'_>, context: &RuleContext<'_>) -> String {
 }
 
 fn symbol_name(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    match node.kind() {
+    match node.kind_str() {
         "hash_key_symbol" => context.source.node_text(node).to_owned(),
         "delimited_symbol" => string_value(node, context),
         _ => symbol_content(node, context).to_owned(),
@@ -404,7 +405,7 @@ fn string_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut value = String::new();
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "string_content" if verbatim => {
                 push_verbatim(context.source.node_text(child), &mut value);
             }

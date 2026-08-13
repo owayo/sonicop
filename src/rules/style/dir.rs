@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `__dir__` to get an absolute path to the current file's directory.";
 
@@ -38,23 +39,23 @@ fn file_call<'a, 'tree>(
     context: &'a RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(&'a str, Node<'tree>)> {
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let named = match receiver.kind() {
+    let receiver = node.field("receiver")?;
+    let named = match receiver.kind_str() {
         "constant" => receiver,
         // `::File` is a `scope_resolution` with no scope of its own.
-        "scope_resolution" if receiver.child_by_field_name("scope").is_none() => {
-            receiver.child_by_field_name("name")?
+        "scope_resolution" if receiver.field("scope").is_none() => {
+            receiver.field("name")?
         }
         _ => return None,
     };
     if context.source.node_text(named) != "File" {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
-    let arguments = node.child_by_field_name("arguments")?;
+    let method = node.field("method")?;
+    let arguments = node.field("arguments")?;
     match super::nodes::children(arguments).as_slice() {
         [only] => Some((context.source.node_text(method), *only)),
         _ => None,

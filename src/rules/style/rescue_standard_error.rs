@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_IMPLICIT: &str = "Omit the error class when rescuing `StandardError` by itself.";
 const MSG_EXPLICIT: &str = "Avoid rescuing without specifying an error class.";
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = node.child(0) else {
             continue;
         };
-        let exceptions = node.child_by_field_name("exceptions");
+        let exceptions = node.field("exceptions");
         match (explicit, exceptions) {
             // `rescue_without_error_class?`.
             (true, None) => offenses.push(
@@ -52,12 +53,12 @@ fn only_standard_error(context: &RuleContext<'_>, list: Node<'_>) -> bool {
     let [only] = exceptions.as_slice() else {
         return false;
     };
-    match only.kind() {
+    match only.kind_str() {
         "constant" => context.source.node_text(*only) == "StandardError",
         "scope_resolution" => {
-            only.child_by_field_name("scope").is_none()
+            only.field("scope").is_none()
                 && only
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| context.source.node_text(name) == "StandardError")
         }
         _ => false,

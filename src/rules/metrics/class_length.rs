@@ -3,12 +3,13 @@ use tree_sitter::Node;
 use super::support::{HeredocEnds, LengthTarget, constructor_call, report_length};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(100);
     let heredocs = HeredocEnds::new(context);
     for node in context.nodes_of_any(&["class", "singleton_class", "assignment"]) {
-        let (measured, target) = match node.kind() {
+        let (measured, target) = match node.kind_str() {
             // A `class << self` inside a class body is part of that class's length rather than a
             // class of its own. Only `class` and `module` are classlike to `CodeLengthCalculator`,
             // so a singleton class is measured over its body the way a method is.
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn has_class_ancestor(mut node: Node<'_>) -> bool {
     while let Some(parent) = node.parent() {
-        if parent.kind() == "class" {
+        if parent.kind_str() == "class" {
             return true;
         }
         node = parent;
@@ -44,19 +45,19 @@ fn class_definition_block<'tree>(
     context: &RuleContext<'_>,
     assignment: Node<'tree>,
 ) -> Option<Node<'tree>> {
-    let target = assignment.child_by_field_name("left")?;
-    if !matches!(target.kind(), "constant" | "scope_resolution") {
+    let target = assignment.field("left")?;
+    if !matches!(target.kind_str(), "constant" | "scope_resolution") {
         return None;
     }
     let call = assignment
-        .child_by_field_name("right")
-        .filter(|right| right.kind() == "call")?;
+        .field("right")
+        .filter(|right| right.kind_str() == "call")?;
     if !matches!(
         constructor_call(context, call)?,
         ("Class" | "Struct", "new")
     ) {
         return None;
     }
-    call.child_by_field_name("block")
-        .filter(|block| matches!(block.kind(), "block" | "do_block"))
+    call.field("block")
+        .filter(|block| matches!(block.kind_str(), "block" | "do_block"))
 }

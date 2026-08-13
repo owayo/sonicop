@@ -3,30 +3,31 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, send_range};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use parentheses in the method call to avoid confusion about precedence.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        let Some(list) = call.child_by_field_name("arguments") else {
+        let Some(list) = call.field("arguments") else {
             continue;
         };
         let call_arguments = arguments(call);
         if call_arguments.is_empty() || is_parenthesized(list, context) {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         let name = context.source.node_text(selector);
         let first = call_arguments[0].first();
-        if first.kind() == "conditional" {
+        if first.kind_str() == "conditional" {
             // `node.method?(:[]) || node.assignment_method?`: neither reads as a call whose
             // argument list could be mistaken for the start of the ternary.
             if name == "[]" || is_assignment_method(name) {
                 continue;
             }
-            let Some(condition) = first.child_by_field_name("condition") else {
+            let Some(condition) = first.field("condition") else {
                 continue;
             };
             if !is_operator_keyword(condition, context) {
@@ -51,9 +52,9 @@ fn is_parenthesized(list: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `node.operator_keyword?`: an `and` or an `or` node, however the operator was spelled.
 fn is_operator_keyword(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(
                     context.source.node_text(operator),

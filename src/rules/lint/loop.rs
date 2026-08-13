@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `Kernel#loop` with `break` rather than `begin/end/until`(or `while`).";
 
@@ -10,15 +11,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `on_while_post` / `on_until_post`: the loop runs once before the condition is read only
         // when the body is a `begin ... end`. Everything else is an ordinary modifier.
         let (Some(body), Some(condition)) = (
-            node.child_by_field_name("body"),
-            node.child_by_field_name("condition"),
+            node.field("body"),
+            node.field("condition"),
         ) else {
             continue;
         };
-        if body.kind() != "begin" {
+        if body.kind_str() != "begin" {
             continue;
         }
-        let is_while = node.kind() == "while_modifier";
+        let is_while = node.kind_str() == "while_modifier";
         let keyword = match keyword_token(node, if is_while { "while" } else { "until" }) {
             Some(keyword) => keyword,
             None => continue,
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let (Some(open), Some(close)) = (body.child(0), body.child(last)) else {
             continue;
         };
-        if open.kind() != "begin" || close.kind() != "end" {
+        if open.kind_str() != "begin" || close.kind_str() != "end" {
             continue;
         }
         let (_, column) = context.source.line_column(node.start_byte());
@@ -71,5 +72,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn keyword_token<'tree>(node: Node<'tree>, keyword: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == keyword)
+        .find(|child| !child.is_named() && child.kind_str() == keyword)
 }

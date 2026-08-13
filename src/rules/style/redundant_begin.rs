@@ -9,6 +9,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node;
 
 use super::conditional::{UpstreamParent, body_of, upstream_parent};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant `begin` block detected.";
 
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_endless(node) {
             continue;
         }
-        if let Some(body) = definition_body(node).filter(|body| body.kind() == "begin") {
+        if let Some(body) = definition_body(node).filter(|body| body.kind_str() == "begin") {
             register_offense(context, offenses, &mut reported, body);
         }
     }
@@ -40,7 +41,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         context.nodes_of_any(&["if", "elsif", "unless", "conditional", "case", "case_match"])
     {
         for branch in branches(node) {
-            if branch.kind() != "begin" || has_clause(branch) {
+            if branch.kind_str() != "begin" || has_clause(branch) {
                 continue;
             }
             register_offense(context, offenses, &mut reported, branch);
@@ -50,12 +51,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_while` / `on_until`.
     for node in context.nodes_of_any(&["while", "until"]) {
         let Some(body) = node
-            .child_by_field_name("body")
+            .field("body")
             .and_then(|body| body_of(body).single())
         else {
             continue;
         };
-        if body.kind() != "begin" || has_clause(body) {
+        if body.kind_str() != "begin" || has_clause(body) {
             continue;
         }
         register_offense(context, offenses, &mut reported, body);
@@ -66,15 +67,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() >= IMPLICIT_BEGIN_VERSION {
         for node in context.nodes_of("call") {
             let Some(block) = node
-                .child_by_field_name("block")
-                .filter(|block| block.kind() == "do_block")
+                .field("block")
+                .filter(|block| block.kind_str() == "do_block")
             else {
                 continue;
             };
             let Some(body) = block
-                .child_by_field_name("body")
+                .field("body")
                 .and_then(|body| body_of(body).single())
-                .filter(|body| body.kind() == "begin")
+                .filter(|body| body.kind_str() == "begin")
             else {
                 continue;
             };
@@ -236,7 +237,7 @@ fn correct_modifier_form(
     let (Some(first), Some(keyword), Some(condition)) = (
         super::nodes::children(node).first().copied(),
         modifier_keyword(parent),
-        parent.child_by_field_name("condition"),
+        parent.field("condition"),
     ) else {
         return;
     };
@@ -308,23 +309,23 @@ fn child_count(node: Node<'_>) -> usize {
 fn has_clause(node: Node<'_>) -> bool {
     super::nodes::children(node)
         .iter()
-        .any(|child| CLAUSES.contains(&child.kind()))
+        .any(|child| CLAUSES.contains(&child.kind_str()))
 }
 
 /// `node.body` of a definition: the statement it holds, or nothing when it holds several or was
 /// split by a `rescue`.
 fn definition_body<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    body_of(node.child_by_field_name("body")?).single()
+    body_of(node.field("body")?).single()
 }
 
 /// `DefNode#endless?`: a definition written with `=` has no `end` to close it.
 fn is_endless(node: Node<'_>) -> bool {
-    if !matches!(node.kind(), "method" | "singleton_method") {
+    if !matches!(node.kind_str(), "method" | "singleton_method") {
         return false;
     }
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .any(|child| !child.is_named() && child.kind() == "=")
+        .any(|child| !child.is_named() && child.kind_str() == "=")
 }
 
 /// `IfNode#branches` / `CaseNode#branches` / `CaseMatchNode#branches`, as the bodies this cop
@@ -340,11 +341,11 @@ fn branches<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
             found.push(body);
         }
     };
-    match node.kind() {
+    match node.kind_str() {
         "case" | "case_match" => {
             for clause in super::nodes::children(node) {
-                match clause.kind() {
-                    "when" | "in_clause" => push(clause.child_by_field_name("body")),
+                match clause.kind_str() {
+                    "when" | "in_clause" => push(clause.field("body")),
                     "else" => push(Some(clause)),
                     _ => {}
                 }
@@ -353,16 +354,16 @@ fn branches<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
         // A ternary names its branches rather than wrapping them in `then` and `else`.
         "conditional" => {
             for field in ["consequence", "alternative"] {
-                if let Some(branch) = node.child_by_field_name(field) {
+                if let Some(branch) = node.field(field) {
                     found.push(branch);
                 }
             }
         }
         "if" | "elsif" | "unless" => {
-            push(node.child_by_field_name("consequence"));
+            push(node.field("consequence"));
             push(
-                node.child_by_field_name("alternative")
-                    .filter(|alternative| alternative.kind() == "else"),
+                node.field("alternative")
+                    .filter(|alternative| alternative.kind_str() == "else"),
             );
         }
         _ => {}
@@ -373,42 +374,42 @@ fn branches<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 /// `Node#assignment?`, which `SendNode` widens to any call to a setter: `a.b = v` and
 /// `a[i] = v` answer it as truly as `a = v` does.
 fn is_assignment(node: Node<'_>) -> bool {
-    matches!(node.kind(), "assignment" | "operator_assignment")
+    matches!(node.kind_str(), "assignment" | "operator_assignment")
 }
 
 /// Whether a plain `=` writes through a method rather than to a name, which is what makes it a
 /// `send` -- `a.b = v` is `(send a :b= v)` upstream and `a[i] = v` is `(send a :[]= i v)`.
 fn is_attribute_assignment(node: Node<'_>) -> bool {
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }
 
 /// `parent&.post_condition_loop?`: `begin ... end while cond`, which is a `while_post` upstream
 /// only because its body is the `kwbegin`.
 fn is_post_condition_loop(parent: Node<'_>, node: Node<'_>) -> bool {
-    matches!(parent.kind(), "while_modifier" | "until_modifier")
+    matches!(parent.kind_str(), "while_modifier" | "until_modifier")
         && parent
-            .child_by_field_name("body")
+            .field("body")
             .is_some_and(|body| body.id() == node.id())
 }
 
 /// `parent&.send_type?`. A safe navigation call is a `csend` upstream and does not count, and
 /// `defined?` is a node of its own however the grammar spells it.
 fn is_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" => send_node::is_plain_send(node, context),
         "element_reference" => true,
         // `a.b = v` and `a[i] = v` are `send`s whose method ends in `=`.
         "assignment" => {
             is_attribute_assignment(node)
                 && node
-                    .child_by_field_name("left")
-                    .is_some_and(|left| left.kind() != "call" || send_node::is_plain_send(left, context))
+                    .field("left")
+                    .is_some_and(|left| left.kind_str() != "call" || send_node::is_plain_send(left, context))
         }
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) != "defined?"),
         "binary" => !is_operator_keyword(context, node),
         _ => false,
@@ -417,9 +418,9 @@ fn is_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `parent&.operator_keyword?`: `and` and `or`, which `&&` and `||` build just the same.
 fn is_operator_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(
                     context.source.node_text(operator),
@@ -430,20 +431,20 @@ fn is_operator_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// Whether the node is an `if` or `unless` written after what it guards, with `node` as its body.
 fn is_modifier_conditional(parent: Node<'_>, node: Node<'_>) -> bool {
-    matches!(parent.kind(), "if_modifier" | "unless_modifier")
+    matches!(parent.kind_str(), "if_modifier" | "unless_modifier")
         && parent
-            .child_by_field_name("body")
+            .field("body")
             .is_some_and(|body| body.id() == node.id())
 }
 
 fn is_modifier_conditional_form(node: Node<'_>) -> bool {
-    matches!(node.kind(), "if_modifier" | "unless_modifier")
+    matches!(node.kind_str(), "if_modifier" | "unless_modifier")
 }
 
 fn modifier_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && matches!(child.kind(), "if" | "unless"))
+        .find(|child| !child.is_named() && matches!(child.kind_str(), "if" | "unless"))
 }
 
 /// `loc.begin` / `loc.end` of the `begin ... end`.
@@ -451,7 +452,7 @@ fn keyword<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     let mut found = None;
     for child in node.children(&mut cursor) {
-        if !child.is_named() && child.kind() == kind {
+        if !child.is_named() && child.kind_str() == kind {
             found = Some(child);
             if kind == "begin" {
                 break;

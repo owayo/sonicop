@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The indirect inheritance the cop can also report needs `AllCops/UseProjectIndex` and the
@@ -18,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parent_class) = exception_reference(node, context) else {
             continue;
         };
-        if node.kind() == "class" && shadowed_by_a_sibling_definition(node, parent_class, context) {
+        if node.kind_str() == "class" && shadowed_by_a_sibling_definition(node, parent_class, context) {
             continue;
         }
         offenses.push(
@@ -43,21 +44,21 @@ fn exception_reference<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "class" => {
-            let parent_class = node.child_by_field_name("superclass")?.named_child(0)?;
+            let parent_class = node.field("superclass")?.named_child(0)?;
             is_exception(parent_class, context).then_some(parent_class)
         }
         // `(send (const {cbase nil?} :Class) :new $(const {cbase nil?} _))`: exactly one argument,
         // and a receiver reached from the top level.
         "call" => {
-            let receiver = node.child_by_field_name("receiver")?;
+            let receiver = node.field("receiver")?;
             if top_level_name(receiver, context) != Some("Class")
-                || context.source.node_text(node.child_by_field_name("method")?) != "new"
+                || context.source.node_text(node.field("method")?) != "new"
             {
                 return None;
             }
-            let arguments = node.child_by_field_name("arguments")?;
+            let arguments = node.field("arguments")?;
             let argument = (arguments.named_child_count() == 1).then(|| arguments.named_child(0))??;
             (top_level_name(argument, context).is_some() && is_exception(argument, context))
                 .then_some(argument)
@@ -74,10 +75,10 @@ fn is_exception(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// The name of a constant written with no namespace or with only `::` in front of it, which is
 /// what `{cbase nil?}` matches.
 fn top_level_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
-        "scope_resolution" if node.child_by_field_name("scope").is_none() => {
-            Some(context.source.node_text(node.child_by_field_name("name")?))
+        "scope_resolution" if node.field("scope").is_none() => {
+            Some(context.source.node_text(node.field("name")?))
         }
         _ => None,
     }
@@ -91,7 +92,7 @@ fn shadowed_by_a_sibling_definition(
     parent_class: Node<'_>,
     context: &RuleContext<'_>,
 ) -> bool {
-    if parent_class.kind() == "scope_resolution" {
+    if parent_class.kind_str() == "scope_resolution" {
         return false;
     }
     let Some(parent) = node.parent() else {
@@ -102,9 +103,9 @@ fn shadowed_by_a_sibling_definition(
         .named_children(&mut cursor)
         .take_while(|sibling| sibling.id() != node.id())
         .any(|sibling| {
-            matches!(sibling.kind(), "class" | "module")
+            matches!(sibling.kind_str(), "class" | "module")
                 && sibling
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| is_exception(name, context))
         })
 }

@@ -7,6 +7,7 @@
 
 use std::ops::Range;
 
+use crate::rules::node_ext::NodeExt;
 use tree_sitter::Node;
 
 /// One parameter, which for the misread run above has no node of its own.
@@ -23,16 +24,16 @@ pub(super) struct Parameter<'tree> {
 pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
     let mut found = Vec::new();
     for child in super::nodes::children(list) {
-        if child.kind() == "optional_parameter"
+        if child.kind_str() == "optional_parameter"
             && let Some(expanded) = split_misread_defaults(child)
         {
             found.extend(expanded);
             continue;
         }
         found.push(Parameter {
-            kind: child.kind(),
-            name: child.child_by_field_name("name"),
-            value: child.child_by_field_name("value"),
+            kind: child.kind_str(),
+            name: child.field("name"),
+            value: child.field("value"),
             range: child.byte_range(),
         });
     }
@@ -42,9 +43,9 @@ pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
 /// Splits the run of optional parameters the grammar folded into one, or `None` when the parameter
 /// really does default to an assignment.
 fn split_misread_defaults<'tree>(parameter: Node<'tree>) -> Option<Vec<Parameter<'tree>>> {
-    let name = parameter.child_by_field_name("name")?;
-    let value = parameter.child_by_field_name("value")?;
-    if value.kind() != "assignment" {
+    let name = parameter.field("name")?;
+    let value = parameter.field("value")?;
+    if value.kind_str() != "assignment" {
         return None;
     }
     // The misreading always spells the left side as a list of two: the default that belongs to the
@@ -53,8 +54,8 @@ fn split_misread_defaults<'tree>(parameter: Node<'tree>) -> Option<Vec<Parameter
     let mut written = Vec::new();
     let mut current = value;
     loop {
-        let left = current.child_by_field_name("left")?;
-        if left.kind() != "left_assignment_list" {
+        let left = current.field("left")?;
+        if left.kind_str() != "left_assignment_list" {
             return None;
         }
         let targets = super::nodes::children(left);
@@ -62,11 +63,11 @@ fn split_misread_defaults<'tree>(parameter: Node<'tree>) -> Option<Vec<Parameter
             return None;
         }
         written.extend(targets);
-        let right = current.child_by_field_name("right")?;
-        if right.kind() == "assignment"
+        let right = current.field("right")?;
+        if right.kind_str() == "assignment"
             && right
-                .child_by_field_name("left")
-                .is_some_and(|inner| inner.kind() == "left_assignment_list")
+                .field("left")
+                .is_some_and(|inner| inner.kind_str() == "left_assignment_list")
         {
             current = right;
             continue;

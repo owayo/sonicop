@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::support::whitespace_before;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -21,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes() {
         // Upstream walks the lexer's tokens, so a semicolon inside a string or a heredoc body is
         // not one. Only a semicolon the parser recognised is a node here.
-        if node.kind() != ";" {
+        if node.kind_str() != ";" {
             continue;
         }
         let space = whitespace_before(text, node.start_byte());
@@ -61,6 +62,6 @@ fn block_brace_offsets(context: &RuleContext<'_>) -> Vec<usize> {
 fn opening_brace(node: Node<'_>) -> Option<usize> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == "{")
+        .find(|child| child.kind_str() == "{")
         .map(|child| child.start_byte())
 }

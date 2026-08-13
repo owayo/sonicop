@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["binary", "call"]) {
@@ -40,11 +41,11 @@ fn comparison<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(&'static str, Node<'tree>, Node<'tree>)> {
-    let (operator, left, right) = match node.kind() {
+    let (operator, left, right) = match node.kind_str() {
         "binary" => (
-            node.child_by_field_name("operator")?,
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("right")?,
+            node.field("operator")?,
+            node.field("left")?,
+            node.field("right")?,
         ),
         "call" if is_plain_send(node, context) => {
             let arguments = arguments(node);
@@ -52,8 +53,8 @@ fn comparison<'tree>(
                 return None;
             };
             (
-                node.child_by_field_name("method")?,
-                node.child_by_field_name("receiver")?,
+                node.field("method")?,
+                node.field("receiver")?,
                 argument.first(),
             )
         }
@@ -69,14 +70,14 @@ fn comparison<'tree>(
 
 /// The receiver of a `(send _ :object_id)`, or `None` when the operand is anything else.
 fn object_id_receiver<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    if node.kind() != "call" || !is_plain_send(node, context) {
+    if node.kind_str() != "call" || !is_plain_send(node, context) {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
+    let method = node.field("method")?;
     if context.source.node_text(method) != "object_id" || !arguments(node).is_empty() {
         return None;
     }
-    node.child_by_field_name("block")
+    node.field("block")
         .is_none()
-        .then(|| node.child_by_field_name("receiver"))?
+        .then(|| node.field("receiver"))?
 }

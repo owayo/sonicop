@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use super::support::{Variables, last_named_child, spurious_assignment_list};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 // `[[:digit:][:upper:]_]` upstream, and Ruby's POSIX classes are Unicode-aware, so `Ä` counts as
 // upper case. Rust's `[[:upper:]]` would only accept ASCII.
@@ -22,30 +23,30 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
     }
     for node in context.nodes_of("for") {
-        if let Some(target) = node.child_by_field_name("pattern") {
+        if let Some(target) = node.field("pattern") {
             report(context, offenses, target, None, variables);
         }
     }
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             continue;
         };
-        let right = node.child_by_field_name("right");
+        let right = node.field("right");
         // `on_casgn` reads the value through a surrounding `or_asgn`, so `FOO ||= bar` is judged
         // by `bar`. Under any other operator the casgn keeps no expression of its own and the
         // value counts as unknown -- which is not the same as allowed.
-        let value = if node.kind() == "operator_assignment" {
+        let value = if node.kind_str() == "operator_assignment" {
             right.filter(|_| operator(node) == Some("||="))
         } else {
             right
         };
-        if left.kind() == "left_assignment_list" && spurious_assignment_list(left) {
+        if left.kind_str() == "left_assignment_list" && spurious_assignment_list(left) {
             // The grammar swallowed the items written before the assignment; only the last of them
             // is really assigned to, and it keeps the value on the right.
             if let Some(target) = last_named_child(left) {
                 report(context, offenses, target, value, variables);
             }
-        } else if left.kind() == "left_assignment_list" {
+        } else if left.kind_str() == "left_assignment_list" {
             // Every target of a multiple assignment is a casgn without an expression, so none of
             // them can be excused by what stands on the right.
             let mut targets = Vec::new();
@@ -84,11 +85,11 @@ fn report(
 /// The part of an assignment target that `casgn.loc.name` covers: `A::B = 1` and `::B = 1` both
 /// report only the `B`.
 fn constant_name(node: Node<'_>) -> Option<Node<'_>> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(node),
         "scope_resolution" => node
-            .child_by_field_name("name")
-            .filter(|name| name.kind() == "constant"),
+            .field("name")
+            .filter(|name| name.kind_str() == "constant"),
         _ => None,
     }
 }
@@ -96,7 +97,7 @@ fn constant_name(node: Node<'_>) -> Option<Node<'_>> {
 fn collect_targets<'tree>(node: Node<'tree>, targets: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
                 collect_targets(child, targets);
             }
@@ -132,24 +133,24 @@ enum Value<'tree> {
 }
 
 fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Value::ClassLike,
-        "scope_resolution" => match node.child_by_field_name("name") {
-            Some(name) if name.kind() == "constant" => Value::ClassLike,
+        "scope_resolution" => match node.field("name") {
+            Some(name) if name.kind_str() == "constant" => Value::ClassLike,
             _ => Value::Call {
-                receiver: node.child_by_field_name("scope"),
+                receiver: node.field("scope"),
             },
         },
         // `A = B = Class.new` chains casgn nodes, and the inner one excuses the outer.
-        "assignment" => match node.child_by_field_name("left") {
+        "assignment" => match node.field("left") {
             Some(left) if constant_name(left).is_some() => Value::ClassLike,
             _ => Value::Other,
         },
         // A method call carrying a block is a `block` node upstream, not a `send`.
-        "call" if node.child_by_field_name("block").is_some() => Value::ClassLike,
+        "call" if node.field("block").is_some() => Value::ClassLike,
         "lambda" => Value::ClassLike,
         "call" => Value::Call {
-            receiver: node.child_by_field_name("receiver"),
+            receiver: node.field("receiver"),
         },
         // A bare identifier is a receiverless call unless the parser resolved it to a local.
         "identifier" => {
@@ -163,21 +164,21 @@ fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
             // `&&` and `||` build their own node types upstream; they are not method calls.
             Some("&&" | "||" | "and" | "or") => Value::Other,
             _ => Value::Call {
-                receiver: node.child_by_field_name("left"),
+                receiver: node.field("left"),
             },
         },
         "unary" => match operator(node) {
             Some("defined?") => Value::Other,
             // A signed number reaches the parser as one numeric literal, not a call to `-@`.
-            Some("-" | "+") if node.child_by_field_name("operand").is_some_and(numeric) => {
+            Some("-" | "+") if node.field("operand").is_some_and(numeric) => {
                 Value::Other
             }
             _ => Value::Call {
-                receiver: node.child_by_field_name("operand"),
+                receiver: node.field("operand"),
             },
         },
         "element_reference" => Value::Call {
-            receiver: node.child_by_field_name("object"),
+            receiver: node.field("object"),
         },
         "if" | "unless" | "conditional" => Value::Conditional,
         _ => Value::Other,
@@ -187,7 +188,7 @@ fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
 /// `literal_receiver?`. The `(send (begin literal?) ...)` half of the pattern is why a
 /// parenthesised literal counts too.
 fn literal_receiver(node: Node<'_>) -> bool {
-    if node.kind() == "parenthesized_statements" {
+    if node.kind_str() == "parenthesized_statements" {
         return node.named_child_count() == 1 && node.named_child(0).is_some_and(is_literal);
     }
     is_literal(node)
@@ -195,7 +196,7 @@ fn literal_receiver(node: Node<'_>) -> bool {
 
 fn is_literal(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "integer"
             | "float"
             | "rational"
@@ -219,13 +220,13 @@ fn is_literal(node: Node<'_>) -> bool {
             | "true"
             | "false"
             | "nil"
-    ) || (node.kind() == "unary"
+    ) || (node.kind_str() == "unary"
         && matches!(operator(node), Some("-" | "+"))
-        && node.child_by_field_name("operand").is_some_and(numeric))
+        && node.field("operand").is_some_and(numeric))
 }
 
 fn numeric(node: Node<'_>) -> bool {
-    matches!(node.kind(), "integer" | "float" | "rational" | "complex")
+    matches!(node.kind_str(), "integer" | "float" | "rational" | "complex")
 }
 
 fn is_constant(node: Node<'_>) -> bool {
@@ -236,19 +237,19 @@ fn is_constant(node: Node<'_>) -> bool {
 /// A branch holding more than one statement is a `begin` upstream and so can never be a constant,
 /// which is why only a lone child counts.
 fn branches(node: Node<'_>) -> Vec<Node<'_>> {
-    if node.kind() == "conditional" {
+    if node.kind_str() == "conditional" {
         return node
-            .child_by_field_name("consequence")
+            .field("consequence")
             .into_iter()
-            .chain(node.child_by_field_name("alternative"))
+            .chain(node.field("alternative"))
             .collect();
     }
     let mut branches = Vec::new();
     let mut current = Some(node);
     while let Some(node) = current.take() {
-        branches.extend(node.child_by_field_name("consequence").and_then(only_child));
-        match node.child_by_field_name("alternative") {
-            Some(alternative) if alternative.kind() == "elsif" => current = Some(alternative),
+        branches.extend(node.field("consequence").and_then(only_child));
+        match node.field("alternative") {
+            Some(alternative) if alternative.kind_str() == "elsif" => current = Some(alternative),
             Some(alternative) => branches.extend(only_child(alternative)),
             None => {}
         }
@@ -273,7 +274,7 @@ fn operator(node: Node<'_>) -> Option<&'static str> {
     loop {
         let child = cursor.node();
         if !child.is_named() {
-            return Some(child.kind());
+            return Some(child.kind_str());
         }
         if !cursor.goto_next_sibling() {
             return None;

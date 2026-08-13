@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use the character literal - use string literal instead.";
 
@@ -40,7 +41,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn is_inside_regexp(node: tree_sitter::Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if parent.kind() == "regex" {
+        if parent.kind_str() == "regex" {
             return true;
         }
         current = parent.parent();

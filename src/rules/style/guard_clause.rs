@@ -10,6 +10,7 @@ use super::conditional::{
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use a guard clause (`%<example>s`) instead of wrapping the code inside a \
      conditional expression.";
@@ -36,14 +37,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method", "call", "method_call"]) {
         // `on_block` reaches the same code as `on_def` for the two methods that define one, and
         // the body it hands over is the block's rather than the call's.
-        let definition = match node.kind() {
+        let definition = match node.kind_str() {
             "call" | "method_call" => match cop.method_definition_block(node) {
                 Some(block) => block,
                 None => continue,
             },
             _ => node,
         };
-        if let Some(body) = definition.child_by_field_name("body") {
+        if let Some(body) = definition.field("body") {
             cop.check_ending_body(&body_of(body), offenses);
         }
     }
@@ -75,10 +76,10 @@ impl Cop<'_, '_> {
     }
 
     fn method_definition_block<'t>(&self, node: Node<'t>) -> Option<Node<'t>> {
-        let method = node.child_by_field_name("method")?;
+        let method = node.field("method")?;
         DEFINING_METHODS
             .contains(&self.source(method))
-            .then(|| node.child_by_field_name("block"))
+            .then(|| node.field("block"))
             .flatten()
     }
 
@@ -92,7 +93,7 @@ impl Cop<'_, '_> {
         if !body.is_begin() && body.single().is_none() {
             return;
         }
-        if matches!(last.kind(), "if" | "unless") {
+        if matches!(last.kind_str(), "if" | "unless") {
             self.check_ending_if(last, offenses);
         }
     }
@@ -111,7 +112,7 @@ impl Cop<'_, '_> {
             Guard::None,
             offenses,
         );
-        if let Some(consequence) = node.child_by_field_name("consequence") {
+        if let Some(consequence) = node.field("consequence") {
             self.check_ending_body(&body_of(consequence), offenses);
         }
     }
@@ -129,7 +130,7 @@ impl Cop<'_, '_> {
             return;
         }
         let branch = |field: &str| {
-            node.child_by_field_name(field)
+            node.field(field)
                 .map(body_of)
                 .and_then(|body| body.single())
         };
@@ -160,23 +161,23 @@ impl Cop<'_, '_> {
     /// `guard_clause?`: a `raise`/`fail` call or a `return`/`break`/`next` written on one line,
     /// possibly as the right-hand side of an `and`/`or`.
     fn guard_clause<'t>(&self, branch: Node<'t>) -> Option<GuardClause<'t>> {
-        let operator_keyword = matches!(branch.kind(), "binary")
-            .then(|| branch.child_by_field_name("operator"))
+        let operator_keyword = matches!(branch.kind_str(), "binary")
+            .then(|| branch.field("operator"))
             .flatten()
             .filter(|operator| matches!(self.source(*operator), "&&" | "||" | "and" | "or"))
             .and(Some(branch));
         let node = match operator_keyword {
-            Some(_) => branch.child_by_field_name("right")?,
+            Some(_) => branch.field("right")?,
             None => branch,
         };
         if node.start_position().row != node.end_position().row {
             return None;
         }
-        let leaves = match node.kind() {
+        let leaves = match node.kind_str() {
             "call" | "method_call" => {
-                node.child_by_field_name("receiver").is_none()
+                node.field("receiver").is_none()
                     && node
-                        .child_by_field_name("method")
+                        .field("method")
                         .is_some_and(|method| GUARD_CALLS.contains(&self.source(method)))
             }
             // A bare `raise` carries no argument list, so the grammar leaves it a plain name.
@@ -197,7 +198,7 @@ impl Cop<'_, '_> {
         guard: Guard,
         offenses: &mut Vec<Offense>,
     ) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             return;
         };
         let condition_source = self.source(condition);
@@ -220,7 +221,7 @@ impl Cop<'_, '_> {
         let offense = self
             .context
             .offense(MSG.replace("%<example>s", &example), keyword.byte_range());
-        let has_else = node.child_by_field_name("alternative").is_some();
+        let has_else = node.field("alternative").is_some();
         offenses.push(match has_else && guard == Guard::None {
             true => offense,
             false => offense.corrected_by_all(self.autocorrect(
@@ -256,7 +257,7 @@ impl Cop<'_, '_> {
         }];
         // `node.then?`: only the written keyword is replaced, not the `;` that can stand for it.
         if let Some(then) = node
-            .child_by_field_name("consequence")
+            .field("consequence")
             .and_then(|consequence| token(consequence, &["then"]))
         {
             edits.push(Edit {
@@ -272,7 +273,7 @@ impl Cop<'_, '_> {
             return edits;
         };
         let else_keyword = node
-            .child_by_field_name("alternative")
+            .field("alternative")
             .and_then(|alternative| token(alternative, &["else"]));
 
         let heredoc = self
@@ -329,7 +330,7 @@ impl Cop<'_, '_> {
 
     /// The span of one branch, which is the whole statement list when it holds more than one.
     fn branch_range(&self, node: Node<'_>, field: &str) -> Option<Range<usize>> {
-        let clause = node.child_by_field_name(field)?;
+        let clause = node.field(field)?;
         let statements = super::nodes::children(clause);
         let first = statements.first()?;
         let last = statements.last()?;
@@ -339,7 +340,7 @@ impl Cop<'_, '_> {
     /// `find_heredoc_argument`: the heredoc opened inside the branch, whose body sits below the
     /// conditional and so cannot simply be moved with it.
     fn heredoc_argument(&self, node: Node<'_>, field: &str) -> Option<Range<usize>> {
-        let clause = node.child_by_field_name(field)?;
+        let clause = node.field(field)?;
         let branch = match body_of(clause) {
             Body::Missing => return None,
             Body::One(only) => only,
@@ -359,7 +360,7 @@ impl Cop<'_, '_> {
     }
 
     fn keyword(&self, node: Node<'_>) -> &str {
-        match node.kind() {
+        match node.kind_str() {
             "unless" => "unless",
             _ => "if",
         }
@@ -369,21 +370,21 @@ impl Cop<'_, '_> {
     fn accepted_form(&self, node: Node<'_>, ending: bool) -> bool {
         self.accepted_if(node, ending)
             || node
-                .child_by_field_name("condition")
+                .field("condition")
                 .is_some_and(|condition| {
                     condition.start_position().row != condition.end_position().row
                 })
             || matches!(
                 upstream_parent(node),
                 Some(UpstreamParent::Node(parent))
-                    if matches!(parent.kind(), "assignment" | "operator_assignment")
+                    if matches!(parent.kind_str(), "assignment" | "operator_assignment")
             )
     }
 
     fn accepted_if(&self, node: Node<'_>, ending: bool) -> bool {
-        let alternative = node.child_by_field_name("alternative");
+        let alternative = node.field("alternative");
         // `elsif_conditional?`: the chain would have to be unwound first.
-        if alternative.is_some_and(|alternative| alternative.kind() == "elsif") {
+        if alternative.is_some_and(|alternative| alternative.kind_str() == "elsif") {
             return true;
         }
         if self.assigned_lvar_used_in_if_branch(node) {
@@ -398,14 +399,14 @@ impl Cop<'_, '_> {
     /// `assigned_lvar_used_in_if_branch?`: the guard would move the assignment out of the reach of
     /// the code that reads it.
     fn assigned_lvar_used_in_if_branch(&self, node: Node<'_>) -> bool {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             return false;
         };
         let assigned = self.assigned_locals(condition);
         if assigned.is_empty() {
             return false;
         }
-        let Some(consequence) = node.child_by_field_name("consequence") else {
+        let Some(consequence) = node.field("consequence") else {
             return false;
         };
         self.branch_identifiers(consequence)
@@ -421,14 +422,14 @@ impl Cop<'_, '_> {
     fn assigned_locals(&self, condition: Node<'_>) -> Vec<String> {
         let mut names = Vec::new();
         for inner in descendants(condition) {
-            if !matches!(inner.kind(), "assignment" | "operator_assignment") {
+            if !matches!(inner.kind_str(), "assignment" | "operator_assignment") {
                 continue;
             }
-            let Some(left) = inner.child_by_field_name("left") else {
+            let Some(left) = inner.field("left") else {
                 continue;
             };
-            if left.kind() == "identifier" {
-                let lvasgn = match inner.kind() {
+            if left.kind_str() == "identifier" {
+                let lvasgn = match inner.kind_str() {
                     "assignment" => inner,
                     _ => left,
                 };
@@ -460,12 +461,12 @@ impl Cop<'_, '_> {
         let mut pending: Vec<Node<'_>> = roots;
         while let Some(root) = pending.pop() {
             for inner in descendants(root) {
-                if inner.kind() == "heredoc_beginning"
+                if inner.kind_str() == "heredoc_beginning"
                     && let Some(body) = self.heredoc_body(inner)
                 {
                     pending.push(body);
                 }
-                if inner.kind() == "identifier" && reads_a_variable(inner) {
+                if inner.kind_str() == "identifier" && reads_a_variable(inner) {
                     names.push(self.source(inner).to_owned());
                 }
             }
@@ -489,28 +490,28 @@ impl Cop<'_, '_> {
 /// receiver, so that the heredoc written closest to the end of the branch is the one found.
 fn find_heredoc_argument<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let mut node = node;
-    while node.kind() == "parenthesized_statements" {
+    while node.kind_str() == "parenthesized_statements" {
         node = *super::nodes::children(node).first()?;
     }
-    if node.kind() == "heredoc_beginning" {
+    if node.kind_str() == "heredoc_beginning" {
         return Some(node);
     }
-    if !matches!(node.kind(), "call" | "method_call") {
+    if !matches!(node.kind_str(), "call" | "method_call") {
         return None;
     }
-    if let Some(list) = node.child_by_field_name("arguments") {
+    if let Some(list) = node.field("arguments") {
         for argument in super::nodes::children(list).into_iter().rev() {
             if let Some(found) = find_heredoc_argument(argument) {
                 return Some(found);
             }
         }
     }
-    find_heredoc_argument(node.child_by_field_name("receiver")?)
+    find_heredoc_argument(node.field("receiver")?)
 }
 
 /// Every name a destructuring left-hand side writes.
 fn destructured_names<'t>(left: Node<'t>) -> Vec<Node<'t>> {
-    match left.kind() {
+    match left.kind_str() {
         "identifier" => vec![left],
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
             super::nodes::children(left)
@@ -546,17 +547,17 @@ fn inverse_keyword(keyword: &str) -> &'static str {
 
 /// `trivial?`: one branch holding a single expression, which reads no worse wrapped than guarded.
 fn trivial(node: Node<'_>) -> bool {
-    let Some(branch) = node.child_by_field_name("consequence").map(body_of) else {
+    let Some(branch) = node.field("consequence").map(body_of) else {
         return false;
     };
     if branch.last().is_none() {
         return false;
     }
     // `node.branches.one?`: an `else` adds a second branch.
-    node.child_by_field_name("alternative").is_none()
+    node.field("alternative").is_none()
         && branch.single().is_some_and(|only| {
             !matches!(
-                only.kind(),
+                only.kind_str(),
                 "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional"
             )
         })
@@ -576,7 +577,7 @@ fn consecutive_conditionals(node: Node<'_>) -> bool {
     };
     index > 0
         && matches!(
-            statements[index - 1].kind(),
+            statements[index - 1].kind_str(),
             "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional"
         )
 }
@@ -586,11 +587,11 @@ fn reads_a_variable(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    if matches!(parent.kind(), "block_parameters" | "method_parameters") {
+    if matches!(parent.kind_str(), "block_parameters" | "method_parameters") {
         return false;
     }
     parent
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| method.id() != node.id())
 }
 
@@ -604,7 +605,7 @@ fn heredoc_end(context: &RuleContext<'_>, beginning: Node<'_>) -> Option<Range<u
     let mut cursor = body.walk();
     let terminator = body
         .named_children(&mut cursor)
-        .find(|child| child.kind() == "heredoc_end")?;
+        .find(|child| child.kind_str() == "heredoc_end")?;
     Some(terminator.byte_range())
 }
 

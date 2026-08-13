@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, named_children};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Non-local exit from iterator, without return value. \
                    `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.";
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !named_children(node).is_empty() {
             continue;
         }
-        let Some(keyword) = node.child(0).filter(|child| child.kind() == "return") else {
+        let Some(keyword) = node.child(0).filter(|child| child.kind_str() == "return") else {
             continue;
         };
         if escapes_an_iterator(node, context) {
@@ -28,7 +29,7 @@ fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut ancestor = node.parent();
     while let Some(current) = ancestor {
         ancestor = current.parent();
-        match current.kind() {
+        match current.kind_str() {
             // `scoped_node?`: `any_def_type?`.
             "method" | "singleton_method" => return false,
             "block" | "do_block" => {}
@@ -46,7 +47,7 @@ fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
             continue;
         }
         // `chained_send?`: `(call !nil? ...)`.
-        return send.is_some_and(|call| call.child_by_field_name("receiver").is_some());
+        return send.is_some_and(|call| call.field("receiver").is_some());
     }
     false
 }
@@ -55,17 +56,17 @@ fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// own there: its parser rewrites the arrow into a receiverless `lambda`, so the block hangs off
 /// nothing tree-sitter records.
 fn block_send<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
-    block.parent().filter(|parent| parent.kind() == "call")
+    block.parent().filter(|parent| parent.kind_str() == "call")
 }
 
 fn is_lambda(block: Node<'_>, send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
     if block
         .parent()
-        .is_some_and(|parent| parent.kind() == "lambda")
+        .is_some_and(|parent| parent.kind_str() == "lambda")
     {
         return true;
     }
-    send.and_then(|call| call.child_by_field_name("method"))
+    send.and_then(|call| call.field("method"))
         .is_some_and(|method| context.source.node_text(method) == "lambda")
 }
 
@@ -75,7 +76,7 @@ fn defines_a_method(send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
     let Some(call) = send else {
         return false;
     };
-    call.child_by_field_name("method").is_some_and(|method| {
+    call.field("method").is_some_and(|method| {
         matches!(
             context.source.node_text(method),
             "define_method" | "define_singleton_method"
@@ -87,7 +88,7 @@ fn defines_a_method(send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
 /// `node.argument_list.empty?`. A block that names no argument cannot be the one the `return` was
 /// meant for, so the search carries on outwards.
 fn block_argument_list_is_empty(block: Node<'_>) -> bool {
-    match block.child_by_field_name("parameters") {
+    match block.field("parameters") {
         Some(parameters) => named_children(parameters).is_empty(),
         None => true,
     }

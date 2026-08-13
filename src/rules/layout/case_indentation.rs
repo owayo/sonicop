@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::support::{character_column, end_keyword};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let align_with_end = context.setting::<String>("EnforcedStyle").as_deref() == Some("end");
@@ -33,16 +34,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(base) = base_column(context, node, align_with_end) else {
             continue;
         };
-        let branch_kind = match node.kind() {
+        let branch_kind = match node.kind_str() {
             "case" => "when",
             _ => "in_clause",
         };
-        let branch_type = match node.kind() {
+        let branch_type = match node.kind_str() {
             "case" => "when",
             _ => "in",
         };
         for branch in node.named_children(&mut node.walk()) {
-            if branch.kind() != branch_kind {
+            if branch.kind_str() != branch_kind {
                 continue;
             }
             let Some(keyword) = branch.child(0) else {
@@ -93,14 +94,14 @@ fn end_and_last_conditional_same_line(context: &RuleContext<'_>, node: Node<'_>)
     let Some(last) = branches.last() else {
         return false;
     };
-    let anchor = match last.kind() {
+    let anchor = match last.kind_str() {
         "else" => last.child(0),
         // `node.child_nodes.last.loc.begin`: the `then` of the last branch.
         _ => last
             .children(&mut last.walk())
-            .find(|child| child.kind() == "then")
+            .find(|child| child.kind_str() == "then")
             .and_then(|then| then.child(0))
-            .filter(|keyword| keyword.kind() == "then"),
+            .filter(|keyword| keyword.kind_str() == "then"),
     };
     anchor.is_some_and(|anchor| context.source.line_column(anchor.start_byte()).0 == end_line)
 }

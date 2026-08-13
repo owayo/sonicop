@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -7,22 +8,22 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "both".to_owned());
 
     for node in context.nodes_of_any(&["unless", "unless_modifier"]) {
-        let modifier = node.kind() == "unless_modifier";
+        let modifier = node.kind_str() == "unless_modifier";
         // `correct_style?`: each style leaves one of the two forms alone.
         if (style == "prefix" && modifier) || (style == "postfix" && !modifier) {
             continue;
         }
         // `return if node.if_type? && node.else?`: an `unless` with an `else` is left as it is.
-        if node.child_by_field_name("alternative").is_some() {
+        if node.field("alternative").is_some() {
             continue;
         }
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let Some(negated) = super::negated_while::single_negative(context, condition) else {
             continue;
         };
-        let Some(operand) = negated.child_by_field_name("operand") else {
+        let Some(operand) = negated.field("operand") else {
             continue;
         };
         let Some(keyword) = super::conditional::token(node, &["unless"]) else {

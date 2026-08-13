@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Consider replacing `case-when` with a hash lookup.";
 
@@ -20,11 +21,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let whens: Vec<Node<'_>> = branches
             .iter()
             .copied()
-            .filter(|child| child.kind() == "when")
+            .filter(|child| child.kind_str() == "when")
             .collect();
         // `min_branches_count?`, and `nil?` for the `else` the pattern forbids.
         if whens.len() < minimum
-            || branches.iter().any(|child| child.kind() == "else")
+            || branches.iter().any(|child| child.kind_str() == "else")
             || whens.len() + 1 != branches.len()
         {
             continue;
@@ -37,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 conditions.clear();
                 break;
             };
-            if pattern.kind() != "pattern" || body.kind() != "then" {
+            if pattern.kind_str() != "pattern" || body.kind_str() != "then" {
                 conditions.clear();
                 break;
             }
@@ -81,9 +82,9 @@ fn same_type(context: &RuleContext<'_>, nodes: &[Node<'_>]) -> bool {
 
 /// `recursive_basic_literal?`.
 fn recursive_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "binary" | "unary" => {
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .is_some_and(|operator| {
                     RECURSIVE_METHODS.contains(&context.source.node_text(operator))
                 })
@@ -92,7 +93,7 @@ fn recursive_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
                     .all(|child| recursive_basic_literal(context, child))
         }
         "call" => {
-            node.child_by_field_name("method")
+            node.field("method")
                 .is_some_and(|method| RECURSIVE_METHODS.contains(&context.source.node_text(method)))
                 && super::nodes::children(node)
                     .into_iter()
@@ -124,7 +125,7 @@ const BASIC_LITERALS: &[&str] = &[
 /// The parser's node type, for the comparisons the cop makes between branches.
 fn upstream_type(context: &RuleContext<'_>, node: Node<'_>) -> Option<&'static str> {
     let _ = context;
-    Some(match node.kind() {
+    Some(match node.kind_str() {
         // A literal that does not fit on one line is a `dstr` even without interpolation.
         "string" | "heredoc_beginning" => match is_interpolated(node) || is_multiline(node) {
             true => "dstr",
@@ -155,7 +156,7 @@ fn upstream_type(context: &RuleContext<'_>, node: Node<'_>) -> Option<&'static s
 fn is_interpolated(node: Node<'_>) -> bool {
     super::nodes::children(node)
         .iter()
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 fn is_multiline(node: Node<'_>) -> bool {

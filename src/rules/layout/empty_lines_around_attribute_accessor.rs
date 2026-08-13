@@ -8,6 +8,7 @@ use tree_sitter::Node;
 use super::support::statement_groups;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const ACCESSORS: [&str; 4] = ["attr_reader", "attr_writer", "attr_accessor", "attr"];
 
@@ -93,17 +94,17 @@ fn is_blank_line(context: &RuleContext<'_>, line: usize) -> bool {
 }
 
 fn is_attribute_accessor(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.child_by_field_name("receiver").is_some() {
+    if node.field("receiver").is_some() {
         return false;
     }
-    let Some(method) = node.child_by_field_name("method") else {
+    let Some(method) = node.field("method") else {
         return false;
     };
     if !ACCESSORS.contains(&&context.source.text()[method.byte_range()]) {
         return false;
     }
     // `(_ _ _ _ ...)`: the accessor has to name at least one attribute.
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| arguments.named_child_count() > 0)
 }
 
@@ -115,15 +116,15 @@ fn requires_empty_line(
     allow_alias: bool,
     allowed: &[String],
 ) -> bool {
-    if allow_alias && node.kind() == "alias" {
+    if allow_alias && node.kind_str() == "alias" {
         return false;
     }
     if is_attribute_accessor(context, node) {
         return false;
     }
-    let name = match node.kind() {
+    let name = match node.kind_str() {
         "identifier" => &context.source.text()[node.byte_range()],
-        "call" | "method_call" => match node.child_by_field_name("method") {
+        "call" | "method_call" => match node.field("method") {
             Some(method) => &context.source.text()[method.byte_range()],
             None => return true,
         },

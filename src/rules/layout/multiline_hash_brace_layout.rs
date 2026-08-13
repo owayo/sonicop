@@ -3,6 +3,7 @@
 use super::multiline_brace::{Literal, Messages, check_brace_layout, delimiters};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGES: Messages = Messages {
     same_line: "Closing hash brace must be on the same line as the last hash element when opening \
@@ -24,7 +25,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // Each pair is a child of its own here: only a *brace-less* run folds into one `hash`.
         let elements = node
             .named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .map(|child| vec![child])
             .collect();
         check_brace_layout(

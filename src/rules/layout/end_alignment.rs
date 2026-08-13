@@ -11,6 +11,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
+use crate::rules::node_ext::NodeExt;
 
 /// `EnforcedStyleAlignWith`.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -55,7 +56,7 @@ struct Checker<'a, 'b> {
 
 impl Checker<'_, '_> {
     fn visit(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        match node.kind() {
+        match node.kind_str() {
             "class" | "module" | "if" | "unless" | "while" | "until" => {
                 self.check_other_alignment(node, offenses);
             }
@@ -76,9 +77,9 @@ impl Checker<'_, '_> {
     /// `check_assignment`: an assignment whose right-hand side is a conditional owns that
     /// conditional's `end`.
     fn check_assignment(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let right = match node.kind() {
+        let right = match node.kind_str() {
             "call" => last_argument(node),
-            _ => node.child_by_field_name("right"),
+            _ => node.field("right"),
         };
         let Some(mut right) = right.and_then(first_part_of_call_chain) else {
             return;
@@ -88,7 +89,7 @@ impl Checker<'_, '_> {
         while let Some(inner) = leading_child(right) {
             right = inner;
         }
-        if !CONDITIONAL_KINDS.contains(&right.kind()) {
+        if !CONDITIONAL_KINDS.contains(&right.kind_str()) {
             return;
         }
         self.check_asgn_alignment(node, right, offenses);
@@ -175,7 +176,7 @@ impl Checker<'_, '_> {
     }
 
     fn alignment_node_for_variable_style<'tree>(&self, node: Node<'tree>) -> Node<'tree> {
-        if matches!(node.kind(), "case" | "case_match")
+        if matches!(node.kind_str(), "case" | "case_match")
             && let Some(owner) = self.argument_owner(node)
             && self.context.source.line_column(owner.start_byte()).0
                 == self.context.source.line_column(node.start_byte()).0
@@ -196,27 +197,27 @@ impl Checker<'_, '_> {
     /// `node.parent&.assignment?`.
     fn assignment_parent<'tree>(&self, node: Node<'tree>) -> Option<Node<'tree>> {
         node.parent()
-            .filter(|parent| matches!(parent.kind(), "assignment" | "operator_assignment"))
+            .filter(|parent| matches!(parent.kind_str(), "assignment" | "operator_assignment"))
     }
 
     /// `node.argument?`, answered with the call the node is an argument of.
     fn argument_owner<'tree>(&self, node: Node<'tree>) -> Option<Node<'tree>> {
         node.parent()
-            .filter(|parent| parent.kind() == "argument_list")
+            .filter(|parent| parent.kind_str() == "argument_list")
             .and_then(|list| list.parent())
-            .filter(|call| call.kind() == "call")
+            .filter(|call| call.kind_str() == "call")
     }
 }
 
 /// `rhs.child_nodes.first` for the node kinds upstream unwraps: a parenthesized group and the two
 /// logical operators.
 fn leading_child(node: Node<'_>) -> Option<Node<'_>> {
-    match node.kind() {
+    match node.kind_str() {
         "parenthesized_statements" => node.named_child(0),
         "binary" => {
-            let operator = node.child_by_field_name("operator")?;
-            matches!(operator.kind(), "&&" | "||" | "and" | "or")
-                .then(|| node.child_by_field_name("left"))
+            let operator = node.field("operator")?;
+            matches!(operator.kind_str(), "&&" | "||" | "and" | "or")
+                .then(|| node.field("left"))
                 .flatten()
         }
         _ => None,
@@ -228,7 +229,7 @@ fn assignment_or_operator_method(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node.parent();
     while let Some(candidate) = current {
         if matches!(
-            candidate.kind(),
+            candidate.kind_str(),
             "assignment" | "operator_assignment" | "binary"
         ) {
             return Some(candidate);
@@ -241,17 +242,17 @@ fn assignment_or_operator_method(node: Node<'_>) -> Option<Node<'_>> {
 /// The call a node sits directly inside, which is what `parent.send_type?` asks for.
 fn send_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
-    match parent.kind() {
+    match parent.kind_str() {
         "call" | "binary" | "unary" | "element_reference" => Some(parent),
-        "argument_list" => parent.parent().filter(|call| call.kind() == "call"),
+        "argument_list" => parent.parent().filter(|call| call.kind_str() == "call"),
         _ => None,
     }
 }
 
 fn last_argument<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     arguments
         .named_children(&mut arguments.walk())
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .last()
 }

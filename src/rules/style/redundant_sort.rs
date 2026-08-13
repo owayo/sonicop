@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "element_reference"]) {
         let Some(found) = redundant_sort(context, node) else {
             continue;
         };
-        let Some(selector) = found.sort.child_by_field_name("method") else {
+        let Some(selector) = found.sort.field("method") else {
             continue;
         };
         let suggestion = format!(
@@ -80,10 +81,10 @@ struct Found<'tree> {
 }
 
 fn redundant_sort<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Found<'tree>> {
-    let (receiver, wants_first, accessor_start, removed_from) = match node.kind() {
+    let (receiver, wants_first, accessor_start, removed_from) = match node.kind_str() {
         // `sorted[0]` is a call to `:[]` upstream, whose selector is the bracket.
         "element_reference" => {
-            let object = node.child_by_field_name("object")?;
+            let object = node.field("object")?;
             let indices = super::nodes::children(node);
             let index = match indices.as_slice() {
                 [_, only] => *only,
@@ -94,13 +95,13 @@ fn redundant_sort<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option
             (object, wants_first, bracket, bracket)
         }
         _ => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let method = node.child_by_field_name("method")?;
+            let receiver = node.field("receiver")?;
+            let method = node.field("method")?;
             let arguments = node
-                .child_by_field_name("arguments")
+                .field("arguments")
                 .map(super::nodes::children)
                 .unwrap_or_default();
             let wants_first = match (context.source.node_text(method), arguments.as_slice()) {
@@ -110,22 +111,22 @@ fn redundant_sort<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option
                 _ => return None,
             };
             let dot = node
-                .child_by_field_name("operator")
+                .field("operator")
                 .map_or_else(|| method.start_byte(), |dot| dot.start_byte());
             (receiver, wants_first, method.start_byte(), dot)
         }
     };
     // The sorting call, which may carry a block of its own.
     let sort = receiver;
-    if sort.kind() != "call" {
+    if sort.kind_str() != "call" {
         return None;
     }
-    let method = sort.child_by_field_name("method")?;
+    let method = sort.field("method")?;
     let arguments = sort
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map(super::nodes::children)
         .unwrap_or_default();
-    let blocked = sort.child_by_field_name("block").is_some();
+    let blocked = sort.field("block").is_some();
     let sorter = match context.source.node_text(method) {
         // `sort` takes no arguments of its own; with a block it is an `any_block` upstream.
         "sort" if arguments.is_empty() => "sort",
@@ -150,10 +151,10 @@ fn redundant_sort<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option
 /// `with_logical_operator?`: the accessor stands next to an `and` or an `or`.
 fn logical_operator<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
-    if parent.kind() != "binary" {
+    if parent.kind_str() != "binary" {
         return None;
     }
-    let operator = parent.child_by_field_name("operator")?;
+    let operator = parent.field("operator")?;
     matches!(
         context.source.node_text(operator),
         "&&" | "||" | "and" | "or"

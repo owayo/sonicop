@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid using spaces around a method call operator.";
 
@@ -12,12 +13,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.dot? || node.safe_navigation?`: a call written with `::` is neither, so the space
         // after its operator is nobody's business here.
         let Some(operator) = node
-            .child_by_field_name("operator")
+            .field("operator")
             .filter(|operator| matches!(context.source.node_text(*operator), "." | "&."))
         else {
             continue;
         };
-        if let Some(receiver) = node.child_by_field_name("receiver") {
+        if let Some(receiver) = node.field("receiver") {
             check_space(
                 context,
                 receiver.end_byte(),
@@ -41,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let (Some(colons), Some(name)) =
-            (child_of_kind(node, "::"), node.child_by_field_name("name"))
+            (child_of_kind(node, "::"), node.field("name"))
         else {
             continue;
         };
@@ -52,11 +53,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `node.loc.selector`, falling back to the opening parenthesis for the `Proc#call` shorthand
 /// `foo.()`, which carries no selector at all.
 fn selector<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("method")
+    node.field("method")
         .filter(|method| !method.byte_range().is_empty())
         .or_else(|| {
-            node.child_by_field_name("arguments")
-                .filter(|arguments| arguments.kind() == "argument_list")
+            node.field("arguments")
+                .filter(|arguments| arguments.kind_str() == "argument_list")
                 .and_then(|arguments| arguments.child(0))
         })
 }
@@ -64,7 +65,7 @@ fn selector<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 /// Whether the constant path is being assigned to, which makes it a `casgn` upstream. Only the
@@ -73,8 +74,8 @@ fn is_assignment_target(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
-        "assignment" | "operator_assignment" => parent.child_by_field_name("left") == Some(node),
+    match parent.kind_str() {
+        "assignment" | "operator_assignment" => parent.field("left") == Some(node),
         "left_assignment_list" | "rest_assignment" => true,
         _ => false,
     }

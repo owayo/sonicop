@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::{body_statements, final_pos};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -17,8 +18,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of_any(&["block", "do_block"]) {
         let Some(parameters) = node
-            .child_by_field_name("parameters")
-            .filter(|parameters| parameters.kind() == "block_parameters")
+            .field("parameters")
+            .filter(|parameters| parameters.kind_str() == "block_parameters")
         else {
             continue;
         };
@@ -145,7 +146,7 @@ fn pipes<'tree>(parameters: Node<'tree>) -> (Option<Node<'tree>>, Option<Node<'t
     let mut cursor = parameters.walk();
     let bars: Vec<Node<'tree>> = parameters
         .children(&mut cursor)
-        .filter(|child| child.kind() == "|")
+        .filter(|child| child.kind_str() == "|")
         .collect();
     match bars.len() {
         0 | 1 => (None, None),
@@ -157,7 +158,7 @@ fn block_arguments<'tree>(parameters: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = parameters.walk();
     parameters
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }
 
@@ -165,7 +166,7 @@ fn block_arguments<'tree>(parameters: Node<'tree>) -> Vec<Node<'tree>> {
 fn each_argument<'tree>(arguments: &[Node<'tree>]) -> Vec<Node<'tree>> {
     let mut flattened = Vec::new();
     for argument in arguments {
-        if argument.kind() == "destructured_parameter" {
+        if argument.kind_str() == "destructured_parameter" {
             flattened.extend(each_argument(&block_arguments(*argument)));
         }
         flattened.push(*argument);
@@ -185,7 +186,7 @@ fn last_end_inside_pipes(text: &str, parameters: Node<'_>, last: Node<'_>) -> us
 
 /// `block.body.source_range.begin_pos`: where the first statement of the block starts.
 fn body_start(node: Node<'_>) -> Option<usize> {
-    let body = node.child_by_field_name("body")?;
+    let body = node.field("body")?;
     body_statements(body)
         .first()
         .map(tree_sitter::Node::start_byte)

@@ -8,6 +8,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -63,9 +64,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// without one does not have.
 fn left_parenthesis<'tree>(definition: Node<'tree>) -> Option<Node<'tree>> {
     definition
-        .child_by_field_name("parameters")?
+        .field("parameters")?
         .child(0)
-        .filter(|child| child.kind() == "(")
+        .filter(|child| child.kind_str() == "(")
 }
 
 fn base_description(style: &str) -> &'static str {

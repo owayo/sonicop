@@ -4,6 +4,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
 use super::node_equality::identical;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Duplicate `elsif` condition detected.";
 
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `while node.if? || node.elsif?`: the chain an `if` opens, which upstream walks as nested
         // `if` nodes. An `unless` has neither keyword and never enters the loop.
         while let Some(link) = current {
-            let Some(condition) = link.child_by_field_name("condition") else {
+            let Some(condition) = link.field("condition") else {
                 break;
             };
             if seen
@@ -25,8 +26,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
             seen.push(condition);
             current = link
-                .child_by_field_name("alternative")
-                .filter(|alternative| alternative.kind() == "elsif");
+                .field("alternative")
+                .filter(|alternative| alternative.kind_str() == "elsif");
         }
     }
 }

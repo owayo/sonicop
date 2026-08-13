@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range, string_text};
 
 use super::literals::{is_constant, literal_type};
+use crate::rules::node_ext::NodeExt;
 
 /// The ciphers whose name is not followed by a key size, so that `OpenSSL::Cipher::BF.new`
 /// translates to a name with nothing appended.
@@ -15,14 +16,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !is_plain_send(call, context) {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         let method = context.source.node_text(selector);
         if !matches!(method, "new" | "digest") {
             continue;
         }
-        let Some(receiver) = call.child_by_field_name("receiver") else {
+        let Some(receiver) = call.field("receiver") else {
             continue;
         };
         let call_arguments = arguments(call);
@@ -54,7 +55,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(double_colon) = separator(receiver, name) else {
             continue;
         };
-        let Some(dot) = call.child_by_field_name("operator") else {
+        let Some(dot) = call.field("operator") else {
             continue;
         };
         offenses.push(
@@ -97,29 +98,29 @@ fn openssl_algorithm<'tree>(
     receiver: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    if receiver.kind() != "scope_resolution" {
+    if receiver.kind_str() != "scope_resolution" {
         return None;
     }
-    let name = receiver.child_by_field_name("name")?;
+    let name = receiver.field("name")?;
     if context.source.node_text(name) == "Digest" {
         return None;
     }
-    let scope = receiver.child_by_field_name("scope")?;
-    if scope.kind() != "scope_resolution" {
+    let scope = receiver.field("scope")?;
+    if scope.kind_str() != "scope_resolution" {
         return None;
     }
-    let library = scope.child_by_field_name("name")?;
+    let library = scope.field("name")?;
     if !matches!(context.source.node_text(library), "Cipher" | "Digest") {
         return None;
     }
     // `{nil? cbase}` in front of `OpenSSL`: the constant has to be reached from the top level.
-    let root = scope.child_by_field_name("scope")?;
-    let named = match root.kind() {
+    let root = scope.field("scope")?;
+    let named = match root.kind_str() {
         "constant" => context.source.node_text(root) == "OpenSSL",
         "scope_resolution" => {
-            root.child_by_field_name("scope").is_none()
+            root.field("scope").is_none()
                 && root
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|inner| context.source.node_text(inner) == "OpenSSL")
         }
         _ => false,
@@ -131,7 +132,7 @@ fn openssl_algorithm<'tree>(
 /// fold into the replacement string.
 fn is_opaque(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "instance_variable" | "global_variable" | "class_variable" | "call" | "identifier"
     ) || is_constant(node, context)
 }

@@ -6,10 +6,11 @@ use crate::rules::send_node::{
     arguments, heredoc_body, is_plain_send, is_string, named_children, string_text,
     top_level_constant,
 };
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "open" || !is_plain_send(node, context) {
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `(send ${nil? (const {nil? cbase} :URI)} :open $_ ...)`: `Kernel#open` and `URI.open`
         // alone. Any other receiver names a method that cannot start a process.
-        let receiver = node.child_by_field_name("receiver");
+        let receiver = node.field("receiver");
         if receiver.is_some_and(|receiver| !top_level_constant(receiver, "URI", context)) {
             continue;
         }
@@ -47,7 +48,7 @@ fn safe(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if is_string(node, context) {
         return safe_argument(string_text(node, context));
     }
-    match node.kind() {
+    match node.kind_str() {
         // A string that interpolates is judged by the literal text it opens with; one that opens
         // with the interpolation itself has no literal part and stays unsafe.
         "string" => safe_argument(&leading_literal(node, context)),
@@ -61,10 +62,10 @@ fn safe(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         // `open("| " + command)` is judged by the literal it concatenates onto, which is the only
         // shape `concatenated_string?` accepts.
         "binary" => {
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "+")
                 && node
-                    .child_by_field_name("left")
+                    .field("left")
                     .is_some_and(|left| is_string(left, context) && safe(left, context))
         }
         _ => false,
@@ -81,7 +82,7 @@ fn safe_argument(argument: &str) -> bool {
 fn leading_literal(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut text = String::new();
     for child in named_children(node) {
-        if child.kind() == "interpolation" {
+        if child.kind_str() == "interpolation" {
             break;
         }
         text.push_str(context.source.node_text(child));
@@ -98,7 +99,7 @@ fn heredoc_leading_text(beginning: Node<'_>, context: &RuleContext<'_>) -> Optio
     let boundary = |kinds: &[&str]| {
         children
             .iter()
-            .find(|child| kinds.contains(&child.kind()))
+            .find(|child| kinds.contains(&child.kind_str()))
             .map_or(body.end_byte(), Node::start_byte)
     };
     let content = context

@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{
     FILE_KEYWORD, arguments, is_plain_send, is_string, named_children, string_text,
 };
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let assignments: Vec<Node<'_>> = context
@@ -21,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     let target = context.target_ruby_version().to_string();
     for node in assignments {
-        let Some(version) = node.child_by_field_name("right") else {
+        let Some(version) = node.field("right") else {
             continue;
         };
         if dynamic_version(version, context) {
@@ -43,13 +44,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(send _ :required_ruby_version= _)`. A bare `required_ruby_version = ...` assigns a local
 /// variable rather than the specification, so the assignment has to go through a receiver.
 fn assigns_required_ruby_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(left) = node.child_by_field_name("left") else {
+    let Some(left) = node.field("left") else {
         return false;
     };
-    left.kind() == "call"
+    left.kind_str() == "call"
         && is_plain_send(left, context)
         && left
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "required_ruby_version")
 }
 
@@ -61,7 +62,7 @@ fn dynamic_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     // `Gem::Requirement.new(...)` is a call and still readable -- but *within* it, any call or
     // variable at any depth is enough.
     if is_variable(node, context)
-        || (is_send(node, context) && node.child_by_field_name("receiver").is_none())
+        || (is_send(node, context) && node.field("receiver").is_none())
     {
         return true;
     }
@@ -79,22 +80,22 @@ fn dynamic_descendant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn is_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "call" && is_plain_send(node, context)
+    node.kind_str() == "call" && is_plain_send(node, context)
 }
 
 /// `RuboCop::AST::Node::VARIABLES`, plus the bare name upstream's parser has already resolved into
 /// either a local variable or a receiverless call. Which of the two it is does not matter -- both
 /// are dynamic -- but the name a call is made *through* is no node of its own there.
 fn is_variable(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "instance_variable" | "class_variable" | "global_variable" => true,
         // `__FILE__` is not a name at all by the time a cop sees it: the parser has already put the
         // path it stood for in its place.
         "identifier" => {
             context.source.node_text(node) != FILE_KEYWORD
                 && node.parent().is_none_or(|parent| {
-                    parent.child_by_field_name("method") != Some(node)
-                        && parent.child_by_field_name("name") != Some(node)
+                    parent.field("method") != Some(node)
+                        && parent.field("name") != Some(node)
                 })
         }
         _ => false,
@@ -133,14 +134,14 @@ fn requirements<'tree>(
     if is_string(node, context) {
         return Some(Requirements::One(node));
     }
-    if node.kind() == "array" {
+    if node.kind_str() == "array" {
         let elements = named_children(node);
         return match elements.len() == 2 && elements.iter().all(|node| is_string(*node, context)) {
             true => Some(Requirements::Many(elements)),
             false => None,
         };
     }
-    if node.kind() == "call" && gem_requirement_new(node, context) {
+    if node.kind_str() == "call" && gem_requirement_new(node, context) {
         let elements: Vec<Node<'tree>> = arguments(node)
             .iter()
             .map(|argument| argument.first())
@@ -157,19 +158,19 @@ fn requirements<'tree>(
 /// spells the outer scope `nil?` here, so `::Gem::Requirement` is not this constant.
 fn gem_requirement_new(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "new")
     {
         return false;
     }
-    let Some(receiver) = node.child_by_field_name("receiver") else {
+    let Some(receiver) = node.field("receiver") else {
         return false;
     };
-    receiver.kind() == "scope_resolution"
+    receiver.kind_str() == "scope_resolution"
         && receiver
-            .child_by_field_name("name")
+            .field("name")
             .is_some_and(|name| context.source.node_text(name) == "Requirement")
-        && receiver.child_by_field_name("scope").is_some_and(|scope| {
-            scope.kind() == "constant" && context.source.node_text(scope) == "Gem"
+        && receiver.field("scope").is_some_and(|scope| {
+            scope.kind_str() == "constant" && context.source.node_text(scope) == "Gem"
         })
 }

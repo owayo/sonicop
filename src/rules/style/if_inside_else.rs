@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Convert `if` nested inside `else` to `elsif`.";
 
@@ -14,10 +15,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `ignore_node`: an `if` written inside one already being rewritten waits for the next pass.
     let mut ignored: Vec<Range<usize>> = Vec::new();
     for node in context.nodes_of_any(&["if", "elsif"]) {
-        let Some(alternative) = node.child_by_field_name("alternative") else {
+        let Some(alternative) = node.field("alternative") else {
             continue;
         };
-        if alternative.kind() != "else" {
+        if alternative.kind_str() != "else" {
             continue;
         }
         let statements = super::nodes::children(alternative);
@@ -25,10 +26,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `else_branch.if?`: an `unless` written in an `else` cannot become an `elsif`.
-        if !matches!(inner.kind(), "if" | "if_modifier") {
+        if !matches!(inner.kind_str(), "if" | "if_modifier") {
             continue;
         }
-        let modifier = inner.kind() == "if_modifier";
+        let modifier = inner.kind_str() == "if_modifier";
         if (allow_modifier && modifier)
             || (!modifier && comments_between_else_and_if(context, alternative, *inner))
         {
@@ -69,7 +70,7 @@ fn autocorrect(
             safe: true,
         }]);
     }
-    let condition = inner.child_by_field_name("condition")?;
+    let condition = inner.field("condition")?;
     let else_keyword = alternative.child(0)?;
     let mut edits = vec![Edit {
         start: else_keyword.start_byte(),
@@ -77,10 +78,10 @@ fn autocorrect(
         replacement: format!("elsif {}", context.source.node_text(condition)),
         safe: true,
     }];
-    if inner.kind() == "if_modifier" {
+    if inner.kind_str() == "if_modifier" {
         // `correct_to_elsif_from_modifier_form`: the condition moves to the `elsif`, so what was
         // written after the body goes.
-        let body = inner.child_by_field_name("body")?;
+        let body = inner.field("body")?;
         edits.push(remove(body.end_byte()..condition.end_byte()));
         return Some(edits);
     }
@@ -127,7 +128,7 @@ fn branch_range(
     inner: Node<'_>,
     condition: Node<'_>,
 ) -> Option<Range<usize>> {
-    let consequence = inner.child_by_field_name("consequence")?;
+    let consequence = inner.field("consequence")?;
     let statements = super::nodes::children(consequence);
     let first = statements.first()?;
     let last = statements.last()?;
@@ -169,7 +170,7 @@ fn comments_between_else_and_if(
 fn keyword<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == "if")
+        .find(|child| !child.is_named() && child.kind_str() == "if")
 }
 
 fn end_keyword<'t>(node: Node<'t>) -> Option<Node<'t>> {
@@ -178,14 +179,14 @@ fn end_keyword<'t>(node: Node<'t>) -> Option<Node<'t>> {
     children
         .into_iter()
         .rev()
-        .find(|child| !child.is_named() && child.kind() == "end")
+        .find(|child| !child.is_named() && child.kind_str() == "end")
 }
 
 /// `then?`: the branch was introduced with the keyword rather than a line break.
 fn has_then(node: Node<'_>) -> bool {
-    node.child_by_field_name("consequence")
+    node.field("consequence")
         .and_then(|consequence| consequence.child(0))
-        .is_some_and(|first| !first.is_named() && first.kind() == "then")
+        .is_some_and(|first| !first.is_named() && first.kind_str() == "then")
 }
 
 /// `IfThenCorrector#replacement`: the same conditional written over lines.
@@ -209,22 +210,22 @@ fn if_then_written(
     indentation: &str,
     body_indent: &str,
 ) -> String {
-    let keyword = match node.kind() {
+    let keyword = match node.kind_str() {
         "elsif" => "elsif",
         "unless" => "unless",
         _ => "if",
     };
     let condition = node
-        .child_by_field_name("condition")
+        .field("condition")
         .map_or_else(String::new, |condition| {
             context.source.node_text(condition).to_owned()
         });
     let body = node
-        .child_by_field_name("consequence")
+        .field("consequence")
         .and_then(|consequence| statements_source(context, consequence))
         .unwrap_or_else(|| "nil".to_owned());
     // An `elsif` is written at the level of the `if` it continues rather than one deeper.
-    let leading = match node.kind() == "elsif" {
+    let leading = match node.kind_str() == "elsif" {
         true => indentation,
         false => "",
     };
@@ -238,10 +239,10 @@ fn else_written(
     indentation: &str,
     body_indent: &str,
 ) -> String {
-    let Some(alternative) = node.child_by_field_name("alternative") else {
+    let Some(alternative) = node.field("alternative") else {
         return "end".to_owned();
     };
-    if alternative.kind() == "elsif" {
+    if alternative.kind_str() == "elsif" {
         return if_then_written(context, alternative, indentation, body_indent);
     }
     let source = statements_source(context, alternative).unwrap_or_default();

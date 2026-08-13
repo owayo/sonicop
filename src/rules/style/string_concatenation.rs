@@ -8,6 +8,7 @@ use crate::engine::LiteralEncoding;
 use crate::rules::RuleContext;
 
 use super::literal::{self, Quoting};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Prefer string interpolation to string concatenation.";
 
@@ -81,18 +82,18 @@ fn operands<'tree>(
     if !is_plus(context, node) {
         return None;
     }
-    match node.kind() {
+    match node.kind_str() {
         "binary" => {
-            let left = node.child_by_field_name("left")?;
+            let left = node.field("left")?;
             match super::nodes::is_bare_jump(left) {
                 true => None,
-                false => Some((left, node.child_by_field_name("right")?)),
+                false => Some((left, node.field("right")?)),
             }
         }
         _ => {
-            let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+            let arguments = super::nodes::children(node.field("arguments")?);
             match arguments.as_slice() {
-                [only] => Some((node.child_by_field_name("receiver")?, *only)),
+                [only] => Some((node.field("receiver")?, *only)),
                 _ => None,
             }
         }
@@ -101,9 +102,9 @@ fn operands<'tree>(
 
 /// `plus_node?`, which does not care how many arguments the call carries.
 fn is_plus(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let selector = match node.kind() {
-        "binary" => node.child_by_field_name("operator"),
-        "call" => node.child_by_field_name("method"),
+    let selector = match node.kind_str() {
+        "binary" => node.field("operator"),
+        "call" => node.field("method"),
         _ => None,
     };
     selector.is_some_and(|selector| context.source.node_text(selector) == "+")
@@ -124,7 +125,7 @@ fn topmost_plus<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Node<'tr
 
 fn upstream_parent(node: Node<'_>) -> Option<Node<'_>> {
     let parent = node.parent()?;
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent(),
         _ => Some(parent),
     }
@@ -171,7 +172,7 @@ fn uncorrectable(heredocs: &Heredocs, part: Node<'_>) -> bool {
 fn has_block_descendant(part: Node<'_>) -> bool {
     let mut stack = vec![part];
     while let Some(node) = stack.pop() {
-        if matches!(node.kind(), "block" | "do_block")
+        if matches!(node.kind_str(), "block" | "do_block")
             && node.parent().is_some_and(|parent| parent.id() != part.id())
         {
             return true;
@@ -208,7 +209,7 @@ fn replacement(context: &RuleContext<'_>, parts: &[Node<'_>], encoding: LiteralE
 
 /// `adjust_str`: what one part contributes to the interpolated string.
 fn adjust_str(context: &RuleContext<'_>, node: Node<'_>, encoding: LiteralEncoding) -> String {
-    match node.kind() {
+    match node.kind_str() {
         "string" | "character" => match interpolated(context, node) {
             // A literal carrying an interpolation is a `dstr`, whose children are spelled out one
             // by one rather than through the value of the whole.
@@ -275,7 +276,7 @@ fn plain_body<'a>(
     node: Node<'_>,
 ) -> Option<(&'a str, Quoting, Vec<char>)> {
     // `?a` is a one-character string with the full set of escapes and no delimiter to escape.
-    if node.kind() == "character" {
+    if node.kind_str() == "character" {
         return Some((
             &context.source.node_text(node)[1..],
             Quoting::Double,
@@ -323,7 +324,7 @@ fn interpolated<'tree>(
 ) -> Option<Interpolated<'tree>> {
     let mut cursor = node.walk();
     let children: Vec<Node<'tree>> = node.children(&mut cursor).collect();
-    if !children.iter().any(|child| child.kind() == "interpolation") {
+    if !children.iter().any(|child| child.kind_str() == "interpolation") {
         return None;
     }
     let (first, last) = (children.first()?, children.last()?);
@@ -340,7 +341,7 @@ fn interpolated<'tree>(
     let mut pieces: Vec<Piece<'tree>> = Vec::new();
     let mut run: Option<Range<usize>> = None;
     for child in children {
-        match child.kind() {
+        match child.kind_str() {
             "interpolation" => {
                 if let Some(range) = run.take() {
                     pieces.push(Piece::Text(range));
@@ -410,13 +411,13 @@ impl Heredocs {
     }
 
     fn is_heredoc(&self, node: Node<'_>) -> bool {
-        node.kind() == "heredoc_beginning"
+        node.kind_str() == "heredoc_beginning"
     }
 
     /// `str_type?`: one `str` node, which means nothing interpolated and nothing spread over more
     /// than one line.
     fn is_str(&self, context: &RuleContext<'_>, node: Node<'_>) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "string" => interpolated(context, node).is_none() && written_on_one_line(context, node),
             "character" => true,
             "heredoc_beginning" => self.plain.get(&node.id()).copied().unwrap_or(false),
@@ -471,7 +472,7 @@ fn body_is_str(context: &RuleContext<'_>, body: Node<'_>) -> bool {
     let mut cursor = body.walk();
     let end = body
         .children(&mut cursor)
-        .find(|child| child.kind() == "heredoc_end")
+        .find(|child| child.kind_str() == "heredoc_end")
         .map_or(body.end_byte(), |terminator| terminator.start_byte());
     let text = &context.source.text()[body.start_byte()..end];
     // The body opens with the newline that closed the line the marker was written on.
@@ -490,7 +491,7 @@ fn physical_lines(content: &str) -> usize {
 fn has_interpolation_descendant(node: Node<'_>) -> bool {
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
-        if current.kind() == "interpolation" {
+        if current.kind_str() == "interpolation" {
             return true;
         }
         crate::rules::push_named_children(current, &mut stack);

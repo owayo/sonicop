@@ -3,13 +3,14 @@ use tree_sitter::Node;
 use super::support::{Parameter, ParameterKind, parameters};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_READER: &str = "Do not prefix reader method names with `get_`.";
 const MSG_WRITER: &str = "Do not prefix writer method names with `set_`.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(name_node) = node.child_by_field_name("name") else {
+        let Some(name_node) = node.field("name") else {
             continue;
         };
         let name = context.source.node_text(name_node);
@@ -34,7 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn arguments<'tree>(node: Node<'tree>) -> Vec<Parameter<'tree>> {
-    node.child_by_field_name("parameters")
+    node.field("parameters")
         .map(parameters)
         .unwrap_or_default()
 }

@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -11,7 +12,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "both".to_owned());
 
     for node in context.nodes_of_any(&["if", "if_modifier"]) {
-        let modifier = node.kind() == "if_modifier";
+        let modifier = node.kind_str() == "if_modifier";
         // `correct_style?`: each style leaves one of the two forms alone.
         if (style == "prefix" && modifier) || (style == "postfix" && !modifier) {
             continue;
@@ -20,13 +21,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !modifier && has_else(node) {
             continue;
         }
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let Some(negation) = single_negative(context, condition) else {
             continue;
         };
-        let Some(operand) = negation.child_by_field_name("operand") else {
+        let Some(operand) = negation.field("operand") else {
             continue;
         };
         let Some(keyword) = super::conditional::token(node, &["if"]) else {
@@ -65,21 +66,21 @@ fn single_negative<'tree>(
     let mut current = condition;
     // `condition = condition.children.last while condition.begin_type?`, with `(begin)` -- an
     // empty condition -- excluded before the loop even starts.
-    while current.kind() == "parenthesized_statements" {
+    while current.kind_str() == "parenthesized_statements" {
         current = *super::nodes::children(current).last()?;
     }
-    if current.kind() != "unary" {
+    if current.kind_str() != "unary" {
         return None;
     }
-    let operator = current.child_by_field_name("operator")?;
+    let operator = current.field("operator")?;
     if !matches!(context.source.node_text(operator), "!" | "not") {
         return None;
     }
-    let operand = current.child_by_field_name("operand")?;
+    let operand = current.field("operand")?;
     // `!(send _ :!)`: `!!x` negates a negation and is left alone.
-    if operand.kind() == "unary"
+    if operand.kind_str() == "unary"
         && operand
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|inner| matches!(context.source.node_text(inner), "!" | "not"))
     {
         return None;
@@ -90,5 +91,5 @@ fn single_negative<'tree>(
 fn has_else(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "else" | "elsif"))
+        .any(|child| matches!(child.kind_str(), "else" | "elsif"))
 }

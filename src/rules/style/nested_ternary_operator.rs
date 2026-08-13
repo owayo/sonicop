@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Ternary operators must not be nested. Prefer `if` or `else` constructs instead.";
 
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let nested: Vec<Node<'_>> = super::nodes::children(node)
             .into_iter()
             .flat_map(super::conditional::descendants)
-            .filter(|descendant| descendant.kind() == "conditional")
+            .filter(|descendant| descendant.kind_str() == "conditional")
             .collect();
         for descendant in nested {
             // `add_offense` keeps one offense per range, so a ternary reached from two enclosing
@@ -53,7 +54,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// what another cop edits inside the branches survives.
 fn autocorrect(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<Edit>> {
     let question = super::conditional::token(node, &["?"])?.byte_range();
-    let consequence = node.child_by_field_name("consequence")?;
+    let consequence = node.field("consequence")?;
     let colon = super::conditional::token(node, &[":"])?.byte_range();
     let branch = context.source.node_text(consequence);
     Some(vec![

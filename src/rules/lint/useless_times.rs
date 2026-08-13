@@ -8,6 +8,7 @@ use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
 use super::ranges::whole_lines;
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         if call
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "times")
         {
             continue;
@@ -25,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // handed over as the block.
         // `(int $_)`: a sign written in front of a literal is folded into it by the parser, so
         // `-2.times` is a call on the integer `-2` rather than on a negation of `2`.
-        let Some(receiver) = call.child_by_field_name("receiver").and_then(signed_integer) else {
+        let Some(receiver) = call.field("receiver").and_then(signed_integer) else {
             continue;
         };
         let Ok(count) = context
@@ -48,7 +49,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             },
             _ => continue,
         };
-        let block = call.child_by_field_name("block");
+        let block = call.field("block");
         let node = block.map_or(call, |_| call);
         let range = node.byte_range();
         let mut offense =
@@ -62,7 +63,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(block-pass (sym $_))`: `1.times(&:foo)` names the block rather than writing one.
 fn block_pass_symbol<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    if node.kind() != "block_argument" {
+    if node.kind_str() != "block_argument" {
         return None;
     }
     symbol_name(named_children(node).first().copied()?, context)
@@ -83,8 +84,8 @@ fn correction(
         return None;
     }
     let body = block
-        .filter(|block| BLOCK_KINDS.contains(&block.kind()))
-        .and_then(|block| block.child_by_field_name("body"))
+        .filter(|block| BLOCK_KINDS.contains(&block.kind_str()))
+        .and_then(|block| block.field("body"))
         .filter(|body| !statements(*body).is_empty());
     // `never_process?`: a count below one, or a block with nothing in it, never runs at all.
     if count < 1 || (block.is_some() && body.is_none()) {
@@ -104,7 +105,7 @@ fn correction(
             safe: true,
         });
     }
-    let block = block.filter(|block| BLOCK_KINDS.contains(&block.kind()))?;
+    let block = block.filter(|block| BLOCK_KINDS.contains(&block.kind_str()))?;
     let body = body?;
     reduce_to_body(node, block, body, context, locals)
 }
@@ -121,8 +122,8 @@ fn reduce_to_body(
     // `|;a|` declares a block-local variable, which is a `shadowarg` upstream: it counts as an
     // argument the body may read but is no name the count could be substituted for.
     if block
-        .child_by_field_name("parameters")
-        .and_then(|parameters| parameters.child_by_field_name("locals"))
+        .field("parameters")
+        .and_then(|parameters| parameters.field("locals"))
         .is_some()
     {
         return None;
@@ -130,7 +131,7 @@ fn reduce_to_body(
     let args = BlockArgs::of(block, context, locals);
     let parameter = match &args {
         BlockArgs::Written(params) if params.is_empty() => None,
-        BlockArgs::Written(params) if params.len() == 1 && params[0].kind() == "identifier" => {
+        BlockArgs::Written(params) if params.len() == 1 && params[0].kind_str() == "identifier" => {
             Some(context.source.node_text(params[0]))
         }
         // More than one parameter, or one that cannot be substituted for, leaves the body
@@ -222,13 +223,13 @@ fn orphans_loop_control_keyword(node: Node<'_>) -> bool {
 
 fn walk_keywords(node: Node<'_>, found: &mut bool) {
     for child in named_children(node) {
-        if matches!(child.kind(), "next" | "break" | "redo") {
+        if matches!(child.kind_str(), "next" | "break" | "redo") {
             *found = true;
             return;
         }
-        if BLOCK_KINDS.contains(&child.kind())
+        if BLOCK_KINDS.contains(&child.kind_str())
             || matches!(
-                child.kind(),
+                child.kind_str(),
                 "lambda" | "while" | "until" | "for" | "while_modifier" | "until_modifier"
             )
         {
@@ -243,9 +244,9 @@ fn walk_keywords(node: Node<'_>, found: &mut bool) {
 
 /// `block_reassigns_arg?`: an assignment to the parameter makes `0` the wrong substitution.
 fn reassigns(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
-    if node.kind() == "assignment"
-        && node.child_by_field_name("left").is_some_and(|left| {
-            left.kind() == "identifier" && context.source.node_text(left) == name
+    if node.kind_str() == "assignment"
+        && node.field("left").is_some_and(|left| {
+            left.kind_str() == "identifier" && context.source.node_text(left) == name
         })
     {
         return true;
@@ -269,18 +270,18 @@ fn own_line(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// `node.parent&.send_type?`: the call is the receiver or an argument of another call.
 fn is_upstream_send(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "call" | "binary" | "unary" | "element_reference"
     )
 }
 
 /// The integer a receiver is, with a sign the parser folded into it taken along.
 fn signed_integer<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "integer" => Some(node),
         "unary" => node
-            .child_by_field_name("operand")
-            .filter(|operand| operand.kind() == "integer")
+            .field("operand")
+            .filter(|operand| operand.kind_str() == "integer")
             .map(|_| node),
         _ => None,
     }

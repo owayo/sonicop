@@ -10,6 +10,7 @@ use tree_sitter::Node;
 use crate::rules::RuleContext;
 
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds `Node#conditional?` names.
 pub(super) const CONDITIONALS: &[&str] = &[
@@ -37,17 +38,15 @@ pub(super) fn in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         if is_negation(parent, context) || is_condition_of(parent, current) {
             return true;
         }
-        let carries = match parent.kind() {
+        let carries = match parent.kind_str() {
             // `(cond)` is a `begin` upstream, and only one holding a single statement recurses.
             "parenthesized_statements" => statements(parent).len() == 1,
-            "binary" => parent
-                .child_by_field_name("operator")
-                .is_some_and(|operator| {
-                    matches!(
-                        context.source.node_text(operator),
-                        "&&" | "||" | "and" | "or"
-                    )
-                }),
+            "binary" => parent.field("operator").is_some_and(|operator| {
+                matches!(
+                    context.source.node_text(operator),
+                    "&&" | "||" | "and" | "or"
+                )
+            }),
             // A range in a condition is a flip-flop, whose two ends are conditions of their own.
             "range" => true,
             _ => false,
@@ -61,17 +60,17 @@ pub(super) fn in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// Whether `child` is what the parser handed to `check_condition` for `parent`.
 fn is_condition_of(parent: Node<'_>, child: Node<'_>) -> bool {
-    CONDITIONALS.contains(&parent.kind())
+    CONDITIONALS.contains(&parent.kind_str())
         && parent
-            .child_by_field_name("condition")
+            .field("condition")
             .is_some_and(|condition| condition.id() == child.id())
 }
 
 /// `!x` and `not x`, the two forms `check_condition` is called for outside a conditional.
 fn is_negation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }
 
@@ -79,7 +78,7 @@ fn is_negation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 pub(super) fn has_conditional_ancestor(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if CONDITIONALS.contains(&ancestor.kind()) {
+        if CONDITIONALS.contains(&ancestor.kind_str()) {
             return true;
         }
         current = ancestor.parent();

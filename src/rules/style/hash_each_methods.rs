@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::lint::node_equality::identical;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `%s` instead of `%s`.";
 /// `"#{MSG.chop} and remove the unused `%<unused_code>s` block argument."`.
@@ -42,7 +43,7 @@ const LITERAL_KINDS: &[&str] = &[
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of("call") {
-        match node.child_by_field_name("block") {
+        match node.field("block") {
             Some(block) => on_block(context, offenses, &locals, node, block),
             None => on_block_pass(context, offenses, node),
         }
@@ -77,8 +78,8 @@ fn on_block(
 fn handleable(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     // `use_array_converter_method_as_preceding?`: `hash.to_a.each { |k, v| }` walks an array of
     // pairs, where both block arguments mean something else.
-    if let Some(preceding) = node.child_by_field_name("receiver") {
-        if preceding.kind() == "call"
+    if let Some(preceding) = node.field("receiver") {
+        if preceding.kind_str() == "call"
             && method_name(context, preceding)
                 .is_some_and(|name| ARRAY_CONVERTER_METHODS.contains(&name))
         {
@@ -91,13 +92,13 @@ fn handleable(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if hash_mutated(context, node, root) {
         return false;
     }
-    !LITERAL_KINDS.contains(&root.kind()) || root.kind() == "hash"
+    !LITERAL_KINDS.contains(&root.kind_str()) || root.kind_str() == "hash"
 }
 
 /// `root_receiver`: the leftmost receiver of the chain.
 fn root_receiver<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let mut receiver = node.child_by_field_name("receiver")?;
-    while let Some(inner) = receiver.child_by_field_name("receiver") {
+    let mut receiver = node.field("receiver")?;
+    while let Some(inner) = receiver.field("receiver") {
         receiver = inner;
     }
     Some(receiver)
@@ -107,15 +108,15 @@ fn root_receiver<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// `each_value` would not let it do.
 fn hash_mutated(context: &RuleContext<'_>, node: Node<'_>, root: Node<'_>) -> bool {
     send_node::any_descendant(node, &mut |candidate| {
-        let target = match candidate.kind() {
+        let target = match candidate.kind_str() {
             // `h[k] = v` is `(send h :[]= k v)`: this builder does not emit `index` nodes.
             "assignment" => candidate
-                .child_by_field_name("left")
-                .filter(|left| left.kind() == "element_reference")
-                .and_then(|left| left.child_by_field_name("object")),
+                .field("left")
+                .filter(|left| left.kind_str() == "element_reference")
+                .and_then(|left| left.field("object")),
             "call" => method_name(context, candidate)
                 .filter(|name| *name == "[]=")
-                .and_then(|_| candidate.child_by_field_name("receiver")),
+                .and_then(|_| candidate.field("receiver")),
             _ => None,
         };
         target.is_some_and(|target| identical(target, root, context))
@@ -130,8 +131,8 @@ fn kv_each<'tree>(
     if method_name(context, node)? != "each" || !send_node::arguments(node).is_empty() {
         return None;
     }
-    let inner = node.child_by_field_name("receiver")?;
-    if inner.kind() != "call" || !send_node::arguments(inner).is_empty() {
+    let inner = node.field("receiver")?;
+    if inner.kind_str() != "call" || !send_node::arguments(inner).is_empty() {
         return None;
     }
     match method_name(context, inner)? {
@@ -151,9 +152,9 @@ fn register_kv_offense(
     method: &str,
 ) -> bool {
     let (Some(parent_receiver), Some(inner_selector), Some(selector)) = (
-        inner.child_by_field_name("receiver"),
-        inner.child_by_field_name("method"),
-        node.child_by_field_name("method"),
+        inner.field("receiver"),
+        inner.field("method"),
+        node.field("method"),
     ) else {
         return false;
     };
@@ -171,7 +172,7 @@ fn register_kv_offense(
     // `correct_key_value_each`: the whole chain is rewritten, and the dot the *outer* call was
     // written with is the one that survives.
     let dot = node
-        .child_by_field_name("operator")
+        .field("operator")
         .map_or(".", |operator| context.source.node_text(operator));
     let replacement = format!("{}{dot}{prefer}", context.source.node_text(parent_receiver));
     offenses.push(context.offense(message, range).corrected_by(Edit {
@@ -196,7 +197,7 @@ fn on_block_pass(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node: N
         return;
     };
     let block_pass = argument.first();
-    if block_pass.kind() != "block_argument" {
+    if block_pass.kind_str() != "block_argument" {
         return;
     }
     let symbol = send_node::named_children(block_pass);
@@ -207,9 +208,9 @@ fn on_block_pass(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node: N
         return;
     };
     let (Some(parent_receiver), Some(inner_selector), Some(selector)) = (
-        inner.child_by_field_name("receiver"),
-        inner.child_by_field_name("method"),
-        node.child_by_field_name("method"),
+        inner.field("receiver"),
+        inner.field("method"),
+        node.field("method"),
     ) else {
         return;
     };
@@ -233,8 +234,8 @@ fn kv_each_receiver<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str)> {
-    let inner = node.child_by_field_name("receiver")?;
-    if inner.kind() != "call" || !send_node::arguments(inner).is_empty() {
+    let inner = node.field("receiver")?;
+    if inner.kind_str() != "call" || !send_node::arguments(inner).is_empty() {
         return None;
     }
     match method_name(context, inner)? {
@@ -253,7 +254,7 @@ fn each_arguments<'tree>(
     if method_name(context, node)? != "each" || !send_node::arguments(node).is_empty() {
         return None;
     }
-    let parameters = send_node::named_children(block.child_by_field_name("parameters")?);
+    let parameters = send_node::named_children(block.field("parameters")?);
     match parameters.as_slice() {
         [key, value] => Some((*key, *value)),
         _ => None,
@@ -271,7 +272,7 @@ fn check_unused_block_args(
     key: Node<'_>,
     value: Node<'_>,
 ) {
-    let Some(body) = block.child_by_field_name("body") else {
+    let Some(body) = block.field("body") else {
         return;
     };
     let read = local_reads(context, locals, body);
@@ -287,7 +288,7 @@ fn check_unused_block_args(
     } else {
         return;
     };
-    let Some(selector) = node.child_by_field_name("method") else {
+    let Some(selector) = node.field("method") else {
         return;
     };
     let message = UNUSED_BLOCK_ARG_MSG
@@ -323,14 +324,14 @@ fn local_reads<'a>(
 ) -> Vec<&'a str> {
     let mut found = Vec::new();
     send_node::any_descendant(body, &mut |node| {
-        if node.kind() == "identifier" && locals.is_lvar(node) {
+        if node.kind_str() == "identifier" && locals.is_lvar(node) {
             found.push(context.source.node_text(node));
         }
         // `foo(bar:)` is `(pair (sym :bar) (lvar :bar))` once `bar` is a local, and the name a
         // block parameter binds always is one -- the grammar leaves the value unwritten, so the
         // read has no node of its own to find.
-        if node.kind() == "pair" && node.child_by_field_name("value").is_none() {
-            if let Some(key) = node.child_by_field_name("key") {
+        if node.kind_str() == "pair" && node.field("value").is_none() {
+            if let Some(key) = node.field("key") {
                 if let Some(name) = send_node::symbol_name(key, context) {
                     found.push(name);
                 }
@@ -343,11 +344,11 @@ fn local_reads<'a>(
 
 /// `unused_block_arg_exist?`.
 fn is_unused(context: &RuleContext<'_>, argument: Node<'_>, read: &[&str]) -> bool {
-    if argument.kind() == "destructured_parameter" {
+    if argument.kind_str() == "destructured_parameter" {
         // `each_descendant(:arg, :restarg)`: every name the destructuring binds.
         let mut names = Vec::new();
         send_node::any_descendant(argument, &mut |node| {
-            if node.kind() == "identifier" {
+            if node.kind_str() == "identifier" {
                 names.push(context.source.node_text(node));
             }
             false
@@ -370,11 +371,11 @@ fn allowed_receiver(context: &RuleContext<'_>, receiver: Node<'_>) -> bool {
 }
 
 fn receiver_name(context: &RuleContext<'_>, receiver: Node<'_>) -> String {
-    let inner = receiver.child_by_field_name("receiver");
+    let inner = receiver.field("receiver");
     if let Some(inner) = inner.filter(|inner| !is_constant(*inner)) {
         return receiver_name(context, inner);
     }
-    if receiver.kind() != "call" {
+    if receiver.kind_str() != "call" {
         return context.source.node_text(receiver).to_owned();
     }
     let name = method_name(context, receiver).unwrap_or_default();
@@ -385,7 +386,7 @@ fn receiver_name(context: &RuleContext<'_>, receiver: Node<'_>) -> String {
 }
 
 fn is_constant(node: Node<'_>) -> bool {
-    matches!(node.kind(), "constant" | "scope_resolution")
+    matches!(node.kind_str(), "constant" | "scope_resolution")
 }
 
 fn preferred(method: &str) -> String {
@@ -397,6 +398,6 @@ fn format_message(prefer: &str, current: &str) -> String {
 }
 
 fn method_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    node.child_by_field_name("method")
+    node.field("method")
         .map(|method| context.source.node_text(method))
 }

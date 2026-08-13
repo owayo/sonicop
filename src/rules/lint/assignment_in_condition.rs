@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_WITH_SAFE_ASSIGNMENT_ALLOWED: &str = "Use `==` if you meant to do a comparison or wrap the expression in parentheses to \
      indicate you meant to assign in a condition.";
@@ -37,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if post_condition_loop(node) {
             continue;
         }
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         traverse(condition, context, allow_safe, &mut reported, offenses);
@@ -46,10 +47,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `begin ... end while cond` is a `while_post` upstream, which the cop has no callback for.
 fn post_condition_loop(node: Node<'_>) -> bool {
-    matches!(node.kind(), "while_modifier" | "until_modifier")
+    matches!(node.kind_str(), "while_modifier" | "until_modifier")
         && node
-            .child_by_field_name("body")
-            .is_some_and(|body| body.kind() == "begin")
+            .field("body")
+            .is_some_and(|body| body.kind_str() == "begin")
 }
 
 /// What one node of a condition is, in terms of the node types upstream reasons about.
@@ -69,7 +70,7 @@ enum Shape {
 }
 
 fn shape(node: Node<'_>, context: &RuleContext<'_>) -> Shape {
-    match node.kind() {
+    match node.kind_str() {
         // `defined?(x = 1)`'s parentheses belong to the operator, so upstream has no `begin` node
         // between the two and the assignment is the condition itself. Write a space before them
         // and they are ordinary parentheses again.
@@ -80,27 +81,27 @@ fn shape(node: Node<'_>, context: &RuleContext<'_>) -> Shape {
         "block" | "do_block" | "lambda" => Shape::Block,
         // `super(...)` and `yield(...)` are calls here but nodes of their own upstream, so what
         // they are passed is still part of the condition.
-        "call" => match node.child_by_field_name("method") {
-            Some(method) if method.kind() == "super" => Shape::Other,
+        "call" => match node.field("method") {
+            Some(method) if method.kind_str() == "super" => Shape::Other,
             _ => call_unless_assignment_target(node),
         },
         // `a[i]` is a `send` of `[]`, but `a[i] = 1` is a `send` of `[]=` -- an assignment method,
         // whose subscripts upstream does walk.
         "element_reference" => call_unless_assignment_target(node),
         // `!x` and `-x` are sends; `defined?(x)` is a node of its own.
-        "unary" => match node.child_by_field_name("operator").map(|op| op.kind()) {
+        "unary" => match node.field("operator").map(|op| op.kind_str()) {
             Some("defined?") => Shape::Other,
             _ => Shape::Call,
         },
         // `&&` and `||` are `and` / `or` nodes upstream; every other operator is a send, except a
         // `=~` written against a regexp literal, which is a `match_with_lvasgn` -- the match can
         // bind local variables, so what stands on its right is still part of the condition.
-        "binary" => match node.child_by_field_name("operator").map(|op| op.kind()) {
+        "binary" => match node.field("operator").map(|op| op.kind_str()) {
             Some("&&" | "||" | "and" | "or") => Shape::Other,
             Some("=~")
                 if node
-                    .child_by_field_name("left")
-                    .is_some_and(|left| left.kind() == "regex") =>
+                    .field("left")
+                    .is_some_and(|left| left.kind_str() == "regex") =>
             {
                 Shape::Other
             }
@@ -122,12 +123,12 @@ fn match_operator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn defined_argument_parentheses(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent().filter(|parent| parent.kind() == "unary") else {
+    let Some(parent) = node.parent().filter(|parent| parent.kind_str() == "unary") else {
         return false;
     };
     let Some(operator) = parent
-        .child_by_field_name("operator")
-        .filter(|operator| operator.kind() == "defined?")
+        .field("operator")
+        .filter(|operator| operator.kind_str() == "defined?")
     else {
         return false;
     };
@@ -138,9 +139,9 @@ fn defined_argument_parentheses(node: Node<'_>) -> bool {
 /// `send` that does the assigning, whose children the walk goes on to visit.
 fn call_unless_assignment_target(node: Node<'_>) -> Shape {
     let target = node.parent().is_some_and(|parent| {
-        parent.kind() == "assignment"
+        parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| left.id() == node.id())
     });
     if target { Shape::Other } else { Shape::Call }
@@ -197,7 +198,7 @@ fn traverse(
 /// it is not what the condition tests.
 fn discarded(node: Node<'_>) -> bool {
     node.parent()
-        .filter(|parent| matches!(parent.kind(), "parenthesized_statements" | "interpolation"))
+        .filter(|parent| matches!(parent.kind_str(), "parenthesized_statements" | "interpolation"))
         .is_some_and(|parent| statements(parent).len() > 1)
 }
 
@@ -206,14 +207,14 @@ fn discarded(node: Node<'_>) -> bool {
 fn statements(node: Node<'_>) -> Vec<Node<'_>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "empty_statement" | "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "empty_statement" | "comment" | "heredoc_body"))
         .collect()
 }
 
 /// The `=` the offense is reported at, which is `loc.operator` upstream.
 fn assignment_operator<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == "=")
+    node.children(&mut cursor).find(|child| child.kind_str() == "=")
 }
 
 /// Wrapping the assignment in parentheses is the one correction: it says the assignment was meant.

@@ -9,6 +9,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::has_interpolation;
 
 /// `BASIC_LITERALS`: a literal whose value is the node itself.
@@ -53,7 +54,7 @@ const RECURSIVE_METHODS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<", "*
 /// Reachable from `style` too: `Style/YodaCondition` asks the same question of a comparison's two
 /// operands.
 pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         kind if BASIC.contains(&kind) => true,
         // `emit_file_line_as_literals`: the parser resolves these before a cop sees them, so what
         // reaches one is the `str` or the `int` they stood for rather than the keyword.
@@ -66,7 +67,7 @@ pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>)
         // `a && b` and `a || b` are `and`/`or` upstream, which recurse; every other binary operator
         // is a `send`, which recurses only for the ten that keep a literal literal.
         "binary" => {
-            let Some(operator) = node.child_by_field_name("operator") else {
+            let Some(operator) = node.field("operator") else {
                 return false;
             };
             let text = context.source.node_text(operator);
@@ -75,16 +76,16 @@ pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>)
         }
         // The parser folds a leading sign into the literal it precedes; `!x` stays a `send`.
         "unary" => {
-            let Some(operator) = node.child_by_field_name("operator") else {
+            let Some(operator) = node.field("operator") else {
                 return false;
             };
             matches!(context.source.node_text(operator), "-" | "+" | "!")
                 && node
-                    .child_by_field_name("operand")
+                    .field("operand")
                     .is_some_and(|operand| recursive_basic_literal(operand, context))
         }
         "call" => {
-            node.child_by_field_name("method")
+            node.field("method")
                 .is_some_and(|method| RECURSIVE_METHODS.contains(&context.source.node_text(method)))
                 && all_children(node, context)
         }
@@ -96,8 +97,8 @@ pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>)
 fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| child.kind() != "comment")
-        .all(|child| match child.kind() {
+        .filter(|child| child.kind_str() != "comment")
+        .all(|child| match child.kind_str() {
             // The parts a quoted literal is written from are not nodes upstream at all: the text
             // between the delimiters is the value, and only what is interpolated is a child.
             "string_content" | "escape_sequence" | "heredoc_content" => true,
@@ -114,7 +115,7 @@ fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 ///
 /// Reachable from `style` too, for the cops whose patterns pair a constant with a literal.
 pub(crate) fn is_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" | "scope_resolution" => true,
         "identifier" => context.source.node_text(node) == "__ENCODING__",
         _ => false,
@@ -130,7 +131,7 @@ pub(crate) fn is_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 ///
 /// Reachable from `style` too: telling a `str` from a `dstr` is what several Style cops branch on.
 pub(crate) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    Some(match node.kind() {
+    Some(match node.kind_str() {
         "integer" => "int",
         "float" => "float",
         "rational" => "rational",
@@ -160,11 +161,11 @@ pub(crate) fn literal_type(node: Node<'_>, context: &RuleContext<'_>) -> Option<
         // The parser folds a sign written before a numeric literal into the literal itself, so
         // `-1` is an `int` and only `-x` stays a call.
         "unary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             if !matches!(context.source.node_text(operator), "-" | "+") {
                 return None;
             }
-            let operand = node.child_by_field_name("operand")?;
+            let operand = node.field("operand")?;
             match literal_type(operand, context)? {
                 kind @ ("int" | "float" | "rational" | "complex") => kind,
                 _ => return None,
@@ -191,7 +192,7 @@ fn string_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
     let mut cursor = node.walk();
     let broken = node
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "string_content")
+        .filter(|child| child.kind_str() == "string_content")
         .any(|child| context.source.node_text(child).contains('\n'));
     if broken { "dstr" } else { "str" }
 }
@@ -208,7 +209,7 @@ fn heredoc_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
     let mut cursor = body.walk();
     let lines: usize = body
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "heredoc_content")
+        .filter(|child| child.kind_str() == "heredoc_content")
         .map(|child| context.source.node_text(child).matches('\n').count())
         .sum();
     if lines == 1 { "str" } else { "dstr" }
@@ -217,7 +218,7 @@ fn heredoc_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
 /// `irange` or `erange`, which the grammar spells with one node and an operator.
 fn range_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
     let exclusive = node
-        .child_by_field_name("operator")
+        .field("operator")
         .is_some_and(|operator| context.source.node_text(operator) == "...");
     if exclusive { "erange" } else { "irange" }
 }

@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{first_line_range, is_plain_send, literal_key, named_children};
 
 use super::support::{enclosing_specification, first_specification_variable};
+use crate::rules::node_ext::NodeExt;
 
 /// The names a specification can be reached by besides the block parameter it was opened with:
 /// upstream writes them into the pattern itself, so they match whether or not the file opens a
@@ -27,11 +28,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let variable = first_specification_variable(context);
     let mut assignments: Vec<Assignment<'_>> = Vec::new();
     for node in context.nodes_of("assignment") {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             continue;
         };
         // `spec.a, spec.b = 1, 2` assigns through one node per target.
-        let targets = match left.kind() {
+        let targets = match left.kind_str() {
             "left_assignment_list" => named_children(left),
             _ => vec![left],
         };
@@ -68,15 +69,15 @@ fn assignment<'tree>(
     variable: Option<&str>,
     context: &RuleContext<'_>,
 ) -> Option<Assignment<'tree>> {
-    match target.kind() {
+    match target.kind_str() {
         "call" => {
-            let receiver = target.child_by_field_name("receiver")?;
+            let receiver = target.field("receiver")?;
             if !is_specification(receiver, variable, context) || !is_plain_send(target, context) {
                 return None;
             }
             let method = context
                 .source
-                .node_text(target.child_by_field_name("method")?);
+                .node_text(target.field("method")?);
             Some(Assignment {
                 node: assigned_node(node, target),
                 name: format!("{method}="),
@@ -87,17 +88,17 @@ fn assignment<'tree>(
             })
         }
         "element_reference" => {
-            let object = target.child_by_field_name("object")?;
-            if object.kind() != "call" || !is_plain_send(object, context) {
+            let object = target.field("object")?;
+            if object.kind_str() != "call" || !is_plain_send(object, context) {
                 return None;
             }
-            let receiver = object.child_by_field_name("receiver")?;
+            let receiver = object.field("receiver")?;
             if !is_specification(receiver, variable, context) {
                 return None;
             }
             let method = context
                 .source
-                .node_text(object.child_by_field_name("method")?);
+                .node_text(object.field("method")?);
             let indices = named_children(target);
             let [index] = indices.get(1..)? else {
                 return None;
@@ -122,14 +123,14 @@ fn assignment<'tree>(
 /// The node the offense is reported against: the whole assignment, or the target alone when the
 /// assignment names more than one.
 fn assigned_node<'tree>(node: Node<'tree>, target: Node<'tree>) -> Node<'tree> {
-    match node.child_by_field_name("left") == Some(target) {
+    match node.field("left") == Some(target) {
         true => node,
         false => target,
     }
 }
 
 fn is_specification(receiver: Node<'_>, variable: Option<&str>, context: &RuleContext<'_>) -> bool {
-    if receiver.kind() != "identifier" {
+    if receiver.kind_str() != "identifier" {
         return false;
     }
     let name = context.source.node_text(receiver);
@@ -156,7 +157,7 @@ fn duplicates<'a, 'tree>(assignments: &'a [Assignment<'tree>]) -> Vec<Vec<&'a As
 /// `node.literal?`: what a `literal?` in a node pattern accepts.
 fn is_literal(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "string"
             | "chained_string"
             | "bare_string"

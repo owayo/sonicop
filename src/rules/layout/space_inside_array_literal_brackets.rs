@@ -7,6 +7,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const NO_SPACE_COMMAND: &str = "Do not use";
 const SPACE_COMMAND: &str = "Use";
@@ -325,7 +326,7 @@ fn brackets<'tree>(node: Node<'tree>) -> (Option<Node<'tree>>, Option<Node<'tree
     let mut left = None;
     let mut right = None;
     for child in node.children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "[" if left.is_none() => left = Some(child),
             "]" => right = Some(child),
             _ => {}

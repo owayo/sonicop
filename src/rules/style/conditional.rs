@@ -1,6 +1,7 @@
 //! Reading a conditional the way upstream's `IfNode` presents it, plus the tree walks the cops
 //! around it share.
 
+use crate::rules::node_ext::NodeExt;
 use tree_sitter::Node;
 
 /// Node kinds whose named children are the statements upstream folds into one `begin` node when
@@ -25,7 +26,7 @@ const BODY_CLAUSES: &[&str] = &["rescue", "ensure", "else"];
 pub(super) fn token<'t>(node: Node<'t>, kinds: &[&str]) -> Option<Node<'t>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && kinds.contains(&child.kind()))
+        .find(|child| !child.is_named() && kinds.contains(&child.kind_str()))
 }
 
 pub(super) fn first_line(node: Node<'_>) -> usize {
@@ -51,7 +52,7 @@ pub(super) fn descendants<'t>(node: Node<'t>) -> Vec<Node<'t>> {
 pub(super) fn self_statements<'t>(container: Node<'t>) -> Vec<Node<'t>> {
     super::nodes::children(container)
         .into_iter()
-        .filter(|child| !BODY_CLAUSES.contains(&child.kind()))
+        .filter(|child| !BODY_CLAUSES.contains(&child.kind_str()))
         .collect()
 }
 
@@ -66,17 +67,17 @@ pub(super) fn upstream_parent<'t>(node: Node<'t>) -> Option<UpstreamParent<'t>> 
     let mut current = node;
     loop {
         let parent = current.parent()?;
-        if parent.kind() == "parenthesized_statements" {
+        if parent.kind_str() == "parenthesized_statements" {
             return Some(UpstreamParent::Begin(parent));
         }
-        if STATEMENT_CONTAINERS.contains(&parent.kind()) {
+        if STATEMENT_CONTAINERS.contains(&parent.kind_str()) {
             if self_statements(parent).len() > 1 {
                 return Some(UpstreamParent::Begin(parent));
             }
             current = parent;
             continue;
         }
-        if parent.kind() == "argument_list" {
+        if parent.kind_str() == "argument_list" {
             current = parent;
             continue;
         }
@@ -100,13 +101,13 @@ pub(super) fn body_of<'t>(container: Node<'t>) -> Body<'t> {
     let children = super::nodes::children(container);
     if children
         .iter()
-        .any(|child| BODY_CLAUSES.contains(&child.kind()))
+        .any(|child| BODY_CLAUSES.contains(&child.kind_str()))
     {
         return Body::Missing;
     }
     match children.as_slice() {
         [] => Body::Missing,
-        [only] if only.kind() == "parenthesized_statements" => {
+        [only] if only.kind_str() == "parenthesized_statements" => {
             Body::Begin(super::nodes::children(*only))
         }
         [only] => Body::One(*only),

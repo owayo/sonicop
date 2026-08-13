@@ -11,6 +11,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
@@ -68,7 +69,7 @@ struct Checker<'a, 'b> {
 
 impl Checker<'_, '_> {
     fn visit(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        match node.kind() {
+        match node.kind_str() {
             "method" | "singleton_method" => {
                 if !self.ignored.contains(&node.id()) {
                     if let Some(keyword) = child_of_kind(node, "def") {
@@ -85,7 +86,7 @@ impl Checker<'_, '_> {
             // `on_for` is an alias of `on_resbody`: the keyword and the body.
             "for" => {
                 if let Some(keyword) = child_of_kind(node, "for") {
-                    let body = node.child_by_field_name("body");
+                    let body = node.field("body");
                     self.check_container(keyword.byte_range(), body, offenses);
                 }
             }
@@ -116,7 +117,7 @@ impl Checker<'_, '_> {
     }
 
     fn on_class(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let keyword = match node.kind() {
+        let keyword = match node.kind_str() {
             "module" => child_of_kind(node, "module"),
             _ => child_of_kind(node, "class"),
         };
@@ -183,7 +184,7 @@ impl Checker<'_, '_> {
     }
 
     fn on_block(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let Some(end) = last_child(node).filter(|end| matches!(end.kind(), "end" | "}")) else {
+        let Some(end) = last_child(node).filter(|end| matches!(end.kind_str(), "end" | "}")) else {
             return;
         };
         if !self.begins_its_line(end.start_byte()) {
@@ -223,7 +224,7 @@ impl Checker<'_, '_> {
 
     fn on_while(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         let (Some(keyword), Some(condition)) =
-            (node.child(0), node.child_by_field_name("condition"))
+            (node.child(0), node.field("condition"))
         else {
             return;
         };
@@ -235,7 +236,7 @@ impl Checker<'_, '_> {
         }
         self.check_container(
             node.byte_range(),
-            node.child_by_field_name("body"),
+            node.field("body"),
             offenses,
         );
     }
@@ -244,7 +245,7 @@ impl Checker<'_, '_> {
         let mut cursor = node.walk();
         let branches: Vec<Node<'_>> = node
             .named_children(&mut cursor)
-            .filter(|child| child.kind() == branch_kind)
+            .filter(|child| child.kind_str() == branch_kind)
             .collect();
         let mut last_keyword = None;
         for branch in &branches {
@@ -266,7 +267,7 @@ impl Checker<'_, '_> {
     }
 
     fn on_kwbegin(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let Some(end) = last_child(node).filter(|end| end.kind() == "end") else {
+        let Some(end) = last_child(node).filter(|end| end.kind_str() == "end") else {
             return;
         };
         if !self.begins_its_line(end.start_byte()) {
@@ -284,7 +285,7 @@ impl Checker<'_, '_> {
         let (Some(open), Some(close)) = (node.child(0), last_child(node)) else {
             return;
         };
-        if open.kind() != "(" || close.kind() != ")" || !self.begins_its_line(close.start_byte()) {
+        if open.kind_str() != "(" || close.kind_str() != ")" || !self.begins_its_line(close.start_byte()) {
             return;
         }
         // `opening_line_start`: the first non-blank column of the line the parenthesis is on.
@@ -299,13 +300,13 @@ impl Checker<'_, '_> {
 
     /// `private def foo` reaches the cop as a call whose only argument is the definition.
     fn on_send(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             return;
         }
         let mut cursor = node.walk();
         let Some(list) = node
             .children(&mut cursor)
-            .find(|child| child.kind() == "argument_list")
+            .find(|child| child.kind_str() == "argument_list")
         else {
             return;
         };
@@ -314,7 +315,7 @@ impl Checker<'_, '_> {
             return;
         }
         let definition = arguments[0];
-        if !matches!(definition.kind(), "method" | "singleton_method") {
+        if !matches!(definition.kind_str(), "method" | "singleton_method") {
             return;
         }
         let base = if self.align_end_with_def {
@@ -452,7 +453,7 @@ impl Checker<'_, '_> {
     /// The body upstream's parser builds for a container: a single statement, a `begin`, or the
     /// `rescue` / `ensure` node the statements were folded into.
     fn parser_body<'tree>(&self, container: Node<'tree>) -> Option<Body<'tree>> {
-        if container.kind() == "parenthesized_statements" {
+        if container.kind_str() == "parenthesized_statements" {
             let statements = body_statements(container);
             if statements.is_empty() {
                 return None;
@@ -494,7 +495,7 @@ impl Checker<'_, '_> {
         }
         let first = *statements.first()?;
         if statements.len() == 1 {
-            if first.kind() == "parenthesized_statements" {
+            if first.kind_str() == "parenthesized_statements" {
                 return self.parser_body(first);
             }
             return Some(Body::plain(first));
@@ -519,12 +520,12 @@ impl Checker<'_, '_> {
     }
 
     fn is_bare_access_modifier(&self, node: Node<'_>) -> bool {
-        node.kind() == "identifier"
+        node.kind_str() == "identifier"
             && is_modifier_name(&self.context.source.text()[node.byte_range()])
     }
 
     fn is_special_modifier(&self, node: Node<'_>) -> bool {
-        node.kind() == "identifier"
+        node.kind_str() == "identifier"
             && matches!(
                 &self.context.source.text()[node.byte_range()],
                 "private" | "protected"
@@ -536,9 +537,9 @@ impl Checker<'_, '_> {
         if self.is_bare_access_modifier(node) {
             return true;
         }
-        node.kind() == "call"
-            && node.child_by_field_name("receiver").is_none()
-            && node.child_by_field_name("method").is_some_and(|method| {
+        node.kind_str() == "call"
+            && node.field("receiver").is_none()
+            && node.field("method").is_some_and(|method| {
                 is_modifier_name(&self.context.source.text()[method.byte_range()])
             })
     }
@@ -615,7 +616,7 @@ fn is_modifier_name(name: &str) -> bool {
 
 fn is_statement_container(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "body_statement" | "block_body" | "begin" | "do" | "then" | "else" | "program"
     )
 }
@@ -624,13 +625,13 @@ fn body_container<'tree>(owner: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = owner.walk();
     owner
         .named_children(&mut cursor)
-        .find(|child| matches!(child.kind(), "body_statement" | "block_body" | "do"))
+        .find(|child| matches!(child.kind_str(), "body_statement" | "block_body" | "do"))
 }
 
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 fn has_kind(node: Node<'_>, kind: &str) -> bool {
@@ -646,12 +647,12 @@ fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn leftmost_modifier<'tree>(node: Node<'tree>) -> Node<'tree> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if parent.kind() != "call" && parent.kind() != "argument_list" {
+        if parent.kind_str() != "call" && parent.kind_str() != "argument_list" {
             break;
         }
-        if parent.kind() == "argument_list" {
+        if parent.kind_str() == "argument_list" {
             match parent.parent() {
-                Some(call) if call.kind() == "call" => current = call,
+                Some(call) if call.kind_str() == "call" => current = call,
                 _ => break,
             }
         } else {

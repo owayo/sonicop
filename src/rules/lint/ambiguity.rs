@@ -16,6 +16,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children;
 
 /// One ambiguity the lexer would have warned about.
@@ -52,7 +53,7 @@ pub(super) fn scan<'tree>(
         let Some(owner) = list.parent() else {
             continue;
         };
-        if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind()) {
+        if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind_str()) {
             continue;
         }
         let Some(first) = named_children(list).into_iter().next() else {

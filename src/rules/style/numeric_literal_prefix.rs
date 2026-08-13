@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The prefix a literal was written with, and the one it should carry.
 #[derive(Clone, Copy)]
@@ -78,12 +79,12 @@ fn signed(integer: Node<'_>) -> Node<'_> {
     let Some(parent) = integer.parent() else {
         return integer;
     };
-    let folds = parent.kind() == "unary"
+    let folds = parent.kind_str() == "unary"
         && parent
-            .child_by_field_name("operator")
-            .is_some_and(|operator| matches!(operator.kind(), "+" | "-"))
+            .field("operator")
+            .is_some_and(|operator| matches!(operator.kind_str(), "+" | "-"))
         && parent
-            .child_by_field_name("operand")
+            .field("operand")
             .is_some_and(|operand| operand.id() == integer.id());
     match folds {
         true => parent,

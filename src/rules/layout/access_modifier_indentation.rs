@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::support::{alignment_corrections, body_statements, character_column, end_keyword};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MODIFIERS: [&str; 4] = ["public", "protected", "private", "module_function"];
 
@@ -31,7 +32,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // The line a block opens on is the line of the call it hangs off, not of its `do`.
-        let owner = match node.kind() {
+        let owner = match node.kind_str() {
             "block" | "do_block" => node.parent().unwrap_or(node),
             _ => node,
         };
@@ -69,20 +70,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `bare_access_modifier?`: `private` with nothing after it, which `private()` also is.
 fn is_bare_access_modifier(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => MODIFIERS.contains(&&context.source.text()[node.byte_range()]),
         "call" => {
-            if node.child_by_field_name("receiver").is_some()
-                || node.child_by_field_name("block").is_some()
+            if node.field("receiver").is_some()
+                || node.field("block").is_some()
             {
                 return false;
             }
-            let Some(method) = node.child_by_field_name("method") else {
+            let Some(method) = node.field("method") else {
                 return false;
             };
             MODIFIERS.contains(&&context.source.text()[method.byte_range()])
                 && node
-                    .child_by_field_name("arguments")
+                    .field("arguments")
                     .is_none_or(|arguments| arguments.named_child_count() == 0)
         }
         _ => false,
@@ -91,10 +92,10 @@ fn is_bare_access_modifier(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 fn body_container<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     node.named_children(&mut node.walk())
-        .find(|child| matches!(child.kind(), "body_statement" | "block_body"))
+        .find(|child| matches!(child.kind_str(), "body_statement" | "block_body"))
 }
 
 fn closing_brace<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
-    (last.kind() == "}").then_some(last)
+    (last.kind_str() == "}").then_some(last)
 }

@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Calls whose block body RuboCop treats as a method body of its own.
 const BLOCK_BODY_CALLS: &[&str] = &["define_method", "define_singleton_method", "lambda"];
@@ -13,13 +14,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut returns: Vec<Node<'_>> = Vec::new();
 
     for node in context.nodes_of_any(&["method", "singleton_method", "call", "lambda"]) {
-        let body = match node.kind() {
+        let body = match node.kind_str() {
             "call" => block_body_of_tracked_call(node, context),
             // `-> { ... }` reaches RuboCop as a call to `lambda` too, so its body is a body.
             "lambda" => node
-                .child_by_field_name("body")
-                .and_then(|block| block.child_by_field_name("body")),
-            _ => node.child_by_field_name("body"),
+                .field("body")
+                .and_then(|block| block.field("body")),
+            _ => node.field("body"),
         };
         let Some(body) = body else {
             continue;
@@ -63,12 +64,12 @@ fn block_body_of_tracked_call<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<Node<'tree>> {
-    let name = node.child_by_field_name("method")?;
+    let name = node.field("method")?;
     if !BLOCK_BODY_CALLS.contains(&context.source.node_text(name)) {
         return None;
     }
-    let block = node.child_by_field_name("block")?;
-    block.child_by_field_name("body")
+    let block = node.field("block")?;
+    block.field("body")
 }
 
 /// RuboCop's `check_branch`: the tail position of a method body, followed through the
@@ -77,14 +78,14 @@ fn block_body_of_tracked_call<'tree>(
 /// A loop or a plain call is not one of them, so a `return` inside `while` or inside a block
 /// other than the tracked calls above stays untouched.
 fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
-    match node.kind() {
+    match node.kind_str() {
         "return" => returns.push(node),
         "case" => {
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
-                match child.kind() {
+                match child.kind_str() {
                     "when" => {
-                        if let Some(body) = child.child_by_field_name("body") {
+                        if let Some(body) = child.field("body") {
                             check_branch(body, returns);
                         }
                     }
@@ -96,9 +97,9 @@ fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
         "case_match" => {
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
-                match child.kind() {
+                match child.kind_str() {
                     "in_clause" => {
-                        if let Some(body) = child.child_by_field_name("body") {
+                        if let Some(body) = child.field("body") {
                             check_branch(body, returns);
                         }
                     }
@@ -110,13 +111,13 @@ fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
         // `elsif` is how the grammar spells the `if` RuboCop finds nested in the else branch.
         "if" | "unless" | "elsif" => {
             for field in ["consequence", "alternative"] {
-                if let Some(branch) = node.child_by_field_name(field) {
+                if let Some(branch) = node.field(field) {
                     check_branch(branch, returns);
                 }
             }
         }
         "if_modifier" | "unless_modifier" => {
-            if let Some(body) = node.child_by_field_name("body") {
+            if let Some(body) = node.field("body") {
                 check_branch(body, returns);
             }
         }
@@ -125,8 +126,8 @@ fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
         // RuboCop's parser reads it as `return(+1)`, so the keyword is still a redundant return.
         "binary" => {
             if node
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "return" && left.named_child_count() == 0)
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "return" && left.named_child_count() == 0)
             {
                 returns.push(node);
             }
@@ -152,14 +153,14 @@ fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
     let children: Vec<Node<'tree>> = node
         .named_children(&mut cursor)
-        .filter(|child| child.kind() != "comment")
+        .filter(|child| child.kind_str() != "comment")
         .collect();
 
     let mut statements: Vec<Node<'tree>> = Vec::new();
     let mut rescues: Vec<Node<'tree>> = Vec::new();
     let mut else_clause = None;
     for child in children {
-        match child.kind() {
+        match child.kind_str() {
             "rescue" => rescues.push(child),
             "else" => else_clause = Some(child),
             "ensure" => {}
@@ -178,7 +179,7 @@ fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
     }
 
     for rescue in rescues {
-        if let Some(body) = rescue.child_by_field_name("body") {
+        if let Some(body) = rescue.field("body") {
             check_branch(body, returns);
         }
     }
@@ -200,12 +201,12 @@ fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
 fn return_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     // The `return +1` shape above: the value RuboCop sees as the sole argument is the right
     // operand the grammar split off.
-    if node.kind() == "binary" {
-        return node.child_by_field_name("right").into_iter().collect();
+    if node.kind_str() == "binary" {
+        return node.field("right").into_iter().collect();
     }
     let Some(list) = node
         .named_child(0)
-        .filter(|child| child.kind() == "argument_list")
+        .filter(|child| child.kind_str() == "argument_list")
     else {
         return Vec::new();
     };
@@ -214,7 +215,7 @@ fn return_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 }
 
 fn braceless_hash(arguments: &[Node<'_>]) -> bool {
-    !arguments.is_empty() && arguments.iter().all(|argument| argument.kind() == "pair")
+    !arguments.is_empty() && arguments.iter().all(|argument| argument.kind_str() == "pair")
 }
 
 /// Mirrors RuboCop's autocorrection: an argument-less `return` becomes `nil`,
@@ -244,7 +245,7 @@ fn redundant_return_edit(
     };
     let splat = arguments
         .iter()
-        .any(|argument| argument.kind() == "splat_argument");
+        .any(|argument| argument.kind_str() == "splat_argument");
 
     let text = context.source.node_text(node);
     let keyword_end = node.start_byte() + "return".len();

@@ -6,6 +6,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
 use super::node_equality::identical;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Duplicate `rescue` exception detected.";
 
@@ -44,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `ResbodyNode#exceptions`. Upstream wraps them in an `array` however many were written, so the
 /// list is simply what the clause names.
 fn exceptions<'tree>(clause: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(list) = clause.child_by_field_name("exceptions") else {
+    let Some(list) = clause.field("exceptions") else {
         return Vec::new();
     };
     let mut cursor = list.walk();

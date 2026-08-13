@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let prefixes: Vec<String> = context.setting("NamePrefix").unwrap_or_default();
@@ -30,14 +31,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     };
 
     for node in context.nodes_of_any(&["method", "singleton_method", "call"]) {
-        if node.kind() == "call" {
+        if node.kind_str() == "call" {
             let Some((name, range)) = dynamic_definition(context, node, &macros) else {
                 continue;
             };
             report(offenses, &name, range);
             continue;
         }
-        let Some(name_node) = node.child_by_field_name("name") else {
+        let Some(name_node) = node.field("name") else {
             continue;
         };
         let name = context.source.node_text(name_node).to_owned();
@@ -53,15 +54,15 @@ fn dynamic_definition(
     node: Node<'_>,
     macros: &[String],
 ) -> Option<(String, Range<usize>)> {
-    if node.child_by_field_name("receiver").is_some() {
+    if node.field("receiver").is_some() {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
+    let method = node.field("method")?;
     let name = context.source.node_text(method);
     if !macros.iter().any(|macro_name| macro_name == name) {
         return None;
     }
-    let arguments = node.child_by_field_name("arguments")?;
+    let arguments = node.field("arguments")?;
     let mut cursor = arguments.walk();
     let first = arguments.named_children(&mut cursor).next()?;
     Some((symbol_name(context, first)?, first.byte_range()))
@@ -70,7 +71,7 @@ fn dynamic_definition(
 /// The name a `sym` node spells. `:"a b"` is one too, but `:"a#{b}"` is a `dsym` and names
 /// nothing.
 fn symbol_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => Some(
             context
                 .source
@@ -82,7 +83,7 @@ fn symbol_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
             let mut cursor = node.walk();
             let mut value = String::new();
             for child in node.named_children(&mut cursor) {
-                if child.kind() != "string_content" {
+                if child.kind_str() != "string_content" {
                     return None;
                 }
                 value.push_str(context.source.node_text(child));

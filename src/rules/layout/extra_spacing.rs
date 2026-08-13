@@ -18,6 +18,7 @@ use super::support::{comments, hash_literals};
 use super::tokens::{Token, tokens};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_UNNECESSARY: &str = "Unnecessary spacing detected.";
 const MSG_UNALIGNED_ASGN: &str = "`=` is not aligned with the preceding assignment.";
@@ -253,8 +254,8 @@ fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
         }
         for element in elements {
             let (Some(key), Some(value)) = (
-                element.child_by_field_name("key"),
-                element.child_by_field_name("value"),
+                element.field("key"),
+                element.field("value"),
             ) else {
                 continue;
             };
@@ -270,7 +271,7 @@ fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
 fn hash_span(elements: &[Node<'_>]) -> Option<Range<usize>> {
     let first = elements.first()?;
     let last = elements.last()?;
-    match first.parent().filter(|parent| parent.kind() == "hash") {
+    match first.parent().filter(|parent| parent.kind_str() == "hash") {
         Some(hash) => Some(hash.byte_range()),
         None => Some(first.start_byte()..last.end_byte()),
     }
@@ -292,5 +293,5 @@ fn is_blank(context: &RuleContext<'_>) -> bool {
     let mut cursor = root.walk();
     !root
         .named_children(&mut cursor)
-        .any(|child| child.kind() != "comment")
+        .any(|child| child.kind_str() != "comment")
 }

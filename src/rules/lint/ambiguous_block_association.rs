@@ -3,6 +3,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The enumerable methods a trailing `do` block was probably meant for.
 const BLOCK_METHODS: &[&str] = &[
@@ -80,7 +81,7 @@ fn check_brace_block_argument(
     allowed: &Allowed,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(arguments) = node.child_by_field_name("arguments") else {
+    let Some(arguments) = node.field("arguments") else {
         return;
     };
     let list = named_children(arguments);
@@ -98,7 +99,7 @@ fn check_brace_block_argument(
     {
         return;
     }
-    let method = node.child_by_field_name("method");
+    let method = node.field("method");
     let name = method.map_or("", |method| context.source.node_text(method));
     let inner = call_source(last, block, context);
     if OPERATOR_METHODS.contains(&name)
@@ -156,17 +157,17 @@ fn check_do_block(
     allowed: &Allowed,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(call) = node.parent().filter(|parent| parent.kind() == "call") else {
+    let Some(call) = node.parent().filter(|parent| parent.kind_str() == "call") else {
         return;
     };
     // `super do ... end` is a `zsuper` upstream, not a send.
     if !call
-        .child_by_field_name("method")
-        .is_some_and(|method| method.kind() != "super")
+        .field("method")
+        .is_some_and(|method| method.kind_str() != "super")
     {
         return;
     }
-    let Some(arguments) = call.child_by_field_name("arguments") else {
+    let Some(arguments) = call.field("arguments") else {
         return;
     };
     let Some(&last) = named_children(arguments).last() else {
@@ -183,7 +184,7 @@ fn check_do_block(
         return;
     }
     let outer_method = call
-        .child_by_field_name("method")
+        .field("method")
         .map_or("", |method| context.source.node_text(method));
     let message = format!(
         "`{inner_method}` is called without a block because the `do` block binds to \
@@ -202,7 +203,7 @@ fn trailing_block_method<'tree>(
 ) -> Option<Node<'tree>> {
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
-        if current.kind() == "call"
+        if current.kind_str() == "call"
             && current.end_byte() == end
             && BLOCK_METHODS.contains(&call_method_name(current, context))
             && !has_arguments(current)
@@ -224,14 +225,14 @@ fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 
 /// The block written on a call, which upstream holds one level above the call instead.
 fn block_of(node: Node<'_>) -> Option<Node<'_>> {
-    (node.kind() == "call")
-        .then(|| node.child_by_field_name("block"))
+    (node.kind_str() == "call")
+        .then(|| node.field("block"))
         .flatten()
 }
 
 /// `arguments?`: an empty argument list is no arguments at all.
 fn has_arguments(node: Node<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| arguments.named_child_count() > 0)
 }
 
@@ -242,7 +243,7 @@ fn parenthesized(call: Node<'_>, arguments: Node<'_>, context: &RuleContext<'_>)
     if !context.source.node_text(arguments).starts_with('(') {
         return false;
     }
-    call.child_by_field_name("method")
+    call.field("method")
         .is_none_or(|method| method.end_byte() == arguments.start_byte())
 }
 
@@ -252,21 +253,21 @@ fn parenthesized(call: Node<'_>, arguments: Node<'_>, context: &RuleContext<'_>)
 fn lambda_or_proc(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let method = call_method_name(node, context);
     if matches!(method, "lambda" | "proc") {
-        return node.child_by_field_name("receiver").is_none();
+        return node.field("receiver").is_none();
     }
     method == "new"
         && node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| top_level_proc(receiver, context))
 }
 
 fn top_level_proc(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => context.source.node_text(node) == "Proc",
         "scope_resolution" => {
-            node.child_by_field_name("scope").is_none()
+            node.field("scope").is_none()
                 && node
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| context.source.node_text(name) == "Proc")
         }
         _ => false,
@@ -274,7 +275,7 @@ fn top_level_proc(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn call_method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
-    node.child_by_field_name("method")
+    node.field("method")
         .map_or("", |method| context.source.node_text(method))
 }
 

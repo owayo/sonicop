@@ -13,6 +13,7 @@ use crate::rules::RuleContext;
 use crate::rules::lint::access_modifier::{in_macro_scope, send_name, statements};
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const GROUP_STYLE_MESSAGE: &str = "should not be inlined in method definitions.";
 const INLINE_STYLE_MESSAGE: &str = "should be inlined in method definitions.";
@@ -94,7 +95,7 @@ impl<'tree> Cop<'_, 'tree> {
     /// `RESTRICT_ON_SEND` together with `macro?`: the name of the modifier a receiverless call in a
     /// class-like scope spells.
     fn modifier_name(&self, node: Node<'tree>) -> Option<&'static str> {
-        if node.kind() == "call" && node.child_by_field_name("receiver").is_some() {
+        if node.kind_str() == "call" && node.field("receiver").is_some() {
             return None;
         }
         let name = send_name(node, self.context)?;
@@ -107,7 +108,7 @@ impl<'tree> Cop<'_, 'tree> {
         // as a block's body -- `Class.new { private def foo; end }` -- is left as it was written.
         if self
             .upstream_parent(node)
-            .is_some_and(|parent| matches!(parent.kind(), "pair" | "do_block" | "block"))
+            .is_some_and(|parent| matches!(parent.kind_str(), "pair" | "do_block" | "block"))
         {
             return true;
         }
@@ -132,13 +133,13 @@ impl<'tree> Cop<'_, 'tree> {
         let [splat] = arguments.as_slice() else {
             return false;
         };
-        if splat.kind() != "splat_argument" {
+        if splat.kind_str() != "splat_argument" {
             return false;
         }
         let Some(value) = send_node::named_children(*splat).first().copied() else {
             return false;
         };
-        match value.kind() {
+        match value.kind_str() {
             "constant" | "scope_resolution" => true,
             "array" => percent_symbol_array(value, self.context),
             // `send` and nothing else: `private(*names)` splats an `lvar`, which the pattern does
@@ -165,7 +166,7 @@ impl<'tree> Cop<'_, 'tree> {
             return false;
         };
         let only = *only;
-        if only.kind() != "call" || only.child_by_field_name("receiver").is_some() {
+        if only.kind_str() != "call" || only.field("receiver").is_some() {
             return false;
         }
         send_name(only, self.context).is_some_and(|name| names.contains(&name))
@@ -206,7 +207,7 @@ impl<'tree> Cop<'_, 'tree> {
             .take_while(|sibling| {
                 !(self.modifier_name(*sibling).is_some() && self.arguments(*sibling).is_empty())
             })
-            .filter(|sibling| sibling.kind() == "method")
+            .filter(|sibling| sibling.kind_str() == "method")
             .collect()
     }
 
@@ -328,9 +329,9 @@ impl<'tree> Cop<'_, 'tree> {
     fn enclosing_class_end(&self, node: Node<'tree>) -> Option<Node<'tree>> {
         let mut current = node;
         while let Some(parent) = current.parent() {
-            if matches!(parent.kind(), "class" | "module" | "singleton_class") {
+            if matches!(parent.kind_str(), "class" | "module" | "singleton_class") {
                 let last = u32::try_from(parent.child_count()).ok()?.checked_sub(1)?;
-                return parent.child(last).filter(|end| end.kind() == "end");
+                return parent.child(last).filter(|end| end.kind_str() == "end");
             }
             current = parent;
         }
@@ -339,7 +340,7 @@ impl<'tree> Cop<'_, 'tree> {
 
     /// `node.loc.selector`: the modifier's own name, without whatever it was given.
     fn selector(&self, node: Node<'tree>) -> Range<usize> {
-        match node.child_by_field_name("method") {
+        match node.field("method") {
             Some(method) => method.byte_range(),
             None => node.byte_range(),
         }
@@ -359,7 +360,7 @@ impl<'tree> Cop<'_, 'tree> {
         let Some(parent) = node.parent() else {
             return Vec::new();
         };
-        if !STATEMENT_LISTS.contains(&parent.kind()) {
+        if !STATEMENT_LISTS.contains(&parent.kind_str()) {
             return Vec::new();
         }
         match statements(parent) {
@@ -384,7 +385,7 @@ impl<'tree> Cop<'_, 'tree> {
     fn upstream_parent(&self, node: Node<'tree>) -> Option<Node<'tree>> {
         let mut current = node;
         while let Some(parent) = current.parent() {
-            if !STATEMENT_LISTS.contains(&parent.kind()) {
+            if !STATEMENT_LISTS.contains(&parent.kind_str()) {
                 return Some(parent);
             }
             if statements(parent).is_some_and(|statements| statements.len() >= 2) {
@@ -452,7 +453,7 @@ fn percent_symbol_array(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// `if_type?`, which covers every conditional upstream's parser folds into an `if` node.
 fn is_conditional(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "if" | "unless" | "elsif" | "if_modifier" | "unless_modifier" | "conditional"
     )
 }

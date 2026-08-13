@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not define constants this way within a block.";
 
@@ -10,10 +11,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["assignment", "class", "module"]) {
         // Only a constant assigned by its bare name is reported: `Foo::BAR = 1` names where it
         // goes, so the block it was written in does not decide that.
-        if node.kind() == "assignment"
+        if node.kind_str() == "assignment"
             && !node
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "constant")
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "constant")
         {
             continue;
         }
@@ -35,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// the block, since a body of several statements is what makes the `begin`.
 fn enclosing_block(node: Node<'_>) -> Option<Node<'_>> {
     let body = node.parent()?;
-    if !matches!(body.kind(), "block_body" | "body_statement") {
+    if !matches!(body.kind_str(), "block_body" | "body_statement") {
         return None;
     }
     // A `rescue`, `else` or `ensure` clause makes the body a node of its own upstream, with the
@@ -44,18 +45,18 @@ fn enclosing_block(node: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = body.walk();
     if body
         .named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
     {
         return None;
     }
     body.parent()
-        .filter(|block| matches!(block.kind(), "block" | "do_block"))
+        .filter(|block| matches!(block.kind_str(), "block" | "do_block"))
 }
 
 fn block_method<'a>(block: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
     block
         .parent()
-        .filter(|parent| parent.kind() == "call")
-        .and_then(|call| call.child_by_field_name("method"))
+        .filter(|parent| parent.kind_str() == "call")
+        .and_then(|call| call.field("method"))
         .map_or("", |method| context.source.node_text(method))
 }

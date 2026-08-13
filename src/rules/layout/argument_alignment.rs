@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use super::support::{AlignmentPass, GroupedArgument, display_column, grouped_arguments};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const ALIGN_PARAMS_MSG: &str =
     "Align the arguments of a method call if they span more than one line.";
@@ -83,21 +84,21 @@ fn multiple_arguments(arguments: &[GroupedArgument<'_>]) -> bool {
 
 /// `super` is a node of its own upstream, which `on_send` never sees.
 fn is_super(node: Node<'_>) -> bool {
-    node.child(0).is_some_and(|child| child.kind() == "super")
+    node.child(0).is_some_and(|child| child.kind_str() == "super")
 }
 
 /// `node.method?(:[]=)`: assigning through an index reaches the cop as one call whose arguments
 /// mix the subscript with the value, which upstream leaves alone.
 fn is_index_assignment(context: &RuleContext<'_>, call: Node<'_>) -> bool {
     if call
-        .child_by_field_name("method")
+        .field("method")
         .is_some_and(|method| &context.source.text()[method.byte_range()] == "[]=")
     {
         return true;
     }
-    call.kind() == "element_reference"
+    call.kind_str() == "element_reference"
         && call.parent().is_some_and(|parent| {
-            parent.kind() == "assignment" && parent.child_by_field_name("left") == Some(call)
+            parent.kind_str() == "assignment" && parent.field("left") == Some(call)
         })
 }
 
@@ -150,7 +151,7 @@ fn base_column(
     }
     // `target_method_lineno`: the selector's line, or the opening parenthesis for `l.(1)`.
     let anchor = call
-        .child_by_field_name("method")
+        .field("method")
         .map_or_else(|| call.start_byte(), |method| method.start_byte());
     let line = context.source.line_column(anchor).0;
     let text = context.source.line(line);

@@ -9,6 +9,7 @@ use super::variable_force::{
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let analysis = context.variable_analysis();
@@ -138,17 +139,17 @@ fn variable_like_invocation(
     context: &RuleContext<'_>,
     analysis: &Analysis<'_>,
 ) -> Option<String> {
-    match node.kind() {
+    match node.kind_str() {
         // A bare name standing where a value is read is a `send` upstream unless it resolved to a
         // local, and a read of a local is an `lvar` that contributes nothing of its own here.
         "identifier" if is_variable_read(node) && !analysis.is_variable_reference(node) => {
             Some(context.source.node_text(node).to_owned())
         }
         "call" => {
-            let method = node.child_by_field_name("method")?;
-            let bare = node.child_by_field_name("receiver").is_none()
+            let method = node.field("method")?;
+            let bare = node.field("receiver").is_none()
                 && node
-                    .child_by_field_name("arguments")
+                    .field("arguments")
                     .is_none_or(|arguments| arguments.named_child_count() == 0);
             bare.then(|| context.source.node_text(method).to_owned())
         }
@@ -182,13 +183,13 @@ fn return_value_node<'tree>(scope: &Scope<'tree>) -> Option<Node<'tree>> {
     let body = body_node(scope)?;
     named_children(body)
         .into_iter()
-        .rfind(|child| !matches!(child.kind(), "heredoc_body" | "comment"))
+        .rfind(|child| !matches!(child.kind_str(), "heredoc_body" | "comment"))
         .or(Some(body))
 }
 
 fn operator_token(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    let left = node.child_by_field_name("left")?;
-    let right = node.child_by_field_name("right")?;
+    let left = node.field("left")?;
+    let right = node.field("right")?;
     Some(
         context.source.text()[left.end_byte()..right.start_byte()]
             .trim()
@@ -206,12 +207,12 @@ fn operator_token(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
 fn multiple_assignment(node: Node<'_>) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        match parent.kind() {
+        match parent.kind_str() {
             "rest_assignment" | "destructured_left_assignment" => current = parent,
             "left_assignment_list" => {
                 return parent
                     .parent()
-                    .is_some_and(|list| list.kind() == "assignment")
+                    .is_some_and(|list| list.kind_str() == "assignment")
                     && !spurious_assignment_list(parent);
             }
             _ => return false,
@@ -222,10 +223,10 @@ fn multiple_assignment(node: Node<'_>) -> bool {
 
 fn operator_assignment<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     node.parent()
-        .filter(|parent| parent.kind() == "operator_assignment")
+        .filter(|parent| parent.kind_str() == "operator_assignment")
         .filter(|parent| {
             parent
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| left.id() == node.id())
         })
 }
@@ -233,7 +234,7 @@ fn operator_assignment<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn for_assignment(node: Node<'_>) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        match parent.kind() {
+        match parent.kind_str() {
             "for" => return true,
             "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => {
                 current = parent;
@@ -246,7 +247,7 @@ fn for_assignment(node: Node<'_>) -> bool {
 
 fn exception_assignment(node: Node<'_>) -> bool {
     node.parent()
-        .is_some_and(|parent| parent.kind() == "exception_variable")
+        .is_some_and(|parent| parent.kind_str() == "exception_variable")
 }
 
 /// `chained_assignment?`: reporting `a = b = 1` covers the write nested inside it, and reporting
@@ -254,7 +255,7 @@ fn exception_assignment(node: Node<'_>) -> bool {
 /// assignment that stores nothing -- a `masgn` target, a `for` variable -- never chains.
 fn chained_value(value: Node<'_>) -> bool {
     matches!(
-        value.kind(),
+        value.kind_str(),
         "call" | "identifier" | "binary" | "unary" | "element_reference" | "assignment"
     )
 }
@@ -263,19 +264,19 @@ fn chained_value(value: Node<'_>) -> bool {
 /// error, and rewriting `x ||= 1` to `x = 1` can raise `NameError`.
 fn uncorrectable(node: Node<'_>) -> bool {
     if node.parent().is_some_and(|parent| {
-        parent.kind() == "operator_assignment" && matches!(operator_of(parent), Some("||=" | "&&="))
+        parent.kind_str() == "operator_assignment" && matches!(operator_of(parent), Some("||=" | "&&="))
     }) {
         return true;
     }
     let mut current = Some(node);
     while let Some(candidate) = current {
-        if candidate.kind() == "assignment"
+        if candidate.kind_str() == "assignment"
             && candidate
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "identifier")
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "identifier")
             && candidate
-                .child_by_field_name("right")
-                .is_some_and(|right| matches!(right.kind(), "array" | "right_assignment_list"))
+                .field("right")
+                .is_some_and(|right| matches!(right.kind_str(), "array" | "right_assignment_list"))
             && contains_assignment(candidate)
         {
             return true;
@@ -287,7 +288,7 @@ fn uncorrectable(node: Node<'_>) -> bool {
 
 fn contains_assignment(node: Node<'_>) -> bool {
     named_children(node).into_iter().any(|child| {
-        matches!(child.kind(), "assignment" | "operator_assignment") || contains_assignment(child)
+        matches!(child.kind_str(), "assignment" | "operator_assignment") || contains_assignment(child)
     })
 }
 
@@ -299,7 +300,7 @@ fn operator_of(node: Node<'_>) -> Option<&'static str> {
     loop {
         let child = cursor.node();
         if !child.is_named() {
-            return Some(child.kind());
+            return Some(child.kind_str());
         }
         if !cursor.goto_next_sibling() {
             return None;
@@ -313,12 +314,12 @@ fn variable_in_loop_condition(node: Node<'_>, name: &str, context: &RuleContext<
     let mut current = node;
     let mut loop_node = None;
     while let Some(parent) = current.parent() {
-        if matches!(parent.kind(), "method" | "singleton_method") {
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
             return false;
         }
         if loop_node.is_none()
             && matches!(
-                parent.kind(),
+                parent.kind_str(),
                 "while" | "until" | "while_modifier" | "until_modifier" | "for"
             )
         {
@@ -326,7 +327,7 @@ fn variable_in_loop_condition(node: Node<'_>, name: &str, context: &RuleContext<
         }
         current = parent;
     }
-    let Some(condition) = loop_node.and_then(|node| node.child_by_field_name("condition")) else {
+    let Some(condition) = loop_node.and_then(|node| node.field("condition")) else {
         return false;
     };
     reads_name(condition, name, context)
@@ -335,20 +336,20 @@ fn variable_in_loop_condition(node: Node<'_>, name: &str, context: &RuleContext<
 /// Whether the subtree reads a local of this name: an `lvar` upstream, which rules out the name of
 /// a method being called and the target of an assignment.
 fn reads_name(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         if context.source.node_text(node) != name {
             return false;
         }
         let Some(parent) = node.parent() else {
             return true;
         };
-        let target = matches!(parent.kind(), "assignment" | "operator_assignment")
+        let target = matches!(parent.kind_str(), "assignment" | "operator_assignment")
             && parent
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| left.id() == node.id());
-        let method = parent.kind() == "call"
+        let method = parent.kind_str() == "call"
             && parent
-                .child_by_field_name("method")
+                .field("method")
                 .is_some_and(|method| method.id() == node.id());
         return !target && !method;
     }
@@ -365,7 +366,7 @@ fn autocorrect(context: &RuleContext<'_>, assignment: &Assignment<'_>, name: &st
     let node = assignment.node;
     if exception_assignment(node) {
         let clause = node.parent()?.parent()?;
-        let start = clause.child_by_field_name("exceptions").map_or_else(
+        let start = clause.field("exceptions").map_or_else(
             || clause.start_byte() + "rescue".len(),
             |list| list.end_byte(),
         );
@@ -380,7 +381,7 @@ fn autocorrect(context: &RuleContext<'_>, assignment: &Assignment<'_>, name: &st
         });
     }
     if let Some(assignment) = operator_assignment(node) {
-        let right = assignment.child_by_field_name("right")?;
+        let right = assignment.field("right")?;
         let text = context.source.text();
         let end = text[..right.start_byte()].trim_end().len();
         return Some(removal(end - 1, end));

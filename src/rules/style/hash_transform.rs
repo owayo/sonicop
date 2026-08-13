@@ -9,6 +9,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
 
 /// Which half of the pair the block rewrites.
@@ -96,7 +97,7 @@ fn is_offensive(
 ) -> bool {
     let argname = context.source.node_text(candidate.argname);
     // `noop_transformation?`
-    if candidate.transforming.kind() == "identifier"
+    if candidate.transforming.kind_str() == "identifier"
         && context.source.node_text(candidate.transforming) == argname
     {
         return false;
@@ -110,7 +111,7 @@ fn is_offensive(
     if !references(context, locals, candidate.transforming, argname) {
         return false;
     }
-    candidate.transforming.kind() != "splat_argument"
+    candidate.transforming.kind_str() != "splat_argument"
 }
 
 /// Whether `name` is read as a local variable anywhere strictly inside `node`.
@@ -122,7 +123,7 @@ fn references(
 ) -> bool {
     super::nodes::children(node).into_iter().any(|child| {
         send_node::any_descendant(child, &mut |inner| {
-            inner.kind() == "identifier"
+            inner.kind_str() == "identifier"
                 && context.source.node_text(inner) == name
                 && locals.is_lvar(inner)
         })
@@ -138,31 +139,28 @@ fn each_with_object<'tree>(
 ) -> Option<Candidate<'tree>> {
     let block = call_with_block(context, node, &["each_with_object"])?;
     empty_hash_argument(node)?;
-    hash_receiver(context, node.child_by_field_name("receiver")?)?;
+    hash_receiver(context, node.field("receiver")?)?;
     let parameters = super::nodes::children(node_parameters(block)?);
     let [destructured, memo] = parameters.as_slice() else {
         return None;
     };
-    if destructured.kind() != "destructured_parameter" || memo.kind() != "identifier" {
+    if destructured.kind_str() != "destructured_parameter" || memo.kind_str() != "identifier" {
         return None;
     }
     let pair = super::nodes::children(*destructured);
     let [key, value] = pair.as_slice() else {
         return None;
     };
-    if key.kind() != "identifier" || value.kind() != "identifier" {
+    if key.kind_str() != "identifier" || value.kind_str() != "identifier" {
         return None;
     }
     let body = single_statement(block)?;
-    if body.kind() != "assignment" {
+    if body.kind_str() != "assignment" {
         return None;
     }
-    let target = body.child_by_field_name("left")?;
-    if target.kind() != "element_reference"
-        || context
-            .source
-            .node_text(target.child_by_field_name("object")?)
-            != context.source.node_text(*memo)
+    let target = body.field("left")?;
+    if target.kind_str() != "element_reference"
+        || context.source.node_text(target.field("object")?) != context.source.node_text(*memo)
     {
         return None;
     }
@@ -170,7 +168,7 @@ fn each_with_object<'tree>(
     let [_, index] = indices.as_slice() else {
         return None;
     };
-    let assigned = body.child_by_field_name("right")?;
+    let assigned = body.field("right")?;
     let memo_name = context.source.node_text(*memo);
     let (argname, transforming, unchanged) = match half {
         // `(call (lvar _memo) :[]= $!`_memo $(lvar _val))`
@@ -210,10 +208,10 @@ fn hash_brackets_map<'tree>(
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
-    if node.kind() != "element_reference" {
+    if node.kind_str() != "element_reference" {
         return None;
     }
-    let object = node.child_by_field_name("object")?;
+    let object = node.field("object")?;
     if !is_named_constant(context, object, "Hash") {
         return None;
     }
@@ -241,20 +239,16 @@ fn map_to_h<'tree>(
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
-    if node.kind() != "call"
-        || node.child_by_field_name("arguments").is_some()
-        || node.child_by_field_name("block").is_some()
+    if node.kind_str() != "call"
+        || node.field("arguments").is_some()
+        || node.field("block").is_some()
     {
         return None;
     }
-    if context
-        .source
-        .node_text(node.child_by_field_name("method")?)
-        != "to_h"
-    {
+    if context.source.node_text(node.field("method")?) != "to_h" {
         return None;
     }
-    let mapping = node.child_by_field_name("receiver")?;
+    let mapping = node.field("receiver")?;
     let (block, argname, transforming, unchanged) = mapping_block(context, mapping, half)?;
     Some(Candidate {
         node,
@@ -279,10 +273,10 @@ fn to_h_block<'tree>(
         return None;
     }
     let block = call_with_block(context, node, &["to_h"])?;
-    if node.child_by_field_name("arguments").is_some() {
+    if node.field("arguments").is_some() {
         return None;
     }
-    hash_receiver(context, node.child_by_field_name("receiver")?)?;
+    hash_receiver(context, node.field("receiver")?)?;
     let (argname, transforming, unchanged) = pair_block(context, block, half)?;
     Some(Candidate {
         node,
@@ -304,10 +298,10 @@ fn mapping_block<'tree>(
     half: Half,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>, Node<'tree>)> {
     let block = call_with_block(context, node, &["map", "collect"])?;
-    if node.child_by_field_name("arguments").is_some() {
+    if node.field("arguments").is_some() {
         return None;
     }
-    hash_receiver(context, node.child_by_field_name("receiver")?)?;
+    hash_receiver(context, node.field("receiver")?)?;
     let (argname, transforming, unchanged) = pair_block(context, block, half)?;
     Some((block, argname, transforming, unchanged))
 }
@@ -323,11 +317,11 @@ fn pair_block<'tree>(
     let [key, value] = parameters.as_slice() else {
         return None;
     };
-    if key.kind() != "identifier" || value.kind() != "identifier" {
+    if key.kind_str() != "identifier" || value.kind_str() != "identifier" {
         return None;
     }
     let body = single_statement(block)?;
-    if body.kind() != "array" {
+    if body.kind_str() != "array" {
         return None;
     }
     let elements = super::nodes::children(body);
@@ -348,23 +342,23 @@ fn call_with_block<'tree>(
     node: Node<'tree>,
     methods: &[&str],
 ) -> Option<Node<'tree>> {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return None;
     }
-    let block = node.child_by_field_name("block")?;
-    let selector = node.child_by_field_name("method")?;
+    let block = node.field("block")?;
+    let selector = node.field("method")?;
     methods
         .contains(&context.source.node_text(selector))
         .then_some(block)
 }
 
 fn node_parameters<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
-    block.child_by_field_name("parameters")
+    block.field("parameters")
 }
 
 /// The one expression a block body holds, which is all these patterns allow.
 fn single_statement<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
-    let body = block.child_by_field_name("body")?;
+    let body = block.field("body")?;
     match super::nodes::children(body).as_slice() {
         [only] => Some(*only),
         _ => None,
@@ -373,41 +367,38 @@ fn single_statement<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
 
 /// `(hash)`: the single empty-hash argument `each_with_object` is given.
 fn empty_hash_argument(node: Node<'_>) -> Option<()> {
-    let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+    let arguments = super::nodes::children(node.field("arguments")?);
     let [only] = arguments.as_slice() else {
         return None;
     };
-    (only.kind() == "hash" && super::nodes::children(*only).is_empty()).then_some(())
+    (only.kind_str() == "hash" && super::nodes::children(*only).is_empty()).then_some(())
 }
 
 /// `#hash_receiver?`.
 fn hash_receiver<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<()> {
-    if node.kind() == "hash" {
+    if node.kind_str() == "hash" {
         return Some(());
     }
-    if node.kind() != "call" || !send_node::is_plain_send(node, context) {
+    if node.kind_str() != "call" || !send_node::is_plain_send(node, context) {
         return None;
     }
-    let selector = context
-        .source
-        .node_text(node.child_by_field_name("method")?);
-    match node.child_by_field_name("block") {
+    let selector = context.source.node_text(node.field("method")?);
+    match node.field("block") {
         None => HASH_METHODS.contains(&selector).then_some(()),
         // A call that takes a block builds its hash there, and takes no arguments of its own --
         // except `each_with_object`, which takes the hash it fills in.
         Some(_) if selector == "each_with_object" => empty_hash_argument(node),
-        Some(_) => (HASH_BLOCK_METHODS.contains(&selector)
-            && node.child_by_field_name("arguments").is_none())
-        .then_some(()),
+        Some(_) => (HASH_BLOCK_METHODS.contains(&selector) && node.field("arguments").is_none())
+            .then_some(()),
     }
 }
 
 /// `(const _ :Hash)`: the constant itself, whatever scope it was reached through.
 fn is_named_constant(context: &RuleContext<'_>, node: Node<'_>, name: &str) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => context.source.node_text(node) == name,
         "scope_resolution" => node
-            .child_by_field_name("name")
+            .field("name")
             .is_some_and(|inner| context.source.node_text(inner) == name),
         _ => false,
     }
@@ -416,7 +407,7 @@ fn is_named_constant(context: &RuleContext<'_>, node: Node<'_>, name: &str) -> b
 /// Whether `name` is written anywhere in the subtree, which is what `` !`_memo `` rules out.
 fn mentions(context: &RuleContext<'_>, node: Node<'_>, name: &str) -> bool {
     send_node::any_descendant(node, &mut |inner| {
-        inner.kind() == "identifier" && context.source.node_text(inner) == name
+        inner.kind_str() == "identifier" && context.source.node_text(inner) == name
     })
 }
 
@@ -442,10 +433,10 @@ fn corrections(context: &RuleContext<'_>, candidate: &Candidate<'_>, name: &str)
         });
     }
     // The selector takes the argument list with it, so `each_with_object({})` becomes the new name.
-    if let Some(selector) = candidate.call.child_by_field_name("method") {
+    if let Some(selector) = candidate.call.field("method") {
         let end = candidate
             .call
-            .child_by_field_name("arguments")
+            .field("arguments")
             .filter(|arguments| context.source.node_text(*arguments).ends_with(')'))
             .map_or(selector.end_byte(), |arguments| arguments.end_byte());
         edits.push(Edit {
@@ -463,13 +454,13 @@ fn corrections(context: &RuleContext<'_>, candidate: &Candidate<'_>, name: &str)
             safe: true,
         });
     }
-    if let Some(body) = candidate.block.child_by_field_name("body") {
+    if let Some(body) = candidate.block.field("body") {
         let source = context.source.node_text(candidate.transforming);
-        let replacement = match candidate.transforming.kind() == "hash" && !source.starts_with('{')
-        {
-            true => format!("{{ {source} }}"),
-            false => source.to_owned(),
-        };
+        let replacement =
+            match candidate.transforming.kind_str() == "hash" && !source.starts_with('{') {
+                true => format!("{{ {source} }}"),
+                false => source.to_owned(),
+            };
         edits.push(Edit {
             start: body.start_byte(),
             end: body.end_byte(),

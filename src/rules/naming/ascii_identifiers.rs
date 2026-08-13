@@ -1,5 +1,6 @@
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const IDENTIFIER_MSG: &str = "Use only ascii symbols in identifiers.";
 const CONSTANT_MSG: &str = "Use only ascii symbols in constants.";
@@ -8,7 +9,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ascii_constants: bool = context.setting("AsciiConstants").unwrap_or(true);
 
     for node in context.nodes_of_any(&["identifier", "constant"]) {
-        let is_constant = node.kind() == "constant";
+        let is_constant = node.kind_str() == "constant";
         if is_constant && !ascii_constants {
             continue;
         }
@@ -45,9 +46,9 @@ fn is_keyword_argument_label(node: tree_sitter::Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    matches!(parent.kind(), "keyword_parameter" | "pair")
+    matches!(parent.kind_str(), "keyword_parameter" | "pair")
         && parent
-            .child_by_field_name("name")
-            .or_else(|| parent.child_by_field_name("key"))
+            .field("name")
+            .or_else(|| parent.field("key"))
             == Some(node)
 }

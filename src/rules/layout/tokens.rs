@@ -25,6 +25,7 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// What a token is, as far as the predicates `RuboCop::AST::Token` offers the cops reading this
 /// stream go.
@@ -128,7 +129,7 @@ struct Builder<'a, 'tree> {
 
 impl Builder<'_, '_> {
     fn walk(&mut self, node: Node<'_>) {
-        match node.kind() {
+        match node.kind_str() {
             "heredoc_beginning" => {
                 self.push(node);
                 let index = self.openers;
@@ -155,7 +156,7 @@ impl Builder<'_, '_> {
             ":" if closes_a_label(node) => self.extend(node),
             "=" if node
                 .parent()
-                .is_some_and(|parent| parent.kind() == "setter") =>
+                .is_some_and(|parent| parent.kind_str() == "setter") =>
             {
                 self.extend(node);
             }
@@ -199,7 +200,7 @@ impl Builder<'_, '_> {
             }
             let start = child.start_byte().max(from);
             self.fill(offset..start);
-            match child.kind() {
+            match child.kind_str() {
                 "interpolation" => self.walk(child),
                 kind if LITERALS.contains(&kind) => self.walk_literal_from(child, start),
                 // The text of a literal is one token however the grammar subdivided it: a `#` in a
@@ -251,7 +252,7 @@ impl Builder<'_, '_> {
 fn closes_a_label(node: Node<'_>) -> bool {
     node.parent().is_some_and(|parent| {
         matches!(
-            parent.kind(),
+            parent.kind_str(),
             "pair" | "keyword_parameter" | "keyword_pattern"
         )
     })
@@ -269,14 +270,14 @@ fn collapses(node: Node<'_>) -> bool {
     }
     if node
         .child(0)
-        .is_none_or(|open| !matches!(open.kind(), "\"" | "'"))
+        .is_none_or(|open| !matches!(open.kind_str(), "\"" | "'"))
     {
         return false;
     }
     let mut cursor = node.walk();
     if node
         .children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
     {
         return false;
     }
@@ -285,16 +286,16 @@ fn collapses(node: Node<'_>) -> bool {
 
 fn is_label_key(node: Node<'_>) -> bool {
     node.parent()
-        .is_some_and(|parent| matches!(parent.kind(), "pair" | "keyword_pattern"))
+        .is_some_and(|parent| matches!(parent.kind_str(), "pair" | "keyword_pattern"))
         && node
             .next_sibling()
-            .is_some_and(|next| next.kind() == ":" && next.start_byte() == node.end_byte())
+            .is_some_and(|next| next.kind_str() == ":" && next.start_byte() == node.end_byte())
 }
 
 /// Which of a literal's tokens the part is: the delimiter that opens it, the one that closes it,
 /// or the text between them.
 fn delimiter_kind(literal: Node<'_>, part: Node<'_>) -> TokenKind {
-    if literal.kind() != "string" {
+    if literal.kind_str() != "string" {
         return TokenKind::Other;
     }
     let last = u32::try_from(literal.child_count())
@@ -310,14 +311,14 @@ fn delimiter_kind(literal: Node<'_>, part: Node<'_>) -> TokenKind {
 }
 
 fn classify(node: Node<'_>) -> TokenKind {
-    match node.kind() {
+    match node.kind_str() {
         "comment" => TokenKind::Comment,
         "(" if opens_a_command_argument(node) => TokenKind::Other,
         "(" => TokenKind::LeftParenthesis,
         ")" => TokenKind::RightParenthesis,
         "[" if node
             .parent()
-            .is_some_and(|parent| parent.kind() == "element_reference") =>
+            .is_some_and(|parent| parent.kind_str() == "element_reference") =>
         {
             TokenKind::IndexBracket
         }
@@ -336,7 +337,7 @@ fn classify(node: Node<'_>) -> TokenKind {
 /// number are types of their own to the lexer.
 fn is_binary_operator(node: Node<'_>) -> bool {
     node.parent()
-        .is_some_and(|parent| parent.kind() == "binary")
+        .is_some_and(|parent| parent.kind_str() == "binary")
 }
 
 /// Whether the parenthesis is the `tLPAREN_ARG` of `foo (1 + 2)`: the lexer keeps that one apart
@@ -345,13 +346,13 @@ fn is_binary_operator(node: Node<'_>) -> bool {
 fn opens_a_command_argument(node: Node<'_>) -> bool {
     let Some(group) = node
         .parent()
-        .filter(|parent| parent.kind() == "parenthesized_statements")
+        .filter(|parent| parent.kind_str() == "parenthesized_statements")
     else {
         return false;
     };
     group
         .parent()
-        .filter(|list| list.kind() == "argument_list")
+        .filter(|list| list.kind_str() == "argument_list")
         .and_then(|list| list.child(0))
         .is_some_and(|first| first == group)
 }

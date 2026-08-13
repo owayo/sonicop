@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Reports the comma standing between the last item and the closing bracket, when the configured
 /// style is one that wants none there.
@@ -90,15 +91,13 @@ fn inside_comment(context: &RuleContext<'_>, start: usize, comma: usize) -> bool
 
 /// `heredoc?`: the item is a heredoc, or ends in one through a call or a hash value.
 fn holds_heredoc(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "heredoc_beginning" => true,
         "call" => match last_argument(node) {
             // `(send receiver method)` has two children upstream, so a call without arguments looks
             // at its receiver and one with arguments at its last argument.
             Some(argument) => holds_heredoc(argument),
-            None => node
-                .child_by_field_name("receiver")
-                .is_some_and(holds_heredoc),
+            None => node.field("receiver").is_some_and(holds_heredoc),
         },
         "pair" | "hash" => super::nodes::children(node)
             .last()
@@ -108,7 +107,7 @@ fn holds_heredoc(node: Node<'_>) -> bool {
 }
 
 fn last_argument<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    super::nodes::children(node.child_by_field_name("arguments")?)
+    super::nodes::children(node.field("arguments")?)
         .last()
         .copied()
 }
@@ -116,5 +115,5 @@ fn last_argument<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// The closing bracket of a literal, which is where the range upstream searches ends.
 pub(super) fn closing_bracket<'tree>(node: Node<'tree>, bracket: &str) -> Option<Node<'tree>> {
     let last = node.child(node.child_count().saturating_sub(1) as u32)?;
-    (last.kind() == bracket).then_some(last)
+    (last.kind_str() == bracket).then_some(last)
 }

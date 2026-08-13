@@ -10,6 +10,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The four sentences one of these cops reports with.
 pub(super) struct Messages {
@@ -194,19 +195,19 @@ fn element_end_with_trailing_comma(text: &str, literal: &Literal<'_>) -> usize {
 /// argument is chained onto, which has to travel with the brace.
 fn heredoc_argument_method_chain(literal: &Literal<'_>) -> Option<Range<usize>> {
     // `node.respond_to?(:first_argument)`: only a call has arguments to look at.
-    if literal.node.kind() != "call" {
+    if literal.node.kind_str() != "call" {
         return None;
     }
     let first = literal.elements[0][0];
-    if first.kind() != "heredoc_beginning" {
+    if first.kind_str() != "heredoc_beginning" {
         return None;
     }
     let parent = literal.node.parent()?;
-    if parent.kind() != "call" {
+    if parent.kind_str() != "call" {
         return None;
     }
     // Upstream reads `parent.loc.dot` without testing it, and raises on a call written without one.
-    let dot = parent.child_by_field_name("operator")?;
+    let dot = parent.field("operator")?;
     Some(dot.start_byte()..parent.end_byte())
 }
 
@@ -288,13 +289,12 @@ fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
-        "call" => parent.child_by_field_name("receiver") == Some(node),
+    match parent.kind_str() {
+        "call" => parent.field("receiver") == Some(node),
         // An index read is a `send` upstream, so its object is a receiver like any other.
-        "element_reference" => parent.child_by_field_name("object") == Some(node),
+        "element_reference" => parent.field("object") == Some(node),
         "binary" => {
-            super::support::is_send_like(context, parent)
-                && parent.child_by_field_name("left") == Some(node)
+            super::support::is_send_like(context, parent) && parent.field("left") == Some(node)
         }
         "unary" => super::support::is_send_like(context, parent),
         _ => false,
@@ -307,21 +307,20 @@ fn is_argument(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent().is_some_and(|call| {
-            call.kind() == "call" && crate::rules::send_node::is_plain_send(call, context)
+            call.kind_str() == "call" && crate::rules::send_node::is_plain_send(call, context)
         }),
-        "element_reference" => parent.child_by_field_name("object") != Some(node),
+        "element_reference" => parent.field("object") != Some(node),
         "binary" => {
-            super::support::is_send_like(context, parent)
-                && parent.child_by_field_name("right") == Some(node)
+            super::support::is_send_like(context, parent) && parent.field("right") == Some(node)
         }
         // `a.b = value` and `a[0] = value` are both `send` calls whose last argument is the value.
         "assignment" | "operator_assignment" => {
-            parent.child_by_field_name("right") == Some(node)
+            parent.field("right") == Some(node)
                 && parent
-                    .child_by_field_name("left")
-                    .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+                    .field("left")
+                    .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
         }
         _ => false,
     }
@@ -333,13 +332,13 @@ pub(super) fn grouped_elements<'tree>(container: Node<'tree>) -> Vec<Vec<Node<'t
     let mut cursor = container.walk();
     let children: Vec<Node<'tree>> = container
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     let mut elements: Vec<Vec<Node<'tree>>> = Vec::new();
     for child in children {
-        let pair = matches!(child.kind(), "pair" | "hash_splat_argument");
+        let pair = matches!(child.kind_str(), "pair" | "hash_splat_argument");
         match elements.last_mut() {
-            Some(last) if pair && matches!(last[0].kind(), "pair" | "hash_splat_argument") => {
+            Some(last) if pair && matches!(last[0].kind_str(), "pair" | "hash_splat_argument") => {
                 last.push(child);
             }
             _ => elements.push(vec![child]),
@@ -357,7 +356,7 @@ pub(super) fn delimiters<'tree>(
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     let open = node
         .child(0)
-        .filter(|child| openers.contains(&child.kind()))?;
+        .filter(|child| openers.contains(&child.kind_str()))?;
     let last = u32::try_from(node.child_count()).ok()?.checked_sub(1)?;
     let close = node
         .child(last)

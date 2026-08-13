@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's parser all builds an `if` node for.
 const IF_KINDS: &[&str] = &[
@@ -49,10 +50,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(begin) = begin_token(context, node) else {
             continue;
         };
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
-        let keyword = node.kind();
+        let keyword = node.kind_str();
         let branches = branches(node);
         let newline = branches
             .iter()
@@ -70,7 +71,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             "use a newline instead"
         } else if else_branch
             .node()
-            .is_some_and(|branch| IF_KINDS.contains(&branch.kind()))
+            .is_some_and(|branch| IF_KINDS.contains(&branch.kind_str()))
             || matches!(else_branch, Branch::Several(..))
             || masgn_or_block
         {
@@ -111,7 +112,7 @@ fn upstream_parent_is_if(node: Node<'_>) -> bool {
     let Some(branch) = node.parent() else {
         return false;
     };
-    if !matches!(branch.kind(), "then" | "else") {
+    if !matches!(branch.kind_str(), "then" | "else") {
         return false;
     }
     // A branch holding more than one statement is a `begin` upstream, and that is the parent.
@@ -120,14 +121,14 @@ fn upstream_parent_is_if(node: Node<'_>) -> bool {
     }
     branch
         .parent()
-        .is_some_and(|grandparent| IF_KINDS.contains(&grandparent.kind()))
+        .is_some_and(|grandparent| IF_KINDS.contains(&grandparent.kind_str()))
 }
 
 /// `node.loc.begin`, which is the `;` or `then` that closes the condition.
 fn begin_token(context: &RuleContext<'_>, node: Node<'_>) -> Option<Range<usize>> {
-    let condition = node.child_by_field_name("condition")?;
+    let condition = node.field("condition")?;
     let following = condition.next_sibling()?;
-    let token = match following.kind() {
+    let token = match following.kind_str() {
         "then" => following.child(0)?,
         _ => following,
     };
@@ -139,10 +140,10 @@ fn branches(node: Node<'_>) -> Vec<Branch<'_>> {
     let mut out = vec![if_branch(node)];
     let mut current = node;
     loop {
-        let Some(alternative) = current.child_by_field_name("alternative") else {
+        let Some(alternative) = current.field("alternative") else {
             return out;
         };
-        if alternative.kind() != "elsif" {
+        if alternative.kind_str() != "elsif" {
             out.push(statements(alternative));
             return out;
         }
@@ -152,7 +153,7 @@ fn branches(node: Node<'_>) -> Vec<Branch<'_>> {
 }
 
 fn if_branch(node: Node<'_>) -> Branch<'_> {
-    match node.child_by_field_name("consequence") {
+    match node.field("consequence") {
         Some(consequence) => statements(consequence),
         None => Branch::Empty,
     }
@@ -160,8 +161,8 @@ fn if_branch(node: Node<'_>) -> Branch<'_> {
 
 /// `node.else_branch`: an `elsif` is one node there, however long the chain runs.
 fn else_branch(node: Node<'_>) -> Branch<'_> {
-    match node.child_by_field_name("alternative") {
-        Some(alternative) if alternative.kind() == "elsif" => Branch::One(alternative),
+    match node.field("alternative") {
+        Some(alternative) if alternative.kind_str() == "elsif" => Branch::One(alternative),
         Some(alternative) => statements(alternative),
         None => Branch::Empty,
     }
@@ -180,17 +181,17 @@ fn statements(clause: Node<'_>) -> Branch<'_> {
 
 /// `use_return_with_argument?`: a `return` that carries a value cannot become a ternary arm.
 fn returns_a_value(node: Node<'_>) -> bool {
-    node.kind() == "return" && node.named_child_count() > 0
+    node.kind_str() == "return" && node.named_child_count() > 0
 }
 
 fn is_masgn_or_block(node: Node<'_>) -> bool {
-    if node.kind() == "call" && node.child_by_field_name("block").is_some() {
+    if node.kind_str() == "call" && node.field("block").is_some() {
         return true;
     }
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| left.kind() == "left_assignment_list")
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "left_assignment_list")
 }
 
 fn replacement(
@@ -201,7 +202,7 @@ fn replacement(
 ) -> String {
     let else_branch = else_branch(node);
     if let Some(branch) = else_branch.node()
-        && IF_KINDS.contains(&branch.kind())
+        && IF_KINDS.contains(&branch.kind_str())
     {
         return correct_elsif(context, node, condition, branch);
     }
@@ -240,7 +241,7 @@ fn correct_elsif(
 
 fn build_else_branch(context: &RuleContext<'_>, conditional: Node<'_>) -> String {
     let condition = conditional
-        .child_by_field_name("condition")
+        .field("condition")
         .map_or_else(String::new, |node| {
             context.source.node_text(node).to_owned()
         });
@@ -253,7 +254,7 @@ fn build_else_branch(context: &RuleContext<'_>, conditional: Node<'_>) -> String
         branch => {
             let nested = branch
                 .node()
-                .filter(|node| IF_KINDS.contains(&node.kind()))
+                .filter(|node| IF_KINDS.contains(&node.kind_str()))
                 .map(|node| build_else_branch(context, node));
             result.push_str(&match nested {
                 Some(nested) => nested,
@@ -287,18 +288,18 @@ fn expression(context: &RuleContext<'_>, branch: (String, Option<Node<'_>>)) -> 
     let Some(node) = node else {
         return source;
     };
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return source;
     }
-    let Some(selector) = node.child_by_field_name("method") else {
+    let Some(selector) = node.field("method") else {
         return source;
     };
     // `arithmetic_operation?` and `:[]` / `:[]=` are all spelled as operators, which never need the
     // parentheses added.
-    if selector.kind() == "operator" {
+    if selector.kind_str() == "operator" {
         return source;
     }
-    let Some(list) = node.child_by_field_name("arguments") else {
+    let Some(list) = node.field("arguments") else {
         return source;
     };
     let arguments = super::nodes::children(list);
@@ -319,7 +320,7 @@ fn expression(context: &RuleContext<'_>, branch: (String, Option<Node<'_>>)) -> 
 /// assigned instead of the condition's value.
 fn ternary_condition(context: &RuleContext<'_>, condition: Node<'_>) -> String {
     let source = context.source.node_text(condition);
-    match matches!(condition.kind(), "assignment" | "operator_assignment") {
+    match matches!(condition.kind_str(), "assignment" | "operator_assignment") {
         true => format!("({source})"),
         false => source.to_owned(),
     }

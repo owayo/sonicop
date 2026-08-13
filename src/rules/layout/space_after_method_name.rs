@@ -2,17 +2,18 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not put a space between a method name and the opening parenthesis.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         // `args.parenthesized_call?`: only a parameter list written with parentheses.
-        if parameters.child(0).is_none_or(|child| child.kind() != "(") {
+        if parameters.child(0).is_none_or(|child| child.kind_str() != "(") {
             continue;
         }
         let start = parameters.start_byte();

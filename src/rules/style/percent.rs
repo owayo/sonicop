@@ -9,6 +9,7 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Node kinds that can be written as a `%`-literal. A node of one of these kinds is only a percent
 /// literal when its opening delimiter actually starts with `%`; `"a"` and `%q(a)` share a kind.
@@ -63,7 +64,7 @@ impl PercentLiteral {
         // The delimiter is the opener's last character; the type is everything before it.
         let (delimiter_start, opening) = opener.char_indices().next_back()?;
         let percent_type = opener[..delimiter_start].to_owned();
-        if !types_for(node.kind()).contains(&percent_type.as_str()) {
+        if !types_for(node.kind_str()).contains(&percent_type.as_str()) {
             return None;
         }
         let close_text = context.source.node_text(close);
@@ -89,7 +90,7 @@ pub(super) fn literal_segments<'a>(
 ) -> Vec<&'a str> {
     let text = context.source.text();
     let mut segments = Vec::new();
-    if matches!(node.kind(), "string_array" | "symbol_array") {
+    if matches!(node.kind_str(), "string_array" | "symbol_array") {
         let mut cursor = node.walk();
         for element in node.named_children(&mut cursor) {
             if !holds_interpolation(element) {
@@ -103,7 +104,7 @@ pub(super) fn literal_segments<'a>(
     let mut start = literal.begin.end;
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        if child.kind() != "interpolation" {
+        if child.kind_str() != "interpolation" {
             continue;
         }
         segments.push(&text[start..child.start_byte()]);
@@ -121,11 +122,11 @@ pub(super) fn literal_segments<'a>(
 /// never saw.
 pub(super) fn is_modulo_operand(node: Node<'_>) -> bool {
     node.parent()
-        .is_some_and(|parent| parent.kind() == "chained_string")
+        .is_some_and(|parent| parent.kind_str() == "chained_string")
         && node.prev_named_sibling().is_some()
 }
 
 fn holds_interpolation(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
-    node.kind() == "interpolation" || node.named_children(&mut cursor).any(holds_interpolation)
+    node.kind_str() == "interpolation" || node.named_children(&mut cursor).any(holds_interpolation)
 }

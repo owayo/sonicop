@@ -9,6 +9,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Indent the first line of the right-hand-side of a multi-line assignment.";
 
@@ -20,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut reported: Vec<Range<usize>> = Vec::new();
 
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
-        let Some(right) = node.child_by_field_name("right") else {
+        let Some(right) = node.field("right") else {
             continue;
         };
         let Some(operator) = operator_of(node) else {
@@ -38,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let anchor = node
             .parent()
             .filter(|parent| {
-                matches!(parent.kind(), "assignment" | "operator_assignment")
+                matches!(parent.kind_str(), "assignment" | "operator_assignment")
                     && parent.start_position().row == node.start_position().row
             })
             .unwrap_or(node);
@@ -68,7 +69,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `node.loc.operator`: the `=` or the compound operator an assignment was written with.
 fn operator_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let left = node.child_by_field_name("left")?;
+    let left = node.field("left")?;
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| !child.is_named() && child.start_byte() >= left.end_byte())

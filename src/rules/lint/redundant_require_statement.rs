@@ -6,6 +6,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, is_string, string_text};
 
 use super::ranges::{whole_lines, with_space_on_right};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Remove unnecessary `require` statement.";
 
@@ -20,10 +21,10 @@ const MODIFIERS: &[&str] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        if !is_plain_send(call, context) || call.child_by_field_name("receiver").is_some() {
+        if !is_plain_send(call, context) || call.field("receiver").is_some() {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         if context.source.node_text(selector) != "require" {
@@ -34,7 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let feature = feature.first();
-        if feature.kind() == "identifier" || !is_string(feature, context) {
+        if feature.kind_str() == "identifier" || !is_string(feature, context) {
             continue;
         }
         if !is_redundant(string_text(feature, context), context.target_ruby_version()) {
@@ -72,7 +73,7 @@ fn remove(range: std::ops::Range<usize>) -> Edit {
 /// The conditional the `require` is the body of, when it was written as a modifier.
 fn modifier_parent<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
     let parent = call.parent()?;
-    MODIFIERS.contains(&parent.kind()).then_some(parent)
+    MODIFIERS.contains(&parent.kind_str()).then_some(parent)
 }
 
 /// `redundant_feature?`: a file the interpreter has already loaded by the version being targeted.

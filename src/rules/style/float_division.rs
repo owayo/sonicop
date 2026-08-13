@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
@@ -64,27 +65,27 @@ fn division<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             (context.source.node_text(operator) == "/").then_some(())?;
             Some((
-                node.child_by_field_name("left")?,
-                node.child_by_field_name("right")?,
+                node.field("left")?,
+                node.field("right")?,
             ))
         }
         _ => {
-            if node.child_by_field_name("block").is_some()
+            if node.field("block").is_some()
                 || !send_node::is_plain_send(node, context)
             {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let selector = node.child_by_field_name("method")?;
+            let receiver = node.field("receiver")?;
+            let selector = node.field("method")?;
             if context.source.node_text(selector) != "/" {
                 return None;
             }
-            let arguments = node.child_by_field_name("arguments")?;
+            let arguments = node.field("arguments")?;
             match super::nodes::children(arguments).as_slice() {
                 [only] => Some((receiver, *only)),
                 _ => None,
@@ -95,22 +96,22 @@ fn division<'tree>(
 
 /// `(send !nil? :to_f)`: a `to_f` sent to something, which is what a coercion looks like.
 fn to_f_call<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "call"
-        || node.child_by_field_name("block").is_some()
-        || node.child_by_field_name("arguments").is_some()
+    if node.kind_str() != "call"
+        || node.field("block").is_some()
+        || node.field("arguments").is_some()
         || !send_node::is_plain_send(node, context)
     {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let selector = node.child_by_field_name("method")?;
+    let receiver = node.field("receiver")?;
+    let selector = node.field("method")?;
     (context.source.node_text(selector) == "to_f").then_some(receiver)
 }
 
 /// The receiver of a call, or nothing when the node is not one.
 fn receiver_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    (node.kind() == "call")
-        .then(|| node.child_by_field_name("receiver"))
+    (node.kind_str() == "call")
+        .then(|| node.field("receiver"))
         .flatten()
 }
 
@@ -119,16 +120,16 @@ fn is_regexp_last_match(context: &RuleContext<'_>, node: Option<Node<'_>>) -> bo
     let Some(node) = node else {
         return false;
     };
-    if node.kind() == "global_variable" {
+    if node.kind_str() == "global_variable" {
         let name = context.source.node_text(node);
         return name.len() > 1 && name[1..].bytes().all(|byte| byte.is_ascii_digit());
     }
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
     let (Some(receiver), Some(selector)) = (
-        node.child_by_field_name("receiver"),
-        node.child_by_field_name("method"),
+        node.field("receiver"),
+        node.field("method"),
     ) else {
         return false;
     };
@@ -137,10 +138,10 @@ fn is_regexp_last_match(context: &RuleContext<'_>, node: Option<Node<'_>>) -> bo
     {
         return false;
     }
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .map(super::nodes::children)
         .is_some_and(|arguments| match arguments.as_slice() {
-            [only] => only.kind() == "integer",
+            [only] => only.kind_str() == "integer",
             _ => false,
         })
 }
@@ -149,8 +150,8 @@ fn is_regexp_last_match(context: &RuleContext<'_>, node: Option<Node<'_>>) -> bo
 fn strip(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     let (Some(_), Some(dot), Some(selector)) = (
         to_f_call(context, node),
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("method"),
+        node.field("operator"),
+        node.field("method"),
     ) else {
         return Vec::new();
     };
@@ -211,7 +212,7 @@ fn fdiv(
 
 /// Whether upstream's parser would have built a call here, which is what answers `parenthesized?`.
 fn is_call(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" | "super" => true,
         "identifier" => !locals.is_lvar(node),
         _ => false,
@@ -219,6 +220,6 @@ fn is_call(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
 }
 
 fn is_parenthesized(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
 }

@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use double pipes `||` instead.";
 const REDUNDANT_CONDITION: &str = "This condition is not needed.";
@@ -45,20 +46,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["if", "unless", "conditional"]) {
         // `elsif_conditional?`: an `elsif` chain is a different shape entirely.
         if node
-            .child_by_field_name("alternative")
-            .is_some_and(|alternative| alternative.kind() == "elsif")
+            .field("alternative")
+            .is_some_and(|alternative| alternative.kind_str() == "elsif")
         {
             continue;
         }
-        let ternary = node.kind() == "conditional";
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let ternary = node.kind_str() == "conditional";
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let normalized_if = branch(node, true);
         let normalized_else = branch(node, false);
         // `*node`: the children as the parser stores them, which an `unless` holds the other way
         // round from the way it reads.
-        let (raw_if, raw_else) = match node.kind() {
+        let (raw_if, raw_else) = match node.kind_str() {
             "unless" => (normalized_else.clone(), normalized_if.clone()),
             _ => (normalized_if.clone(), normalized_else.clone()),
         };
@@ -121,15 +122,15 @@ fn is_offense(
     // `use_if_branch?` and `use_hash_key_assignment?`: neither shape is a plain either-or.
     if let Some(branch) = raw_else.as_ref().and_then(|branch| branch.node) {
         if matches!(
-            branch.kind(),
+            branch.kind_str(),
             "if" | "unless" | "elsif" | "conditional" | "if_modifier" | "unless_modifier"
         ) {
             return false;
         }
-        if branch.kind() == "assignment"
+        if branch.kind_str() == "assignment"
             && branch
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "element_reference")
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "element_reference")
         {
             return false;
         }
@@ -168,7 +169,7 @@ fn is_plain_node(branch: &Branch<'_>) -> bool {
         return true;
     }
     matches!(
-        node.kind(),
+        node.kind_str(),
         "parenthesized_statements" | "nil" | "true" | "false" | "self" | "yield"
     )
 }
@@ -195,7 +196,7 @@ fn synonymous(
         && raw_if
             .as_ref()
             .and_then(|branch| branch.node)
-            .and_then(|node| node.child_by_field_name("right"))
+            .and_then(|node| node.field("right"))
             .is_some_and(|expression| context.source.node_text(expression) == condition_source)
     {
         return true;
@@ -207,7 +208,7 @@ fn synonymous(
         return false;
     };
     // `use_hash_key_access?`: `h[k]` is a lookup rather than a call that could take a default.
-    if if_branch.kind() == "element_reference" {
+    if if_branch.kind_str() == "element_reference" {
         return false;
     }
     first_argument(if_branch)
@@ -228,7 +229,7 @@ fn if_branch_is_true(
     let Some(else_branch) = normalized_else.as_ref().and_then(|branch| branch.node) else {
         return false;
     };
-    if if_branch.kind() != "true" || else_branch.kind() == "true" {
+    if if_branch.kind_str() != "true" || else_branch.kind_str() == "true" {
         return false;
     }
     let Some(selector) = predicate_selector(context, condition) else {
@@ -240,10 +241,10 @@ fn if_branch_is_true(
 /// The name of a predicate call, when the node is one.
 fn predicate_selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
     // A call that takes a block is a `block` node upstream rather than a `send`.
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return None;
     }
-    let selector = node.child_by_field_name("method")?;
+    let selector = node.field("method")?;
     let name = context.source.node_text(selector);
     (name.ends_with('?') || name.ends_with('!')).then_some(name)
 }
@@ -256,12 +257,12 @@ fn assignment_pair(
 ) -> Option<String> {
     let name = |branch: &Option<Branch<'_>>| -> Option<String> {
         let node = branch.as_ref().and_then(|branch| branch.node)?;
-        if node.kind() != "assignment" {
+        if node.kind_str() != "assignment" {
             return None;
         }
-        let left = node.child_by_field_name("left")?;
+        let left = node.field("left")?;
         matches!(
-            left.kind(),
+            left.kind_str(),
             "identifier" | "instance_variable" | "class_variable" | "global_variable" | "constant"
         )
         .then(|| context.source.node_text(left).to_owned())
@@ -301,14 +302,14 @@ fn single_argument_method(node: Node<'_>) -> bool {
     }
     // `argument_with_operator?`: a splat, a block pass and a `**` inside a brace-less hash all
     // spread rather than pass one value.
-    !SPREAD_ARGUMENTS.contains(&argument.kind())
+    !SPREAD_ARGUMENTS.contains(&argument.kind_str())
 }
 
 /// Whether upstream's parser would have built a `send` here. An operator written between two
 /// operands is one there, however much the grammar spells it as a `binary`.
 fn is_send(node: Node<'_>) -> bool {
-    match node.kind() {
-        "call" => node.child_by_field_name("block").is_none(),
+    match node.kind_str() {
+        "call" => node.field("block").is_none(),
         "binary" => true,
         _ => false,
     }
@@ -317,20 +318,20 @@ fn is_send(node: Node<'_>) -> bool {
 /// A call's arguments grouped the way upstream's parser does: a trailing run of `key: value` pairs
 /// is one `hash` argument there, however many pairs were written.
 fn arguments<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Range<usize>)> {
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         return node
-            .child_by_field_name("right")
+            .field("right")
             .map(|right| vec![(right, right.byte_range())])
             .unwrap_or_default();
     }
     let written = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map(super::nodes::children)
         .unwrap_or_default();
     let mut out: Vec<(Node<'tree>, Range<usize>)> = Vec::new();
     let mut hash: Vec<Node<'tree>> = Vec::new();
     for child in written {
-        if matches!(child.kind(), "pair" | "hash_splat_argument") {
+        if matches!(child.kind_str(), "pair" | "hash_splat_argument") {
             hash.push(child);
             continue;
         }
@@ -351,33 +352,33 @@ fn first_argument<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Range<usize>
 }
 
 fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    let field = match node.kind() {
+    let field = match node.kind_str() {
         "binary" => "operator",
         _ => "method",
     };
-    node.child_by_field_name(field)
+    node.field(field)
         .map(|selector| context.source.node_text(selector))
 }
 
 fn receiver<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    let field = match node.kind() {
+    let field = match node.kind_str() {
         "binary" => "left",
         _ => "receiver",
     };
-    node.child_by_field_name(field)
+    node.field(field)
         .map(|receiver| context.source.node_text(receiver))
 }
 
 /// One branch of the conditional, read from the clause the grammar hangs off the node.
 fn branch<'tree>(node: Node<'tree>, want_consequence: bool) -> Option<Branch<'tree>> {
-    let field = match (node.kind(), want_consequence) {
+    let field = match (node.kind_str(), want_consequence) {
         ("conditional", true) => "consequence",
         ("conditional", false) => "alternative",
         (_, true) => "consequence",
         (_, false) => "alternative",
     };
-    let clause = node.child_by_field_name(field)?;
-    if node.kind() == "conditional" {
+    let clause = node.field(field)?;
+    if node.kind_str() == "conditional" {
         return Some(Branch {
             node: Some(clause),
             range: clause.byte_range(),
@@ -437,7 +438,7 @@ fn corrections(
         }];
         // A range written as the else branch has to keep its own parentheses.
         if let Some(else_branch) = normalized_else.as_ref().and_then(|branch| branch.node)
-            && else_branch.kind() == "range"
+            && else_branch.kind_str() == "range"
         {
             edits.push(Edit {
                 start: else_branch.start_byte(),
@@ -503,8 +504,8 @@ fn ternary_form(
     }
     // A conditional written as an argument keeps the `||` from spilling out of the call.
     let wrapped = node.parent().is_some_and(|parent| {
-        matches!(parent.kind(), "argument_list")
-            || (parent.kind() == "call" && parent.child_by_field_name("receiver").is_some())
+        matches!(parent.kind_str(), "argument_list")
+            || (parent.kind_str() == "call" && parent.field("receiver").is_some())
     });
     Some(match wrapped {
         true => format!("({form})"),
@@ -533,13 +534,13 @@ fn if_source(
         {
             return format!("{receiver} {selector} ({}", context.source.slice(argument));
         }
-        if node.kind() == "true" {
+        if node.kind_str() == "true" {
             let condition_source = context.source.node_text(condition);
             if arguments(condition).is_empty() || is_parenthesized(context, condition) {
                 return condition_source.to_owned();
             }
             let (Some(selector), Some(argument)) = (
-                condition.child_by_field_name("method"),
+                condition.field("method"),
                 first_argument(condition),
             ) else {
                 return condition_source.to_owned();
@@ -578,14 +579,14 @@ fn else_source(
     if requires_parentheses(context, node) {
         return format!("({source})");
     }
-    if node.kind() == "call"
+    if node.kind_str() == "call"
         && !arguments(node).is_empty()
         && !is_parenthesized(context, node)
         && node
-            .child_by_field_name("method")
-            .is_some_and(|selector| selector.kind() != "operator")
+            .field("method")
+            .is_some_and(|selector| selector.kind_str() != "operator")
     {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             return source.to_owned();
         };
         return format!(
@@ -600,7 +601,7 @@ fn else_source(
     }
     // `branches_have_assignment?`: only the value assigned is carried over.
     if assignment_pair(context, normalized_if, &Some(else_branch.clone())).is_some()
-        && let Some(expression) = node.child_by_field_name("right")
+        && let Some(expression) = node.field("right")
     {
         return wrapped_argument(context, expression, context.source.node_text(expression));
     }
@@ -613,7 +614,7 @@ fn wrapped_argument(context: &RuleContext<'_>, node: Node<'_>, source: &str) -> 
     if requires_parentheses(context, node) {
         return format!("({source})");
     }
-    if node.kind() == "pair" || (node.kind() == "hash" && !source.starts_with('{')) {
+    if node.kind_str() == "pair" || (node.kind_str() == "hash" && !source.starts_with('{')) {
         return format!("{{ {source} }}");
     }
     source.to_owned()
@@ -621,17 +622,17 @@ fn wrapped_argument(context: &RuleContext<'_>, node: Node<'_>, source: &str) -> 
 
 fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if matches!(
-        node.kind(),
+        node.kind_str(),
         "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier" | "rescue_modifier"
     ) {
         return true;
     }
-    if node.kind() == "range" {
+    if node.kind_str() == "range" {
         return true;
     }
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "and" | "or"))
 }
 
@@ -645,6 +646,6 @@ fn arithmetic_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn is_parenthesized(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
 }

@@ -12,6 +12,7 @@ use crate::rules::send_node::{is_plain_send, top_level_constant};
 
 use super::locals::LocalVariables;
 use super::statements::Branch;
+use crate::rules::node_ext::NodeExt;
 
 /// The methods a flow command is spelled with, all of which a file may redefine.
 const REDEFINABLE: [&str; 6] = ["raise", "fail", "throw", "exit", "exit!", "abort"];
@@ -28,7 +29,7 @@ pub(super) fn is_command(
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
 ) -> bool {
-    FLOW_KEYWORDS.contains(&node.kind()) || is_kernel_command(node, context, locals)
+    FLOW_KEYWORDS.contains(&node.kind_str()) || is_kernel_command(node, context, locals)
 }
 
 /// Whether the node is one of `Lint/UnreachableLoop`'s break commands.
@@ -37,7 +38,7 @@ pub(super) fn is_break_command(
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
 ) -> bool {
-    BREAK_KEYWORDS.contains(&node.kind()) || is_kernel_command(node, context, locals)
+    BREAK_KEYWORDS.contains(&node.kind_str()) || is_kernel_command(node, context, locals)
 }
 
 /// `(send {nil? (const {nil? cbase} :Kernel)} {:raise :fail :throw :exit :exit! :abort} ...)`.
@@ -49,16 +50,16 @@ fn is_kernel_command(
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
 ) -> bool {
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return REDEFINABLE.contains(&context.source.node_text(node)) && !locals.is_lvar(node);
     }
-    node.kind() == "call"
+    node.kind_str() == "call"
         && is_plain_send(node, context)
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| REDEFINABLE.contains(&context.source.node_text(method)))
         && node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_none_or(|receiver| top_level_constant(receiver, "Kernel", context))
 }
 
@@ -70,8 +71,8 @@ pub(super) fn check_if<'tree>(
     node: Node<'tree>,
     flow: &mut impl FnMut(Node<'tree>) -> bool,
 ) -> bool {
-    let consequence = Branch::of(node.child_by_field_name("consequence"));
-    let alternative = Branch::of(node.child_by_field_name("alternative"));
+    let consequence = Branch::of(node.field("consequence"));
+    let alternative = Branch::of(node.field("alternative"));
     consequence.exists() && alternative.exists() && consequence.any(flow) && alternative.any(flow)
 }
 
@@ -87,17 +88,17 @@ pub(super) fn check_case<'tree>(
         children
             .iter()
             .copied()
-            .find(|child| child.kind() == "else"),
+            .find(|child| child.kind_str() == "else"),
     );
     if !otherwise.exists() || !otherwise.any(flow) {
         return false;
     }
     let branches: Vec<Node<'tree>> = children
         .into_iter()
-        .filter(|child| matches!(child.kind(), "when" | "in_clause"))
+        .filter(|child| matches!(child.kind_str(), "when" | "in_clause"))
         .collect();
     branches.into_iter().all(|branch| {
-        let body = Branch::of(branch.child_by_field_name("body"));
+        let body = Branch::of(branch.field("body"));
         body.exists() && body.any(flow)
     })
 }
@@ -118,7 +119,7 @@ impl Flow {
     /// `register_redefinition`: a method definition that shadows one of the flow commands stops
     /// every later call to that name from ending the flow.
     pub(super) fn register_redefinition(&mut self, node: Node<'_>, context: &RuleContext<'_>) {
-        let Some(name) = node.child_by_field_name("name") else {
+        let Some(name) = node.field("name") else {
             return;
         };
         let name = context.source.node_text(name);
@@ -131,14 +132,12 @@ impl Flow {
     /// while a bare name may be a method this file defined -- or, inside an `instance_eval`, one
     /// the receiver defines, which the syntax tree cannot show.
     pub(super) fn reports_command(&self, node: Node<'_>, context: &RuleContext<'_>) -> bool {
-        let name = match node.kind() {
+        let name = match node.kind_str() {
             "identifier" => context.source.node_text(node),
-            "call" if node.child_by_field_name("receiver").is_none() => {
-                match node.child_by_field_name("method") {
-                    Some(method) => context.source.node_text(method),
-                    None => return true,
-                }
-            }
+            "call" if node.field("receiver").is_none() => match node.field("method") {
+                Some(method) => context.source.node_text(method),
+                None => return true,
+            },
             // A keyword, or a call through an explicit `Kernel`, which nothing can have shadowed.
             _ => return true,
         };
@@ -154,9 +153,9 @@ impl Flow {
 fn in_instance_eval(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if matches!(ancestor.kind(), "block" | "do_block")
+        if matches!(ancestor.kind_str(), "block" | "do_block")
             && ancestor.parent().is_some_and(|call| {
-                call.child_by_field_name("method")
+                call.field("method")
                     .is_some_and(|method| context.source.node_text(method) == "instance_eval")
             })
         {

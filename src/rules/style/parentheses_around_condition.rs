@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Every node kind whose condition upstream inspects: `on_if`, `on_while` and `on_until`, and the
 /// modifier and post-loop spellings of the same three.
@@ -32,11 +33,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("AllowInMultilineConditions")
         .unwrap_or(false);
     for node in context.nodes_of_any(CONDITIONALS) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         // `(begin $_ $...)`: the condition has to be a parenthesized expression holding something.
-        if condition.kind() != "parenthesized_statements" {
+        if condition.kind_str() != "parenthesized_statements" {
             continue;
         }
         let children = super::nodes::children(condition);
@@ -45,8 +46,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         if requires_parentheses(context, node, first)
             || semicolon_separated(context, &children)
-            || MODIFIERS.contains(&first.kind())
-            || first.kind() == "rescue_modifier"
+            || MODIFIERS.contains(&first.kind_str())
+            || first.kind_str() == "rescue_modifier"
             || parens_allowed(context, condition, allow_safe_assignment, allow_multiline)
         {
             continue;
@@ -69,7 +70,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The keyword the conditional is written with, which the message names.
 fn keyword(node: Node<'_>) -> &'static str {
-    match node.kind() {
+    match node.kind_str() {
         "unless" | "unless_modifier" => "unless",
         "elsif" => "elsif",
         "while" | "while_modifier" => "while",
@@ -82,12 +83,12 @@ fn keyword(node: Node<'_>) -> &'static str {
 /// block would attach to the loop instead.
 fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>, body: Node<'_>) -> bool {
     if !matches!(
-        node.kind(),
+        node.kind_str(),
         "while" | "until" | "while_modifier" | "until_modifier"
     ) {
         return false;
     }
-    body.child_by_field_name("block")
+    body.field("block")
         .is_some_and(|block| context.source.node_text(block).starts_with("do"))
 }
 
@@ -142,10 +143,10 @@ fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     let [only] = children.as_slice() else {
         return false;
     };
-    match only.kind() {
+    match only.kind_str() {
         "assignment" => !super::nodes::is_match_assignment(*only, context.source.text()),
         "call" => only
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|selector| context.source.node_text(selector).ends_with('=')),
         _ => false,
     }

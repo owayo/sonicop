@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node::top_level_constant;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -47,7 +48,7 @@ fn signal_selector<'tree>(
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
 ) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         // A bare `fail` is an identifier here and a receiverless call upstream, unless a local
         // variable of that name is in scope.
         "identifier" => (context.source.node_text(node) == name
@@ -55,11 +56,11 @@ fn signal_selector<'tree>(
             && !is_binding_site(node))
         .then_some(node),
         "call" => {
-            let method = node.child_by_field_name("method")?;
+            let method = node.field("method")?;
             if context.source.node_text(method) != name {
                 return None;
             }
-            match node.child_by_field_name("receiver") {
+            match node.field("receiver") {
                 None => Some(method),
                 Some(receiver) => top_level_constant(receiver, "Kernel", context).then_some(method),
             }
@@ -74,10 +75,10 @@ fn is_binding_site(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "assignment" | "operator_assignment" | "for" => parent
-            .child_by_field_name("left")
-            .or_else(|| parent.child_by_field_name("pattern"))
+            .field("left")
+            .or_else(|| parent.field("pattern"))
             .is_some_and(|target| target.id() == node.id()),
         "call" | "method" | "singleton_method" | "alias" | "undef" => true,
         "left_assignment_list"
@@ -101,7 +102,7 @@ fn defines_fail(context: &RuleContext<'_>) -> bool {
     context
         .nodes_of_any(&["method", "singleton_method"])
         .any(|node| {
-            node.child_by_field_name("name")
+            node.field("name")
                 .is_some_and(|name| context.source.node_text(name) == "fail")
         })
 }

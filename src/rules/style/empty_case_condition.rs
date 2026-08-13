@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::{RuleContext, walk_named};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use empty `case` condition, instead use an `if` expression.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("case") {
         // `case_node.condition`: the subject the parser hangs off the keyword.
-        if node.child_by_field_name("value").is_some() {
+        if node.field("value").is_some() {
             continue;
         }
         if is_unsupported_parent(context, node) {
@@ -18,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let whens: Vec<Node<'_>> = branches
             .iter()
             .copied()
-            .filter(|child| child.kind() == "when")
+            .filter(|child| child.kind_str() == "when")
             .collect();
         let Some(first_when) = whens.first().copied() else {
             continue;
@@ -26,8 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `branch_bodies.any? { |body| body.return_type? || body.each_descendant.any?(...) }`.
         let bodies = whens
             .iter()
-            .filter_map(|when| when.child_by_field_name("body"))
-            .chain(branches.iter().copied().filter(|it| it.kind() == "else"));
+            .filter_map(|when| when.field("body"))
+            .chain(branches.iter().copied().filter(|it| it.kind_str() == "else"));
         if bodies.into_iter().any(holds_return) {
             continue;
         }
@@ -81,19 +82,19 @@ fn is_unsupported_parent(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    let parent = match parent.kind() {
+    let parent = match parent.kind_str() {
         "argument_list" => match parent.parent() {
             Some(call) => call,
             None => return false,
         },
         _ => parent,
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "return" | "break" | "next" | "yield" | "super" => true,
         "call" | "unary" | "element_reference" => true,
         // `&&` and `||` are `and` / `or` upstream rather than a message send.
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 !matches!(
                     context.source.node_text(operator),
@@ -102,8 +103,8 @@ fn is_unsupported_parent(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             }),
         // Assigning through a method or an index is a `send` upstream, not an assignment.
         "assignment" => parent
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference")),
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference")),
         _ => false,
     }
 }
@@ -111,7 +112,7 @@ fn is_unsupported_parent(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn holds_return(body: Node<'_>) -> bool {
     let mut found = false;
     walk_named(body, &mut |node| {
-        found = found || node.kind() == "return";
+        found = found || node.kind_str() == "return";
     });
     found
 }
@@ -149,7 +150,7 @@ fn correct_when_conditions(
     for when in whens {
         let conditions: Vec<Node<'_>> = super::nodes::children(*when)
             .into_iter()
-            .filter(|child| child.kind() == "pattern")
+            .filter(|child| child.kind_str() == "pattern")
             .collect();
         let (Some(first), Some(last)) = (conditions.first(), conditions.last()) else {
             continue;
@@ -181,9 +182,9 @@ fn correct_when_conditions(
 /// `when_node.then?`: the `then` keyword the body opens with, when it is spelled rather than a
 /// line break or a `;`.
 fn then_keyword<'tree>(when: Node<'tree>) -> Option<Node<'tree>> {
-    let body = when.child_by_field_name("body")?;
+    let body = when.field("body")?;
     let keyword = body.child(0)?;
-    (keyword.kind() == "then").then_some(keyword)
+    (keyword.kind_str() == "then").then_some(keyword)
 }
 
 /// `parenthesize_condition`: anything binding looser than `||` has to keep its own parentheses
@@ -192,10 +193,10 @@ fn parenthesize(context: &RuleContext<'_>, condition: Node<'_>) -> String {
     let source = context.source.node_text(condition);
     let inner = super::nodes::children(condition);
     let binds_looser = match inner.as_slice() {
-        [only] => match only.kind() {
+        [only] => match only.kind_str() {
             "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional" | "range" => true,
             "binary" => only
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| {
                     matches!(
                         context.source.node_text(operator),
@@ -217,7 +218,7 @@ fn has_upstream_parent(node: Node<'_>) -> bool {
     match node.parent() {
         None => false,
         // A file whose only statement is the `case` has that `case` for its root node.
-        Some(parent) if parent.kind() == "program" => super::nodes::children(parent).len() > 1,
+        Some(parent) if parent.kind_str() == "program" => super::nodes::children(parent).len() > 1,
         Some(_) => true,
     }
 }

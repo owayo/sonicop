@@ -3,6 +3,7 @@ use super::variable_force::{
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ignore_empty: bool = context.setting("IgnoreEmptyBlocks").unwrap_or(true);
@@ -35,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `Variable#block_argument?`. A parameter of a method is another cop's business, and a variable
 /// that is merely assigned inside a block is nobody's.
 fn block_argument(variable: &Variable<'_>, scope: &Scope<'_>) -> bool {
-    variable.is_argument() && matches!(scope.node.kind(), "block" | "do_block" | "lambda")
+    variable.is_argument() && matches!(scope.node.kind_str(), "block" | "do_block" | "lambda")
 }
 
 fn keyword_argument(variable: &Variable<'_>) -> bool {

@@ -9,6 +9,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::literal::{Decoded, Quoting, decode, escape_string, needs_escaping};
+use crate::rules::node_ext::NodeExt;
 
 /// One array literal written with brackets, ready to be judged against the percent form.
 pub(super) struct Bracketed<'tree> {
@@ -89,7 +90,7 @@ fn interpolation_ranges(node: Node<'_>) -> Vec<std::ops::Range<usize>> {
     let mut found = Vec::new();
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
-        if current.kind() == "interpolation" && current.id() != node.id() {
+        if current.kind_str() == "interpolation" && current.id() != node.id() {
             found.push(current.byte_range());
             continue;
         }
@@ -127,11 +128,13 @@ fn invalid_percent_array_context(node: Node<'_>) -> bool {
     let Some(list) = node.parent() else {
         return false;
     };
-    if list.kind() != "argument_list" || list.child(0).map(|child| child.kind()) == Some("(") {
+    if list.kind_str() != "argument_list"
+        || list.child(0).map(|child| child.kind_str()) == Some("(")
+    {
         return false;
     }
     list.parent()
-        .is_some_and(|call| call.kind() == "call" && call.child_by_field_name("block").is_some())
+        .is_some_and(|call| call.kind_str() == "call" && call.field("block").is_some())
 }
 
 /// `PercentLiteralCorrector#correct`: the bracketed literal written out as a percent one.

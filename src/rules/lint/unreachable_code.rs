@@ -6,6 +6,7 @@ use crate::rules::RuleContext;
 use super::flow::{self, Flow};
 use super::locals::LocalVariables;
 use super::statements::begin_groups;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Unreachable code detected.";
 
@@ -40,7 +41,7 @@ fn flow_expression(
     if flow::is_command(node, context, locals) {
         return flow.reports_command(node, context);
     }
-    match node.kind() {
+    match node.kind_str() {
         "begin" => super::statements::body_children(node)
             .into_iter()
             .any(|child| flow_expression(child, context, locals, flow)),

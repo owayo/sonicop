@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Space inside range literal.";
 
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut cursor = node.walk();
         let Some(operator) = node
             .children(&mut cursor)
-            .find(|child| matches!(child.kind(), ".." | "..."))
+            .find(|child| matches!(child.kind_str(), ".." | "..."))
         else {
             continue;
         };
@@ -46,12 +47,12 @@ fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let text = context.source.text();
     let mut current = node;
     while let Some(parent) = current.parent() {
-        match parent.kind() {
+        match parent.kind_str() {
             "parenthesized_statements" => {
                 let mut cursor = parent.walk();
                 if parent
                     .named_children(&mut cursor)
-                    .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+                    .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
                     .count()
                     != 1
                 {
@@ -60,7 +61,7 @@ fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             }
             "binary"
                 if parent
-                    .child_by_field_name("operator")
+                    .field("operator")
                     .is_some_and(|operator| {
                         matches!(&text[operator.byte_range()], "&&" | "||" | "and" | "or")
                     }) => {}
@@ -71,7 +72,7 @@ fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             }
             "if" | "elsif" | "unless" | "while" | "until" | "if_modifier" | "unless_modifier"
             | "while_modifier" | "until_modifier" | "conditional" => {
-                return parent.child_by_field_name("condition") == Some(current);
+                return parent.field("condition") == Some(current);
             }
             _ => return false,
         }

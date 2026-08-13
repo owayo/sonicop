@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid using `rescue` in its modifier form.";
 
@@ -14,21 +15,21 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or(2);
     for node in context.nodes_of("rescue_modifier") {
         let (Some(operation), Some(handler)) = (
-            node.child_by_field_name("body"),
-            node.child_by_field_name("handler"),
+            node.field("body"),
+            node.field("handler"),
         ) else {
             continue;
         };
         // `parenthesized?`: the parentheses around the whole expression go with the rewrite.
         let parenthesized = node
             .parent()
-            .filter(|parent| parent.kind() == "parenthesized_statements");
+            .filter(|parent| parent.kind_str() == "parenthesized_statements");
         let (indentation, offset) = indentation_and_offset(context, node, width, parenthesized);
 
         let mut edits = Vec::new();
         // A comma-separated list of values is one array upstream, and it needs brackets once it no
         // longer sits alone on its line.
-        if operation.kind() == "right_assignment_list" {
+        if operation.kind_str() == "right_assignment_list" {
             edits.push(insert(operation.start_byte(), "["));
             edits.push(insert(operation.end_byte(), "]"));
         }
@@ -92,17 +93,17 @@ fn indentation_and_offset(
 /// `heredoc_end`: the end of the terminator of the last heredoc the operation opened as an
 /// argument.
 fn heredoc_end(context: &RuleContext<'_>, operation: Node<'_>) -> Option<usize> {
-    if operation.kind() != "call" {
+    if operation.kind_str() != "call" {
         return None;
     }
     let beginning = send_node::arguments(operation)
         .iter()
         .rev()
         .map(send_node::Argument::first)
-        .find(|argument| argument.kind() == "heredoc_beginning")?;
+        .find(|argument| argument.kind_str() == "heredoc_beginning")?;
     let body = send_node::heredoc_body(beginning, context)?;
     super::nodes::children(body)
         .into_iter()
-        .find(|child| child.kind() == "heredoc_end")
+        .find(|child| child.kind_str() == "heredoc_end")
         .map(|terminator| terminator.end_byte())
 }

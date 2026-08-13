@@ -10,6 +10,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -63,7 +64,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     if check_method_names {
         for node in context.nodes_of_any(&["method", "singleton_method"]) {
-            if let Some(name) = node.child_by_field_name("name") {
+            if let Some(name) = node.field("name") {
                 found.push((
                     name.byte_range(),
                     context.source.node_text(name).to_owned(),
@@ -141,7 +142,7 @@ fn collect_symbols<'tree>(
         "alias",
         "undef",
     ]) {
-        match node.kind() {
+        match node.kind_str() {
             "simple_symbol" => push(
                 node.byte_range(),
                 context
@@ -159,8 +160,8 @@ fn collect_symbols<'tree>(
             // builds no symbol at all.
             "hash_key_symbol" => {
                 let bare_pattern = node.parent().is_some_and(|parent| {
-                    parent.kind() == "keyword_pattern"
-                        && parent.child_by_field_name("value").is_none()
+                    parent.kind_str() == "keyword_pattern"
+                        && parent.field("value").is_none()
                 });
                 if !bare_pattern {
                     push(node.byte_range(), context.source.node_text(node).to_owned());
@@ -181,7 +182,7 @@ fn collect_symbols<'tree>(
                 let mut cursor = node.walk();
                 for child in node.named_children(&mut cursor) {
                     if matches!(
-                        child.kind(),
+                        child.kind_str(),
                         "identifier" | "constant" | "operator" | "setter"
                     ) {
                         push(
@@ -198,14 +199,14 @@ fn collect_symbols<'tree>(
 /// Whether a string stands where a symbol key would, which is decided by the `:` that follows it
 /// rather than by the string itself.
 fn is_quoted_label(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent().filter(|parent| parent.kind() == "pair") else {
+    let Some(parent) = node.parent().filter(|parent| parent.kind_str() == "pair") else {
         return false;
     };
-    if parent.child_by_field_name("key") != Some(node) {
+    if parent.field("key") != Some(node) {
         return false;
     }
     let mut cursor = parent.walk();
     parent
         .children(&mut cursor)
-        .any(|child| child.kind() == ":")
+        .any(|child| child.kind_str() == ":")
 }

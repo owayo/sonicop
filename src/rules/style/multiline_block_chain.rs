@@ -3,10 +3,11 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::send_range;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        if call.child_by_field_name("block").is_none() {
+        if call.field("block").is_none() {
             continue;
         }
         let send = send_range(call, context);
@@ -30,9 +31,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn chained_block_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     let receiver = receiver_of(node, context)?;
     // `-> { }` is a block upstream just as `foo { }` is, and the grammar spells the two apart.
-    let block = match receiver.kind() {
-        "call" => receiver.child_by_field_name("block")?,
-        "lambda" => receiver.child_by_field_name("body")?,
+    let block = match receiver.kind_str() {
+        "call" => receiver.field("block")?,
+        "lambda" => receiver.field("body")?,
         _ => return None,
     };
     // `BlockNode#single_line?` compares the braces rather than the whole expression, so a chain
@@ -46,16 +47,16 @@ fn chained_block_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Opt
 /// The receiver of the node, for the shapes the grammar writes a call with one in. `a && b` is an
 /// `and` node upstream rather than a call, so only the operators a class may redefine count.
 fn receiver_of<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "call" => node.child_by_field_name("receiver"),
-        "element_reference" => node.child_by_field_name("object"),
-        "unary" => node.child_by_field_name("operand"),
+    match node.kind_str() {
+        "call" => node.field("receiver"),
+        "element_reference" => node.field("object"),
+        "unary" => node.field("operand"),
         "binary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             super::nodes::is_operator_method(operator)
-                .then(|| node.child_by_field_name("left"))
+                .then(|| node.field("left"))
                 .flatten()
         }
         _ => None,

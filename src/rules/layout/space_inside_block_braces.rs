@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::support::{character_column, parser_node_start};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Style {
@@ -49,10 +50,10 @@ impl Cop<'_, '_> {
     }
 
     fn on_block(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let Some(left) = node.child(0).filter(|child| child.kind() == "{") else {
+        let Some(left) = node.child(0).filter(|child| child.kind_str() == "{") else {
             return;
         };
-        let Some(right) = last_child(node).filter(|child| child.kind() == "}") else {
+        let Some(right) = last_child(node).filter(|child| child.kind_str() == "}") else {
             return;
         };
         // The `block` node upstream spans the call it hangs off, so it begins at the receiver.
@@ -61,7 +62,7 @@ impl Cop<'_, '_> {
             == self.context.source.line_column(right.start_byte()).0;
         // Empty braces spread over two lines are left alone: correcting them to a single line
         // would fight the correction this same cop makes to single-line empty braces.
-        if node.child_by_field_name("body").is_none() && !single_line {
+        if node.field("body").is_none() && !single_line {
             return;
         }
         let braces = Braces {
@@ -109,9 +110,9 @@ impl Cop<'_, '_> {
         // `node.arguments.loc.begin`, which is the `|` of `{ |x| ... }`. A lambda literal keeps its
         // parameters outside the braces and opens them with `(`, which is not a pipe either way.
         let pipe = node
-            .child_by_field_name("parameters")
+            .field("parameters")
             .and_then(|parameters| parameters.child(0))
-            .filter(|child| child.kind() == "|");
+            .filter(|child| child.kind_str() == "|");
         self.check_left_brace(inner, braces.left, pipe, offenses);
         self.check_right_brace(inner, braces, offenses);
     }

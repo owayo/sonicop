@@ -5,10 +5,11 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range, top_level_constant};
 
 use super::node_equality::numeric_value;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "rand" || !is_plain_send(node, context) {
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `{(const {nil? cbase} :Kernel) nil?}`: no receiver at all, or `Kernel` reached from the
         // top level.
         if node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| !top_level_constant(receiver, "Kernel", context))
         {
             continue;
@@ -42,6 +43,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// the two halves together are exactly "a numeric literal worth plus or minus one" -- and it is the
 /// value that decides it, `0x1` being the same `(int 1)` upstream as `1`.
 fn is_one(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    matches!(node.kind(), "integer" | "float" | "unary")
+    matches!(node.kind_str(), "integer" | "float" | "unary")
         && numeric_value(node, context).is_some_and(|value| value.abs() == 1.0)
 }

@@ -2,6 +2,7 @@ use tree_sitter::{Node, Parser};
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Interpolation in single quoted string detected. Use double quoted strings if \
                    you need interpolation.";
@@ -52,7 +53,7 @@ fn holds_interpolation(source: &str) -> bool {
 fn interpolated(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 /// The string rewritten as one that does interpolate: the single quotes around it become double
@@ -105,7 +106,7 @@ fn interpolates(quoted: &str, parser: &mut Option<Parser>) -> bool {
     let mut interpolated = false;
     let mut stack = vec![root];
     while let Some(current) = stack.pop() {
-        match current.kind() {
+        match current.kind_str() {
             "interpolation" => interpolated = true,
             "character" if !valid_character(quoted, current) => return false,
             _ => {}

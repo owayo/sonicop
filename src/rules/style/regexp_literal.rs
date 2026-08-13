@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_USE_SLASHES: &str = "Use `//` around regular expression.";
 const MSG_USE_PERCENT_R: &str = "Use `%r` around regular expression.";
@@ -124,7 +125,7 @@ impl<'a> Literal<'a> {
         let mut start = begin.end_byte();
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            if child.kind() != "interpolation" {
+            if child.kind_str() != "interpolation" {
                 continue;
             }
             literal_text.push_str(&text[start..child.start_byte()]);
@@ -202,13 +203,13 @@ fn omits_parentheses(node: Node<'_>, literal: &Literal<'_>, omit_parentheses: bo
 /// call in a list of their own, so the call is one level further out there, and it spells `super`
 /// as a call even though upstream gives that a node type of its own.
 fn is_call(parent: Node<'_>) -> bool {
-    match parent.kind() {
+    match parent.kind_str() {
         "call" | "unary" | "binary" | "element_reference" => true,
         "argument_list" => parent.parent().is_some_and(|grandparent| {
-            grandparent.kind() == "call"
+            grandparent.kind_str() == "call"
                 && grandparent
-                    .child_by_field_name("method")
-                    .is_some_and(|method| method.kind() != "super")
+                    .field("method")
+                    .is_some_and(|method| method.kind_str() != "super")
         }),
         _ => false,
     }

@@ -8,6 +8,7 @@ use tree_sitter::Node;
 use super::support::{heredoc_terminators, statement_groups};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let counts: Vec<i64> = context
@@ -165,9 +166,9 @@ impl Checker<'_, '_> {
     /// `def_location`: a definition is named by its keyword and its name, while a macro is named
     /// whole.
     fn def_location(&self, node: Node<'_>) -> Range<usize> {
-        match node.kind() {
+        match node.kind_str() {
             "method" | "singleton_method" | "class" | "module" => {
-                match node.child_by_field_name("name") {
+                match node.field("name") {
                     Some(name) => node.start_byte()..name.end_byte(),
                     None => node.byte_range(),
                 }
@@ -198,9 +199,9 @@ impl Checker<'_, '_> {
     }
 
     fn is_candidate(&self, node: Node<'_>) -> bool {
-        (self.methods && matches!(node.kind(), "method" | "singleton_method"))
-            || (self.classes && node.kind() == "class")
-            || (self.modules && node.kind() == "module")
+        (self.methods && matches!(node.kind_str(), "method" | "singleton_method"))
+            || (self.classes && node.kind_str() == "class")
+            || (self.modules && node.kind_str() == "module")
             || self.is_macro_candidate(node)
     }
 
@@ -209,16 +210,16 @@ impl Checker<'_, '_> {
         if self.macros.is_empty() {
             return false;
         }
-        let call = match node.kind() {
+        let call = match node.kind_str() {
             "call" | "method_call" | "identifier" => node,
             _ => return false,
         };
-        if call.child_by_field_name("receiver").is_some() {
+        if call.field("receiver").is_some() {
             return false;
         }
-        let name = match call.kind() {
+        let name = match call.kind_str() {
             "identifier" => &self.context.source.text()[call.byte_range()],
-            _ => match call.child_by_field_name("method") {
+            _ => match call.field("method") {
                 Some(method) => &self.context.source.text()[method.byte_range()],
                 None => return false,
             },
@@ -244,7 +245,7 @@ fn is_single_line(node: Node<'_>) -> bool {
 
 /// `node_type`, which names a definition after what it defines rather than after its node.
 fn node_type(node: Node<'_>) -> &'static str {
-    match node.kind() {
+    match node.kind_str() {
         "method" | "singleton_method" => "method",
         "class" => "class",
         "module" => "module",

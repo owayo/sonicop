@@ -14,6 +14,7 @@ use crate::diagnostic::{Offense, Severity};
 use crate::directives::{CommentConfig, CopRegistry};
 use crate::formatter::smart_path;
 use crate::ruby_version::RubyVersion;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 /// Registers one department's cops. Each entry names the module the cop lives in, the cop's own
@@ -46,6 +47,7 @@ mod lint;
 mod metrics;
 mod migration;
 mod naming;
+mod node_ext;
 mod ordered_gem;
 mod regex_cache;
 mod security;
@@ -412,15 +414,15 @@ impl<'tree> AstIndex<'tree> {
             // the cast cannot lose information for anything a parser will accept.
             let index = self.named_nodes.len() as u32;
             self.named_nodes.push(node);
-            self.by_kind.entry(node.kind()).or_default().push(index);
+            self.by_kind.entry(node.kind_str()).or_default().push(index);
         }
-        if PROTECTED_LITERAL_KINDS.contains(&node.kind()) {
+        if PROTECTED_LITERAL_KINDS.contains(&node.kind_str()) {
             self.protected_ranges.push(node.byte_range());
         }
-        if node.kind() == "heredoc_body" {
+        if node.kind_str() == "heredoc_body" {
             self.heredoc_ranges.push(node.byte_range());
         }
-        if node.kind() == "comment" {
+        if node.kind_str() == "comment" {
             self.comment_ranges.push(node.byte_range());
         }
     }

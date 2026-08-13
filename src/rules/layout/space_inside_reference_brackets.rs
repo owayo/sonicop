@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -22,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let send = node
             .parent()
             .filter(|parent| {
-                parent.kind() == "assignment" && parent.child_by_field_name("left") == Some(node)
+                parent.kind_str() == "assignment" && parent.field("left") == Some(node)
             })
             .unwrap_or(node);
         let (Some(left), Some(right)) = brackets(node) else {
@@ -139,7 +140,7 @@ fn brackets<'tree>(node: Node<'tree>) -> (Option<Node<'tree>>, Option<Node<'tree
     let mut left = None;
     let mut right = None;
     for child in node.children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "[" if left.is_none() => left = Some(child),
             "]" => right = Some(child),
             _ => {}

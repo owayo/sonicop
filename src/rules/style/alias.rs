@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_ALIAS: &str = "Use `alias_method` instead of `alias`.";
 
@@ -36,17 +37,17 @@ fn check_alias_method(
     prefer_alias: bool,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(selector) = node.child_by_field_name("method") else {
+    let Some(selector) = node.field("method") else {
         return;
     };
-    if node.child_by_field_name("receiver").is_some()
+    if node.field("receiver").is_some()
         || context.source.node_text(selector) != "alias_method"
         || !prefer_alias
     {
         return;
     }
     let arguments = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map(super::nodes::children)
         .unwrap_or_default();
     // `alias_keyword_possible?`, the argument count, and the positions where a keyword cannot go.
@@ -89,8 +90,8 @@ fn check_alias(
     offenses: &mut Vec<Offense>,
 ) {
     let (Some(new), Some(old)) = (
-        node.child_by_field_name("name"),
-        node.child_by_field_name("alias"),
+        node.field("name"),
+        node.field("alias"),
     ) else {
         return;
     };
@@ -100,7 +101,7 @@ fn check_alias(
     if scope == Scope::InstanceEval
         || [new, old]
             .iter()
-            .any(|argument| argument.kind() == "global_variable")
+            .any(|argument| argument.kind_str() == "global_variable")
         || enclosed_by_method(node)
     {
         return;
@@ -165,7 +166,7 @@ fn check_alias(
 
 /// `identifier`: a symbol is written back as one, anything else keeps its source.
 fn identifier(context: &RuleContext<'_>, node: Node<'_>) -> String {
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => context.source.node_text(node).to_owned(),
         "identifier" | "constant" | "operator" => {
             format!(":{}", context.source.node_text(node))
@@ -180,18 +181,18 @@ fn trimmed<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> &'a str {
 }
 
 fn bareword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    !context.source.node_text(node).starts_with(':') || node.kind() == "delimited_symbol"
+    !context.source.node_text(node).starts_with(':') || node.kind_str() == "delimited_symbol"
 }
 
 fn is_symbol(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => true,
         // `:"a"` is a `sym` too, unless an interpolation makes it a `dsym`.
         "delimited_symbol" => {
             let mut cursor = node.walk();
             !node
                 .named_children(&mut cursor)
-                .any(|child| child.kind() == "interpolation")
+                .any(|child| child.kind_str() == "interpolation")
         }
         _ => false,
     }
@@ -199,10 +200,10 @@ fn is_symbol(node: Node<'_>) -> bool {
 
 /// `alias_method_value_used?`: the call's result is read, where a keyword statement cannot go.
 fn value_used(node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| match parent.kind() {
+    node.parent().is_some_and(|parent| match parent.kind_str() {
         "argument_list" => true,
         "assignment" | "operator_assignment" => parent
-            .child_by_field_name("right")
+            .field("right")
             .is_some_and(|right| right.id() == node.id()),
         _ => false,
     })
@@ -212,7 +213,7 @@ fn value_used(node: Node<'_>) -> bool {
 fn scope(context: &RuleContext<'_>, node: Node<'_>) -> Scope {
     let mut current = node.parent();
     while let Some(parent) = current {
-        match parent.kind() {
+        match parent.kind_str() {
             // `sclass` is none of the types `scope_type` names, so a `class << self` block does
             // not stop the walk: what counts is what encloses it.
             "class" | "module" => return Scope::Lexical,
@@ -233,8 +234,8 @@ fn scope(context: &RuleContext<'_>, node: Node<'_>) -> Scope {
 fn instance_eval_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
     block
         .parent()
-        .filter(|call| call.kind() == "call")
-        .and_then(|call| call.child_by_field_name("method"))
+        .filter(|call| call.kind_str() == "call")
+        .and_then(|call| call.field("method"))
         .is_some_and(|method| context.source.node_text(method) == "instance_eval")
 }
 
@@ -242,7 +243,7 @@ fn instance_eval_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 fn enclosed_by_method(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "method" | "singleton_method") {
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
             return true;
         }
         current = parent.parent();
@@ -254,7 +255,7 @@ fn enclosed_by_method(node: Node<'_>) -> bool {
 fn lexical_scope(node: Node<'_>) -> &'static str {
     let mut current = node.parent();
     while let Some(parent) = current {
-        match parent.kind() {
+        match parent.kind_str() {
             "class" => return "in a class body",
             "module" => return "in a module body",
             _ => {}

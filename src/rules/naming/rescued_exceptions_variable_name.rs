@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::support::{Variables, last_named_child, spurious_assignment_list};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let configured: String = context
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("rescue") {
         // A nested rescue keeps its own name: renaming it could shadow the variable the outer one
         // bound.
-        if ancestors(node).any(|ancestor| ancestor.kind() == "rescue") {
+        if ancestors(node).any(|ancestor| ancestor.kind_str() == "rescue") {
             continue;
         }
         let Some((name_node, name)) = exception_variable(context, node) else {
@@ -56,10 +57,10 @@ fn exception_variable<'tree>(
     context: &RuleContext<'tree>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, String)> {
-    let variable = node.child_by_field_name("variable")?;
+    let variable = node.field("variable")?;
     let mut cursor = variable.walk();
     let target = variable.named_children(&mut cursor).next()?;
-    let name = match target.kind() {
+    let name = match target.kind_str() {
         "identifier" | "instance_variable" | "class_variable" | "global_variable" | "constant" => {
             context.source.node_text(target)
         }
@@ -67,7 +68,7 @@ fn exception_variable<'tree>(
         // still covers the whole path.
         "scope_resolution" => context
             .source
-            .node_text(target.child_by_field_name("name")?),
+            .node_text(target.field("name")?),
         _ => return None,
     };
     Some((target, name.to_owned()))
@@ -82,7 +83,7 @@ fn reads_name(
     let mut found = false;
     crate::rules::walk_named(node, &mut |current| {
         found = found
-            || (current.kind() == "identifier"
+            || (current.kind_str() == "identifier"
                 && context.source.node_text(current) == name
                 && variables.is_reference(current));
     });
@@ -108,7 +109,7 @@ fn rename(
         sites: vec![(variable.clone(), preferred.to_owned())],
     };
     let stopped = node
-        .child_by_field_name("body")
+        .field("body")
         .is_some_and(|body| rewrite.walk_children(body));
     if !stopped && let Some(block) = enclosing_begin(node) {
         // Once the handler ends the variable is still in scope, so the reads after the block are
@@ -159,13 +160,13 @@ impl Rewrite<'_, '_> {
             if matched {
                 // The assignment's own target keeps the old name -- from here on it is a
                 // different variable -- but its value is still the old one.
-                if let Some(right) = node.child_by_field_name("right") {
+                if let Some(right) = node.field("right") {
                     self.walk(right);
                 }
                 return true;
             }
         }
-        if node.kind() == "identifier"
+        if node.kind_str() == "identifier"
             && self.context.source.node_text(node) == self.name
             && self.variables.is_reference(node)
         {
@@ -175,13 +176,13 @@ impl Rewrite<'_, '_> {
         }
         // `{ err: }` reads the variable without writing its name a second time, so the value has
         // to be spelled out rather than replaced.
-        if node.kind() == "pair"
-            && node.child_by_field_name("value").is_none()
-            && let Some(key) = node.child_by_field_name("key")
+        if node.kind_str() == "pair"
+            && node.field("value").is_none()
+            && let Some(key) = node.field("key")
             && self.context.source.node_text(key) == self.name
         {
             let mut cursor = node.walk();
-            if let Some(colon) = node.children(&mut cursor).find(|child| child.kind() == ":") {
+            if let Some(colon) = node.children(&mut cursor).find(|child| child.kind_str() == ":") {
                 let at = colon.end_byte();
                 self.sites.push((at..at, format!(" {}", self.preferred)));
             }
@@ -199,11 +200,11 @@ impl Rewrite<'_, '_> {
 
 /// The names an assignment binds, when the parser would build an `lvasgn` or `masgn` for it.
 fn assignment_targets<'tree>(node: Node<'tree>) -> Option<Vec<Node<'tree>>> {
-    if !matches!(node.kind(), "assignment" | "operator_assignment") {
+    if !matches!(node.kind_str(), "assignment" | "operator_assignment") {
         return None;
     }
-    let left = node.child_by_field_name("left")?;
-    match left.kind() {
+    let left = node.field("left")?;
+    match left.kind_str() {
         "identifier" => Some(vec![left]),
         // A list the grammar invented is not a multiple assignment: only the last name is
         // assigned to.
@@ -222,7 +223,7 @@ fn assignment_targets<'tree>(node: Node<'tree>) -> Option<Vec<Node<'tree>>> {
 fn collect_targets<'tree>(node: Node<'tree>, out: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "identifier" => out.push(child),
             "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
                 collect_targets(child, out);
@@ -235,7 +236,7 @@ fn collect_targets<'tree>(node: Node<'tree>, out: &mut Vec<Node<'tree>>) {
 /// The `begin`/`end` the handler belongs to, which is the only shape whose following statements
 /// upstream reaches for.
 fn enclosing_begin(node: Node<'_>) -> Option<Node<'_>> {
-    ancestors(node).find(|ancestor| ancestor.kind() == "begin")
+    ancestors(node).find(|ancestor| ancestor.kind_str() == "begin")
 }
 
 /// What follows the block in the node upstream would have made its parent.
@@ -250,7 +251,7 @@ fn right_siblings(node: Node<'_>) -> Vec<Node<'_>> {
     };
     let mut cursor = parent.walk();
     let children: Vec<Node<'_>> = parent.named_children(&mut cursor).collect();
-    let is_clause = |node: &Node<'_>| matches!(node.kind(), "rescue" | "else" | "ensure");
+    let is_clause = |node: &Node<'_>| matches!(node.kind_str(), "rescue" | "else" | "ensure");
     let statements = children.iter().filter(|child| !is_clause(child)).count();
     let following = children
         .into_iter()
@@ -261,9 +262,9 @@ fn right_siblings(node: Node<'_>) -> Vec<Node<'_>> {
     }
     // A lone statement sits directly under the clause, so the other clauses are its siblings --
     // except that a `rescue` takes the `ensure` for itself.
-    let rescued = following.clone().any(|child| child.kind() == "rescue");
+    let rescued = following.clone().any(|child| child.kind_str() == "rescue");
     following
-        .filter(|child| !(rescued && child.kind() == "ensure"))
+        .filter(|child| !(rescued && child.kind_str() == "ensure"))
         .collect()
 }
 

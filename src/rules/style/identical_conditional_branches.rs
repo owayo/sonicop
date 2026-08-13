@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 /// `VARIABLES`: the node kinds upstream reads a variable off of rather than a call.
 const VARIABLE_KINDS: &[&str] = &[
@@ -29,28 +30,28 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // and the second pass over it contributes neither an offense nor a correction.
     let mut reported: Vec<Range<usize>> = Vec::new();
     for node in context.nodes_of_any(&["if", "unless"]) {
-        let mut branches = vec![branch(node.child_by_field_name("consequence"))];
-        expand_elses(node.child_by_field_name("alternative"), &mut branches);
+        let mut branches = vec![branch(node.field("consequence"))];
+        expand_elses(node.field("alternative"), &mut branches);
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
     }
     // A ternary is an `if` upstream, so it is reported -- though never corrected, since it has no
     // lines to move an expression between.
     for node in context.nodes_of("conditional") {
         let branches = vec![
-            node.child_by_field_name("consequence").map(|only| vec![only]),
-            node.child_by_field_name("alternative").map(|only| vec![only]),
+            node.field("consequence").map(|only| vec![only]),
+            node.field("alternative").map(|only| vec![only]),
         ];
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
     }
     for node in context.nodes_of_any(&["case", "case_match"]) {
         let children = super::nodes::children(node);
-        let Some(otherwise) = children.iter().find(|child| child.kind() == "else") else {
+        let Some(otherwise) = children.iter().find(|child| child.kind_str() == "else") else {
             continue;
         };
         let mut branches: Vec<Option<Vec<Node<'_>>>> = children
             .iter()
-            .filter(|child| matches!(child.kind(), "when" | "in_clause"))
-            .map(|clause| branch(clause.child_by_field_name("body")))
+            .filter(|child| matches!(child.kind_str(), "when" | "in_clause"))
+            .map(|clause| branch(clause.field("body")))
             .collect();
         branches.push(branch(Some(*otherwise)));
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
@@ -70,9 +71,9 @@ fn expand_elses<'t>(alternative: Option<Node<'t>>, branches: &mut Vec<Option<Vec
         branches.push(None);
         return;
     };
-    if alternative.kind() == "elsif" {
-        branches.push(branch(alternative.child_by_field_name("consequence")));
-        expand_elses(alternative.child_by_field_name("alternative"), branches);
+    if alternative.kind_str() == "elsif" {
+        branches.push(branch(alternative.field("consequence")));
+        expand_elses(alternative.field("alternative"), branches);
         return;
     }
     branches.push(branch(Some(alternative)));
@@ -236,13 +237,13 @@ fn hoist(
 
 /// `node.ternary? || node.then?`: a conditional whose branches share a line with it.
 fn written_inline(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() == "conditional" {
+    if node.kind_str() == "conditional" {
         return true;
     }
-    if !matches!(node.kind(), "if" | "unless") {
+    if !matches!(node.kind_str(), "if" | "unless") {
         return false;
     }
-    node.child_by_field_name("consequence")
+    node.field("consequence")
         .and_then(|consequence| consequence.child(0))
         .is_some_and(|first| !first.is_named() && context.source.node_text(first) == "then")
 }
@@ -260,27 +261,27 @@ fn last_child_of_parent(node: Node<'_>) -> bool {
     }
     // A branch is not a node of its own upstream: the conditional holds its branches directly, so
     // what follows the branch this one closes is the branch after it.
-    match parent.kind() {
+    match parent.kind_str() {
         "then" => parent
             .parent()
-            .is_none_or(|conditional| conditional.child_by_field_name("alternative").is_none()),
+            .is_none_or(|conditional| conditional.field("alternative").is_none()),
         _ => true,
     }
 }
 
 /// `node.condition`, which a `case` names its subject with.
 fn condition<'t>(node: Node<'t>) -> Option<Node<'t>> {
-    node.child_by_field_name("condition")
-        .or_else(|| node.child_by_field_name("value"))
+    node.field("condition")
+        .or_else(|| node.field("value"))
 }
 
 /// `assignable_condition_value`: the name the condition tests, when it tests one.
 fn condition_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let condition = condition(node)?;
-    match condition.kind() {
+    match condition.kind_str() {
         "call" => Some(
             condition
-                .child_by_field_name("receiver")
+                .field("receiver")
                 .map_or_else(
                     || context.source.node_text(condition),
                     |receiver| context.source.node_text(receiver),
@@ -288,7 +289,7 @@ fn condition_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> 
                 .to_owned(),
         ),
         "binary" => condition
-            .child_by_field_name("left")
+            .field("left")
             .map(|left| context.source.node_text(left).to_owned()),
         kind if VARIABLE_KINDS.contains(&kind) => {
             Some(context.source.node_text(condition).to_owned())
@@ -299,13 +300,13 @@ fn condition_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> 
 
 /// `node_parts[0].to_s` of an assignment: the name it binds, for the spellings that name one.
 fn assigned_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    if node.kind() != "assignment" || !is_assignment(node) {
+    if node.kind_str() != "assignment" || !is_assignment(node) {
         return None;
     }
-    let left = node.child_by_field_name("left")?;
+    let left = node.field("left")?;
     // A multiple assignment and a shorthand one both stand for a node rather than a name upstream,
     // which never equals what the condition spells.
-    (VARIABLE_KINDS.contains(&left.kind()) || left.kind() == "constant")
+    (VARIABLE_KINDS.contains(&left.kind_str()) || left.kind_str() == "constant")
         .then(|| context.source.node_text(left))
 }
 
@@ -315,19 +316,19 @@ fn assigned_value<'t>(node: Node<'t>) -> Option<Node<'t>> {
     if !is_assignment(node) {
         return None;
     }
-    let left = node.child_by_field_name("left")?;
-    match node.kind() == "assignment" && !matches!(left.kind(), "left_assignment_list") {
-        true => node.child_by_field_name("right"),
+    let left = node.field("left")?;
+    match node.kind_str() == "assignment" && !matches!(left.kind_str(), "left_assignment_list") {
+        true => node.field("right"),
         false => Some(left),
     }
 }
 
 /// `assignment?`: `a.b = 1` and `a[0] = 1` are calls upstream, not assignments.
 fn is_assignment(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "assignment" => node
-            .child_by_field_name("left")
-            .is_some_and(|left| !matches!(left.kind(), "call" | "element_reference")),
+            .field("left")
+            .is_some_and(|left| !matches!(left.kind_str(), "call" | "element_reference")),
         "operator_assignment" => true,
         _ => false,
     }
@@ -360,7 +361,7 @@ fn insert(at: usize, text: String) -> Edit {
 
 /// `variable?`: a bare name is one only where upstream's parser built an `lvar` for it.
 fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => locals.is_lvar(node),
         kind => VARIABLE_KINDS.contains(&kind),
     }

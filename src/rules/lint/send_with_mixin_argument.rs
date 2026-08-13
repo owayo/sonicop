@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range, symbol_name};
 
 use super::literals::{is_constant, literal_type};
+use crate::rules::node_ext::NodeExt;
 
 const SEND_METHODS: &[&str] = &["send", "public_send", "__send__"];
 const MIXIN_METHODS: &[&str] = &["include", "prepend", "extend"];
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !is_plain_send(call, context) {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         if !SEND_METHODS.contains(&context.source.node_text(selector)) {
@@ -22,8 +23,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `{nil? self (const _ _)}`: the mixin has to be reached through the module itself.
         if call
-            .child_by_field_name("receiver")
-            .is_some_and(|receiver| receiver.kind() != "self" && !is_constant(receiver, context))
+            .field("receiver")
+            .is_some_and(|receiver| receiver.kind_str() != "self" && !is_constant(receiver, context))
         {
             continue;
         }

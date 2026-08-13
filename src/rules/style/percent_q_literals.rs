@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const LOWER_CASE_Q_MSG: &str = "Do not use `%Q` unless interpolation is needed. Use `%q`.";
 const UPPER_CASE_Q_MSG: &str = "Use `%Q` instead of `%q`.";
@@ -74,6 +75,6 @@ fn is_str(node: tree_sitter::Node<'_>) -> bool {
     let mut cursor = node.walk();
     !node
         .named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
         && node.start_position().row == node.end_position().row
 }

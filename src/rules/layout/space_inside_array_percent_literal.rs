@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGE: &str = "Use only a single space inside array percent literal.";
 
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `percent_literal?`, and the `%i %I %w %W` the cop asks `process` for. A `[1, 2]` array
         // has no percent opener, and the four are the only percent literals `on_array` can see.
-        if !matches!(open.kind(), "%w(" | "%i(") || open.end_byte() > close.start_byte() {
+        if !matches!(open.kind_str(), "%w(" | "%i(") || open.end_byte() > close.start_byte() {
             continue;
         }
         let contents = open.end_byte()..close.start_byte();

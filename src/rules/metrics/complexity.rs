@@ -20,6 +20,7 @@ use super::locals::{
     split_match_operator, spurious_assignment_list,
 };
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 /// The parser node types the three complexity cops count. Types they all ignore are never emitted,
@@ -141,7 +142,7 @@ impl<'a> Walk<'a> {
     }
 
     fn field<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, field: &str, sink: &mut F) {
-        if let Some(child) = node.child_by_field_name(field) {
+        if let Some(child) = node.field(field) {
             self.visit(child, sink);
         }
     }
@@ -163,7 +164,7 @@ impl<'a> Walk<'a> {
     }
 
     fn visit<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        match node.kind() {
+        match node.kind_str() {
             "call" => self.visit_call(node, sink),
             "lambda" => self.visit_lambda(node, sink),
             // `a[i]` is a call to `[]` upstream, with the subscript as its argument.
@@ -183,11 +184,8 @@ impl<'a> Walk<'a> {
             }
             // `{ name: }` stands for `{ name: name }`, whose value is a call unless the name is
             // already a variable.
-            "pair" if node.child_by_field_name("value").is_none() => {
-                if let Some(key) = node
-                    .child_by_field_name("key")
-                    .filter(|key| !self.locals.is_lvar(*key))
-                {
+            "pair" if node.field("value").is_none() => {
+                if let Some(key) = node.field("key").filter(|key| !self.locals.is_lvar(*key)) {
                     sink(Emit::of(Kind::Send, key));
                 }
             }
@@ -199,8 +197,8 @@ impl<'a> Walk<'a> {
             "if" | "elsif" | "unless" => {
                 let mut emit = Emit::of(Kind::If, node);
                 emit.has_else = node
-                    .child_by_field_name("alternative")
-                    .is_some_and(|alternative| alternative.kind() == "else");
+                    .field("alternative")
+                    .is_some_and(|alternative| alternative.kind_str() == "else");
                 self.around(emit, sink, |walk, sink| walk.children(node, sink));
             }
             "conditional" => {
@@ -215,7 +213,7 @@ impl<'a> Walk<'a> {
                 });
             }
             "while" | "until" => {
-                let kind = if node.kind() == "while" {
+                let kind = if node.kind_str() == "while" {
                     Kind::While
                 } else {
                     Kind::Until
@@ -300,8 +298,8 @@ impl<'a> Walk<'a> {
     /// than after it.
     fn visit_call<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         let block = node
-            .child_by_field_name("block")
-            .filter(|block| matches!(block.kind(), "block" | "do_block"));
+            .field("block")
+            .filter(|block| matches!(block.kind_str(), "block" | "do_block"));
         let Some(block) = block else {
             self.visit_bare_call(node, sink);
             return;
@@ -322,9 +320,9 @@ impl<'a> Walk<'a> {
 
     /// The call itself, without the block hanging off it.
     fn visit_bare_call<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        let method = node.child_by_field_name("method");
+        let method = node.field("method");
         // `super(…)` wears the shape of a call here but is its own node type upstream.
-        if method.is_some_and(|method| method.kind() == "super") {
+        if method.is_some_and(|method| method.kind_str() == "super") {
             self.field(node, "arguments", sink);
             return;
         }
@@ -346,12 +344,12 @@ impl<'a> Walk<'a> {
     /// the start of a block-pass argument. tree-sitter has no scope to consult and always reads
     /// the argument form, which would otherwise leave a `block_pass` that upstream never built.
     fn binary_operator_on_a_local(&self, node: Node<'a>) -> Option<Node<'a>> {
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             return None;
         }
-        let method = node.child_by_field_name("method")?;
-        let arguments = node.child_by_field_name("arguments")?;
-        if method.kind() != "identifier"
+        let method = node.field("method")?;
+        let arguments = node.field("arguments")?;
+        if method.kind_str() != "identifier"
             || self.text(arguments).starts_with('(')
             || arguments.named_child_count() != 1
             || !self.locals.is_lvar(method)
@@ -360,7 +358,7 @@ impl<'a> Walk<'a> {
         }
         arguments
             .named_child(0)
-            .filter(|child| matches!(child.kind(), "block_argument" | "splat_argument"))
+            .filter(|child| matches!(child.kind_str(), "block_argument" | "splat_argument"))
     }
 
     fn visit_block_body<F: FnMut(Emit<'a>)>(&self, block: Node<'a>, sink: &mut F) {
@@ -373,8 +371,8 @@ impl<'a> Walk<'a> {
         let parts = |walk: &Self, sink: &mut F| {
             sink(Emit::of(Kind::Send, node));
             walk.field(node, "parameters", sink);
-            match node.child_by_field_name("body") {
-                Some(body) if matches!(body.kind(), "block" | "do_block") => {
+            match node.field("body") {
+                Some(body) if matches!(body.kind_str(), "block" | "do_block") => {
                     walk.visit_block_body(body, sink);
                 }
                 Some(body) => walk.visit(body, sink),
@@ -382,9 +380,9 @@ impl<'a> Walk<'a> {
             }
         };
         // `-> { _1 }` is a `numblock`, which is not one of the types these cops count.
-        let numbered = node.child_by_field_name("parameters").is_none()
+        let numbered = node.field("parameters").is_none()
             && node
-                .child_by_field_name("body")
+                .field("body")
                 .is_some_and(|body| self.is_numbered_block(body));
         if numbered {
             parts(self, sink);
@@ -431,11 +429,11 @@ impl<'a> Walk<'a> {
     }
 
     fn visit_assignment<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             self.children(node, sink);
             return;
         };
-        if left.kind() == "left_assignment_list" {
+        if left.kind_str() == "left_assignment_list" {
             if spurious_assignment_list(left) {
                 self.visit_swallowed_list(node, left, sink);
             } else {
@@ -446,14 +444,14 @@ impl<'a> Walk<'a> {
         // `a[i] =~ /…/` is one call, not a write: the grammar split the `=~` into the `=` of an
         // assignment and a unary `~`, and the `~` is what stands in for the call.
         if let Some(right) = node
-            .child_by_field_name("right")
+            .field("right")
             .filter(|right| split_match_operator(self.source, node, *right))
         {
             self.visit_swallowed_item(left, sink);
             self.visit(right, sink);
             return;
         }
-        self.visit_single_assignment(left, node.child_by_field_name("right"), sink);
+        self.visit_single_assignment(left, node.field("right"), sink);
     }
 
     /// One target and the value written to it.
@@ -468,7 +466,7 @@ impl<'a> Walk<'a> {
                 walk.visit(right, sink);
             }
         };
-        match left.kind() {
+        match left.kind_str() {
             "identifier" => {
                 let mut emit = Emit::of(Kind::Lvasgn, left);
                 let name = self.text(left);
@@ -530,7 +528,7 @@ impl<'a> Walk<'a> {
         for item in leading {
             self.visit_swallowed_item(*item, sink);
         }
-        let Some(right) = node.child_by_field_name("right") else {
+        let Some(right) = node.field("right") else {
             self.visit_swallowed_item(target, sink);
             return;
         };
@@ -547,7 +545,7 @@ impl<'a> Walk<'a> {
     /// One item of a swallowed list, which stands where an expression was written rather than
     /// where a name is assigned, so a bare name in it is read.
     fn visit_swallowed_item<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        if node.kind() == "identifier" {
+        if node.kind_str() == "identifier" {
             if !self.locals.is_lvar(node) && !is_keyword_literal(self.text(node)) {
                 sink(Emit::of(Kind::Send, node));
             }
@@ -557,7 +555,7 @@ impl<'a> Walk<'a> {
     }
 
     fn visit_targets<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 let mut emit = Emit::of(Kind::Lvasgn, node);
                 let name = self.text(node);
@@ -594,7 +592,7 @@ impl<'a> Walk<'a> {
     /// The parts of an assignment target that are evaluated where they stand: the receiver of
     /// `a.b = 1` and the subscript of `a[i] = 1`.
     fn visit_target_operands<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        match node.kind() {
+        match node.kind_str() {
             "call" => {
                 self.field(node, "receiver", sink);
                 self.field(node, "arguments", sink);
@@ -611,8 +609,8 @@ impl<'a> Walk<'a> {
             _ => Kind::OpAsgn,
         };
         let mut emit = Emit::of(kind, node);
-        let left = node.child_by_field_name("left");
-        let right = node.child_by_field_name("right");
+        let left = node.field("left");
+        let right = node.field("right");
         emit.miscounted = [left, right]
             .into_iter()
             .flatten()
@@ -631,8 +629,8 @@ impl<'a> Walk<'a> {
     fn visit_modifier_loop<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         // `begin … end while cond` is a `while_post`, which none of these cops counts.
         let post = node
-            .child_by_field_name("body")
-            .is_some_and(|body| body.kind() == "begin");
+            .field("body")
+            .is_some_and(|body| body.kind_str() == "begin");
         let walk_parts = |walk: &Self, sink: &mut F| {
             walk.field(node, "condition", sink);
             walk.field(node, "body", sink);
@@ -641,7 +639,7 @@ impl<'a> Walk<'a> {
             walk_parts(self, sink);
             return;
         }
-        let kind = if node.kind() == "while_modifier" {
+        let kind = if node.kind_str() == "while_modifier" {
             Kind::While
         } else {
             Kind::Until
@@ -651,7 +649,7 @@ impl<'a> Walk<'a> {
 
     fn visit_for<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         self.around(Emit::of(Kind::For, node), sink, |walk, sink| {
-            if let Some(pattern) = node.child_by_field_name("pattern") {
+            if let Some(pattern) = node.field("pattern") {
                 walk.visit_targets(pattern, sink);
             }
             walk.field(node, "value", sink);
@@ -661,7 +659,7 @@ impl<'a> Walk<'a> {
 
     fn visit_in_clause<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         self.around(Emit::of(Kind::InPattern, node), sink, |walk, sink| {
-            if let Some(pattern) = node.child_by_field_name("pattern") {
+            if let Some(pattern) = node.field("pattern") {
                 walk.visit_pattern(pattern, sink);
             }
             walk.field(node, "guard", sink);
@@ -672,7 +670,7 @@ impl<'a> Walk<'a> {
     /// A pattern binds names rather than reading them, so nothing in it is a call -- except the
     /// expressions `^(…)` and `^name` reach back out to.
     fn visit_pattern<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {}
             "variable_reference_pattern" | "expression_reference_pattern" => {
                 self.children(node, sink);
@@ -698,7 +696,7 @@ impl<'a> Walk<'a> {
         emit.iterating = node
             .parent()
             .and_then(|arguments| arguments.parent())
-            .filter(|call| call.kind() == "call")
+            .filter(|call| call.kind_str() == "call")
             .and_then(|call| self.iterating_call(call));
         self.around(emit, sink, |walk, sink| walk.children(node, sink));
     }
@@ -712,7 +710,7 @@ impl<'a> Walk<'a> {
     }
 
     fn visit_parameter<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 let mut emit = Emit::of(Kind::Arg, node);
                 emit.capturing = capturing(self.text(node));
@@ -730,10 +728,10 @@ impl<'a> Walk<'a> {
             | "block_parameter" => {
                 let mut emit = Emit::of(Kind::Arg, node);
                 emit.capturing = node
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| capturing(self.text(name)));
                 self.around(emit, sink, |walk, sink| {
-                    if let Some(value) = node.child_by_field_name("value") {
+                    if let Some(value) = node.field("value") {
                         walk.visit_default(value, sink);
                     }
                 });
@@ -760,7 +758,7 @@ impl<'a> Walk<'a> {
         for parameter in swallowed {
             self.visit_parameter(*parameter, sink);
         }
-        if let Some(right) = value.child_by_field_name("right") {
+        if let Some(right) = value.field("right") {
             self.visit_default(right, sink);
         }
     }
@@ -775,8 +773,8 @@ impl<'a> Walk<'a> {
     /// `iterating_block?` for the call a block or a block-pass belongs to. A block on `super`
     /// answers `:super` as its method name, which is not one of the known iterating methods.
     fn iterating_call(&self, call: Node<'_>) -> Option<bool> {
-        let name = match call.child_by_field_name("method") {
-            Some(method) if method.kind() == "super" => "super",
+        let name = match call.field("method") {
+            Some(method) if method.kind_str() == "super" => "super",
             Some(method) => self.text(method),
             // `a.()` calls `call`.
             None => "call",
@@ -791,8 +789,8 @@ impl<'a> Walk<'a> {
     /// A call carrying a block is a `block` node upstream rather than the call itself, and answers
     /// nothing, which is why `features -= plugins.map { … }` counts one child rather than two.
     fn dispatches_without_operator(&self, node: Node<'_>) -> bool {
-        match node.kind() {
-            "call" => node.child_by_field_name("block").is_none(),
+        match node.kind_str() {
+            "call" => node.field("block").is_none(),
             "element_reference" | "super" | "yield" => true,
             "identifier" => self.receiverless_call(node),
             "binary" => {
@@ -801,8 +799,8 @@ impl<'a> Walk<'a> {
             }
             "unary" => !folds_into_literal(node, operator(node).unwrap_or("")),
             "assignment" => node
-                .child_by_field_name("left")
-                .is_some_and(|left| matches!(left.kind(), "call" | "element_reference")),
+                .field("left")
+                .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference")),
             _ => false,
         }
     }
@@ -813,8 +811,8 @@ impl<'a> Walk<'a> {
         if call_kind(call) != Kind::Csend {
             return None;
         }
-        let receiver = call.child_by_field_name("receiver")?;
-        (receiver.kind() == "identifier" && self.locals.is_lvar(receiver))
+        let receiver = call.field("receiver")?;
+        (receiver.kind_str() == "identifier" && self.locals.is_lvar(receiver))
             .then(|| self.text(receiver))
     }
 
@@ -829,20 +827,20 @@ impl<'a> Walk<'a> {
     /// rather than a `block`, and so uncounted. A numbered parameter belongs to the innermost
     /// block around it, so a nested block's `_1` is that block's, not this one's.
     fn is_numbered_block(&self, block: Node<'_>) -> bool {
-        if block.child_by_field_name("parameters").is_some() {
+        if block.field("parameters").is_some() {
             return false;
         }
         block
-            .child_by_field_name("body")
+            .field("body")
             .is_some_and(|body| self.holds_numbered_parameter(body))
     }
 
     fn holds_numbered_parameter(&self, node: Node<'_>) -> bool {
         named_children(node).into_iter().any(|child| {
-            if matches!(child.kind(), "block" | "do_block" | "lambda") {
+            if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
                 return false;
             }
-            if child.kind() == "identifier" {
+            if child.kind_str() == "identifier" {
                 return is_numbered_parameter(self.text(child));
             }
             self.holds_numbered_parameter(child)
@@ -905,9 +903,9 @@ pub(super) struct Measured<'a> {
 pub(super) fn measured<'a>(context: &'a RuleContext<'_>, allowed: &Allowed) -> Vec<Measured<'a>> {
     let mut found = Vec::new();
     for node in context.nodes_of_any(&["method", "singleton_method", "block", "do_block"]) {
-        let measured = match node.kind() {
+        let measured = match node.kind_str() {
             "method" | "singleton_method" => node
-                .child_by_field_name("name")
+                .field("name")
                 .map(|name| context.source.node_text(name))
                 .and_then(|name| {
                     Some(Measured {
@@ -935,24 +933,26 @@ pub(super) fn measured<'a>(context: &'a RuleContext<'_>, allowed: &Allowed) -> V
 /// The body a definition holds, or `None` when it holds nothing: RuboCop accepts empty methods
 /// without measuring them, and `def m; ; end` has no statement either.
 fn statements<'a>(node: Node<'a>) -> Option<Node<'a>> {
-    let body = node.child_by_field_name("body")?;
+    let body = node.field("body")?;
     named_children(body)
         .iter()
-        .any(|child| !matches!(child.kind(), "empty_statement" | "comment"))
+        .any(|child| !matches!(child.kind_str(), "empty_statement" | "comment"))
         .then_some(body)
 }
 
 /// The literal name a `define_method` block defines, when it defines one.
 fn define_method_name<'a>(context: &'a RuleContext<'_>, block: Node<'a>) -> Option<&'a str> {
-    let call = block.parent().filter(|parent| parent.kind() == "call")?;
-    if call.child_by_field_name("receiver").is_some() {
+    let call = block
+        .parent()
+        .filter(|parent| parent.kind_str() == "call")?;
+    if call.field("receiver").is_some() {
         return None;
     }
-    let method = call.child_by_field_name("method")?;
+    let method = call.field("method")?;
     if context.source.node_text(method) != "define_method" {
         return None;
     }
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     if arguments.named_child_count() != 1 {
         return None;
     }
@@ -963,13 +963,13 @@ fn define_method_name<'a>(context: &'a RuleContext<'_>, block: Node<'a>) -> Opti
 /// The text of a symbol or string literal, which is what the `define_method` pattern captures. An
 /// interpolated one is a `dsym` or `dstr` upstream and matches nothing.
 fn literal_name<'a>(source: &'a SourceFile, node: Node<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => Some(source.node_text(node).trim_start_matches(':')),
         "delimited_symbol" | "string" => {
             let children = named_children(node);
             match children.as_slice() {
                 [] => Some(""),
-                [only] if only.kind() == "string_content" => Some(source.node_text(*only)),
+                [only] if only.kind_str() == "string_content" => Some(source.node_text(*only)),
                 _ => None,
             }
         }
@@ -1012,12 +1012,12 @@ fn call_kind(call: Node<'_>) -> Kind {
     let mut cursor = call.walk();
     let safe = call
         .children(&mut cursor)
-        .any(|child| !child.is_named() && child.kind() == "&.");
+        .any(|child| !child.is_named() && child.kind_str() == "&.");
     if safe { Kind::Csend } else { Kind::Send }
 }
 
 fn setter_kind(target: Node<'_>) -> Kind {
-    if target.kind() == "call" {
+    if target.kind_str() == "call" {
         call_kind(target)
     } else {
         Kind::Send
@@ -1028,12 +1028,12 @@ fn setter_kind(target: Node<'_>) -> Kind {
 /// turns into a `match_with_lvasgn` rather than a call. One holding an interpolation is not known
 /// until the program runs and stays an ordinary call.
 fn static_regexp_match(node: Node<'_>) -> bool {
-    node.child_by_field_name("left")
-        .filter(|left| left.kind() == "regex")
+    node.field("left")
+        .filter(|left| left.kind_str() == "regex")
         .is_some_and(|left| {
             !named_children(left)
                 .iter()
-                .any(|part| part.kind() == "interpolation")
+                .any(|part| part.kind_str() == "interpolation")
         })
 }
 
@@ -1045,7 +1045,7 @@ fn multiple_assignment_targets<'a>(node: Node<'a>) -> Vec<Node<'a>> {
 }
 
 fn collect_targets<'a>(node: Node<'a>, targets: &mut Vec<Node<'a>>) {
-    match node.kind() {
+    match node.kind_str() {
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
             for child in named_children(node) {
                 collect_targets(child, targets);
@@ -1061,7 +1061,7 @@ fn is_receiverless_call(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "call" => field_name(node, parent) != Some("method"),
         "method" | "singleton_method" => field_name(node, parent) != Some("name"),
         "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),
@@ -1091,20 +1091,20 @@ fn folds_into_literal(node: Node<'_>, symbol: &str) -> bool {
     if !matches!(symbol, "-" | "+") {
         return false;
     }
-    node.child_by_field_name("operand")
-        .is_some_and(|operand| matches!(operand.kind(), "integer" | "float" | "rational"))
+    node.field("operand")
+        .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float" | "rational"))
 }
 
 /// The `rescue` clause a container holds, when it holds one. Upstream wraps the guarded statements
 /// and every clause in a single `rescue` node, which is what these cops count -- once, however many
 /// clauses were written.
 fn rescue_of<'a>(node: Node<'a>) -> Option<Node<'a>> {
-    if !matches!(node.kind(), "body_statement" | "begin" | "block_body") {
+    if !matches!(node.kind_str(), "body_statement" | "begin" | "block_body") {
         return None;
     }
     named_children(node)
         .into_iter()
-        .find(|child| child.kind() == "rescue")
+        .find(|child| child.kind_str() == "rescue")
 }
 
 fn is_iterating_method(name: &str) -> bool {

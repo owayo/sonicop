@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Prefer `to_s` over string interpolation.";
 
@@ -23,13 +24,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let [interpolation] = children.as_slice() else {
             continue;
         };
-        if interpolation.kind() != "interpolation" {
+        if interpolation.kind_str() != "interpolation" {
             continue;
         }
         // `implicit_concatenation?` / `embedded_in_percent_array?`.
         if node
             .parent()
-            .is_some_and(|parent| NOT_ON_ITS_OWN.contains(&parent.kind()))
+            .is_some_and(|parent| NOT_ON_ITS_OWN.contains(&parent.kind_str()))
         {
             continue;
         }
@@ -43,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if context.target_ruby_version() > RubyVersion::new(2, 7)
             && embedded
                 .iter()
-                .any(|child| matches!(child.kind(), "match_pattern" | "test_pattern"))
+                .any(|child| matches!(child.kind_str(), "match_pattern" | "test_pattern"))
         {
             continue;
         }
@@ -94,20 +95,20 @@ fn autocorrect(
 /// `single_variable_interpolation?`: what the interpolation holds can be written on its own, so
 /// only `.to_s` has to be added to it.
 fn stands_for_itself(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    if VARIABLE_KINDS.contains(&node.kind()) {
+    if VARIABLE_KINDS.contains(&node.kind_str()) {
         return Some(context.source.node_text(node).to_owned());
     }
     // A bare name is a local variable or a receiverless call with no arguments; either way it
     // stands alone.
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return Some(context.source.node_text(node).to_owned());
     }
-    if node.kind() != "call" || !send_node::is_plain_send(node, context) {
+    if node.kind_str() != "call" || !send_node::is_plain_send(node, context) {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
+    let method = node.field("method")?;
     // `super` is a node of its own upstream, not a `send`.
-    if method.kind() == "super" {
+    if method.kind_str() == "super" {
         return None;
     }
     if super::nodes::is_operator_method(context.source.node_text(method)) {
@@ -119,7 +120,7 @@ fn stands_for_itself(context: &RuleContext<'_>, node: Node<'_>) -> Option<String
     }
     // `require_parentheses?`: a call written without them needs them once `.to_s` follows.
     if node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .and_then(|list| list.child(0))
         .is_some_and(|first| context.source.node_text(first) == "(")
     {
@@ -160,9 +161,9 @@ fn is_symbol_key(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    parent.kind() == "pair"
+    parent.kind_str() == "pair"
         && parent
-            .child_by_field_name("key")
+            .field("key")
             .is_some_and(|key| key.id() == node.id())
         && parent
             .child(1)

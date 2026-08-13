@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::literals::literal_type;
+use crate::rules::node_ext::NodeExt;
 
 /// `INVALID_TYPES`: the literals that name a value rather than a class, so that `rescue` raises a
 /// `TypeError` when it tries to match against them.
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = clause.child(0) else {
             continue;
         };
-        let Some(list) = clause.child_by_field_name("exceptions") else {
+        let Some(list) = clause.field("exceptions") else {
             continue;
         };
         let mut cursor = list.walk();

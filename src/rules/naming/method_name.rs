@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use super::support::valid_name;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `MethodIdentifierPredicates::OPERATOR_METHODS`, which `operator_method?` consults. None of
 /// these can be spelled in the enforced style, so a `def` for one is never an offense.
@@ -27,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         offenses,
     };
     for node in context.nodes_of_any(&["method", "singleton_method", "alias", "call"]) {
-        match node.kind() {
+        match node.kind_str() {
             "method" | "singleton_method" => check.on_def(node),
             "alias" => check.on_alias(node),
             _ => check.on_send(node),
@@ -47,7 +48,7 @@ struct Check<'a, 'tree> {
 
 impl Check<'_, '_> {
     fn on_def(&mut self, node: Node<'_>) {
-        let Some(name_node) = node.child_by_field_name("name") else {
+        let Some(name_node) = node.field("name") else {
             return;
         };
         // The `setter` node of `def foo=` spans `foo=`, which is exactly the name the parser
@@ -64,7 +65,7 @@ impl Check<'_, '_> {
     }
 
     fn on_alias(&mut self, node: Node<'_>) {
-        let Some(new_identifier) = node.child_by_field_name("name") else {
+        let Some(new_identifier) = node.field("name") else {
             return;
         };
         // `alias foo bar` and `alias :foo :bar` both reach RuboCop as `sym` nodes. An alias
@@ -76,7 +77,7 @@ impl Check<'_, '_> {
     }
 
     fn on_send(&mut self, node: Node<'_>) {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             return;
         };
         let method = self.context.source.node_text(method);
@@ -109,7 +110,7 @@ impl Check<'_, '_> {
         // a member and is skipped.
         let named = arguments(node)
             .next()
-            .is_some_and(|first| matches!(first.kind(), "string" | "bare_string"));
+            .is_some_and(|first| matches!(first.kind_str(), "string" | "bare_string"));
         self.handle_members(node, named);
     }
 
@@ -133,7 +134,7 @@ impl Check<'_, '_> {
     }
 
     fn handle_attr_accessor(&mut self, node: Node<'_>) {
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             return;
         }
         let arguments: Vec<Node<'_>> = arguments(node).collect();
@@ -156,7 +157,7 @@ impl Check<'_, '_> {
 
     fn handle_method_name(&mut self, node: Node<'_>, name: &str, range: Range<usize>) {
         if self.is_forbidden(name) {
-            let forbidden_range = if node.kind() == "call" {
+            let forbidden_range = if node.kind_str() == "call" {
                 arguments(node)
                     .next()
                     .map_or(range, |first| first.byte_range())
@@ -176,15 +177,15 @@ impl Check<'_, '_> {
     /// Whether the call's receiver is the bare `Struct`/`Data` constant. `(const {nil? cbase} …)`
     /// deliberately excludes a namespaced `Foo::Struct`, which need not be the core class.
     fn receiver_is(&self, node: Node<'_>, constant: &str) -> bool {
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             return false;
         };
-        match receiver.kind() {
+        match receiver.kind_str() {
             "constant" => self.context.source.node_text(receiver) == constant,
             "scope_resolution" => {
-                receiver.child_by_field_name("scope").is_none()
+                receiver.field("scope").is_none()
                     && receiver
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|name| self.context.source.node_text(name) == constant)
             }
             _ => false,
@@ -194,7 +195,7 @@ impl Check<'_, '_> {
     /// The name an argument spells, for the arguments RuboCop accepts as `str` or `sym`. An
     /// interpolated string or symbol is a `dstr`/`dsym` upstream and names nothing.
     fn literal_name(&self, node: Node<'_>) -> Option<String> {
-        match node.kind() {
+        match node.kind_str() {
             "simple_symbol" => Some(
                 self.context
                     .source
@@ -210,7 +211,7 @@ impl Check<'_, '_> {
     /// Like [`Self::literal_name`], but also accepting the bare-word form `alias foo bar`, which
     /// the parser turns into a `sym` all the same.
     fn method_name(&self, node: Node<'_>) -> Option<String> {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" | "constant" | "operator" | "setter" => {
                 Some(self.context.source.node_text(node).to_owned())
             }
@@ -249,19 +250,19 @@ impl Check<'_, '_> {
 /// `range_position` for a `send`: one character past the selector, which lands on the first
 /// argument whether or not the call was written with parentheses.
 fn range_position(node: Node<'_>) -> Range<usize> {
-    let Some(method) = node.child_by_field_name("method") else {
+    let Some(method) = node.field("method") else {
         return node.byte_range();
     };
     // The `send` upstream stops before any block, so `foo :bar do … end` must not swallow the
     // block's `end`.
     let end = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map_or(method.end_byte(), |arguments| arguments.end_byte());
     (method.end_byte() + 1).min(end)..end
 }
 
 fn arguments<'tree>(node: Node<'tree>) -> impl Iterator<Item = Node<'tree>> {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .into_iter()
         .flat_map(|list| {
             let mut cursor = list.walk();

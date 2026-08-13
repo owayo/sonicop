@@ -9,6 +9,7 @@ use crate::rules::send_node::named_children;
 use super::literals::is_literal;
 use super::locals::LocalVariables;
 use super::statements::body_children;
+use crate::rules::node_ext::NodeExt;
 
 /// `ASSIGNMENT_TYPES`: the variable kinds the tracker follows. A constant is deliberately missing.
 const ASSIGNMENT_TARGETS: &[&str] = &[
@@ -21,7 +22,7 @@ const ASSIGNMENT_TARGETS: &[&str] = &[
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(body) = node.child_by_field_name("body") else {
+        let Some(body) = node.field("body") else {
             continue;
         };
         let Some(last) = last_expression(body) else {
@@ -70,16 +71,16 @@ fn setter_call_to_local_variable<'tree>(
     node: Node<'tree>,
     locals: &LocalVariables<'_, '_>,
 ) -> Option<Node<'tree>> {
-    if node.kind() != "assignment" {
+    if node.kind_str() != "assignment" {
         return None;
     }
-    let left = node.child_by_field_name("left")?;
-    let receiver = match left.kind() {
-        "call" => left.child_by_field_name("receiver")?,
+    let left = node.field("left")?;
+    let receiver = match left.kind_str() {
+        "call" => left.field("receiver")?,
         "element_reference" => left.child(0)?,
         _ => return None,
     };
-    (receiver.kind() == "identifier" && locals.is_lvar(receiver)).then_some(receiver)
+    (receiver.kind_str() == "identifier" && locals.is_lvar(receiver)).then_some(receiver)
 }
 
 /// `MethodVariableTracker`: which names hold an object this method built.
@@ -117,32 +118,32 @@ impl Tracker {
         context: &RuleContext<'_>,
         locals: &LocalVariables<'_, '_>,
     ) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "assignment" => {
                 let (Some(left), Some(right)) = (
-                    node.child_by_field_name("left"),
-                    node.child_by_field_name("right"),
+                    node.field("left"),
+                    node.field("right"),
                 ) else {
                     return false;
                 };
-                if left.kind() == "left_assignment_list" {
+                if left.kind_str() == "left_assignment_list" {
                     self.process_multiple_assignment(left, right, context, locals);
                     return true;
                 }
-                if ASSIGNMENT_TARGETS.contains(&left.kind()) {
+                if ASSIGNMENT_TARGETS.contains(&left.kind_str()) {
                     self.process_assignment(left, right, context, locals);
                 }
                 false
             }
             "operator_assignment" => {
                 let (Some(left), Some(right), Some(operator)) = (
-                    node.child_by_field_name("left"),
-                    node.child_by_field_name("right"),
-                    node.child_by_field_name("operator"),
+                    node.field("left"),
+                    node.field("right"),
+                    node.field("operator"),
                 ) else {
                     return false;
                 };
-                if !ASSIGNMENT_TARGETS.contains(&left.kind()) {
+                if !ASSIGNMENT_TARGETS.contains(&left.kind_str()) {
                     return false;
                 }
                 if matches!(context.source.node_text(operator), "||=" | "&&=") {
@@ -165,14 +166,14 @@ impl Tracker {
         context: &RuleContext<'_>,
         locals: &LocalVariables<'_, '_>,
     ) {
-        let listed = matches!(right.kind(), "right_assignment_list" | "array");
+        let listed = matches!(right.kind_str(), "right_assignment_list" | "array");
         let values = if listed {
             named_children(right)
         } else {
             Vec::new()
         };
         for (index, target) in named_children(targets).into_iter().enumerate() {
-            if !ASSIGNMENT_TARGETS.contains(&target.kind()) {
+            if !ASSIGNMENT_TARGETS.contains(&target.kind_str()) {
                 continue;
             }
             match values.get(index) {
@@ -209,7 +210,7 @@ impl Tracker {
 
 /// `node.variable?`: `lvar`, `ivar`, `cvar` or `gvar`.
 fn is_variable(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => locals.is_lvar(node),
         kind => matches!(
             kind,
@@ -223,9 +224,9 @@ fn is_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if is_literal(node, context) {
         return true;
     }
-    node.kind() == "call"
+    node.kind_str() == "call"
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "new")
 }
 

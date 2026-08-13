@@ -1,13 +1,14 @@
 use super::rescue_clause::{body, const_name, end};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Avoid rescuing the `Exception` class. Perhaps you meant to rescue `StandardError`?";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("rescue") {
-        let Some(exceptions) = node.child_by_field_name("exceptions") else {
+        let Some(exceptions) = node.field("exceptions") else {
             continue;
         };
         let mut cursor = exceptions.walk();

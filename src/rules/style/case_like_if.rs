@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Convert `if-elsif` to `case-when`.";
 
@@ -92,21 +93,21 @@ fn branch_conditions<'t>(node: Node<'t>) -> Vec<Node<'t>> {
     let mut conditions = Vec::new();
     let mut current = Some(node);
     while let Some(branch) = current {
-        if !matches!(branch.kind(), "if" | "elsif") {
+        if !matches!(branch.kind_str(), "if" | "elsif") {
             break;
         }
-        let Some(condition) = branch.child_by_field_name("condition") else {
+        let Some(condition) = branch.field("condition") else {
             break;
         };
         conditions.push(condition);
-        current = branch.child_by_field_name("alternative");
+        current = branch.field("alternative");
     }
     conditions
 }
 
 /// `find_target`: what the `case` would be written about.
 fn find_target<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<Node<'t>> {
-    match node.kind() {
+    match node.kind_str() {
         // `find_target` reaches for the *first* statement here, unlike `deparenthesize`.
         "parenthesized_statements" => {
             find_target(context, *super::nodes::children(node).first()?)
@@ -122,7 +123,7 @@ fn find_target<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<Node<'t>
                 "===" => call.argument,
                 "include?" | "cover?" => {
                     let receiver = deparenthesize(call.receiver?);
-                    (receiver.kind() == "range").then_some(call.argument)?
+                    (receiver.kind_str() == "range").then_some(call.argument)?
                 }
                 "match" | "match?" | "=~" => find_target_in_match(&call),
                 _ => None,
@@ -141,11 +142,11 @@ fn find_target_in_equality<'t>(context: &RuleContext<'_>, call: &Call<'_, 't>) -
 
 fn find_target_in_match<'t>(call: &Call<'_, 't>) -> Option<Node<'t>> {
     let receiver = call.receiver?;
-    if receiver.kind() == "regex" {
+    if receiver.kind_str() == "regex" {
         return call.argument;
     }
     call.argument
-        .filter(|argument| argument.kind() == "regex")
+        .filter(|argument| argument.kind_str() == "regex")
         .map(|_| receiver)
 }
 
@@ -157,7 +158,7 @@ fn collect_conditions(
     target: &str,
     conditions: &mut Vec<String>,
 ) -> bool {
-    if node.kind() == "parenthesized_statements" {
+    if node.kind_str() == "parenthesized_statements" {
         let Some(inner) = super::nodes::children(node).into_iter().next() else {
             return false;
         };
@@ -190,7 +191,7 @@ fn collect_conditions(
             .filter(|argument| context.source.node_text(*argument) == target)
             .and(call.receiver)
             .map(deparenthesize)
-            .filter(|receiver| receiver.kind() == "range"),
+            .filter(|receiver| receiver.kind_str() == "range"),
         _ => None,
     };
     match condition {
@@ -227,24 +228,24 @@ struct Call<'a, 't> {
 
 impl<'a, 't> Call<'a, 't> {
     fn new(context: &'a RuleContext<'_>, node: Node<'t>) -> Option<Self> {
-        match node.kind() {
+        match node.kind_str() {
             "binary" => Some(Self {
                 method: context
                     .source
-                    .node_text(node.child_by_field_name("operator")?),
-                receiver: node.child_by_field_name("left"),
-                argument: node.child_by_field_name("right"),
+                    .node_text(node.field("operator")?),
+                receiver: node.field("left"),
+                argument: node.field("right"),
             }),
             "call" => {
                 let arguments = node
-                    .child_by_field_name("arguments")
+                    .field("arguments")
                     .map(super::nodes::children)
                     .unwrap_or_default();
                 Some(Self {
                     method: context
                         .source
-                        .node_text(node.child_by_field_name("method")?),
-                    receiver: node.child_by_field_name("receiver"),
+                        .node_text(node.field("method")?),
+                    receiver: node.field("receiver"),
                     argument: arguments.first().copied(),
                 })
             }
@@ -276,7 +277,7 @@ fn regexp_with_working_captures(context: &RuleContext<'_>, node: Node<'_>) -> bo
 }
 
 fn has_named_captures(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "regex" {
+    if node.kind_str() != "regex" {
         return false;
     }
     let source = context.source.node_text(node);
@@ -290,7 +291,7 @@ fn has_named_captures(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn deparenthesize<'t>(mut node: Node<'t>) -> Node<'t> {
-    while node.kind() == "parenthesized_statements" {
+    while node.kind_str() == "parenthesized_statements" {
         match super::nodes::children(node).last() {
             Some(last) => node = *last,
             None => break,
@@ -300,7 +301,7 @@ fn deparenthesize<'t>(mut node: Node<'t>) -> Node<'t> {
 }
 
 fn is_literal(node: Node<'_>) -> bool {
-    LITERALS.contains(&node.kind())
+    LITERALS.contains(&node.kind_str())
 }
 
 /// `const_reference?`: a constant whose name is all upper case, which reads as a value rather than
@@ -319,9 +320,9 @@ fn is_class_reference(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// The last segment of a constant path, which is what `node.children[1]` names.
 fn constant_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
-        "scope_resolution" => Some(context.source.node_text(node.child_by_field_name("name")?)),
+        "scope_resolution" => Some(context.source.node_text(node.field("name")?)),
         _ => None,
     }
 }

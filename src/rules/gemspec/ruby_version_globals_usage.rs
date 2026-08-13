@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // Upstream guards this with `gem_specification(processed_source.ast) && ruby_version?(node)`,
@@ -27,18 +28,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// upstream has a single `const`, so a constant that a scope resolution owns is left to the
 /// resolution around it rather than reported twice.
 fn ruby_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => {
             node.parent()
-                .is_none_or(|parent| parent.kind() != "scope_resolution")
+                .is_none_or(|parent| parent.kind_str() != "scope_resolution")
                 && context.source.node_text(node) == "RUBY_VERSION"
         }
         "scope_resolution" => {
-            let Some(name) = node.child_by_field_name("name") else {
+            let Some(name) = node.field("name") else {
                 return false;
             };
             let name = context.source.node_text(name);
-            let scope = node.child_by_field_name("scope");
+            let scope = node.field("scope");
             match scope {
                 None => name == "RUBY_VERSION",
                 Some(scope) => {

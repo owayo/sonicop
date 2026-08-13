@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The body of a construct as upstream's parser hands it over: absent, one node, or the `begin`
 /// that holds a statement list.
@@ -251,7 +252,7 @@ fn check_deferred(
     if !reported.insert((range.start, range.end)) {
         return;
     }
-    let kind = match node.kind() {
+    let kind = match node.kind_str() {
         "method" => "def",
         "singleton_method" => "defs",
         "class" => "class",
@@ -292,7 +293,7 @@ fn is_comment_line(context: &RuleContext<'_>, line: usize) -> bool {
 /// `namespace?(body, with_one_child: true)`: a body of exactly one class or module.
 fn namespace(body: &Body<'_>) -> bool {
     match body {
-        Body::Single(node) => matches!(node.kind(), "class" | "module"),
+        Body::Single(node) => matches!(node.kind_str(), "class" | "module"),
         _ => false,
     }
 }
@@ -319,14 +320,18 @@ fn first_empty_line_required_child<'tree>(body: &Body<'tree>) -> Option<Node<'tr
 /// `{any_def class module (send nil? {:private :protected :public})}`.
 fn requires_empty_line(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "method" | "singleton_method" | "class" | "module" | "identifier"
-    ) && (node.kind() != "identifier" || is_bare_access_modifier(node))
+    ) && (node.kind_str() != "identifier" || is_bare_access_modifier(node))
 }
 
 fn is_bare_access_modifier(node: Node<'_>) -> bool {
-    node.parent()
-        .is_some_and(|parent| matches!(parent.kind(), "body_statement" | "block_body" | "program"))
+    node.parent().is_some_and(|parent| {
+        matches!(
+            parent.kind_str(),
+            "body_statement" | "block_body" | "program"
+        )
+    })
 }
 
 /// The statements upstream's parser puts in a body, folded into the shape it gives them.
@@ -337,13 +342,18 @@ pub(super) fn body_of<'tree>(container: Option<Node<'tree>>) -> Body<'tree> {
     let mut cursor = container.walk();
     let statements: Vec<Node<'tree>> = container
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body" | "empty_statement"))
+        .filter(|child| {
+            !matches!(
+                child.kind_str(),
+                "comment" | "heredoc_body" | "empty_statement"
+            )
+        })
         .collect();
     // A `rescue` or `ensure` clause takes the statements over upstream, leaving the body a single
     // node that is neither a definition nor a namespace.
     if let Some(clause) = statements
         .iter()
-        .find(|child| matches!(child.kind(), "rescue" | "ensure" | "else"))
+        .find(|child| matches!(child.kind_str(), "rescue" | "ensure" | "else"))
     {
         return Body::Single(*clause);
     }
@@ -358,5 +368,5 @@ pub(super) fn body_of<'tree>(container: Option<Node<'tree>>) -> Body<'tree> {
 pub(super) fn body_container<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .find(|child| matches!(child.kind(), "body_statement" | "block_body"))
+        .find(|child| matches!(child.kind_str(), "body_statement" | "block_body"))
 }

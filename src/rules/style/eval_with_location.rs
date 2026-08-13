@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::node_equality::numeric_value;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Pass `__FILE__` and `__LINE__` to `%s`.";
 const MSG_EVAL: &str = "Pass a binding, `__FILE__`, and `__LINE__` to `eval`.";
@@ -238,7 +239,7 @@ fn line_difference(context: &RuleContext<'_>, line: &Arg<'_>, code: Node<'_>) ->
 /// `string_first_line`: where the code the string holds begins, which for a heredoc is its body
 /// rather than the marker that opened it.
 fn first_line(context: &RuleContext<'_>, code: Node<'_>) -> i64 {
-    if code.kind() != "heredoc_beginning" {
+    if code.kind_str() != "heredoc_beginning" {
         return code.start_position().row as i64 + 1;
     }
     // The grammar starts a heredoc's body where its opening line ends, so the line upstream's
@@ -252,18 +253,18 @@ fn first_line(context: &RuleContext<'_>, code: Node<'_>) -> i64 {
 
 /// `line_with_offset?`: `__LINE__ + n` or `n + __LINE__`, for the `n` the code string is below.
 fn line_with_offset(context: &RuleContext<'_>, node: Node<'_>, sign: &str, magnitude: i64) -> bool {
-    if node.kind() != "binary" {
+    if node.kind_str() != "binary" {
         return false;
     }
     let operator = node
-        .child_by_field_name("operator")
+        .field("operator")
         .map(|operator| context.source.node_text(operator));
     if operator != Some(sign) {
         return false;
     }
     let (Some(left), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return false;
     };
@@ -272,12 +273,12 @@ fn line_with_offset(context: &RuleContext<'_>, node: Node<'_>, sign: &str, magni
 }
 
 fn is_integer(context: &RuleContext<'_>, node: Node<'_>, value: i64) -> bool {
-    matches!(node.kind(), "integer" | "unary")
+    matches!(node.kind_str(), "integer" | "unary")
         && numeric_value(node, context).is_some_and(|found| found == value as f64)
 }
 
 fn is_line_node(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "identifier" && context.source.node_text(node) == LINE_KEYWORD
+    node.kind_str() == "identifier" && context.source.node_text(node) == LINE_KEYWORD
 }
 
 fn is_line_keyword(context: &RuleContext<'_>, argument: &Arg<'_>) -> bool {
@@ -287,7 +288,7 @@ fn is_line_keyword(context: &RuleContext<'_>, argument: &Arg<'_>) -> bool {
 /// Whether the line argument is one whose value the cop declines to read: a variable, or a call
 /// that is not an addition.
 fn is_opaque(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "instance_variable" | "class_variable" | "global_variable" => true,
         // A bare name is either a local variable or a receiverless call, and both are skipped.
         // The two keywords the parser resolves into literals are neither.
@@ -296,7 +297,7 @@ fn is_opaque(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         "element_reference" => true,
         "call" => method_name(context, node) != Some("+"),
         "binary" => {
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .map(|operator| context.source.node_text(operator))
                 != Some("+")
         }
@@ -309,7 +310,7 @@ fn is_opaque(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `valid_eval_receiver?`: `{ nil? (const {nil? cbase} :Kernel) }`.
 fn valid_eval_receiver(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.child_by_field_name("receiver") {
+    match node.field("receiver") {
         None => true,
         Some(receiver) => send_node::top_level_constant(receiver, "Kernel", context),
     }
@@ -317,7 +318,7 @@ fn valid_eval_receiver(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// Whether the node is what upstream's parser calls a `str` or a `dstr`.
 fn is_string_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `?a`, an adjacent pair of literals, and a heredoc are all one of the two.
         "string" | "character" | "chained_string" | "heredoc_beginning" => true,
         "identifier" => context.source.node_text(node) == FILE_KEYWORD,
@@ -326,7 +327,7 @@ fn is_string_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn method_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    node.child_by_field_name("method")
+    node.field("method")
         .map(|method| context.source.node_text(method))
 }
 
@@ -353,10 +354,10 @@ fn arguments<'tree>(call: Node<'tree>) -> Vec<Arg<'tree>> {
     let mut out = Vec::new();
     for argument in send_node::arguments(call) {
         let (node, range) = (argument.first(), argument.range());
-        let folded = (argument.parts().len() == 1 && node.kind() == "assignment")
-            .then(|| node.child_by_field_name("left"))
+        let folded = (argument.parts().len() == 1 && node.kind_str() == "assignment")
+            .then(|| node.field("left"))
             .flatten()
-            .filter(|left| left.kind() == "left_assignment_list");
+            .filter(|left| left.kind_str() == "left_assignment_list");
         let Some(left) = folded else {
             out.push(Arg { node, range });
             continue;

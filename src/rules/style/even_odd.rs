@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["binary", "call"]) {
@@ -19,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             _ => continue,
         };
         // `{(send $_ :% (int 2)) (begin (send $_ :% (int 2)))}`.
-        let modulo = match left.kind() {
+        let modulo = match left.kind_str() {
             "parenthesized_statements" => match super::nodes::children(left).as_slice() {
                 [only] => *only,
                 _ => continue,
@@ -62,19 +63,19 @@ fn comparison<'tree>(
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>)> {
     let _ = context;
-    match node.kind() {
+    match node.kind_str() {
         "binary" => Some((
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("operator")?,
-            node.child_by_field_name("right")?,
+            node.field("left")?,
+            node.field("operator")?,
+            node.field("right")?,
         )),
         _ => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let selector = node.child_by_field_name("method")?;
-            let arguments = node.child_by_field_name("arguments")?;
+            let receiver = node.field("receiver")?;
+            let selector = node.field("method")?;
+            let arguments = node.field("arguments")?;
             match super::nodes::children(arguments).as_slice() {
                 [only] => Some((receiver, selector, *only)),
                 _ => None,
@@ -86,20 +87,20 @@ fn comparison<'tree>(
 /// `receiver_source`: an operator call binds looser than the predicate hung off it.
 fn receiver_source(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let source = context.source.node_text(node);
-    let operator = match node.kind() {
+    let operator = match node.kind_str() {
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),
         "call" => node
-            .child_by_field_name("method")
-            .is_some_and(|method| method.kind() == "operator"),
+            .field("method")
+            .is_some_and(|method| method.kind_str() == "operator"),
         _ => false,
     };
     match operator {

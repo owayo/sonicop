@@ -4,12 +4,13 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The modifier forms and the ternary have their own node kinds here, so reaching one of these
     // already means `modifier_form?` and `ternary?` are both false.
     for node in context.nodes_of_any(&["if", "unless", "while", "until"]) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let Some(keyword) = node.child(0) else {
@@ -47,13 +48,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `removal_range`: the condition's own lines, unless the body shares the condition's last line.
 fn removal(context: &RuleContext<'_>, node: Node<'_>, condition: Node<'_>) -> Edit {
     let body = node
-        .child_by_field_name("consequence")
-        .or_else(|| node.child_by_field_name("body"));
+        .field("consequence")
+        .or_else(|| node.field("body"));
     let body_start = body
         .and_then(|body| {
             let mut cursor = body.walk();
             body.named_children(&mut cursor)
-                .find(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+                .find(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         })
         .map(|first| first.start_byte());
     if let Some(start) = body_start {

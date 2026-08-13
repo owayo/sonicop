@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::nil_methods::nil_methods;
+use crate::rules::node_ext::NodeExt;
 
 const USE_DOT_MSG: &str = "Use `.` instead of unnecessary `&.`.";
 const USE_SAFE_NAVIGATION_MSG: &str = "Use `&.` for consistency with safe navigation.";
@@ -65,7 +66,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `&&`/`and` and `||`/`or`, told apart for the two indices they feed.
 fn logical_operator(node: Node<'_>, context: &RuleContext<'_>) -> Option<bool> {
-    let operator = node.child_by_field_name("operator")?;
+    let operator = node.field("operator")?;
     match context.source.node_text(operator) {
         "&&" | "and" => Some(true),
         "||" | "or" => Some(false),
@@ -83,7 +84,7 @@ fn collect_operands<'tree>(
         return;
     };
     for side in ["left", "right"] {
-        let Some(operand) = node.child_by_field_name(side) else {
+        let Some(operand) = node.field(side) else {
             continue;
         };
         if logical_operator(operand, context).is_some() {
@@ -100,26 +101,26 @@ fn read_operand<'tree>(
     in_and: bool,
     context: &RuleContext<'_>,
 ) -> Option<Operand<'tree>> {
-    let (receiver, method, dot) = match node.kind() {
+    let (receiver, method, dot) = match node.kind_str() {
         "call" => (
-            node.child_by_field_name("receiver"),
+            node.field("receiver"),
             context
                 .source
-                .node_text(node.child_by_field_name("method")?)
+                .node_text(node.field("method")?)
                 .to_owned(),
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .map(|operator| operator.byte_range()),
         ),
         "binary" => (
-            node.child_by_field_name("left"),
+            node.field("left"),
             context
                 .source
-                .node_text(node.child_by_field_name("operator")?)
+                .node_text(node.field("operator")?)
                 .to_owned(),
             None,
         ),
         "unary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             let text = context.source.node_text(operator);
             let method = match text {
                 "-" => "-@".to_owned(),
@@ -127,7 +128,7 @@ fn read_operand<'tree>(
                 "!" | "~" | "not" | "defined?" => text.to_owned(),
                 _ => return None,
             };
-            (node.child_by_field_name("operand"), method, None)
+            (node.field("operand"), method, None)
         }
         "element_reference" => (node.child(0), "[]".to_owned(), None),
         _ => return None,

@@ -8,6 +8,7 @@ use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::node_equality::identical;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use safe navigation (`&.`) instead of checking if an object \
                    exists before calling the method.";
@@ -59,8 +60,8 @@ fn on_if(
     // `allowed_if_condition?`: an `else` -- which an `elsif` counts as -- means the check guards a
     // choice rather than one call. A ternary has no `else` keyword, so `else?` is false for one
     // however plainly it has a second branch.
-    if node.kind() == "elsif"
-        || (node.kind() != "conditional" && node.child_by_field_name("alternative").is_some())
+    if node.kind_str() == "elsif"
+        || (node.kind_str() != "conditional" && node.field("alternative").is_some())
     {
         return;
     }
@@ -68,7 +69,7 @@ fn on_if(
         return;
     };
     // A body that jumps is never the chain, however well its receiver matches.
-    if LOGIC_JUMP_KEYWORDS.contains(&method_chain.kind()) {
+    if LOGIC_JUMP_KEYWORDS.contains(&method_chain.kind_str()) {
         return;
     }
     let Some(receiver) = find_matching_receiver_invocation(context, method_chain, checked_variable)
@@ -266,7 +267,7 @@ fn offending_node(
     }
     // `use_var_only_in_unless_modifier?`: `foo.bar unless foo` checks the object rather than a
     // call on it, so folding it would change what the condition means.
-    if matches!(node.kind(), "unless" | "unless_modifier")
+    if matches!(node.kind_str(), "unless" | "unless_modifier")
         && upstream_parent_is_send(context, lhs_receiver).is_none()
     {
         return false;
@@ -338,7 +339,7 @@ fn unsafe_method(context: &RuleContext<'_>, node: Node<'_>, send: Node<'_>) -> b
     if negated(context, send) {
         return true;
     }
-    if node.kind() == "conditional" {
+    if node.kind_str() == "conditional" {
         return false;
     }
     is_setter(context, send) || (!has_dot(context, send) && !is_safe_navigation(context, send))
@@ -412,20 +413,20 @@ fn comments_to_move(context: &RuleContext<'_>, node: Node<'_>) -> String {
 /// need an answer: a conditional and an `and`.
 fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut found = Vec::new();
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         for field in ["left", "right"] {
-            if let Some(operand) = node.child_by_field_name(field) {
+            if let Some(operand) = node.field(field) {
                 found.push(operand);
             }
         }
         return found;
     }
-    if let Some(condition) = node.child_by_field_name("condition") {
+    if let Some(condition) = node.field("condition") {
         found.push(condition);
     }
-    if node.kind() == "conditional" {
+    if node.kind_str() == "conditional" {
         for field in ["consequence", "alternative"] {
-            if let Some(branch) = node.child_by_field_name(field) {
+            if let Some(branch) = node.field(field) {
                 found.push(branch);
             }
         }
@@ -440,9 +441,9 @@ fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 /// The one statement a conditional's branch holds, which the grammar wraps in a `then` unless the
 /// conditional was written after it.
 fn if_body<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "if_modifier" | "unless_modifier" => node.child_by_field_name("body"),
-        _ => super::conditional::body_of(node.child_by_field_name("consequence")?).single(),
+    match node.kind_str() {
+        "if_modifier" | "unless_modifier" => node.field("body"),
+        _ => super::conditional::body_of(node.field("consequence")?).single(),
     }
 }
 
@@ -452,18 +453,18 @@ fn candidate<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    let condition = node.child_by_field_name("condition")?;
-    if node.kind() == "conditional" {
+    let condition = node.field("condition")?;
+    if node.kind_str() == "conditional" {
         let (consequence, alternative) = (
-            node.child_by_field_name("consequence")?,
-            node.child_by_field_name("alternative")?,
+            node.field("consequence")?,
+            node.field("alternative")?,
         );
         // `(if (send $_ {:nil? :!}) nil $_)`.
-        if consequence.kind() == "nil" {
+        if consequence.kind_str() == "nil" {
             let variable = nil_or_bang_check(context, condition).unwrap_or(condition);
             return Some((variable, alternative));
         }
-        if alternative.kind() != "nil" {
+        if alternative.kind_str() != "nil" {
             return None;
         }
         // `(if (send (send $_ :nil?) :!) $_ nil)` and `(if $_ $_ nil)`.
@@ -471,7 +472,7 @@ fn candidate<'tree>(
         return Some((variable, consequence));
     }
     let body = if_body(node)?;
-    match node.kind() {
+    match node.kind_str() {
         // The body sits where the parser puts the `else` branch, so the condition is read the
         // other way round.
         "unless" | "unless_modifier" => {
@@ -487,34 +488,34 @@ fn candidate<'tree>(
 
 /// `(send $_ {:nil? :!})`.
 fn nil_or_bang_check<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "call" if method_name(context, node).as_deref() == Some("nil?") => {
-            node.child_by_field_name("receiver")
+            node.field("receiver")
         }
-        "unary" if is_bang(context, node) => node.child_by_field_name("operand"),
+        "unary" if is_bang(context, node) => node.field("operand"),
         _ => None,
     }
 }
 
 /// `not_nil_check?`: `(send (send $_ :nil?) :!)`.
 fn not_nil_check<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "unary" || !is_bang(context, node) {
+    if node.kind_str() != "unary" || !is_bang(context, node) {
         return None;
     }
-    let inner = node.child_by_field_name("operand")?;
-    if inner.kind() != "call" || method_name(context, inner).as_deref() != Some("nil?") {
+    let inner = node.field("operand")?;
+    if inner.kind_str() != "call" || method_name(context, inner).as_deref() != Some("nil?") {
         return None;
     }
-    inner.child_by_field_name("receiver")
+    inner.field("receiver")
 }
 
 /// `strip_begin`: `{ (begin $!begin) $!(begin) }`.
 fn strip_begin<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "parenthesized_statements" {
+    if node.kind_str() != "parenthesized_statements" {
         return Some(node);
     }
     match super::nodes::children(node).as_slice() {
-        [only] if only.kind() != "parenthesized_statements" => Some(*only),
+        [only] if only.kind_str() != "parenthesized_statements" => Some(*only),
         _ => None,
     }
 }
@@ -524,13 +525,13 @@ fn and_with_rhs_or(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if !is_and(context, node) {
         return false;
     }
-    let Some(right) = node.child_by_field_name("right") else {
+    let Some(right) = node.field("right") else {
         return false;
     };
     if is_or(context, right) {
         return true;
     }
-    right.kind() == "parenthesized_statements"
+    right.kind_str() == "parenthesized_statements"
         && matches!(super::nodes::children(right).as_slice(), [only] if is_or(context, *only))
 }
 
@@ -565,7 +566,7 @@ fn matching_nodes(
 /// `matching_call_nodes?`: the same receiver and method, whether or not either was written with
 /// safe navigation.
 fn matching_call_nodes(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_>) -> bool {
-    if left.kind() != "call" || right.kind() != "call" {
+    if left.kind_str() != "call" || right.kind_str() != "call" {
         return false;
     }
     if method_name(context, left) != method_name(context, right) {
@@ -573,8 +574,8 @@ fn matching_call_nodes(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_
     }
     if !matching_nodes(
         context,
-        left.child_by_field_name("receiver"),
-        right.child_by_field_name("receiver"),
+        left.field("receiver"),
+        right.field("receiver"),
     ) {
         return false;
     }
@@ -601,7 +602,7 @@ fn find_method_chain<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Nod
 
 /// `not x` is `(send x :!)` just as `!x` is.
 fn is_bang(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.child_by_field_name("operator")
+    node.field("operator")
         .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }
 
@@ -664,15 +665,15 @@ fn collect_and_clauses<'tree>(
 /// `and_parts`.
 fn and_parts<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Vec<Part<'tree>> {
     let mut parts = Vec::new();
-    if let Some(operator) = node.child_by_field_name("operator") {
+    if let Some(operator) = node.field("operator") {
         parts.push(Part::Operator(operator.byte_range()));
     }
-    if let Some(right) = node.child_by_field_name("right") {
+    if let Some(right) = node.field("right") {
         if !and_inside_begin(context, right) {
             parts.push(Part::Node(right));
         }
     }
-    if let Some(left) = node.child_by_field_name("left") {
+    if let Some(left) = node.field("left") {
         if !is_and(context, left) && !and_inside_begin(context, left) {
             parts.push(Part::Node(left));
         }
@@ -683,7 +684,7 @@ fn and_parts<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Vec<Part<'t
 /// `and_inside_begin?`: `` `(begin and ...) ``.
 fn and_inside_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     send_node::any_descendant(node, &mut |candidate| {
-        candidate.kind() == "parenthesized_statements"
+        candidate.kind_str() == "parenthesized_statements"
             && super::nodes::children(candidate)
                 .first()
                 .is_some_and(|first| is_and(context, *first))
@@ -747,23 +748,23 @@ fn with_trailing_space(context: &RuleContext<'_>, range: Range<usize>) -> Range<
 }
 
 fn is_and(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "&&" | "and"))
 }
 
 fn is_or(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "||" | "or"))
 }
 
 /// Whether that block is a `numblock` or an `itblock`, which `each_ancestor(:block)` does not
 /// match.
 fn is_implicit_block(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.child_by_field_name("block") {
+    match node.field("block") {
         Some(block) => super::block_args::implicit(context, block),
         None => false,
     }
@@ -771,11 +772,11 @@ fn is_implicit_block(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// Whether upstream's parser builds a `send` or a `csend` for the node.
 fn is_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" | "element_reference" => true,
         "binary" => !is_and(context, node) && !is_or(context, node),
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) != "defined?"),
         "assignment" => is_setter(context, node),
         _ => false,
@@ -792,32 +793,32 @@ fn is_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// nothing else an operator to find.
 fn is_setter(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let _ = context;
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }
 
 /// `SendNode#method_name`, for whichever shape the grammar gave the call.
 fn method_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => Some(
             context
                 .source
-                .node_text(node.child_by_field_name("method")?)
+                .node_text(node.field("method")?)
                 .to_owned(),
         ),
         "element_reference" => Some("[]".to_owned()),
         "binary" => Some(
             context
                 .source
-                .node_text(node.child_by_field_name("operator")?)
+                .node_text(node.field("operator")?)
                 .to_owned(),
         ),
         "unary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             // The parser names a unary minus `:-@` to tell it from the binary one.
             Some(match operator {
                 "-" | "+" | "~" => format!("{operator}@"),
@@ -825,8 +826,8 @@ fn method_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
             })
         }
         "assignment" => {
-            let left = node.child_by_field_name("left")?;
-            match left.kind() {
+            let left = node.field("left")?;
+            match left.kind_str() {
                 "element_reference" => Some("[]=".to_owned()),
                 "call" => Some(format!("{}=", method_name(context, left)?)),
                 _ => None,
@@ -842,9 +843,9 @@ fn is_operator_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `loc.dot`, which is the `.`, the `&.` or the `::` a call was written with.
 fn dot_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "call" => node.child_by_field_name("operator"),
-        "assignment" => dot_of(node.child_by_field_name("left")?),
+    match node.kind_str() {
+        "call" => node.field("operator"),
+        "assignment" => dot_of(node.field("left")?),
         _ => None,
     }
 }
@@ -864,21 +865,21 @@ fn is_double_colon(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `Node#receiver`, for whichever shape the grammar gave the call.
 fn receiver_of<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "call" => node.child_by_field_name("receiver"),
-        "element_reference" => node.child_by_field_name("object"),
+    match node.kind_str() {
+        "call" => node.field("receiver"),
+        "element_reference" => node.field("object"),
         "binary" if !is_and(context, node) && !is_or(context, node) => {
-            node.child_by_field_name("left")
+            node.field("left")
         }
         "unary"
             if node
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) != "defined?") =>
         {
-            node.child_by_field_name("operand")
+            node.field("operand")
         }
         "assignment" if is_setter(context, node) => {
-            receiver_of(context, node.child_by_field_name("left")?)
+            receiver_of(context, node.field("left")?)
         }
         _ => None,
     }
@@ -909,7 +910,7 @@ const STATEMENT_CONTAINERS: &[&str] = &[
 
 /// Whether the node is one upstream's parser builds a `block`, `numblock` or `itblock` for.
 fn node_is_block(node: Node<'_>) -> bool {
-    node.kind() == "lambda" || node.child_by_field_name("block").is_some()
+    node.kind_str() == "lambda" || node.field("block").is_some()
 }
 
 /// `ancestor == method_chain`, with the two aspects of a call written with a block told apart.
@@ -924,7 +925,7 @@ fn parent_step<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, bool)> {
     let mut through_block = false;
     loop {
         let parent = current.parent()?;
-        match parent.kind() {
+        match parent.kind_str() {
             // `(...)` is a `begin` however little it holds.
             "parenthesized_statements" => return Some((parent, through_block)),
             kind if STATEMENT_CONTAINERS.contains(&kind) => {
@@ -956,14 +957,14 @@ fn first_ancestor<'tree>(node: Node<'tree>) -> Option<Ancestor<'tree>> {
 }
 
 fn fold_setter<'tree>(node: Node<'tree>) -> Node<'tree> {
-    if !matches!(node.kind(), "call" | "element_reference") {
+    if !matches!(node.kind_str(), "call" | "element_reference") {
         return node;
     }
     match node.parent() {
         Some(parent)
-            if parent.kind() == "assignment"
+            if parent.kind_str() == "assignment"
                 && parent
-                    .child_by_field_name("left")
+                    .field("left")
                     .is_some_and(|left| left.id() == node.id()) =>
         {
             parent

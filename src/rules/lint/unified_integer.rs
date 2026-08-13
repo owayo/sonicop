@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["constant", "scope_resolution"]) {
@@ -32,18 +33,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// or one written after `::` with nothing in front of it. A name qualified by a scope is a
 /// different constant, and the name token inside it is no constant of its own.
 fn short_name<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => {
             let qualified = node.parent().is_some_and(|parent| {
-                parent.kind() == "scope_resolution"
+                parent.kind_str() == "scope_resolution"
                     && parent
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|name| name.id() == node.id())
             });
             (!qualified).then_some(node)
         }
-        "scope_resolution" if node.child_by_field_name("scope").is_none() => {
-            node.child_by_field_name("name")
+        "scope_resolution" if node.field("scope").is_none() => {
+            node.field("name")
         }
         _ => None,
     }

@@ -3,6 +3,7 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, send_range};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let explicit = context
@@ -13,13 +14,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // an already corrected call are still reported but no longer correctable.
     let mut corrected: Vec<std::ops::Range<usize>> = Vec::new();
     for node in context.nodes_of("call") {
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
-        let Some(operator) = node.child_by_field_name("operator") else {
+        let Some(operator) = node.field("operator") else {
             continue;
         };
-        let selector = node.child_by_field_name("method");
+        let selector = node.field("method");
         // `RESTRICT_ON_SEND = %i[call]`: `foo.()` is a call to `:call` with no selector written.
         let implicit = selector.is_none();
         if !implicit && selector.is_some_and(|name| context.source.node_text(name) != "call") {

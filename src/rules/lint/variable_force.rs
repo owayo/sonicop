@@ -20,6 +20,7 @@ use std::collections::{HashMap, HashSet};
 
 use tree_sitter::Node;
 
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 /// How a variable came into being, which decides what may be reported about it.
@@ -239,7 +240,7 @@ const COMMA_SEPARATED_LISTS: &[&str] = &[
 
 /// Whether the `=` the grammar found is really the left half of a `=~`.
 fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
-    let Some(right) = node.child_by_field_name("right") else {
+    let Some(right) = node.field("right") else {
         return false;
     };
     let mut cursor = node.walk();
@@ -260,12 +261,12 @@ pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
         let Some(parent) = node.parent() else {
             return false;
         };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind()) {
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
             return true;
         }
-        let continues = parent.kind() == "assignment"
+        let continues = parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("right")
+                .field("right")
                 .is_some_and(|right| right.id() == node.id());
         current = continues.then_some(parent);
     }
@@ -277,9 +278,9 @@ pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
 /// first element belongs to this write.
 pub(super) fn assigned_value<'tree>(right: Node<'tree>) -> Node<'tree> {
     let Some(list) = right
-        .child_by_field_name("left")
-        .filter(|_| right.kind() == "assignment")
-        .filter(|left| left.kind() == "left_assignment_list")
+        .field("left")
+        .filter(|_| right.kind_str() == "assignment")
+        .filter(|left| left.kind_str() == "left_assignment_list")
         .filter(|left| spurious_assignment_list(*left))
     else {
         return right;
@@ -315,14 +316,12 @@ fn scan_scope<'tree>(node: Node<'tree>, scope_node: Node<'tree>, nodes: &mut Vec
 }
 
 fn owned_by_scope(child: Node<'_>, parent: Node<'_>, scope_node: Node<'_>) -> bool {
-    let Some((_, outer_fields)) = scope_kind(parent.kind()) else {
+    let Some((_, outer_fields)) = scope_kind(parent.kind_str()) else {
         return true;
     };
-    let outer = outer_fields.iter().any(|field| {
-        parent
-            .child_by_field_name(field)
-            .is_some_and(|f| f.id() == child.id())
-    });
+    let outer = outer_fields
+        .iter()
+        .any(|field| parent.field(field).is_some_and(|f| f.id() == child.id()));
     if parent.id() == scope_node.id() {
         // The scope's own outer parts were evaluated before it was entered.
         !outer
@@ -337,36 +336,33 @@ pub(super) fn body_node<'tree>(scope: &Scope<'tree>) -> Option<Node<'tree>> {
     if scope.top_level {
         return Some(scope.node);
     }
-    let body = match scope.node.kind() {
+    let body = match scope.node.kind_str() {
         // A lambda literal keeps its statements one level down, inside the braces node.
-        "lambda" => scope
-            .node
-            .child_by_field_name("body")?
-            .child_by_field_name("body"),
-        _ => scope.node.child_by_field_name("body"),
+        "lambda" => scope.node.field("body")?.field("body"),
+        _ => scope.node.field("body"),
     }?;
     let mut cursor = body.walk();
     body.named_children(&mut cursor)
-        .any(|child| child.kind() != "empty_statement")
+        .any(|child| child.kind_str() != "empty_statement")
         .then_some(body)
 }
 
 /// The call a block was written on, which names the method the block was passed to.
 pub(super) fn block_call<'tree>(scope_node: Node<'tree>) -> Option<Node<'tree>> {
-    match scope_node.kind() {
-        "block" | "do_block" => scope_node.parent().filter(|node| node.kind() == "call"),
+    match scope_node.kind_str() {
+        "block" | "do_block" => scope_node.parent().filter(|node| node.kind_str() == "call"),
         _ => None,
     }
 }
 
 /// `BlockNode#lambda?`: both `->() {}` and `lambda {}` reach RuboCop as a block on `lambda`.
 pub(super) fn is_lambda(scope_node: Node<'_>, source: &SourceFile) -> bool {
-    scope_node.kind() == "lambda" || block_method(scope_node, source) == Some("lambda")
+    scope_node.kind_str() == "lambda" || block_method(scope_node, source) == Some("lambda")
 }
 
 pub(super) fn block_method<'a>(scope_node: Node<'_>, source: &'a SourceFile) -> Option<&'a str> {
     let call = block_call(scope_node)?;
-    Some(source.node_text(call.child_by_field_name("method")?))
+    Some(source.node_text(call.field("method")?))
 }
 
 // ---------------------------------------------------------------------------
@@ -379,7 +375,7 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn push_scope(&mut self, node: Node<'tree>, top_level: bool) {
-        let block = matches!(node.kind(), "block" | "do_block" | "lambda");
+        let block = matches!(node.kind_str(), "block" | "do_block" | "lambda");
         self.stack.push(Frame {
             node,
             top_level,
@@ -411,11 +407,11 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn process_node(&mut self, node: Node<'tree>) {
-        if scope_kind(node.kind()).is_some() && !self.inline_block(node) {
+        if scope_kind(node.kind_str()).is_some() && !self.inline_block(node) {
             self.process_scope(node);
             return;
         }
-        match node.kind() {
+        match node.kind_str() {
             "assignment" => self.process_assignment(node),
             "operator_assignment" => self.process_operator_assignment(node),
             "identifier" => self.process_identifier(node),
@@ -426,10 +422,10 @@ impl<'tree> Force<'tree, '_> {
             }
             // `foo = 1 if bar` runs its condition first, but tree-sitter writes the body first.
             "if_modifier" | "unless_modifier" => {
-                if let Some(condition) = node.child_by_field_name("condition") {
+                if let Some(condition) = node.field("condition") {
                     self.process_node(condition);
                 }
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     self.process_node(body);
                 }
             }
@@ -464,16 +460,16 @@ impl<'tree> Force<'tree, '_> {
     /// Whether a `block` node is only the braces of a lambda literal. Upstream `->(x) { }` is one
     /// block node holding both the parameters and the body, so the inner node is not a scope.
     fn inline_block(&self, node: Node<'tree>) -> bool {
-        node.kind() == "block"
+        node.kind_str() == "block"
             && node
                 .parent()
-                .is_some_and(|parent| parent.kind() == "lambda")
+                .is_some_and(|parent| parent.kind_str() == "lambda")
     }
 
     fn process_scope(&mut self, node: Node<'tree>) {
-        let (_, outer_fields) = scope_kind(node.kind()).expect("checked by the caller");
+        let (_, outer_fields) = scope_kind(node.kind_str()).expect("checked by the caller");
         for field in outer_fields {
-            if let Some(child) = node.child_by_field_name(field) {
+            if let Some(child) = node.field(field) {
                 self.process_node(child);
                 self.scanned.insert(child.id());
             }
@@ -657,12 +653,12 @@ impl<'tree> Force<'tree, '_> {
             self.process_children(node);
             return;
         }
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             self.process_children(node);
             return;
         };
-        let right = node.child_by_field_name("right");
-        match left.kind() {
+        let right = node.field("right");
+        match left.kind_str() {
             "identifier" => {
                 let name = self.text(left).to_owned();
                 self.declare_unless_known(&name, node, left);
@@ -692,7 +688,7 @@ impl<'tree> Force<'tree, '_> {
                 if let Some(right) = right {
                     self.process_node(right);
                 }
-                if last.kind() == "identifier" {
+                if last.kind_str() == "identifier" {
                     let name = self.text(last).to_owned();
                     self.declare_unless_known(&name, last, last);
                     if let Some(variable) = self.find_variable(&name) {
@@ -720,7 +716,7 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn process_multiple_assignment_target(&mut self, node: Node<'tree>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 let name = self.text(node).to_owned();
                 self.declare_unless_known(&name, node, node);
@@ -738,14 +734,11 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn process_operator_assignment(&mut self, node: Node<'tree>) {
-        let (Some(left), right) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
-        ) else {
+        let (Some(left), right) = (node.field("left"), node.field("right")) else {
             self.process_children(node);
             return;
         };
-        if left.kind() != "identifier" {
+        if left.kind_str() != "identifier" {
             self.process_children(node);
             return;
         }
@@ -767,8 +760,8 @@ impl<'tree> Force<'tree, '_> {
         // parser upstream turns `def foo` and `alias foo bar` into symbols. The receiver of
         // `def obj.foo` is a genuine read and stays.
         if node.parent().is_some_and(|parent| {
-            matches!(parent.kind(), "alias" | "undef" | "setter")
-                || (matches!(parent.kind(), "method" | "singleton_method")
+            matches!(parent.kind_str(), "alias" | "undef" | "setter")
+                || (matches!(parent.kind_str(), "method" | "singleton_method")
                     && field_name(node, parent) == Some("name"))
         }) {
             return;
@@ -786,7 +779,7 @@ impl<'tree> Force<'tree, '_> {
         if self.binary_operator_on_a_local(node) {
             return;
         }
-        if let Some(method) = node.child_by_field_name("method")
+        if let Some(method) = node.field("method")
             && self.text(method) == "binding"
             && opaque_binding_argument(node)
         {
@@ -795,17 +788,14 @@ impl<'tree> Force<'tree, '_> {
         // `super do ... end` hands the method's own arguments on exactly as a bare `super` does:
         // upstream reads it as a block whose call is a `zsuper`, and only an argument list --
         // `super()`'s empty one included -- makes it an ordinary `super` that passes nothing.
-        if let Some(method) = node.child_by_field_name("method")
-            && method.kind() == "super"
-            && node.child_by_field_name("arguments").is_none()
+        if let Some(method) = node.field("method")
+            && method.kind_str() == "super"
+            && node.field("arguments").is_none()
         {
             self.process_zero_arity_super(method);
         }
         for child in named_children(node) {
-            if node
-                .child_by_field_name("method")
-                .is_some_and(|m| m.id() == child.id())
-            {
+            if node.field("method").is_some_and(|m| m.id() == child.id()) {
                 continue;
             }
             if !self.scanned.contains(&child.id()) {
@@ -820,16 +810,14 @@ impl<'tree> Force<'tree, '_> {
     /// argument form, so the two operands would otherwise look like a call to a method of that
     /// name with nothing reading the variable.
     fn binary_operator_on_a_local(&mut self, node: Node<'tree>) -> bool {
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             return false;
         }
-        let (Some(method), Some(arguments)) = (
-            node.child_by_field_name("method"),
-            node.child_by_field_name("arguments"),
-        ) else {
+        let (Some(method), Some(arguments)) = (node.field("method"), node.field("arguments"))
+        else {
             return false;
         };
-        if method.kind() != "identifier"
+        if method.kind_str() != "identifier"
             || self.text(arguments).starts_with('(')
             || arguments.named_child_count() != 1
         {
@@ -837,7 +825,7 @@ impl<'tree> Force<'tree, '_> {
         }
         let Some(argument) = arguments
             .named_child(0)
-            .filter(|child| matches!(child.kind(), "block_argument" | "splat_argument"))
+            .filter(|child| matches!(child.kind_str(), "block_argument" | "splat_argument"))
         else {
             return false;
         };
@@ -863,7 +851,7 @@ impl<'tree> Force<'tree, '_> {
         for variable in self.accessible_variables() {
             let method_argument = self.variables[variable].is_argument()
                 && matches!(
-                    self.variables[variable].scope_node.kind(),
+                    self.variables[variable].scope_node.kind_str(),
                     "method" | "singleton_method"
                 );
             if method_argument {
@@ -890,7 +878,7 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn declare_parameter(&mut self, node: Node<'tree>, local: bool) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 let name = self.text(node).to_owned();
                 let kind = if local {
@@ -907,7 +895,7 @@ impl<'tree> Force<'tree, '_> {
                 }
             }
             _ => {
-                let argument = match node.kind() {
+                let argument = match node.kind_str() {
                     "optional_parameter" => Argument::Optional,
                     "keyword_parameter" => Argument::Keyword,
                     "splat_parameter" | "hash_splat_parameter" => Argument::Rest,
@@ -915,15 +903,15 @@ impl<'tree> Force<'tree, '_> {
                     _ => return,
                 };
                 // `def m(*)` and `def m(**)` name nothing, so they declare nothing.
-                let Some(name_node) = node.child_by_field_name("name") else {
-                    if let Some(value) = node.child_by_field_name("value") {
+                let Some(name_node) = node.field("name") else {
+                    if let Some(value) = node.field("value") {
                         self.process_node(value);
                     }
                     return;
                 };
                 let name = self.text(name_node).to_owned();
                 self.declare(&name, node, name_node, Declaration::Argument(argument));
-                if let Some(value) = node.child_by_field_name("value") {
+                if let Some(value) = node.field("value") {
                     self.process_default(value, argument);
                 }
             }
@@ -935,8 +923,10 @@ impl<'tree> Force<'tree, '_> {
     /// that swallowed `b`, so the names it swallowed have to be declared as parameters too.
     fn process_default(&mut self, value: Node<'tree>, argument: Argument) {
         let Some(left) = value
-            .child_by_field_name("left")
-            .filter(|left| value.kind() == "assignment" && left.kind() == "left_assignment_list")
+            .field("left")
+            .filter(|left| {
+                value.kind_str() == "assignment" && left.kind_str() == "left_assignment_list"
+            })
             .filter(|left| spurious_assignment_list(*left))
         else {
             self.process_node(value);
@@ -954,22 +944,22 @@ impl<'tree> Force<'tree, '_> {
         for parameter in positional {
             self.declare_parameter(*parameter, false);
         }
-        if last.kind() == "identifier" {
+        if last.kind_str() == "identifier" {
             let name = self.text(*last).to_owned();
             self.declare(&name, *last, *last, Declaration::Argument(argument));
         }
-        if let Some(right) = value.child_by_field_name("right") {
+        if let Some(right) = value.field("right") {
             self.process_default(right, argument);
         }
     }
 
     /// `{ name: }` is Ruby's shorthand for `{ name: name }`, so the key reads the variable.
     fn process_pair(&mut self, node: Node<'tree>) {
-        let Some(key) = node.child_by_field_name("key") else {
+        let Some(key) = node.field("key") else {
             self.process_children(node);
             return;
         };
-        if node.child_by_field_name("value").is_some() {
+        if node.field("value").is_some() {
             self.process_children(node);
             return;
         }
@@ -986,7 +976,7 @@ impl<'tree> Force<'tree, '_> {
             // `#` never opens a comment inside a heredoc, but the grammar lexes one anyway when a
             // literal `#` precedes an interpolation, swallowing the rest of the line. The reads
             // written in it are real, so the names they mention are recovered from the text.
-            if child.kind() == "comment" {
+            if child.kind_str() == "comment" {
                 self.reference_names_in_interpolations(child);
             } else {
                 self.process_node(child);
@@ -1020,7 +1010,7 @@ impl<'tree> Force<'tree, '_> {
         let Some(target) = node.named_child(0) else {
             return;
         };
-        if target.kind() != "identifier" {
+        if target.kind_str() != "identifier" {
             self.process_node(target);
             return;
         }
@@ -1034,20 +1024,17 @@ impl<'tree> Force<'tree, '_> {
     /// `/(?<name>…)/ =~ text` declares one local per named capture. Any other binary operator is
     /// just an expression.
     fn process_binary(&mut self, node: Node<'tree>) {
-        let (Some(left), Some(right)) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
-        ) else {
+        let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
             self.process_children(node);
             return;
         };
         // Only a regexp the parser can compile becomes a `match_with_lvasgn`; one holding an
         // interpolation stays an ordinary `=~` call and creates no local at all.
         if operator(node) != Some("=~")
-            || left.kind() != "regex"
+            || left.kind_str() != "regex"
             || named_children(left)
                 .iter()
-                .any(|part| part.kind() == "interpolation")
+                .any(|part| part.kind_str() == "interpolation")
         {
             self.process_children(node);
             return;
@@ -1076,18 +1063,18 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn process_pattern(&mut self, node: Node<'tree>) {
-        match node.kind() {
+        match node.kind_str() {
             "in_clause" | "match_pattern" => {
-                if let Some(value) = node.child_by_field_name("value") {
+                if let Some(value) = node.field("value") {
                     self.process_node(value);
                 }
-                if let Some(pattern) = node.child_by_field_name("pattern") {
+                if let Some(pattern) = node.field("pattern") {
                     self.declare_pattern(pattern);
                 }
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     self.process_node(body);
                 }
-                if let Some(guard) = node.child_by_field_name("guard") {
+                if let Some(guard) = node.field("guard") {
                     self.process_node(guard);
                 }
             }
@@ -1098,7 +1085,7 @@ impl<'tree> Force<'tree, '_> {
     /// The names a pattern binds. Upstream calls them `match_var`, declares them and never
     /// assigns to them, so they only ever make a later read resolve to a local.
     fn declare_pattern(&mut self, node: Node<'tree>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 let name = self.text(node).to_owned();
                 if self.find_variable(&name).is_none() {
@@ -1114,10 +1101,10 @@ impl<'tree> Force<'tree, '_> {
                     self.declare_pattern(child);
                 }
             }
-            "keyword_pattern" => match node.child_by_field_name("value") {
+            "keyword_pattern" => match node.field("value") {
                 Some(value) => self.declare_pattern(value),
                 None => {
-                    if let Some(key) = node.child_by_field_name("key") {
+                    if let Some(key) = node.field("key") {
                         let name = self.text(key).trim_end_matches(':').to_owned();
                         if self.find_variable(&name).is_none() {
                             self.declare(&name, key, key, Declaration::Variable);
@@ -1139,33 +1126,33 @@ impl<'tree> Force<'tree, '_> {
     // -- loops -------------------------------------------------------------
 
     fn process_loop(&mut self, node: Node<'tree>) {
-        match node.kind() {
+        match node.kind_str() {
             "for" => {
                 // `for item in items` evaluates the collection first.
-                if let Some(value) = node.child_by_field_name("value") {
+                if let Some(value) = node.field("value") {
                     self.process_node(value);
                 }
-                if let Some(pattern) = node.child_by_field_name("pattern") {
+                if let Some(pattern) = node.field("pattern") {
                     self.process_multiple_assignment_target(pattern);
                 }
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     self.process_node(body);
                 }
             }
             _ if post_condition_loop(node) => {
                 // `begin … end while cond` runs its body before the condition is ever read.
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     self.process_node(body);
                 }
-                if let Some(condition) = node.child_by_field_name("condition") {
+                if let Some(condition) = node.field("condition") {
                     self.process_node(condition);
                 }
             }
             _ => {
-                if let Some(condition) = node.child_by_field_name("condition") {
+                if let Some(condition) = node.field("condition") {
                     self.process_node(condition);
                 }
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     self.process_node(body);
                 }
             }
@@ -1177,7 +1164,7 @@ impl<'tree> Force<'tree, '_> {
     fn retry_loop(&self, node: Node<'tree>) -> bool {
         named_children(node)
             .iter()
-            .filter(|child| child.kind() == "rescue")
+            .filter(|child| child.kind_str() == "rescue")
             .any(|child| contains_kind(*child, "retry"))
     }
 
@@ -1311,7 +1298,7 @@ fn branch_role<'tree>(child: Node<'tree>, parent: Node<'tree>) -> Option<BranchR
     let field = field_name(child, parent);
     let always_run = BranchRole::always_run(child);
     let branched = BranchRole::branched(child);
-    match parent.kind() {
+    match parent.kind_str() {
         "if" | "elsif" | "unless" | "conditional" | "if_modifier" | "unless_modifier" | "while"
         | "until" | "while_modifier" | "until_modifier" => Some(match field {
             Some("condition") => always_run,
@@ -1339,7 +1326,7 @@ fn branch_role<'tree>(child: Node<'tree>, parent: Node<'tree>) -> Option<BranchR
         // `begin … rescue … ensure … end` has no node of its own here: the clauses stand beside
         // the statements they guard. Upstream wraps those statements in one node, and the whole
         // main body is a single branch, so they all have to point at the same child.
-        _ if is_rescue_container(parent) => Some(match child.kind() {
+        _ if is_rescue_container(parent) => Some(match child.kind_str() {
             "rescue" | "else" => branched,
             "ensure" => always_run,
             _ => BranchRole::branched(main_body_anchor(parent)?).escaping(),
@@ -1390,7 +1377,7 @@ impl<'tree> BranchRole<'tree> {
 fn main_body_anchor<'tree>(container: Node<'tree>) -> Option<Node<'tree>> {
     named_children(container)
         .into_iter()
-        .find(|child| !matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .find(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
 }
 
 fn is_rescue_container(node: Node<'_>) -> bool {
@@ -1399,7 +1386,8 @@ fn is_rescue_container(node: Node<'_>) -> bool {
 
 fn has_child_kind(node: Node<'_>, kind: &str) -> bool {
     let mut cursor = node.walk();
-    node.named_children(&mut cursor).any(|c| c.kind() == kind)
+    node.named_children(&mut cursor)
+        .any(|c| c.kind_str() == kind)
 }
 
 fn field_name(child: Node<'_>, parent: Node<'_>) -> Option<&'static str> {
@@ -1420,10 +1408,10 @@ fn field_name(child: Node<'_>, parent: Node<'_>) -> Option<&'static str> {
 /// `begin … end while cond` runs its body once before the condition is tested, which the parser
 /// records as a distinct node type upstream.
 fn post_condition_loop(node: Node<'_>) -> bool {
-    matches!(node.kind(), "while_modifier" | "until_modifier")
+    matches!(node.kind_str(), "while_modifier" | "until_modifier")
         && node
-            .child_by_field_name("body")
-            .is_some_and(|body| body.kind() == "begin")
+            .field("body")
+            .is_some_and(|body| body.kind_str() == "begin")
 }
 
 /// The operator token of a node whose operands tree-sitter names but whose operator it does not.
@@ -1435,7 +1423,7 @@ fn operator(node: Node<'_>) -> Option<&'static str> {
     loop {
         let child = cursor.node();
         if !child.is_named() {
-            return Some(child.kind());
+            return Some(child.kind_str());
         }
         if !cursor.goto_next_sibling() {
             return None;
@@ -1446,17 +1434,17 @@ fn operator(node: Node<'_>) -> Option<&'static str> {
 /// Whether a `binding` call passes nothing the parser would give children of its own, which is the
 /// shape upstream treats as the argument-less call.
 fn opaque_binding_argument(node: Node<'_>) -> bool {
-    let Some(arguments) = node.child_by_field_name("arguments") else {
+    let Some(arguments) = node.field("arguments") else {
         return true;
     };
     match arguments.named_child(0) {
         None => true,
-        Some(first) => matches!(first.kind(), "nil" | "true" | "false" | "self"),
+        Some(first) => matches!(first.kind_str(), "nil" | "true" | "false" | "self"),
     }
 }
 
 fn contains_kind(node: Node<'_>, kind: &str) -> bool {
-    if node.kind() == kind {
+    if node.kind_str() == kind {
         return true;
     }
     named_children(node)
@@ -1470,7 +1458,7 @@ fn has_branch_ancestor(node: Node<'_>) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
         let branching = matches!(
-            parent.kind(),
+            parent.kind_str(),
             "if" | "elsif"
                 | "unless"
                 | "if_modifier"
@@ -1480,7 +1468,7 @@ fn has_branch_ancestor(node: Node<'_>) -> bool {
                 | "case_match"
                 | "rescue"
                 | "rescue_modifier"
-        ) || (parent.kind() != "program" && has_child_kind(parent, "rescue"));
+        ) || (parent.kind_str() != "program" && has_child_kind(parent, "rescue"));
         if branching {
             return true;
         }
@@ -1498,11 +1486,11 @@ fn collect_loop_references(
     assignments: &mut HashSet<String>,
 ) {
     for child in named_children(node) {
-        match child.kind() {
+        match child.kind_str() {
             "assignment" => {
-                if let Some(left) = child.child_by_field_name("left") {
-                    let value = child.child_by_field_name("right").map(assigned_value);
-                    match left.kind() {
+                if let Some(left) = child.field("left") {
+                    let value = child.field("right").map(assigned_value);
+                    match left.kind_str() {
                         "identifier" => {
                             assignments.insert(shape(left, value, source));
                         }
@@ -1523,8 +1511,8 @@ fn collect_loop_references(
                 }
             }
             "operator_assignment" => {
-                if let Some(left) = child.child_by_field_name("left")
-                    && left.kind() == "identifier"
+                if let Some(left) = child.field("left")
+                    && left.kind_str() == "identifier"
                 {
                     // `foo += 1` both reads `foo` and writes it, and the write is the `lvasgn`
                     // the operator assignment wraps, which carries no value of its own.
@@ -1583,7 +1571,7 @@ pub(super) fn is_variable_read(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         // The receiver of `foo.bar` and of `def obj.baz` is read; the selector is not.
         "call" => field_name(node, parent) != Some("method"),
         "method" | "singleton_method" => field_name(node, parent) != Some("name"),
@@ -1615,7 +1603,7 @@ pub(super) fn is_variable_read(node: Node<'_>) -> bool {
 /// but the grammar stops the escape at `\c` and reads the rest as an interpolation.
 fn swallowed_by_escape(node: Node<'_>, source: &SourceFile) -> bool {
     node.prev_named_sibling().is_some_and(|previous| {
-        previous.kind() == "escape_sequence"
+        previous.kind_str() == "escape_sequence"
             && previous.end_byte() == node.start_byte()
             && matches!(source.node_text(previous), "\\c" | "\\C-" | "\\M-")
     })
@@ -1626,7 +1614,7 @@ fn bare_assignment_target(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "for" => field_name(node, parent) == Some("pattern"),
         "exception_variable" => true,
         _ => false,
@@ -1700,9 +1688,9 @@ fn in_modifier_conditional(assignment: Node<'_>, reference: Node<'_>) -> bool {
     let mut current = assignment;
     while let Some(parent) = current.parent() {
         if matches!(
-            parent.kind(),
+            parent.kind_str(),
             "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier"
-        ) && let Some(condition) = parent.child_by_field_name("condition")
+        ) && let Some(condition) = parent.field("condition")
             && covers(condition, assignment)
         {
             return covers(parent, reference) && !covers(condition, reference);
@@ -1737,7 +1725,7 @@ fn collect_heredocs<'tree>(
     beginnings: &mut Vec<Node<'tree>>,
     bodies: &mut Vec<Node<'tree>>,
 ) {
-    match node.kind() {
+    match node.kind_str() {
         "heredoc_beginning" => beginnings.push(node),
         "heredoc_body" => bodies.push(node),
         _ => {}

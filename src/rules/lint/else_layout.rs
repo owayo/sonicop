@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::statements::{Branch, statements};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Odd `else` layout detected. Did you mean to use `elsif`?";
 
@@ -16,11 +17,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // offense deduplicated by its range, the way `add_offense` does.
     let mut reported: Vec<usize> = Vec::new();
     for node in context.nodes_of_any(&["if", "unless", "elsif"]) {
-        let alternative = node.child_by_field_name("alternative");
+        let alternative = node.field("alternative");
         // `node.then? && !node.else_branch&.begin_type?`: a body written after `then` is only odd
         // when it holds more than one statement.
         let single_statement = alternative
-            .filter(|clause| clause.kind() == "else")
+            .filter(|clause| clause.kind_str() == "else")
             .is_none_or(|clause| statements(clause).len() < 2);
         if has_then(node, context) && single_statement {
             continue;
@@ -39,14 +40,14 @@ fn walk(
     offenses: &mut Vec<Offense>,
     reported: &mut Vec<usize>,
 ) {
-    let Some(alternative) = node.child_by_field_name("alternative") else {
+    let Some(alternative) = node.field("alternative") else {
         return;
     };
-    match alternative.kind() {
+    match alternative.kind_str() {
         "else" => check_else(node, alternative, context, offenses, reported),
         // `node.if?`: an `unless` has no `elsif` to step into, and neither has an `elsif` itself
         // -- but the parser makes one a nested `if`, which is what the recursion follows.
-        "elsif" if node.kind() != "unless" => walk(alternative, context, offenses, reported),
+        "elsif" if node.kind_str() != "unless" => walk(alternative, context, offenses, reported),
         _ => {}
     }
 }
@@ -103,7 +104,7 @@ fn check_else(
 /// `node.then?`: the `then` keyword was written after the condition. The grammar puts it inside the
 /// branch it introduces rather than beside the condition, so it is the branch's first token.
 fn has_then(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.child_by_field_name("consequence")
+    node.field("consequence")
         .and_then(|consequence| consequence.child(0))
         .is_some_and(|first| context.source.node_text(first) == "then")
 }

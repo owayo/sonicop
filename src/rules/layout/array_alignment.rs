@@ -10,6 +10,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const ALIGN_ELEMENTS_MSG: &str =
     "Align the elements of an array literal if they span more than one line.";
@@ -102,15 +103,15 @@ fn elements(node: Node<'_>) -> Vec<Range<usize>> {
     let mut cursor = node.walk();
     let children: Vec<Node<'_>> = node
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     let mut elements = Vec::new();
     let mut index = 0;
     while index < children.len() {
-        if matches!(children[index].kind(), "pair" | "hash_splat_argument") {
+        if matches!(children[index].kind_str(), "pair" | "hash_splat_argument") {
             let start = index;
             while index < children.len()
-                && matches!(children[index].kind(), "pair" | "hash_splat_argument")
+                && matches!(children[index].kind_str(), "pair" | "hash_splat_argument")
             {
                 index += 1;
             }
@@ -125,16 +126,16 @@ fn elements(node: Node<'_>) -> Vec<Range<usize>> {
 
 fn bracketed(node: Node<'_>) -> bool {
     node.child(0)
-        .is_some_and(|child| matches!(child.kind(), "[" | "%w(" | "%i("))
+        .is_some_and(|child| matches!(child.kind_str(), "[" | "%w(" | "%i("))
 }
 
 /// `node.parent&.masgn_type?`: the right-hand side of `a, b = 1, 2`.
 fn is_multiple_assignment_value(node: Node<'_>) -> bool {
     node.parent().is_some_and(|parent| {
-        parent.kind() == "assignment"
+        parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "left_assignment_list")
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "left_assignment_list")
     })
 }
 

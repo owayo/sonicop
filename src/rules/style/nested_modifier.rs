@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid using nested modifiers.";
 
@@ -27,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let Some(outer) = node
             .parent()
-            .filter(|parent| MODIFIERS.contains(&parent.kind()))
+            .filter(|parent| MODIFIERS.contains(&parent.kind_str()))
         else {
             continue;
         };
@@ -45,18 +46,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn is_conditional(node: Node<'_>) -> bool {
-    matches!(node.kind(), "if_modifier" | "unless_modifier")
+    matches!(node.kind_str(), "if_modifier" | "unless_modifier")
 }
 
 /// The keyword the modifier is written with, which is the token before its condition.
 fn keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("condition")?.prev_sibling()
+    node.field("condition")?.prev_sibling()
 }
 
 /// `new_expression`: the two conditions joined into one, written over the inner keyword and the
 /// outer condition.
 fn rewrite(context: &RuleContext<'_>, inner: Node<'_>, outer: Node<'_>, keyword: Node<'_>) -> Edit {
-    let outer_keyword = match outer.kind() {
+    let outer_keyword = match outer.kind_str() {
         "unless_modifier" => "unless",
         _ => "if",
     };
@@ -65,7 +66,7 @@ fn rewrite(context: &RuleContext<'_>, inner: Node<'_>, outer: Node<'_>, keyword:
         _ => "||",
     };
     let outer_condition = outer
-        .child_by_field_name("condition")
+        .field("condition")
         .expect("a modifier always has a condition");
     let left = {
         let source = context.source.node_text(outer_condition);
@@ -87,7 +88,7 @@ fn rewrite(context: &RuleContext<'_>, inner: Node<'_>, outer: Node<'_>, keyword:
 
 fn right_hand_operand(context: &RuleContext<'_>, inner: Node<'_>, outer_keyword: &str) -> String {
     let condition = inner
-        .child_by_field_name("condition")
+        .field("condition")
         .expect("a modifier always has a condition");
     let mut expression = match parenthesize_arguments(context, condition) {
         Some(rewritten) => rewritten,
@@ -96,7 +97,7 @@ fn right_hand_operand(context: &RuleContext<'_>, inner: Node<'_>, outer_keyword:
     if is_or(context, condition) || is_comparison(context, condition) {
         expression = format!("({expression})");
     }
-    let inner_keyword = match inner.kind() {
+    let inner_keyword = match inner.kind_str() {
         "unless_modifier" => "unless",
         _ => "if",
     };
@@ -109,19 +110,19 @@ fn right_hand_operand(context: &RuleContext<'_>, inner: Node<'_>, outer_keyword:
 /// `add_parentheses_to_method_arguments`: a call written without parentheses gets them, so the
 /// joined condition still reads as one operand.
 fn parenthesize_arguments(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return None;
     }
-    let selector = node.child_by_field_name("method")?;
-    if selector.kind() == "operator" {
+    let selector = node.field("method")?;
+    if selector.kind_str() == "operator" {
         return None;
     }
-    let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+    let arguments = super::nodes::children(node.field("arguments")?);
     if arguments.is_empty() {
         return None;
     }
     let receiver = node
-        .child_by_field_name("receiver")
+        .field("receiver")
         .map(|receiver| format!("{}.", context.source.node_text(receiver)))
         .unwrap_or_default();
     Some(format!(
@@ -136,23 +137,23 @@ fn parenthesize_arguments(context: &RuleContext<'_>, node: Node<'_>) -> Option<S
 }
 
 fn is_or(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "||" | "or"))
 }
 
 /// Whether upstream would find a comparison operator among the node's children, which is what a
 /// `send` spelling one has.
 fn is_comparison(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 COMPARISON_OPERATORS.contains(&context.source.node_text(operator))
             }),
-        "call" => node.child_by_field_name("method").is_some_and(|selector| {
-            selector.kind() == "operator"
+        "call" => node.field("method").is_some_and(|selector| {
+            selector.kind_str() == "operator"
                 && COMPARISON_OPERATORS.contains(&context.source.node_text(selector))
         }),
         _ => false,

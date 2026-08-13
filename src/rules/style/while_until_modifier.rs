@@ -12,6 +12,7 @@ use super::conditional::{
     Body, UpstreamParent, body_of, descendants, first_line, last_line, token, upstream_parent,
 };
 use super::line_length_help::LineLengthHelp;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Favor modifier `%<keyword>s` usage when having a single-line body.";
 
@@ -79,8 +80,8 @@ struct Loop<'t> {
 impl<'t> Loop<'t> {
     fn new(node: Node<'t>) -> Option<Self> {
         let keyword = token(node, &["while", "until"])?;
-        let condition = node.child_by_field_name("condition")?;
-        let container = node.child_by_field_name("body")?;
+        let condition = node.field("condition")?;
+        let container = node.field("body")?;
         Some(Self {
             node,
             keyword,
@@ -118,7 +119,7 @@ impl Cop<'_, '_> {
         match loop_node.body {
             Body::Missing | Body::Begin(_) => true,
             Body::One(body) => {
-                CONDITIONALS.contains(&body.kind())
+                CONDITIONALS.contains(&body.kind_str())
                     || body.byte_range().is_empty()
                     || self
                         .comments
@@ -178,25 +179,25 @@ impl Cop<'_, '_> {
     }
 
     fn omitted_value_call(&self, body: Node<'_>) -> Option<String> {
-        if !matches!(body.kind(), "call" | "method_call") {
+        if !matches!(body.kind_str(), "call" | "method_call") {
             return None;
         }
-        let list = body.child_by_field_name("arguments")?;
+        let list = body.field("arguments")?;
         let arguments = super::nodes::children(list);
         let last = arguments.last()?;
         // `foo(bar:)` parks the pairs straight in the argument list, so the omitted value shows up
         // as a pair without one.
-        let omitted = match last.kind() {
-            "pair" => last.child_by_field_name("value").is_none(),
+        let omitted = match last.kind_str() {
+            "pair" => last.field("value").is_none(),
             "hash" => super::nodes::children(*last)
                 .last()
-                .is_some_and(|pair| pair.child_by_field_name("value").is_none()),
+                .is_some_and(|pair| pair.field("value").is_none()),
             _ => false,
         };
         if !omitted {
             return None;
         }
-        let selector = body.child_by_field_name("method")?;
+        let selector = body.field("method")?;
         let head = &self.context.source.text()[body.start_byte()..selector.end_byte()];
         let joined = arguments
             .iter()
@@ -210,7 +211,7 @@ impl Cop<'_, '_> {
     /// expression has to keep parentheses around it.
     fn parenthesize(&self, loop_node: &Loop<'_>) -> bool {
         match upstream_parent(loop_node.node) {
-            Some(UpstreamParent::Node(parent)) => match parent.kind() {
+            Some(UpstreamParent::Node(parent)) => match parent.kind_str() {
                 "assignment"
                 | "operator_assignment"
                 | "array"
@@ -223,7 +224,7 @@ impl Cop<'_, '_> {
                 // call, so either branch of upstream's test is satisfied.
                 "binary" => true,
                 "unary" => parent
-                    .child_by_field_name("operator")
+                    .field("operator")
                     .is_some_and(|operator| self.source(operator) != "defined?"),
                 _ => false,
             },
@@ -260,15 +261,15 @@ fn nonempty_line_count(source: &str) -> usize {
 /// the body that reads it.
 fn non_eligible_condition(condition: Node<'_>) -> bool {
     descendants(condition).into_iter().any(|node| {
-        matches!(node.kind(), "assignment" | "operator_assignment")
-            && node.child_by_field_name("left").is_some_and(binds_local)
+        matches!(node.kind_str(), "assignment" | "operator_assignment")
+            && node.field("left").is_some_and(binds_local)
     })
 }
 
 /// Whether the left-hand side of an assignment writes a local anywhere in it. A multiple
 /// assignment is one `masgn` upstream, but every name it writes is still an `lvasgn` beneath it.
 fn binds_local(left: Node<'_>) -> bool {
-    match left.kind() {
+    match left.kind_str() {
         "identifier" => true,
         "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => {
             super::nodes::children(left).into_iter().any(binds_local)

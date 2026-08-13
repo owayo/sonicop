@@ -9,6 +9,7 @@ use crate::rules::send_node::named_children;
 
 use super::exception_hierarchy::{compare, is_exception, is_system_call_error, resolve};
 use super::rescue_clause;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not shadow rescued Exceptions.";
 
@@ -56,7 +57,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `evaluate_exceptions`.
 fn evaluate_exceptions(clause: Node<'_>, context: &RuleContext<'_>) -> Group {
-    let Some(list) = clause.child_by_field_name("exceptions") else {
+    let Some(list) = clause.field("exceptions") else {
         return vec![resolve("StandardError")];
     };
     let listed: Vec<Node<'_>> = named_children(list);

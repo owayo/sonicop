@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant escape inside regexp literal";
 
@@ -68,7 +69,7 @@ impl Literal {
         // width has to stay so that the offsets still line up.
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
-            if child.kind() != "interpolation" {
+            if child.kind_str() != "interpolation" {
                 continue;
             }
             let range = child.start_byte() - start..child.end_byte() - start;

@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `StandardError` over `Exception`.";
 
@@ -11,10 +12,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("AllowedImplicitNamespaces")
         .unwrap_or_else(|| vec!["Gem".to_owned()]);
     for node in context.nodes_of("call") {
-        if node.child_by_field_name("receiver").is_some()
-            || node.child_by_field_name("block").is_some()
+        if node.field("receiver").is_some()
+            || node.field("block").is_some()
             || !node
-                .child_by_field_name("method")
+                .field("method")
                 .is_some_and(|method| matches!(context.source.node_text(method), "raise" | "fail"))
         {
             continue;
@@ -24,7 +25,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // A constant written with no `::` may name the `Exception` of the module around it, which
         // is why `raise Exception` inside `module Gem` is left alone.
-        let global = exception.kind() == "scope_resolution";
+        let global = exception.kind_str() == "scope_resolution";
         if !global && inside_an_allowed_namespace(node, context, &allowed) {
             continue;
         }
@@ -57,27 +58,27 @@ fn raised_exception<'tree>(
         return Some(first);
     }
     // `(send nil? {:raise :fail} (send $(const ...) :new ...))` takes exactly one argument.
-    if arguments.len() != 1 || first.kind() != "call" {
+    if arguments.len() != 1 || first.kind_str() != "call" {
         return None;
     }
-    if context.source.node_text(first.child_by_field_name("method")?) != "new"
-        || first.child_by_field_name("block").is_some()
+    if context.source.node_text(first.field("method")?) != "new"
+        || first.field("block").is_some()
     {
         return None;
     }
-    let receiver = first.child_by_field_name("receiver")?;
+    let receiver = first.field("receiver")?;
     is_exception(receiver, context).then_some(receiver)
 }
 
 /// `(const {cbase nil?} :Exception)`: the top-level `Exception`, with or without the `::` that
 /// spells it out.
 fn is_exception(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => context.source.node_text(node) == "Exception",
         "scope_resolution" => {
-            node.child_by_field_name("scope").is_none()
+            node.field("scope").is_none()
                 && node
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| context.source.node_text(name) == "Exception")
         }
         _ => false,
@@ -93,8 +94,8 @@ fn inside_an_allowed_namespace(
 ) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if parent.kind() == "module"
-            && parent.child_by_field_name("name").is_some_and(|name| {
+        if parent.kind_str() == "module"
+            && parent.field("name").is_some_and(|name| {
                 let name = context.source.node_text(name);
                 allowed.iter().any(|namespace| namespace == name)
             })

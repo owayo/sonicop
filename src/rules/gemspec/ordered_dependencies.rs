@@ -6,6 +6,7 @@ use crate::rules::ordered_gem::{self, Declaration};
 use crate::rules::send_node::{arguments, is_plain_send, is_string, string_text};
 
 use super::support::local_variables;
+use crate::rules::node_ext::NodeExt;
 
 /// `{:add_dependency :add_runtime_dependency :add_development_dependency}`. A gemspec keeps
 /// runtime and development dependencies in sections of their own, so only declarations made
@@ -28,8 +29,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            if receiver.kind() != "identifier"
+            let receiver = node.field("receiver")?;
+            if receiver.kind_str() != "identifier"
                 || !locals.contains(context.source.node_text(receiver))
             {
                 return None;
@@ -57,6 +58,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    node.child_by_field_name("method")
+    node.field("method")
         .map(|method| context.source.node_text(method))
 }

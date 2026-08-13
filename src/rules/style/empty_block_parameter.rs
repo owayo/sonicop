@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Omit pipes for the empty block parameters.";
 
@@ -8,11 +9,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `-> () { }` belongs to `Style/EmptyLambdaParameter`; every other block is this cop's.
         if block
             .parent()
-            .is_some_and(|parent| parent.kind() == "lambda")
+            .is_some_and(|parent| parent.kind_str() == "lambda")
         {
             continue;
         }
-        let Some(parameters) = block.child_by_field_name("parameters") else {
+        let Some(parameters) = block.field("parameters") else {
             continue;
         };
         // `empty_and_without_delimiters?`: bars were written around nothing.

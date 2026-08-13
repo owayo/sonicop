@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Operators RuboCop's `Node#recursive_literal?` looks through
 /// (`LITERAL_RECURSIVE_METHODS`): comparisons plus `*`, `!` and `<=>`. Note the
@@ -53,13 +54,13 @@ const LITERAL_COMPOSITE_KINDS: &[&str] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "eval" || !receiver_is_eval_scope(node, context) {
             continue;
         }
-        let Some(arguments) = node.child_by_field_name("arguments") else {
+        let Some(arguments) = node.field("arguments") else {
             continue;
         };
         let Some(argument) = arguments.named_child(0) else {
@@ -79,16 +80,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// that evaluate in the caller's own scope. `::Kernel` is the same constant, but
 /// `Binding` and any other constant are different methods entirely.
 fn receiver_is_eval_scope(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(receiver) = call.child_by_field_name("receiver") else {
+    let Some(receiver) = call.field("receiver") else {
         return true;
     };
-    match receiver.kind() {
+    match receiver.kind_str() {
         "constant" => context.source.node_text(receiver) == "Kernel",
         // `::Kernel`, but not a `Foo::Kernel` that merely ends in the name.
         "scope_resolution" => {
-            receiver.child_by_field_name("scope").is_none()
+            receiver.field("scope").is_none()
                 && receiver
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| context.source.node_text(name) == "Kernel")
         }
         "identifier" => context.source.node_text(receiver) == "binding",
@@ -102,7 +103,7 @@ fn receiver_is_eval_scope(call: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// shapes are exempt: a backtick command or a symbol still counts as an offense
 /// even though both are literals.
 fn literal_code(argument: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match argument.kind() {
+    match argument.kind_str() {
         "string" | "chained_string" => recursive_literal(argument, context),
         // A heredoc's body is a sibling of the enclosing statement rather than a
         // child of the opener, so it has to be looked up separately.
@@ -124,7 +125,7 @@ fn heredoc_body<'a>(beginning: Node<'_>, context: &'a RuleContext<'_>) -> Option
 
 /// Mirrors RuboCop's `Node#recursive_literal?`.
 fn recursive_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let kind = node.kind();
+    let kind = node.kind_str();
     if LITERAL_LEAF_KINDS.contains(&kind) {
         return true;
     }
@@ -138,7 +139,7 @@ fn recursive_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
     if matches!(kind, "unary" | "binary" | "boolean") {
         let Some(operator) = node
-            .child_by_field_name("operator")
+            .field("operator")
             .map(|operator| context.source.node_text(operator))
             .or_else(|| operator_token(node, context))
         else {
@@ -148,8 +149,8 @@ fn recursive_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         // than a call, so `-1` is literal while `-foo` is not.
         if kind == "unary" && matches!(operator, "-" | "+") {
             return node
-                .child_by_field_name("operand")
-                .is_some_and(|operand| NUMERIC_LEAF_KINDS.contains(&operand.kind()));
+                .field("operand")
+                .is_some_and(|operand| NUMERIC_LEAF_KINDS.contains(&operand.kind_str()));
         }
         return (LITERAL_RECURSIVE_OPERATORS.contains(&operator)
             || matches!(operator, "and" | "or"))

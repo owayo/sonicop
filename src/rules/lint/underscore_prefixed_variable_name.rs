@@ -1,6 +1,7 @@
 use super::variable_force::{Argument, Declaration, Scope, Variable};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use prefix `_` for a variable that is used.";
 
@@ -27,5 +28,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn keyword_block_argument(variable: &Variable<'_>, scope: &Scope<'_>) -> bool {
     variable.kind == Declaration::Argument(Argument::Keyword)
-        && matches!(scope.node.kind(), "block" | "do_block" | "lambda")
+        && matches!(scope.node.kind_str(), "block" | "do_block" | "lambda")
 }

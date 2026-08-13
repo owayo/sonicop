@@ -4,6 +4,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
 use super::node_equality::identical;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Duplicate `when` condition detected.";
 
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut cursor = case.walk();
         let branches: Vec<Node<'_>> = case
             .named_children(&mut cursor)
-            .filter(|child| child.kind() == "when")
+            .filter(|child| child.kind_str() == "when")
             .collect();
         for branch in branches {
             for condition in conditions(branch) {
@@ -36,7 +37,7 @@ fn conditions<'tree>(branch: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = branch.walk();
     branch
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "pattern")
+        .filter(|child| child.kind_str() == "pattern")
         .filter_map(|pattern| pattern.named_child(0))
         .collect()
 }

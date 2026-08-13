@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use super::support::heredoc_terminators;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let leading = context
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or(true);
     let heredocs = heredoc_terminators(context);
     for node in context.nodes_of("call") {
-        let Some(dot) = node.child_by_field_name("operator") else {
+        let Some(dot) = node.field("operator") else {
             continue;
         };
         let dot_text = &context.source.text()[dot.byte_range()];
@@ -25,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let (Some(receiver), Some(selector)) =
-            (node.child_by_field_name("receiver"), selector(node))
+            (node.field("receiver"), selector(node))
         else {
             continue;
         };
@@ -96,11 +97,11 @@ fn removed_range(context: &RuleContext<'_>, dot: Node<'_>, dot_line: usize) -> R
 /// `selector_range`: the method name, or the opening parenthesis of a `foo.(1)` call, which has no
 /// name to point at.
 fn selector(node: Node<'_>) -> Option<Range<usize>> {
-    if let Some(method) = node.child_by_field_name("method") {
+    if let Some(method) = node.field("method") {
         return Some(method.byte_range());
     }
-    let arguments = node.child_by_field_name("arguments")?;
-    let open = arguments.child(0).filter(|child| child.kind() == "(")?;
+    let arguments = node.field("arguments")?;
+    let open = arguments.child(0).filter(|child| child.kind_str() == "(")?;
     Some(open.byte_range())
 }
 
@@ -127,17 +128,17 @@ fn last_heredoc(heredocs: &[(usize, Range<usize>)], receiver: Node<'_>) -> Optio
             .find(|(start, _)| *start == opener)
             .map(|(_, terminator)| terminator.clone())
     };
-    if receiver.kind() == "heredoc_beginning" {
+    if receiver.kind_str() == "heredoc_beginning" {
         return terminator_of(receiver.start_byte());
     }
-    if receiver.kind() != "call" {
+    if receiver.kind_str() != "call" {
         return None;
     }
-    let arguments = receiver.child_by_field_name("arguments")?;
+    let arguments = receiver.field("arguments")?;
     let mut cursor = arguments.walk();
     arguments
         .named_children(&mut cursor)
-        .filter(|argument| argument.kind() == "heredoc_beginning")
+        .filter(|argument| argument.kind_str() == "heredoc_beginning")
         .filter_map(|argument| terminator_of(argument.start_byte()))
         .max_by_key(|terminator| terminator.end)
 }

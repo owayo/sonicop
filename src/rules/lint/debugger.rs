@@ -10,6 +10,7 @@ use crate::rules::send_node::{arguments, is_plain_send, is_string, send_range, s
 use super::blocks::BLOCK_KINDS;
 use super::literals::literal_type;
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 /// The configuration shape both `DebuggerMethods` and `DebuggerRequires` accept: a flat list, or
 /// groups of lists that a user's configuration can switch off one at a time by setting one to `~`.
@@ -37,10 +38,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     let locals = LocalVariables::new(context);
     for node in context.nodes_of_any(&["call", "identifier"]) {
-        if node.kind() == "identifier" && !is_receiverless_name(node, &locals) {
+        if node.kind_str() == "identifier" && !is_receiverless_name(node, &locals) {
             continue;
         }
-        if node.kind() == "call" && !is_plain_send(node, context) {
+        if node.kind_str() == "call" && !is_plain_send(node, context) {
             continue;
         }
         if !is_debugger_method(node, &methods, context)
@@ -51,7 +52,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if assumed_usage_context(node, context) {
             continue;
         }
-        let range = match node.kind() {
+        let range = match node.kind_str() {
             "call" => send_range(node, context),
             _ => node.byte_range(),
         };
@@ -79,18 +80,18 @@ fn is_receiverless_name(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool
         return false;
     };
     if matches!(
-        parent.kind(),
+        parent.kind_str(),
         "call" | "method" | "singleton_method" | "assignment" | "operator_assignment"
     ) && parent
-        .child_by_field_name("method")
-        .or_else(|| parent.child_by_field_name("name"))
-        .or_else(|| parent.child_by_field_name("left"))
+        .field("method")
+        .or_else(|| parent.field("name"))
+        .or_else(|| parent.field("left"))
         .is_some_and(|named| named.id() == node.id())
     {
         return false;
     }
     !matches!(
-        parent.kind(),
+        parent.kind_str(),
         "block_parameters" | "method_parameters" | "lambda_parameters" | "keyword_parameter"
     ) && !locals.is_lvar(node)
 }
@@ -105,23 +106,23 @@ fn is_debugger_method(node: Node<'_>, methods: &[String], context: &RuleContext<
 
 /// `chained_method_name`: every receiver's own name, joined with dots in front of the selector.
 fn chained_method_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return Some(context.source.node_text(node).to_owned());
     }
     let mut name = context
         .source
-        .node_text(node.child_by_field_name("method")?)
+        .node_text(node.field("method")?)
         .to_owned();
-    let mut receiver = node.child_by_field_name("receiver");
+    let mut receiver = node.field("receiver");
     while let Some(current) = receiver {
-        let part = match current.kind() {
-            "call" => current.child_by_field_name("method")?,
+        let part = match current.kind_str() {
+            "call" => current.field("method")?,
             // `const_name` for anything that is not a send, which is only a constant here.
             _ => current,
         };
         name = format!("{}.{name}", context.source.node_text(part));
-        receiver = (current.kind() == "call")
-            .then(|| current.child_by_field_name("receiver"))
+        receiver = (current.kind_str() == "call")
+            .then(|| current.field("receiver"))
             .flatten();
     }
     Some(name)
@@ -129,11 +130,11 @@ fn chained_method_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<Stri
 
 /// `debugger_require?`: `require 'debug/start'` and the rest of the configured files.
 fn is_debugger_require(node: Node<'_>, requires: &[String], context: &RuleContext<'_>) -> bool {
-    if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+    if node.kind_str() != "call" || node.field("receiver").is_some() {
         return false;
     }
     if node
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "require")
     {
         return false;
@@ -143,7 +144,7 @@ fn is_debugger_require(node: Node<'_>, requires: &[String], context: &RuleContex
         return false;
     };
     let feature = feature.first();
-    if feature.kind() == "identifier" || !is_string(feature, context) {
+    if feature.kind_str() == "identifier" || !is_string(feature, context) {
         return false;
     }
     let value = string_text(feature, context);
@@ -153,7 +154,7 @@ fn is_debugger_require(node: Node<'_>, requires: &[String], context: &RuleContex
 /// `assumed_usage_context?`: a bare entry point standing where a value is expected is far more
 /// likely to be a name than a call, unless a block or a `begin` around it says otherwise.
 fn assumed_usage_context(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if node.kind() == "call" && !arguments(node).is_empty() {
+    if node.kind_str() == "call" && !arguments(node).is_empty() {
         return false;
     }
     if !has_call_ancestor(node) {
@@ -164,8 +165,8 @@ fn assumed_usage_context(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if BLOCK_KINDS.contains(&ancestor.kind())
-            || matches!(ancestor.kind(), "lambda" | "begin")
+        if BLOCK_KINDS.contains(&ancestor.kind_str())
+            || matches!(ancestor.kind_str(), "lambda" | "begin")
             || is_proc_or_lambda(ancestor, context)
         {
             return false;
@@ -180,7 +181,7 @@ fn has_call_ancestor(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(ancestor) = current {
         if matches!(
-            ancestor.kind(),
+            ancestor.kind_str(),
             "call" | "binary" | "unary" | "element_reference"
         ) {
             return true;
@@ -196,7 +197,7 @@ fn is_assumed_argument(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     };
     matches!(
-        parent.kind(),
+        parent.kind_str(),
         "call" | "binary" | "unary" | "element_reference" | "pair"
     ) || literal_type(parent, context).is_some()
 }
@@ -204,7 +205,7 @@ fn is_assumed_argument(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// The node upstream would call the parent: an argument list is no node of its own there.
 fn upstream_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent(),
         _ => Some(parent),
     }
@@ -212,11 +213,11 @@ fn upstream_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 
 /// `lambda_or_proc?`: a block passed to `lambda` or `proc`.
 fn is_proc_or_lambda(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    BLOCK_KINDS.contains(&node.kind())
+    BLOCK_KINDS.contains(&node.kind_str())
         && node.parent().is_some_and(|call| {
-            call.kind() == "call"
-                && call.child_by_field_name("receiver").is_none()
-                && call.child_by_field_name("method").is_some_and(|method| {
+            call.kind_str() == "call"
+                && call.field("receiver").is_none()
+                && call.field("method").is_some_and(|method| {
                     matches!(context.source.node_text(method), "lambda" | "proc")
                 })
         })

@@ -12,6 +12,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::{LocalVariables, VariableSpans};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `Kernel#loop` for infinite loops.";
 
@@ -43,10 +44,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     let mut variables: Option<Vec<VariableSpans>> = None;
     for node in context.nodes_of_any(&["while", "until", "while_modifier", "until_modifier"]) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
-        let kinds = match node.kind() {
+        let kinds = match node.kind_str() {
             "while" | "while_modifier" => TRUTHY_LITERAL_KINDS,
             _ => FALSEY_LITERAL_KINDS,
         };
@@ -74,18 +75,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// Whether the condition is one of the literals whose truth the parser already knows.
 fn literal(node: Node<'_>, context: &RuleContext<'_>, kinds: &[&str]) -> bool {
-    if kinds.contains(&node.kind()) {
+    if kinds.contains(&node.kind_str()) {
         return true;
     }
     // A sign written against a numeric literal is folded into the literal upstream, so `-1` is one
     // `int` there rather than a call on another node.
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && kinds.contains(&"integer")
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "-" | "+"))
-        && node.child_by_field_name("operand").is_some_and(|operand| {
-            matches!(operand.kind(), "integer" | "float" | "rational" | "complex")
+        && node.field("operand").is_some_and(|operand| {
+            matches!(operand.kind_str(), "integer" | "float" | "rational" | "complex")
         })
 }
 
@@ -113,14 +114,14 @@ fn contains(outer: &Range<usize>, inner: &Range<usize>) -> bool {
 }
 
 fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<Edit>> {
-    let body = node.child_by_field_name("body")?;
-    if !matches!(node.kind(), "while_modifier" | "until_modifier") {
+    let body = node.field("body")?;
+    if !matches!(node.kind_str(), "while_modifier" | "until_modifier") {
         // `non_modifier_range`: the keyword, the condition and the `do` that may follow it.
         let end = match body.child(0) {
             Some(first) if !first.is_named() && context.source.node_text(first) == "do" => {
                 first.end_byte()
             }
-            _ => node.child_by_field_name("condition")?.end_byte(),
+            _ => node.field("condition")?.end_byte(),
         };
         return Some(vec![Edit {
             start: node.start_byte(),
@@ -130,10 +131,10 @@ fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<Edit>> {
         }]);
     }
     // `post_condition_loop?`: a `begin ... end` body runs once before the condition is read.
-    if body.kind() == "begin" {
+    if body.kind_str() == "begin" {
         let last = u32::try_from(body.child_count()).ok()?.checked_sub(1)?;
         let (open, close) = (body.child(0)?, body.child(last)?);
-        if open.kind() != "begin" || close.kind() != "end" {
+        if open.kind_str() != "begin" || close.kind_str() != "end" {
             return None;
         }
         return Some(vec![
@@ -188,11 +189,11 @@ fn modifier_replacement(context: &RuleContext<'_>, node: Node<'_>, body: Node<'_
 }
 
 fn keyword_token<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let keyword = match node.kind() {
+    let keyword = match node.kind_str() {
         "while" | "while_modifier" => "while",
         _ => "until",
     };
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == keyword)
+        .find(|child| !child.is_named() && child.kind_str() == keyword)
 }

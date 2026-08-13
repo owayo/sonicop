@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const KEYWORD_MSG: &str = "Wrap multiline memoization blocks in `begin` and `end`.";
 const BRACES_MSG: &str = "Wrap multiline memoization blocks in `(` and `)`.";
@@ -13,12 +14,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("operator_assignment") {
         if node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_none_or(|operator| context.source.node_text(operator) != "||=")
         {
             continue;
         }
-        let Some(right) = node.child_by_field_name("right") else {
+        let Some(right) = node.field("right") else {
             continue;
         };
         if right.start_position().row == right.end_position().row {
@@ -34,14 +35,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // `rhs.kwbegin_type?`: `begin ... end`, unless it carries a `rescue` or `ensure`,
             // which parentheses cannot hold.
             true => {
-                if right.kind() != "begin" || has_rescue_or_ensure(right) {
+                if right.kind_str() != "begin" || has_rescue_or_ensure(right) {
                     continue;
                 }
                 vec![replacement(open, "("), replacement(close, ")")]
             }
             // `rhs.begin_type?`: a parenthesized group.
             false => {
-                if right.kind() != "parenthesized_statements" {
+                if right.kind_str() != "parenthesized_statements" {
                     continue;
                 }
                 vec![
@@ -102,5 +103,5 @@ fn keyword_end(context: &RuleContext<'_>, right: Node<'_>, close: Node<'_>) -> S
 fn has_rescue_or_ensure(node: Node<'_>) -> bool {
     super::nodes::children(node)
         .iter()
-        .any(|child| matches!(child.kind(), "rescue" | "ensure"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "ensure"))
 }

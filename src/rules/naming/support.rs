@@ -8,6 +8,7 @@ use regex::Regex;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 // `ConfigurableNaming::FORMATS` writes these with POSIX character classes on purpose, and Ruby's
@@ -113,7 +114,7 @@ fn record<'a>(
     scopes: &mut Vec<Scope<'a>>,
     roles: &mut HashMap<usize, Role>,
 ) {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => {
             let name = source.node_text(node);
             match position(node) {
@@ -137,8 +138,8 @@ fn record<'a>(
             }
         }
         // `in {key:}` binds `key` without giving it an identifier node of its own.
-        "keyword_pattern" if node.child_by_field_name("value").is_none() => {
-            if let Some(key) = node.child_by_field_name("key") {
+        "keyword_pattern" if node.field("value").is_none() => {
+            if let Some(key) = node.field("key") {
                 define(scopes, source.node_text(key).trim_end_matches(':'));
             }
         }
@@ -167,7 +168,7 @@ fn resolves(scopes: &[Scope<'_>], name: &str) -> bool {
 }
 
 fn push_children<'tree>(node: Node<'tree>, steps: &mut Vec<Step<'tree>>) {
-    let Some((isolated, outer_fields)) = opened_scope(node.kind()) else {
+    let Some((isolated, outer_fields)) = opened_scope(node.kind_str()) else {
         let start = steps.len();
         let mut cursor = node.walk();
         steps.extend(node.named_children(&mut cursor).map(Step::Visit));
@@ -176,7 +177,7 @@ fn push_children<'tree>(node: Node<'tree>, steps: &mut Vec<Step<'tree>>) {
     };
     let outer: Vec<Node<'tree>> = outer_fields
         .iter()
-        .filter_map(|field| node.child_by_field_name(field))
+        .filter_map(|field| node.field(field))
         .collect();
     let mut cursor = node.walk();
     let inner: Vec<Node<'tree>> = node
@@ -218,7 +219,7 @@ fn position(node: Node<'_>) -> Position {
     let Some(parent) = node.parent() else {
         return Position::Value;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "assignment" | "operator_assignment" => bound_when(node, "left"),
         "left_assignment_list" if spurious_assignment_list(parent) => {
             // Only the name the real parser would have assigned to is bound; the items the
@@ -300,12 +301,12 @@ pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
         let Some(parent) = node.parent() else {
             return false;
         };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind()) {
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
             return true;
         }
-        let continues = parent.kind() == "assignment"
+        let continues = parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("right")
+                .field("right")
                 .is_some_and(|right| right.id() == node.id());
         current = continues.then_some(parent);
     }
@@ -392,7 +393,7 @@ pub(super) fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
             let mut cursor = body.walk();
             let terminator = body
                 .named_children(&mut cursor)
-                .find(|child| child.kind() == "heredoc_end")?;
+                .find(|child| child.kind_str() == "heredoc_end")?;
             let (body_line, _) = context.source.line_column(body.start_byte());
             let (end_line, _) = context.source.line_column(terminator.start_byte());
             Some(Heredoc {
@@ -442,14 +443,14 @@ pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
     let mut out = Vec::new();
     let mut cursor = list.walk();
     for child in list.named_children(&mut cursor) {
-        let kind = match child.kind() {
+        let kind = match child.kind_str() {
             "identifier" if field(child) == Some("locals") => ParameterKind::Shadowarg,
             "identifier" => ParameterKind::Arg,
             "optional_parameter" => ParameterKind::Optarg,
             "splat_parameter" => ParameterKind::Restarg,
             "hash_splat_parameter" => ParameterKind::Kwrestarg,
             "keyword_parameter" => {
-                if child.child_by_field_name("value").is_some() {
+                if child.field("value").is_some() {
                     ParameterKind::Kwoptarg
                 } else {
                     ParameterKind::Kwarg
@@ -473,7 +474,7 @@ pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
             ParameterKind::Optarg => expand_optional(child, &mut out),
             _ => out.push(Parameter {
                 node: child,
-                name: child.child_by_field_name("name"),
+                name: child.field("name"),
                 kind,
             }),
         }
@@ -489,17 +490,18 @@ pub(super) fn parameters<'tree>(list: Node<'tree>) -> Vec<Parameter<'tree>> {
 fn expand_optional<'tree>(node: Node<'tree>, out: &mut Vec<Parameter<'tree>>) {
     out.push(Parameter {
         node,
-        name: node.child_by_field_name("name"),
+        name: node.field("name"),
         kind: ParameterKind::Optarg,
     });
-    let mut value = node.child_by_field_name("value");
-    while let Some(assignment) = value.filter(|node| node.kind() == "assignment") {
-        let Some(list) = assignment.child_by_field_name("left").filter(|left| {
-            left.kind() == "left_assignment_list" && spurious_assignment_list(*left)
+    let mut value = node.field("value");
+    while let Some(assignment) = value.filter(|node| node.kind_str() == "assignment") {
+        let Some(list) = assignment.field("left").filter(|left| {
+            left.kind_str() == "left_assignment_list" && spurious_assignment_list(*left)
         }) else {
             return;
         };
-        let Some(name) = last_named_child(list).filter(|name| name.kind() == "identifier") else {
+        let Some(name) = last_named_child(list).filter(|name| name.kind_str() == "identifier")
+        else {
             return;
         };
         out.push(Parameter {
@@ -507,7 +509,7 @@ fn expand_optional<'tree>(node: Node<'tree>, out: &mut Vec<Parameter<'tree>>) {
             name: Some(name),
             kind: ParameterKind::Optarg,
         });
-        value = assignment.child_by_field_name("right");
+        value = assignment.field("right");
     }
 }
 
@@ -530,10 +532,10 @@ pub(super) fn bound_parameters<'tree>(list: Node<'tree>) -> Vec<(Node<'tree>, Pa
 fn destructured_names<'tree>(node: Node<'tree>, out: &mut Vec<(Node<'tree>, ParameterKind)>) {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "identifier" => out.push((child, ParameterKind::Arg)),
             "splat_parameter" => {
-                if let Some(name) = child.child_by_field_name("name") {
+                if let Some(name) = child.field("name") {
                     out.push((name, ParameterKind::Restarg));
                 }
             }
@@ -569,7 +571,7 @@ pub(super) fn parameter_full_name(
 /// that are nodes go on their own indented line, while a name stays on the head's line.
 fn sexp(node: Node<'_>, source: &SourceFile, indent: usize) -> String {
     let padding = "  ".repeat(indent);
-    match node.kind() {
+    match node.kind_str() {
         "destructured_parameter" => {
             let mut out = format!("{padding}(mlhs");
             let mut cursor = node.walk();
@@ -580,7 +582,7 @@ fn sexp(node: Node<'_>, source: &SourceFile, indent: usize) -> String {
             out.push(')');
             out
         }
-        "splat_parameter" => match node.child_by_field_name("name") {
+        "splat_parameter" => match node.field("name") {
             Some(name) => format!("{padding}(restarg :{})", source.node_text(name)),
             None => format!("{padding}(restarg)"),
         },
@@ -591,11 +593,14 @@ fn sexp(node: Node<'_>, source: &SourceFile, indent: usize) -> String {
 /// `class_emitter_method?`: a singleton method may be named after a class defined beside it, as
 /// `def self.Foo` is next to `class Foo`. RuboCop lets that through -- the method emits the class.
 pub(super) fn class_emitter_method(node: Node<'_>, name: &str, source: &SourceFile) -> bool {
-    if node.kind() != "singleton_method" {
+    if node.kind_str() != "singleton_method" {
         return false;
     }
     let mut current = node;
-    while let Some(parent) = current.parent().filter(|p| p.kind() == "singleton_method") {
+    while let Some(parent) = current
+        .parent()
+        .filter(|p| p.kind_str() == "singleton_method")
+    {
         current = parent;
     }
     let Some(parent) = current.parent() else {
@@ -603,9 +608,9 @@ pub(super) fn class_emitter_method(node: Node<'_>, name: &str, source: &SourceFi
     };
     let mut cursor = parent.walk();
     parent.named_children(&mut cursor).any(|child| {
-        child.kind() == "class"
+        child.kind_str() == "class"
             && child
-                .child_by_field_name("name")
+                .field("name")
                 .is_some_and(|class_name| source.node_text(class_name) == name)
     })
 }
@@ -667,7 +672,7 @@ pub(super) fn quoted_content(node: Node<'_>, source: &SourceFile) -> Option<Stri
     let mut value = String::new();
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "string_content" => value.push_str(source.node_text(child)),
             "escape_sequence" => unescape(source.node_text(child), &mut value),
             _ => return None,

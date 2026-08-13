@@ -3,6 +3,7 @@
 use super::support::whitespace_before;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -18,14 +19,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .filter_map(|node| {
             let mut cursor = node.walk();
             node.children(&mut cursor)
-                .find(|child| child.kind() == "{")
+                .find(|child| child.kind_str() == "{")
                 .map(|child| child.start_byte())
         })
         .collect();
 
     for node in context.nodes() {
         // Upstream walks the lexer's tokens, so a comma inside a string is not one.
-        if node.kind() != "," {
+        if node.kind_str() != "," {
             continue;
         }
         let space = whitespace_before(text, node.start_byte());

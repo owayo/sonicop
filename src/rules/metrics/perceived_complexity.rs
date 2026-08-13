@@ -5,6 +5,7 @@ use super::cyclomatic_complexity::score_for;
 use super::locals::{named_children, operator};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: i64 = context.setting("Max").unwrap_or(8);
@@ -47,9 +48,9 @@ fn perceived_score<'a>(emit: Emit<'a>, discount: &mut CsendDiscount<'a>) -> i64 
         // An `else` costs as much as the branch it stands against, but an `elsif` is one of a
         // chain and is counted where it is written instead.
         Kind::If => {
-            let has_else = matches!(emit.node.kind(), "if" | "elsif" | "unless")
-                && emit.node.child_by_field_name("alternative").is_some();
-            if has_else && emit.node.kind() != "elsif" {
+            let has_else = matches!(emit.node.kind_str(), "if" | "elsif" | "unless")
+                && emit.node.field("alternative").is_some();
+            if has_else && emit.node.kind_str() != "elsif" {
                 2
             } else {
                 1
@@ -64,10 +65,10 @@ fn perceived_score<'a>(emit: Emit<'a>, discount: &mut CsendDiscount<'a>) -> i64 
 fn case_score(node: Node<'_>) -> i64 {
     let branches = named_children(node)
         .iter()
-        .filter(|child| child.kind() == "when")
+        .filter(|child| child.kind_str() == "when")
         .count() as i64
         + i64::from(has_body(else_clause(node)));
-    if node.child_by_field_name("value").is_none() {
+    if node.field("value").is_none() {
         return branches;
     }
     round_tenths(branches * 2 + 8)
@@ -78,11 +79,11 @@ fn case_score(node: Node<'_>) -> i64 {
 fn case_match_score(node: Node<'_>) -> i64 {
     let mut tenths: i64 = named_children(node)
         .iter()
-        .filter(|child| child.kind() == "in_clause")
+        .filter(|child| child.kind_str() == "in_clause")
         .map(|clause| if simple_pattern(*clause) { 2 } else { 10 })
         .sum();
     // A `case`/`in` with an empty `else` still builds an `empty_else` node, which counts.
-    if node.child_by_field_name("else").is_some() {
+    if node.field("else").is_some() {
         tenths += 2;
     }
     round_tenths(tenths)
@@ -95,25 +96,25 @@ fn round_tenths(tenths: i64) -> i64 {
 }
 
 fn simple_pattern(clause: Node<'_>) -> bool {
-    if clause.child_by_field_name("guard").is_some() {
+    if clause.field("guard").is_some() {
         return false;
     }
     clause
-        .child_by_field_name("pattern")
+        .field("pattern")
         .is_some_and(is_literal_or_constant)
 }
 
 /// `Node#literal?` or `Node#const_type?`, for the node types a pattern can hold.
 fn is_literal_or_constant(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "string" | "chained_string" | "subshell" | "integer" | "float" | "rational" | "complex"
         | "character" | "simple_symbol" | "delimited_symbol" | "bare_symbol" | "array" | "hash"
         | "regex" | "range" | "true" | "false" | "nil" | "constant" | "scope_resolution" => true,
         // `in -1` is one negative literal upstream rather than a call to `-@`.
         "unary" => {
             matches!(operator(node), Some("-" | "+"))
-                && node.child_by_field_name("operand").is_some_and(|operand| {
-                    matches!(operand.kind(), "integer" | "float" | "rational")
+                && node.field("operand").is_some_and(|operand| {
+                    matches!(operand.kind_str(), "integer" | "float" | "rational")
                 })
         }
         _ => false,
@@ -123,7 +124,7 @@ fn is_literal_or_constant(node: Node<'_>) -> bool {
 fn else_clause<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     named_children(node)
         .into_iter()
-        .find(|child| child.kind() == "else")
+        .find(|child| child.kind_str() == "else")
 }
 
 /// Whether an `else` holds a statement. An empty one leaves `else_branch` nil upstream, and a
@@ -132,7 +133,7 @@ fn has_body(clause: Option<Node<'_>>) -> bool {
     clause.is_some_and(|clause| {
         named_children(clause)
             .iter()
-            .any(|child| !matches!(child.kind(), "comment" | "empty_statement"))
+            .any(|child| !matches!(child.kind_str(), "comment" | "empty_statement"))
     })
 }
 

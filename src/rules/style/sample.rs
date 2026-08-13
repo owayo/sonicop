@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// How many elements the indexing after `shuffle` asks for.
 enum SampleSize {
@@ -81,15 +82,15 @@ fn indexing<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str, Vec<Argument<'tree>>)> {
-    if node.kind() == "element_reference" {
-        let object = node.child_by_field_name("object")?;
+    if node.kind_str() == "element_reference" {
+        let object = node.field("object")?;
         let mut children = super::nodes::children(node);
         // `emit_index` is off, so `a[0]` is a call to `:[]` whose first child is the receiver.
         children.remove(0);
         return Some((object, "[]", group(&children)));
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let selector = node.child_by_field_name("method")?;
+    let receiver = node.field("receiver")?;
+    let selector = node.field("method")?;
     let method = match context.source.node_text(selector) {
         "first" => "first",
         "last" => "last",
@@ -99,7 +100,7 @@ fn indexing<'tree>(
         _ => return None,
     };
     let written = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map(|list| super::nodes::children(list))
         .unwrap_or_default();
     Some((receiver, method, group(&written)))
@@ -114,19 +115,19 @@ fn shuffle_call(
 ) -> Option<(Range<usize>, Option<String>)> {
     // A receiverless `shuffle` is a bare identifier here and a `send` upstream, but only where the
     // name is not a local variable in scope.
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return (context.source.node_text(node) == "shuffle" && !locals.is_lvar(node))
             .then(|| (node.byte_range(), None));
     }
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return None;
     }
-    let selector = node.child_by_field_name("method")?;
+    let selector = node.field("method")?;
     if context.source.node_text(selector) != "shuffle" {
         return None;
     }
     let written = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map(|list| super::nodes::children(list))
         .unwrap_or_default();
     let first = group(&written)
@@ -140,7 +141,7 @@ fn group<'tree>(written: &[Node<'tree>]) -> Vec<Argument<'tree>> {
     let mut arguments: Vec<Argument<'tree>> = Vec::new();
     let mut hash: Vec<Node<'tree>> = Vec::new();
     for node in written {
-        if matches!(node.kind(), "pair" | "hash_splat_argument") {
+        if matches!(node.kind_str(), "pair" | "hash_splat_argument") {
             hash.push(*node);
             continue;
         }
@@ -169,7 +170,7 @@ fn group<'tree>(written: &[Node<'tree>]) -> Vec<Argument<'tree>> {
 
 fn sample_size(context: &RuleContext<'_>, arguments: &[Argument<'_>]) -> SampleSize {
     match arguments {
-        [only] => match only.first.kind() {
+        [only] => match only.first.kind_str() {
             "range" => range_size(context, only.first),
             _ => match integer_value(context, only.first) {
                 // Only the first element and the last one are what `sample` gives on its own.
@@ -191,7 +192,7 @@ fn sample_size(context: &RuleContext<'_>, arguments: &[Argument<'_>]) -> SampleS
 
 /// `range_size`: how many elements a literal range starting at zero covers.
 fn range_size(context: &RuleContext<'_>, node: Node<'_>) -> SampleSize {
-    let bound = |field: &str| match node.child_by_field_name(field) {
+    let bound = |field: &str| match node.field(field) {
         // A beginless or endless side is `nil` upstream, which `range_size` reads as zero.
         None => Some(0),
         Some(child) => integer_value(context, child),
@@ -203,26 +204,26 @@ fn range_size(context: &RuleContext<'_>, node: Node<'_>) -> SampleSize {
         return SampleSize::Unknown;
     }
     let inclusive = node
-        .child_by_field_name("operator")
+        .field("operator")
         .is_some_and(|operator| context.source.node_text(operator) == "..");
     SampleSize::Count(high + i64::from(inclusive))
 }
 
 /// `(int _)`: the parser folds a leading sign into the literal, so `-1` is one too.
 fn integer_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<i64> {
-    let (node, negative) = match node.kind() {
+    let (node, negative) = match node.kind_str() {
         "unary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             if !matches!(operator, "-" | "+") {
                 return None;
             }
-            (node.child_by_field_name("operand")?, operator == "-")
+            (node.field("operand")?, operator == "-")
         }
         _ => (node, false),
     };
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return None;
     }
     let text: String = context

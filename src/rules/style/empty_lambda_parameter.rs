@@ -1,11 +1,12 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Omit parentheses for the empty lambda parameters.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("lambda") {
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         // `empty_and_without_delimiters?`: parentheses were written around nothing.

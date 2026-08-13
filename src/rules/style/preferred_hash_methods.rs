@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let verbose = context
@@ -7,12 +8,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .is_some_and(|style| style == "verbose");
 
     for node in context.nodes_of("call") {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         // `node.arguments.one?`: the predicate takes exactly the key it asks about.
         let one_argument = node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .is_some_and(|arguments| super::nodes::children(arguments).len() == 1);
         if !one_argument {
             continue;

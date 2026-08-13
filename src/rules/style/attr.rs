@@ -2,21 +2,22 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
         // `node.command?(:attr)`: no receiver, and the name spelled out.
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             continue;
         }
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         if context.source.node_text(selector) != "attr" {
             continue;
         }
         let arguments = node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .map(super::nodes::children)
             .unwrap_or_default();
         if arguments.is_empty() || allowed_context(context, node) {
@@ -60,11 +61,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// cop thinks it means -- and even there a locally defined `attr` excuses it.
 fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(ancestor) = std::iter::successors(node.parent(), |current| current.parent())
-        .find(|current| matches!(current.kind(), "class" | "block" | "do_block"))
+        .find(|current| matches!(current.kind_str(), "class" | "block" | "do_block"))
     else {
         return false;
     };
-    if ancestor.kind() != "class" && !is_class_eval(context, ancestor) {
+    if ancestor.kind_str() != "class" && !is_class_eval(context, ancestor) {
         return true;
     }
     defines_attr(context, ancestor)
@@ -75,7 +76,7 @@ fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn is_class_eval(context: &RuleContext<'_>, block: Node<'_>) -> bool {
     block
         .parent()
-        .and_then(|call| call.child_by_field_name("method"))
+        .and_then(|call| call.field("method"))
         .is_some_and(|method| {
             matches!(
                 context.source.node_text(method),
@@ -88,10 +89,10 @@ fn is_class_eval(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 fn defines_attr(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     super::conditional::descendants(node)
         .into_iter()
-        .filter(|descendant| descendant.kind() == "method")
+        .filter(|descendant| descendant.kind_str() == "method")
         .any(|definition| {
             definition
-                .child_by_field_name("name")
+                .field("name")
                 .is_some_and(|name| context.source.node_text(name) == "attr")
         })
 }

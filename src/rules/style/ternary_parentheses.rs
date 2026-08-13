@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "%s parentheses for ternary conditions.";
 const MSG_COMPLEX: &str = "%s parentheses for ternary expressions with complex conditions.";
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_safe_assignment: bool = context.setting("AllowSafeAssignment").unwrap_or(true);
 
     for node in context.nodes_of("conditional") {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         if only_closing_parenthesis_is_last_line(context, condition)
@@ -23,7 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let parenthesized = condition.kind() == "parenthesized_statements";
+        let parenthesized = condition.kind_str() == "parenthesized_statements";
         let safe_assignment = parenthesized && is_safe_assignment(context, condition);
         // `offense?`.
         let offending = if parenthesized_modifier_condition(condition) {
@@ -82,23 +83,23 @@ fn only_closing_parenthesis_is_last_line(context: &RuleContext<'_>, condition: N
 /// `condition_as_parenthesized_one_line_pattern_matching?`: `(foo in Integer) ? a : b` needs its
 /// parentheses, since `in` binds looser than the ternary.
 fn condition_as_parenthesized_one_line_pattern_matching(condition: Node<'_>) -> bool {
-    condition.kind() == "parenthesized_statements"
+    condition.kind_str() == "parenthesized_statements"
         && super::nodes::children(condition)
             .first()
             // `match_pattern_p_type?`: the `in` form. The `=>` form is `match_pattern`, which the
             // cop only looks for below Ruby 3.0, where the grammar had `in` build that node.
-            .is_some_and(|first| first.kind() == "test_pattern")
+            .is_some_and(|first| first.kind_str() == "test_pattern")
 }
 
 /// `parenthesized_modifier_condition?`: `(a if b) ? x : y` needs its parentheses, since a modifier
 /// `if` cannot be the condition of a ternary on its own.
 fn parenthesized_modifier_condition(condition: Node<'_>) -> bool {
-    condition.kind() == "parenthesized_statements"
+    condition.kind_str() == "parenthesized_statements"
         && super::nodes::children(condition)
             .first()
             // `inner&.if_type? && inner.modifier_form?`: a `while` written the same way is not
             // spared, since the cop only asks about an `if`.
-            .is_some_and(|first| matches!(first.kind(), "if_modifier" | "unless_modifier"))
+            .is_some_and(|first| matches!(first.kind_str(), "if_modifier" | "unless_modifier"))
 }
 
 /// `safe_assignment?`: `(begin {equals_asgn? #setter_method?})`, the parenthesized assignment that
@@ -108,12 +109,12 @@ fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     let [only] = children.as_slice() else {
         return false;
     };
-    only.kind() == "assignment" && !super::nodes::is_match_assignment(*only, context.source.text())
+    only.kind_str() == "assignment" && !super::nodes::is_match_assignment(*only, context.source.text())
 }
 
 /// `complex_condition?`: a parenthesized condition is complex when anything written inside it is.
 fn complex_condition(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
-    if condition.kind() == "parenthesized_statements" {
+    if condition.kind_str() == "parenthesized_statements" {
         return super::nodes::children(condition)
             .into_iter()
             .any(|child| complex_condition(context, child));
@@ -124,7 +125,7 @@ fn complex_condition(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
 /// `non_complex_expression?`: a variable, a constant, `defined?`, `yield`, or a call by a name that
 /// is not an operator -- `[]` excepted, which reads as an index rather than as an operator.
 fn non_complex_expression(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `VARIABLE_TYPES`. A bare name is an `lvar` where one is in scope and a receiverless
         // `send` where none is, and neither counts as complex.
         "instance_variable" | "global_variable" | "class_variable" | "identifier" => true,
@@ -132,19 +133,19 @@ fn non_complex_expression(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         // `a[0]` is `(send a :[] 0)`, the one operator method the cop lets through.
         "element_reference" => true,
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "defined?"),
         // A call carrying a block is a `block` node upstream rather than a `send`, and no `block`
         // is ever simple.
-        "call" if node.child_by_field_name("block").is_none() => {
-            node.child_by_field_name("method").is_some_and(|method| {
+        "call" if node.field("block").is_none() => {
+            node.field("method").is_some_and(|method| {
                 !super::nodes::is_operator_method(context.source.node_text(method))
             })
         }
         // `a.b = 1` is a `send` named `b=`, which is no operator; `a[0] = 1` is `:[]=`, which is.
         "assignment" => node
-            .child_by_field_name("left")
-            .is_some_and(|left| left.kind() == "call"),
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "call"),
         _ => false,
     }
 }
@@ -154,9 +155,9 @@ fn non_complex_expression(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn unsafe_autocorrect(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     super::nodes::children(condition)
         .into_iter()
-        .any(|child| match child.kind() {
+        .any(|child| match child.kind_str() {
             "binary" | "unary" => child
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| {
                     matches!(context.source.node_text(operator), "and" | "or" | "not")
                 }),
@@ -228,19 +229,19 @@ fn call_parts<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, Vec<Node<'tree>>)> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
-            let selector = node.child_by_field_name("method")?;
-            let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+            let selector = node.field("method")?;
+            let arguments = super::nodes::children(node.field("arguments")?);
             Some((selector, arguments))
         }
         // `(defined? (send nil :x))`: the keyword stands where a call's selector would.
         "unary" => {
-            let keyword = node.child_by_field_name("operator")?;
+            let keyword = node.field("operator")?;
             if context.source.node_text(keyword) != "defined?" {
                 return None;
             }
-            Some((keyword, vec![node.child_by_field_name("operand")?]))
+            Some((keyword, vec![node.field("operand")?]))
         }
         _ => None,
     }
@@ -261,7 +262,7 @@ fn parenthesize_condition_arguments(context: &RuleContext<'_>, node: Node<'_>) -
     }
     // `send_node.dot? || send_node.safe_navigation? || unparenthesized_method_call?(send_node)`.
     let reached_by_operator = node
-        .child_by_field_name("operator")
+        .field("operator")
         .is_some_and(|operator| matches!(context.source.node_text(operator), "." | "&."));
     let named = context
         .source

@@ -5,18 +5,19 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, is_plain_send, send_range, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 const MSG_1: &str = "Redundant `RuntimeError` argument can be removed.";
 const MSG_2: &str = "Redundant `RuntimeError.new` call can be replaced with just the message.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         let command = context.source.node_text(selector);
         if !matches!(command, "raise" | "fail")
-            || node.child_by_field_name("receiver").is_some()
+            || node.field("receiver").is_some()
             || !is_plain_send(node, context)
         {
             continue;
@@ -77,16 +78,16 @@ fn compact(
         return None;
     };
     let call = only.first();
-    if only.parts().len() != 1 || call.kind() != "call" {
+    if only.parts().len() != 1 || call.kind_str() != "call" {
         return None;
     }
     if call
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "new")
     {
         return None;
     }
-    let receiver = call.child_by_field_name("receiver")?;
+    let receiver = call.field("receiver")?;
     if !top_level_constant(receiver, "RuntimeError", context) {
         return None;
     }
@@ -115,7 +116,7 @@ fn argument_source(context: &RuleContext<'_>, message: &Argument<'_>) -> String 
     let text = context.source.slice(message.range());
     let literal = message.parts().len() == 1
         && matches!(
-            message.first().kind(),
+            message.first().kind_str(),
             "string" | "chained_string" | "character" | "heredoc_beginning"
         );
     if literal {
@@ -126,7 +127,7 @@ fn argument_source(context: &RuleContext<'_>, message: &Argument<'_>) -> String 
 }
 
 fn is_parenthesized(node: Node<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .and_then(|list| list.child(0))
-        .is_some_and(|open| open.kind() == "(")
+        .is_some_and(|open| open.kind_str() == "(")
 }

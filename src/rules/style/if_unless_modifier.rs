@@ -14,6 +14,7 @@ use super::conditional::{
 use super::line_length_help::LineLengthHelp;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_USE_MODIFIER: &str = "Favor modifier `%<keyword>s` usage when having a single-line body. \
      Another good alternative is the usage of control flow `&&`/`||`.";
@@ -99,8 +100,8 @@ enum Body<'t> {
 
 impl<'t> Conditional<'t> {
     fn new(node: Node<'t>) -> Option<Self> {
-        let modifier = matches!(node.kind(), "if_modifier" | "unless_modifier");
-        let condition = node.child_by_field_name("condition")?;
+        let modifier = matches!(node.kind_str(), "if_modifier" | "unless_modifier");
+        let condition = node.field("condition")?;
         let keyword = token(node, &["if", "unless"])?;
         if modifier {
             return Some(Self {
@@ -109,18 +110,18 @@ impl<'t> Conditional<'t> {
                 keyword,
                 condition,
                 end: None,
-                body: Body::One(node.child_by_field_name("body")?),
+                body: Body::One(node.field("body")?),
                 has_else: false,
             });
         }
         let statements = node
-            .child_by_field_name("consequence")
+            .field("consequence")
             .map(super::nodes::children)
             .unwrap_or_default();
         let body = match statements.as_slice() {
             [] => Body::Missing,
             // `(foo)` is a `begin` holding one statement, not the statement itself.
-            [only] if only.kind() != "parenthesized_statements" => Body::One(*only),
+            [only] if only.kind_str() != "parenthesized_statements" => Body::One(*only),
             _ => Body::Begin,
         };
         Some(Self {
@@ -130,7 +131,7 @@ impl<'t> Conditional<'t> {
             condition,
             end: token(node, &["end"]),
             body,
-            has_else: node.child_by_field_name("alternative").is_some(),
+            has_else: node.field("alternative").is_some(),
         })
     }
 
@@ -155,7 +156,7 @@ impl Cop<'_, '_> {
     /// `Style/AmbiguousEndlessMethodDefinition` asks to be left in block form.
     fn endless_method_body(&self, conditional: &Conditional<'_>) -> bool {
         conditional.body_node().is_some_and(|body| {
-            matches!(body.kind(), "method" | "singleton_method") && token(body, &["end"]).is_none()
+            matches!(body.kind_str(), "method" | "singleton_method") && token(body, &["end"]).is_none()
         })
     }
 
@@ -172,7 +173,7 @@ impl Cop<'_, '_> {
         };
         // `first_argument.type?(:lvar, :send)`: anything else -- an ivar, a constant -- is left to
         // the rest of the cop.
-        let name = match argument.kind() {
+        let name = match argument.kind_str() {
             "identifier" => self.source(argument),
             // A call is a `send`, whose `node_parts[0]` is its receiver and so never equal to the
             // name of a local variable assignment.
@@ -186,10 +187,10 @@ impl Cop<'_, '_> {
 
     /// Whether the statement is an `lvasgn` writing `name`.
     fn assigns_local(&self, node: Node<'_>, name: &str) -> bool {
-        node.kind() == "assignment"
+        node.kind_str() == "assignment"
             && node
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "identifier" && self.source(left) == name)
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "identifier" && self.source(left) == name)
     }
 
     fn message(&self, conditional: &Conditional<'_>) -> Option<&'static str> {
@@ -212,13 +213,13 @@ impl Cop<'_, '_> {
     /// list is still truthy), so a regexp without a single named group counts too.
     fn named_capture_in_condition(&self, conditional: &Conditional<'_>) -> bool {
         let condition = conditional.condition;
-        condition.kind() == "binary"
+        condition.kind_str() == "binary"
             && condition
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| self.source(operator) == "=~")
             && condition
-                .child_by_field_name("left")
-                .is_some_and(|left| left.kind() == "regex" && is_static_regexp(left))
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "regex" && is_static_regexp(left))
     }
 
     fn single_line_as_modifier(&self, conditional: &Conditional<'_>) -> bool {
@@ -249,17 +250,17 @@ impl Cop<'_, '_> {
         let Some(parent) = node.parent() else {
             return false;
         };
-        let receiver = match parent.kind() {
-            "call" | "method_call" => parent.child_by_field_name("receiver"),
-            "element_reference" => parent.child_by_field_name("object"),
+        let receiver = match parent.kind_str() {
+            "call" | "method_call" => parent.field("receiver"),
+            "element_reference" => parent.field("object"),
             "binary" => parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .filter(|operator| !is_operator_keyword(self.source(*operator)))
-                .and_then(|_| parent.child_by_field_name("left")),
+                .and_then(|_| parent.field("left")),
             "unary" => parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .filter(|operator| self.source(*operator) != "defined?")
-                .and_then(|_| parent.child_by_field_name("operand")),
+                .and_then(|_| parent.field("operand")),
             _ => None,
         };
         receiver.is_some_and(|receiver| receiver.id() == node.id())
@@ -268,7 +269,7 @@ impl Cop<'_, '_> {
     /// `nested_conditional?`: another conditional inside the body, which the modifier form would
     /// have to hold on the same line.
     fn nested_conditional(&self, conditional: &Conditional<'_>) -> bool {
-        let Some(consequence) = conditional.node.child_by_field_name("consequence") else {
+        let Some(consequence) = conditional.node.field("consequence") else {
             return false;
         };
         let mut found = false;
@@ -276,7 +277,7 @@ impl Cop<'_, '_> {
             // `elsif` is written as a nested `if` upstream and does not count; here it is its own
             // kind, so only the four spellings of a real conditional are looked for.
             found |= matches!(
-                node.kind(),
+                node.kind_str(),
                 "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional"
             );
         });
@@ -343,25 +344,25 @@ impl Cop<'_, '_> {
     }
 
     fn omitted_value_call(&self, body: Node<'_>) -> Option<String> {
-        if !matches!(body.kind(), "call" | "method_call") {
+        if !matches!(body.kind_str(), "call" | "method_call") {
             return None;
         }
-        let list = body.child_by_field_name("arguments")?;
+        let list = body.field("arguments")?;
         let arguments = super::nodes::children(list);
         let last = arguments.last()?;
         // `foo(bar:)` parks the pairs straight in the argument list, so the omitted value shows up
         // as a pair without one.
-        let omitted = match last.kind() {
-            "pair" => last.child_by_field_name("value").is_none(),
+        let omitted = match last.kind_str() {
+            "pair" => last.field("value").is_none(),
             "hash" => super::nodes::children(*last)
                 .last()
-                .is_some_and(|pair| pair.child_by_field_name("value").is_none()),
+                .is_some_and(|pair| pair.field("value").is_none()),
             _ => false,
         };
         if !omitted {
             return None;
         }
-        let selector = body.child_by_field_name("method")?;
+        let selector = body.field("method")?;
         let head = &self.context.source.text()[body.start_byte()..selector.end_byte()];
         let joined = arguments
             .iter()
@@ -375,7 +376,7 @@ impl Cop<'_, '_> {
     /// expression has to keep parentheses around it.
     fn parenthesize(&self, conditional: &Conditional<'_>) -> bool {
         match upstream_parent(conditional.node) {
-            Some(UpstreamParent::Node(parent)) => match parent.kind() {
+            Some(UpstreamParent::Node(parent)) => match parent.kind_str() {
                 "assignment"
                 | "operator_assignment"
                 | "array"
@@ -388,7 +389,7 @@ impl Cop<'_, '_> {
                 // call, so either branch of upstream's test is satisfied.
                 "binary" => true,
                 "unary" => parent
-                    .child_by_field_name("operator")
+                    .field("operator")
                     .is_some_and(|operator| self.source(operator) != "defined?"),
                 _ => false,
             },
@@ -450,7 +451,7 @@ impl Cop<'_, '_> {
             return false;
         };
         if !matches!(
-            inner.kind(),
+            inner.kind_str(),
             "if" | "unless" | "if_modifier" | "unless_modifier"
         ) {
             return false;
@@ -471,7 +472,7 @@ impl Cop<'_, '_> {
         let mut found = false;
         crate::rules::walk_named(collection, &mut |node| {
             found |= node.id() != conditional.node.id()
-                && matches!(node.kind(), "if_modifier" | "unless_modifier")
+                && matches!(node.kind_str(), "if_modifier" | "unless_modifier")
                 && first_line(node) == line;
         });
         found
@@ -510,7 +511,7 @@ impl Cop<'_, '_> {
         }
         let heredoc = conditional
             .body_node()
-            .filter(|body| matches!(body.kind(), "call" | "method_call"))
+            .filter(|body| matches!(body.kind_str(), "call" | "method_call"))
             .and_then(|body| self.trailing_heredoc(body));
         let head = format!(
             "{} {}\n{indent}  {body}",
@@ -575,9 +576,9 @@ impl Cop<'_, '_> {
     /// The heredoc opened by the call's last argument, with the lines the correction lifts into the
     /// block form.
     fn trailing_heredoc(&self, body: Node<'_>) -> Option<Heredoc> {
-        let list = body.child_by_field_name("arguments")?;
+        let list = body.field("arguments")?;
         let last = super::nodes::children(list).pop()?;
-        if last.kind() != "heredoc_beginning" {
+        if last.kind_str() != "heredoc_beginning" {
             return None;
         }
         self.heredocs.body_for(last, self.context)
@@ -628,15 +629,15 @@ fn is_operator_keyword(operator: &str) -> bool {
 /// the body that reads it.
 fn non_eligible_condition(condition: Node<'_>) -> bool {
     descendants(condition).into_iter().any(|node| {
-        matches!(node.kind(), "assignment" | "operator_assignment")
-            && node.child_by_field_name("left").is_some_and(binds_local)
+        matches!(node.kind_str(), "assignment" | "operator_assignment")
+            && node.field("left").is_some_and(binds_local)
     })
 }
 
 /// Whether the left-hand side of an assignment writes a local anywhere in it. A multiple
 /// assignment is one `masgn` upstream, but every name it writes is still an `lvasgn` beneath it.
 fn binds_local(left: Node<'_>) -> bool {
-    match left.kind() {
+    match left.kind_str() {
         "identifier" => true,
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
             super::nodes::children(left).into_iter().any(binds_local)
@@ -648,7 +649,7 @@ fn binds_local(left: Node<'_>) -> bool {
 fn has_dstr_ancestor(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if DSTR_KINDS.contains(&parent.kind()) {
+        if DSTR_KINDS.contains(&parent.kind_str()) {
             return true;
         }
         current = parent.parent();
@@ -661,7 +662,7 @@ fn has_dstr_ancestor(node: Node<'_>) -> bool {
 fn has_pattern_matching(condition: Node<'_>) -> bool {
     let mut found = false;
     crate::rules::walk_named(condition, &mut |node| {
-        found |= matches!(node.kind(), "match_pattern" | "test_pattern");
+        found |= matches!(node.kind_str(), "match_pattern" | "test_pattern");
     });
     found
 }
@@ -670,10 +671,10 @@ fn has_pattern_matching(condition: Node<'_>) -> bool {
 /// descendants otherwise.
 fn defined_nodes(condition: Node<'_>) -> Vec<Node<'_>> {
     let is_defined = |node: Node<'_>| {
-        node.kind() == "unary"
+        node.kind_str() == "unary"
             && node
-                .child_by_field_name("operator")
-                .is_some_and(|operator| operator.kind() == "defined?")
+                .field("operator")
+                .is_some_and(|operator| operator.kind_str() == "defined?")
     };
     if is_defined(condition) {
         return vec![condition];
@@ -686,8 +687,8 @@ fn defined_nodes(condition: Node<'_>) -> Vec<Node<'_>> {
 
 /// `defined_node.first_argument`, with the parentheses upstream's parser does not build a node for.
 fn defined_argument<'t>(defined: Node<'t>) -> Option<Node<'t>> {
-    let operand = defined.child_by_field_name("operand")?;
-    if operand.kind() != "parenthesized_statements" {
+    let operand = defined.field("operand")?;
+    if operand.kind_str() != "parenthesized_statements" {
         return Some(operand);
     }
     let statements = super::nodes::children(operand);
@@ -744,7 +745,7 @@ fn containing_collection<'t>(node: Node<'t>) -> Option<Node<'t>> {
         },
         UpstreamParent::Node(parent) => parent,
     };
-    match ancestor.kind() {
+    match ancestor.kind_str() {
         "array" | "call" | "method_call" => Some(ancestor),
         "pair" => ancestor.parent(),
         _ => None,
@@ -756,7 +757,7 @@ fn collection_children<'t>(collection: Node<'t>) -> Vec<Node<'t>> {
     let mut children = Vec::new();
     let mut cursor = collection.walk();
     for child in collection.named_children(&mut cursor) {
-        if child.kind() == "argument_list" {
+        if child.kind_str() == "argument_list" {
             children.extend(super::nodes::children(child));
         } else if super::nodes::is_child(child) {
             children.push(child);
@@ -767,11 +768,11 @@ fn collection_children<'t>(collection: Node<'t>) -> Vec<Node<'t>> {
 
 /// `unwrap_begin`: a pair stands for its value and a `begin` for the statement it holds.
 fn unwrap_begin<'t>(node: Node<'t>) -> Option<Node<'t>> {
-    let node = match node.kind() {
-        "pair" => node.child_by_field_name("value")?,
+    let node = match node.kind_str() {
+        "pair" => node.field("value")?,
         _ => node,
     };
-    match node.kind() {
+    match node.kind_str() {
         "parenthesized_statements" => super::nodes::children(node).first().copied(),
         _ => Some(node),
     }
@@ -839,5 +840,5 @@ fn is_static_regexp(regexp: Node<'_>) -> bool {
     let mut cursor = regexp.walk();
     regexp
         .named_children(&mut cursor)
-        .all(|part| part.kind() != "interpolation")
+        .all(|part| part.kind_str() != "interpolation")
 }

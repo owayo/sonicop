@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 /// `URI::RFC2396_PARSER` replaced `URI::DEFAULT_PARSER` in Ruby 3.4, so the replacement upstream
 /// names depends on the version the run targets.
@@ -11,13 +12,13 @@ const RFC2396_SINCE: RubyVersion = RubyVersion::new(3, 4);
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "regexp" || !is_plain_send(node, context) {
             continue;
         }
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
         if !top_level_constant(receiver, "URI", context) {

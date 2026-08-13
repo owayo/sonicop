@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::format_sequences::{Sequence, SequenceStyle, sequences};
+use crate::rules::node_ext::NodeExt;
 
 /// The methods whose first argument is a format string, which is what `aggressive` mode still
 /// treats as a place where an unannotated token is worth reporting.
@@ -112,7 +113,7 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
         };
         let end = node
             .child(node.child_count().saturating_sub(1) as u32)
-            .filter(|child| child.kind() == "heredoc_end")
+            .filter(|child| child.kind_str() == "heredoc_end")
             .map_or(node.end_byte(), |child| child.start_byte());
         let quoted = context.source.node_text(*anchor).contains('\'');
         // The body node opens on the line break that closes the marker's line, while upstream's
@@ -130,7 +131,7 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
 fn interpolations(node: Node<'_>) -> Vec<Range<usize>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| child.kind() == "interpolation")
+        .filter(|child| child.kind_str() == "interpolation")
         .map(|child| child.byte_range())
         .collect()
 }
@@ -183,30 +184,30 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    if parent.kind() == "binary" {
+    if parent.kind_str() == "binary" {
         return parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "%")
             && parent
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| left.id() == node.id());
     }
     // The grammar chains `"%s" %[a]` into one literal, where upstream has the `%` operator with the
     // first literal as its receiver.
-    if parent.kind() == "chained_string" {
+    if parent.kind_str() == "chained_string" {
         return node.prev_named_sibling().is_none()
             && node
                 .next_named_sibling()
                 .is_some_and(|sibling| context.source.node_text(sibling).starts_with('%'));
     }
-    if parent.kind() != "argument_list" {
+    if parent.kind_str() != "argument_list" {
         return false;
     }
-    let Some(call) = parent.parent().filter(|call| call.kind() == "call") else {
+    let Some(call) = parent.parent().filter(|call| call.kind_str() == "call") else {
         return false;
     };
     let named = call
-        .child_by_field_name("method")
+        .field("method")
         .is_some_and(|method| FORMAT_METHODS.contains(&context.source.node_text(method)));
     named
         && super::nodes::children(parent)
@@ -219,7 +220,7 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn enclosing_typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "chained_string" | "string" | "heredoc_body")
+        if matches!(parent.kind_str(), "chained_string" | "string" | "heredoc_body")
             && typical_context(context, parent)
         {
             return true;
@@ -234,7 +235,7 @@ fn enclosing_typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool 
 fn surrounded_by_command_or_regexp(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "subshell" | "regex") {
+        if matches!(parent.kind_str(), "subshell" | "regex") {
             return true;
         }
         current = parent.parent();
@@ -249,8 +250,8 @@ fn allowed_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String])
     }
     let mut current = node.parent();
     while let Some(parent) = current {
-        if parent.kind() == "call" {
-            return parent.child_by_field_name("method").is_some_and(|method| {
+        if parent.kind_str() == "call" {
+            return parent.field("method").is_some_and(|method| {
                 allowed
                     .iter()
                     .any(|name| name == context.source.node_text(method))

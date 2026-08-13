@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::empty_lines_around_body::{Target, body_container, body_of, check as check_body};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut targets = Vec::new();
@@ -18,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `adjusted_first_line`: the parameter list is where the signature really ends.
         let first_line = node
-            .child_by_field_name("parameters")
+            .field("parameters")
             .map_or(node.start_position().row, |parameters| {
                 parameters.end_position().row
             })
@@ -36,16 +37,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn is_endless(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
-    node.children(&mut cursor).any(|child| child.kind() == "=")
+    node.children(&mut cursor).any(|child| child.kind_str() == "=")
 }
 
 /// `offending_endless_method?`: the body of `def m = value` was pushed past a blank line.
 fn check_endless(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<Offense>) {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return;
     };
     let mut cursor = node.walk();
-    let Some(assignment) = node.children(&mut cursor).find(|child| child.kind() == "=") else {
+    let Some(assignment) = node.children(&mut cursor).find(|child| child.kind_str() == "=") else {
         return;
     };
     let assignment_line = assignment.start_position().row + 1;

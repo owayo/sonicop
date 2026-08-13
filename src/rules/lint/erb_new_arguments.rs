@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, is_plain_send, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGE_SAFE_LEVEL: &str = "Passing safe_level with the 2nd argument of `ERB.new` is \
      deprecated. Do not use it, and specify other arguments as keyword arguments.";
@@ -19,10 +20,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `(send (const {nil? cbase} :ERB) :new $...)`.
         if !is_plain_send(node, context)
             || node
-                .child_by_field_name("method")
+                .field("method")
                 .is_none_or(|method| context.source.node_text(method) != "new")
             || node
-                .child_by_field_name("receiver")
+                .field("receiver")
                 .is_none_or(|receiver| !top_level_constant(receiver, "ERB", context))
         {
             continue;
@@ -54,7 +55,7 @@ fn correct_arguments(given: &[Argument<'_>]) -> bool {
 /// brace-less run of `key: value` pairs becomes as much as a written `{ }` does.
 fn is_hash(argument: &Argument<'_>) -> bool {
     matches!(
-        argument.first().kind(),
+        argument.first().kind_str(),
         "pair" | "hash_splat_argument" | "hash"
     )
 }
@@ -100,8 +101,8 @@ fn build_keywords(given: &[Argument<'_>], context: &RuleContext<'_>) -> [Option<
     }
     for pair in pairs(last) {
         let (Some(key), Some(value)) = (
-            pair.child_by_field_name("key"),
-            pair.child_by_field_name("value"),
+            pair.field("key"),
+            pair.field("value"),
         ) else {
             continue;
         };
@@ -117,17 +118,17 @@ fn build_keywords(given: &[Argument<'_>], context: &RuleContext<'_>) -> [Option<
 
 /// `pairs` of the hash argument, which is either a written `{ }` or the pairs themselves.
 fn pairs<'tree>(argument: &Argument<'tree>) -> Vec<Node<'tree>> {
-    if argument.first().kind() == "hash" {
+    if argument.first().kind_str() == "hash" {
         return crate::rules::send_node::named_children(argument.first())
             .into_iter()
-            .filter(|child| child.kind() == "pair")
+            .filter(|child| child.kind_str() == "pair")
             .collect();
     }
     argument
         .parts()
         .iter()
         .copied()
-        .filter(|part| part.kind() == "pair")
+        .filter(|part| part.kind_str() == "pair")
         .collect()
 }
 

@@ -4,6 +4,7 @@ use super::access_modifier::{bare_send_name, begin_statements, statements};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::symbol_name;
+use crate::rules::node_ext::NodeExt;
 
 const ALTERNATIVE_PRIVATE: &str =
     "`private_class_method` or `private` inside a `class << self` block";
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_class` and `on_module` only. A `class << self` body is where these modifiers do work, so
     // upstream leaves it alone.
     for node in context.nodes_of_any(&["class", "module"]) {
-        let Some(body) = node.child_by_field_name("body") else {
+        let Some(body) = node.field("body") else {
             continue;
         };
         // `check_node` returns unless the body is a `begin`: a body of one statement cannot hold
@@ -45,7 +46,7 @@ fn ineffective_modifier<'tree>(
     offenses: &mut Vec<Offense>,
 ) {
     for &child in children {
-        match child.kind() {
+        match child.kind_str() {
             "singleton_method" => {
                 let ignored =
                     ignored.get_or_insert_with(|| private_class_method_names(context, node));
@@ -86,7 +87,7 @@ fn correct_visibility(
     if bare_send_name(modifier, context) == Some("public") {
         return true;
     }
-    definition.child_by_field_name("name").is_some_and(|name| {
+    definition.field("name").is_some_and(|name| {
         let name = context.source.node_text(name);
         ignored.iter().any(|method| method == name)
     })
@@ -101,12 +102,12 @@ fn private_class_method_names(context: &RuleContext<'_>, node: Node<'_>) -> Vec<
     let mut names = Vec::new();
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
-        if current.kind() == "call"
-            && current.child_by_field_name("receiver").is_none()
+        if current.kind_str() == "call"
+            && current.field("receiver").is_none()
             && current
-                .child_by_field_name("method")
+                .field("method")
                 .is_some_and(|method| context.source.node_text(method) == "private_class_method")
-            && let Some(arguments) = current.child_by_field_name("arguments")
+            && let Some(arguments) = current.field("arguments")
         {
             let mut cursor = arguments.walk();
             for argument in arguments.named_children(&mut cursor) {

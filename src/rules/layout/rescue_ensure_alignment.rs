@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::{character_column, parser_node_start, start_line_range};
+use crate::rules::node_ext::NodeExt;
 
 /// `ANCESTOR_TYPES`, as the grammar spells them.
 const ANCESTOR_KINDS: [&str; 8] = [
@@ -77,10 +78,10 @@ fn alignment_node<'tree>(
     keyword: Node<'_>,
 ) -> Option<Node<'tree>> {
     let ancestor = ancestor(node)?;
-    if ancestor.kind() == "begin" {
+    if ancestor.kind_str() == "begin" {
         return Some(ancestor);
     }
-    if matches!(ancestor.kind(), "block" | "do_block")
+    if matches!(ancestor.kind_str(), "block" | "do_block")
         && aligned_with_line_break_method(context, ancestor, keyword)
     {
         return None;
@@ -88,13 +89,13 @@ fn alignment_node<'tree>(
     // An assignment written on the ancestor's own line takes its place.
     let parent = parser_parent(ancestor);
     if let Some(assignment) = parent.filter(|parent| {
-        matches!(parent.kind(), "assignment" | "operator_assignment")
+        matches!(parent.kind_str(), "assignment" | "operator_assignment")
             && context.source.line_column(parent.start_byte()).0
                 == context.source.line_column(parser_node_start(ancestor)).0
     }) {
         return Some(assignment);
     }
-    if matches!(ancestor.kind(), "method" | "singleton_method") {
+    if matches!(ancestor.kind_str(), "method" | "singleton_method") {
         if let Some(modifier) = parent.filter(|parent| is_access_modifier(context, *parent)) {
             return Some(modifier);
         }
@@ -106,11 +107,11 @@ fn alignment_node<'tree>(
 /// call it hangs off, and an argument is a direct child of the call it was written in, so both of
 /// the nodes the grammar puts in between are stepped over.
 fn parser_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let parent = match node.kind() {
+    let parent = match node.kind_str() {
         "block" | "do_block" => node.parent()?.parent(),
         _ => node.parent(),
     }?;
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent(),
         _ => Some(parent),
     }
@@ -119,7 +120,7 @@ fn parser_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn ancestor<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if ANCESTOR_KINDS.contains(&candidate.kind()) {
+        if ANCESTOR_KINDS.contains(&candidate.kind_str()) {
             return Some(candidate);
         }
         current = candidate.parent();
@@ -142,7 +143,7 @@ fn aligned_with_line_break_method(
     };
     let open_line = context.source.line_column(open.start_byte()).0;
     let keyword_column = character_column(context, keyword.start_byte());
-    if let Some(dot) = send.child_by_field_name("operator") {
+    if let Some(dot) = send.field("operator") {
         if context.source.line_column(dot.start_byte()).0 == open_line
             && character_column(context, dot.start_byte()) == keyword_column
         {
@@ -150,7 +151,7 @@ fn aligned_with_line_break_method(
         }
     }
     let selector = send
-        .child_by_field_name("method")
+        .field("method")
         .filter(|method| !method.byte_range().is_empty())
         .unwrap_or(send);
     context.source.line_column(selector.start_byte()).0 == open_line
@@ -171,21 +172,21 @@ fn beginning(context: &RuleContext<'_>, alignment: Node<'_>, start: usize) -> St
 }
 
 fn ending(node: Node<'_>) -> Option<usize> {
-    match node.kind() {
+    match node.kind_str() {
         "block" | "do_block" => block_open(node).map(|open| open.end_byte()),
         "begin" => child_of_kind(node, "begin").map(|keyword| keyword.end_byte()),
         "method" | "singleton_method" | "class" | "module" => {
-            node.child_by_field_name("name").map(|name| name.end_byte())
+            node.field("name").map(|name| name.end_byte())
         }
         "singleton_class" => node
-            .child_by_field_name("value")
+            .field("value")
             .map(|value| value.end_byte()),
         "assignment" | "operator_assignment" => {
-            node.child_by_field_name("left").map(|left| left.end_byte())
+            node.field("left").map(|left| left.end_byte())
         }
         // A wrapper such as an access modifier: its receiver, or the name of what it wraps.
         _ => node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .map(|receiver| receiver.end_byte())
             .or_else(|| wrapped_name_end(node)),
     }
@@ -195,37 +196,37 @@ fn wrapped_name_end(node: Node<'_>) -> Option<usize> {
     let mut cursor = node.walk();
     let child = node
         .named_children(&mut cursor)
-        .find(|child| !matches!(child.kind(), "comment" | "heredoc_body"))?;
-    let inner = if child.kind() == "argument_list" {
+        .find(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))?;
+    let inner = if child.kind_str() == "argument_list" {
         let mut inner_cursor = child.walk();
         child
             .named_children(&mut inner_cursor)
-            .find(|node| !matches!(node.kind(), "comment" | "heredoc_body"))?
+            .find(|node| !matches!(node.kind_str(), "comment" | "heredoc_body"))?
     } else {
         child
     };
     inner
-        .child_by_field_name("name")
+        .field("name")
         .map(|name| name.end_byte())
 }
 
 /// `access_modifier?`: `private def foo` and the class-method variants.
 fn is_access_modifier(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
-    node.child_by_field_name("method")
+    node.field("method")
         .is_some_and(|method| ACCESS_MODIFIERS.contains(&context.source.node_text(method)))
 }
 
 fn block_open<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| matches!(child.kind(), "{" | "do"))
+        .find(|child| matches!(child.kind_str(), "{" | "do"))
 }
 
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }

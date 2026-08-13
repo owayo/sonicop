@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, send_range};
 
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `Hash#compare_by_identity` instead of using `object_id` for keys.";
 
@@ -30,8 +31,8 @@ fn keyed_call<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, std::ops::Range<usize>)> {
-    if node.kind() == "element_reference" {
-        let object = node.child_by_field_name("object")?;
+    if node.kind_str() == "element_reference" {
+        let object = node.field("object")?;
         let mut cursor = node.walk();
         let key = node
             .named_children(&mut cursor)
@@ -41,16 +42,16 @@ fn keyed_call<'tree>(
         // brackets, which is where the node already ends.
         let range = node
             .parent()
-            .filter(|parent| parent.kind() == "assignment")
+            .filter(|parent| parent.kind_str() == "assignment")
             .filter(|parent| {
                 parent
-                    .child_by_field_name("left")
+                    .field("left")
                     .is_some_and(|left| left.id() == node.id())
             })
             .map_or_else(|| node.byte_range(), |parent| parent.byte_range());
         return Some((key, range));
     }
-    let method = node.child_by_field_name("method")?;
+    let method = node.field("method")?;
     if !METHODS.contains(&context.source.node_text(method)) {
         return None;
     }
@@ -61,12 +62,12 @@ fn keyed_call<'tree>(
 /// Whether the node is `(send _ :object_id)`: a call spelled with a dot rather than `&.`, taking no
 /// arguments and no block, or the receiverless form written as a bare name.
 fn object_id_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
-            node.child_by_field_name("method")
+            node.field("method")
                 .is_some_and(|method| context.source.node_text(method) == "object_id")
                 && is_plain_send(node, context)
-                && node.child_by_field_name("block").is_none()
+                && node.field("block").is_none()
                 && arguments(node).is_empty()
         }
         "identifier" => context.source.node_text(node) == "object_id" && !locals.is_lvar(node),

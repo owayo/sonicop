@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 /// `OPS`: the binary operators that have a self-assignment shorthand.
 const OPS: &[&str] = &["+", "-", "*", "**", "/", "%", "^", "<<", ">>", "|", "&"];
@@ -19,19 +20,19 @@ const TARGETS: &[&str] = &["identifier", "instance_variable", "class_variable"];
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("assignment") {
         let (Some(left), Some(right), Some(operator)) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
+            node.field("left"),
+            node.field("right"),
             super::conditional::token(node, &["="]),
         ) else {
             continue;
         };
-        if !TARGETS.contains(&left.kind()) {
+        if !TARGETS.contains(&left.kind_str()) {
             continue;
         }
         let Some((method, receiver, replacement)) = shorthand(right, context) else {
             continue;
         };
-        if receiver.kind() != left.kind()
+        if receiver.kind_str() != left.kind_str()
             || context.source.node_text(receiver) != context.source.node_text(left)
         {
             continue;
@@ -69,27 +70,27 @@ fn shorthand<'a, 'tree>(
     right: Node<'tree>,
     context: &'a RuleContext<'_>,
 ) -> Option<(&'a str, Node<'tree>, Node<'tree>)> {
-    match right.kind() {
+    match right.kind_str() {
         // `x + 1`, which upstream reads as a call taking one argument, and `x && y`, which it reads
         // as an `and` node. The grammar writes both as a binary expression.
         "binary" => {
             let operator = context
                 .source
-                .node_text(right.child_by_field_name("operator")?);
+                .node_text(right.field("operator")?);
             if !OPS.contains(&operator) && !KEYWORD_OPS.contains(&operator) {
                 return None;
             }
             Some((
                 operator,
-                right.child_by_field_name("left")?,
-                right.child_by_field_name("right")?,
+                right.field("left")?,
+                right.field("right")?,
             ))
         }
         // `x = x.+(1)`, the same call written out.
         "call" => {
             let method = context
                 .source
-                .node_text(right.child_by_field_name("method")?);
+                .node_text(right.field("method")?);
             if !OPS.contains(&method) {
                 return None;
             }
@@ -100,7 +101,7 @@ fn shorthand<'a, 'tree>(
             let [only] = argument.parts() else {
                 return None;
             };
-            Some((method, right.child_by_field_name("receiver")?, *only))
+            Some((method, right.field("receiver")?, *only))
         }
         _ => None,
     }

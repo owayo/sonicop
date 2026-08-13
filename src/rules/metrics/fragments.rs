@@ -17,6 +17,7 @@ use tree_sitter::{Node, Parser, Tree};
 
 use super::locals::named_children;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(in crate::rules) struct Fragments {
     /// The recovered parse, absent when the file holds nothing to recover.
@@ -36,14 +37,16 @@ impl Fragments {
             .filter(|comment| {
                 comment
                     .parent()
-                    .is_some_and(|parent| parent.kind() == "heredoc_body")
+                    .is_some_and(|parent| parent.kind_str() == "heredoc_body")
                     && source[comment.byte_range()].contains("#{")
             })
             .collect();
         let percents: Vec<Node<'_>> = context
             .nodes_of("chained_string")
             .flat_map(|chained| named_children(chained).into_iter().skip(1))
-            .filter(|part| part.kind() == "string" && source[part.byte_range()].starts_with('%'))
+            .filter(|part| {
+                part.kind_str() == "string" && source[part.byte_range()].starts_with('%')
+            })
             .collect();
         if comments.is_empty() && percents.is_empty() {
             return Self {
@@ -154,7 +157,7 @@ impl<'a> Blanked<'a> {
     fn write_percent_argument(&mut self, part: Node<'_>) {
         let content = named_children(part)
             .into_iter()
-            .find(|child| child.kind() == "string_content");
+            .find(|child| child.kind_str() == "string_content");
         let (open, close) = match content {
             Some(content) => {
                 self.keep(content.byte_range());

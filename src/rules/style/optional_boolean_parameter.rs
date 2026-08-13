@@ -3,11 +3,12 @@
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
     for definition in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(name) = definition.child_by_field_name("name") else {
+        let Some(name) = definition.field("name") else {
             continue;
         };
         if allowed
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let Some(list) = definition.child_by_field_name("parameters") else {
+        let Some(list) = definition.field("parameters") else {
             continue;
         };
         for parameter in super::parameters::parameters(list) {
@@ -26,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             let (Some(name), Some(value)) = (parameter.name, parameter.value) else {
                 continue;
             };
-            if !matches!(value.kind(), "true" | "false") {
+            if !matches!(value.kind_str(), "true" | "false") {
                 continue;
             }
             let message = format!(

@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "When using `method_missing`, define `respond_to_missing?`.";
 
@@ -13,7 +14,7 @@ const SCOPES: &[&str] = &["class", "module", "singleton_class"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(name) = node.child_by_field_name("name") else {
+        let Some(name) = node.field("name") else {
             continue;
         };
         if context.source.node_text(name) != "method_missing" {
@@ -35,11 +36,11 @@ fn implements_respond_to_missing(context: &RuleContext<'_>, node: Node<'_>) -> b
     };
     let mut found = false;
     crate::rules::walk_named(root, &mut |candidate| {
-        if found || candidate.kind() != node.kind() {
+        if found || candidate.kind_str() != node.kind_str() {
             return;
         }
         let named = candidate
-            .child_by_field_name("name")
+            .field("name")
             .map(|name| context.source.node_text(name));
         if named == Some("respond_to_missing?") && same_scope(enclosing_scope(candidate), scope) {
             found = true;
@@ -59,7 +60,7 @@ fn same_scope(left: Option<Node<'_>>, right: Option<Node<'_>>) -> bool {
 fn enclosing_scope<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if SCOPES.contains(&candidate.kind()) {
+        if SCOPES.contains(&candidate.kind_str()) {
             return Some(candidate);
         }
         current = candidate.parent();

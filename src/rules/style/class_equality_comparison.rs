@@ -3,6 +3,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `instance_of?%<class_argument>s` instead of comparing classes.";
 
@@ -51,7 +52,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let Some(selector) = class_send.child_by_field_name("method") else {
+        let Some(selector) = class_send.field("method") else {
             continue;
         };
         let range = selector.start_byte()..node.end_byte();
@@ -78,23 +79,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(send RECEIVER {:== :equal? :eql?} $_)`, however the grammar spells the message.
 fn comparison<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<(Node<'t>, Node<'t>)> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             (context.source.node_text(operator) == "==").then_some(())?;
             Some((
-                node.child_by_field_name("left")?,
-                node.child_by_field_name("right")?,
+                node.field("left")?,
+                node.field("right")?,
             ))
         }
         "call" => {
-            let method = node.child_by_field_name("method")?;
+            let method = node.field("method")?;
             COMPARISONS
                 .contains(&context.source.node_text(method))
                 .then_some(())?;
-            let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+            let arguments = super::nodes::children(node.field("arguments")?);
             match arguments.as_slice() {
-                [only] => Some((node.child_by_field_name("receiver")?, *only)),
+                [only] => Some((node.field("receiver")?, *only)),
                 _ => None,
             }
         }
@@ -114,17 +115,17 @@ fn class_receiver<'t>(
     let name_method = *CLASS_NAME_METHODS
         .iter()
         .find(|method| is_send_of(context, receiver, &[method]))?;
-    let inner = receiver.child_by_field_name("receiver")?;
+    let inner = receiver.field("receiver")?;
     is_send_of(context, inner, &["class"]).then_some((inner, Some(name_method)))
 }
 
 /// A call of one of `methods` taking no arguments, which is all a two-child `send` can be.
 fn is_send_of(context: &RuleContext<'_>, node: Node<'_>, methods: &[&str]) -> bool {
-    node.kind() == "call"
-        && node.child_by_field_name("arguments").is_none()
-        && node.child_by_field_name("block").is_none()
+    node.kind_str() == "call"
+        && node.field("arguments").is_none()
+        && node.field("block").is_none()
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| methods.contains(&context.source.node_text(method)))
 }
 
@@ -144,14 +145,14 @@ fn class_name(
     if CLASS_NAME_METHODS
         .iter()
         .any(|method| is_send_of(context, class_node, &[method]))
-        && let Some(receiver) = class_node.child_by_field_name("receiver")
+        && let Some(receiver) = class_node.field("receiver")
     {
         return Some(context.source.node_text(receiver).to_owned());
     }
     if is_str(class_node) {
         return Some(string_class_name(class_node, source));
     }
-    (!UNKNOWN_TYPE_KINDS.contains(&class_node.kind())).then(|| source.to_owned())
+    (!UNKNOWN_TYPE_KINDS.contains(&class_node.kind_str())).then(|| source.to_owned())
 }
 
 /// `string_class_name`: the quoted name, qualified when the comparison sits inside a namespace.
@@ -167,7 +168,7 @@ fn string_class_name(class_node: Node<'_>, source: &str) -> String {
 fn require_cbase(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "class" | "module") {
+        if matches!(parent.kind_str(), "class" | "module") {
             return true;
         }
         current = parent.parent();
@@ -179,8 +180,8 @@ fn require_cbase(node: Node<'_>) -> bool {
 fn enclosing_method(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "method" | "singleton_method") {
-            let name = parent.child_by_field_name("name")?;
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
+            let name = parent.field("name")?;
             return Some(context.source.node_text(name).to_owned());
         }
         current = parent.parent();
@@ -194,7 +195,7 @@ fn is_allowed(name: &str, methods: &[String], patterns: &[Regex]) -> bool {
 
 /// A `str` upstream: a literal without interpolation that fits on one line.
 fn is_str(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "character" => true,
         "string" => !is_dstr(node),
         _ => false,
@@ -204,14 +205,14 @@ fn is_str(node: Node<'_>) -> bool {
 /// A `dstr` upstream: an interpolated literal, or one written across more than one line.
 fn is_dstr(node: Node<'_>) -> bool {
     if !matches!(
-        node.kind(),
+        node.kind_str(),
         "string" | "chained_string" | "heredoc_beginning"
     ) {
         return false;
     }
-    node.kind() != "string"
+    node.kind_str() != "string"
         || node.start_position().row != node.end_position().row
         || super::nodes::children(node)
             .iter()
-            .any(|child| child.kind() == "interpolation")
+            .any(|child| child.kind_str() == "interpolation")
 }

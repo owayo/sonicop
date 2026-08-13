@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_MISSING: &str = "Use def with parentheses when there are parameters.";
 const MSG_PRESENT: &str = "Use def without parentheses.";
@@ -11,7 +12,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "require_parentheses".to_owned());
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         let parenthesized = context.source.node_text(parameters).starts_with('(');
@@ -92,24 +93,24 @@ fn forced(node: Node<'_>, parameters: Node<'_>) -> bool {
     let mut cursor = node.walk();
     if !node
         .children(&mut cursor)
-        .any(|child| child.kind() == "end")
+        .any(|child| child.kind_str() == "end")
     {
         return true;
     }
     let written = super::nodes::children(parameters);
-    let anonymous = |parameter: &Node<'_>| match parameter.kind() {
+    let anonymous = |parameter: &Node<'_>| match parameter.kind_str() {
         // `(...)`: forwarding takes the parentheses with it.
         "forward_parameter" => true,
         // `*` and `**` written without a name are anonymous.
         "splat_parameter" | "hash_splat_parameter" => {
-            parameter.child_by_field_name("name").is_none()
+            parameter.field("name").is_none()
         }
         _ => false,
     };
     written.iter().any(anonymous)
         // An anonymous block parameter only counts where it is the last one written.
         || written.last().is_some_and(|last| {
-            last.kind() == "block_parameter" && last.child_by_field_name("name").is_none()
+            last.kind_str() == "block_parameter" && last.field("name").is_none()
         })
 }
 

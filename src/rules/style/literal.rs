@@ -7,6 +7,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// How a literal's body escapes what it holds.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -396,7 +397,7 @@ pub(super) fn trim_interpolation_escape(value: &str) -> String {
 /// The value of one string or symbol node, and whether it is a literal at all.
 pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Decoded> {
     let text = context.source.node_text(node);
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => Some(Decoded {
             value: text.trim_start_matches(':').to_owned(),
             valid: true,

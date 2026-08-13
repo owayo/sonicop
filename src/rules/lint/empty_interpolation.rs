@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::named_children;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Empty interpolation detected.";
 
@@ -26,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn in_percent_literal_array(node: Node<'_>) -> bool {
     let mut parent = node.parent();
     while let Some(current) = parent {
-        match current.kind() {
+        match current.kind_str() {
             "array" => return false,
             "string_array" | "symbol_array" => return true,
             _ => parent = current.parent(),
@@ -39,7 +40,7 @@ fn in_percent_literal_array(node: Node<'_>) -> bool {
 /// empty string literals before asking whether anything is left.
 fn interpolates_nothing(node: Node<'_>) -> bool {
     named_children(node).into_iter().all(|child| {
-        match child.kind() {
+        match child.kind_str() {
             // A `;` is a separator upstream rather than a child of the `begin` it stands in.
             "empty_statement" | "comment" => true,
             "nil" => true,

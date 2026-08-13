@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use super::support::{HeredocEnds, LengthTarget, constructor_call, report_length};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(25);
@@ -28,23 +29,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// a block there, and names the method `lambda`.
 fn block_method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let parent = node.parent()?;
-    if parent.kind() == "lambda" {
+    if parent.kind_str() == "lambda" {
         return Some("lambda");
     }
-    let call = parent.kind().eq("call").then_some(parent)?;
+    let call = parent.kind_str().eq("call").then_some(parent)?;
     Some(
         context
             .source
-            .node_text(call.child_by_field_name("method")?),
+            .node_text(call.field("method")?),
     )
 }
 
 fn block_receiver<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let call = node.parent().filter(|parent| parent.kind() == "call")?;
+    let call = node.parent().filter(|parent| parent.kind_str() == "call")?;
     Some(
         context
             .source
-            .node_text(call.child_by_field_name("receiver")?),
+            .node_text(call.field("receiver")?),
     )
 }
 
@@ -67,7 +68,7 @@ fn block_method_allowed(node: Node<'_>, context: &RuleContext<'_>, allowed: &[St
 /// which RuboCop measures with `Metrics/ClassLength` instead. The constant has to be the global
 /// one, so a namespaced `Foo::Class` is not exempt.
 fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(call) = node.parent().filter(|parent| parent.kind() == "call") else {
+    let Some(call) = node.parent().filter(|parent| parent.kind_str() == "call") else {
         return false;
     };
     matches!(

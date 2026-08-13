@@ -2,6 +2,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
 use crate::rules::support::final_pos;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid leaving a trailing comma in attribute declarations.";
 
@@ -9,12 +10,12 @@ const METHODS: [&str; 4] = ["attr_reader", "attr_writer", "attr_accessor", "attr
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         // `attribute_accessor?` insists on no receiver; a lone `def` argument carries no comma.
         if !METHODS.contains(&context.source.node_text(method))
-            || node.child_by_field_name("receiver").is_some()
+            || node.field("receiver").is_some()
         {
             continue;
         }
@@ -23,7 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let last = arguments[arguments.len() - 1].first();
-        if !matches!(last.kind(), "method" | "singleton_method") {
+        if !matches!(last.kind_str(), "method" | "singleton_method") {
             continue;
         }
         // `range_with_surrounding_space(arguments[-2], side: :right).end.resize(1)`: the one
