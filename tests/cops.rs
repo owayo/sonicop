@@ -19836,3 +19836,64 @@ mod safe_navigation {
         let _ = MSG;
     }
 }
+
+/// `Style/ConditionalAssignment` — 既定の assign_to_condition では条件の値を代入する。
+mod style_conditional_assignment {
+    use super::*;
+
+    const COP: &str = "Style/ConditionalAssignment";
+
+    #[test]
+    fn a_conditional_whose_branches_all_assign_the_same_thing_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if foo
+            ^^^^^^ Use the return of the conditional for variable assignment and comparison.
+              bar = 1
+            else
+              bar = 2
+            end
+            "#,
+        );
+        // 代入先が違えば 1 つにまとめられない。
+        expect_no_offenses(COP, "if foo\n  bar = 1\nelse\n  baz = 2\nend\n");
+        // `else` が無ければ値の無い分岐が残る。
+        expect_no_offenses(COP, "if foo\n  bar = 1\nend\n");
+        // `SingleLineConditionsOnly` の既定では、複数文の分岐があると対象外。
+        expect_no_offenses(COP, "if foo\n  bar = 1\n  baz = 2\nelse\n  bar = 3\nend\n");
+        // 分岐の末尾が代入でなければ対象外。
+        expect_no_offenses(COP, "if foo\n  bar = 1\nelse\n  bar\nend\n");
+    }
+
+    #[test]
+    fn the_assignment_moves_above_the_conditional() {
+        expect_correction(
+            COP,
+            "if foo\n  bar = 1\nelse\n  bar = 2\nend\n",
+            "bar = if foo\n  1\nelse\n  2\n      end\n",
+        );
+        // `elsif` の分岐も同じ値だけが残る。
+        expect_correction(
+            COP,
+            "if foo\n  bar = 1\nelsif baz\n  bar = 2\nelse\n  bar = 3\nend\n",
+            "bar = if foo\n  1\nelsif baz\n  2\nelse\n  3\n      end\n",
+        );
+        // `case` は `else` の代入を上に出す。
+        expect_correction(
+            COP,
+            "case foo\nwhen 1\n  bar = 1\nelse\n  bar = 2\nend\n",
+            "bar = case foo\nwhen 1\n  1\nelse\n  2\n      end\n",
+        );
+        // 三項演算子は 1 行のまま書き換わる。
+        expect_correction(COP, "foo ? bar = 1 : bar = 2\n", "bar = foo ? 1 : 2\n");
+        // セッターは括弧が要る。
+        expect_correction(COP, "foo ? bar << 1 : bar << 2\n", "bar << (foo ? 1 : 2)\n");
+        // 括弧の無い配列は代入を外に出すときに括弧が付く。
+        expect_correction(
+            COP,
+            "if foo\n  bar = 1, 2\nelse\n  bar = 3\nend\n",
+            "bar = if foo\n  [1, 2]\nelse\n  3\n      end\n",
+        );
+    }
+}
