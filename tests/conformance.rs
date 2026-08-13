@@ -2803,6 +2803,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_global_vars")
         .correctable(false),
+        // Perl 由来の特殊変数。`English` を要する名前かどうかで文面が変わる。
+        CopCase::annotated(
+            "Style/SpecialGlobalVars",
+            r#"
+            puts $!
+                 ^^ Prefer `$ERROR_INFO` from the stdlib 'English' module (don't forget to require it) over `$!`.
+            "#,
+        )
+        .id("style_special_global_vars")
+        .correctable(true),
         // 既定の `line_count_based` では、1 行のブロックは波括弧、複数行は `do...end`。
         CopCase::annotated(
             "Style/BlockDelimiters",
@@ -3086,6 +3096,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_hash_as_last_array_item")
         .correctable(true),
+        // 修飾形の `rescue` は式全体を報告する。代入の中では代入の右辺だけが対象。
+        CopCase::annotated(
+            "Style/RescueModifier",
+            r#"
+            x.foo rescue nil
+            ^^^^^^^^^^^^^^^^ Avoid using `rescue` in its modifier form.
+            "#,
+        )
+        .id("style_rescue_modifier")
+        .correctable(true),
         // 既定の explicit では、クラスを名指ししない `rescue` を報告する。
         CopCase::annotated(
             "Style/RescueStandardError",
@@ -3185,6 +3205,16 @@ fn catalogue() -> Vec<CopCase> {
             "##,
         )
         .id("style_symbol_literal")
+        .correctable(true),
+        // ブロックの `{` から `}` までを報告する。`&:sym` は本文が呼ぶメソッド名。
+        CopCase::annotated(
+            "Style/SymbolProc",
+            r#"
+            something.map { |s| s.upcase }
+                          ^^^^^^^^^^^^^^^^ Pass `&:upcase` as an argument to `map` instead of a block.
+            "#,
+        )
+        .id("style_symbol_proc")
         .correctable(true),
         CopCase::annotated(
             "Style/WhenThen",
@@ -3804,6 +3834,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_attr")
         .correctable(true),
+        // 既定の grouped では、まとめられる宣言のそれぞれを報告する。
+        CopCase::annotated(
+            "Style/AccessorGrouping",
+            r#"
+            class K
+              attr_reader :bar
+              ^^^^^^^^^^^^^^^^ Group together all `attr_reader` attributes.
+              attr_reader :baz
+              ^^^^^^^^^^^^^^^^ Group together all `attr_reader` attributes.
+            end
+            "#,
+        )
+        .id("style_accessor_grouping")
+        .correctable(true),
         CopCase::annotated(
             "Style/NestedParenthesizedCalls",
             r#"
@@ -4187,6 +4231,68 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_transform_values")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/AndOr",
+            r#"
+            if foo and bar
+                   ^^^ Use `&&` instead of `and`.
+              x
+            end
+            "#,
+        )
+        .id("style_and_or")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrivialAccessors",
+            r#"
+            class C
+              def foo
+              ^^^ Use `attr_reader` to define trivial reader methods.
+                @foo
+              end
+            end
+            "#,
+        )
+        .id("style_trivial_accessors")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExplicitBlockArgument",
+            r#"
+            def foo
+              bar { |x| yield x }
+              ^^^^^^^^^^^^^^^^^^^ Consider using explicit block argument in the surrounding method's signature over `yield`.
+            end
+            "#,
+        )
+        .id("style_explicit_block_argument")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpEscape",
+            r#"
+            /\-/
+             ^^ Redundant escape inside regexp literal
+            "#,
+        )
+        .id("style_redundant_regexp_escape")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OneLineConditional",
+            r#"
+            if foo then bar else baz end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+            "#,
+        )
+        .id("style_one_line_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantCondition",
+            r#"
+            a ? a : b
+              ^^^^^ Use double pipes `||` instead.
+            "#,
+        )
+        .id("style_redundant_condition")
         .correctable(true),
     ]
 }

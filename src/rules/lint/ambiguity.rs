@@ -5,6 +5,10 @@
 //! call, with a space in front of it and none behind. Nothing here parses that state -- the tree
 //! records it, since only a lexer in that state produces an argument list written without
 //! parentheses, and the operator is then the first character of its first argument.
+//!
+//! Two things the tree records as an argument list are nevertheless never lexed in that state, so
+//! neither warning reaches them: an argument list belonging to a keyword that is not a call, and a
+//! `->` that opens a lambda literal rather than a unary minus.
 
 use std::ops::Range;
 
@@ -24,6 +28,13 @@ pub(super) struct Ambiguity<'tree> {
     arguments: Node<'tree>,
 }
 
+/// Keywords whose arguments the lexer never reads from `expr_arg`.
+///
+/// `return`, `break` and `next` leave the lexer in `expr_mid`, where an operator opens a literal
+/// with nothing to guess at, and `redo` and `retry` take no arguments at all. `yield` and `super`
+/// are absent on purpose: to the lexer they are ordinary command calls and they do warn.
+const KEYWORDS_WITHOUT_ARGUMENTS: &[&str] = &["break", "next", "redo", "retry", "return"];
+
 /// Every argument list written without parentheses whose first argument opens with `prefixes`.
 pub(super) fn scan<'tree>(
     context: &'tree RuleContext<'_>,
@@ -41,6 +52,9 @@ pub(super) fn scan<'tree>(
         let Some(owner) = list.parent() else {
             continue;
         };
+        if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind()) {
+            continue;
+        }
         let Some(first) = named_children(list).into_iter().next() else {
             continue;
         };
@@ -54,6 +68,10 @@ pub(super) fn scan<'tree>(
         };
         let start = first.start_byte();
         let bytes = context.source.text().as_bytes();
+        // `->` is matched as a lambda literal before the `-` can be read as a prefix.
+        if prefix == "-" && bytes.get(start + 1) == Some(&b'>') {
+            continue;
+        }
         // A space in front and none behind is what makes the operator ambiguous.
         if start == 0 || !matches!(bytes[start - 1], b' ' | b'\t') {
             continue;

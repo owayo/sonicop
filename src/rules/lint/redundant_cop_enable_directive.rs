@@ -9,16 +9,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if !context.source.text().contains("enable") {
         return;
     }
+    let mut disabled = Counters::default();
+    let parsed = directives(context);
     // `registry.disabled_names(config)`: an `enable` of a cop the configuration switched off has
     // something to undo, so it starts out counted as disabled.
-    let mut disabled: HashMap<String, usize> = HashMap::new();
-    let parsed = directives(context);
     for directive in &parsed {
         for name in &directive.names {
-            if !disabled.contains_key(name)
+            if !disabled.named.contains_key(name)
                 && context.setting_of::<bool>(name, "Enabled") == Some(false)
             {
-                disabled.insert(name.clone(), 1);
+                disabled.named.insert(name.clone(), 1);
             }
         }
     }
@@ -33,45 +33,91 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `handle_enable_all` and `handle_switch`: the names this directive enabled for nothing.
-fn extra_names(directive: &Directive, disabled: &mut HashMap<String, usize>) -> Vec<String> {
-    if directive.all {
-        if directive.mode == Mode::Disable {
-            return Vec::new();
+/// What `CommentConfig` counts each cop's outstanding disables in.
+///
+/// `handle_switch` reads `directive.cop_names`, which for `# rubocop:disable all` is
+/// `all_cop_names` -- so a blanket disable raises the counter of every cop that exists. Walking
+/// the registry to write that down would say nothing the one count they share does not, so the
+/// blanket disables are kept apart here and read as part of every name's counter.
+#[derive(Default)]
+struct Counters {
+    blanket: usize,
+    named: HashMap<String, i64>,
+}
+
+impl Counters {
+    /// Whether the cop has an outstanding disable for an `enable` to undo.
+    fn covers(&self, name: &str) -> bool {
+        let blanket = i64::try_from(self.blanket).unwrap_or(i64::MAX);
+        let blanket = if reached_by_all(name) { blanket } else { 0 };
+        blanket + self.named.get(name).copied().unwrap_or(0) > 0
+    }
+
+    fn add(&mut self, name: &str) {
+        *self.named.entry(name.to_owned()).or_insert(0) += 1;
+    }
+
+    fn take(&mut self, name: &str) {
+        *self.named.entry(name.to_owned()).or_insert(0) -= 1;
+    }
+
+    /// `handle_enable_all`: every counter that was positive comes down by one. Whether any of them
+    /// was is the whole question -- an `enable all` that lowered nothing had nothing to undo.
+    fn take_all(&mut self) -> bool {
+        let blanket = self.blanket > 0;
+        if blanket {
+            self.blanket -= 1;
         }
-        let mut enabled = 0;
-        for count in disabled.values_mut() {
+        let mut enabled = blanket;
+        for (name, count) in &mut self.named {
+            // A name the blanket covers has already come down with it.
+            if blanket && reached_by_all(name) {
+                continue;
+            }
             if *count > 0 {
                 *count -= 1;
-                enabled += 1;
+                enabled = true;
             }
         }
-        return if enabled == 0 {
-            vec!["all".to_owned()]
-        } else {
+        enabled
+    }
+}
+
+/// `exclude_lint_department_cops`: the two cops `all` never stands for.
+fn reached_by_all(name: &str) -> bool {
+    name != "Lint/RedundantCopDisableDirective" && name != "Lint/Syntax"
+}
+
+/// `handle_enable_all` and `handle_switch`: the names this directive enabled for nothing.
+fn extra_names(directive: &Directive, disabled: &mut Counters) -> Vec<String> {
+    if directive.all {
+        if directive.mode == Mode::Disable {
+            disabled.blanket += 1;
+            return Vec::new();
+        }
+        return if disabled.take_all() {
             Vec::new()
+        } else {
+            vec!["all".to_owned()]
         };
     }
     let mut extras = Vec::new();
     for name in &directive.names {
         if directive.mode == Mode::Disable {
-            *disabled.entry(name.clone()).or_insert(0) += 1;
+            disabled.add(name);
             continue;
         }
         // A cop switched off through its department is switched on again by its own name.
-        let key = if disabled.get(name).copied().unwrap_or(0) > 0 {
+        let key = if disabled.covers(name) {
             Some(name.clone())
         } else {
-            name.split('/').next().map(str::to_owned).filter(|department| {
-                is_department(department) && disabled.get(department).copied().unwrap_or(0) > 0
-            })
+            name.split('/')
+                .next()
+                .map(str::to_owned)
+                .filter(|department| is_department(department) && disabled.covers(department))
         };
         match key {
-            Some(key) => {
-                if let Some(count) = disabled.get_mut(&key) {
-                    *count -= 1;
-                }
-            }
+            Some(key) => disabled.take(&key),
             None => extras.push(name.clone()),
         }
     }
@@ -129,9 +175,11 @@ fn find_name(text: &str, name: &str) -> Option<usize> {
     while let Some(offset) = text[from..].find(name) {
         let at = from + offset;
         let after = at + name.len();
-        if !text.as_bytes().get(after).is_some_and(|byte| {
-            byte.is_ascii_alphanumeric() || *byte == b'_'
-        }) {
+        if !text
+            .as_bytes()
+            .get(after)
+            .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+        {
             return Some(at);
         }
         from = at + 1;

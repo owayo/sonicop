@@ -4,22 +4,28 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::send_node;
 
 /// `BASIC_LITERALS`: the values `simple_method_arg?` reads as "this fold builds a value rather than
 /// an object to fill in".
-const BASIC_LITERAL_KINDS: &[&str] = &[
-    "string",
-    "integer",
-    "float",
-    "simple_symbol",
-    "delimited_symbol",
-    "complex",
-    "rational",
-    "true",
-    "false",
-    "nil",
-    "character",
-];
+///
+/// A literal that interpolates -- or that does not fit on one line -- is a `dstr` or a `dsym`
+/// upstream, and those are composite rather than basic.
+fn is_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let node = strip_sign(node);
+    match node.kind() {
+        "integer" | "float" | "rational" | "complex" | "true" | "false" | "nil"
+        | "simple_symbol" | "character" => true,
+        "string" | "delimited_symbol" => {
+            !send_node::has_interpolation(node) && {
+                let range = node.byte_range();
+                context.source.line_column(range.start).0
+                    == context.source.line_column(range.end).0
+            }
+        }
+        _ => false,
+    }
+}
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
@@ -43,7 +49,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let [seed] = arguments.as_slice() else {
             continue;
         };
-        if BASIC_LITERAL_KINDS.contains(&strip_sign(*seed).kind()) {
+        if is_basic_literal(context, *seed) {
             continue;
         }
         let Some(body) = block.child_by_field_name("body") else {
@@ -171,7 +177,7 @@ fn return_value<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
 /// `accumulator_param_assigned_to?`: a fold that reassigns its accumulator is not the same as
 /// filling one in.
 fn assigns(context: &RuleContext<'_>, body: Node<'_>, name: &str) -> bool {
-    super::super::send_node::any_descendant(body, &mut |node| {
+    send_node::any_descendant(body, &mut |node| {
         node.kind() == "assignment"
             && node.child_by_field_name("left").is_some_and(|left| {
                 left.kind() == "identifier" && context.source.node_text(left) == name

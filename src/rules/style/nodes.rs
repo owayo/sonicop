@@ -54,3 +54,18 @@ pub(super) fn contains_comment(range: &std::ops::Range<usize>, context: &RuleCon
         (first..=last).contains(&line)
     })
 }
+
+/// Whether an `assignment` node is the grammar's misreading of a `=~` match.
+///
+/// `a[0] =~ /x/` parses as an assignment of `~ /x/` to `a[0]`, because an indexing is a valid
+/// assignment target and the grammar prefers that reading. Ruby lexes `=~` as one operator, so a
+/// `=` written straight against a `~` is never an assignment.
+pub(super) fn is_match_assignment(node: Node<'_>, text: &str) -> bool {
+    let Some(left) = node.child_by_field_name("left") else {
+        return false;
+    };
+    let Some(operator) = left.next_sibling() else {
+        return false;
+    };
+    &text[operator.byte_range()] == "=" && text.as_bytes().get(operator.end_byte()) == Some(&b'~')
+}

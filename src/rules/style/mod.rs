@@ -8,6 +8,7 @@ mod line_length_help;
 mod literal;
 mod nodes;
 mod parameters;
+mod parens;
 mod percent;
 mod percent_array;
 mod ranges;
@@ -18,6 +19,8 @@ department_rules! {
     "Style";
     access_modifier_declarations => ("AccessModifierDeclarations", Convention),
     alias => ("Alias", Convention),
+    accessor_grouping => ("AccessorGrouping", Convention),
+    and_or => ("AndOr", Convention),
     array_join => ("ArrayJoin", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
@@ -55,6 +58,7 @@ department_rules! {
     end_block => ("EndBlock", Convention),
     even_odd => ("EvenOdd", Convention),
     expand_path_arguments => ("ExpandPathArguments", Convention),
+    explicit_block_argument => ("ExplicitBlockArgument", Convention),
     exponential_notation => ("ExponentialNotation", Convention),
     float_division => ("FloatDivision", Convention),
     r#for => ("For", Convention),
@@ -103,6 +107,7 @@ department_rules! {
     numeric_literal_prefix => ("NumericLiteralPrefix", Convention),
     numeric_predicate => ("NumericPredicate", Convention),
     numeric_literals => ("NumericLiterals", Convention),
+    one_line_conditional => ("OneLineConditional", Convention),
     optional_arguments => ("OptionalArguments", Convention),
     optional_boolean_parameter => ("OptionalBooleanParameter", Convention),
     or_assignment => ("OrAssignment", Convention),
@@ -117,6 +122,7 @@ department_rules! {
     random_with_offset => ("RandomWithOffset", Convention),
     redundant_assignment => ("RedundantAssignment", Convention),
     redundant_capital_w => ("RedundantCapitalW", Convention),
+    redundant_condition => ("RedundantCondition", Convention),
     redundant_conditional => ("RedundantConditional", Convention),
     redundant_exception => ("RedundantException", Convention),
     redundant_fetch_block => ("RedundantFetchBlock", Convention),
@@ -124,11 +130,13 @@ department_rules! {
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
     redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
+    redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
     redundant_return => ("RedundantReturn", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
     redundant_sort => ("RedundantSort", Convention),
     redundant_sort_by => ("RedundantSortBy", Convention),
     regexp_literal => ("RegexpLiteral", Convention),
+    rescue_modifier => ("RescueModifier", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     self_assignment => ("SelfAssignment", Convention),
@@ -137,6 +145,7 @@ department_rules! {
     single_argument_dig => ("SingleArgumentDig", Convention),
     single_line_methods => ("SingleLineMethods", Convention),
     slicing_with_range => ("SlicingWithRange", Convention),
+    special_global_vars => ("SpecialGlobalVars", Convention),
     stabby_lambda_parentheses => ("StabbyLambdaParentheses", Convention),
     stderr_puts => ("StderrPuts", Convention),
     string_concatenation => ("StringConcatenation", Convention),
@@ -146,6 +155,7 @@ department_rules! {
     struct_inheritance => ("StructInheritance", Convention),
     symbol_array => ("SymbolArray", Convention),
     symbol_literal => ("SymbolLiteral", Convention),
+    symbol_proc => ("SymbolProc", Convention),
     trailing_body_on_class => ("TrailingBodyOnClass", Convention),
     trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
     trailing_body_on_module => ("TrailingBodyOnModule", Convention),
@@ -153,6 +163,7 @@ department_rules! {
     trailing_comma_in_array_literal => ("TrailingCommaInArrayLiteral", Convention),
     trailing_comma_in_hash_literal => ("TrailingCommaInHashLiteral", Convention),
     trailing_method_end_statement => ("TrailingMethodEndStatement", Convention),
+    trivial_accessors => ("TrivialAccessors", Convention),
     unless_else => ("UnlessElse", Convention),
     unpack_first => ("UnpackFirst", Convention),
     variable_interpolation => ("VariableInterpolation", Convention),
