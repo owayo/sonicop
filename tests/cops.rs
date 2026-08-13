@@ -18365,3 +18365,230 @@ mod infinite_loop {
         expect_no_offenses(COP, "until true\n  a\nend\n");
     }
 }
+
+/// `Style/MultilineTernaryOperator` — 複数行の三項演算子。
+mod style_multiline_ternary_operator {
+    use super::*;
+
+    const COP: &str = "Style/MultilineTernaryOperator";
+
+    #[test]
+    fn where_the_value_is_handed_on_the_ternary_is_only_asked_to_fit_on_one_line() {
+        expect_offense(
+            COP,
+            r#"
+            x = cond ?
+                ^^^^^^ Avoid multi-line ternary operators, use `if` or `unless` instead.
+              a :
+              b
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            return cond ?
+                   ^^^^^^ Avoid multi-line ternary operators, use single-line instead.
+              a :
+              b
+            "#,
+        );
+        expect_no_offenses(COP, "y = cond ? a : b\n");
+    }
+
+    #[test]
+    fn the_ternary_becomes_an_if_or_is_folded_onto_one_line() {
+        expect_correction(
+            COP,
+            "x = cond ?\n  a :\n  b\n",
+            "x = if cond\n  a\nelse\n  b\nend\n",
+        );
+        expect_correction(COP, "return cond ?\n  a :\n  b\n", "return cond ? a : b\n");
+        expect_correction(COP, "foo(cond ?\n  a :\n  b)\n", "foo(cond ? a : b)\n");
+        // `foo.bar =` は代入なので `if` が置ける。
+        expect_correction(
+            COP,
+            "self.foo = cond ?\n  a :\n  b\n",
+            "self.foo = if cond\n  a\nelse\n  b\nend\n",
+        );
+    }
+}
+
+/// `Style/TrailingUnderscoreVariable` — 多重代入の末尾の `_`。
+mod style_trailing_underscore_variable {
+    use super::*;
+
+    const COP: &str = "Style/TrailingUnderscoreVariable";
+
+    #[test]
+    fn only_a_run_of_bare_underscores_at_the_end_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            a, b, _ = foo()
+                  ^^ Do not use trailing `_`s in parallel assignment. Prefer `a, b, = foo()`.
+            "#,
+        );
+        // `AllowNamedUnderscoreVariables` の既定は真なので `_c` は残す。
+        expect_no_offenses(COP, "a, b, _c = foo()\n");
+        expect_no_offenses(COP, "a, _, b = foo()\n");
+        // 手前に splat があると末尾の `_` が何を指すか決まらない。
+        expect_no_offenses(COP, "_, *rest, _ = foo()\n");
+        expect_no_offenses(COP, "a, b, * = foo()\n");
+    }
+
+    #[test]
+    fn the_names_and_what_separates_them_go() {
+        expect_correction(COP, "a, b, _, _ = foo()\n", "a, b, = foo()\n");
+        // すべてが `_` なら左辺ごと消える。
+        expect_correction(COP, "_, _, _ = foo()\n", "foo()\n");
+        // 入れ子の分解では閉じ括弧を残す。
+        expect_correction(COP, "a, (b, _) = foo()\n", "a, (b,) = foo()\n");
+        expect_correction(COP, "a, *_ = foo()\n", "a, = foo()\n");
+        expect_correction(COP, "(a, b), _ = foo()\n", "(a, b), = foo()\n");
+    }
+}
+
+/// `Style/IfInsideElse` — `else` の中の `if` は `elsif`。
+mod style_if_inside_else {
+    use super::*;
+
+    const COP: &str = "Style/IfInsideElse";
+
+    #[test]
+    fn the_inner_if_keyword_is_what_the_offense_points_at() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+              x
+            else
+              if b
+              ^^ Convert `if` nested inside `else` to `elsif`.
+                y
+              end
+            end
+            "#,
+        );
+        // `else` と `if` の間のコメントは意図を持つので触らない。
+        expect_no_offenses(
+            COP,
+            "if a\n  x\nelse\n  # note\n  if b\n    y\n  end\nend\n",
+        );
+        // `else` に文が 2 つあれば `elsif` にはならない。
+        expect_no_offenses(COP, "if a\n  x\nelse\n  if b\n    y\n  end\n  w\nend\n");
+        expect_no_offenses(COP, "if a\n  x\nelse\n  unless b\n    y\n  end\nend\n");
+        expect_no_offenses(COP, "if a\n  x\nelsif b\n  y\nend\n");
+    }
+
+    #[test]
+    fn the_else_becomes_an_elsif_and_the_inner_end_goes() {
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  if b\n    y\n  end\nend\n",
+            "if a\n  x\nelsif b\n  y\nend\n",
+        );
+        // 修飾形も同じ `elsif` になる。
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  y if b\nend\n",
+            "if a\n  x\nelsif b\n  y\nend\n",
+        );
+        // 本体が無いときは条件の行ごと消える。
+        expect_correction(
+            COP,
+            "if a\n  x\nelse\n  if b\n  end\nend\n",
+            "if a\n  x\nelsif b\nend\n",
+        );
+    }
+}
+
+/// `Style/CombinableLoops` — 同じコレクションを 2 度回すループ。
+mod style_combinable_loops {
+    use super::*;
+
+    const COP: &str = "Style/CombinableLoops";
+
+    #[test]
+    fn the_second_loop_over_the_same_collection_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def m
+              items.each { |x| foo(x) }
+              items.each { |x| bar(x) }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ Combine this loop with the previous loop.
+            end
+            "#,
+        );
+        // 受け手が違えば別のループ。
+        expect_no_offenses(
+            COP,
+            "def m\n  a.each { |x| foo(x) }\n  b.each { |x| bar(x) }\nend\n",
+        );
+        // 1 つしか無ければ `begin` に入らない。
+        expect_no_offenses(COP, "items.each { |x| foo(x) }\n");
+    }
+
+    #[test]
+    fn the_second_body_moves_into_the_first_loop() {
+        expect_correction(
+            COP,
+            "def m\n  items.each { |x| foo(x) }\n  items.each { |x| bar(x) }\nend\n",
+            "def m\n  items.each { |x| foo(x)\n  bar(x) }\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def m\n  for x in items\n    foo(x)\n  end\n  for x in items\n    bar(x)\n  end\nend\n",
+            "def m\n  for x in items\n    foo(x)\n  bar(x)\n  end\nend\n",
+        );
+        // ブロック引数が違うと 2 つ目の本体が未定義の名前を読むので直せない。
+        let report = expect_offense(
+            COP,
+            r#"
+            def m
+              items.each { |x| foo(x) }
+              items.each { |y| bar(y) }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ Combine this loop with the previous loop.
+            end
+            "#,
+        );
+        assert!(!report.offenses[0].is_correctable());
+    }
+}
+
+/// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
+mod style_redundant_interpolation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantInterpolation";
+
+    #[test]
+    fn a_string_that_holds_nothing_else_is_reported() {
+        expect_offense(
+            COP,
+            r##"
+            c = "#{foo}"
+                ^^^^^^^^ Prefer `to_s` over string interpolation.
+            "##,
+        );
+        expect_no_offenses(COP, "h = \"#{x}y\"\n");
+        expect_no_offenses(COP, "i = \"a\" \"#{b}\"\n");
+        expect_no_offenses(COP, "j = %W[#{k}]\n");
+        // dsym / regexp / xstr は dstr ではない。
+        expect_no_offenses(COP, "n = :\"#{x}\"\n");
+        expect_no_offenses(COP, "o = /#{x}/\n");
+        expect_no_offenses(COP, "p = `#{x}`\n");
+    }
+
+    #[test]
+    fn what_stands_on_its_own_only_gains_a_to_s() {
+        expect_correction(COP, "a = \"#@foo\"\n", "a = @foo.to_s\n");
+        expect_correction(COP, "b = \"#{@foo}\"\n", "b = @foo.to_s\n");
+        expect_correction(COP, "e = \"#{foo.bar}\"\n", "e = foo.bar.to_s\n");
+        // 括弧なしの引数付き呼び出しは括弧が要る。
+        expect_correction(COP, "d = \"#{foo bar}\"\n", "d = foo(bar).to_s\n");
+        // 演算子メソッドは丸ごと括弧に入る。
+        expect_correction(COP, "f = \"#{a + b}\"\n", "f = (a + b).to_s\n");
+        expect_correction(COP, "m = \"#{[1, 2]}\"\n", "m = ([1, 2]).to_s\n");
+    }
+}
