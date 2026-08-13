@@ -1,6 +1,7 @@
 //! Comments as the cops that read them see them: which ones a definition owns, and which of those
 //! say something rather than configure something.
 
+use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::LazyLock;
 
@@ -189,4 +190,37 @@ fn annotation_regex(keywords: &[String]) -> Option<Regex> {
         r"(?mi)^(# ?)(\b(?:{alternatives})\b)(\s*:)?(\s+)?(\S+)?"
     ))
     .ok()
+}
+
+/// The comments of the file indexed by line, as `processed_source.comment_index` holds them.
+///
+/// The cops built on `StatementModifier` all ask the same three questions of it: whether a line
+/// carries a comment, which comment that is, and whether any line of a span does.
+pub(super) struct CommentIndex {
+    by_line: HashMap<usize, Range<usize>>,
+}
+
+impl CommentIndex {
+    pub(super) fn new(context: &RuleContext<'_>) -> Self {
+        Self {
+            by_line: context
+                .comment_ranges()
+                .iter()
+                .map(|range| (context.source.line_column(range.start).0, range.clone()))
+                .collect(),
+        }
+    }
+
+    pub(super) fn at_line(&self, line: usize) -> Option<Range<usize>> {
+        self.by_line.get(&line).cloned()
+    }
+
+    pub(super) fn on_line(&self, line: usize) -> bool {
+        self.by_line.contains_key(&line)
+    }
+
+    /// `contains_comment?`, which asks about whole lines rather than the range itself.
+    pub(super) fn in_lines(&self, lines: Range<usize>) -> bool {
+        lines.into_iter().any(|line| self.on_line(line))
+    }
 }

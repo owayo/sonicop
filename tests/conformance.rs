@@ -3408,6 +3408,103 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_each_for_simple_loop")
         .correctable(true),
         CopCase::annotated(
+            "Style/NestedTernaryOperator",
+            r#"
+            x = a ? b : c ? d : e
+                        ^^^^^^^^^ Ternary operators must not be nested. Prefer `if` or `else` constructs instead.
+            "#,
+        )
+        .id("style_nested_ternary_operator")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantAssignment",
+            r#"
+            def foo
+              x = compute
+              ^^^^^^^^^^^ Redundant assignment before returning detected.
+              x
+            end
+            "#,
+        )
+        .id("style_redundant_assignment")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyCaseCondition",
+            r#"
+            case
+            ^^^^ Do not use empty `case` condition, instead use an `if` expression.
+            when a
+              b
+            end
+            puts 1
+            "#,
+        )
+        .id("style_empty_case_condition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyElse",
+            r#"
+            if a
+              b
+            else
+            ^^^^ Redundant `else`-clause.
+            end
+            "#,
+        )
+        .id("style_empty_else")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/StructInheritance",
+            r#"
+            class Person < Struct.new(:a, :b)
+                           ^^^^^^^^^^^^^^^^^^ Don't extend an instance initialized by `Struct.new`. Use a block to customize the struct.
+              def age
+                42
+              end
+            end
+            "#,
+        )
+        .id("style_struct_inheritance")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/WhileUntilModifier",
+            r#"
+            while a
+            ^^^^^ Favor modifier `while` usage when having a single-line body.
+              b
+            end
+            "#,
+        )
+        .id("style_while_until_modifier")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CommandLiteral",
+            r#"
+            a = %x(ls)
+                ^^^^^^ Use backticks around command string.
+            "#,
+        )
+        .id("style_command_literal")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DoubleNegation",
+            r#"
+            x = !!y
+                ^ Avoid the use of double negation (`!!`).
+            "#,
+        )
+        .id("style_double_negation")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ClassEqualityComparison",
+            r#"
+            x.class == Foo
+              ^^^^^^^^^^^^ Use `instance_of?(Foo)` instead of comparing classes.
+            "#,
+        )
+        .id("style_class_equality_comparison")
+        .correctable(true),
+        CopCase::annotated(
             "Style/EmptyBlockParameter",
             r#"
             a do ||
