@@ -18,7 +18,7 @@ use tree_sitter::{Node, Parser, Tree};
 use super::locals::named_children;
 use crate::rules::RuleContext;
 
-pub(super) struct Fragments {
+pub(in crate::rules) struct Fragments {
     /// The recovered parse, absent when the file holds nothing to recover.
     tree: Option<Tree>,
     /// The nodes whose text was swallowed, by node id.
@@ -28,7 +28,7 @@ pub(super) struct Fragments {
 }
 
 impl Fragments {
-    pub(super) fn new(context: &RuleContext<'_>) -> Self {
+    pub(in crate::rules) fn new(context: &RuleContext<'_>) -> Self {
         let source = context.source.text();
         // Nothing is copied or parsed until something needs recovering, which almost no file does.
         let comments: Vec<Node<'_>> = context

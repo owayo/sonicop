@@ -5,6 +5,8 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use crate::rules::lint::variable_force::Analysis;
+use crate::rules::metrics::fragments::Fragments;
+use crate::rules::metrics::locals::Locals;
 use crate::rules::naming::support::Variables;
 
 use crate::config::Config;
@@ -130,6 +132,11 @@ pub(crate) struct RuleContext<'a> {
     /// file. Five cops ask for it, and like [`Self::variable_analysis`] it depends on nothing but
     /// the tree and the source.
     variables: OnceCell<Variables>,
+    /// The code the grammar swallowed, recovered once per file. The three complexity cops each
+    /// used to recover it for themselves.
+    fragments: OnceCell<Fragments>,
+    /// Which identifiers the Metrics cops read as local variables, replayed once per file.
+    metric_locals: OnceCell<Locals>,
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -164,6 +171,8 @@ impl<'a> RuleContext<'a> {
             directive_review: None,
             analysis: OnceCell::new(),
             variables: OnceCell::new(),
+            fragments: OnceCell::new(),
+            metric_locals: OnceCell::new(),
         }
     }
 
@@ -191,6 +200,17 @@ impl<'a> RuleContext<'a> {
     pub(in crate::rules) fn variable_roles(&self) -> &Variables {
         self.variables
             .get_or_init(|| Variables::resolve(self.ast.root, self.source))
+    }
+
+    /// The code the grammar read as something other than code, recovered once per file.
+    pub(in crate::rules) fn fragments(&self) -> &Fragments {
+        self.fragments.get_or_init(|| Fragments::new(self))
+    }
+
+    /// Which identifiers the Metrics cops read as local variables.
+    pub(in crate::rules) fn metric_locals(&self) -> &Locals {
+        self.metric_locals
+            .get_or_init(|| Locals::new(self, self.fragments()))
     }
 }
 

@@ -12,6 +12,9 @@ department_rules! {
 }
 
 mod complexity;
-mod fragments;
-mod locals;
+/// Reachable from the shared `RuleContext`: the recovery is the same for every cop that asks,
+/// so the context runs it once per file.
+pub(in crate::rules) mod fragments;
+/// Reachable from the shared `RuleContext` for the same reason as `fragments`.
+pub(in crate::rules) mod locals;
 mod support;

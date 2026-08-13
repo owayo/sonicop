@@ -19,12 +19,12 @@ use super::fragments::Fragments;
 use crate::rules::RuleContext;
 use crate::source::SourceFile;
 
-pub(super) struct Locals {
+pub(in crate::rules) struct Locals {
     lvars: HashSet<usize>,
 }
 
 impl Locals {
-    pub(super) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
+    pub(in crate::rules) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
         let mut walker = Walker {
             source: context.source,
             fragments,
