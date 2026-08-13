@@ -298,7 +298,7 @@ fn parens_required(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `Node#keyword?`.
 fn is_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if is_special_keyword(context, node) {
+    if is_special_keyword(context, node) || is_super(node) {
         return true;
     }
     if node.kind() == "unary" {
@@ -780,6 +780,16 @@ fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_
     is_call(context, node)
 }
 
+/// Whether the node is a `super` call, which the grammar writes as a call whose selector is the
+/// keyword itself.
+fn is_super(node: Node<'_>) -> bool {
+    node.kind() == "super"
+        || (node.kind() == "call"
+            && node
+                .child_by_field_name("method")
+                .is_some_and(|method| method.kind() == "super"))
+}
+
 /// Whether an assignment is the setter call upstream builds a `send` for.
 fn is_setter_assignment(node: Node<'_>) -> bool {
     node.kind() == "assignment"
@@ -895,7 +905,7 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
     // was given. `not x` is a `send`, whose selector counts as a second child there and so can
     // never be the single parenthesized argument below.
     let arguments = match node.kind() {
-        kind if JUMPS.contains(&kind) => argument_list(node)
+        kind if JUMPS.contains(&kind) || is_super(node) => argument_list(node)
             .map(super::nodes::children)
             .unwrap_or_default(),
         // `(defined? x)` holds its expression alone, so a parenthesized one is the single argument
@@ -971,6 +981,11 @@ fn is_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if is_setter_assignment(node) {
         return true;
     }
+    // `super` is a node type of its own upstream rather than a `send`, while the grammar spells a
+    // `super` with arguments as an ordinary call.
+    if is_super(node) {
+        return false;
+    }
     matches!(node.kind(), "call" | "element_reference" | "identifier")
         || (node.kind() == "binary" && !is_operator_keyword(context, node))
         || (node.kind() == "unary"
@@ -1038,7 +1053,8 @@ fn method_call_with_redundant_parentheses(
     call: Node<'_>,
 ) -> bool {
     let candidate = is_send(context, locals, call)
-        || matches!(call.kind(), "super" | "yield")
+        || is_super(call)
+        || call.kind() == "yield"
         || (call.kind() == "unary"
             && call
                 .child_by_field_name("operator")
