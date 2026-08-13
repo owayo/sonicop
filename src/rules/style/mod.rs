@@ -133,6 +133,7 @@ department_rules! {
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_interpolation => ("RedundantInterpolation", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
+    redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
     redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
     redundant_return => ("RedundantReturn", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
