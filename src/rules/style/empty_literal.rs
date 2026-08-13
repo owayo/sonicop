@@ -1,0 +1,218 @@
+use tree_sitter::Node;
+
+use crate::diagnostic::{Edit, Offense};
+use crate::magic_comment::MagicComment;
+use crate::rules::RuleContext;
+use crate::rules::send_node::{arguments, top_level_constant};
+
+pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let frozen = frozen_strings(context);
+    for node in context.nodes_of_any(&["call", "element_reference"]) {
+        let Some(literal) = Literal::read(node, context) else {
+            continue;
+        };
+        if literal == Literal::String && frozen {
+            continue;
+        }
+        let source = context.source.node_text(node);
+        let message = match literal {
+            Literal::Array => format!("Use array literal `[]` instead of `{source}`."),
+            Literal::Hash => format!("Use hash literal `{{}}` instead of `{source}`."),
+            Literal::String => format!(
+                "Use string literal `{}` instead of `String.new`.",
+                preferred_string_literal(context)
+            ),
+        };
+        let (range, correction) = match literal {
+            Literal::Array => (node.byte_range(), "[]".to_owned()),
+            Literal::String => (node.byte_range(), preferred_string_literal(context)),
+            Literal::Hash => match unparenthesized_first_argument(node, context) {
+                // `some_method Hash.new` cannot become `some_method {}`: the braces would read as
+                // a block, so the whole argument list is parenthesized instead.
+                Some((start, end, rest)) => (
+                    start..end,
+                    format!(
+                        "({})",
+                        std::iter::once("{}".to_owned())
+                            .chain(rest)
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                ),
+                None => (node.byte_range(), "{}".to_owned()),
+            },
+        };
+        offenses.push(
+            context
+                .offense(message, node.byte_range())
+                .corrected_by(Edit {
+                    start: range.start,
+                    end: range.end,
+                    replacement: correction,
+                    safe: true,
+                }),
+        );
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Literal {
+    Array,
+    Hash,
+    String,
+}
+
+impl Literal {
+    fn read(node: Node<'_>, context: &RuleContext<'_>) -> Option<Self> {
+        match node.kind() {
+            // `Array[]` and `Hash[]`, which upstream reads as a call to `:[]` with no arguments.
+            "element_reference" => {
+                if super::nodes::children(node).len() != 1 {
+                    return None;
+                }
+                let object = node.child_by_field_name("object")?;
+                named_constant(object, context).filter(|literal| *literal != Self::String)
+            }
+            "call" => {
+                let method = node.child_by_field_name("method")?;
+                let name = context.source.node_text(method);
+                let list = arguments(node);
+                match node.child_by_field_name("receiver") {
+                    // `Array.new`, `Hash.new` and `String.new`.
+                    Some(receiver) => {
+                        if name != "new" {
+                            return None;
+                        }
+                        let literal = named_constant(receiver, context)?;
+                        let empty_array_argument = match list.as_slice() {
+                            [] => false,
+                            [only] => match only.parts() {
+                                [argument] => is_empty_array(*argument, context),
+                                _ => return None,
+                            },
+                            _ => return None,
+                        };
+                        // `Array.new([])` is still an empty array; `Hash.new` and `String.new`
+                        // take no argument at all.
+                        if empty_array_argument && literal != Self::Array {
+                            return None;
+                        }
+                        // A block makes the result something other than the bare literal.
+                        if literal != Self::String && node.child_by_field_name("block").is_some() {
+                            return None;
+                        }
+                        Some(literal)
+                    }
+                    // `Array([])` and `Hash([])`, the conversion functions.
+                    None => {
+                        let literal = match name {
+                            "Array" => Self::Array,
+                            "Hash" => Self::Hash,
+                            _ => return None,
+                        };
+                        let [only] = list.as_slice() else {
+                            return None;
+                        };
+                        let [argument] = only.parts() else {
+                            return None;
+                        };
+                        is_empty_array(*argument, context).then_some(literal)
+                    }
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
+/// `(const {nil? cbase} :Array)` and its `Hash` and `String` counterparts.
+fn named_constant(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
+    for (name, literal) in [
+        ("Array", Literal::Array),
+        ("Hash", Literal::Hash),
+        ("String", Literal::String),
+    ] {
+        if top_level_constant(node, name, context) {
+            return Some(literal);
+        }
+    }
+    None
+}
+
+fn is_empty_array(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.kind() == "array"
+        && super::nodes::children(node).is_empty()
+        && context.source.node_text(node).starts_with('[')
+}
+
+/// `first_argument_unparenthesized?`: the span the whole argument list has to be rewritten over,
+/// and the sources of the arguments that follow.
+fn unparenthesized_first_argument(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+) -> Option<(usize, usize, Vec<String>)> {
+    let parent = node.parent()?;
+    let list = match parent.kind() {
+        "call" | "super" => parent.child_by_field_name("arguments")?,
+        "argument_list" => {
+            let call = parent.parent()?;
+            if !matches!(call.kind(), "call" | "super") {
+                return None;
+            }
+            parent
+        }
+        _ => return None,
+    };
+    if context.source.node_text(list).starts_with('(') {
+        return None;
+    }
+    let call = match list.id() == parent.id() {
+        true => parent.parent()?,
+        false => parent,
+    };
+    let all = arguments(call);
+    let first = all.first()?;
+    if first.first().id() != node.id() {
+        return None;
+    }
+    let rest: Vec<String> = all[1..]
+        .iter()
+        .map(|argument| context.source.slice(argument.range()).to_owned())
+        .collect();
+    let last = all.last()?;
+    Some((node.start_byte() - 1, last.range().end, rest))
+}
+
+/// `preferred_string_literal`, which follows `Style/StringLiterals`.
+fn preferred_string_literal(context: &RuleContext<'_>) -> String {
+    match context
+        .setting_of::<String>("Style/StringLiterals", "EnforcedStyle")
+        .as_deref()
+    {
+        Some("double_quotes") => "\"\"".to_owned(),
+        _ => "''".to_owned(),
+    }
+}
+
+/// `frozen_strings?`: whether a bare `''` would differ from `String.new`, which it does unless the
+/// file explicitly turns frozen string literals off.
+fn frozen_strings(context: &RuleContext<'_>) -> bool {
+    let mut specified = None;
+    for line_number in 1..=context.source.line_count() {
+        let line = context.source.line(line_number);
+        let trimmed = line.trim();
+        if !trimmed.is_empty() && !trimmed.starts_with('#') {
+            break;
+        }
+        let comment = MagicComment::parse(line);
+        if specified.is_none() && comment.frozen_string_literal_specified() {
+            specified = Some(comment.frozen_string_literal_enabled());
+        }
+    }
+    match specified {
+        Some(enabled) => enabled,
+        None => context
+            .setting_of::<bool>("Style/FrozenStringLiteralComment", "Enabled")
+            .unwrap_or(true),
+    }
+}
