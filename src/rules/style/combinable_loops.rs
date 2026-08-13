@@ -127,7 +127,7 @@ impl<'t> Loop<'t> {
     fn same_collection_as(&self, context: &RuleContext<'_>, other: &Self) -> bool {
         self.method == other.method
             && match (self.receiver, other.receiver) {
-                (Some(left), Some(right)) => same_tree(context, left, right),
+                (Some(left), Some(right)) => super::nodes::same_tree(context, left, right),
                 (None, None) => true,
                 _ => false,
             }
@@ -136,13 +136,13 @@ impl<'t> Loop<'t> {
                 .arguments
                 .iter()
                 .zip(&other.arguments)
-                .all(|(left, right)| same_tree(context, *left, *right))
+                .all(|(left, right)| super::nodes::same_tree(context, *left, *right))
     }
 
     /// `node.arguments == node.left_sibling.arguments` / `node.variable == sibling.variable`.
     fn binds_like(&self, context: &RuleContext<'_>, other: &Self) -> bool {
         match (self.bindings, other.bindings) {
-            (Some(left), Some(right)) => same_tree(context, left, right),
+            (Some(left), Some(right)) => super::nodes::same_tree(context, left, right),
             (None, None) => true,
             _ => false,
         }
@@ -211,21 +211,4 @@ fn closing<'t>(block: Node<'t>) -> Option<Node<'t>> {
         .into_iter()
         .rev()
         .find(|child| !child.is_named() && matches!(child.kind(), "}" | "end"))
-}
-
-/// Whether two nodes are the same node, which is what comparing two AST nodes asks upstream.
-fn same_tree(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_>) -> bool {
-    if left.kind() != right.kind() {
-        return false;
-    }
-    let (left_children, right_children) =
-        (super::nodes::children(left), super::nodes::children(right));
-    if left_children.is_empty() && right_children.is_empty() {
-        return context.source.node_text(left) == context.source.node_text(right);
-    }
-    left_children.len() == right_children.len()
-        && left_children
-            .iter()
-            .zip(&right_children)
-            .all(|(left, right)| same_tree(context, *left, *right))
 }
