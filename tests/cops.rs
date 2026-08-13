@@ -16463,3 +16463,101 @@ mod and_or {
         .run();
     }
 }
+
+/// `Style/TrivialAccessors`: 単純な読み書きは `attr_*` で。
+///
+/// 期待値は本家 1.89.0 の `--only Style/TrivialAccessors` の実測。
+mod trivial_accessors {
+    use super::*;
+
+    const COP: &str = "Style/TrivialAccessors";
+
+    #[test]
+    fn a_reader_and_a_writer_become_attr_declarations() {
+        expect_correction(
+            COP,
+            "class C\n  def foo\n    @foo\n  end\nend\n",
+            "class C\n  attr_reader :foo\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class C\n  def bar=(val)\n    @bar = val\n  end\nend\n",
+            "class C\n  attr_writer :bar\nend\n",
+        );
+        // A class method is rewritten into a singleton class body.
+        expect_correction(
+            COP,
+            "class C\n  def self.cls\n    @cls\n  end\nend\n",
+            "class C\n  class << self\n    attr_reader :cls\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn what_an_accessor_could_not_replace_is_left_alone() {
+        // `ExactNameMatch` wants the names to agree.
+        expect_no_offenses(COP, "class C\n  def other\n    @different\n  end\nend\n");
+        // `AllowPredicates` and the allowed names.
+        expect_no_offenses(COP, "class C\n  def qux?\n    @qux\n  end\nend\n");
+        expect_no_offenses(COP, "class C\n  def to_s\n    @to_s\n  end\nend\n");
+        expect_no_offenses(
+            COP,
+            "class C\n  def initialize\n    @initialize\n  end\nend\n",
+        );
+        // `AllowDSLWriters` allows a writer whose name does not end in `=`.
+        expect_no_offenses(COP, "class C\n  def baz(val)\n    @baz = val\n  end\nend\n");
+        expect_no_offenses(COP, "class C\n  def m\n    @a\n    @b\n  end\nend\n");
+        // A definition inside a module reads as a mixin rather than as an attribute.
+        expect_no_offenses(COP, "module M\n  def foo\n    @foo\n  end\nend\n");
+        expect_no_offenses(COP, "def top\n  @top\nend\n");
+    }
+}
+
+/// `Style/ExplicitBlockArgument`: `yield` を渡すだけのブロックは `&block` に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ExplicitBlockArgument` の実測。
+mod explicit_block_argument {
+    use super::*;
+
+    const COP: &str = "Style/ExplicitBlockArgument";
+
+    #[test]
+    fn a_block_that_only_yields_becomes_a_block_argument() {
+        expect_correction(
+            COP,
+            "def foo\n  bar { yield }\nend\n",
+            "def foo(&block)\n  bar(&block)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo\n  bar { |x| yield x }\nend\n",
+            "def foo(&block)\n  bar(&block)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo(a)\n  bar { |x| yield x }\nend\n",
+            "def foo(a, &block)\n  bar(&block)\nend\n",
+        );
+        // A block argument already declared keeps its own name.
+        expect_correction(
+            COP,
+            "def foo(&blk)\n  bar { |x| yield x }\nend\n",
+            "def foo(&blk)\n  bar(&blk)\nend\n",
+        );
+        // The definition only gains the parameter once however many blocks it holds.
+        expect_correction(
+            COP,
+            "def foo\n  bar { |x| yield x }\n  baz { |y| yield y }\nend\n",
+            "def foo(&block)\n  bar(&block)\n  baz(&block)\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_block_that_does_anything_else_is_left_alone() {
+        expect_no_offenses(COP, "def foo\n  bar { |x| yield y }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x, y| yield x }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x| yield x, y }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x| puts x; yield x }\nend\n");
+        // A `yield` outside any method definition has no signature to move to.
+        expect_no_offenses(COP, "bar { |x| yield x }\n");
+    }
+}

@@ -3892,6 +3892,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_and_or")
         .correctable(true),
+        CopCase::annotated(
+            "Style/TrivialAccessors",
+            r#"
+            class C
+              def foo
+              ^^^ Use `attr_reader` to define trivial reader methods.
+                @foo
+              end
+            end
+            "#,
+        )
+        .id("style_trivial_accessors")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExplicitBlockArgument",
+            r#"
+            def foo
+              bar { |x| yield x }
+              ^^^^^^^^^^^^^^^^^^^ Consider using explicit block argument in the surrounding method's signature over `yield`.
+            end
+            "#,
+        )
+        .id("style_explicit_block_argument")
+        .correctable(true),
     ]
 }
 
