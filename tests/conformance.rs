@@ -3884,6 +3884,43 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_signal_exception")
         .correctable(true),
+        CopCase::annotated(
+            "Style/Sample",
+            r#"
+            a.shuffle.first
+              ^^^^^^^^^^^^^ Use `sample` instead of `shuffle.first`.
+            "#,
+        )
+        .id("style_sample")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFreeze",
+            r#"
+            :sym.freeze
+            ^^^^^^^^^^^ Do not freeze immutable objects, as freezing them has no effect.
+            "#,
+        )
+        .id("style_redundant_freeze")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/IfWithSemicolon",
+            r#"
+            if foo; bar; end
+            ^^^^^^^^^^^^^^^^ Do not use `if foo;` - use a ternary operator instead.
+            "#,
+        )
+        .id("style_if_with_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MethodDefParentheses",
+            r#"
+            def foo a, b
+                    ^^^^ Use def with parentheses when there are parameters.
+            end
+            "#,
+        )
+        .id("style_method_def_parentheses")
+        .correctable(true),
     ]
 }
 

@@ -15983,3 +15983,247 @@ mod style_batch_a2 {
         expect_no_offenses("Style/SignalException", "Foo.fail 'x'\n");
     }
 }
+
+/// `Style/Sample`: `shuffle` に続く取り出しは `sample` 一本にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Sample` の実測。
+mod sample {
+    use super::*;
+
+    const COP: &str = "Style/Sample";
+
+    #[test]
+    fn every_way_of_taking_one_element_becomes_a_bare_sample() {
+        expect_correction(COP, "a.shuffle.first\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.last\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle[0]\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle[-1]\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.at(0)\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.slice(0)\n", "a.sample\n");
+        // A receiverless `shuffle` is still a call, and safe navigation is one too.
+        expect_correction(COP, "shuffle.first\n", "sample\n");
+        expect_correction(COP, "a&.shuffle&.first\n", "a&.sample\n");
+    }
+
+    #[test]
+    fn a_countable_index_becomes_the_argument() {
+        expect_correction(COP, "a.shuffle.first(3)\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0, 3]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0..2]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0...3]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0..]\n", "a.sample(1)\n");
+        // `shuffle`'s own argument comes after the count.
+        expect_correction(
+            COP,
+            "a.shuffle(random: r).first(3)\n",
+            "a.sample(3, random: r)\n",
+        );
+    }
+
+    #[test]
+    fn an_index_sample_has_no_argument_for_is_left_alone() {
+        expect_no_offenses(COP, "a.shuffle[2]\n");
+        expect_no_offenses(COP, "a.shuffle.at(2)\n");
+        expect_no_offenses(COP, "a.shuffle[0..-1]\n");
+        expect_no_offenses(COP, "a.shuffle[x]\n");
+        // A block on `shuffle` makes its receiver a `block` node, which the pattern never matches.
+        expect_no_offenses(COP, "a.shuffle { |x| x }.first\n");
+        expect_no_offenses(COP, "a.sample\n");
+        // A local variable named `shuffle` is an `lvar`, not a call.
+        expect_no_offenses(COP, "shuffle = [1]\nshuffle.first\n");
+    }
+}
+
+/// `Style/RedundantFreeze`: 凍らせても意味の無い値の `freeze`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantFreeze` の実測。
+mod redundant_freeze {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFreeze";
+
+    #[test]
+    fn an_immutable_literal_gains_nothing_from_freezing() {
+        expect_correction(COP, "1.freeze\n", "1\n");
+        expect_correction(COP, "-1.freeze\n", "-1\n");
+        expect_correction(COP, "1i.freeze\n", "1i\n");
+        expect_correction(COP, "1r.freeze\n", "1r\n");
+        expect_correction(COP, ":sym.freeze\n", ":sym\n");
+        expect_correction(COP, ":\"a#{b}\".freeze\n", ":\"a#{b}\"\n");
+        expect_correction(COP, "nil.freeze\n", "nil\n");
+        expect_correction(COP, "true.freeze\n", "true\n");
+        // `(1)` is a `begin` around the literal, which upstream unwraps before it looks.
+        expect_correction(COP, "(1).freeze\n", "(1)\n");
+    }
+
+    #[test]
+    fn an_operation_that_can_only_answer_with_an_immutable_object_counts_too() {
+        expect_correction(COP, "(1 + 2).freeze\n", "(1 + 2)\n");
+        expect_correction(COP, "(1 << 2).freeze\n", "(1 << 2)\n");
+        expect_correction(COP, "(x - 1).freeze\n", "(x - 1)\n");
+        expect_correction(COP, "(x == y).freeze\n", "(x == y)\n");
+        expect_correction(COP, "x.count.freeze\n", "x.count\n");
+        expect_correction(COP, "x.count { }.freeze\n", "x.count { }\n");
+        expect_correction(COP, "count.freeze\n", "count\n");
+    }
+
+    #[test]
+    fn a_mutable_receiver_is_left_alone() {
+        expect_no_offenses(COP, "\"s\".freeze\n");
+        expect_no_offenses(COP, "[1].freeze\n");
+        expect_no_offenses(COP, "{ a: 1 }.freeze\n");
+        expect_no_offenses(COP, "(\"a\" + \"b\").freeze\n");
+        expect_no_offenses(COP, "([1] + 2).freeze\n");
+        expect_no_offenses(COP, "(1 <=> 2).freeze\n");
+        expect_no_offenses(COP, "x.map { }.freeze\n");
+        // `freeze` reached with safe navigation is a `csend`, which `on_send` never sees.
+        expect_no_offenses(COP, "x&.freeze\n");
+        expect_no_offenses(COP, "def m\n  count = 1\n  count.freeze\nend\n");
+    }
+
+    /// Ruby 3.0 で `regexp` と `range` が凍るようになり、文字列は magic comment 次第。
+    #[test]
+    fn what_is_already_frozen_depends_on_the_target_version() {
+        const MESSAGE: &str = "Do not freeze immutable objects, as freezing them has no effect.";
+        let source = "# frozen_string_literal: true\n\"s\".freeze\n/re/.freeze\n(1..2).freeze\n";
+        CopCase::new(COP, source, vec![Annotation::new(2, 1, 10, MESSAGE)])
+            .config("AllCops:\n  TargetRubyVersion: 2.7\n")
+            .run();
+        CopCase::new(
+            COP,
+            source,
+            vec![
+                Annotation::new(2, 1, 10, MESSAGE),
+                Annotation::new(3, 1, 11, MESSAGE),
+                Annotation::new(4, 1, 13, MESSAGE),
+            ],
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+}
+
+/// `Style/IfWithSemicolon`: `if x; y; end` は三項演算子か改行に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/IfWithSemicolon` の実測。
+mod if_with_semicolon {
+    use super::*;
+
+    const COP: &str = "Style/IfWithSemicolon";
+
+    #[test]
+    fn a_one_line_conditional_becomes_a_ternary() {
+        expect_correction(COP, "if foo; bar; end\n", "foo ? bar : nil\n");
+        expect_correction(COP, "if foo; end\n", "foo ? nil : nil\n");
+        expect_correction(COP, "unless foo; bar; end\n", "foo ? nil : bar\n");
+        expect_correction(COP, "if foo; bar; else baz end\n", "foo ? bar : baz\n");
+        // A call written without parentheses gets them, or the ternary would not parse.
+        expect_correction(
+            COP,
+            "if foo; puts 1; else puts 2; end\n",
+            "foo ? puts(1) : puts(2)\n",
+        );
+        // An assignment used as the condition keeps its parentheses.
+        expect_correction(COP, "if x = 1; bar; end\n", "(x = 1) ? bar : nil\n");
+    }
+
+    #[test]
+    fn a_branch_that_cannot_become_a_ternary_arm_gets_a_newline() {
+        expect_offense(
+            COP,
+            r#"
+            if foo; bar; baz; end
+            ^^^^^^^^^^^^^^^^^^^^^ Do not use `if foo;` - use a newline instead.
+            "#,
+        );
+        expect_correction(COP, "if foo; bar; baz; end\n", "if foo\n bar; baz; end\n");
+        expect_correction(COP, "if foo; return 1; end\n", "if foo\n return 1; end\n");
+        expect_correction(
+            COP,
+            "if foo; a, b = 1, 2; end\n",
+            "if foo\n a, b = 1, 2; end\n",
+        );
+    }
+
+    #[test]
+    fn an_elsif_chain_is_written_out_over_several_lines() {
+        expect_offense(
+            COP,
+            r#"
+            if foo; bar; elsif baz; qux; end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not use `if foo;` - use `if/else` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo; bar; elsif baz; qux; end\n",
+            "if foo\n  bar\nelsif baz\n  qux\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_conditional_written_with_then_or_a_newline_is_left_alone() {
+        expect_no_offenses(COP, "if foo then bar end\n");
+        expect_no_offenses(COP, "if foo\n  bar\nend\n");
+        expect_no_offenses(COP, "bar if foo\n");
+        expect_no_offenses(COP, "foo ? bar : baz\n");
+    }
+}
+
+/// `Style/MethodDefParentheses`: 既定では引数のある `def` に括弧を要求する。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MethodDefParentheses` の実測。
+mod method_def_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/MethodDefParentheses";
+
+    #[test]
+    fn parameters_written_without_parentheses_gain_them() {
+        expect_offense(
+            COP,
+            r#"
+            def foo a, b
+                    ^^^^ Use def with parentheses when there are parameters.
+            end
+            "#,
+        );
+        expect_correction(COP, "def foo a, b\nend\n", "def foo(a, b)\nend\n");
+        expect_correction(COP, "def self.bar a\nend\n", "def self.bar(a)\nend\n");
+        // The whole run of spaces before the parameters becomes the opening parenthesis.
+        expect_correction(COP, "def spaced   a\nend\n", "def spaced(a)\nend\n");
+        // The grammar folds `a = nil, b = nil` into one node; the span is still the whole list.
+        expect_correction(
+            COP,
+            "def r a = nil, b = nil\nend\n",
+            "def r(a = nil, b = nil)\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_definition_that_declares_nothing_is_left_alone() {
+        expect_no_offenses(COP, "def qux\nend\n");
+        expect_no_offenses(COP, "def n()\nend\n");
+        expect_no_offenses(COP, "def baz(a)\nend\n");
+    }
+
+    /// `require_no_parentheses` は逆向き。無名引数と endless def は括弧を保つ。
+    #[test]
+    fn the_opposite_style_takes_the_parentheses_off() {
+        CopCase::new(
+            COP,
+            "def baz(a)\nend\n",
+            vec![Annotation::new(1, 8, 3, "Use def without parentheses.")],
+        )
+        .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+        .corrected("def baz a\nend\n")
+        .run();
+        CopCase::new(COP, "def o(...)\n  p(...)\nend\n", Vec::new())
+            .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+            .run();
+        CopCase::new(COP, "def foo(a) = a\n", Vec::new())
+            .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+            .target_ruby("3.0")
+            .run();
+    }
+}
