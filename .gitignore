@@ -26,3 +26,6 @@ target
 /libexec/sonicop.exe
 *.gem
 .DS_Store
+
+# Agent worktrees, which are local scratch space rather than project content.
+.claude/
