@@ -38,3 +38,10 @@ assert_cmd = "2.2.2"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# `cargo build --profile profiling` keeps the symbols a sampling profiler needs while
+# generating exactly the code `--release` does.
+[profile.profiling]
+inherits = "release"
+debug = 1
+strip = "none"

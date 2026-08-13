@@ -148,7 +148,7 @@ pub(super) fn is_annotation(comment: &str, keywords: &AnnotationKeywords) -> boo
 /// The `Style/CommentAnnotation` keywords compiled into the pattern `AnnotationComment` builds from
 /// them. Built once per file rather than once per comment.
 pub(super) struct AnnotationKeywords {
-    regex: Option<Regex>,
+    regex: Option<&'static Regex>,
 }
 
 impl AnnotationKeywords {
@@ -175,7 +175,7 @@ fn capitalize(word: &str) -> String {
 /// The keywords come from `Style/CommentAnnotation`, so the pattern is built per configuration
 /// rather than once. Upstream sorts them longest first so that a keyword that is a prefix of
 /// another cannot win.
-fn annotation_regex(keywords: &[String]) -> Option<Regex> {
+fn annotation_regex(keywords: &[String]) -> Option<&'static Regex> {
     if keywords.is_empty() {
         return None;
     }
@@ -186,10 +186,9 @@ fn annotation_regex(keywords: &[String]) -> Option<Regex> {
         .map(|keyword| regex::escape(keyword))
         .collect::<Vec<_>>()
         .join("|");
-    Regex::new(&format!(
+    crate::rules::regex_cache::compiled(&format!(
         r"(?mi)^(# ?)(\b(?:{alternatives})\b)(\s*:)?(\s+)?(\S+)?"
     ))
-    .ok()
 }
 
 /// The comments of the file indexed by line, as `processed_source.comment_index` holds them.

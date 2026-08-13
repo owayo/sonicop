@@ -44,6 +44,7 @@ mod metrics;
 mod migration;
 mod naming;
 mod ordered_gem;
+mod regex_cache;
 mod security;
 mod send_node;
 mod style;

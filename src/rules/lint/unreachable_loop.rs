@@ -128,7 +128,7 @@ fn inspect(
     body: Option<Node<'_>>,
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
     offenses: &mut Vec<Offense>,
 ) {
     let statements = body_statements(body);
@@ -153,7 +153,7 @@ fn is_break(
     node: Node<'_>,
     context: &RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     if flow::is_break_command(node, context, locals) {
         return true;
@@ -188,7 +188,7 @@ fn preceded_by_sibling_continue(
     statements: &[Node<'_>],
     index: usize,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     statements[..index]
         .iter()
@@ -200,7 +200,7 @@ fn preceded_by_continue(
     statements: &[Node<'_>],
     index: usize,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     // A body of one statement is that statement upstream, so its left siblings are the loop's own
     // other children: the condition of a `while`, or the call and the parameters of a block.
@@ -216,7 +216,7 @@ fn is_continue_sibling(
     sibling: Node<'_>,
     skip: Option<Node<'_>>,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     !LOOP_KEYWORDS.contains(&sibling.kind())
         && !is_loop_shape(sibling, context, allowed)
@@ -244,7 +244,7 @@ fn outer_siblings<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Option<Node<'tr
 
 /// Whether the node is a block on a method that iterates, which upstream skips because its own
 /// `next` belongs to it.
-fn is_loop_shape(node: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> bool {
+fn is_loop_shape(node: Node<'_>, context: &RuleContext<'_>, allowed: &[&'static Regex]) -> bool {
     node.kind() == "call"
         && node.child_by_field_name("block").is_some()
         && loop_method(node, context, allowed)
@@ -290,7 +290,7 @@ fn is_or(node: Node<'_>) -> bool {
 }
 
 /// `loop_method?`: a block on a method that iterates, unless its source matches `AllowedPatterns`.
-fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> bool {
+fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[&'static Regex]) -> bool {
     let Some(method) = call.child_by_field_name("method") else {
         return false;
     };
@@ -302,7 +302,7 @@ fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> 
     !allowed.iter().any(|pattern| pattern.is_match(source))
 }
 
-fn allowed_patterns(context: &RuleContext<'_>) -> Vec<Regex> {
+fn allowed_patterns(context: &RuleContext<'_>) -> Vec<&'static Regex> {
     context
         .setting::<Vec<serde_yaml_ng::Value>>("AllowedPatterns")
         .unwrap_or_default()

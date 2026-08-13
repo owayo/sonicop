@@ -16,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "normalcase".to_owned());
     let allowed: Vec<String> = context.setting("AllowedIdentifiers").unwrap_or_default();
-    let patterns: Vec<Regex> = context
+    let patterns: Vec<&'static Regex> = context
         .setting::<Vec<serde_yaml_ng::Value>>("AllowedPatterns")
         .unwrap_or_default()
         .iter()

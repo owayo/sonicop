@@ -36,8 +36,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let values = values(context, &items);
-        if complex_content(&values, word.as_ref())
-            || within_matrix_of_complex_content(context, node, word.as_ref(), &mut matrix)
+        if complex_content(&values, word)
+            || within_matrix_of_complex_content(context, node, word, &mut matrix)
         {
             continue;
         }
@@ -169,9 +169,9 @@ fn word_source(source: &str, item: &Element, value: &str) -> String {
 }
 
 /// The configured `WordRegex`, or the bundled default when it cannot be read as a pattern.
-fn word_regex(context: &RuleContext<'_>) -> Option<Regex> {
+fn word_regex(context: &RuleContext<'_>) -> Option<&'static Regex> {
     let Some(configured) = context.setting::<String>("WordRegex") else {
-        return Some(DEFAULT_WORD.clone());
+        return Some(&DEFAULT_WORD);
     };
     let body = configured
         .strip_prefix('/')
@@ -183,5 +183,5 @@ fn word_regex(context: &RuleContext<'_>) -> Option<Regex> {
         .replace(r"\A", "^")
         .replace(r"\z", "$")
         .replace(r"\p{Word}", r"\w");
-    Regex::new(&translated).ok()
+    crate::rules::regex_cache::compiled(&translated)
 }
