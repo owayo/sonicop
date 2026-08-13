@@ -3106,6 +3106,67 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_rescue_modifier")
         .correctable(true),
+        // 値を受け渡す位置では 1 行に畳み、そうでなければ `if` に開く。
+        CopCase::annotated(
+            "Style/MultilineTernaryOperator",
+            r#"
+            x = cond ?
+                ^^^^^^ Avoid multi-line ternary operators, use `if` or `unless` instead.
+              a :
+              b
+            "#,
+        )
+        .id("style_multiline_ternary_operator")
+        .correctable(true),
+        // `else` の中の `if` は `elsif`。報告は内側の `if` キーワード。
+        CopCase::annotated(
+            "Style/IfInsideElse",
+            r#"
+            if a
+              x
+            else
+              if b
+              ^^ Convert `if` nested inside `else` to `elsif`.
+                y
+              end
+            end
+            "#,
+        )
+        .id("style_if_inside_else")
+        .correctable(true),
+        // 同じコレクションを 2 度回すループ。報告は 2 つ目のループ全体。
+        CopCase::annotated(
+            "Style/CombinableLoops",
+            r#"
+            def m
+              items.each { |x| foo(x) }
+              items.each { |x| bar(x) }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^ Combine this loop with the previous loop.
+            end
+            "#,
+        )
+        .id("style_combinable_loops")
+        .correctable(true),
+        // 多重代入の末尾の `_`。報告は消える範囲そのもの。
+        CopCase::annotated(
+            "Style/TrailingUnderscoreVariable",
+            r#"
+            a, b, _ = foo()
+                  ^^ Do not use trailing `_`s in parallel assignment. Prefer `a, b, = foo()`.
+            "#,
+        )
+        .id("style_trailing_underscore_variable")
+        .correctable(true),
+        // 補間 1 つだけの文字列。報告は文字列リテラル全体。
+        CopCase::annotated(
+            "Style/RedundantInterpolation",
+            r##"
+            c = "#{foo}"
+                ^^^^^^^^ Prefer `to_s` over string interpolation.
+            "##,
+        )
+        .id("style_redundant_interpolation")
+        .correctable(true),
         // 既定の explicit では、クラスを名指ししない `rescue` を報告する。
         CopCase::annotated(
             "Style/RescueStandardError",
@@ -4122,6 +4183,15 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_infinite_loop")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpCharacterClass",
+            r#"
+            r = /[x]/
+                 ^^^ Redundant single-element character class, `[x]` can be replaced with `x`.
+            "#,
+        )
+        .id("style_redundant_regexp_character_class")
         .correctable(true),
         CopCase::annotated(
             "Style/IfWithSemicolon",
