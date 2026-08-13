@@ -143,7 +143,7 @@ fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
         return false;
     };
     match only.kind() {
-        "assignment" => true,
+        "assignment" => !super::nodes::is_match_assignment(*only, context.source.text()),
         "call" => only
             .child_by_field_name("method")
             .is_some_and(|selector| context.source.node_text(selector).ends_with('=')),
