@@ -18370,6 +18370,144 @@ mod infinite_loop {
     }
 }
 
+/// `Style/EvalWithLocation`: `eval` 族には `__FILE__` と `__LINE__` を渡す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EvalWithLocation` と `-A` の実測。
+mod eval_with_location {
+    use super::*;
+
+    const COP: &str = "Style/EvalWithLocation";
+
+    /// 位置引数がまったく無い場合。`eval` は binding が無いと補正できない。
+    #[test]
+    fn a_missing_location_is_reported_on_the_call() {
+        expect_offense(
+            COP,
+            r#"
+            C.class_eval "x = 1"
+            ^^^^^^^^^^^^^^^^^^^^ Pass `__FILE__` and `__LINE__` to `class_eval`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "C.class_eval \"x = 1\"\n",
+            "C.class_eval \"x = 1\", __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        );
+        // binding が無いので corrector を持たない。
+        CopCase::annotated(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_correction(
+            COP,
+            "eval \"x = 1\", binding\n",
+            "eval \"x = 1\", binding, __FILE__, __LINE__\n",
+        );
+    }
+
+    /// ヒアドキュメントは本文の開始行を基準に `__LINE__ + 1` になる。
+    #[test]
+    fn a_heredoc_counts_from_its_body() {
+        expect_correction(
+            COP,
+            "C.class_eval <<-RUBY\n  def x\n  end\nRUBY\n",
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+        expect_no_offenses(
+            COP,
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+    }
+
+    /// ファイルと行の値そのものが違うときは、その引数の上に報告する。
+    #[test]
+    fn a_wrong_file_or_line_is_reported_on_the_argument() {
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, "file.rb", 1
+                         ^^^^^^^^^ Incorrect file for `eval`; use `__FILE__` instead of `"file.rb"`.
+                                    ^ Incorrect line number for `eval`; use `__LINE__` instead of `1`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "eval \"x\", b, \"file.rb\", 1\n",
+            "eval \"x\", b, __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, __LINE__ + 2
+                                   ^^^^^^^^^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `__LINE__ + 2`.
+            "#,
+        );
+        // 定数は値が読めるものとして扱われるので報告される。
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, LINE
+                                   ^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `LINE`.
+            "#,
+        );
+    }
+
+    /// 行の値が読めない引数 (変数・`+` 以外の呼び出し) は見送る。
+    #[test]
+    fn an_opaque_line_argument_is_left_alone() {
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, @line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, foo(1)\n");
+        expect_no_offenses(COP, "C.instance_eval \"x\", __FILE__, __LINE__ - 3\n");
+        // `+` は読める側なので、こちらは報告される。`n + __LINE__` の向きも見る。
+        expect_offense(
+            COP,
+            r#"
+            class_eval "x", __FILE__, 1 + __LINE__
+                                      ^^^^^^^^^^^^ Incorrect line number for `class_eval`; use `__LINE__` instead of `1 + __LINE__`.
+            "#,
+        );
+    }
+
+    /// 引数リストの末尾を tree-sitter が多重代入に読み違える形。本家は
+    /// `line = __LINE__` を 3 つ目の引数として見る。
+    #[test]
+    fn an_assignment_written_as_the_line_argument_is_still_one_argument() {
+        expect_offense(
+            COP,
+            r#"
+            m.module_eval "A = 1", __FILE__, line = __LINE__
+                                             ^^^^^^^^^^^^^^^ Incorrect line number for `module_eval`; use `__LINE__` instead of `line = __LINE__`.
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `eval` は receiver が無いか `Kernel` のときだけ見る。
+        expect_no_offenses(COP, "Foo.eval \"x\", binding\n");
+        // コード文字列がリテラルでなければ何も言わない。
+        expect_no_offenses(COP, "eval code, binding\n");
+        expect_no_offenses(COP, "eval :sym, binding\n");
+        expect_no_offenses(COP, "eval <<~A + <<~B, b\n  x\nA\n  y\nB\n");
+        // 安全参照は `send` ではない。
+        expect_no_offenses(COP, "obj&.instance_eval \"x\"\n");
+        expect_no_offenses(COP, "C.class_eval \"x\", __FILE__, __LINE__\n");
+    }
+}
+
 /// `Style/MultilineTernaryOperator` — 複数行の三項演算子。
 mod style_multiline_ternary_operator {
     use super::*;

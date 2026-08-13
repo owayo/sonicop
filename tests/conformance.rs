@@ -4399,6 +4399,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_sole_nested_conditional")
         .correctable(true),
+        CopCase::annotated(
+            "Style/EvalWithLocation",
+            r#"
+            C.class_eval "x = 1"
+            ^^^^^^^^^^^^^^^^^^^^ Pass `__FILE__` and `__LINE__` to `class_eval`.
+            "#,
+        )
+        .id("style_eval_with_location")
+        .correctable(true),
     ]
 }
 
