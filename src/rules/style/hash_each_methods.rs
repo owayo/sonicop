@@ -52,7 +52,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn on_block(
     context: &RuleContext<'_>,
     offenses: &mut Vec<Offense>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     block: Node<'_>,
 ) {
@@ -265,7 +265,7 @@ fn each_arguments<'tree>(
 fn check_unused_block_args(
     context: &RuleContext<'_>,
     offenses: &mut Vec<Offense>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     block: Node<'_>,
     key: Node<'_>,
@@ -318,7 +318,7 @@ fn check_unused_block_args(
 /// name against.
 fn local_reads<'a>(
     context: &'a RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     body: Node<'_>,
 ) -> Vec<&'a str> {
     let mut found = Vec::new();

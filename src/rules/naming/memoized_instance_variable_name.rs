@@ -34,10 +34,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn on_or_asgn(
-    context: &RuleContext<'_>,
+fn on_or_asgn<'tree>(
+    context: &RuleContext<'tree>,
     offenses: &mut Vec<Offense>,
-    node: Node<'_>,
+    node: Node<'tree>,
     style: &str,
     safe: bool,
 ) {
@@ -65,10 +65,10 @@ fn on_or_asgn(
 
 /// `on_defined?`: the three-line form of memoization, whose `defined?`, `return` and assignment are
 /// each reported and corrected on their own.
-fn on_defined(
-    context: &RuleContext<'_>,
+fn on_defined<'tree>(
+    context: &RuleContext<'tree>,
     offenses: &mut Vec<Offense>,
-    node: Node<'_>,
+    node: Node<'tree>,
     style: &str,
     safe: bool,
 ) {

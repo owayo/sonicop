@@ -186,7 +186,7 @@ fn append(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 /// `correct_from_slash_to_fdiv`: both coercions go and the division becomes the call that does it.
 fn fdiv(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     left: Node<'_>,
     right: Node<'_>,
@@ -210,7 +210,7 @@ fn fdiv(
 }
 
 /// Whether upstream's parser would have built a call here, which is what answers `parenthesized?`.
-fn is_call(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_call(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind() {
         "call" | "super" => true,
         "identifier" => !locals.is_lvar(node),

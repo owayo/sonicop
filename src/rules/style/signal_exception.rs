@@ -45,7 +45,7 @@ fn signal_selector<'tree>(
     node: Node<'tree>,
     name: &str,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Node<'tree>> {
     match node.kind() {
         // A bare `fail` is an identifier here and a receiverless call upstream, unless a local

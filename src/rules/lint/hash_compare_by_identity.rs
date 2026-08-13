@@ -60,7 +60,7 @@ fn keyed_call<'tree>(
 
 /// Whether the node is `(send _ :object_id)`: a call spelled with a dot rather than `&.`, taking no
 /// arguments and no block, or the receiverless form written as a bare name.
-fn object_id_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn object_id_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     match node.kind() {
         "call" => {
             node.child_by_field_name("method")

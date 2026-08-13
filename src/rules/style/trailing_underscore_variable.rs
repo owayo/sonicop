@@ -52,12 +52,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     allow_named: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `unneeded_ranges`: what a nested destructuring group drops, then what this level drops.
     ///
     /// `assignment` is the whole parallel assignment while `mlhs` is the group being looked at; a

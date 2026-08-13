@@ -121,7 +121,7 @@ fn strip_parenthesis<'tree>(node: Node<'tree>) -> Node<'tree> {
 
 fn operation_produces_immutable_object(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
 ) -> bool {
     // `(send _ {:count :length :size} ...)` and its block form, neither of which is parenthesized.
@@ -195,7 +195,7 @@ fn numeric_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 /// `(send _ {:count :length :size} ...)`, with or without a block hung off it.
-fn size_call(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn size_call(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     // A receiverless call is a bare identifier here, and a local variable of the same name is an
     // `lvar` upstream that no `send` pattern matches.
     if node.kind() == "identifier" {

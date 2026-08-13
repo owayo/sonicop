@@ -58,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn check_class(context: &RuleContext<'_>, class: Node<'_>, offenses: &mut Vec<Offense>) {
+fn check_class<'tree>(context: &RuleContext<'tree>, class: Node<'tree>, offenses: &mut Vec<Offense>) {
     let macros = find_macros(context, class);
     // `group_by(&:visibility)`, whose groups come out in the order their visibility first appeared.
     let mut visibilities: Vec<&'static str> = Vec::new();

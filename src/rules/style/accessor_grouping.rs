@@ -60,9 +60,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The statements of one class, module or singleton class body, which is the scope every question
 /// this cop asks is answered in.
 struct Body<'a, 't> {
-    context: &'a RuleContext<'a>,
+    context: &'a RuleContext<'t>,
     statements: Vec<Node<'t>>,
-    locals: &'a LocalVariables<'a>,
+    locals: &'a LocalVariables<'a, 't>,
 }
 
 /// One `attr_reader :a, :b` macro.

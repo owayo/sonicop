@@ -132,7 +132,7 @@ impl<'t> Dispatch<'t> {
 /// a method on.
 fn block_parameter(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     block: Node<'_>,
     dispatch: &Dispatch<'_>,
 ) -> Option<String> {
@@ -160,7 +160,7 @@ fn block_parameter(
 /// The parameter a block that wrote none still has: `_1`, or `it` from 3.4 on.
 fn implicit_parameter(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     block: Node<'_>,
 ) -> Option<String> {
     let body = block.child_by_field_name("body")?;
@@ -180,7 +180,7 @@ fn scan_implicit(
     node: Node<'_>,
     highest: &mut usize,
     uses_it: &mut bool,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) {
     for child in super::nodes::children(node) {
         // A nested block's implicit parameters are its own.

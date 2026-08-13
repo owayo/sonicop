@@ -109,7 +109,7 @@ fn indexing<'tree>(
 /// argument.
 fn shuffle_call(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
 ) -> Option<(Range<usize>, Option<String>)> {
     // A receiverless `shuffle` is a bare identifier here and a `send` upstream, but only where the

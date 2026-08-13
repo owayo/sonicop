@@ -702,7 +702,7 @@ pub(super) struct Mixin<'a, 'tree> {
     pub(super) keyword_width: i64,
     /// Which bare identifiers upstream's parser reads as local variables rather than as calls
     /// without a receiver. The analysis is deferred until a chain actually asks.
-    locals: LocalVariables<'a>,
+    locals: LocalVariables<'a, 'tree>,
 }
 
 /// The tail `operation_description` appends to a message.

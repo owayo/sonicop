@@ -38,7 +38,7 @@ impl<'tree> BlockArgs<'tree> {
     pub(super) fn of(
         block: Node<'tree>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) -> Self {
         if let Some(parameters) = block.child_by_field_name("parameters") {
             return Self::Written(
@@ -82,7 +82,7 @@ impl<'tree> BlockArgs<'tree> {
 fn scan(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     highest: &mut usize,
     it: &mut bool,
 ) {

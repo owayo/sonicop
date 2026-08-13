@@ -1,4 +1,4 @@
-use super::variable_force::{Analysis, Argument, Declaration, Scope, Variable};
+use super::variable_force::{Argument, Declaration, Scope, Variable};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -8,7 +8,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_keyword_block_arguments: bool = context
         .setting("AllowKeywordBlockArguments")
         .unwrap_or(false);
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         for &index in &scope.variables {
             let variable = &analysis.variables[index];

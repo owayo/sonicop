@@ -35,7 +35,7 @@ fn check_block(
     node: Node<'_>,
     block: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     offenses: &mut Vec<Offense>,
 ) {
     let Some(body) = block.child_by_field_name("body") else {

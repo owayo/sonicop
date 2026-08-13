@@ -9,7 +9,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_unused_keywords: bool = context
         .setting("AllowUnusedKeywordArguments")
         .unwrap_or(false);
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         for &index in &scope.variables {
             let variable = &analysis.variables[index];
@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 continue;
             }
-            let message = message(context, &analysis, scope, variable);
+            let message = message(context, analysis, scope, variable);
             let offense = context.offense(message, variable.name_node.byte_range());
             offenses.push(match correction(context, variable) {
                 Some(edit) => offense.corrected_by(edit),

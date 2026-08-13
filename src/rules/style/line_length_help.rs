@@ -16,8 +16,8 @@ use crate::diagnostic::{Offense, Severity};
 use crate::directives::DirectiveState;
 use crate::rules::RuleContext;
 
-pub(super) struct LineLengthHelp<'a> {
-    context: &'a RuleContext<'a>,
+pub(super) struct LineLengthHelp<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     /// `max_line_length`, which is `nil` when `Layout/LineLength` is switched off entirely.
     max: Option<usize>,
     tab_indentation_width: usize,
@@ -30,8 +30,8 @@ pub(super) struct LineLengthHelp<'a> {
     directives: OnceCell<Option<DirectiveState>>,
 }
 
-impl<'a> LineLengthHelp<'a> {
-    pub(super) fn new(context: &'a RuleContext<'a>) -> Self {
+impl<'a, 'tree> LineLengthHelp<'a, 'tree> {
+    pub(super) fn new(context: &'a RuleContext<'tree>) -> Self {
         let enabled = context
             .setting_of::<bool>("Layout/LineLength", "Enabled")
             .unwrap_or(true);

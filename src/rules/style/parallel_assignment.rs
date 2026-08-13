@@ -44,12 +44,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     indentation_width: usize,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }
@@ -296,7 +296,7 @@ impl Cop<'_> {
     }
 }
 
-fn index_arguments(cop: &Cop<'_>, node: Node<'_>) -> Vec<String> {
+fn index_arguments(cop: &Cop<'_, '_>, node: Node<'_>) -> Vec<String> {
     let mut arguments = super::nodes::children(node);
     if node.child_by_field_name("object").is_some() && !arguments.is_empty() {
         arguments.remove(0);

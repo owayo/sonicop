@@ -49,8 +49,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     assign_to_condition: bool,
     single_line_only: bool,
     include_ternary: bool,
@@ -70,7 +70,7 @@ struct Conditional<'t> {
     case_like: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `on_if` / `on_case` / `on_case_match`: the `assign_to_condition` half of the cop.
     fn check_conditionals(&self, offenses: &mut Vec<Offense>) {
         for node in
@@ -241,7 +241,7 @@ enum Kind {
     Send,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `assignment_type?` together with `lhs`: what the statement assigns and how it says so.
     fn classify<'t>(&self, node: Node<'t>) -> Option<Assignment<'t>> {
         let text = |inner: Node<'_>| self.context.source.node_text(inner).to_owned();

@@ -13,6 +13,7 @@ pub mod engine;
 mod formatter;
 mod magic_comment;
 mod nul_bytes;
+mod profile;
 mod ruby_version;
 pub mod rules;
 pub mod source;

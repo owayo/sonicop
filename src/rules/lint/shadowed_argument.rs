@@ -33,14 +33,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ignore_implicit = context
         .setting::<bool>("IgnoreImplicitReferences")
         .unwrap_or(false);
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         for &index in &scope.variables {
             let variable = &analysis.variables[index];
             if !is_argument(variable, scope) {
                 continue;
             }
-            if let Some(node) = shadowing_assignment(variable, scope, ignore_implicit, &analysis, context) {
+            if let Some(node) = shadowing_assignment(variable, scope, ignore_implicit, analysis, context) {
                 offenses.push(context.offense(
                     format!(
                         "Argument `{}` was shadowed by a local variable before it was used.",

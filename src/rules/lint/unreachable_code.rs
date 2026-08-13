@@ -34,7 +34,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn flow_expression(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     flow: &mut Flow,
 ) -> bool {
     if flow::is_command(node, context, locals) {

@@ -37,7 +37,9 @@ pub(super) fn whitespace_after(source: &str, offset: usize) -> Range<usize> {
 /// written before them, while upstream's parser wraps the trailing run of `key: value` pairs and
 /// `**splat`s into a single `hash`. A cop written against `on_hash` has to see that run as one
 /// literal or it measures alignment against the wrong first pair.
-pub(super) fn hash_literals<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Vec<Node<'tree>>> {
+pub(super) fn hash_literals<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
+) -> Vec<Vec<Node<'tree>>> {
     let mut literals: Vec<(usize, Vec<Node<'tree>>)> = Vec::new();
     for node in context.nodes_of("hash") {
         let mut cursor = node.walk();
@@ -87,7 +89,7 @@ fn is_hash_element(node: Node<'_>) -> bool {
 /// interpolation, which is literal text there and never a comment. A comment written inside an
 /// interpolation is a real one and sits below the `interpolation` node rather than directly under
 /// the body.
-pub(super) fn comments<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Range<usize>> {
+pub(super) fn comments(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     context
         .nodes_of("comment")
         .filter(|node| {
@@ -672,8 +674,8 @@ const STATEMENT_CONTAINERS: [&str; 6] = [
     "ensure",
 ];
 
-pub(super) fn statement_groups<'tree>(
-    context: &'tree RuleContext<'tree>,
+pub(super) fn statement_groups<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
 ) -> Vec<StatementGroup<'tree>> {
     let mut groups = Vec::new();
     let mut push = |container: Node<'tree>, always: bool| {

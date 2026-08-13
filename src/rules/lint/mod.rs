@@ -33,7 +33,9 @@ mod ranges;
 mod regexp;
 mod rescue_clause;
 mod statements;
-mod variable_force;
+/// Reachable from the shared `RuleContext` too: the analysis is the same for every cop that
+/// asks about a local variable, so the context caches one run of it per file.
+pub(in crate::rules) mod variable_force;
 
 department_rules! {
     "Lint";

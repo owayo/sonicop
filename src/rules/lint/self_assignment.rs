@@ -50,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `on_lvasgn` and its aliases, `on_casgn`, `on_masgn`, and the two `on_send` branches for the
 /// assignments written with brackets or a dotted setter.
-fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     let (Some(left), Some(right)) = (
         node.child_by_field_name("left"),
         node.child_by_field_name("right"),
@@ -90,7 +90,7 @@ fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables
 
 /// The `on_send` half of the cop, for the setters written as an ordinary call: `obj.attr=(value)`
 /// and `hash.[]=(key, value)`.
-fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     let Some(method) = node.child_by_field_name("method") else {
         return false;
     };
@@ -126,7 +126,7 @@ fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVari
 fn operator_assignment(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     let (Some(left), Some(right), Some(operator)) = (
         node.child_by_field_name("left"),
@@ -225,7 +225,7 @@ fn key_assignment(
     keys: &[Vec<Node<'_>>],
     value: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     let Some(reader) = reader_call(value, context) else {
         return false;
@@ -346,7 +346,7 @@ fn identical_arguments(
 
 /// `call_type?`: whether upstream's parser would have built a `send` or a `csend` here. A key that
 /// calls a method may answer differently the second time, which is what the guard is for.
-fn is_call(argument: &[Node<'_>], locals: &LocalVariables<'_>, context: &RuleContext<'_>) -> bool {
+fn is_call(argument: &[Node<'_>], locals: &LocalVariables<'_, '_>, context: &RuleContext<'_>) -> bool {
     let [node] = argument else {
         // A brace-less hash is a `hash` upstream, never a call.
         return false;

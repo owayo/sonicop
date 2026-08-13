@@ -80,7 +80,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(block $(call ...) $(args _ _) $_)`: two parameters, the first of which the block hands back.
 fn block_edits(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     selector: Node<'_>,
     parameters: Node<'_>,
     body: Node<'_>,

@@ -11,7 +11,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     // `ignore_node` keeps a reported assignment from being reported a second time through an
     // assignment nested inside it, and holds for the rest of the file.
     let mut ignored: Vec<Range<usize>> = Vec::new();
@@ -25,7 +25,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 report(
                     context,
                     offenses,
-                    &analysis,
+                    analysis,
                     scope,
                     variable,
                     position,

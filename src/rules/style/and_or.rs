@@ -53,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn report(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     reported: &mut HashSet<Range<usize>>,
     offenses: &mut Vec<Offense>,
@@ -83,7 +83,7 @@ fn report(
 
 fn corrections(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     operator: Node<'_>,
     alternate: &str,
@@ -114,7 +114,7 @@ fn corrections(
 
 /// Whether upstream's parser would have built a `send` here. A setter call is one too, however much
 /// the grammar spells it as an assignment.
-fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind() {
         "call" | "element_reference" => true,
         "binary" => node
@@ -146,7 +146,7 @@ fn setter_target<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 
 fn correct_send(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     parent: Node<'_>,
     edits: &mut Vec<Edit>,

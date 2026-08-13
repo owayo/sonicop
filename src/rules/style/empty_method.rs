@@ -12,7 +12,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let compact = context
         .setting::<String>("EnforcedStyle")
         .is_none_or(|style| style == "compact");
-    let mut line_length: Option<LineLengthHelp<'_>> = None;
+    let mut line_length: Option<LineLengthHelp<'_, '_>> = None;
 
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         // `node.body`: a definition with anything in it is not empty, and a comment inside the

@@ -57,7 +57,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 struct Cop<'a, 'tree> {
     context: &'a RuleContext<'tree>,
-    locals: LocalVariables<'a>,
+    locals: LocalVariables<'a, 'tree>,
     group: bool,
     allow_symbols: bool,
     allow_attrs: bool,

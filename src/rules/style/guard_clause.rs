@@ -52,8 +52,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     max_line_length: Option<usize>,
     min_body_length: usize,
     allow_consecutive_conditionals: bool,
@@ -69,7 +69,7 @@ enum Guard {
     None,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }

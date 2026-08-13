@@ -91,7 +91,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, half
 /// nothing else.
 fn is_offensive(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     candidate: &Candidate<'_>,
 ) -> bool {
     let argname = context.source.node_text(candidate.argname);
@@ -116,7 +116,7 @@ fn is_offensive(
 /// Whether `name` is read as a local variable anywhere strictly inside `node`.
 fn references(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     name: &str,
 ) -> bool {

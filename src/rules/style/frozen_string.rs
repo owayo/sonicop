@@ -27,7 +27,7 @@ pub(super) fn literals_enabled(context: &RuleContext<'_>) -> bool {
 
 /// The lines above the first one holding code, which is where Ruby reads magic comments.
 pub(super) fn leading_comment_lines<'a>(
-    context: &'a RuleContext<'a>,
+    context: &'a RuleContext<'_>,
 ) -> impl Iterator<Item = &'a str> + 'a {
     let first_code = (1..=context.source.line_count()).find(|line_number| {
         let line = context.source.line(*line_number).trim();

@@ -1,7 +1,10 @@
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::ops::Range;
 
 use tree_sitter::Node;
+
+use crate::rules::lint::variable_force::Analysis;
 
 use crate::config::Config;
 use crate::diagnostic::{Offense, Severity};
@@ -110,6 +113,17 @@ pub(crate) struct RuleContext<'a> {
     correcting: bool,
     /// Set only for the cop that reads the file's directives rather than its syntax tree.
     directive_review: Option<&'a DirectiveReview<'a>>,
+    /// RuboCop's `VariableForce`, run at most once per file.
+    ///
+    /// Upstream shares the analysis through the commissioner: `VariableForce` is one force the
+    /// whole team is investigated with, and the six cops built on it are handed its result rather
+    /// than each running it. Thirty-odd cops here ask about it, so the run belongs to the file,
+    /// not to whichever cop asked first -- and since it reads nothing but the tree and the source,
+    /// one run answers all of them identically.
+    ///
+    /// The context is reused across every cop of a file for this reason; see
+    /// [`Self::inspecting_with`].
+    analysis: OnceCell<Analysis<'a>>,
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -142,7 +156,16 @@ impl<'a> RuleContext<'a> {
             severity,
             correcting,
             directive_review: None,
+            analysis: OnceCell::new(),
         }
+    }
+
+    /// Points the context at the next cop of the same file, keeping everything the file's cops
+    /// share -- above all [`Self::variable_analysis`], which would otherwise be run once per cop
+    /// that asks for it.
+    pub(crate) fn inspecting_with(&mut self, rule: &'static Rule, severity: Severity) {
+        self.rule = rule;
+        self.severity = severity;
     }
 
     /// Hands the cop that reads directives what the rest of the run found. See [`DirectiveReview`].
@@ -150,9 +173,15 @@ impl<'a> RuleContext<'a> {
         self.directive_review = Some(review);
         self
     }
+
+    /// RuboCop's `VariableForce` result for this file, computed on the first cop that asks.
+    pub(in crate::rules) fn variable_analysis(&self) -> &Analysis<'a> {
+        self.analysis
+            .get_or_init(|| Analysis::run(self.ast.root, self.source))
+    }
 }
 
-impl RuleContext<'_> {
+impl<'a> RuleContext<'a> {
     /// RuboCop's `autocorrect?`: whether this run was asked to rewrite the file. A cop only needs
     /// this to decide something it cannot decide from the source, which is rare -- normally a cop
     /// attaches its edits and lets the engine decide whether to apply them.
@@ -209,18 +238,18 @@ impl RuleContext<'_> {
         )
     }
 
-    pub fn root_node(&self) -> Node<'_> {
+    pub fn root_node(&self) -> Node<'a> {
         self.ast.root
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes(&self) -> impl Iterator<Item = Node<'a>> + '_ {
         self.ast.nodes.iter().copied()
     }
 
     /// The named nodes of one kind, in source order. A cop that inspects a single kind should
     /// reach for this rather than filtering every node in the file: with hundreds of cops running
     /// per file, a full walk each is what turns inspection quadratic.
-    pub fn nodes_of(&self, kind: &str) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes_of(&self, kind: &str) -> impl Iterator<Item = Node<'a>> + '_ {
         self.ast
             .of_kind(kind)
             .map(|index| self.ast.named_node(index))
@@ -229,7 +258,7 @@ impl RuleContext<'_> {
     /// The named nodes of any of `kinds`, in source order. The kinds are indexed separately, so
     /// their positions have to be merged to put the nodes back in the order a cop that scans the
     /// whole file would have seen them in.
-    pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'a>> + '_ {
         let mut indices: Vec<u32> = kinds
             .iter()
             .flat_map(|kind| self.ast.of_kind(kind))

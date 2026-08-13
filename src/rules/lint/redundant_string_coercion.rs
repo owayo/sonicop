@@ -52,7 +52,7 @@ fn coercion(
     node: Node<'_>,
     place: &str,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Offense> {
     // A bare `to_s` is a receiverless send upstream and an `identifier` here, which is the whole
     // call as well as its selector.

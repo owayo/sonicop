@@ -73,7 +73,7 @@ fn setting(context: &RuleContext<'_>, key: &str) -> Vec<String> {
 }
 
 /// Whether the identifier stands where upstream's parser would have built `(send nil :name)`.
-fn is_receiverless_name(node: Node<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_receiverless_name(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     // A name that names an argument, a hash key or the method of a call is no call of its own.
     let Some(parent) = node.parent() else {
         return false;

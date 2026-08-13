@@ -68,9 +68,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
-    length: LineLengthHelp<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
+    length: LineLengthHelp<'a, 'tree>,
     comments: CommentIndex,
     heredocs: HeredocIndex,
 }
@@ -142,7 +142,7 @@ impl<'t> Conditional<'t> {
     }
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn keyword<'a>(&'a self, conditional: &Conditional<'_>) -> &'a str {
         self.context.source.node_text(conditional.keyword)
     }

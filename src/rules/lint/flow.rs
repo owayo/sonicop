@@ -26,7 +26,7 @@ const BREAK_KEYWORDS: [&str; 2] = ["return", "break"];
 pub(super) fn is_command(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     FLOW_KEYWORDS.contains(&node.kind()) || is_kernel_command(node, context, locals)
 }
@@ -35,7 +35,7 @@ pub(super) fn is_command(
 pub(super) fn is_break_command(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     BREAK_KEYWORDS.contains(&node.kind()) || is_kernel_command(node, context, locals)
 }
@@ -47,7 +47,7 @@ pub(super) fn is_break_command(
 fn is_kernel_command(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     if node.kind() == "identifier" {
         return REDEFINABLE.contains(&context.source.node_text(node)) && !locals.is_lvar(node);

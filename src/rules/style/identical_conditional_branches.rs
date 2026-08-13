@@ -80,7 +80,7 @@ fn expand_elses<'t>(alternative: Option<Node<'t>>, branches: &mut Vec<Option<Vec
 
 fn check_branches(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     branches: &[Option<Vec<Node<'_>>>],
     reported: &mut Vec<Range<usize>>,
@@ -125,7 +125,7 @@ fn check_branches(
 /// `duplicated_expressions?`: every branch ends -- or begins -- with the same expression.
 fn duplicated(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     expressions: &[Node<'_>],
 ) -> bool {
@@ -359,7 +359,7 @@ fn insert(at: usize, text: String) -> Edit {
 }
 
 /// `variable?`: a bare name is one only where upstream's parser built an `lvar` for it.
-fn is_variable(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind() {
         "identifier" => locals.is_lvar(node),
         kind => VARIABLE_KINDS.contains(&kind),

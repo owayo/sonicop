@@ -87,7 +87,7 @@ impl<'tree> Search<'tree> {
         &mut self,
         node: Node<'tree>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
         allow_method_comparison: bool,
     ) {
         if is_or(node, context) {
@@ -133,7 +133,7 @@ impl<'tree> Search<'tree> {
 fn is_nested_comparison(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allow_method_comparison: bool,
 ) -> bool {
     let (Some(left), Some(right)) = (
@@ -153,7 +153,7 @@ fn is_nested_comparison(
 fn comparison<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allow_method_comparison: bool,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     if node.kind() != "binary"
@@ -180,16 +180,16 @@ fn comparison<'tree>(
 }
 
 /// `{lvar call}`: what may stand where the pattern names the variable being compared.
-fn is_variable(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_variable(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     is_lvar(node, locals) || is_call(node, context, locals)
 }
 
-fn is_lvar(node: Node<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_lvar(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     node.kind() == "identifier" && locals.is_lvar(node)
 }
 
 /// `call_type?`: the shapes the grammar writes what upstream's parser calls a `send` or `csend` in.
-fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     match node.kind() {
         "call" | "element_reference" => true,
         "identifier" => !locals.is_lvar(node),

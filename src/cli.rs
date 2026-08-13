@@ -238,6 +238,13 @@ impl Cli {
 }
 
 pub fn run() -> i32 {
+    crate::profile::set_enabled(std::env::var_os("SONICOP_PROFILE").is_some());
+    let code = run_inner();
+    crate::profile::report(&crate::rules::rule_names().collect::<Vec<_>>());
+    code
+}
+
+fn run_inner() -> i32 {
     let arguments = match composed_arguments() {
         Ok(arguments) => arguments,
         Err(error) => {

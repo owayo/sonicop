@@ -61,9 +61,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
-    length: LineLengthHelp<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
+    length: LineLengthHelp<'a, 'tree>,
     comments: CommentIndex,
 }
 
@@ -92,7 +92,7 @@ impl<'t> Loop<'t> {
     }
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }

@@ -75,7 +75,7 @@ const CONDITIONALS: &[&str] = &[
 
 struct Void<'a, 'tree> {
     context: &'a RuleContext<'tree>,
-    locals: LocalVariables<'a>,
+    locals: LocalVariables<'a, 'tree>,
     check_nonmutating: bool,
 }
 

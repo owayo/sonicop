@@ -127,7 +127,7 @@ fn inspect(
     node: Node<'_>,
     body: Option<Node<'_>>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allowed: &[Regex],
     offenses: &mut Vec<Offense>,
 ) {
@@ -152,7 +152,7 @@ fn inspect(
 fn is_break(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allowed: &[Regex],
 ) -> bool {
     if flow::is_break_command(node, context, locals) {

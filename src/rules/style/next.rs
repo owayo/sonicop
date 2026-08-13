@@ -88,14 +88,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     skip_modifier_ifs: bool,
     min_body_length: usize,
     allow_consecutive_conditionals: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }

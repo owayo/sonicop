@@ -24,8 +24,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Tracker<'a> {
-    context: &'a RuleContext<'a>,
+struct Tracker<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     definitions: HashMap<String, usize>,
     /// Keys already redefined once inside a `rescue` or `ensure`. A body with such a clause is
     /// allowed one redefinition -- that is how a conditional fallback definition is written -- but
@@ -35,7 +35,7 @@ struct Tracker<'a> {
     self_aliased: HashSet<String>,
 }
 
-impl<'a> Tracker<'a> {
+impl<'a, 'tree> Tracker<'a, 'tree> {
     fn on_def(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         // A definition under an `if` is very likely a platform-specific alternative, so both
         // branches are left alone.

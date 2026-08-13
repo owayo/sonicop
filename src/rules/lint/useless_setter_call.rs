@@ -68,7 +68,7 @@ fn last_expression<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
 /// `[(send (lvar _) ...) setter_method?]`: an assignment written as a call on a local variable.
 fn setter_call_to_local_variable<'tree>(
     node: Node<'tree>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Node<'tree>> {
     if node.kind() != "assignment" {
         return None;
@@ -92,7 +92,7 @@ impl Tracker {
         &mut self,
         body: Node<'_>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) {
         for statement in body_children(body) {
             self.scan(statement, context, locals);
@@ -101,7 +101,7 @@ impl Tracker {
 
     /// `scan`, whose `throw :skip_children` stops the walk at the assignments that consume their
     /// own children.
-    fn scan(&mut self, node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) {
+    fn scan(&mut self, node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) {
         if self.process_assignment_node(node, context, locals) {
             return;
         }
@@ -115,7 +115,7 @@ impl Tracker {
         &mut self,
         node: Node<'_>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) -> bool {
         match node.kind() {
             "assignment" => {
@@ -163,7 +163,7 @@ impl Tracker {
         targets: Node<'_>,
         right: Node<'_>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) {
         let listed = matches!(right.kind(), "right_assignment_list" | "array");
         let values = if listed {
@@ -193,7 +193,7 @@ impl Tracker {
         target: Node<'_>,
         value: Node<'_>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) {
         let local = if is_variable(value, locals) {
             self.local
@@ -208,7 +208,7 @@ impl Tracker {
 }
 
 /// `node.variable?`: `lvar`, `ivar`, `cvar` or `gvar`.
-fn is_variable(node: Node<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_variable(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     match node.kind() {
         "identifier" => locals.is_lvar(node),
         kind => matches!(

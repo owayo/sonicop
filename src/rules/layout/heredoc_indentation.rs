@@ -88,8 +88,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The grammar draws those two differently -- its body reaches from the opener's own line and stops
 /// at the terminator *word*, leaving the terminator's indentation on the body's side -- so both are
 /// redrawn to whole lines here.
-fn heredocs<'tree>(
-    context: &'tree RuleContext<'tree>,
+fn heredocs<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
 ) -> Vec<(Node<'tree>, Range<usize>, Range<usize>)> {
     let openers: Vec<Node<'tree>> = context.nodes_of("heredoc_beginning").collect();
     if openers.is_empty() {

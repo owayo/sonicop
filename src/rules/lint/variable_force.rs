@@ -24,7 +24,7 @@ use crate::source::SourceFile;
 
 /// How a variable came into being, which decides what may be reported about it.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum Declaration {
+pub(in crate::rules) enum Declaration {
     /// `arg`, `optarg`, `restarg`, `kwarg`, `kwoptarg`, `kwrestarg` or `blockarg`.
     Argument(Argument),
     /// `shadowarg`: the block local variable of `each { |item; buffer| }`.
@@ -34,7 +34,7 @@ pub(super) enum Declaration {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum Argument {
+pub(in crate::rules) enum Argument {
     Positional,
     Optional,
     Rest,
@@ -44,7 +44,7 @@ pub(super) enum Argument {
 
 /// What an assignment writes, which decides the range it is reported at.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum AssignmentKind {
+pub(in crate::rules) enum AssignmentKind {
     /// An ordinary `lvasgn`, whatever syntax produced it.
     Plain,
     /// `match_with_lvasgn`: the locals `/(?<year>\d+)/ =~ text` creates.
@@ -52,14 +52,14 @@ pub(super) enum AssignmentKind {
 }
 
 /// One read of a variable, as `VariableForce::Reference` records it.
-pub(super) struct Reference<'tree> {
+pub(in crate::rules) struct Reference<'tree> {
     pub node: Node<'tree>,
     /// `Reference#explicit?`: false for the two reads nobody wrote, a zero-arity `super` and a
     /// `binding` call.
     pub explicit: bool,
 }
 
-pub(super) struct Assignment<'tree> {
+pub(in crate::rules) struct Assignment<'tree> {
     /// The name being written, or the regexp of a named capture: what `loc.name` covers.
     pub name: Node<'tree>,
     /// The expression the write belongs to, which decides how it can be corrected.
@@ -86,7 +86,7 @@ impl Assignment<'_> {
     }
 }
 
-pub(super) struct Variable<'tree> {
+pub(in crate::rules) struct Variable<'tree> {
     pub name: String,
     /// The node that declared it: the parameter, or the first assignment to it.
     pub declaration: Node<'tree>,
@@ -124,7 +124,7 @@ impl Variable<'_> {
     }
 }
 
-pub(super) struct Scope<'tree> {
+pub(in crate::rules) struct Scope<'tree> {
     /// The `def`, `class`, `block` or root node the scope belongs to.
     pub node: Node<'tree>,
     /// Whether this is the file's top level, which is not a scope node of any kind.
@@ -133,7 +133,7 @@ pub(super) struct Scope<'tree> {
     pub variables: Vec<usize>,
 }
 
-pub(super) struct Analysis<'tree> {
+pub(in crate::rules) struct Analysis<'tree> {
     /// Every scope, in the order they were left, which is the order the cops report in.
     pub scopes: Vec<Scope<'tree>>,
     pub variables: Vec<Variable<'tree>>,
@@ -145,11 +145,11 @@ pub(super) struct Analysis<'tree> {
 
 impl<'tree> Analysis<'tree> {
     /// Whether the parser upstream would have built an `lvar` here rather than a receiverless call.
-    pub(super) fn is_variable_reference(&self, node: Node<'_>) -> bool {
+    pub(in crate::rules) fn is_variable_reference(&self, node: Node<'_>) -> bool {
         self.lvars.contains(&node.id())
     }
 
-    pub(super) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
+    pub(in crate::rules) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
         let mut force = Force {
             source,
             scopes: Vec::new(),

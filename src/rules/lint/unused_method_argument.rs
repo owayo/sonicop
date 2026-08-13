@@ -15,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let not_implemented_exceptions: Vec<String> = context
         .setting("NotImplementedExceptions")
         .unwrap_or_default();
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         if !matches!(scope.node.kind(), "method" | "singleton_method") {
             continue;
@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         if ignore_not_implemented
             && body.and_then(|body| body.single).is_some_and(|statement| {
-                not_implemented(statement, context, &analysis, &not_implemented_exceptions)
+                not_implemented(statement, context, analysis, &not_implemented_exceptions)
             })
         {
             continue;
@@ -44,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 continue;
             }
-            let message = message(context, &analysis, scope, variable);
+            let message = message(context, analysis, scope, variable);
             let offense = context.offense(message, variable.name_node.byte_range());
             offenses.push(match correction(context, variable) {
                 Some(edit) => offense.corrected_by(edit),

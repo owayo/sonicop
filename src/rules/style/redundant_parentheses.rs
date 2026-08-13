@@ -461,7 +461,7 @@ fn multiline_control_flow_statements(
 /// `check`.
 fn check_group<'tree>(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'tree>,
     pending: &mut Vec<(Node<'tree>, &'static str)>,
 ) {
@@ -496,7 +496,7 @@ fn is_range(node: Node<'_>) -> bool {
 /// `find_offense_message`.
 fn find_offense_message(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     inner: Node<'_>,
     children: &[Node<'_>],
@@ -582,7 +582,7 @@ fn is_block(node: Node<'_>) -> bool {
 
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
-fn is_variable(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind() {
         "instance_variable" | "class_variable" | "global_variable" => true,
         "identifier" => locals.is_lvar(node),
@@ -773,7 +773,7 @@ fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `node.call_type?` for a node that may be a bare name: the parser builds an `lvar` for one it
 /// has seen assigned, and only a name it has not is a receiverless call.
-fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     if node.kind() == "identifier" && locals.is_lvar(node) {
         return false;
     }
@@ -966,7 +966,7 @@ fn call_has_arguments(node: Node<'_>) -> bool {
 }
 
 /// `call_node?`: a call, or a brace block that is not a lambda or a proc.
-fn is_call_node(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_call_node(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     if is_send(context, locals, node) {
         return true;
     }
@@ -997,7 +997,7 @@ fn is_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `check_send`.
 fn check_send<'tree>(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'tree>,
     inner: Node<'tree>,
     pending: &mut Vec<(Node<'tree>, &'static str)>,
@@ -1048,7 +1048,7 @@ fn is_suspect_unary(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `method_call_with_redundant_parentheses?`.
 fn method_call_with_redundant_parentheses(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     call: Node<'_>,
 ) -> bool {

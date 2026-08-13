@@ -110,7 +110,7 @@ struct Require {
 }
 
 impl<'t> TopLevel<'t> {
-    fn new(context: &'t RuleContext<'t>) -> Self {
+    fn new(context: &RuleContext<'t>) -> Self {
         let statements = super::nodes::children(context.root_node());
         Self {
             begin_root: statements.len() > 1,

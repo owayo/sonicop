@@ -77,8 +77,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     style: String,
     braces_required_methods: Vec<String>,
     allowed_methods: Vec<String>,
@@ -137,7 +137,7 @@ impl<'t> Block<'t> {
     }
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }

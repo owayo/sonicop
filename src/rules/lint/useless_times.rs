@@ -74,7 +74,7 @@ fn correction(
     count: i64,
     proc_name: Option<&str>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Edit> {
     let node = call;
     // Nothing is rewritten unless the call stands alone: anything else on the line, or a call it
@@ -116,7 +116,7 @@ fn reduce_to_body(
     block: Node<'_>,
     body: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Edit> {
     // `|;a|` declares a block-local variable, which is a `shadowarg` upstream: it counts as an
     // argument the body may read but is no name the count could be substituted for.
