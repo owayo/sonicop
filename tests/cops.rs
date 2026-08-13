@@ -17712,6 +17712,47 @@ mod lint_directives_inside_a_comment {
         );
     }
 
+    /// `# rubocop:disable all` は存在する全 cop の counter を上げるので、対になる
+    /// `# rubocop:enable all` は不要にならない。
+    #[test]
+    fn a_blanket_disable_answers_for_every_name() {
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all\nx = 1\n# rubocop:enable all\n",
+        );
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all -- vendored\nx = 1\n# rubocop:enable all\n",
+        );
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all\nx = 1\n# rubocop:enable Style/For\n",
+        );
+    }
+
+    /// 打ち消すものが無い `enable all` は不要な enable。
+    #[test]
+    fn an_enable_all_with_nothing_to_undo_is_reported() {
+        expect_offense(
+            ENABLE,
+            r#"
+            x = 1
+            # rubocop:enable all
+                             ^^^ Unnecessary enabling of all cops.
+            "#,
+        );
+        expect_offense(
+            ENABLE,
+            r#"
+            # rubocop:disable all
+            x = 1
+            # rubocop:enable all
+            # rubocop:enable all
+                             ^^^ Unnecessary enabling of all cops.
+            "#,
+        );
+    }
+
     /// `analyze_single_line`: コードと同じ行の directive も、コメントの途中の directive も
     /// その行だけに効くので、`enable` が無くても咎められない。
     #[test]
