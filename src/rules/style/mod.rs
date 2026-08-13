@@ -81,6 +81,7 @@ department_rules! {
     if_with_semicolon => ("IfWithSemicolon", Convention),
     infinite_loop => ("InfiniteLoop", Convention),
     lambda => ("Lambda", Convention),
+    line_end_concatenation => ("LineEndConcatenation", Convention),
     lambda_call => ("LambdaCall", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     method_def_parentheses => ("MethodDefParentheses", Convention),

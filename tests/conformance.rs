@@ -4205,6 +4205,16 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_self")
         .correctable(true),
         CopCase::annotated(
+            "Style/LineEndConcatenation",
+            r#"
+            some_str = 'ala' +
+                             ^ Use `\` instead of `+` to concatenate multiline strings.
+                       'bala'
+            "#,
+        )
+        .id("style_line_end_concatenation")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end

@@ -29,20 +29,41 @@ use crate::rules::RuleContext;
 /// What a token is, as far as the predicates `RuboCop::AST::Token` offers the cops reading this
 /// stream go.
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(super) enum TokenKind {
+pub(crate) enum TokenKind {
     /// `tCOMMENT`.
     Comment,
     /// `tLPAREN` and `tLPAREN2`, the two `Token#left_parens?` accepts. The `tLPAREN_ARG` that
     /// opens the sole argument of a parenthesis-less call is deliberately not one of them.
     LeftParenthesis,
     RightParenthesis,
-    /// `tLBRACK` and `tLBRACK2`, both of which `Token#left_bracket?` accepts.
+    /// `tLBRACK`: the bracket that opens an array literal.
     LeftBracket,
+    /// `tLBRACK2`: the bracket that opens an index read. `Token#left_bracket?` accepts it along
+    /// with `tLBRACK`, but the two are separate types, and a cop reading for the operators that
+    /// bind tighter than `+` wants only this one.
+    IndexBracket,
     RightBracket,
+    /// `tSTRING`: a quoted string the lexer produced whole, delimiters included.
+    String,
+    /// `tSTRING_BEG`: the opening delimiter of a literal the lexer had to spell out, because it
+    /// interpolates or spans lines.
+    StringBegin,
+    /// `tSTRING_END`: its closing delimiter.
+    StringEnd,
+    /// `tPLUS`: the binary `+`, which is a different type from the unary `tUPLUS`.
+    Plus,
+    /// `tLSHFT`: `<<`, whether it appends or opens a singleton class.
+    LeftShift,
+    /// `tSTAR2`: the binary `*`, as opposed to the `tSTAR` that splats.
+    Star,
+    /// `tPERCENT`: the binary `%`. A percent literal's introducer belongs to the literal.
+    Percent,
+    /// `tDOT`. The `&.` of a safe navigation is `tANDDOT` and not one of these.
+    Dot,
     Other,
 }
 
-pub(super) struct Token {
+pub(crate) struct Token {
     pub range: Range<usize>,
     /// 1-based line of the token's first character, `Token#line`.
     pub line: usize,
@@ -50,19 +71,19 @@ pub(super) struct Token {
 }
 
 impl Token {
-    pub(super) fn is_comment(&self) -> bool {
+    pub(crate) fn is_comment(&self) -> bool {
         self.kind == TokenKind::Comment
     }
 
     /// Whether the token opens a bracket `BlockAlignment#inside_parentheses?` counts.
-    pub(super) fn opens_bracket(&self) -> bool {
+    pub(crate) fn opens_bracket(&self) -> bool {
         matches!(
             self.kind,
-            TokenKind::LeftParenthesis | TokenKind::LeftBracket
+            TokenKind::LeftParenthesis | TokenKind::LeftBracket | TokenKind::IndexBracket
         )
     }
 
-    pub(super) fn closes_bracket(&self) -> bool {
+    pub(crate) fn closes_bracket(&self) -> bool {
         matches!(
             self.kind,
             TokenKind::RightParenthesis | TokenKind::RightBracket
@@ -84,7 +105,7 @@ const LITERALS: [&str; 9] = [
     "symbol_array",
 ];
 
-pub(super) fn tokens(context: &RuleContext<'_>) -> Vec<Token> {
+pub(crate) fn tokens(context: &RuleContext<'_>) -> Vec<Token> {
     let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
     let mut builder = Builder {
         context,
@@ -142,7 +163,13 @@ impl Builder<'_, '_> {
             // `tSTRING`, delimiters included. Only its length distinguishes it from the
             // delimiter-and-content spelling, but the alignment check compares a token's whole
             // text against the neighbouring line, so the length is what it turns on.
-            "string" if collapses(node) => self.emit(node.byte_range(), TokenKind::Other),
+            "string" if collapses(node) => {
+                let kind = match self.quote_delimited(node) {
+                    true => TokenKind::String,
+                    false => TokenKind::Other,
+                };
+                self.emit(node.byte_range(), kind);
+            }
             kind if LITERALS.contains(&kind) => self.walk_literal(node),
             _ => {
                 if node.child_count() == 0 {
@@ -177,7 +204,7 @@ impl Builder<'_, '_> {
                 kind if LITERALS.contains(&kind) => self.walk_literal_from(child, start),
                 // The text of a literal is one token however the grammar subdivided it: a `#` in a
                 // heredoc body is a comment node here and part of the body to the lexer.
-                _ => self.emit(start..child.end_byte(), TokenKind::Other),
+                _ => self.emit(start..child.end_byte(), delimiter_kind(node, child)),
             }
             offset = child.end_byte();
         }
@@ -203,6 +230,14 @@ impl Builder<'_, '_> {
             Some(last) if last.range.end == node.start_byte() => last.range.end = node.end_byte(),
             _ => self.push(node),
         }
+    }
+
+    /// Whether the literal was written with an ordinary quote. The grammar aliases every opening
+    /// delimiter to `"`, so only the source says whether a `string` is `'a'` or `%q(a)` -- and the
+    /// lexer spells the second one out rather than producing a single `tSTRING`.
+    fn quote_delimited(&self, node: Node<'_>) -> bool {
+        node.child(0)
+            .is_some_and(|open| matches!(self.context.source.node_text(open), "'" | "\""))
     }
 
     fn emit(&mut self, range: Range<usize>, kind: TokenKind) {
@@ -256,16 +291,52 @@ fn is_label_key(node: Node<'_>) -> bool {
             .is_some_and(|next| next.kind() == ":" && next.start_byte() == node.end_byte())
 }
 
+/// Which of a literal's tokens the part is: the delimiter that opens it, the one that closes it,
+/// or the text between them.
+fn delimiter_kind(literal: Node<'_>, part: Node<'_>) -> TokenKind {
+    if literal.kind() != "string" {
+        return TokenKind::Other;
+    }
+    let last = u32::try_from(literal.child_count())
+        .unwrap_or(0)
+        .saturating_sub(1);
+    if literal.child(0) == Some(part) {
+        return TokenKind::StringBegin;
+    }
+    match literal.child(last) == Some(part) {
+        true => TokenKind::StringEnd,
+        false => TokenKind::Other,
+    }
+}
+
 fn classify(node: Node<'_>) -> TokenKind {
     match node.kind() {
         "comment" => TokenKind::Comment,
         "(" if opens_a_command_argument(node) => TokenKind::Other,
         "(" => TokenKind::LeftParenthesis,
         ")" => TokenKind::RightParenthesis,
+        "[" if node
+            .parent()
+            .is_some_and(|parent| parent.kind() == "element_reference") =>
+        {
+            TokenKind::IndexBracket
+        }
         "[" => TokenKind::LeftBracket,
         "]" => TokenKind::RightBracket,
+        "." => TokenKind::Dot,
+        "<<" => TokenKind::LeftShift,
+        "+" if is_binary_operator(node) => TokenKind::Plus,
+        "*" if is_binary_operator(node) => TokenKind::Star,
+        "%" if is_binary_operator(node) => TokenKind::Percent,
         _ => TokenKind::Other,
     }
+}
+
+/// Whether the operator stands between two operands. A `*` that splats and a `+` that signs a
+/// number are types of their own to the lexer.
+fn is_binary_operator(node: Node<'_>) -> bool {
+    node.parent()
+        .is_some_and(|parent| parent.kind() == "binary")
 }
 
 /// Whether the parenthesis is the `tLPAREN_ARG` of `foo (1 + 2)`: the lexer keeps that one apart
