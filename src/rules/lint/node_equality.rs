@@ -14,7 +14,9 @@ use crate::rules::RuleContext;
 /// source -- `Node#==` looks at the type and the children -- so a difference in spacing is no
 /// difference at all, and two literals its parser resolved to the same value are equal however
 /// they were written.
-pub(super) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
+/// Reachable from `style` too: `Style/RedundantParentheses` compares a call's receiver against the
+/// group it is looking at, and `Node#!=` is structural there as everywhere else.
+pub(crate) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
     match (literal(left, context), literal(right, context)) {
         (Some(left), Some(right)) => return left == right,
         // A literal is never equal to anything that is not one.
@@ -24,9 +26,8 @@ pub(super) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'
     if left.kind() != right.kind() {
         return false;
     }
-    let (mut left_cursor, mut right_cursor) = (left.walk(), right.walk());
-    let left_children: Vec<Node<'_>> = left.named_children(&mut left_cursor).collect();
-    let right_children: Vec<Node<'_>> = right.named_children(&mut right_cursor).collect();
+    let left_children = named_children_with_fields(left);
+    let right_children = named_children_with_fields(right);
     if left_children.is_empty() && right_children.is_empty() {
         return context.source.node_text(left) == context.source.node_text(right);
     }
@@ -36,10 +37,34 @@ pub(super) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'
         return false;
     }
     left_children.len() == right_children.len()
-        && left_children
-            .iter()
-            .zip(&right_children)
-            .all(|(left, right)| identical(*left, *right, context))
+        && left_children.iter().zip(&right_children).all(
+            |((left_field, left), (right_field, right))| {
+                left_field == right_field && identical(*left, *right, context)
+            },
+        )
+}
+
+/// The named children, each with the field it sits under.
+///
+/// The field is what a missing child is told from a present one by: `10..` and `..10` both hold one
+/// integer, and only the field says which side it is on, where upstream's `irange` has a `nil` in
+/// the other slot and compares unequal.
+fn named_children_with_fields<'tree>(
+    node: Node<'tree>,
+) -> Vec<(Option<&'static str>, Node<'tree>)> {
+    let mut cursor = node.walk();
+    let mut children = Vec::new();
+    if !cursor.goto_first_child() {
+        return children;
+    }
+    loop {
+        if cursor.node().is_named() {
+            children.push((cursor.field_name(), cursor.node()));
+        }
+        if !cursor.goto_next_sibling() {
+            return children;
+        }
+    }
 }
 
 fn operator_text(node: Node<'_>, context: &RuleContext<'_>) -> String {

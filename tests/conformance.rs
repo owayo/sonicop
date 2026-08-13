@@ -4318,6 +4318,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_sole_nested_conditional")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantParentheses",
+            r#"
+            x = (1)
+                ^^^ Don't use parentheses around a literal.
+            "#,
+        )
+        .id("style_redundant_parentheses")
+        .corrected("x = 1\n")
+        .correctable(true),
     ]
 }
 

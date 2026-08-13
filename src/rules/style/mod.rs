@@ -128,6 +128,7 @@ department_rules! {
     redundant_fetch_block => ("RedundantFetchBlock", Convention),
     redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
     redundant_freeze => ("RedundantFreeze", Convention),
+    redundant_parentheses => ("RedundantParentheses", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
     redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
     redundant_return => ("RedundantReturn", Convention),

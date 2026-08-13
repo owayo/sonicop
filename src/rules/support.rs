@@ -45,16 +45,277 @@ fn apply_edits(text: &str, edits: &[Edit]) -> Option<String> {
 
 /// `ProcessedSource#valid_syntax?` for a source the run did not start from.
 fn parses(text: &str) -> bool {
+    parse(text).is_some()
+}
+
+fn parse(text: &str) -> Option<tree_sitter::Tree> {
     let mut parser = Parser::new();
-    if parser
-        .set_language(&tree_sitter_ruby::LANGUAGE.into())
-        .is_err()
-    {
-        return false;
-    }
     parser
-        .parse(text, None)
-        .is_some_and(|tree| !tree.root_node().has_error())
+        .set_language(&tree_sitter_ruby::LANGUAGE.into())
+        .ok()?;
+    let tree = parser.parse(text, None)?;
+    if tree.root_node().has_error() || accepts_more_than_ruby(tree.root_node(), text) {
+        return None;
+    }
+    Some(tree)
+}
+
+/// The places the grammar accepts a construct Ruby's own does not.
+///
+/// `not x` is an `expr` there, so it cannot stand as an argument or an element: `f(not b)` and
+/// `[not a]` are both syntax errors while the grammar takes them as ordinary operands. Only the
+/// `not(x)` spelling, whose parenthesis is written straight against the keyword, is a primary and
+/// so allowed anywhere. A source the parser would reject has to be rejected here too, or a
+/// correction that produces one reads as verified.
+fn accepts_more_than_ruby(root: Node<'_>, text: &str) -> bool {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if matches!(node.kind(), "argument_list" | "array")
+            && node.named_children(&mut node.walk()).any(|child| {
+                child.kind() == "unary"
+                    && child
+                        .child_by_field_name("operator")
+                        .is_some_and(|operator| {
+                            &text[operator.byte_range()] == "not"
+                                && text.as_bytes().get(operator.end_byte()) != Some(&b'(')
+                        })
+            })
+        {
+            return true;
+        }
+        push_named_children(node, &mut stack);
+    }
+    false
+}
+
+/// `MAX_VERIFICATION_FRAGMENT_SIZE`: past this, verification gives up and accepts the offense as
+/// reported. Only machine-generated files come near it.
+const MAX_VERIFICATION_FRAGMENT_SIZE: usize = 64 * 1024;
+
+/// The kinds that both parse standalone and cannot capture an outer local variable, which is what
+/// makes a fragment cut out of them reparse to the same tree.
+const REPARSE_SCOPES: &[&str] = &[
+    "method",
+    "singleton_method",
+    "class",
+    "module",
+    "singleton_class",
+];
+
+/// `ReparsedEquivalence#verified_by_reparse`: the items whose corrections leave a tree equal to the
+/// one they started from.
+///
+/// This turns "is this piece of syntax redundant?" into a question the parser answers, rather than
+/// a hand-kept list of the places where it is not. Items sharing a scope are verified together
+/// first, since one reparse then settles the whole group; the group falls back to one reparse each
+/// when the batch does not hold.
+pub(crate) fn verified_by_reparse<T>(
+    context: &RuleContext<'_>,
+    items: Vec<T>,
+    edits_of: impl Fn(&T) -> Vec<Edit>,
+    range_of: impl Fn(&T) -> Range<usize>,
+) -> Vec<T> {
+    let text = context.source.text();
+    let root = context.root_node();
+    // `scope_groups`, keyed by node identity and ordered by the first item that reached each scope.
+    let mut groups: Vec<(Option<Node<'_>>, Vec<T>)> = Vec::new();
+    for item in items {
+        let scope = reparse_scope(root, &range_of(&item));
+        let key = scope.map(|node| node.id());
+        match groups
+            .iter_mut()
+            .find(|(seen, _)| seen.map(|node| node.id()) == key)
+        {
+            Some((_, group)) => group.push(item),
+            None => groups.push((scope, vec![item])),
+        }
+    }
+
+    let mut verified = Vec::new();
+    for (scope, group) in groups {
+        let span = scope.map_or(text.len(), |node| node.byte_range().len());
+        if span > MAX_VERIFICATION_FRAGMENT_SIZE {
+            verified.extend(group);
+            continue;
+        }
+        let original = normalized(scope.unwrap_or(root), text);
+        if group.len() > 1 && corrections_verify(text, scope, &original, &group, &edits_of) {
+            verified.extend(group);
+            continue;
+        }
+        verified.extend(group.into_iter().filter(|item| {
+            corrections_verify(
+                text,
+                scope,
+                &original,
+                std::slice::from_ref(item),
+                &edits_of,
+            )
+        }));
+    }
+    verified
+}
+
+/// `reparse_scope`: the innermost node that both contains `range` and parses standalone.
+fn reparse_scope<'tree>(root: Node<'tree>, range: &Range<usize>) -> Option<Node<'tree>> {
+    let mut node = root;
+    let mut scope = None;
+    loop {
+        if REPARSE_SCOPES.contains(&node.kind()) {
+            scope = Some(node);
+        }
+        // `Range#contains?`: strictly wider on at least one side, so a child that spans exactly the
+        // same text does not continue the descent.
+        let mut cursor = node.walk();
+        let next = node.named_children(&mut cursor).find(|child| {
+            let span = child.byte_range();
+            (range.start > span.start && span.end >= range.end)
+                || (range.start >= span.start && span.end > range.end)
+        });
+        match next {
+            Some(child) => node = child,
+            None => return scope,
+        }
+    }
+}
+
+/// `corrections_verify?`: whether applying every item's correction leaves the scope parsing to the
+/// tree it already had.
+fn corrections_verify<T>(
+    text: &str,
+    scope: Option<Node<'_>>,
+    original: &Sexp,
+    items: &[T],
+    edits_of: &impl Fn(&T) -> Vec<Edit>,
+) -> bool {
+    let edits: Vec<Edit> = items.iter().flat_map(edits_of).collect();
+    let Some(corrected) = apply_edits(text, &edits) else {
+        return false;
+    };
+    let fragment = match scope {
+        // `corrected_scope_fragment`: every edit is inside the scope, so the corrected scope ends
+        // where it did plus what the edits added.
+        Some(scope) => {
+            let end = (scope.end_byte() + corrected.len()).checked_sub(text.len());
+            match end.and_then(|end| corrected.get(scope.start_byte()..end)) {
+                Some(fragment) => fragment,
+                None => return false,
+            }
+        }
+        None => corrected.as_str(),
+    };
+    parse(fragment).is_some_and(|tree| &normalized(tree.root_node(), fragment) == original)
+}
+
+/// The label a statement list carries, which is upstream's `begin` node.
+const BEGIN: &str = "(begin)";
+
+/// A syntax tree in the shape the comparison reads it: node kinds and the text of the leaves, with
+/// the differences a redundant pair of parentheses is allowed to make normalized away.
+#[derive(PartialEq, Eq)]
+struct Sexp {
+    label: String,
+    children: Vec<Sexp>,
+}
+
+/// The kinds whose children upstream's parser folds into one `begin` node, which is where a
+/// parenthesized sequence written inside another sequence loses its own node.
+const SEQUENCES: &[&str] = &[
+    "program",
+    "parenthesized_statements",
+    "then",
+    "else",
+    "body_statement",
+    "block_body",
+    "begin",
+    "do",
+];
+
+/// `normalize_reparsed_ast`.
+fn normalized(node: Node<'_>, text: &str) -> Sexp {
+    let mut children: Vec<Sexp> = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        // Comments are invisible to the tree upstream compares.
+        if child.kind() == "comment" {
+            continue;
+        }
+        let normalized = normalized(child, text);
+        // `splice_nested_sequences`: `x; (a; b)` and `x; a; b` are the same statement list.
+        match SEQUENCES.contains(&node.kind()) && normalized.label == BEGIN {
+            true => children.extend(normalized.children),
+            false => children.push(normalized),
+        }
+    }
+    // The parser has no node for the file itself: a source holding one statement parses to that
+    // statement, which is what a fragment cut out of a scope has to compare against.
+    if matches!(node.kind(), "parenthesized_statements" | "program") {
+        // A `begin` holding one node is that node.
+        if children.len() == 1 {
+            return children.pop().expect("just measured as one");
+        }
+        return Sexp {
+            label: BEGIN.to_owned(),
+            children,
+        };
+    }
+    let label = label_of(node, text, children.is_empty());
+    rotate_same_operator(Sexp { label, children })
+}
+
+/// The name two trees are compared by: the node's kind, the operator it was written with, and for a
+/// leaf the text it spans. `&&` and `and` are one type upstream, as are `||` and `or`.
+fn label_of(node: Node<'_>, text: &str, leaf: bool) -> String {
+    let mut label = node.kind().to_owned();
+    if let Some(operator) = node.child_by_field_name("operator") {
+        let spelling = match &text[operator.byte_range()] {
+            "&&" | "and" => "and",
+            "||" | "or" => "or",
+            other => other,
+        };
+        label.push(' ');
+        label.push_str(spelling);
+    }
+    if leaf {
+        label.push(' ');
+        label.push_str(&text[node.byte_range()]);
+    }
+    label
+}
+
+/// `rotate_same_operator`: `x && (y && z)` and `x && y && z` differ as trees, but neither operator
+/// can be redefined, so the two say the same thing.
+fn rotate_same_operator(node: Sexp) -> Sexp {
+    if !node.label.ends_with(" and") && !node.label.ends_with(" or") {
+        return node;
+    }
+    let Sexp {
+        label,
+        mut children,
+    } = node;
+    let [_, right] = children.as_mut_slice() else {
+        return Sexp { label, children };
+    };
+    if right.label != label {
+        return Sexp { label, children };
+    }
+    let right = children.pop().expect("just matched two children");
+    let left = children.pop().expect("just matched two children");
+    let mut inner = right.children.into_iter();
+    let (Some(right_left), Some(right_right)) = (inner.next(), inner.next()) else {
+        return Sexp {
+            label: label.clone(),
+            children: vec![left],
+        };
+    };
+    let rotated = rotate_same_operator(Sexp {
+        label: label.clone(),
+        children: vec![left, right_left],
+    });
+    rotate_same_operator(Sexp {
+        label,
+        children: vec![rotated, right_right],
+    })
 }
 
 /// Pushes `node`'s named children so that popping the stack yields them in

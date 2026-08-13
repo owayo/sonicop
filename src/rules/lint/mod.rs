@@ -21,7 +21,8 @@ pub(crate) mod literals;
 /// several Style cops ported from node patterns have to answer the same way.
 pub(crate) mod locals;
 mod nil_methods;
-mod node_equality;
+/// Reachable from `style` too: comparing two nodes structurally is the same question there.
+pub(crate) mod node_equality;
 mod parameters;
 mod percent_literal;
 mod ranges;
