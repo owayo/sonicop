@@ -18449,3 +18449,90 @@ mod redundant_regexp_character_class {
         expect_no_offenses(COP, "r = /[x][a/\n");
     }
 }
+
+/// `Style/RedundantSelf`: 局所変数と衝突しない `self.` は落とす。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantSelf` と `-A` の実測。
+mod redundant_self {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSelf";
+
+    #[test]
+    fn a_receiver_that_disambiguates_nothing_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def foo(bar)
+              self.baz
+              ^^^^ Redundant `self` detected.
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def foo(bar)\n  self.baz\nend\n",
+            "def foo(bar)\n  baz\nend\n",
+        );
+    }
+
+    /// 引数・局所変数・ブロック引数・rescue の例外変数・パターンで束縛した名前は
+    /// いずれも同名の `self.` を残す。
+    #[test]
+    fn a_name_the_scope_already_binds_keeps_its_receiver() {
+        expect_no_offenses(COP, "def foo(bar)\n  self.bar\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar = 1\n  self.bar\nend\n");
+        expect_no_offenses(
+            COP,
+            "def foo\n  %w[x].select { |bar| self.bar == bar }\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  begin\n    x\n  rescue => err\n    self.err\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  case x\n  in Integer => n\n    self.n\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "def foo((m, n))\n  self.m\nend\n");
+    }
+
+    /// 演算子・キーワード・大文字始まり・セッター・`Kernel` のメソッドは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "def foo\n  self.class\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.Foo\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.puts 'x'\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.loop { }\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar = 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar ||= 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar += 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.foo, self.bar = 1, 2\nend\n");
+        expect_no_offenses(COP, "def foo\n  self + 1\nend\n");
+    }
+
+    /// 引数の無いブロックの中の `it` は Ruby 3.4 から第 1 ブロック引数を指すので、
+    /// `self.it` はメソッドを呼ぶ唯一の書き方になる。
+    #[test]
+    fn it_inside_a_block_without_parameters_keeps_its_receiver() {
+        expect_no_offenses(COP, "def foo\n  0.times { self.it }\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def foo
+              0.times { |x| self.it }
+                            ^^^^ Redundant `self` detected.
+            end
+            "#,
+        );
+    }
+
+    /// 代入の右辺そのものが `self.` 付きの呼び出しなら、その名前は代入先と同じでも
+    /// 局所変数の読みには化けない。
+    #[test]
+    fn the_value_of_an_assignment_is_accounted_for() {
+        expect_no_offenses(COP, "def foo\n  y = self.y\nend\n");
+        expect_no_offenses(COP, "def foo\n  z = self.z(1)\nend\n");
+        expect_no_offenses(COP, "def foo\n  if self.cond\n    cond = 1\n  end\nend\n");
+    }
+}
