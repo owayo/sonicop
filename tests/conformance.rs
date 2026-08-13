@@ -3381,6 +3381,22 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_each_for_simple_loop")
         .correctable(true),
         CopCase::annotated(
+            "Style/CaseLikeIf",
+            r#"
+            if x == 1
+            ^^^^^^^^^ Convert `if-elsif` to `case-when`.
+              a
+            elsif x == 2
+              b
+            elsif x == 3
+              c
+            end
+            "#,
+        )
+        .id("style_case_like_if")
+        .locations(&[(1, 1, 7, 3)])
+        .correctable(true),
+        CopCase::annotated(
             "Style/RandomWithOffset",
             r#"
             a = 1 + rand(6)

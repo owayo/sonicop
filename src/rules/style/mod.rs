@@ -22,6 +22,7 @@ department_rules! {
     block_comments => ("BlockComments", Convention),
     block_delimiters => ("BlockDelimiters", Convention),
     case_equality => ("CaseEquality", Convention),
+    case_like_if => ("CaseLikeIf", Convention),
     character_literal => ("CharacterLiteral", Convention),
     class_and_module_children => ("ClassAndModuleChildren", Convention),
     class_check => ("ClassCheck", Convention),
