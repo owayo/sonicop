@@ -3132,6 +3132,33 @@ mod layout_spacing {
         .run();
     }
 
+    /// 揃える相手を探す `assignment_tokens` から外れるのは、本家の
+    /// `remove_equals_in_def` が歩く `optarg` と `def` の `=` だけ。`defs` は歩かれ
+    /// ないので、エンドレス特異メソッドの `=` は代入として数えられたままになる。
+    /// 数え方を間違えると、揃える相手が消えて `x` 側の余白が見逃される。
+    #[test]
+    fn an_endless_singleton_method_still_counts_as_an_assignment() {
+        CopCase::new(
+            AROUND,
+            "x         = 1\ndef self.m = 2\n",
+            vec![Annotation::new(
+                1,
+                11,
+                1,
+                "Operator `=` should be surrounded by a single space.",
+            )],
+        )
+        .target_ruby("3.3")
+        .run();
+        // `def` と `optarg` の `=` は外れるので、揃える相手が無くなって見逃される。
+        CopCase::new(AROUND, "x         = 1\ndef m      = 2\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(AROUND, "x         = 1\ndef m(a    = 2)\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+    }
+
     /// `Layout/HashAlignment` が table なら、1 行 1 要素で書かれたハッシュの
     /// ロケットは揃えるためのものとして丸ごと見逃される。
     #[test]
@@ -15286,6 +15313,396 @@ mod hash_like_case {
     }
 }
 
+/// `Layout/ExtraSpacing` は本家がトークン列を 2 個ずつ舐めて実装されているので、
+/// レキサのトークン境界そのものが仕様になる。ヒアドキュメント本体の位置、
+/// パーセント配列の語間、リテラル内部の空白がいずれも「隣接トークンの隙間」に
+/// 化けないことを、本家 1.89.0 の実測を期待値に据えて固定する。
+mod layout_extra_spacing {
+    use super::*;
+
+    const COP: &str = "Layout/ExtraSpacing";
+
+    #[test]
+    fn reports_the_run_of_spaces_minus_the_one_that_stays() {
+        expect_offense(
+            COP,
+            r#"
+            x  = 1
+             ^ Unnecessary spacing detected.
+            "#,
+        );
+        expect_correction(COP, "x  = 1\n", "x = 1\n");
+        expect_no_offenses(COP, "x = 1\n");
+    }
+
+    /// ヒアドキュメント本体は本家では**開始トークンの直後**に字句化されるので、
+    /// `foo(<<~B,  bar)` の `,` の隣は `bar` であって本体ではない。本体を位置順に
+    /// 並べると `<<~B` と `,` が隣り合い、その間の空白を誤って報告してしまう。
+    /// 本体の先頭も開始行の改行の**次**から始まる。
+    #[test]
+    fn a_heredoc_body_is_lexed_where_its_opener_stands() {
+        CopCase::new(
+            COP,
+            concat!(
+                "x  = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B,  bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "s = \"a  b\"\n",
+                "q = /a  b/\n",
+                "w  = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+            vec![
+                Annotation::new(1, 2, 1, "Unnecessary spacing detected."),
+                Annotation::new(4, 10, 1, "Unnecessary spacing detected."),
+                Annotation::new(10, 2, 1, "Unnecessary spacing detected."),
+            ],
+        )
+        .run();
+    }
+
+    #[test]
+    fn corrects_only_outside_literals_and_stops_at_the_data_section() {
+        expect_correction(
+            COP,
+            concat!(
+                "x  = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B,  bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "w  = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+            concat!(
+                "x = <<~A\n",
+                "  hi  there\n",
+                "A\n",
+                "foo(<<~B, bar)\n",
+                "  body\n",
+                "B\n",
+                "z = %w[a  b]\n",
+                "w = 1\n",
+                "__END__\n",
+                "tail  data\n",
+            ),
+        );
+    }
+
+    /// 複数行ハッシュのキーと値の間は `Layout/HashAlignment` の担当なので除外される。
+    /// 単一行のものは除外されない。中括弧付きは括弧の行も `single_line?` に効く。
+    #[test]
+    fn the_gap_inside_a_multiline_hash_belongs_to_hash_alignment() {
+        CopCase::new(
+            COP,
+            concat!(
+                "h = {\n",
+                "  a:   1,\n",
+                "  bbb: 2,\n",
+                "}\n",
+                "g = { a:   1, bbb: 2 }\n",
+            ),
+            vec![Annotation::new(5, 9, 2, "Unnecessary spacing detected.")],
+        )
+        .run();
+        expect_correction(COP, "g = { a:   1, bbb: 2 }\n", "g = { a: 1, bbb: 2 }\n");
+    }
+
+    /// `AllowForAlignment` は上下の行と揃っている空白を見逃す。コメントは
+    /// 「隣り合うコメントが同じ桁で始まる」ときだけ揃っていると見なされる。
+    #[test]
+    fn alignment_with_a_neighbouring_line_is_allowed() {
+        CopCase::new(
+            COP,
+            concat!(
+                "a = 1  # one\n",
+                "bb = 2 # two\n",
+                "foo(1)     # x\n",
+                "barbaz(2)  # y\n",
+                "c = 3  # z\n",
+            ),
+            vec![Annotation::new(5, 6, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+        CopCase::new(
+            COP,
+            concat!(
+                "name      = \"RuboCop\"\n",
+                "\n",
+                "website  += \"/rubocop/rubocop\" unless cond\n",
+                "set_app(\"RuboCop\")\n",
+                "website  = \"https://github.com/rubocop/rubocop\"\n",
+            ),
+            vec![Annotation::new(5, 8, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+    }
+
+    /// `AllowBeforeTrailingComments` は行末コメントの前だけを見逃す。既定では
+    /// 見逃さない。
+    #[test]
+    fn trailing_comments_need_the_option() {
+        CopCase::new(
+            COP,
+            "object.method(arg)  # this is a comment\n",
+            vec![Annotation::new(1, 19, 1, "Unnecessary spacing detected.")],
+        )
+        .run();
+        CopCase::new(COP, "object.method(arg)  # this is a comment\n", Vec::new())
+            .config("Layout/ExtraSpacing:\n  AllowBeforeTrailingComments: true\n")
+            .run();
+    }
+
+    /// `ForceEqualSignAlignment` は同じブロックの `=` を最も右の桁へ揃える。
+    /// 空行がブロックを切るので、そこから先は別の並びになる。
+    #[test]
+    fn force_equal_sign_alignment_moves_the_whole_run() {
+        let source = concat!("a = 1\n", "bbb = 2\n", "cc = 3\n", "\n", "dd = 4\n");
+        CopCase::new(
+            COP,
+            source,
+            vec![
+                Annotation::new(2, 5, 1, "`=` is not aligned with the preceding assignment."),
+                Annotation::new(3, 4, 1, "`=` is not aligned with the preceding assignment."),
+            ],
+        )
+        .config("Layout/ExtraSpacing:\n  ForceEqualSignAlignment: true\n")
+        .corrected(concat!(
+            "a   = 1\n",
+            "bbb = 2\n",
+            "cc  = 3\n",
+            "\n",
+            "dd = 4\n"
+        ))
+        .run();
+    }
+
+    /// 1 行に収まる `"` / `'` の文字列は本家では `tSTRING` **1 個**で、区切りと中身に
+    /// 割れない。トークンの本文をそのまま隣の行と突き合わせる `aligned_words?` は
+    /// 長さで結論が変わるので、割ってしまうと `">= 2.2.4"` が隣の行の `"` と
+    /// 一致して揃っていることにされてしまう。ラベルの `:` も名前と 1 トークン
+    /// (`tLABEL`) になる。`g:` と `j:` の後ろが咎められないのは、値の `1` が
+    /// 上下の行で同じ桁に来ているため。
+    #[test]
+    fn a_single_line_string_and_a_label_are_each_one_token() {
+        CopCase::new(
+            COP,
+            concat!(
+                "s.add_dependency \"nokogiri\", \">= 1.8.5\"\n",
+                "s.add_dependency \"rack\",      \">= 2.2.4\"\n",
+                "s.add_dependency \"rack-session\", \">= 1.0.1\"\n",
+                "f = { g:   1, \"h\":   2 }\n",
+                "def m(j:   1, k: 2)\n",
+                "end\n",
+            ),
+            vec![
+                Annotation::new(2, 25, 5, "Unnecessary spacing detected."),
+                Annotation::new(4, 19, 2, "Unnecessary spacing detected."),
+            ],
+        )
+        .run();
+    }
+
+    /// 本家は `processed_source.blank?` のファイルを一切見ない。
+    #[test]
+    fn a_file_holding_only_comments_is_skipped() {
+        expect_no_offenses(COP, "# a  b\n#  c\n");
+    }
+}
+
+/// `Layout/BlockAlignment` の既定 `either` は「式の先頭」と「`do` の行頭」の
+/// どちらでも許す。`do` が複数行引数の継続行にあるときだけ、その行の字下げは
+/// 括弧が決めたもので作者の意図ではないので、呼び出し側の行が基準になる。
+mod layout_block_alignment {
+    use super::*;
+
+    const COP: &str = "Layout/BlockAlignment";
+
+    #[test]
+    fn either_style_names_both_targets() {
+        expect_offense(
+            COP,
+            r#"
+            foo.bar
+              .each do
+                baz
+                    end
+                    ^^^ `end` at 4, 8 is not aligned with `foo.bar` at 1, 0 or `.each do` at 2, 2.
+            "#,
+        );
+        expect_no_offenses(COP, "foo.bar\n  .each do\n    baz\nend\n");
+        expect_no_offenses(COP, "foo.bar\n  .each do\n    baz\n  end\n");
+    }
+
+    /// 代入の右辺にあるブロックの `end` は変数のほうに揃える。`{ }` も同じ扱い。
+    #[test]
+    fn an_assignment_takes_the_end_over() {
+        CopCase::new(
+            COP,
+            concat!(
+                "x = [1].map do |y|\n",
+                "  y\n",
+                "    end\n",
+                "[1].each { |z|\n",
+                "  z\n",
+                "    }\n",
+            ),
+            vec![
+                Annotation::new(
+                    3,
+                    5,
+                    3,
+                    "`end` at 3, 4 is not aligned with `x = [1].map do |y|` at 1, 0.",
+                ),
+                Annotation::new(
+                    6,
+                    5,
+                    1,
+                    "`}` at 6, 4 is not aligned with `[1].each { |z|` at 4, 0.",
+                ),
+            ],
+        )
+        .corrected(concat!(
+            "x = [1].map do |y|\n",
+            "  y\n",
+            "end\n",
+            "[1].each { |z|\n",
+            "  z\n",
+            "}\n",
+        ))
+        .run();
+    }
+
+    /// `do` の行が `(` で開いた継続行なら基準は呼び出し行に戻るので、代替の
+    /// 候補が消えてメッセージが 1 つになる。括弧のない引数列では継続行の
+    /// 字下げが作者の意図なので、そのまま候補に残る。
+    #[test]
+    fn a_continuation_line_holding_the_do_is_not_an_alignment_target() {
+        CopCase::new(
+            COP,
+            concat!(
+                "q = foo(bar,\n",
+                "        baz) do |i|\n",
+                "  i\n",
+                "   end\n",
+                "r = foo bar,\n",
+                "        baz do |i|\n",
+                "  i\n",
+                "   end\n",
+            ),
+            vec![
+                Annotation::new(
+                    4,
+                    4,
+                    3,
+                    "`end` at 4, 3 is not aligned with `q = foo(bar,` at 1, 0.",
+                ),
+                Annotation::new(
+                    8,
+                    4,
+                    3,
+                    "`end` at 8, 3 is not aligned with `r = foo bar,` at 5, 0 or `baz do |i|` at 6, 8.",
+                ),
+            ],
+        )
+        .corrected(concat!(
+            "q = foo(bar,\n",
+            "        baz) do |i|\n",
+            "  i\n",
+            "end\n",
+            "r = foo bar,\n",
+            "        baz do |i|\n",
+            "  i\n",
+            "end\n",
+        ))
+        .run();
+        // `)` で閉じた継続行に `do` があるとき、その行頭も `end` の置き場所として
+        // 認められる。
+        expect_no_offenses(
+            COP,
+            concat!(
+                "q = foo(bar,\n",
+                "        baz) do |i|\n",
+                "  i\n",
+                "        end\n",
+            ),
+        );
+    }
+
+    /// メッセージが名指しするのは `find_lhs_node` が畳んだ左辺。畳まれるのは
+    /// `op_asgn` と `masgn` だけで、`||=` / `&&=` は `or_asgn` / `and_asgn` なので
+    /// 代入式まるごとが出る。
+    #[test]
+    fn only_op_asgn_and_masgn_are_reduced_to_their_left_hand_side() {
+        CopCase::new(
+            COP,
+            concat!(
+                "@dimensions ||= depth.times.map do |index|\n",
+                "  index\n",
+                "                  end\n",
+                "@plus += foo.map do |i|\n",
+                "  i\n",
+                "           end\n",
+                "a, b = foo.map do |i|\n",
+                "  i\n",
+                "         end\n",
+            ),
+            vec![
+                Annotation::new(
+                    3,
+                    19,
+                    3,
+                    "`end` at 3, 18 is not aligned with `@dimensions ||= depth.times.map do |index|` at 1, 0.",
+                ),
+                Annotation::new(6, 12, 3, "`end` at 6, 11 is not aligned with `@plus` at 4, 0."),
+                Annotation::new(9, 10, 3, "`end` at 9, 9 is not aligned with `a, b` at 7, 0."),
+            ],
+        )
+        .corrected(concat!(
+            "@dimensions ||= depth.times.map do |index|\n",
+            "  index\n",
+            "end\n",
+            "@plus += foo.map do |i|\n",
+            "  i\n",
+            "end\n",
+            "a, b = foo.map do |i|\n",
+            "  i\n",
+            "end\n",
+        ))
+        .run();
+    }
+
+    /// `start_of_block` は `do` の行頭だけ、`start_of_line` は式の行頭だけを許す。
+    #[test]
+    fn the_two_strict_styles_each_accept_one_target() {
+        let source = concat!("foo.bar\n", "  .each do\n", "    baz\n", "  end\n");
+        CopCase::new(COP, source, Vec::new())
+            .config("Layout/BlockAlignment:\n  EnforcedStyleAlignWith: start_of_block\n")
+            .run();
+        CopCase::new(
+            COP,
+            source,
+            vec![Annotation::new(
+                4,
+                3,
+                3,
+                "`end` at 4, 2 is not aligned with `foo.bar` at 1, 0.",
+            )],
+        )
+        .config("Layout/BlockAlignment:\n  EnforcedStyleAlignWith: start_of_line\n")
+        .corrected(concat!("foo.bar\n", "  .each do\n", "    baz\n", "end\n"))
+        .run();
+    }
+}
+
 /// Style 部門の追加分 (前半)。
 mod style_batch_a {
     use super::*;
@@ -15564,5 +15981,249 @@ mod style_batch_a2 {
         // 自前の `fail` を定義しているファイルは対象外。
         expect_no_offenses("Style/SignalException", "def fail\n  1\nend\nfail\n");
         expect_no_offenses("Style/SignalException", "Foo.fail 'x'\n");
+    }
+}
+
+/// `Style/Sample`: `shuffle` に続く取り出しは `sample` 一本にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Sample` の実測。
+mod sample {
+    use super::*;
+
+    const COP: &str = "Style/Sample";
+
+    #[test]
+    fn every_way_of_taking_one_element_becomes_a_bare_sample() {
+        expect_correction(COP, "a.shuffle.first\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.last\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle[0]\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle[-1]\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.at(0)\n", "a.sample\n");
+        expect_correction(COP, "a.shuffle.slice(0)\n", "a.sample\n");
+        // A receiverless `shuffle` is still a call, and safe navigation is one too.
+        expect_correction(COP, "shuffle.first\n", "sample\n");
+        expect_correction(COP, "a&.shuffle&.first\n", "a&.sample\n");
+    }
+
+    #[test]
+    fn a_countable_index_becomes_the_argument() {
+        expect_correction(COP, "a.shuffle.first(3)\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0, 3]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0..2]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0...3]\n", "a.sample(3)\n");
+        expect_correction(COP, "a.shuffle[0..]\n", "a.sample(1)\n");
+        // `shuffle`'s own argument comes after the count.
+        expect_correction(
+            COP,
+            "a.shuffle(random: r).first(3)\n",
+            "a.sample(3, random: r)\n",
+        );
+    }
+
+    #[test]
+    fn an_index_sample_has_no_argument_for_is_left_alone() {
+        expect_no_offenses(COP, "a.shuffle[2]\n");
+        expect_no_offenses(COP, "a.shuffle.at(2)\n");
+        expect_no_offenses(COP, "a.shuffle[0..-1]\n");
+        expect_no_offenses(COP, "a.shuffle[x]\n");
+        // A block on `shuffle` makes its receiver a `block` node, which the pattern never matches.
+        expect_no_offenses(COP, "a.shuffle { |x| x }.first\n");
+        expect_no_offenses(COP, "a.sample\n");
+        // A local variable named `shuffle` is an `lvar`, not a call.
+        expect_no_offenses(COP, "shuffle = [1]\nshuffle.first\n");
+    }
+}
+
+/// `Style/RedundantFreeze`: 凍らせても意味の無い値の `freeze`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantFreeze` の実測。
+mod redundant_freeze {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFreeze";
+
+    #[test]
+    fn an_immutable_literal_gains_nothing_from_freezing() {
+        expect_correction(COP, "1.freeze\n", "1\n");
+        expect_correction(COP, "-1.freeze\n", "-1\n");
+        expect_correction(COP, "1i.freeze\n", "1i\n");
+        expect_correction(COP, "1r.freeze\n", "1r\n");
+        expect_correction(COP, ":sym.freeze\n", ":sym\n");
+        expect_correction(COP, ":\"a#{b}\".freeze\n", ":\"a#{b}\"\n");
+        expect_correction(COP, "nil.freeze\n", "nil\n");
+        expect_correction(COP, "true.freeze\n", "true\n");
+        // `(1)` is a `begin` around the literal, which upstream unwraps before it looks.
+        expect_correction(COP, "(1).freeze\n", "(1)\n");
+    }
+
+    #[test]
+    fn an_operation_that_can_only_answer_with_an_immutable_object_counts_too() {
+        expect_correction(COP, "(1 + 2).freeze\n", "(1 + 2)\n");
+        expect_correction(COP, "(1 << 2).freeze\n", "(1 << 2)\n");
+        expect_correction(COP, "(x - 1).freeze\n", "(x - 1)\n");
+        expect_correction(COP, "(x == y).freeze\n", "(x == y)\n");
+        expect_correction(COP, "x.count.freeze\n", "x.count\n");
+        expect_correction(COP, "x.count { }.freeze\n", "x.count { }\n");
+        expect_correction(COP, "count.freeze\n", "count\n");
+    }
+
+    #[test]
+    fn a_mutable_receiver_is_left_alone() {
+        expect_no_offenses(COP, "\"s\".freeze\n");
+        expect_no_offenses(COP, "[1].freeze\n");
+        expect_no_offenses(COP, "{ a: 1 }.freeze\n");
+        expect_no_offenses(COP, "(\"a\" + \"b\").freeze\n");
+        expect_no_offenses(COP, "([1] + 2).freeze\n");
+        expect_no_offenses(COP, "(1 <=> 2).freeze\n");
+        expect_no_offenses(COP, "x.map { }.freeze\n");
+        // `freeze` reached with safe navigation is a `csend`, which `on_send` never sees.
+        expect_no_offenses(COP, "x&.freeze\n");
+        expect_no_offenses(COP, "def m\n  count = 1\n  count.freeze\nend\n");
+    }
+
+    /// Ruby 3.0 で `regexp` と `range` が凍るようになり、文字列は magic comment 次第。
+    #[test]
+    fn what_is_already_frozen_depends_on_the_target_version() {
+        const MESSAGE: &str = "Do not freeze immutable objects, as freezing them has no effect.";
+        let source = "# frozen_string_literal: true\n\"s\".freeze\n/re/.freeze\n(1..2).freeze\n";
+        CopCase::new(COP, source, vec![Annotation::new(2, 1, 10, MESSAGE)])
+            .config("AllCops:\n  TargetRubyVersion: 2.7\n")
+            .run();
+        CopCase::new(
+            COP,
+            source,
+            vec![
+                Annotation::new(2, 1, 10, MESSAGE),
+                Annotation::new(3, 1, 11, MESSAGE),
+                Annotation::new(4, 1, 13, MESSAGE),
+            ],
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+}
+
+/// `Style/IfWithSemicolon`: `if x; y; end` は三項演算子か改行に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/IfWithSemicolon` の実測。
+mod if_with_semicolon {
+    use super::*;
+
+    const COP: &str = "Style/IfWithSemicolon";
+
+    #[test]
+    fn a_one_line_conditional_becomes_a_ternary() {
+        expect_correction(COP, "if foo; bar; end\n", "foo ? bar : nil\n");
+        expect_correction(COP, "if foo; end\n", "foo ? nil : nil\n");
+        expect_correction(COP, "unless foo; bar; end\n", "foo ? nil : bar\n");
+        expect_correction(COP, "if foo; bar; else baz end\n", "foo ? bar : baz\n");
+        // A call written without parentheses gets them, or the ternary would not parse.
+        expect_correction(
+            COP,
+            "if foo; puts 1; else puts 2; end\n",
+            "foo ? puts(1) : puts(2)\n",
+        );
+        // An assignment used as the condition keeps its parentheses.
+        expect_correction(COP, "if x = 1; bar; end\n", "(x = 1) ? bar : nil\n");
+    }
+
+    #[test]
+    fn a_branch_that_cannot_become_a_ternary_arm_gets_a_newline() {
+        expect_offense(
+            COP,
+            r#"
+            if foo; bar; baz; end
+            ^^^^^^^^^^^^^^^^^^^^^ Do not use `if foo;` - use a newline instead.
+            "#,
+        );
+        expect_correction(COP, "if foo; bar; baz; end\n", "if foo\n bar; baz; end\n");
+        expect_correction(COP, "if foo; return 1; end\n", "if foo\n return 1; end\n");
+        expect_correction(
+            COP,
+            "if foo; a, b = 1, 2; end\n",
+            "if foo\n a, b = 1, 2; end\n",
+        );
+    }
+
+    #[test]
+    fn an_elsif_chain_is_written_out_over_several_lines() {
+        expect_offense(
+            COP,
+            r#"
+            if foo; bar; elsif baz; qux; end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not use `if foo;` - use `if/else` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo; bar; elsif baz; qux; end\n",
+            "if foo\n  bar\nelsif baz\n  qux\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_conditional_written_with_then_or_a_newline_is_left_alone() {
+        expect_no_offenses(COP, "if foo then bar end\n");
+        expect_no_offenses(COP, "if foo\n  bar\nend\n");
+        expect_no_offenses(COP, "bar if foo\n");
+        expect_no_offenses(COP, "foo ? bar : baz\n");
+    }
+}
+
+/// `Style/MethodDefParentheses`: 既定では引数のある `def` に括弧を要求する。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MethodDefParentheses` の実測。
+mod method_def_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/MethodDefParentheses";
+
+    #[test]
+    fn parameters_written_without_parentheses_gain_them() {
+        expect_offense(
+            COP,
+            r#"
+            def foo a, b
+                    ^^^^ Use def with parentheses when there are parameters.
+            end
+            "#,
+        );
+        expect_correction(COP, "def foo a, b\nend\n", "def foo(a, b)\nend\n");
+        expect_correction(COP, "def self.bar a\nend\n", "def self.bar(a)\nend\n");
+        // The whole run of spaces before the parameters becomes the opening parenthesis.
+        expect_correction(COP, "def spaced   a\nend\n", "def spaced(a)\nend\n");
+        // The grammar folds `a = nil, b = nil` into one node; the span is still the whole list.
+        expect_correction(
+            COP,
+            "def r a = nil, b = nil\nend\n",
+            "def r(a = nil, b = nil)\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_definition_that_declares_nothing_is_left_alone() {
+        expect_no_offenses(COP, "def qux\nend\n");
+        expect_no_offenses(COP, "def n()\nend\n");
+        expect_no_offenses(COP, "def baz(a)\nend\n");
+    }
+
+    /// `require_no_parentheses` は逆向き。無名引数と endless def は括弧を保つ。
+    #[test]
+    fn the_opposite_style_takes_the_parentheses_off() {
+        CopCase::new(
+            COP,
+            "def baz(a)\nend\n",
+            vec![Annotation::new(1, 8, 3, "Use def without parentheses.")],
+        )
+        .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+        .corrected("def baz a\nend\n")
+        .run();
+        CopCase::new(COP, "def o(...)\n  p(...)\nend\n", Vec::new())
+            .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+            .run();
+        CopCase::new(COP, "def foo(a) = a\n", Vec::new())
+            .config("Style/MethodDefParentheses:\n  EnforcedStyle: require_no_parentheses\n")
+            .target_ruby("3.0")
+            .run();
     }
 }

@@ -6,6 +6,7 @@ department_rules! {
     array_alignment => ("ArrayAlignment", Convention),
     assignment_indentation => ("AssignmentIndentation", Convention),
     begin_end_alignment => ("BeginEndAlignment", Warning),
+    block_alignment => ("BlockAlignment", Convention),
     block_end_newline => ("BlockEndNewline", Convention),
     case_indentation => ("CaseIndentation", Convention),
     closing_heredoc_indentation => ("ClosingHeredocIndentation", Convention),
@@ -31,6 +32,7 @@ department_rules! {
     empty_lines_around_method_body => ("EmptyLinesAroundMethodBody", Convention),
     empty_lines_around_module_body => ("EmptyLinesAroundModuleBody", Convention),
     end_of_line => ("EndOfLine", Convention),
+    extra_spacing => ("ExtraSpacing", Convention),
     first_argument_indentation => ("FirstArgumentIndentation", Convention),
     first_array_element_indentation => ("FirstArrayElementIndentation", Convention),
     first_hash_element_indentation => ("FirstHashElementIndentation", Convention),
@@ -81,7 +83,9 @@ department_rules! {
     trailing_whitespace => ("TrailingWhitespace", Convention),
 }
 
+mod alignment;
 mod empty_lines_around_body;
 mod multiline_brace;
 mod multiline_expression;
 mod support;
+mod tokens;

@@ -532,6 +532,33 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 13, 3, 15)])
         .severity(Severity::Warning)
         .correctable(true),
+        // 既定の `either` は「式の先頭」と「`do` の行頭」の両方を許すので、
+        // メッセージには両方が並ぶ。
+        CopCase::annotated(
+            "Layout/BlockAlignment",
+            r#"
+            foo.bar
+              .each do
+                baz
+                    end
+                    ^^^ `end` at 4, 8 is not aligned with `foo.bar` at 1, 0 or `.each do` at 2, 2.
+            "#,
+        )
+        .id("layout_block_alignment")
+        .locations(&[(4, 9, 4, 11)])
+        .lengths(&[3])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ExtraSpacing",
+            r#"
+            x  = 1
+             ^ Unnecessary spacing detected.
+            "#,
+        )
+        .id("layout_extra_spacing")
+        .locations(&[(1, 2, 1, 2)])
+        .lengths(&[1])
+        .correctable(true),
         CopCase::annotated(
             "Layout/AccessModifierIndentation",
             r#"
@@ -3856,6 +3883,43 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_signal_exception")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/Sample",
+            r#"
+            a.shuffle.first
+              ^^^^^^^^^^^^^ Use `sample` instead of `shuffle.first`.
+            "#,
+        )
+        .id("style_sample")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFreeze",
+            r#"
+            :sym.freeze
+            ^^^^^^^^^^^ Do not freeze immutable objects, as freezing them has no effect.
+            "#,
+        )
+        .id("style_redundant_freeze")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/IfWithSemicolon",
+            r#"
+            if foo; bar; end
+            ^^^^^^^^^^^^^^^^ Do not use `if foo;` - use a ternary operator instead.
+            "#,
+        )
+        .id("style_if_with_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MethodDefParentheses",
+            r#"
+            def foo a, b
+                    ^^^^ Use def with parentheses when there are parameters.
+            end
+            "#,
+        )
+        .id("style_method_def_parentheses")
         .correctable(true),
     ]
 }
