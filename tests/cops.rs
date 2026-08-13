@@ -17502,3 +17502,89 @@ mod redundant_condition {
         expect_no_offenses(COP, "if a.nonzero?\n  a\nelse\n  b\nend\n");
     }
 }
+
+/// パーサが `ambiguous_prefix` / `ambiguous_regexp` を出さない書き方の回帰。
+///
+/// 本家のこの 2 cop は `processed_source.diagnostics` を読むだけなので、レキサが
+/// 警告を出さない位置では発火しない。sonicop は木からその状態を復元するため、
+/// 「引数リストに見えるが `expr_arg` では読まれていない」2 つの形を取りこぼすと
+/// 過検出になり、`-A` で括弧を書き足してしまう。
+mod lint_ambiguity_without_a_diagnostic {
+    use super::*;
+
+    const OPERATOR: &str = "Lint/AmbiguousOperator";
+    const REGEXP: &str = "Lint/AmbiguousRegexpLiteral";
+
+    /// `->` はラムダリテラルを開くので、`-` が前置演算子として読まれることはない。
+    #[test]
+    fn a_stabby_lambda_argument_is_not_a_negative_number() {
+        expect_no_offenses(OPERATOR, "class Foo\n  vary_by -> { 1 }\nend\n");
+        expect_no_offenses(OPERATOR, "foo ->(x) { x }\n");
+        expect_no_offenses(OPERATOR, "foo ->x { x }\n");
+        expect_no_offenses(OPERATOR, "foo ->{ 1 }\n");
+        // `-` の次が `>` でなければ従来どおり前置演算子。
+        expect_offense(
+            OPERATOR,
+            "foo -->x\n     ^ Ambiguous negative number operator. Parenthesize the method \
+             arguments if it's surely a negative number operator, or add a whitespace to the \
+             right of the `-` if it should be a subtraction.\n",
+        );
+    }
+
+    /// `return` / `break` / `next` はキーワードで、引数を取る呼び出しではない。
+    #[test]
+    fn keywords_that_are_not_calls_never_warn() {
+        expect_no_offenses(
+            REGEXP,
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+        );
+        expect_no_offenses(REGEXP, "break /re/\n");
+        expect_no_offenses(REGEXP, "next /re/\n");
+        expect_no_offenses(OPERATOR, "return *a\n");
+        expect_no_offenses(OPERATOR, "break -1\n");
+        expect_no_offenses(OPERATOR, "next *a\n");
+    }
+
+    /// `yield` と `super` はレキサから見れば普通の command call なので警告は出る。
+    #[test]
+    fn yield_and_super_still_warn() {
+        expect_offense(
+            REGEXP,
+            "yield /re/\n      ^ Ambiguous regexp literal. Parenthesize the method arguments if \
+             it's surely a regexp literal, or add a whitespace to the right of the `/` if it \
+             should be a division.\n",
+        );
+        expect_offense(
+            OPERATOR,
+            "super *a\n      ^ Ambiguous splat operator. Parenthesize the method arguments if \
+             it's surely a splat operator, or add a whitespace to the right of the `*` if it \
+             should be a multiplication.\n",
+        );
+    }
+
+    /// キーワードの引数の中にある呼び出しは、それ自身が警告の対象になる。
+    #[test]
+    fn a_call_inside_a_keyword_argument_still_warns() {
+        expect_offense(
+            REGEXP,
+            "return foo /re/\n           ^ Ambiguous regexp literal. Parenthesize the method \
+             arguments if it's surely a regexp literal, or add a whitespace to the right of the \
+             `/` if it should be a division.\n",
+        );
+    }
+
+    /// 過検出だったものに `-A` が括弧を書き足さないこと。
+    #[test]
+    fn autocorrect_leaves_them_untouched() {
+        expect_correction(
+            OPERATOR,
+            "class Foo\n  vary_by -> { 1 }\nend\n",
+            "class Foo\n  vary_by -> { 1 }\nend\n",
+        );
+        expect_correction(
+            REGEXP,
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+        );
+    }
+}
