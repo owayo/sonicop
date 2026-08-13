@@ -4258,6 +4258,16 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_self")
         .correctable(true),
         CopCase::annotated(
+            "Style/LineEndConcatenation",
+            r#"
+            some_str = 'ala' +
+                             ^ Use `\` instead of `+` to concatenate multiline strings.
+                       'bala'
+            "#,
+        )
+        .id("style_line_end_concatenation")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end
@@ -4484,6 +4494,15 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_each_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SafeNavigation",
+            r#"
+            foo.bar if foo
+            ^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        )
+        .id("style_safe_navigation")
         .correctable(true),
     ]
 }

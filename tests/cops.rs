@@ -19626,6 +19626,217 @@ mod hash_each_methods {
     }
 }
 
+/// `Style/LineEndConcatenation`: 行末で文字列を継ぐ `+` / `<<` は `\` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/LineEndConcatenation` と `-A` の実測。
+mod line_end_concatenation {
+    use super::*;
+
+    const COP: &str = "Style/LineEndConcatenation";
+
+    #[test]
+    fn an_operator_left_at_the_end_of_a_line_is_reported_and_replaced() {
+        expect_offense(
+            COP,
+            r#"
+            some_str = 'ala' +
+                             ^ Use `\` instead of `+` to concatenate multiline strings.
+                       'bala'
+            "#,
+        );
+        expect_correction(
+            COP,
+            "some_str = 'ala' +\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        expect_correction(
+            COP,
+            "some_str = 'ala' <<\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        // 既に行継続が書かれていれば、その `\` ごと 1 つに畳む。
+        expect_correction(
+            COP,
+            "some_str = 'ala' + \\\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        // 補間のある文字列は開き・閉じの区切りが別トークンになるが、どちらも
+        // 引用符なので対象になる。
+        expect_correction(
+            COP,
+            "some_str = \"ala#{x}\" +\n           'bala'\n",
+            "some_str = \"ala#{x}\" \\\n           'bala'\n",
+        );
+    }
+
+    /// 同じ行に収まっているもの、文字列でない側があるもの、`%q()` のように
+    /// 行継続で繋げない書き方は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "some_str = 'ala' + 'bala'\n");
+        expect_no_offenses(COP, "some_str = 1 +\n           'bala'\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           variable\n");
+        expect_no_offenses(COP, "some_str = %q(ala) +\n           'bala'\n");
+        expect_no_offenses(COP, "some_str = 'ala' + # note\n           'bala'\n");
+    }
+
+    /// `+` より強く結び付く演算子が 2 つ目の文字列に続いていると、`\` にすると
+    /// 適用先が変わってしまう。
+    #[test]
+    fn an_operator_binding_tighter_than_the_concatenation_stops_it() {
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala'.upcase\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala' * 2\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala' % x\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala'[0]\n");
+    }
+}
+
+/// `Style/SafeNavigation`: 存在チェックで囲んだ呼び出しは `&.` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/SafeNavigation` と `-A` の実測。
+mod safe_navigation {
+    use super::*;
+
+    const COP: &str = "Style/SafeNavigation";
+    const MSG: &str = "Use safe navigation (`&.`) instead of checking if an object exists before calling the method.";
+
+    /// 修飾子形の `if` / `unless` と、条件の 4 通りの書き方。
+    #[test]
+    fn a_modifier_conditional_collapses_into_the_call() {
+        expect_offense(
+            COP,
+            r#"
+            foo.bar if foo
+            ^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        );
+        expect_correction(COP, "foo.bar if foo\n", "foo&.bar\n");
+        expect_correction(COP, "foo.bar if !foo.nil?\n", "foo&.bar\n");
+        expect_correction(COP, "foo.bar unless !foo\n", "foo&.bar\n");
+        expect_correction(COP, "foo.bar unless foo.nil?\n", "foo&.bar\n");
+        // チェーンは全体に `&.` が付く。
+        expect_correction(COP, "foo.bar.baz if foo\n", "foo&.bar&.baz\n");
+        expect_correction(
+            COP,
+            "foo.bar(param) { |e| e.something } if foo\n",
+            "foo&.bar(param) { |e| e.something }\n",
+        );
+    }
+
+    /// 三項演算子の 4 通り。
+    #[test]
+    fn a_ternary_collapses_the_same_way() {
+        expect_correction(COP, "foo ? foo.bar : nil\n", "foo&.bar\n");
+        expect_correction(COP, "foo.nil? ? nil : foo.bar\n", "foo&.bar\n");
+        expect_correction(COP, "!foo.nil? ? foo.bar : nil\n", "foo&.bar\n");
+        expect_correction(COP, "!foo ? nil : foo.bar\n", "foo&.bar\n");
+        expect_no_offenses(COP, "foo ? foo.bar : baz\n");
+    }
+
+    /// `&&` は最初の組だけ補正され、鎖の残りはそのまま。
+    #[test]
+    fn an_and_chain_reports_the_first_pair_it_can_fold() {
+        expect_offense(
+            COP,
+            r#"
+            foo && foo.bar
+            ^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        );
+        expect_correction(COP, "foo && foo.bar\n", "foo&.bar\n");
+        expect_correction(COP, "foo && foo.bar && foo.baz\n", "foo&.bar && foo.baz\n");
+        expect_correction(COP, "a.b && a.b.c\n", "a.b&.c\n");
+        // ブロックの中の `and` はブロックの側で数える。
+        expect_offense(
+            COP,
+            r#"
+            foo { a && a.b && a.c }
+                  ^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        );
+    }
+
+    /// `if` の中に書かれたコメントは呼び出しの上へ運ばれる。
+    #[test]
+    fn a_comment_inside_the_conditional_is_kept() {
+        expect_correction(
+            COP,
+            "if foo\n  # comment\n  foo.bar\nend\n",
+            "# comment\nfoo&.bar\n",
+        );
+        expect_correction(
+            COP,
+            "if foo\n  foo.bar\n  # trailing\nend\n",
+            "# trailing\nfoo&.bar\n",
+        );
+    }
+
+    /// チェーンの長さは `MaxChainLength` (既定 2) まで。
+    #[test]
+    fn a_chain_longer_than_the_limit_is_left_alone() {
+        expect_no_offenses(COP, "foo && foo.bar.baz.qux\n");
+        expect_no_offenses(COP, "foo.bar.baz.qux if foo\n");
+        CopCase::annotated(
+            COP,
+            r#"
+            foo && foo.bar.baz.qux
+            ^^^^^^^^^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        )
+        .config("Style/SafeNavigation:\n  MaxChainLength: 3\n")
+        .run();
+    }
+
+    /// `ConvertCodeThatCanStartToReturnNil` の既定は偽。
+    #[test]
+    fn a_not_nil_check_is_only_folded_when_asked() {
+        expect_no_offenses(COP, "!foo.nil? && foo.bar\n");
+        CopCase::annotated(
+            COP,
+            r#"
+            !foo.nil? && foo.bar
+            ^^^^^^^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        )
+        .config("Style/SafeNavigation:\n  ConvertCodeThatCanStartToReturnNil: true\n")
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // ドットの無い呼び出しには `&.` を置く場所が無い。
+        expect_no_offenses(COP, "foo && foo < bar\n");
+        expect_no_offenses(COP, "foo < bar if foo\n");
+        expect_no_offenses(COP, "foo ? foo[index] : nil\n");
+        expect_no_offenses(COP, "foo ? foo * 42 : nil\n");
+        expect_no_offenses(COP, "foo::Bar if foo\n");
+        // 代入と比較は畳めない。
+        expect_no_offenses(COP, "foo.baz = bar if foo\n");
+        expect_no_offenses(COP, "foo.bar > 2 if foo\n");
+        // `nil` が応える名前が鎖の途中にあると意味が変わる。
+        expect_no_offenses(COP, "foo && foo.empty?\n");
+        expect_no_offenses(COP, "foo && foo.bar.present?\n");
+        expect_no_offenses(COP, "foo && !foo.bar\n");
+        // `||` は条件がどの節にも掛かるので畳めない。
+        expect_no_offenses(COP, "foo.nil? || foo.bar\n");
+        expect_no_offenses(COP, "!foo || foo.bar\n");
+        // `else` があるならチェックは選択を守っている。
+        expect_no_offenses(COP, "if foo\n  foo.bar\nelse\n  baz\nend\n");
+        // 変数そのものしか見ていない `unless` は畳むと意味が変わる。
+        expect_no_offenses(COP, "foo.bar unless foo\n");
+        // 本体が飛ぶなら鎖ではない。
+        expect_no_offenses(COP, "return foo.bar if foo\n");
+        expect_no_offenses(COP, "x = foo.bar if foo\n");
+    }
+
+    /// 括弧の中の `or` は認識するが補正はしない。
+    #[test]
+    fn an_or_on_the_right_is_recognised_but_not_corrected() {
+        expect_no_offenses(COP, "foo && (foo.bar? || foo.baz?)\n");
+        let _ = MSG;
+    }
+}
+
 /// `Style/ConditionalAssignment` — 既定の assign_to_condition では条件の値を代入する。
 mod style_conditional_assignment {
     use super::*;
