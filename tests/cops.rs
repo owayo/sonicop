@@ -17091,3 +17091,61 @@ mod hash_transform {
         );
     }
 }
+
+/// `Style/CaseLikeIf`: 同じ対象を比べ続ける `if-elsif` は `case-when` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/CaseLikeIf` と `-A` の実測。
+mod case_like_if {
+    use super::*;
+
+    const COP: &str = "Style/CaseLikeIf";
+
+    #[test]
+    fn a_chain_comparing_one_target_is_reported_and_rewritten() {
+        expect_offense(
+            COP,
+            r#"
+            if x == 1
+            ^^^^^^^^^ Convert `if-elsif` to `case-when`.
+              a
+            elsif x == 2
+              b
+            elsif x == 3
+              c
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if x == 1\n  a\nelsif x == 2\n  b\nelsif x == 3\n  c\nend\n",
+            "case x\nwhen 1\n  a\nwhen 2\n  b\nwhen 3\n  c\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if x.is_a?(Foo)\n  a\nelsif x.is_a?(Bar)\n  b\nelsif x.is_a?(Baz)\n  c\nelse\n  d\nend\n",
+            "case x\nwhen Foo\n  a\nwhen Bar\n  b\nwhen Baz\n  c\nelse\n  d\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if /re/ =~ x\n  a\nelsif /re2/ =~ x\n  b\nelsif x =~ /re3/\n  c\nend\n",
+            "case x\nwhen /re/\n  a\nwhen /re2/\n  b\nwhen /re3/\n  c\nend\n",
+        );
+        // `||` は 1 つの `when` にまとまり、範囲の `include?` も条件になる。
+        expect_correction(
+            COP,
+            "if x == 1 || x == 2\n  a\nelsif x == 3\n  b\nelsif (1..5).include?(x)\n  c\nend\n",
+            "case x\nwhen 1, 2\n  a\nwhen 3\n  b\nwhen 1..5\n  c\nend\n",
+        );
+    }
+
+    /// 対象が揃わないもの、枝が足りないものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "if x == 1\n  a\nelsif y == 2\n  b\nelsif x == 3\n  c\nend\n",
+        );
+        expect_no_offenses(COP, "if x == 1\n  a\nelsif x == 2\n  b\nend\n");
+        expect_no_offenses(COP, "if x\n  a\nelsif y\n  b\nelsif z\n  c\nend\n");
+    }
+}
