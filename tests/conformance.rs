@@ -4364,6 +4364,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_eval_with_location")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantBegin",
+            r#"
+            def m
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                work
+              rescue StandardError => e
+                handle(e)
+              end
+            end
+            "#,
+        )
+        .id("style_redundant_begin")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashEachMethods",
+            r#"
+            hash.keys.each { |k| p k }
+                 ^^^^^^^^^ Use `each_key` instead of `keys.each`.
+            "#,
+        )
+        .id("style_hash_each_methods")
+        .correctable(true),
     ]
 }
 

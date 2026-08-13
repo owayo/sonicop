@@ -18814,3 +18814,274 @@ mod redundant_regexp_character_class {
         expect_no_offenses(COP, "r = /[x][a/\n");
     }
 }
+
+/// `Style/RedundantBegin`: 囲む定義やブロックが受け止められる `begin` は要らない。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantBegin` と `-A` の実測。
+mod redundant_begin {
+    use super::*;
+
+    const COP: &str = "Style/RedundantBegin";
+
+    /// メソッド本体がまるごと `begin` のとき。`rescue` を持っていても報告する。
+    #[test]
+    fn a_definition_body_written_as_a_begin_block_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def m
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                a
+              rescue StandardError => e
+                b
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def m\n  begin\n    a\n  end\nend\n",
+            "def m\n  \n    a\n  \nend\n",
+        );
+        // endless メソッドは `on_def` が見送るので、`begin` の側からしか報告されない。
+        CopCase::annotated(COP, "def m = begin\n  a\n  b\nend\n")
+            .target_ruby("3.3")
+            .run();
+    }
+
+    /// `do ... end` ブロックは 2.5 以降なら `rescue` を直接書ける。波括弧とラムダは別。
+    #[test]
+    fn only_a_do_end_block_can_take_the_rescue_itself() {
+        expect_offense(
+            COP,
+            r#"
+            do_something do
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                a
+              rescue => e
+                b
+              end
+            end
+            "#,
+        );
+        expect_no_offenses(
+            COP,
+            "do_something {\n  begin\n    a\n  rescue => e\n    b\n  end\n}\n",
+        );
+        expect_no_offenses(
+            COP,
+            "-> do\n  begin\n    a\n  rescue Bar\n    b\n  end\nend\n",
+        );
+    }
+
+    /// 代入の右辺は `begin` を消すのではなく中身で置き換える。間のコメントは
+    /// 代入の上へ運ばれる。
+    #[test]
+    fn an_assignment_keeps_the_statement_it_wrapped() {
+        expect_correction(COP, "x = begin\n  foo\nend\n", "x = foo\n\n");
+        // 修飾子形の `if` は括弧で包む。
+        expect_correction(
+            COP,
+            "x = begin\n  foo if bar\nend\n",
+            "x = (foo if bar)\n\n",
+        );
+        expect_correction(
+            COP,
+            "def m\n  z = begin\n    # a comment\n    foo\n  end\nend\n",
+            "def m\n  \n    # a comment\n    z = foo\n  \nend\n",
+        );
+        // 属性への代入は `send` なので `begin` に意味がある。
+        expect_no_offenses(COP, "self.type = begin\n  foo\nend\n");
+        expect_no_offenses(COP, "h[k] = begin\n  foo\nend\n");
+        // 文が 2 つ以上あれば代入の右辺として意味がある。
+        expect_no_offenses(COP, "y = begin\n  foo\n  bar\nend\n");
+    }
+
+    /// 修飾子 `if` の後ろに付いた複数行の `begin` は、条件が中身の後ろへ移る。
+    #[test]
+    fn a_trailing_modifier_condition_moves_onto_the_statement() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+            ^^^^^ Redundant `begin` block detected.
+              foo
+            end if cond
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def m\n  begin\n    foo\n  end if cond\nend\n",
+            "def m\n  \n    foo if cond\nend\n",
+        );
+    }
+
+    /// `begin` が意味を持つ文脈。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "begin\nend\n");
+        expect_no_offenses(COP, "begin\n  work\nend while cond\n");
+        expect_no_offenses(COP, "begin\n  work\nend.foo\n");
+        expect_no_offenses(COP, "foo(begin\n  work\nend)\n");
+        expect_no_offenses(COP, "a && begin\n  work\nend\n");
+        // 2 文以上を包む `begin` は `kwbegin` として意味がある。
+        expect_no_offenses(COP, "def m\n  a\n  begin\n    b\n    c\n  end\nend\n");
+        // `rescue` を持つ分岐は `if` の側では受け止められない。
+        expect_no_offenses(COP, "if c\n  begin\n    a\n  rescue\n    b\n  end\nend\n");
+    }
+
+    /// `if` / `case` / ループの本体。
+    #[test]
+    fn a_branch_or_a_loop_body_is_reported_too() {
+        expect_offense(
+            COP,
+            r#"
+            if c
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                a
+                b
+              end
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            while c
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                a
+              end
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            case x
+            when 1
+              begin
+              ^^^^^ Redundant `begin` block detected.
+                a
+              end
+            end
+            "#,
+        );
+    }
+}
+
+/// `Style/HashEachMethods`: 片方しか使わない `each` は `each_key` / `each_value`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/HashEachMethods` と `-A` の実測。
+mod hash_each_methods {
+    use super::*;
+
+    const COP: &str = "Style/HashEachMethods";
+
+    #[test]
+    fn keys_each_and_values_each_become_each_key_and_each_value() {
+        expect_offense(
+            COP,
+            r#"
+            hash.keys.each { |k| p k }
+                 ^^^^^^^^^ Use `each_key` instead of `keys.each`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "hash.keys.each { |k| p k }\n",
+            "hash.each_key { |k| p k }\n",
+        );
+        expect_correction(
+            COP,
+            "hash.values.each { |v| p v }\n",
+            "hash.each_value { |v| p v }\n",
+        );
+        // `&:sym` を渡す形も同じ範囲を書き換える。
+        expect_offense(
+            COP,
+            r#"
+            hash.keys.each(&:foo)
+                 ^^^^^^^^^ Use `each_key` instead of `keys.each`.
+            "#,
+        );
+        expect_correction(COP, "hash.keys.each(&:foo)\n", "hash.each_key(&:foo)\n");
+    }
+
+    /// 安全参照はチェーンの外側に書かれた方のドットが残る。
+    #[test]
+    fn the_outer_dot_is_the_one_that_survives() {
+        expect_correction(
+            COP,
+            "hash&.keys.each { |k| p k }\n",
+            "hash.each_key { |k| p k }\n",
+        );
+        expect_correction(
+            COP,
+            "hash.keys&.each { |k| p k }\n",
+            "hash&.each_key { |k| p k }\n",
+        );
+    }
+
+    /// 2 引数のうち片方が使われていないとき。
+    #[test]
+    fn an_unused_block_argument_names_the_half_that_is_walked() {
+        expect_offense(
+            COP,
+            r#"
+            hash.each { |k, unused_value| p k }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `each_key` instead of `each` and remove the unused `unused_value` block argument.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "hash.each { |k, unused_value| p k }\n",
+            "hash.each_key { |k| p k }\n",
+        );
+        expect_correction(
+            COP,
+            "hash.each { |unused_key, v| p v }\n",
+            "hash.each_value { |v| p v }\n",
+        );
+        // 分解引数と splat も名前として読む。
+        expect_correction(
+            COP,
+            "hash.each { |(k, v), i| p i }\n",
+            "hash.each_value { |i| p i }\n",
+        );
+        expect_correction(
+            COP,
+            "hash.each { |k, *rest| p k }\n",
+            "hash.each_key { |k| p k }\n",
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // 両方使っていれば何も言わない。
+        expect_no_offenses(COP, "hash.each { |k, v| p k; p v }\n");
+        // 本体が空なら判断しない。
+        expect_no_offenses(COP, "hash.each { |k, v| }\n");
+        // 配列に変える呼び出しの後ろでは 2 引数の意味が違う。
+        expect_no_offenses(COP, "hash.to_a.each { |k, v| p k }\n");
+        expect_no_offenses(COP, "h.sort.each { |k, v| p k }\n");
+        // ブロックがハッシュを書き換えるなら分けられない。
+        expect_no_offenses(COP, "hash.each { |k, v| hash[k] = v }\n");
+        // ハッシュ以外のリテラルは対象外。
+        expect_no_offenses(COP, "[[1, 2]].keys.each { |k| p k }\n");
+        expect_offense(
+            COP,
+            r#"
+            { a: 1 }.keys.each { |k| p k }
+                     ^^^^^^^^^ Use `each_key` instead of `keys.each`.
+            "#,
+        );
+        // `AllowedReceivers` の既定。
+        expect_no_offenses(COP, "Thread.current.keys.each { |v| p v }\n");
+        // レシーバがなければチェーンの根が無い。
+        expect_no_offenses(COP, "keys.each { |k| p k }\n");
+    }
+}
