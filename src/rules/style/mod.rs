@@ -136,6 +136,7 @@ department_rules! {
     redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
     redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
     redundant_return => ("RedundantReturn", Convention),
+    redundant_self => ("RedundantSelf", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
     redundant_sort => ("RedundantSort", Convention),
     redundant_sort_by => ("RedundantSortBy", Convention),

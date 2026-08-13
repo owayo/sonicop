@@ -4194,6 +4194,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_regexp_character_class")
         .correctable(true),
         CopCase::annotated(
+            "Style/RedundantSelf",
+            r#"
+            def foo(bar)
+              self.baz
+              ^^^^ Redundant `self` detected.
+            end
+            "#,
+        )
+        .id("style_redundant_self")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end
