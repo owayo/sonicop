@@ -3381,6 +3381,24 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_each_for_simple_loop")
         .correctable(true),
         CopCase::annotated(
+            "Style/RandomWithOffset",
+            r#"
+            a = 1 + rand(6)
+                ^^^^^^^^^^^ Prefer ranges when generating random numbers instead of integers with offsets.
+            "#,
+        )
+        .id("style_random_with_offset")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/NonNilCheck",
+            r#"
+            y = x != nil
+                ^^^^^^^^ Prefer `!x.nil?` over `x != nil`.
+            "#,
+        )
+        .id("style_non_nil_check")
+        .correctable(true),
+        CopCase::annotated(
             "Style/NestedTernaryOperator",
             r#"
             x = a ? b : c ? d : e

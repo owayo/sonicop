@@ -14,17 +14,27 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// A statement list, read as the `begin` upstream folds it into. A `rescue`, an `else` and an
-/// `ensure` are clauses of the list rather than statements of it, and each is followed into on its
-/// own -- except the `ensure` body, which `check_ensure_node` never looks at.
+/// A statement list, read as the `begin` upstream folds it into.
+///
+/// A body guarded by an `ensure` is an `ensure` node upstream, and `check_ensure_node` follows
+/// `EnsureNode#branch` -- the *ensure* clause -- so the code it guards is never looked at. A body
+/// split by a `rescue` alone is a `rescue` node, every branch of which is followed.
 fn check_container(context: &RuleContext<'_>, container: Node<'_>, offenses: &mut Vec<Offense>) {
     let children = super::nodes::children(container);
+    if let Some(ensure) = children.iter().find(|child| child.kind() == "ensure") {
+        let statements = super::nodes::children(*ensure);
+        check_statements(context, &statements, offenses);
+        return;
+    }
     let statements: Vec<Node<'_>> = children
         .iter()
         .copied()
-        .filter(|child| !matches!(child.kind(), "rescue" | "ensure" | "else"))
+        .filter(|child| !matches!(child.kind(), "rescue" | "else"))
         .collect();
     check_statements(context, &statements, offenses);
+    if !children.iter().any(|child| child.kind() == "rescue") {
+        return;
+    }
     for clause in &children {
         match clause.kind() {
             "rescue" => {
@@ -32,9 +42,7 @@ fn check_container(context: &RuleContext<'_>, container: Node<'_>, offenses: &mu
                     check_container(context, body, offenses);
                 }
             }
-            // The `else` of a `begin`/`rescue` is a branch of the `rescue` node upstream, so it is
-            // followed too. A `case`'s `else` is reached through its own handler instead.
-            "else" if children.iter().any(|it| it.kind() == "rescue") => {
+            "else" => {
                 let statements = super::nodes::children(*clause);
                 check_statements(context, &statements, offenses);
             }
