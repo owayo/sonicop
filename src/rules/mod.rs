@@ -178,6 +178,13 @@ impl RuleContext<'_> {
         self.config.cop_value(cop, key)
     }
 
+    /// Whether another cop is switched on, the way RuboCop's cops ask
+    /// `config.cop_enabled?('Lint/SafeNavigationChain')`. A cop that leaves work to a neighbour
+    /// has to know whether the neighbour will do it.
+    pub fn cop_enabled(&self, cop: &str) -> bool {
+        self.config.rule_enabled(cop)
+    }
+
     /// The Ruby version the run analyzes as, which version-gated cops compare against.
     pub fn target_ruby_version(&self) -> RubyVersion {
         self.config.target_ruby_version()

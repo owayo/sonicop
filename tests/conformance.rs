@@ -4481,6 +4481,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_hash_each_methods")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SafeNavigation",
+            r#"
+            foo.bar if foo
+            ^^^^^^^^^^^^^^ Use safe navigation (`&.`) instead of checking if an object exists before calling the method.
+            "#,
+        )
+        .id("style_safe_navigation")
+        .correctable(true),
     ]
 }
 
