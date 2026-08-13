@@ -3132,6 +3132,33 @@ mod layout_spacing {
         .run();
     }
 
+    /// 揃える相手を探す `assignment_tokens` から外れるのは、本家の
+    /// `remove_equals_in_def` が歩く `optarg` と `def` の `=` だけ。`defs` は歩かれ
+    /// ないので、エンドレス特異メソッドの `=` は代入として数えられたままになる。
+    /// 数え方を間違えると、揃える相手が消えて `x` 側の余白が見逃される。
+    #[test]
+    fn an_endless_singleton_method_still_counts_as_an_assignment() {
+        CopCase::new(
+            AROUND,
+            "x         = 1\ndef self.m = 2\n",
+            vec![Annotation::new(
+                1,
+                11,
+                1,
+                "Operator `=` should be surrounded by a single space.",
+            )],
+        )
+        .target_ruby("3.3")
+        .run();
+        // `def` と `optarg` の `=` は外れるので、揃える相手が無くなって見逃される。
+        CopCase::new(AROUND, "x         = 1\ndef m      = 2\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(AROUND, "x         = 1\ndef m(a    = 2)\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+    }
+
     /// `Layout/HashAlignment` が table なら、1 行 1 要素で書かれたハッシュの
     /// ロケットは揃えるためのものとして丸ごと見逃される。
     #[test]

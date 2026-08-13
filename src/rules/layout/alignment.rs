@@ -11,6 +11,7 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
+use super::support::comments;
 use crate::rules::RuleContext;
 use crate::source::SourceFile;
 
@@ -81,8 +82,11 @@ impl<'src> Alignment<'src> {
             .map(|line| line.chars().all(char::is_whitespace))
             .collect();
 
+        // `processed_source.comments`, which the `#` the grammar finds in a heredoc body is not
+        // one of: that text never reached the lexer as a comment, so it stays a line the mixin
+        // will align against.
         let mut comment_lines = HashSet::new();
-        for comment in context.comment_ranges() {
+        for comment in comments(context) {
             let (line, column) = source.line_column(comment.start);
             if lines[line - 1]
                 .chars()
@@ -124,9 +128,12 @@ impl<'src> Alignment<'src> {
                 ),
                 // An optional parameter's `=` and an endless `def`'s are still tokens to align
                 // against, even though `assignment_lines` leaves them out.
-                "optional_parameter" | "method" | "singleton_method" => {
+                "optional_parameter" | "method" => {
                     (child_of_kind(node, "="), TokenKind::EqualSign, false)
                 }
+                // `remove_equals_in_def` walks `each_node(:optarg, :def)`, which never reaches a
+                // `defs`, so the `=` of an endless singleton method stays an assignment token.
+                "singleton_method" => (child_of_kind(node, "="), TokenKind::EqualSign, true),
                 "singleton_class" => (child_of_kind(node, "<<"), TokenKind::Lshift, false),
                 "binary" => {
                     let operator = node.child_by_field_name("operator");
