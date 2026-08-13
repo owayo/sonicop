@@ -15981,6 +15981,8 @@ mod style_batch_a2 {
         // 自前の `fail` を定義しているファイルは対象外。
         expect_no_offenses("Style/SignalException", "def fail\n  1\nend\nfail\n");
         expect_no_offenses("Style/SignalException", "Foo.fail 'x'\n");
+        // `fail = []` は代入先であって呼び出しではない。
+        expect_no_offenses("Style/SignalException", "fail = []\nfail << 1\n");
     }
 }
 

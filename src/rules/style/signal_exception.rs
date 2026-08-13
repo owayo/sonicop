@@ -52,9 +52,7 @@ fn signal_selector<'tree>(
         // variable of that name is in scope.
         "identifier" => (context.source.node_text(node) == name
             && !locals.is_lvar(node)
-            && node.parent().is_none_or(|parent| {
-                !matches!(parent.kind(), "call" | "method" | "singleton_method")
-            }))
+            && !is_binding_site(node))
         .then_some(node),
         "call" => {
             let method = node.child_by_field_name("method")?;
@@ -67,6 +65,34 @@ fn signal_selector<'tree>(
             }
         }
         _ => None,
+    }
+}
+
+/// Whether the identifier names something being bound rather than a call: an assignment target,
+/// a parameter or the name of a definition. `fail = []` is an `lvasgn` upstream, not a `send`.
+fn is_binding_site(node: Node<'_>) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        "assignment" | "operator_assignment" | "for" => parent
+            .child_by_field_name("left")
+            .or_else(|| parent.child_by_field_name("pattern"))
+            .is_some_and(|target| target.id() == node.id()),
+        "call" | "method" | "singleton_method" | "alias" | "undef" => true,
+        "left_assignment_list"
+        | "rest_assignment"
+        | "destructured_left_assignment"
+        | "method_parameters"
+        | "block_parameters"
+        | "lambda_parameters"
+        | "optional_parameter"
+        | "keyword_parameter"
+        | "splat_parameter"
+        | "hash_splat_parameter"
+        | "block_parameter"
+        | "exception_variable" => true,
+        _ => false,
     }
 }
 
