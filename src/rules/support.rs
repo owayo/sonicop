@@ -2,6 +2,58 @@
 
 use std::ops::Range;
 
+/// `RangeHelp#final_pos`: how far a range grows when it takes in the blanks beside it.
+///
+/// The walk is a sequence rather than a loop -- spaces and tabs first, then line breaks, then any
+/// remaining whitespace -- so with `newlines` alone a run of blanks after a line break is not
+/// reached, and the caller that wants it has to ask for `whitespace` too. Reaching further matters:
+/// a cop that removes a whole comment line and eats the indentation of the line below it moves that
+/// line's code, which is a correction it never meant to make.
+pub(crate) fn final_pos(
+    text: &str,
+    position: usize,
+    forward: bool,
+    newlines: bool,
+    whitespace: bool,
+) -> usize {
+    let mut position = move_pos(text, position, forward, true, |byte| {
+        matches!(byte, b' ' | b'\t')
+    });
+    position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
+    move_pos(text, position, forward, whitespace, |byte| {
+        byte.is_ascii_whitespace()
+    })
+}
+
+fn move_pos(
+    text: &str,
+    mut position: usize,
+    forward: bool,
+    enabled: bool,
+    matches: impl Fn(u8) -> bool,
+) -> usize {
+    if !enabled {
+        return position;
+    }
+    let bytes = text.as_bytes();
+    loop {
+        let probe = if forward {
+            position
+        } else {
+            match position.checked_sub(1) {
+                Some(probe) => probe,
+                None => return position,
+            }
+        };
+        match bytes.get(probe) {
+            Some(byte) if matches(*byte) => {
+                position = if forward { position + 1 } else { probe };
+            }
+            _ => return position,
+        }
+    }
+}
+
 use tree_sitter::{Node, Parser};
 
 use crate::diagnostic::Edit;

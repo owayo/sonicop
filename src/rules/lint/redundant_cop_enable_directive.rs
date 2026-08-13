@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::support::final_pos;
 
 use super::cop_directives::{Directive, Mode, directives, is_department};
 
@@ -145,16 +146,18 @@ fn register(
         reported.to_owned()
     };
     let edit = if directive.names.len() == extras.len() || directive.all {
-        // The whole directive goes, with the whitespace behind it -- `range_with_surrounding_space`
-        // reaches over newlines unless it was told not to.
-        let mut end = directive.range.end;
-        let bytes = context.source.text().as_bytes();
-        while end < bytes.len() && bytes[end].is_ascii_whitespace() {
-            end += 1;
-        }
+        // The whole directive goes, with the whitespace behind it --
+        // `range_with_surrounding_space(side: :right)`, which reaches over the line breaks that
+        // follow but stops there. The indentation of the next line belongs to that line's code.
         Edit {
             start: directive.range.start,
-            end,
+            end: final_pos(
+                context.source.text(),
+                directive.range.end,
+                true,
+                true,
+                false,
+            ),
             replacement: String::new(),
             safe: true,
         }
