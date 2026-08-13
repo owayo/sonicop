@@ -111,13 +111,25 @@ fn is_begin_node(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    if parent.kind() != "unary" {
-        return true;
+    if parent.kind() == "unary" {
+        let Some(operator) = parent.child_by_field_name("operator") else {
+            return true;
+        };
+        return context.source.node_text(operator) != "defined?"
+            || operator.end_byte() != node.start_byte();
     }
-    let Some(operator) = parent.child_by_field_name("operator") else {
-        return true;
-    };
-    context.source.node_text(operator) != "defined?" || operator.end_byte() != node.start_byte()
+    // An argument list spelled over exactly the group is the grammar folding the call's own
+    // parentheses onto it, which it does after a `do ... end` block. `p (1)` reaches here with the
+    // same two ranges but a blank before the parenthesis, and there the group is the parser's.
+    if parent.kind() == "argument_list" && parent.byte_range() == node.byte_range() {
+        return context
+            .source
+            .text()
+            .as_bytes()
+            .get(node.start_byte().wrapping_sub(1))
+            .is_none_or(u8::is_ascii_whitespace);
+    }
+    true
 }
 
 /// The parent of the group as upstream's parser built the tree.

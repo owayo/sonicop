@@ -20036,6 +20036,16 @@ mod redundant_parentheses {
         );
     }
 
+    /// `do ... end` の直後に続く呼び出しでは、文法が引数リストを括弧の集合に
+    /// 畳んでしまう。その括弧は呼び出し自身のもので、パーサの `begin` ではない。
+    #[test]
+    fn an_argument_list_folded_onto_the_group_is_not_a_begin() {
+        expect_no_offenses(
+            COP,
+            "ref = update_git \"bar\" do |s|\n  s.write \"x\"\nend.ref_for(\"HEAD\")\n",
+        );
+    }
+
     /// レシーバとソースが同じ引数は、本家の `Node#!=` が構造で比べるため
     /// 「括弧付きメソッド呼び出しの引数」とは見なされない。
     #[test]
