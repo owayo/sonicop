@@ -3881,6 +3881,17 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_hash_transform_values")
         .correctable(true),
+        CopCase::annotated(
+            "Style/AndOr",
+            r#"
+            if foo and bar
+                   ^^^ Use `&&` instead of `and`.
+              x
+            end
+            "#,
+        )
+        .id("style_and_or")
+        .correctable(true),
     ]
 }
 

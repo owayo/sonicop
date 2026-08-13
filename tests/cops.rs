@@ -16370,3 +16370,96 @@ mod hash_transform {
         );
     }
 }
+
+/// `Style/AndOr`: 既定では条件の中の `and` / `or` だけを見る。
+///
+/// 期待値は本家 1.89.0 の `--only Style/AndOr` の実測。
+mod and_or {
+    use super::*;
+
+    const COP: &str = "Style/AndOr";
+
+    #[test]
+    fn only_a_condition_is_looked_at_by_default() {
+        expect_offense(
+            COP,
+            r#"
+            if foo and bar
+                   ^^^ Use `&&` instead of `and`.
+              x
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo and bar\n  x\nend\n",
+            "if foo && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "while foo or bar\n  x\nend\n",
+            "while foo || bar\n  x\nend\n",
+        );
+        expect_correction(COP, "puts 1 if foo and bar\n", "puts 1 if foo && bar\n");
+        expect_correction(COP, "(foo and bar) ? 1 : 2\n", "(foo && bar) ? 1 : 2\n");
+        expect_no_offenses(COP, "if foo && bar\n  x\nend\n");
+        // Outside a condition the semantic operator is left alone.
+        expect_no_offenses(COP, "x = foo and bar\n");
+        expect_no_offenses(COP, "foo.save and return\n");
+    }
+
+    /// 演算子の優先順位が変わる分は括弧で補う。
+    #[test]
+    fn what_changes_meaning_under_the_tighter_operator_gains_parentheses() {
+        expect_correction(
+            COP,
+            "if foo.include? 1 and bar\n  x\nend\n",
+            "if foo.include?(1) && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a.is_a?String and b\n  x\nend\n",
+            "if a.is_a?(String) && b\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if not foo and bar\n  x\nend\n",
+            "if (not foo) && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a == b and c\n  x\nend\n",
+            "if (a == b) && c\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a.b = 1 and c\n  x\nend\n",
+            "if (a.b = 1) && c\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a and b || c\n  x\nend\n",
+            "if a && (b || c)\n  x\nend\n",
+        );
+        // An indexing and a parenthesized call are left as they are.
+        expect_correction(COP, "if a[0] and b\n  x\nend\n", "if a[0] && b\n  x\nend\n");
+        expect_correction(
+            COP,
+            "if foo(1) and bar\n  x\nend\n",
+            "if foo(1) && bar\n  x\nend\n",
+        );
+    }
+
+    /// `EnforcedStyle: always` は条件の外も見る。
+    #[test]
+    fn the_always_style_looks_everywhere() {
+        CopCase::new(
+            COP,
+            "x = foo and bar\n",
+            vec![Annotation::new(1, 9, 3, "Use `&&` instead of `and`.")],
+        )
+        .config("Style/AndOr:\n  EnforcedStyle: always\n")
+        .corrected("(x = foo) && bar\n")
+        .run();
+    }
+}

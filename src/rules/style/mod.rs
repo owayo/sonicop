@@ -16,6 +16,7 @@ mod trailing_comma;
 department_rules! {
     "Style";
     alias => ("Alias", Convention),
+    and_or => ("AndOr", Convention),
     array_join => ("ArrayJoin", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
