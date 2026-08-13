@@ -18050,3 +18050,318 @@ mod style_rescue_modifier {
         );
     }
 }
+
+/// `Style/AccessModifierDeclarations`: `private def foo` は `private` を
+/// 独立させたグループ宣言にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/AccessModifierDeclarations` と `-A` の実測。
+mod access_modifier_declarations {
+    use super::*;
+
+    const COP: &str = "Style/AccessModifierDeclarations";
+
+    /// 同じ修飾子が後ろにも並ぶときは、最後の 1 個だけが offense になる
+    /// (`right_siblings_same_inline_method?`)。
+    #[test]
+    fn only_the_last_of_a_run_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private def bar; end
+              private def baz; end
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        );
+    }
+
+    /// 裸の修飾子が既にあればその直後へ、無ければクラスの `end` の直前へ移す。
+    #[test]
+    fn the_definition_moves_under_a_modifier_of_its_own() {
+        expect_correction(
+            COP,
+            "class Foo\n  private def bar; end\nend\n",
+            "class Foo\nprivate\n\ndef bar; end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class Foo\n  private\n\n  def a; end\n\n  private def b; end\nend\n",
+            "class Foo\n  private\n\ndef b; end\n\n  def a; end\n\nend\n",
+        );
+        // 直上のコメントは定義に付いて回る。
+        expect_correction(
+            COP,
+            "class Foo\n  # note\n  private def bar; end\nend\n",
+            "class Foo\nprivate\n\n# note\ndef bar; end\nend\n",
+        );
+        // クラスの外なら修飾子をその場で展開する。
+        expect_correction(
+            COP,
+            "module_function def mf; end\n",
+            "module_function\n\ndef mf; end\n",
+        );
+    }
+
+    /// `AllowModifiersOnSymbols` / `AllowModifiersOnAttrs` /
+    /// `AllowModifiersOnAliasMethod` はいずれも既定で真。`macro?` が成り立たない
+    /// 位置と、ブロック本体そのものである修飾子も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "class Foo\n  private :a, :b\n  private *METHOD_NAMES\n  private attr_reader :r\n  private alias_method :q, :r\nend\n",
+        );
+        expect_no_offenses(COP, "def top\n  private def inner; end\nend\n");
+        expect_no_offenses(COP, "c = Class.new do\n  private def foo; end\nend\n");
+        expect_no_offenses(COP, "class Foo\n  private\n\n  def bar; end\nend\n");
+    }
+
+    /// ローカル変数の splat は `(splat {const send})` にあたらないので許されない。
+    #[test]
+    fn a_splatted_local_is_still_an_offense() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              names = [:a]
+              private(*names)
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        );
+    }
+}
+
+/// `Style/BisectedAttrAccessor`: 同じ属性の `attr_reader` と `attr_writer` は
+/// `attr_accessor` 1 個にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/BisectedAttrAccessor` と `-A` の実測。
+mod bisected_attr_accessor {
+    use super::*;
+
+    const COP: &str = "Style/BisectedAttrAccessor";
+
+    /// 補正は `after_class` で macro ごとに 1 回積まれる。offense 自身は
+    /// corrector を持たないため `correctable: false` で、`-A` でも
+    /// 「補正した」とは数えられない。
+    #[test]
+    fn a_reader_and_a_writer_of_one_name_are_reported_and_combined() {
+        let report = expect_offense(
+            COP,
+            r#"
+            class Foo
+              attr_reader :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+              attr_writer :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+            end
+            "#,
+        );
+        assert!(report.offenses.iter().all(|offense| !offense.correctable));
+        expect_correction(
+            COP,
+            "class Foo\n  attr_reader :bar\n  attr_writer :bar\nend\n",
+            "class Foo\n  attr_accessor :bar\nend\n",
+        );
+        // 一部だけが重なるときは残りが元の macro に留まる。
+        expect_correction(
+            COP,
+            "class Baz\n  attr_reader :a, :b\n  attr_writer :b, :c\nend\n",
+            "class Baz\n  attr_accessor :b\n  attr_reader :a\n  attr_writer :c\nend\n",
+        );
+    }
+
+    /// 可視性が違えばまとめられない。`attr` は reader 側。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "class Foo\n  attr_reader :m\n  private\n  attr_writer :m\nend\n",
+        );
+        expect_no_offenses(COP, "class Foo\n  attr_reader :a\n  attr_writer :b\nend\n");
+        expect_no_offenses(COP, "class Foo\n  attr_accessor :a\nend\n");
+    }
+
+    /// `attr` も reader なので `attr_writer` と組める。
+    #[test]
+    fn attr_counts_as_a_reader() {
+        expect_correction(
+            COP,
+            "module M\n  attr :x\n  attr_writer :x\nend\n",
+            "module M\n  attr_accessor :x\nend\n",
+        );
+    }
+}
+
+/// `Style/MutableConstant`: 定数に入れた可変オブジェクトは凍らせる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MutableConstant` と `-A` の実測。
+/// ハーネスの既定 TargetRubyVersion は 2.7 で、regexp と range が可変なのは
+/// そのため。
+mod mutable_constant {
+    use super::*;
+
+    const COP: &str = "Style/MutableConstant";
+
+    #[test]
+    fn a_mutable_literal_gains_a_freeze() {
+        expect_offense(
+            COP,
+            r#"
+            CONST = [1, 2, 3]
+                    ^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        );
+        expect_correction(COP, "CONST = [1, 2, 3]\n", "CONST = [1, 2, 3].freeze\n");
+        expect_correction(COP, "H = { a: 1 }\n", "H = { a: 1 }.freeze\n");
+        expect_correction(COP, "S = 'str'\n", "S = 'str'.freeze\n");
+        expect_correction(COP, "W = %w[a b]\n", "W = %w[a b].freeze\n");
+        expect_correction(COP, "X = <<~HD\n  text\nHD\n", "X = <<~HD.freeze\n  text\nHD\n");
+        expect_correction(COP, "M::NESTED = [1]\n", "M::NESTED = [1].freeze\n");
+        expect_correction(COP, "C ||= [1]\n", "C ||= [1].freeze\n");
+    }
+
+    /// 括弧の無い配列は括弧を、range は丸括弧を先に足す。splat 1 個だけの配列は
+    /// `to_a` へ展開される。
+    #[test]
+    fn the_value_is_wrapped_where_a_dot_would_not_bind() {
+        expect_correction(COP, "A = 1, 2\n", "A = [1, 2].freeze\n");
+        expect_correction(COP, "R = 1..5\n", "R = (1..5).freeze\n");
+        expect_correction(COP, "S = [*items]\n", "S = (items).to_a.freeze\n");
+        expect_correction(COP, "S = *1..3\n", "S = (1..3).to_a.freeze\n");
+    }
+
+    /// 3.0 以降は regexp と range が凍結済みになる。
+    #[test]
+    fn regexp_and_range_are_frozen_from_ruby_3_0() {
+        CopCase::new(COP, "R = /re/\nRANGE = (1..5)\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        expect_offense(
+            COP,
+            r#"
+            R = /re/
+                ^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        );
+    }
+
+    /// `# frozen_string_literal: true` は補間の無い文字列だけを免除する。
+    #[test]
+    fn the_frozen_string_literal_comment_exempts_uninterpolated_strings() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # frozen_string_literal: true
+
+            S = 'str'
+            D = "in#{x}terp"
+                ^^^^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .target_ruby("3.3")
+        .run();
+    }
+
+    /// `shareable_constant_value` は宣言より後ろの定数にだけ効き、`none` で戻る。
+    #[test]
+    fn the_shareable_constant_value_comment_takes_over() {
+        CopCase::annotated(
+            COP,
+            r#"
+            A = [1]
+                ^^^ Freeze mutable objects assigned to constants.
+            # shareable_constant_value: literal
+            B = [2]
+            # shareable_constant_value: none
+            C = [3]
+                ^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .target_ruby("3.3")
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "N = 5\nSYM = :sym\nNEG = -1\n");
+        expect_no_offenses(COP, "F = [1].freeze\n");
+        expect_no_offenses(COP, "X = Something.new\n");
+        expect_no_offenses(COP, "A, B = [1], [2]\n");
+        expect_no_offenses(COP, "C += [1]\n");
+        expect_no_offenses(COP, "local = [1]\n");
+    }
+}
+
+/// `Style/InfiniteLoop`: 条件が動かないループは `Kernel#loop` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/InfiniteLoop` と `-A` の実測。
+mod infinite_loop {
+    use super::*;
+
+    const COP: &str = "Style/InfiniteLoop";
+
+    #[test]
+    fn a_loop_on_a_constant_condition_is_rewritten() {
+        expect_offense(
+            COP,
+            r#"
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              work
+            end
+            "#,
+        );
+        expect_correction(COP, "while true\n  work\nend\n", "loop do\n  work\nend\n");
+        expect_correction(COP, "until false\n  work\nend\n", "loop do\n  work\nend\n");
+        expect_correction(COP, "while 1\n  a\nend\n", "loop do\n  a\nend\n");
+        // `do` は `loop do` に吸われる。
+        expect_correction(COP, "while true do\n  a\nend\n", "loop do\n  a\nend\n");
+    }
+
+    /// 修飾子形と後置条件形。前者は 1 行なら波括弧ブロックになる。
+    #[test]
+    fn the_modifier_and_post_condition_forms() {
+        expect_correction(COP, "work while true\n", "loop { work }\n");
+        expect_correction(COP, "work until false\n", "loop { work }\n");
+        expect_correction(
+            COP,
+            "begin\n  work\nend while true\n",
+            "loop do\n  work\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  work\nend until false\n",
+            "loop do\n  work\nend\n",
+        );
+    }
+
+    /// ループの中で初めて代入された名前がループの後でも読まれていると、
+    /// ブロックにしたときその名前が届かなくなるので報告しない。
+    #[test]
+    fn a_variable_introduced_inside_and_read_after_stops_the_rewrite() {
+        expect_no_offenses(COP, "while true\n  y = 2\n  break\nend\nputs y\n");
+        // ループより前にも代入があれば書き換えてよい。
+        expect_offense(
+            COP,
+            r#"
+            y = 0
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              y = 2
+              break
+            end
+            puts y
+            "#,
+        );
+    }
+
+    /// 括弧で包まれた条件は `begin` になり、リテラルではなくなる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "while (true)\n  a\nend\n");
+        expect_no_offenses(COP, "while x\n  a\nend\n");
+        expect_no_offenses(COP, "until true\n  a\nend\n");
+    }
+}

@@ -479,7 +479,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             eprintln!("{message}");
             run_errors += 1;
         }
-        if outcome.corrected_count > 0 {
+        if outcome.rewritten {
             if cli.stdin.is_some() {
                 stdin_corrected = Some(outcome.text);
             } else {

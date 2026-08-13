@@ -196,7 +196,7 @@ impl<'a> MagicComment<'a> {
             .is_some_and(|value| matches!(value.as_str(), "enabled" | "disabled"))
     }
 
-    fn shareable_constant_value(&self) -> Option<String> {
+    pub(crate) fn shareable_constant_value(&self) -> Option<String> {
         match self {
             Self::Vim(_) => None,
             Self::Emacs(payload) => editor_value(payload, ";", ':', &KEYWORD_SHAREABLE),

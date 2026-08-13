@@ -1,11 +1,12 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
-use crate::magic_comment::MagicComment;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+
+use super::frozen_string::{is_frozen, literals_enabled};
 
 const MSG: &str = "Do not freeze immutable objects, as freezing them has no effect.";
 
@@ -57,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let frozen_strings =
-            *frozen_strings.get_or_insert_with(|| frozen_string_literals_enabled(context));
+            *frozen_strings.get_or_insert_with(|| literals_enabled(context));
         if !immutable_literal(context, receiver, frozen_strings)
             && !operation_produces_immutable_object(context, &locals, receiver)
         {
@@ -99,7 +100,7 @@ fn immutable_literal(context: &RuleContext<'_>, node: Node<'_>, frozen_strings: 
                 matches!(operand.kind(), "integer" | "float" | "rational" | "complex")
             });
     }
-    if frozen_strings && frozen_string(context, node) {
+    if frozen_strings && is_frozen(context, node) {
         return true;
     }
     context.target_ruby_version() >= RubyVersion::new(3, 0)
@@ -116,62 +117,6 @@ fn strip_parenthesis<'tree>(node: Node<'tree>) -> Node<'tree> {
         .first()
         .copied()
         .unwrap_or(node)
-}
-
-/// Whether the file's magic comments turn string literals frozen, which is what makes `.freeze` on
-/// one redundant. The default configuration leaves `StringLiteralsFrozenByDefault` unset, so nothing
-/// but a comment can enable it.
-fn frozen_string_literals_enabled(context: &RuleContext<'_>) -> bool {
-    leading_comment_lines(context)
-        .find_map(|line| {
-            let comment = MagicComment::parse(line);
-            comment
-                .frozen_string_literal_specified()
-                .then(|| comment.frozen_string_literal_enabled())
-        })
-        .unwrap_or(false)
-}
-
-/// The lines above the first one holding code, which is where Ruby reads magic comments.
-fn leading_comment_lines<'a>(context: &'a RuleContext<'a>) -> impl Iterator<Item = &'a str> + 'a {
-    let first_code = (1..=context.source.line_count()).find(|line_number| {
-        let line = context.source.line(*line_number).trim();
-        !line.is_empty() && !line.starts_with('#')
-    });
-    let end = first_code.unwrap_or(context.source.line_count() + 1);
-    (1..end).map(|line_number| context.source.line(line_number))
-}
-
-/// `frozen_string_literal?` once the file is known to freeze its literals: which literals the
-/// feature covers, which widened in Ruby 3.0 from "every `str` and `dstr`" to "the ones nothing is
-/// interpolated into".
-fn frozen_string(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let string = match node.kind() {
-        "string" | "chained_string" | "character" | "heredoc_beginning" => true,
-        // A `%w` word is only ever an array element, and a backtick literal is an `xstr` the feature
-        // never covered.
-        _ => false,
-    };
-    if !string {
-        return false;
-    }
-    if context.target_ruby_version() < RubyVersion::new(3, 0) {
-        return true;
-    }
-    !interpolated(context, node)
-}
-
-/// Whether anything is interpolated into a string literal, which is what upstream's
-/// `each_descendant(:begin, :ivar, :cvar, :gvar)` finds inside a `dstr`.
-fn interpolated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let body = match node.kind() {
-        "heredoc_beginning" => match send_node::heredoc_body(node, context) {
-            Some(body) => body,
-            None => return false,
-        },
-        _ => node,
-    };
-    send_node::any_descendant(body, &mut |child| child.kind() == "interpolation")
 }
 
 fn operation_produces_immutable_object(

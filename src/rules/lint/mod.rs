@@ -1,7 +1,10 @@
 /// Shared analyses that belong to no single cop: how RuboCop's `SendNode` reads an access
 /// modifier, what a `rescue` clause covers, whether a bare name reads a local variable, and
 /// RuboCop's local variable tracking.
-mod access_modifier;
+///
+/// Reachable from `style` too: `VisibilityHelp` and `SendNode#access_modifier?` answer the same
+/// questions for the Style cops that reason about where a `private` reaches.
+pub(crate) mod access_modifier;
 mod ambiguity;
 mod blocks;
 mod conditions;
