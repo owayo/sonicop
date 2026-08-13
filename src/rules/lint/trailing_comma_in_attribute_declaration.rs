@@ -1,6 +1,7 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::support::final_pos;
 
 const MSG: &str = "Avoid leaving a trailing comma in attribute declarations.";
 
@@ -27,12 +28,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `range_with_surrounding_space(arguments[-2], side: :right).end.resize(1)`: the one
         // character standing after the declaration's last name, which is the comma that swallowed
-        // the definition written on the next line.
-        let mut comma = arguments[arguments.len() - 2].range().end;
-        let text = context.source.text().as_bytes();
-        while comma < text.len() && text[comma].is_ascii_whitespace() {
-            comma += 1;
-        }
+        // the definition written on the next line. The default `whitespace: false` stops the walk
+        // at the first line break, so blanks that only start after one are not reached.
+        let comma = final_pos(
+            context.source.text(),
+            arguments[arguments.len() - 2].range().end,
+            true,
+            true,
+            false,
+        );
         offenses.push(context.offense(MSG, comma..comma + 1).corrected_by(Edit {
             start: comma,
             end: comma + 1,
