@@ -17522,10 +17522,11 @@ mod lint_ambiguity_without_a_diagnostic {
         expect_no_offenses(OPERATOR, "foo ->(x) { x }\n");
         expect_no_offenses(OPERATOR, "foo ->x { x }\n");
         expect_no_offenses(OPERATOR, "foo ->{ 1 }\n");
-        // `-` の次が `>` でなければ従来どおり前置演算子。
+        // `-` の次が `>` でなければ従来どおり前置演算子。`foo -->x` は本体の無いラムダで
+        // Ruby として妥当でないため、有効な `foo -x` で固定する。
         expect_offense(
             OPERATOR,
-            "foo -->x\n     ^ Ambiguous negative number operator. Parenthesize the method \
+            "foo -x\n    ^ Ambiguous negative number operator. Parenthesize the method \
              arguments if it's surely a negative number operator, or add a whitespace to the \
              right of the `-` if it should be a subtraction.\n",
         );
