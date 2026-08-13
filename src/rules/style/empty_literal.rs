@@ -84,18 +84,21 @@ impl Literal {
                             return None;
                         }
                         let literal = named_constant(receiver, context)?;
-                        // Upstream matches `(send (const {nil? cbase} :Array) :new (array)?)`,
-                        // and `Hash`/`String` with no argument at all. So the only argument any
-                        // of them takes is the empty array literal `Array.new([])`.
-                        // `Array.new(5)` builds a sized array and `Hash.new(0)` a hash with a
-                        // default, neither of which the bare literal stands in for.
-                        match list.as_slice() {
-                            [] => {}
-                            [only] if literal == Self::Array => match only.parts() {
-                                [argument] if is_empty_array(*argument, context) => {}
-                                _ => return None,
+                        // `(send (const _ :Array) :new (array)?)`: `Array.new([])` is still an
+                        // empty array, while `Array.new(5)` is not. `Hash.new` and `String.new`
+                        // take no argument at all.
+                        let takes_nothing = match list.as_slice() {
+                            [] => true,
+                            [only] => match only.parts() {
+                                [argument] => {
+                                    literal == Self::Array && is_empty_array(*argument, context)
+                                }
+                                _ => false,
                             },
-                            _ => return None,
+                            _ => false,
+                        };
+                        if !takes_nothing {
+                            return None;
                         }
                         // A block makes the result something other than the bare literal.
                         if literal != Self::String && node.child_by_field_name("block").is_some() {

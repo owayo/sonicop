@@ -3855,6 +3855,35 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_module_function")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFetchBlock",
+            r#"
+            h.fetch(:key) { 5 }
+              ^^^^^^^^^^^^^^^^^ Use `fetch(:key, 5)` instead of `fetch(:key) { 5 }`.
+            "#,
+        )
+        .id("style_redundant_fetch_block")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MultipleComparison",
+            r#"
+            def m(x)
+              x == 1 || x == 2
+              ^^^^^^^^^^^^^^^^ Avoid comparing a variable with multiple items in a conditional, use `Array#include?` instead.
+            end
+            "#,
+        )
+        .id("style_multiple_comparison")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SignalException",
+            r#"
+            fail 'a'
+            ^^^^ Always use `raise` to signal exceptions.
+            "#,
+        )
+        .id("style_signal_exception")
+        .correctable(true),
     ]
 }
 
