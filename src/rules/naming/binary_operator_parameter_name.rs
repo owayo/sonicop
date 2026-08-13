@@ -38,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let variables = variables
-            .get_or_insert_with(|| Variables::resolve(context.root_node(), context.source));
+            .get_or_insert_with(|| context.variable_roles());
         offenses.push(
             context
                 .offense(

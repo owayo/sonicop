@@ -35,12 +35,12 @@ pub(super) fn valid_name(name: &str, style: &str) -> bool {
 /// distinction: `Naming/VariableName` reports every `lvar` through `on_lvar`, and
 /// `Naming/ConstantName` excuses `CONST = some_method` while reporting `CONST = some_local`.
 /// tree-sitter spells both as `identifier`, so the scopes have to be replayed to separate them.
-pub(super) struct Variables {
+pub(in crate::rules) struct Variables {
     roles: HashMap<usize, Role>,
 }
 
 impl Variables {
-    pub(super) fn resolve<'a>(root: Node<'_>, source: &'a SourceFile) -> Self {
+    pub(in crate::rules) fn resolve<'a>(root: Node<'_>, source: &'a SourceFile) -> Self {
         let mut roles = HashMap::new();
         let mut scopes: Vec<Scope<'a>> = vec![Scope::new(true)];
         let mut steps = vec![Step::Visit(root)];
@@ -61,18 +61,18 @@ impl Variables {
 
     /// Whether RuboCop's variable handlers see this node at all: an assignment target, a
     /// parameter, or a read that resolved to a local.
-    pub(super) fn is_variable(&self, node: Node<'_>) -> bool {
+    pub(in crate::rules) fn is_variable(&self, node: Node<'_>) -> bool {
         self.roles.contains_key(&node.start_byte())
     }
 
     /// Whether the parser would build an `lvar` here rather than a receiverless `send`.
-    pub(super) fn is_reference(&self, node: Node<'_>) -> bool {
+    pub(in crate::rules) fn is_reference(&self, node: Node<'_>) -> bool {
         self.roles.get(&node.start_byte()) == Some(&Role::Reference)
     }
 
     /// Whether the name is being bound: an assignment target or a parameter, which is what
     /// `on_lvasgn` and `on_arg` between them see.
-    pub(super) fn is_definition(&self, node: Node<'_>) -> bool {
+    pub(in crate::rules) fn is_definition(&self, node: Node<'_>) -> bool {
         self.roles.get(&node.start_byte()) == Some(&Role::Definition)
     }
 }

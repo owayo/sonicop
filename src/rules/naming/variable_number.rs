@@ -5,7 +5,7 @@ use regex::Regex;
 use tree_sitter::Node;
 
 use super::support::{
-    PARAMETER_LISTS, ParameterKind, Variables, bound_parameters, class_emitter_method,
+    PARAMETER_LISTS, ParameterKind, bound_parameters, class_emitter_method,
     quoted_content, ruby_regex,
 };
 use crate::diagnostic::Offense;
@@ -43,7 +43,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
     }
 
-    let variables = Variables::resolve(context.root_node(), context.source);
+    let variables = context.variable_roles();
     for node in context.nodes_of_any(&[
         "identifier",
         "instance_variable",

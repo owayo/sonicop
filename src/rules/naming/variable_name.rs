@@ -1,4 +1,4 @@
-use super::support::{Variables, valid_name};
+use super::support::valid_name;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -8,7 +8,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "snake_case".to_owned());
     let allowed: Vec<String> = context.setting("AllowedIdentifiers").unwrap_or_default();
     let forbidden: Vec<String> = context.setting("ForbiddenIdentifiers").unwrap_or_default();
-    let variables = Variables::resolve(context.root_node(), context.source);
+    let variables = context.variable_roles();
     for node in context.nodes_of_any(&[
         "identifier",
         "instance_variable",

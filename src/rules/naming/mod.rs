@@ -19,5 +19,5 @@ department_rules! {
 }
 
 /// Also read by `Lint/UnreachableLoop`, whose `AllowedPatterns` default is a `!ruby/regexp`.
-pub(super) mod support;
+pub(in crate::rules) mod support;
 mod uncommunicative;

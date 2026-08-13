@@ -31,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let variables = variables
-            .get_or_insert_with(|| Variables::resolve(context.root_node(), context.source));
+            .get_or_insert_with(|| context.variable_roles());
         // `shadowed_variable_name?` asks whether the *configured* name is already read inside the
         // handler. Upstream passes a node where a name is expected, so the underscore prefix never
         // reaches this test.
