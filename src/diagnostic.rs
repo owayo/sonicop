@@ -104,6 +104,11 @@ pub struct Offense {
     /// `insert_before(processed_source.buffer.source_range, ...)`, so its insertion is the parent
     /// of everything else corrected in the file rather than a child of whatever covers the head.
     pub correction_anchor: Option<(usize, usize)>,
+    /// Set for edits the cop scheduled outside `add_offense`, which is where `Cop::Base#correct`
+    /// puts a rewrite belonging to no single offense. The offense keeps the `:unsupported` status
+    /// it was reported with -- neither `correctable` nor ever stamped corrected -- while the edits
+    /// still reach the run's corrector. See [`Offense::corrected_without_status`].
+    pub corrections_detached: bool,
     pub snapshot: Option<OffenseSnapshot>,
 }
 
@@ -131,6 +136,7 @@ impl Offense {
             justification: None,
             corrections: Vec::new(),
             correction_anchor: None,
+            corrections_detached: false,
             snapshot: None,
         }
     }
@@ -150,6 +156,20 @@ impl Offense {
     pub fn corrected_by_all(mut self, edits: impl IntoIterator<Item = Edit>) -> Self {
         self.corrections.extend(edits);
         self.correctable = !self.corrections.is_empty();
+        self
+    }
+
+    /// For a cop that fills the run's corrector somewhere other than the block `add_offense` takes.
+    ///
+    /// `Cop::Base#correct` reaches the same corrector from anywhere, and a cop whose rewrite spans
+    /// several offenses calls it once from a handler of its own -- `Style/BisectedAttrAccessor`
+    /// rewrites a whole `attr_reader` in `after_class` while each bisected attribute was reported
+    /// on its own in `on_class`. The offenses were reported with no corrector, so they keep the
+    /// `:unsupported` status: they are reported `correctable: false` and an autocorrect run that
+    /// applies the edits still does not count them corrected.
+    pub fn corrected_without_status(mut self, edits: impl IntoIterator<Item = Edit>) -> Self {
+        self.corrections.extend(edits);
+        self.corrections_detached = true;
         self
     }
 

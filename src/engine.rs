@@ -1259,7 +1259,11 @@ pub fn corrected_text(
     }
 
     for index in &corrected {
-        report.offenses[*index].corrected = true;
+        // Edits a cop scheduled outside `add_offense` leave the offense's own status alone. See
+        // [`Offense::corrected_without_status`].
+        if !report.offenses[*index].corrections_detached {
+            report.offenses[*index].corrected = true;
+        }
     }
     (run.rewrite(source), applied)
 }
@@ -1376,6 +1380,11 @@ pub struct CorrectionOutcome {
     pub report: FileReport,
     pub text: String,
     pub corrected_count: usize,
+    /// `Team#updated_source_file?`: whether any pass produced text differing from what it ran on,
+    /// which is what decides the file is written back. Not every rewrite is credited to an offense
+    /// -- see [`Offense::corrected_without_status`] -- so the count of corrected offenses cannot
+    /// stand in for it.
+    pub rewritten: bool,
     /// Set when the passes never settled. RuboCop reports this per file, still writes the last
     /// corrected text, and keeps inspecting the rest of the run.
     pub infinite_loop: Option<String>,
@@ -1393,6 +1402,7 @@ pub fn correct_file(
             report,
             text,
             corrected_count: 0,
+            rewritten: false,
             infinite_loop: None,
         });
     }
@@ -1400,6 +1410,7 @@ pub fn correct_file(
     let path = report.path.clone();
     let mut log = CorrectionLog::default();
     let mut sources = vec![text.clone()];
+    let mut rewritten = false;
     // Every pass re-inspects the same file under the same configuration, so the plan is resolved
     // once for the whole fixed-point loop.
     let plan = RulePlan::build(config, selection);
@@ -1421,10 +1432,12 @@ pub fn correct_file(
                 report,
                 text,
                 corrected_count,
+                rewritten,
                 infinite_loop: None,
             });
         }
         log.record_pass(&mut report, directive_pass);
+        rewritten |= corrected != text;
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
         // repeat tells us which pass the cycle closed on.
@@ -1437,6 +1450,7 @@ pub fn correct_file(
                 report,
                 text: corrected,
                 corrected_count,
+                rewritten,
                 infinite_loop: Some(format!(
                     "Infinite loop detected in {} and caused by {root_cause}",
                     path.display()

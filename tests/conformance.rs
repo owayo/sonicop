@@ -4034,6 +4034,52 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_freeze")
         .correctable(true),
         CopCase::annotated(
+            "Style/AccessModifierDeclarations",
+            r#"
+            class Foo
+              private def bar; end
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        )
+        .id("style_access_modifier_declarations")
+        .correctable(true),
+        // 補正は `after_class` でまとめて 1 回積まれるので、offense 自身は
+        // corrector を持たない (`correctable: false`)。
+        CopCase::annotated(
+            "Style/BisectedAttrAccessor",
+            r#"
+            class Foo
+              attr_reader :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+              attr_writer :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+            end
+            "#,
+        )
+        .id("style_bisected_attr_accessor")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/MutableConstant",
+            r#"
+            CONST = [1, 2, 3]
+                    ^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .id("style_mutable_constant")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InfiniteLoop",
+            r#"
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              work
+            end
+            "#,
+        )
+        .id("style_infinite_loop")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end

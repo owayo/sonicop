@@ -2,6 +2,7 @@ mod block_args;
 mod comments;
 mod conditional;
 mod format_sequences;
+mod frozen_string;
 mod hash_transform;
 mod line_length_help;
 mod literal;
@@ -15,11 +16,13 @@ mod trailing_comma;
 
 department_rules! {
     "Style";
+    access_modifier_declarations => ("AccessModifierDeclarations", Convention),
     alias => ("Alias", Convention),
     array_join => ("ArrayJoin", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
     begin_block => ("BeginBlock", Convention),
+    bisected_attr_accessor => ("BisectedAttrAccessor", Convention),
     block_comments => ("BlockComments", Convention),
     block_delimiters => ("BlockDelimiters", Convention),
     case_equality => ("CaseEquality", Convention),
@@ -69,6 +72,7 @@ department_rules! {
     if_unless_modifier => ("IfUnlessModifier", Convention),
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),
+    infinite_loop => ("InfiniteLoop", Convention),
     lambda => ("Lambda", Convention),
     lambda_call => ("LambdaCall", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
@@ -80,6 +84,7 @@ department_rules! {
     mixin_usage => ("MixinUsage", Convention),
     multiline_block_chain => ("MultilineBlockChain", Convention),
     module_function => ("ModuleFunction", Convention),
+    mutable_constant => ("MutableConstant", Convention),
     multiple_comparison => ("MultipleComparison", Convention),
     multiline_if_modifier => ("MultilineIfModifier", Convention),
     multiline_if_then => ("MultilineIfThen", Convention),
