@@ -3134,6 +3134,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_if_inside_else")
         .correctable(true),
+        // どの分岐でも同じことをするなら外へ。分岐ごとに 1 件報告する。
+        CopCase::annotated(
+            "Style/IdenticalConditionalBranches",
+            r#"
+            if a
+              do_x
+              foo
+              ^^^ Move `foo` out of the conditional.
+            else
+              do_y
+              foo
+              ^^^ Move `foo` out of the conditional.
+            end
+            "#,
+        )
+        .id("style_identical_conditional_branches")
+        .correctable(true),
         // 同じコレクションを 2 度回すループ。報告は 2 つ目のループ全体。
         CopCase::annotated(
             "Style/CombinableLoops",
@@ -3713,6 +3730,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_not")
         .correctable(true),
+        // 反転メソッドがあるなら否定しない。報告は否定式全体。
+        CopCase::annotated(
+            "Style/InverseMethods",
+            r#"
+            a = !foo.any?
+                ^^^^^^^^^ Use `none?` instead of inverting `any?`.
+            "#,
+        )
+        .id("style_inverse_methods")
+        .correctable(true),
         CopCase::annotated(
             "Style/MinMax",
             r#"
@@ -3966,6 +3993,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_mixin_usage")
         .correctable(false),
+        // 既定の separated では 1 文 1 モジュール。
+        CopCase::annotated(
+            "Style/MixinGrouping",
+            r#"
+            class Foo
+              include Bar, Baz
+              ^^^^^^^^^^^^^^^^ Put `include` mixins in separate statements.
+            end
+            "#,
+        )
+        .id("style_mixin_grouping")
+        .correctable(true),
         CopCase::annotated(
             "Style/HashLikeCase",
             r#"
