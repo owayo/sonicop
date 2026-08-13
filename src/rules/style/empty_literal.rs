@@ -84,18 +84,18 @@ impl Literal {
                             return None;
                         }
                         let literal = named_constant(receiver, context)?;
-                        let empty_array_argument = match list.as_slice() {
-                            [] => false,
-                            [only] => match only.parts() {
-                                [argument] => is_empty_array(*argument, context),
+                        // Upstream matches `(send (const {nil? cbase} :Array) :new (array)?)`,
+                        // and `Hash`/`String` with no argument at all. So the only argument any
+                        // of them takes is the empty array literal `Array.new([])`.
+                        // `Array.new(5)` builds a sized array and `Hash.new(0)` a hash with a
+                        // default, neither of which the bare literal stands in for.
+                        match list.as_slice() {
+                            [] => {}
+                            [only] if literal == Self::Array => match only.parts() {
+                                [argument] if is_empty_array(*argument, context) => {}
                                 _ => return None,
                             },
                             _ => return None,
-                        };
-                        // `Array.new([])` is still an empty array; `Hash.new` and `String.new`
-                        // take no argument at all.
-                        if empty_array_argument && literal != Self::Array {
-                            return None;
                         }
                         // A block makes the result something other than the bare literal.
                         if literal != Self::String && node.child_by_field_name("block").is_some() {

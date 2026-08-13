@@ -15737,7 +15737,11 @@ mod style_batch_a {
         );
         expect_correction("Style/SlicingWithRange", "items[0..-1]\n", "items\n");
         expect_correction("Style/SlicingWithRange", "items[1..nil]\n", "items[1..]\n");
-        expect_correction("Style/SlicingWithRange", "items[nil..42]\n", "items[..42]\n");
+        expect_correction(
+            "Style/SlicingWithRange",
+            "items[nil..42]\n",
+            "items[..42]\n",
+        );
         expect_offense(
             "Style/SlicingWithRange",
             r#"
@@ -15792,7 +15796,10 @@ mod style_batch_a {
             "def m(a: 1, b:)\n  1\nend\n",
             "def m(b:, a: 1)\n  1\nend\n",
         );
-        expect_no_offenses("Style/KeywordParametersOrder", "def m(b:, a: 1)\n  1\nend\n");
+        expect_no_offenses(
+            "Style/KeywordParametersOrder",
+            "def m(b:, a: 1)\n  1\nend\n",
+        );
     }
 
     #[test]
@@ -15821,7 +15828,10 @@ mod style_batch_a {
             "do_something(1,\n             2) if condition\n",
             "if condition\n  do_something(1,\n               2)\nend\n",
         );
-        expect_no_offenses("Style/MultilineIfModifier", "do_something(1, 2) if condition\n");
+        expect_no_offenses(
+            "Style/MultilineIfModifier",
+            "do_something(1, 2) if condition\n",
+        );
     }
 
     #[test]
