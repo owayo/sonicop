@@ -245,9 +245,13 @@ fn if_branch_is_true(
 
 /// The name of a predicate call, when the node is one.
 fn predicate_selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
+    // A call that takes a block is a `block` node upstream rather than a `send`.
+    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+        return None;
+    }
     let selector = node.child_by_field_name("method")?;
     let name = context.source.node_text(selector);
-    (node.kind() == "call" && (name.ends_with('?') || name.ends_with('!'))).then_some(name)
+    (name.ends_with('?') || name.ends_with('!')).then_some(name)
 }
 
 /// `branches_have_assignment?`: both branches assign the same name.
@@ -292,7 +296,7 @@ fn branches_have_method(
 }
 
 fn single_argument_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "call" {
+    if !is_send(node) {
         return false;
     }
     let Some((argument, _)) = first_argument(node) else {
@@ -307,9 +311,25 @@ fn single_argument_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     !SPREAD_ARGUMENTS.contains(&argument.kind())
 }
 
+/// Whether upstream's parser would have built a `send` here. An operator written between two
+/// operands is one there, however much the grammar spells it as a `binary`.
+fn is_send(node: Node<'_>) -> bool {
+    match node.kind() {
+        "call" => node.child_by_field_name("block").is_none(),
+        "binary" => true,
+        _ => false,
+    }
+}
+
 /// A call's arguments grouped the way upstream's parser does: a trailing run of `key: value` pairs
 /// is one `hash` argument there, however many pairs were written.
 fn arguments<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Range<usize>)> {
+    if node.kind() == "binary" {
+        return node
+            .child_by_field_name("right")
+            .map(|right| vec![(right, right.byte_range())])
+            .unwrap_or_default();
+    }
     let written = node
         .child_by_field_name("arguments")
         .map(super::nodes::children)
@@ -338,12 +358,20 @@ fn first_argument<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Range<usize>
 }
 
 fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    node.child_by_field_name("method")
+    let field = match node.kind() {
+        "binary" => "operator",
+        _ => "method",
+    };
+    node.child_by_field_name(field)
         .map(|selector| context.source.node_text(selector))
 }
 
 fn receiver<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    node.child_by_field_name("receiver")
+    let field = match node.kind() {
+        "binary" => "left",
+        _ => "receiver",
+    };
+    node.child_by_field_name(field)
         .map(|receiver| context.source.node_text(receiver))
 }
 
@@ -510,17 +538,12 @@ fn if_source(
         }
         if arithmetic
             && let (Some(receiver), Some(selector), Some((_, argument))) = (
-                node.child_by_field_name("receiver"),
-                node.child_by_field_name("method"),
+                receiver(context, node),
+                selector(context, node),
                 first_argument(node),
             )
         {
-            return format!(
-                "{} {} ({}",
-                context.source.node_text(receiver),
-                context.source.node_text(selector),
-                context.source.slice(argument)
-            );
+            return format!("{receiver} {selector} ({}", context.source.slice(argument));
         }
         if node.kind() == "true" {
             let condition_source = context.source.node_text(condition);
@@ -629,12 +652,9 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `arithmetic_operation?`: one of the operators whose result is a new value.
 fn arithmetic_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "call"
-        && node.child_by_field_name("method").is_some_and(|selector| {
-            matches!(
-                context.source.node_text(selector),
-                "+" | "-" | "*" | "/" | "%" | "**"
-            )
+    is_send(node)
+        && selector(context, node).is_some_and(|selector| {
+            matches!(selector, "+" | "-" | "*" | "/" | "%" | "**")
         })
         && arguments(node).len() == 1
 }

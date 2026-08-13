@@ -14,11 +14,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // two blocks in one method only add it once.
     let mut named: HashSet<usize> = HashSet::new();
     for node in context.nodes_of("yield") {
-        let Some((call, block)) = yielding_block(node) else {
+        let Some(target) = yielding_block(node, context) else {
             continue;
         };
-        let block_parameters = block
-            .child_by_field_name("parameters")
+        let block_parameters = target
+            .parameters
             .map(super::nodes::children)
             .unwrap_or_default();
         // The grammar hangs a `yield`'s arguments off it without a field name.
@@ -35,25 +35,46 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         let name = block_name(context, definition);
         let mut edits = vec![Edit {
-            start: send_node::send_range(call, context).end,
-            end: call.end_byte(),
+            start: target.send_end,
+            end: target.node.end_byte(),
             replacement: String::new(),
             safe: true,
         }];
-        edits.extend(add_block_argument(context, call, &name, true));
+        edits.extend(add_block_argument(
+            context,
+            target.arguments,
+            target.send_end,
+            &name,
+        ));
         if named.insert(definition.id()) {
-            edits.extend(add_block_argument(context, definition, &name, false));
+            edits.extend(add_block_argument(
+                context,
+                definition.child_by_field_name("parameters"),
+                definition
+                    .child_by_field_name("name")
+                    .map_or(definition.end_byte(), |name| name.end_byte()),
+                &name,
+            ));
         }
         offenses.push(
             context
-                .offense(MSG, call.byte_range())
+                .offense(MSG, target.node.byte_range())
                 .corrected_by_all(edits),
         );
     }
 }
 
+/// What one recognized block gives the correction: where it is reported, where the call it hangs
+/// off ends, and the parameters it declares.
+struct Target<'tree> {
+    node: Node<'tree>,
+    send_end: usize,
+    parameters: Option<Node<'tree>>,
+    arguments: Option<Node<'tree>>,
+}
+
 /// `(block $_ (args $...) (yield $...))`: a block whose whole body is one `yield`.
-fn yielding_block<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>)> {
+fn yielding_block<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Target<'tree>> {
     let body = node.parent()?;
     if !matches!(body.kind(), "block_body" | "body_statement") {
         return None;
@@ -66,8 +87,23 @@ fn yielding_block<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>)
     if !matches!(block.kind(), "block" | "do_block") {
         return None;
     }
-    let call = block.parent()?;
-    (call.kind() == "call").then_some((call, block))
+    let owner = block.parent()?;
+    match owner.kind() {
+        // `-> { yield }` is a block whose send is `(send nil :lambda)`, whose source is the `->`.
+        "lambda" => Some(Target {
+            node: owner,
+            send_end: owner.child(0)?.end_byte(),
+            parameters: owner.child_by_field_name("parameters"),
+            arguments: None,
+        }),
+        "call" => Some(Target {
+            node: owner,
+            send_end: send_node::send_range(owner, context).end,
+            parameters: block.child_by_field_name("parameters"),
+            arguments: owner.child_by_field_name("arguments"),
+        }),
+        _ => None,
+    }
 }
 
 /// `yielding_arguments?`: the block hands each of its parameters straight to `yield`, in order.
@@ -76,21 +112,29 @@ fn yields_its_arguments(
     parameters: &[Node<'_>],
     arguments: &[Node<'_>],
 ) -> bool {
-    if arguments.len() > parameters.len() {
-        return false;
-    }
-    if parameters.is_empty() {
-        return true;
-    }
+    // The yield arguments are padded with nils up to the parameter count, and a nil on either side
+    // fails the comparison -- so the two lists have to be the same length.
     parameters.len() == arguments.len()
         && parameters
             .iter()
             .zip(arguments)
             .all(|(parameter, argument)| {
-                parameter.kind() == "identifier"
-                    && argument.kind() == "identifier"
-                    && context.source.node_text(*parameter) == context.source.node_text(*argument)
+                argument.kind() == "identifier"
+                    && parameter_name(context, *parameter)
+                        == Some(context.source.node_text(*argument))
             })
+}
+
+/// The name a parameter declares, which is what upstream compares the yielded variable against.
+fn parameter_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
+    match node.kind() {
+        "identifier" => Some(context.source.node_text(node)),
+        "splat_parameter" | "hash_splat_parameter" | "block_parameter" | "keyword_parameter"
+        | "optional_parameter" => node
+            .child_by_field_name("name")
+            .map(|name| context.source.node_text(name)),
+        _ => None,
+    }
 }
 
 /// The `def` the block is written inside, which is where the block parameter goes.
@@ -122,15 +166,10 @@ fn block_name(context: &RuleContext<'_>, definition: Node<'_>) -> String {
 /// `add_block_argument`: the parameter list gains `&block`, however it was written.
 fn add_block_argument(
     context: &RuleContext<'_>,
-    node: Node<'_>,
+    list: Option<Node<'_>>,
+    anchor: usize,
     name: &str,
-    call_like: bool,
 ) -> Vec<Edit> {
-    let field = match call_like {
-        true => "arguments",
-        false => "parameters",
-    };
-    let list = node.child_by_field_name(field);
     let written = list.map(super::nodes::children).unwrap_or_default();
     if let Some(last) = written.last() {
         // A block parameter already there needs nothing added.
@@ -166,14 +205,6 @@ fn add_block_argument(
             safe: true,
         }];
     }
-    let anchor = match call_like {
-        // `correct_call_node`: the parentheses go after the whole call.
-        true => send_node::send_range(node, context).end,
-        false => match node.child_by_field_name("name") {
-            Some(selector) => selector.end_byte(),
-            None => return Vec::new(),
-        },
-    };
     vec![Edit {
         start: anchor,
         end: anchor,
