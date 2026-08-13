@@ -3841,6 +3841,28 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_parentheses_around_condition")
         .correctable(true),
+        CopCase::annotated(
+            "Style/Encoding",
+            r#"
+            # encoding: utf-8
+            ^^^^^^^^^^^^^^^^^ Unnecessary utf-8 encoding comment.
+            puts 1
+            "#,
+        )
+        .id("style_encoding")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EachWithObject",
+            r#"
+            [1, 2].inject({}) do |h, i|
+                   ^^^^^^ Use `each_with_object` instead of `inject`.
+              h[i] = i
+              h
+            end
+            "#,
+        )
+        .id("style_each_with_object")
+        .correctable(true),
     ]
 }
 

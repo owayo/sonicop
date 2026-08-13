@@ -16185,3 +16185,123 @@ mod parentheses_around_condition {
             .run();
     }
 }
+
+/// `Style/Encoding`: UTF-8 は既定なので encoding コメントは不要。
+///
+/// 期待値は本家 1.89.0 の `--only Style/Encoding` の実測。
+mod encoding {
+    use super::*;
+
+    const COP: &str = "Style/Encoding";
+
+    #[test]
+    fn a_utf8_encoding_comment_takes_its_line_with_it() {
+        expect_offense(
+            COP,
+            r#"
+            # encoding: utf-8
+            ^^^^^^^^^^^^^^^^^ Unnecessary utf-8 encoding comment.
+            puts 1
+            "#,
+        );
+        expect_correction(COP, "# encoding: utf-8\nputs 1\n", "puts 1\n");
+        expect_correction(COP, "# coding: UTF-8\nputs 1\n", "puts 1\n");
+        expect_correction(COP, "# -*- coding: utf-8 -*-\nputs 1\n", "puts 1\n");
+        // The blank lines the comment was followed by go with it.
+        expect_correction(COP, "# encoding: utf-8\n\n\nputs 1\n", "puts 1\n");
+    }
+
+    #[test]
+    fn a_comment_that_sets_something_else_too_keeps_the_rest() {
+        expect_correction(
+            COP,
+            "# -*- coding: utf-8; frozen_string_literal: true -*-\nputs 1\n",
+            "# -*- frozen_string_literal: true -*-\nputs 1\n",
+        );
+        expect_correction(
+            COP,
+            "# vim: filetype=ruby, fileencoding=utf-8\nputs 1\n",
+            "# vim: filetype=ruby\nputs 1\n",
+        );
+    }
+
+    #[test]
+    fn the_search_stops_at_the_first_line_that_is_not_a_magic_comment() {
+        // A shebang is stepped over rather than ending the run.
+        expect_correction(
+            COP,
+            "#!/usr/bin/env ruby\n# encoding: utf-8\nputs 1\n",
+            "#!/usr/bin/env ruby\nputs 1\n",
+        );
+        expect_no_offenses(COP, "puts 1\n# encoding: utf-8\n");
+        expect_no_offenses(COP, "  # encoding: utf-8\nputs 1\n");
+        expect_no_offenses(COP, "# encoding: ascii-8bit\nputs 1\n");
+        // Vim honours `fileencoding` only next to another setting separated by `, `.
+        expect_no_offenses(COP, "# vim: filetype=ruby,fileencoding=utf-8\nputs 1\n");
+        expect_no_offenses(COP, "");
+    }
+}
+
+/// `Style/EachWithObject`: 空の入れ物を畳み込む `inject` は `each_with_object`。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EachWithObject` の実測。
+mod each_with_object {
+    use super::*;
+
+    const COP: &str = "Style/EachWithObject";
+
+    #[test]
+    fn a_fold_that_hands_its_accumulator_back_is_an_each_with_object() {
+        expect_offense(
+            COP,
+            r#"
+            [1, 2].inject({}) do |h, i|
+                   ^^^^^^ Use `each_with_object` instead of `inject`.
+              h[i] = i
+              h
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "[1, 2].inject({}) do |h, i|\n  h[i] = i\n  h\nend\n",
+            "[1, 2].each_with_object({}) do |i, h|\n  h[i] = i\nend\n",
+        );
+        // On one line the accumulator alone is removed, not the line it sits on.
+        expect_correction(
+            COP,
+            "[1, 2].reduce({}) { |h, i| h[i] = i; h }\n",
+            "[1, 2].each_with_object({}) { |i, h| h[i] = i;  }\n",
+        );
+    }
+
+    #[test]
+    fn a_numbered_block_swaps_its_parameters_instead() {
+        expect_correction(
+            COP,
+            "[1, 2].inject({}) do\n  _1[_2] = _2\n  _1\nend\n",
+            "[1, 2].each_with_object({}) do\n  _2[_1] = _1\n  _2\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_fold_that_computes_a_value_is_left_alone() {
+        // A basic literal seed means the block folds rather than fills in.
+        expect_no_offenses(
+            COP,
+            "[1, 2].inject(0) do |sum, i|\n  sum += i\n  sum\nend\n",
+        );
+        expect_no_offenses(COP, "[1, 2].inject(:+)\n");
+        // Reassigning the accumulator is not the same as filling one in.
+        expect_no_offenses(
+            COP,
+            "[1, 2].inject({}) do |h, i|\n  h = h.merge(i => i)\n  h\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "[1, 2].inject({}) do |h, i|\n  h[i] = i\n  h[i]\nend\n",
+        );
+        expect_no_offenses(COP, "[1, 2].inject { |a, b| a }\n");
+        expect_no_offenses(COP, "[1, 2].inject({}) do |h, i, j|\n  h\nend\n");
+    }
+}
