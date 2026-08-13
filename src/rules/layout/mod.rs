@@ -88,4 +88,6 @@ mod empty_lines_around_body;
 mod multiline_brace;
 mod multiline_expression;
 mod support;
-mod tokens;
+/// Reachable from `style` too: `Style/LineEndConcatenation` reads the same lexer stream, and the
+/// token types it needs are the ones this module already had to get right.
+pub(crate) mod tokens;

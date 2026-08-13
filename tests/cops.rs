@@ -19606,3 +19606,68 @@ mod hash_each_methods {
         expect_no_offenses(COP, "keys.each { |k| p k }\n");
     }
 }
+
+/// `Style/LineEndConcatenation`: 行末で文字列を継ぐ `+` / `<<` は `\` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/LineEndConcatenation` と `-A` の実測。
+mod line_end_concatenation {
+    use super::*;
+
+    const COP: &str = "Style/LineEndConcatenation";
+
+    #[test]
+    fn an_operator_left_at_the_end_of_a_line_is_reported_and_replaced() {
+        expect_offense(
+            COP,
+            r#"
+            some_str = 'ala' +
+                             ^ Use `\` instead of `+` to concatenate multiline strings.
+                       'bala'
+            "#,
+        );
+        expect_correction(
+            COP,
+            "some_str = 'ala' +\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        expect_correction(
+            COP,
+            "some_str = 'ala' <<\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        // 既に行継続が書かれていれば、その `\` ごと 1 つに畳む。
+        expect_correction(
+            COP,
+            "some_str = 'ala' + \\\n           'bala'\n",
+            "some_str = 'ala' \\\n           'bala'\n",
+        );
+        // 補間のある文字列は開き・閉じの区切りが別トークンになるが、どちらも
+        // 引用符なので対象になる。
+        expect_correction(
+            COP,
+            "some_str = \"ala#{x}\" +\n           'bala'\n",
+            "some_str = \"ala#{x}\" \\\n           'bala'\n",
+        );
+    }
+
+    /// 同じ行に収まっているもの、文字列でない側があるもの、`%q()` のように
+    /// 行継続で繋げない書き方は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "some_str = 'ala' + 'bala'\n");
+        expect_no_offenses(COP, "some_str = 1 +\n           'bala'\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           variable\n");
+        expect_no_offenses(COP, "some_str = %q(ala) +\n           'bala'\n");
+        expect_no_offenses(COP, "some_str = 'ala' + # note\n           'bala'\n");
+    }
+
+    /// `+` より強く結び付く演算子が 2 つ目の文字列に続いていると、`\` にすると
+    /// 適用先が変わってしまう。
+    #[test]
+    fn an_operator_binding_tighter_than_the_concatenation_stops_it() {
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala'.upcase\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala' * 2\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala' % x\n");
+        expect_no_offenses(COP, "some_str = 'ala' +\n           'bala'[0]\n");
+    }
+}
