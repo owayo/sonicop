@@ -16,6 +16,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `# rubocop:disable all` turns this cop off too, so its own offense never survives.
     let mut open: Vec<usize> = Vec::new();
     for (index, directive) in parsed.iter().enumerate() {
+        // `analyze_cop`: a directive sharing its line with code, or sitting behind prose inside a
+        // comment, goes to `analyze_single_line`. A `disable` there covers its own line and
+        // nothing more, so the range it leaves is closed and `acceptable_range?` lets it through;
+        // an `enable` there closes nothing.
+        if !directive.comment_only_line || directive.single_line {
+            continue;
+        }
         match directive.mode {
             Mode::Disable if !directive.all => open.push(index),
             Mode::Disable => {}
@@ -42,7 +49,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(name) = directive.names.first() else {
             continue;
         };
-        let kind = if is_department(name) { "department" } else { "cop" };
+        let kind = if is_department(name) {
+            "department"
+        } else {
+            "cop"
+        };
         offenses.push(context.offense(
             format!("Re-enable {name} {kind} with `# rubocop:enable` after disabling it."),
             directive.comment.clone(),

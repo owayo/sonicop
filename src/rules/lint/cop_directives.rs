@@ -5,6 +5,10 @@
 //! themselves: which comment turned a cop off, whether the switch was ever turned back on, and
 //! whether an `enable` had anything to undo. That is a different model of the same comments, kept
 //! here rather than folded into the engine's.
+//!
+//! Only the model differs. Finding the directive inside the comment is `DirectiveComment`'s job in
+//! both, so this module asks `crate::directives` for it rather than keeping a second reading of
+//! the same pattern.
 
 use std::ops::Range;
 
@@ -39,6 +43,9 @@ pub(super) struct Directive {
     pub all: bool,
     /// `comment_only_line?`: whether the line holds nothing but the comment.
     pub comment_only_line: bool,
+    /// `DirectiveComment#single_line?`: the directive does not open the comment, so it applies to
+    /// its own line only.
+    pub single_line: bool,
     /// `DirectiveComment#range`: the marker and everything it matched.
     pub range: Range<usize>,
 }
@@ -65,7 +72,7 @@ pub(super) fn directives(context: &RuleContext<'_>) -> Vec<Directive> {
     let mut found = Vec::new();
     for comment in context.comment_ranges() {
         let text = context.source.slice(comment.clone());
-        let Some((marker, mode, rest)) = header(text) else {
+        let Some((start, mode_end, mode, rest)) = header(text) else {
             continue;
         };
         let (names, all, end) = cop_list(rest);
@@ -80,47 +87,31 @@ pub(super) fn directives(context: &RuleContext<'_>) -> Vec<Directive> {
             names,
             all,
             comment_only_line: before.trim().is_empty(),
-            range: comment.start..comment.start + marker + end,
+            single_line: start != 0,
+            // `DirectiveComment#range` spans the match, which need not open the comment.
+            range: comment.start + start..comment.start + mode_end + end,
         });
     }
     found
 }
 
-/// `DIRECTIVE_HEADER_PATTERN`: the marker, the mode, and where the cop list starts.
-fn header(text: &str) -> Option<(usize, Mode, &str)> {
-    let bytes = text.as_bytes();
-    let mut index = 0;
-    if bytes.first() != Some(&b'#') {
-        return None;
-    }
-    index += 1;
-    while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
-        index += 1;
-    }
-    if !text[index..].starts_with("rubocop") {
-        return None;
-    }
-    index += "rubocop".len();
-    while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
-        index += 1;
-    }
-    if bytes.get(index) != Some(&b':') {
-        return None;
-    }
-    index += 1;
-    while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
-        index += 1;
-    }
-    for (keyword, mode) in [
-        ("disable", Mode::Disable),
-        ("todo", Mode::Disable),
-        ("enable", Mode::Enable),
-    ] {
-        if text[index..].starts_with(keyword) {
-            return Some((index + keyword.len(), mode, &text[index + keyword.len()..]));
-        }
-    }
-    None
+/// Where the marker matched, where the cop list starts, and the mode.
+///
+/// The pattern matches the *first* marker in the comment whichever mode it names, so a `push` or
+/// `pop` is read and skipped here rather than searched past for a later `disable`.
+fn header(text: &str) -> Option<(usize, usize, Mode, &str)> {
+    let header = crate::directives::directive_header(text)?;
+    let mode = match header.mode {
+        "disable" | "todo" => Mode::Disable,
+        "enable" => Mode::Enable,
+        _ => return None,
+    };
+    Some((
+        header.start,
+        header.mode_end,
+        mode,
+        &text[header.mode_end..],
+    ))
 }
 
 /// `COPS_PATTERN`: `all`, or a comma-separated run of cop names.
