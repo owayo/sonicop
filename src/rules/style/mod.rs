@@ -2,6 +2,7 @@ mod block_args;
 mod comments;
 mod conditional;
 mod format_sequences;
+mod frozen_string;
 mod hash_transform;
 mod line_length_help;
 mod literal;
@@ -16,15 +17,19 @@ mod trailing_comma;
 
 department_rules! {
     "Style";
+    access_modifier_declarations => ("AccessModifierDeclarations", Convention),
     alias => ("Alias", Convention),
     accessor_grouping => ("AccessorGrouping", Convention),
+    and_or => ("AndOr", Convention),
     array_join => ("ArrayJoin", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
     begin_block => ("BeginBlock", Convention),
+    bisected_attr_accessor => ("BisectedAttrAccessor", Convention),
     block_comments => ("BlockComments", Convention),
     block_delimiters => ("BlockDelimiters", Convention),
     case_equality => ("CaseEquality", Convention),
+    case_like_if => ("CaseLikeIf", Convention),
     character_literal => ("CharacterLiteral", Convention),
     class_and_module_children => ("ClassAndModuleChildren", Convention),
     class_check => ("ClassCheck", Convention),
@@ -52,8 +57,10 @@ department_rules! {
     empty_method => ("EmptyMethod", Convention),
     encoding => ("Encoding", Convention),
     end_block => ("EndBlock", Convention),
+    eval_with_location => ("EvalWithLocation", Convention),
     even_odd => ("EvenOdd", Convention),
     expand_path_arguments => ("ExpandPathArguments", Convention),
+    explicit_block_argument => ("ExplicitBlockArgument", Convention),
     exponential_notation => ("ExponentialNotation", Convention),
     float_division => ("FloatDivision", Convention),
     r#for => ("For", Convention),
@@ -73,6 +80,7 @@ department_rules! {
     if_unless_modifier => ("IfUnlessModifier", Convention),
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),
+    infinite_loop => ("InfiniteLoop", Convention),
     lambda => ("Lambda", Convention),
     lambda_call => ("LambdaCall", Convention),
     inverse_methods => ("InverseMethods", Convention),
@@ -86,6 +94,7 @@ department_rules! {
     mixin_usage => ("MixinUsage", Convention),
     multiline_block_chain => ("MultilineBlockChain", Convention),
     module_function => ("ModuleFunction", Convention),
+    mutable_constant => ("MutableConstant", Convention),
     multiple_comparison => ("MultipleComparison", Convention),
     multiline_if_modifier => ("MultilineIfModifier", Convention),
     multiline_if_then => ("MultilineIfThen", Convention),
@@ -105,6 +114,7 @@ department_rules! {
     numeric_literal_prefix => ("NumericLiteralPrefix", Convention),
     numeric_predicate => ("NumericPredicate", Convention),
     numeric_literals => ("NumericLiterals", Convention),
+    one_line_conditional => ("OneLineConditional", Convention),
     optional_arguments => ("OptionalArguments", Convention),
     optional_boolean_parameter => ("OptionalBooleanParameter", Convention),
     or_assignment => ("OrAssignment", Convention),
@@ -119,6 +129,7 @@ department_rules! {
     random_with_offset => ("RandomWithOffset", Convention),
     redundant_assignment => ("RedundantAssignment", Convention),
     redundant_capital_w => ("RedundantCapitalW", Convention),
+    redundant_condition => ("RedundantCondition", Convention),
     redundant_conditional => ("RedundantConditional", Convention),
     redundant_exception => ("RedundantException", Convention),
     redundant_fetch_block => ("RedundantFetchBlock", Convention),
@@ -126,7 +137,10 @@ department_rules! {
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_interpolation => ("RedundantInterpolation", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
+    redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
+    redundant_regexp_escape => ("RedundantRegexpEscape", Convention),
     redundant_return => ("RedundantReturn", Convention),
+    redundant_self => ("RedundantSelf", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
     redundant_sort => ("RedundantSort", Convention),
     redundant_sort_by => ("RedundantSortBy", Convention),
@@ -140,6 +154,7 @@ department_rules! {
     single_argument_dig => ("SingleArgumentDig", Convention),
     single_line_methods => ("SingleLineMethods", Convention),
     slicing_with_range => ("SlicingWithRange", Convention),
+    sole_nested_conditional => ("SoleNestedConditional", Convention),
     special_global_vars => ("SpecialGlobalVars", Convention),
     stabby_lambda_parentheses => ("StabbyLambdaParentheses", Convention),
     stderr_puts => ("StderrPuts", Convention),
@@ -151,6 +166,7 @@ department_rules! {
     symbol_array => ("SymbolArray", Convention),
     symbol_literal => ("SymbolLiteral", Convention),
     symbol_proc => ("SymbolProc", Convention),
+    ternary_parentheses => ("TernaryParentheses", Convention),
     trailing_body_on_class => ("TrailingBodyOnClass", Convention),
     trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
     trailing_body_on_module => ("TrailingBodyOnModule", Convention),
@@ -159,6 +175,7 @@ department_rules! {
     trailing_comma_in_hash_literal => ("TrailingCommaInHashLiteral", Convention),
     trailing_method_end_statement => ("TrailingMethodEndStatement", Convention),
     trailing_underscore_variable => ("TrailingUnderscoreVariable", Convention),
+    trivial_accessors => ("TrivialAccessors", Convention),
     unless_else => ("UnlessElse", Convention),
     unpack_first => ("UnpackFirst", Convention),
     variable_interpolation => ("VariableInterpolation", Convention),
@@ -166,5 +183,6 @@ department_rules! {
     while_until_do => ("WhileUntilDo", Convention),
     while_until_modifier => ("WhileUntilModifier", Convention),
     word_array => ("WordArray", Convention),
+    yoda_condition => ("YodaCondition", Convention),
     zero_length_predicate => ("ZeroLengthPredicate", Convention),
 }

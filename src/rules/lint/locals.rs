@@ -10,6 +10,7 @@
 //! the walk in every file it inspects.
 
 use std::cell::OnceCell;
+use std::ops::Range;
 
 use tree_sitter::Node;
 
@@ -39,4 +40,36 @@ impl<'a> LocalVariables<'a> {
             .get_or_init(|| Analysis::run(self.root, self.source))
             .is_variable_reference(node)
     }
+
+    /// Where each variable in the file is written and where it is read.
+    ///
+    /// A cop that joins `VariableForce` through `after_leaving_scope` sees the whole table rather
+    /// than one answer about one node: `Style/InfiniteLoop` asks whether a name a loop body
+    /// introduces is still read below the loop, which no single node can say.
+    pub(in crate::rules) fn variable_spans(&self) -> Vec<VariableSpans> {
+        self.analysis
+            .get_or_init(|| Analysis::run(self.root, self.source))
+            .variables
+            .iter()
+            .map(|variable| VariableSpans {
+                assignments: variable
+                    .assignments
+                    .iter()
+                    .map(|assignment| assignment.node.byte_range())
+                    .collect(),
+                references: variable
+                    .references
+                    .iter()
+                    .map(|reference| reference.node.byte_range())
+                    .collect(),
+            })
+            .collect()
+    }
+}
+
+/// One variable's writes and reads, as the spans `Variable#assignments` and `Variable#references`
+/// point at.
+pub(in crate::rules) struct VariableSpans {
+    pub assignments: Vec<Range<usize>>,
+    pub references: Vec<Range<usize>>,
 }

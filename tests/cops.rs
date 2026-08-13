@@ -17092,6 +17092,684 @@ mod hash_transform {
     }
 }
 
+/// `Style/CaseLikeIf`: 同じ対象を比べ続ける `if-elsif` は `case-when` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/CaseLikeIf` と `-A` の実測。
+mod case_like_if {
+    use super::*;
+
+    const COP: &str = "Style/CaseLikeIf";
+
+    #[test]
+    fn a_chain_comparing_one_target_is_reported_and_rewritten() {
+        expect_offense(
+            COP,
+            r#"
+            if x == 1
+            ^^^^^^^^^ Convert `if-elsif` to `case-when`.
+              a
+            elsif x == 2
+              b
+            elsif x == 3
+              c
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if x == 1\n  a\nelsif x == 2\n  b\nelsif x == 3\n  c\nend\n",
+            "case x\nwhen 1\n  a\nwhen 2\n  b\nwhen 3\n  c\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if x.is_a?(Foo)\n  a\nelsif x.is_a?(Bar)\n  b\nelsif x.is_a?(Baz)\n  c\nelse\n  d\nend\n",
+            "case x\nwhen Foo\n  a\nwhen Bar\n  b\nwhen Baz\n  c\nelse\n  d\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if /re/ =~ x\n  a\nelsif /re2/ =~ x\n  b\nelsif x =~ /re3/\n  c\nend\n",
+            "case x\nwhen /re/\n  a\nwhen /re2/\n  b\nwhen /re3/\n  c\nend\n",
+        );
+        // `||` は 1 つの `when` にまとまり、範囲の `include?` も条件になる。
+        expect_correction(
+            COP,
+            "if x == 1 || x == 2\n  a\nelsif x == 3\n  b\nelsif (1..5).include?(x)\n  c\nend\n",
+            "case x\nwhen 1, 2\n  a\nwhen 3\n  b\nwhen 1..5\n  c\nend\n",
+        );
+    }
+
+    /// 対象が揃わないもの、枝が足りないものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "if x == 1\n  a\nelsif y == 2\n  b\nelsif x == 3\n  c\nend\n",
+        );
+        expect_no_offenses(COP, "if x == 1\n  a\nelsif x == 2\n  b\nend\n");
+        expect_no_offenses(COP, "if x\n  a\nelsif y\n  b\nelsif z\n  c\nend\n");
+    }
+}
+
+/// `Style/AndOr`: 既定では条件の中の `and` / `or` だけを見る。
+///
+/// 期待値は本家 1.89.0 の `--only Style/AndOr` の実測。
+mod and_or {
+    use super::*;
+
+    const COP: &str = "Style/AndOr";
+
+    #[test]
+    fn only_a_condition_is_looked_at_by_default() {
+        expect_offense(
+            COP,
+            r#"
+            if foo and bar
+                   ^^^ Use `&&` instead of `and`.
+              x
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo and bar\n  x\nend\n",
+            "if foo && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "while foo or bar\n  x\nend\n",
+            "while foo || bar\n  x\nend\n",
+        );
+        expect_correction(COP, "puts 1 if foo and bar\n", "puts 1 if foo && bar\n");
+        expect_correction(COP, "(foo and bar) ? 1 : 2\n", "(foo && bar) ? 1 : 2\n");
+        expect_no_offenses(COP, "if foo && bar\n  x\nend\n");
+        // Outside a condition the semantic operator is left alone.
+        expect_no_offenses(COP, "x = foo and bar\n");
+        expect_no_offenses(COP, "foo.save and return\n");
+    }
+
+    /// 演算子の優先順位が変わる分は括弧で補う。
+    #[test]
+    fn what_changes_meaning_under_the_tighter_operator_gains_parentheses() {
+        expect_correction(
+            COP,
+            "if foo.include? 1 and bar\n  x\nend\n",
+            "if foo.include?(1) && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a.is_a?String and b\n  x\nend\n",
+            "if a.is_a?(String) && b\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if not foo and bar\n  x\nend\n",
+            "if (not foo) && bar\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a == b and c\n  x\nend\n",
+            "if (a == b) && c\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a.b = 1 and c\n  x\nend\n",
+            "if (a.b = 1) && c\n  x\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if a and b || c\n  x\nend\n",
+            "if a && (b || c)\n  x\nend\n",
+        );
+        // An indexing and a parenthesized call are left as they are.
+        expect_correction(COP, "if a[0] and b\n  x\nend\n", "if a[0] && b\n  x\nend\n");
+        expect_correction(
+            COP,
+            "if foo(1) and bar\n  x\nend\n",
+            "if foo(1) && bar\n  x\nend\n",
+        );
+    }
+
+    /// `EnforcedStyle: always` は条件の外も見る。
+    #[test]
+    fn the_always_style_looks_everywhere() {
+        CopCase::new(
+            COP,
+            "x = foo and bar\n",
+            vec![Annotation::new(1, 9, 3, "Use `&&` instead of `and`.")],
+        )
+        .config("Style/AndOr:\n  EnforcedStyle: always\n")
+        .corrected("(x = foo) && bar\n")
+        .run();
+    }
+}
+
+/// `Style/TrivialAccessors`: 単純な読み書きは `attr_*` で。
+///
+/// 期待値は本家 1.89.0 の `--only Style/TrivialAccessors` の実測。
+mod trivial_accessors {
+    use super::*;
+
+    const COP: &str = "Style/TrivialAccessors";
+
+    #[test]
+    fn a_reader_and_a_writer_become_attr_declarations() {
+        expect_correction(
+            COP,
+            "class C\n  def foo\n    @foo\n  end\nend\n",
+            "class C\n  attr_reader :foo\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class C\n  def bar=(val)\n    @bar = val\n  end\nend\n",
+            "class C\n  attr_writer :bar\nend\n",
+        );
+        // A class method is rewritten into a singleton class body.
+        expect_correction(
+            COP,
+            "class C\n  def self.cls\n    @cls\n  end\nend\n",
+            "class C\n  class << self\n    attr_reader :cls\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn what_an_accessor_could_not_replace_is_left_alone() {
+        // `ExactNameMatch` wants the names to agree.
+        expect_no_offenses(COP, "class C\n  def other\n    @different\n  end\nend\n");
+        // `AllowPredicates` and the allowed names.
+        expect_no_offenses(COP, "class C\n  def qux?\n    @qux\n  end\nend\n");
+        expect_no_offenses(COP, "class C\n  def to_s\n    @to_s\n  end\nend\n");
+        expect_no_offenses(
+            COP,
+            "class C\n  def initialize\n    @initialize\n  end\nend\n",
+        );
+        // `AllowDSLWriters` allows a writer whose name does not end in `=`.
+        expect_no_offenses(COP, "class C\n  def baz(val)\n    @baz = val\n  end\nend\n");
+        expect_no_offenses(COP, "class C\n  def m\n    @a\n    @b\n  end\nend\n");
+        // A definition inside a module reads as a mixin rather than as an attribute.
+        expect_no_offenses(COP, "module M\n  def foo\n    @foo\n  end\nend\n");
+        expect_no_offenses(COP, "def top\n  @top\nend\n");
+    }
+}
+
+/// `Style/ExplicitBlockArgument`: `yield` を渡すだけのブロックは `&block` に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/ExplicitBlockArgument` の実測。
+mod explicit_block_argument {
+    use super::*;
+
+    const COP: &str = "Style/ExplicitBlockArgument";
+
+    #[test]
+    fn a_block_that_only_yields_becomes_a_block_argument() {
+        expect_correction(
+            COP,
+            "def foo\n  bar { yield }\nend\n",
+            "def foo(&block)\n  bar(&block)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo\n  bar { |x| yield x }\nend\n",
+            "def foo(&block)\n  bar(&block)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo(a)\n  bar { |x| yield x }\nend\n",
+            "def foo(a, &block)\n  bar(&block)\nend\n",
+        );
+        // A block argument already declared keeps its own name.
+        expect_correction(
+            COP,
+            "def foo(&blk)\n  bar { |x| yield x }\nend\n",
+            "def foo(&blk)\n  bar(&blk)\nend\n",
+        );
+        // The definition only gains the parameter once however many blocks it holds.
+        expect_correction(
+            COP,
+            "def foo\n  bar { |x| yield x }\n  baz { |y| yield y }\nend\n",
+            "def foo(&block)\n  bar(&block)\n  baz(&block)\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_block_that_does_anything_else_is_left_alone() {
+        expect_no_offenses(COP, "def foo\n  bar { |x| yield y }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x, y| yield x }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x| yield x, y }\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar { |x| puts x; yield x }\nend\n");
+        // A `yield` outside any method definition has no signature to move to.
+        expect_no_offenses(COP, "bar { |x| yield x }\n");
+    }
+}
+
+/// `Style/RedundantRegexpEscape`: 正規表現の中で意味を持たないエスケープ。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantRegexpEscape` の実測。
+mod redundant_regexp_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpEscape";
+
+    #[test]
+    fn an_escape_that_changes_nothing_is_dropped() {
+        expect_correction(COP, "/\\-/\n", "/-/\n");
+        expect_correction(COP, "/\\;/\n", "/;/\n");
+        expect_correction(COP, "/[\\;]/\n", "/[;]/\n");
+        // A hyphen written first or last in a class is literal already.
+        expect_correction(COP, "/[\\-a]/\n", "/[-a]/\n");
+        expect_correction(COP, "/[a\\-]/\n", "/[a-]/\n");
+    }
+
+    #[test]
+    fn an_escape_that_carries_meaning_stays() {
+        expect_no_offenses(COP, "/\\./\n");
+        expect_no_offenses(COP, "%r{\\}}\n");
+        expect_no_offenses(COP, "/\\/foo/\n");
+        expect_no_offenses(COP, "/\\d\\w\\s\\A\\z/\n");
+        expect_no_offenses(COP, "/\\n\\t/\n");
+        expect_no_offenses(COP, "/\\\\/\n");
+        expect_no_offenses(COP, "/\\#{x}/\n");
+        expect_no_offenses(COP, "/[\\]]/\n");
+        // A hyphen between two ends of a range has to stay escaped.
+        expect_no_offenses(COP, "/[a\\-b]/\n");
+        expect_no_offenses(COP, "/\\ /x\n");
+    }
+}
+
+/// `Style/OneLineConditional`: 1 行の `if/then/else/end` は三項演算子か複数行に。
+///
+/// 期待値は本家 1.89.0 の `--only Style/OneLineConditional` の実測。
+mod one_line_conditional {
+    use super::*;
+
+    const COP: &str = "Style/OneLineConditional";
+
+    #[test]
+    fn a_one_line_conditional_becomes_a_ternary() {
+        expect_offense(
+            COP,
+            r#"
+            if foo then bar else baz end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+            "#,
+        );
+        expect_correction(COP, "if foo then bar else baz end\n", "foo ? bar : baz\n");
+        // An `unless` keeps its branches in the order the parser stores them.
+        expect_correction(
+            COP,
+            "unless foo then bar else baz end\n",
+            "foo ? baz : bar\n",
+        );
+        expect_correction(
+            COP,
+            "if foo then puts 1 else puts 2 end\n",
+            "foo ? (puts 1) : (puts 2)\n",
+        );
+        // An operator around the conditional binds tighter than the ternary.
+        expect_correction(
+            COP,
+            "1 + if foo then bar else baz end\n",
+            "1 + (foo ? bar : baz)\n",
+        );
+    }
+
+    /// 三項演算子にできない形は複数行に開く。
+    #[test]
+    fn what_has_no_ternary_form_is_written_over_several_lines() {
+        expect_offense(
+            COP,
+            r#"
+            if foo then bar else baz; qux end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor multi-line `if` over single-line `if/then/else/end` constructs.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if foo then bar else baz; qux end\n",
+            "if foo\n  bar\nelse\n  baz; qux\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if foo then bar elsif x then y else z end\n",
+            "if foo\n  bar\nelsif x\n  y\nelse\n  z\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_conditional_without_an_else_is_left_alone() {
+        expect_no_offenses(COP, "if foo then bar end\n");
+        expect_no_offenses(COP, "bar if foo\n");
+        expect_no_offenses(COP, "if foo\n  bar\nelse\n  baz\nend\n");
+        // A then-branch holding more than one statement has no ternary arm to become.
+        expect_no_offenses(COP, "if foo then bar; baz else qux end\n");
+    }
+}
+
+/// `Style/RedundantCondition`: 条件と分岐が同じなら `||` で足りる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantCondition` の実測。
+mod redundant_condition {
+    use super::*;
+
+    const COP: &str = "Style/RedundantCondition";
+
+    #[test]
+    fn a_branch_that_repeats_the_condition_becomes_a_double_pipe() {
+        expect_offense(
+            COP,
+            r#"
+            a ? a : b
+              ^^^^^ Use double pipes `||` instead.
+            "#,
+        );
+        expect_correction(COP, "a ? a : b\n", "a || b\n");
+        expect_correction(COP, "if a\n  a\nelse\n  b\nend\n", "a || b\n");
+        expect_correction(COP, "foo(a) ? foo(a) : b\n", "foo(a) || b\n");
+        // Both branches assigning the same name, and both calling the same method.
+        expect_correction(COP, "if a\n  x = a\nelse\n  x = b\nend\n", "x = a || b\n");
+        expect_correction(
+            COP,
+            "if a\n  foo(a)\nelse\n  foo(b)\nend\n",
+            "foo(a || b)\n",
+        );
+        expect_correction(COP, "a.zero? ? true : b\n", "a.zero? || b\n");
+    }
+
+    /// `else` の無い形は条件そのものが不要。
+    #[test]
+    fn a_condition_without_an_else_is_not_needed_at_all() {
+        expect_offense(
+            COP,
+            r#"
+            if a
+            ^^^^ This condition is not needed.
+              a
+            end
+            "#,
+        );
+        expect_correction(COP, "if a\n  a\nend\n", "a\n");
+    }
+
+    #[test]
+    fn anything_that_is_not_the_same_expression_twice_is_left_alone() {
+        expect_no_offenses(COP, "if x\n  y\nelse\n  z\nend\n");
+        expect_no_offenses(COP, "b if a\n");
+        expect_no_offenses(COP, "if a\n  a\nelsif b\n  c\nend\n");
+        // A multi-line `begin` as the else branch is not a ternary arm.
+        expect_no_offenses(COP, "if a\n  a\nelse\n  b\n  c\nend\n");
+        // A hash key assignment is not an either-or.
+        expect_no_offenses(COP, "if a\n  h[a] = 1\nelse\n  h[b] = 1\nend\n");
+        expect_no_offenses(COP, "a ? true : b\n");
+        expect_no_offenses(COP, "if a.nonzero?\n  a\nelse\n  b\nend\n");
+    }
+}
+
+/// パーサが `ambiguous_prefix` / `ambiguous_regexp` を出さない書き方の回帰。
+///
+/// 本家のこの 2 cop は `processed_source.diagnostics` を読むだけなので、レキサが
+/// 警告を出さない位置では発火しない。sonicop は木からその状態を復元するため、
+/// 「引数リストに見えるが `expr_arg` では読まれていない」2 つの形を取りこぼすと
+/// 過検出になり、`-A` で括弧を書き足してしまう。
+mod lint_ambiguity_without_a_diagnostic {
+    use super::*;
+
+    const OPERATOR: &str = "Lint/AmbiguousOperator";
+    const REGEXP: &str = "Lint/AmbiguousRegexpLiteral";
+
+    /// `->` はラムダリテラルを開くので、`-` が前置演算子として読まれることはない。
+    #[test]
+    fn a_stabby_lambda_argument_is_not_a_negative_number() {
+        expect_no_offenses(OPERATOR, "class Foo\n  vary_by -> { 1 }\nend\n");
+        expect_no_offenses(OPERATOR, "foo ->(x) { x }\n");
+        expect_no_offenses(OPERATOR, "foo ->x { x }\n");
+        expect_no_offenses(OPERATOR, "foo ->{ 1 }\n");
+        // `-` の次が `>` でなければ従来どおり前置演算子。`foo -->x` は本体の無いラムダで
+        // Ruby として妥当でないため、有効な `foo -x` で固定する。
+        expect_offense(
+            OPERATOR,
+            "foo -x\n    ^ Ambiguous negative number operator. Parenthesize the method \
+             arguments if it's surely a negative number operator, or add a whitespace to the \
+             right of the `-` if it should be a subtraction.\n",
+        );
+    }
+
+    /// `return` / `break` / `next` はキーワードで、引数を取る呼び出しではない。
+    #[test]
+    fn keywords_that_are_not_calls_never_warn() {
+        expect_no_offenses(
+            REGEXP,
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+        );
+        expect_no_offenses(REGEXP, "break /re/\n");
+        expect_no_offenses(REGEXP, "next /re/\n");
+        expect_no_offenses(OPERATOR, "return *a\n");
+        expect_no_offenses(OPERATOR, "break -1\n");
+        expect_no_offenses(OPERATOR, "next *a\n");
+    }
+
+    /// `yield` と `super` はレキサから見れば普通の command call なので警告は出る。
+    #[test]
+    fn yield_and_super_still_warn() {
+        expect_offense(
+            REGEXP,
+            "yield /re/\n      ^ Ambiguous regexp literal. Parenthesize the method arguments if \
+             it's surely a regexp literal, or add a whitespace to the right of the `/` if it \
+             should be a division.\n",
+        );
+        expect_offense(
+            OPERATOR,
+            "super *a\n      ^ Ambiguous splat operator. Parenthesize the method arguments if \
+             it's surely a splat operator, or add a whitespace to the right of the `*` if it \
+             should be a multiplication.\n",
+        );
+    }
+
+    /// キーワードの引数の中にある呼び出しは、それ自身が警告の対象になる。
+    #[test]
+    fn a_call_inside_a_keyword_argument_still_warns() {
+        expect_offense(
+            REGEXP,
+            "return foo /re/\n           ^ Ambiguous regexp literal. Parenthesize the method \
+             arguments if it's surely a regexp literal, or add a whitespace to the right of the \
+             `/` if it should be a division.\n",
+        );
+    }
+
+    /// 過検出だったものに `-A` が括弧を書き足さないこと。
+    #[test]
+    fn autocorrect_leaves_them_untouched() {
+        expect_correction(
+            OPERATOR,
+            "class Foo\n  vary_by -> { 1 }\nend\n",
+            "class Foo\n  vary_by -> { 1 }\nend\n",
+        );
+        expect_correction(
+            REGEXP,
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+            "def m(s)\n  return /\\s+/ if s.blank?\n\n  1\nend\n",
+        );
+    }
+}
+
+/// コーパスで見つかった取りこぼしの回帰。
+mod style_c_corpus_regressions {
+    use super::*;
+
+    /// `*x` も名前で突き合わせる。`yield` の引数の数はブロックの引数の数と一致していること。
+    #[test]
+    fn explicit_block_argument_matches_a_splat_parameter_by_name() {
+        expect_correction(
+            "Style/ExplicitBlockArgument",
+            "def each6; @body.each { |*x| yield(x) } end\n",
+            "def each6(&block); @body.each(&block) end\n",
+        );
+        expect_no_offenses(
+            "Style/ExplicitBlockArgument",
+            "def each5; @body.each { |*x| yield(*x) } end\n",
+        );
+        // A `->` block is a `lambda` send upstream, and its parameters are the block's.
+        expect_correction(
+            "Style/ExplicitBlockArgument",
+            "def a\n  ->{ yield }.call\nend\n",
+            "def a(&block)\n  ->(&block).call\nend\n",
+        );
+        // A yield with arguments but no block parameters pairs them with nothing.
+        expect_no_offenses(
+            "Style/ExplicitBlockArgument",
+            "def a\n  bar { yield x }\nend\n",
+        );
+    }
+
+    /// `<<` のような演算子も `send` なので、両分岐が同じメソッドかどうかの対象になる。
+    #[test]
+    fn redundant_condition_reads_an_operator_call_as_a_send() {
+        expect_correction(
+            "Style/RedundantCondition",
+            "if ruby_version\n  output << ruby_version\nelse\n  output << \"no\"\nend\n",
+            "output << ruby_version || \"no\"\n",
+        );
+        // A condition that takes a block is a `block` node, not a predicate call.
+        expect_no_offenses(
+            "Style/RedundantCondition",
+            "@valid = if lines.all? { |l| l.hidden? }\n  true\nelse\n  other\nend\n",
+        );
+    }
+
+    /// エンコーディング指定の flag が付いた正規表現は本家が解析できず、何も報告しない。
+    #[test]
+    fn redundant_regexp_escape_leaves_an_encoding_flagged_literal_alone() {
+        expect_no_offenses("Style/RedundantRegexpEscape", "%r{\\\"}mosx\n");
+        expect_no_offenses("Style/RedundantRegexpEscape", "/\\\"/s\n");
+        expect_offense(
+            "Style/RedundantRegexpEscape",
+            r#"
+            %r{\"}m
+               ^^ Redundant escape inside regexp literal
+            "#,
+        );
+    }
+}
+
+/// コメントの途中に書かれた `# rubocop:` directive の回帰。
+///
+/// `DirectiveComment` はコメントの先頭に marker を固定せず、テキストのどこにあっても
+/// 拾う。拾わないのは marker の前が `#` と空白だけのとき、つまり directive 自身が
+/// コメントアウトされているときだけ。説明用のコメントに書かれた
+/// `#   def f # rubocop:disable Style/For` は本家では本物の directive で、これを
+/// 取りこぼすと後続の `# rubocop:enable Style/For` が「不要な enable」に化ける。
+mod lint_directives_inside_a_comment {
+    use super::*;
+
+    const ENABLE: &str = "Lint/RedundantCopEnableDirective";
+    const MISSING: &str = "Lint/MissingCopEnableDirective";
+
+    /// 前置きのあるコメントの中の `disable` も数える。
+    #[test]
+    fn a_directive_behind_prose_counts_as_a_disable() {
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable Style/Documentation\n\
+             #   def f # rubocop:disable Style/For\n\
+             x = 1\n\
+             # rubocop:enable Style/For, Style/Documentation\n",
+        );
+    }
+
+    /// marker の前が `#` と空白だけなら、コメントアウトされた directive なので数えない。
+    #[test]
+    fn a_commented_out_directive_does_not_count() {
+        expect_offense(
+            ENABLE,
+            r#"
+            #   # rubocop:disable Style/For
+            x = 1
+            # rubocop:enable Style/For
+                             ^^^^^^^^^ Unnecessary enabling of Style/For.
+            "#,
+        );
+        expect_correction(
+            ENABLE,
+            "#   # rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For\n",
+            "#   # rubocop:disable Style/For\nx = 1\n",
+        );
+    }
+
+    /// 並んだ名前のうち余分な 1 つだけが消える。
+    #[test]
+    fn only_the_extra_name_of_a_list_goes() {
+        expect_offense(
+            ENABLE,
+            r#"
+            # rubocop:disable Style/For
+            x = 1
+            # rubocop:enable Style/For, Style/Documentation
+                                        ^^^^^^^^^^^^^^^^^^^ Unnecessary enabling of Style/Documentation.
+            "#,
+        );
+        expect_correction(
+            ENABLE,
+            "# rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For, Style/Documentation\n",
+            "# rubocop:disable Style/For\nx = 1\n# rubocop:enable Style/For\n",
+        );
+    }
+
+    /// `# rubocop:disable all` は存在する全 cop の counter を上げるので、対になる
+    /// `# rubocop:enable all` は不要にならない。
+    #[test]
+    fn a_blanket_disable_answers_for_every_name() {
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all\nx = 1\n# rubocop:enable all\n",
+        );
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all -- vendored\nx = 1\n# rubocop:enable all\n",
+        );
+        expect_no_offenses(
+            ENABLE,
+            "# rubocop:disable all\nx = 1\n# rubocop:enable Style/For\n",
+        );
+    }
+
+    /// 打ち消すものが無い `enable all` は不要な enable。
+    #[test]
+    fn an_enable_all_with_nothing_to_undo_is_reported() {
+        expect_offense(
+            ENABLE,
+            r#"
+            x = 1
+            # rubocop:enable all
+                             ^^^ Unnecessary enabling of all cops.
+            "#,
+        );
+        expect_offense(
+            ENABLE,
+            r#"
+            # rubocop:disable all
+            x = 1
+            # rubocop:enable all
+            # rubocop:enable all
+                             ^^^ Unnecessary enabling of all cops.
+            "#,
+        );
+    }
+
+    /// `analyze_single_line`: コードと同じ行の directive も、コメントの途中の directive も
+    /// その行だけに効くので、`enable` が無くても咎められない。
+    #[test]
+    fn single_line_disables_need_no_enable() {
+        expect_no_offenses(MISSING, "x = 1 # rubocop:disable Style/For\ny = 2\n");
+        expect_no_offenses(MISSING, "#   def f # rubocop:disable Style/For\ny = 2\n");
+        expect_offense(
+            MISSING,
+            r#"
+            # rubocop:disable Style/For
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Re-enable Style/For cop with `# rubocop:enable` after disabling it.
+            y = 2
+            "#,
+        );
+    }
+}
+
 /// `Style/SymbolProc` — ブロックが引数にメソッドを 1 つ呼ぶだけなら `&:sym`。
 /// 期待値は本家 1.89.0 の `--only Style/SymbolProc` 実出力から取った。
 mod style_symbol_proc {
@@ -17373,6 +18051,463 @@ mod style_rescue_modifier {
     }
 }
 
+/// `Style/AccessModifierDeclarations`: `private def foo` は `private` を
+/// 独立させたグループ宣言にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/AccessModifierDeclarations` と `-A` の実測。
+mod access_modifier_declarations {
+    use super::*;
+
+    const COP: &str = "Style/AccessModifierDeclarations";
+
+    /// 同じ修飾子が後ろにも並ぶときは、最後の 1 個だけが offense になる
+    /// (`right_siblings_same_inline_method?`)。
+    #[test]
+    fn only_the_last_of_a_run_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              private def bar; end
+              private def baz; end
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        );
+    }
+
+    /// 裸の修飾子が既にあればその直後へ、無ければクラスの `end` の直前へ移す。
+    #[test]
+    fn the_definition_moves_under_a_modifier_of_its_own() {
+        expect_correction(
+            COP,
+            "class Foo\n  private def bar; end\nend\n",
+            "class Foo\nprivate\n\ndef bar; end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class Foo\n  private\n\n  def a; end\n\n  private def b; end\nend\n",
+            "class Foo\n  private\n\ndef b; end\n\n  def a; end\n\nend\n",
+        );
+        // 直上のコメントは定義に付いて回る。
+        expect_correction(
+            COP,
+            "class Foo\n  # note\n  private def bar; end\nend\n",
+            "class Foo\nprivate\n\n# note\ndef bar; end\nend\n",
+        );
+        // クラスの外なら修飾子をその場で展開する。
+        expect_correction(
+            COP,
+            "module_function def mf; end\n",
+            "module_function\n\ndef mf; end\n",
+        );
+    }
+
+    /// `AllowModifiersOnSymbols` / `AllowModifiersOnAttrs` /
+    /// `AllowModifiersOnAliasMethod` はいずれも既定で真。`macro?` が成り立たない
+    /// 位置と、ブロック本体そのものである修飾子も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "class Foo\n  private :a, :b\n  private *METHOD_NAMES\n  private attr_reader :r\n  private alias_method :q, :r\nend\n",
+        );
+        expect_no_offenses(COP, "def top\n  private def inner; end\nend\n");
+        expect_no_offenses(COP, "c = Class.new do\n  private def foo; end\nend\n");
+        expect_no_offenses(COP, "class Foo\n  private\n\n  def bar; end\nend\n");
+    }
+
+    /// ローカル変数の splat は `(splat {const send})` にあたらないので許されない。
+    #[test]
+    fn a_splatted_local_is_still_an_offense() {
+        expect_offense(
+            COP,
+            r#"
+            class Foo
+              names = [:a]
+              private(*names)
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        );
+    }
+}
+
+/// `Style/BisectedAttrAccessor`: 同じ属性の `attr_reader` と `attr_writer` は
+/// `attr_accessor` 1 個にまとめる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/BisectedAttrAccessor` と `-A` の実測。
+mod bisected_attr_accessor {
+    use super::*;
+
+    const COP: &str = "Style/BisectedAttrAccessor";
+
+    /// 補正は `after_class` で macro ごとに 1 回積まれる。offense 自身は
+    /// corrector を持たないため `correctable: false` で、`-A` でも
+    /// 「補正した」とは数えられない。
+    #[test]
+    fn a_reader_and_a_writer_of_one_name_are_reported_and_combined() {
+        let report = expect_offense(
+            COP,
+            r#"
+            class Foo
+              attr_reader :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+              attr_writer :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+            end
+            "#,
+        );
+        assert!(report.offenses.iter().all(|offense| !offense.correctable));
+        expect_correction(
+            COP,
+            "class Foo\n  attr_reader :bar\n  attr_writer :bar\nend\n",
+            "class Foo\n  attr_accessor :bar\nend\n",
+        );
+        // 一部だけが重なるときは残りが元の macro に留まる。
+        expect_correction(
+            COP,
+            "class Baz\n  attr_reader :a, :b\n  attr_writer :b, :c\nend\n",
+            "class Baz\n  attr_accessor :b\n  attr_reader :a\n  attr_writer :c\nend\n",
+        );
+    }
+
+    /// 可視性が違えばまとめられない。`attr` は reader 側。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "class Foo\n  attr_reader :m\n  private\n  attr_writer :m\nend\n",
+        );
+        expect_no_offenses(COP, "class Foo\n  attr_reader :a\n  attr_writer :b\nend\n");
+        expect_no_offenses(COP, "class Foo\n  attr_accessor :a\nend\n");
+    }
+
+    /// `attr` も reader なので `attr_writer` と組める。
+    #[test]
+    fn attr_counts_as_a_reader() {
+        expect_correction(
+            COP,
+            "module M\n  attr :x\n  attr_writer :x\nend\n",
+            "module M\n  attr_accessor :x\nend\n",
+        );
+    }
+}
+
+/// `Style/MutableConstant`: 定数に入れた可変オブジェクトは凍らせる。
+///
+/// 期待値は本家 1.89.0 の `--only Style/MutableConstant` と `-A` の実測。
+/// ハーネスの既定 TargetRubyVersion は 2.7 で、regexp と range が可変なのは
+/// そのため。
+mod mutable_constant {
+    use super::*;
+
+    const COP: &str = "Style/MutableConstant";
+
+    #[test]
+    fn a_mutable_literal_gains_a_freeze() {
+        expect_offense(
+            COP,
+            r#"
+            CONST = [1, 2, 3]
+                    ^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        );
+        expect_correction(COP, "CONST = [1, 2, 3]\n", "CONST = [1, 2, 3].freeze\n");
+        expect_correction(COP, "H = { a: 1 }\n", "H = { a: 1 }.freeze\n");
+        expect_correction(COP, "S = 'str'\n", "S = 'str'.freeze\n");
+        expect_correction(COP, "W = %w[a b]\n", "W = %w[a b].freeze\n");
+        expect_correction(
+            COP,
+            "X = <<~HD\n  text\nHD\n",
+            "X = <<~HD.freeze\n  text\nHD\n",
+        );
+        expect_correction(COP, "M::NESTED = [1]\n", "M::NESTED = [1].freeze\n");
+        expect_correction(COP, "C ||= [1]\n", "C ||= [1].freeze\n");
+    }
+
+    /// 括弧の無い配列は括弧を、range は丸括弧を先に足す。splat 1 個だけの配列は
+    /// `to_a` へ展開される。
+    #[test]
+    fn the_value_is_wrapped_where_a_dot_would_not_bind() {
+        expect_correction(COP, "A = 1, 2\n", "A = [1, 2].freeze\n");
+        expect_correction(COP, "R = 1..5\n", "R = (1..5).freeze\n");
+        expect_correction(COP, "S = [*items]\n", "S = (items).to_a.freeze\n");
+        expect_correction(COP, "S = *1..3\n", "S = (1..3).to_a.freeze\n");
+    }
+
+    /// 3.0 以降は regexp と range が凍結済みになる。
+    #[test]
+    fn regexp_and_range_are_frozen_from_ruby_3_0() {
+        CopCase::new(COP, "R = /re/\nRANGE = (1..5)\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        expect_offense(
+            COP,
+            r#"
+            R = /re/
+                ^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        );
+    }
+
+    /// `# frozen_string_literal: true` は補間の無い文字列だけを免除する。
+    #[test]
+    fn the_frozen_string_literal_comment_exempts_uninterpolated_strings() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # frozen_string_literal: true
+
+            S = 'str'
+            D = "in#{x}terp"
+                ^^^^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .target_ruby("3.3")
+        .run();
+    }
+
+    /// `shareable_constant_value` は宣言より後ろの定数にだけ効き、`none` で戻る。
+    #[test]
+    fn the_shareable_constant_value_comment_takes_over() {
+        CopCase::annotated(
+            COP,
+            r#"
+            A = [1]
+                ^^^ Freeze mutable objects assigned to constants.
+            # shareable_constant_value: literal
+            B = [2]
+            # shareable_constant_value: none
+            C = [3]
+                ^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .target_ruby("3.3")
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "N = 5\nSYM = :sym\nNEG = -1\n");
+        expect_no_offenses(COP, "F = [1].freeze\n");
+        expect_no_offenses(COP, "X = Something.new\n");
+        expect_no_offenses(COP, "A, B = [1], [2]\n");
+        expect_no_offenses(COP, "C += [1]\n");
+        expect_no_offenses(COP, "local = [1]\n");
+    }
+}
+
+/// `Style/InfiniteLoop`: 条件が動かないループは `Kernel#loop` にする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/InfiniteLoop` と `-A` の実測。
+mod infinite_loop {
+    use super::*;
+
+    const COP: &str = "Style/InfiniteLoop";
+
+    #[test]
+    fn a_loop_on_a_constant_condition_is_rewritten() {
+        expect_offense(
+            COP,
+            r#"
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              work
+            end
+            "#,
+        );
+        expect_correction(COP, "while true\n  work\nend\n", "loop do\n  work\nend\n");
+        expect_correction(COP, "until false\n  work\nend\n", "loop do\n  work\nend\n");
+        expect_correction(COP, "while 1\n  a\nend\n", "loop do\n  a\nend\n");
+        // `do` は `loop do` に吸われる。
+        expect_correction(COP, "while true do\n  a\nend\n", "loop do\n  a\nend\n");
+    }
+
+    /// 修飾子形と後置条件形。前者は 1 行なら波括弧ブロックになる。
+    #[test]
+    fn the_modifier_and_post_condition_forms() {
+        expect_correction(COP, "work while true\n", "loop { work }\n");
+        expect_correction(COP, "work until false\n", "loop { work }\n");
+        expect_correction(
+            COP,
+            "begin\n  work\nend while true\n",
+            "loop do\n  work\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  work\nend until false\n",
+            "loop do\n  work\nend\n",
+        );
+    }
+
+    /// ループの中で初めて代入された名前がループの後でも読まれていると、
+    /// ブロックにしたときその名前が届かなくなるので報告しない。
+    #[test]
+    fn a_variable_introduced_inside_and_read_after_stops_the_rewrite() {
+        expect_no_offenses(COP, "while true\n  y = 2\n  break\nend\nputs y\n");
+        // ループより前にも代入があれば書き換えてよい。
+        expect_offense(
+            COP,
+            r#"
+            y = 0
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              y = 2
+              break
+            end
+            puts y
+            "#,
+        );
+    }
+
+    /// 括弧で包まれた条件は `begin` になり、リテラルではなくなる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "while (true)\n  a\nend\n");
+        expect_no_offenses(COP, "while x\n  a\nend\n");
+        expect_no_offenses(COP, "until true\n  a\nend\n");
+    }
+}
+
+/// `Style/EvalWithLocation`: `eval` 族には `__FILE__` と `__LINE__` を渡す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/EvalWithLocation` と `-A` の実測。
+mod eval_with_location {
+    use super::*;
+
+    const COP: &str = "Style/EvalWithLocation";
+
+    /// 位置引数がまったく無い場合。`eval` は binding が無いと補正できない。
+    #[test]
+    fn a_missing_location_is_reported_on_the_call() {
+        expect_offense(
+            COP,
+            r#"
+            C.class_eval "x = 1"
+            ^^^^^^^^^^^^^^^^^^^^ Pass `__FILE__` and `__LINE__` to `class_eval`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "C.class_eval \"x = 1\"\n",
+            "C.class_eval \"x = 1\", __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        );
+        // binding が無いので corrector を持たない。
+        CopCase::annotated(
+            COP,
+            r#"
+            eval "x = 1"
+            ^^^^^^^^^^^^ Pass a binding, `__FILE__`, and `__LINE__` to `eval`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        expect_correction(
+            COP,
+            "eval \"x = 1\", binding\n",
+            "eval \"x = 1\", binding, __FILE__, __LINE__\n",
+        );
+    }
+
+    /// ヒアドキュメントは本文の開始行を基準に `__LINE__ + 1` になる。
+    #[test]
+    fn a_heredoc_counts_from_its_body() {
+        expect_correction(
+            COP,
+            "C.class_eval <<-RUBY\n  def x\n  end\nRUBY\n",
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+        expect_no_offenses(
+            COP,
+            "C.class_eval <<-RUBY, __FILE__, __LINE__ + 1\n  def x\n  end\nRUBY\n",
+        );
+    }
+
+    /// ファイルと行の値そのものが違うときは、その引数の上に報告する。
+    #[test]
+    fn a_wrong_file_or_line_is_reported_on_the_argument() {
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, "file.rb", 1
+                         ^^^^^^^^^ Incorrect file for `eval`; use `__FILE__` instead of `"file.rb"`.
+                                    ^ Incorrect line number for `eval`; use `__LINE__` instead of `1`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "eval \"x\", b, \"file.rb\", 1\n",
+            "eval \"x\", b, __FILE__, __LINE__\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, __LINE__ + 2
+                                   ^^^^^^^^^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `__LINE__ + 2`.
+            "#,
+        );
+        // 定数は値が読めるものとして扱われるので報告される。
+        expect_offense(
+            COP,
+            r#"
+            eval "x", b, __FILE__, LINE
+                                   ^^^^ Incorrect line number for `eval`; use `__LINE__` instead of `LINE`.
+            "#,
+        );
+    }
+
+    /// 行の値が読めない引数 (変数・`+` 以外の呼び出し) は見送る。
+    #[test]
+    fn an_opaque_line_argument_is_left_alone() {
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, @line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, line\n");
+        expect_no_offenses(COP, "eval \"x\", b, __FILE__, foo(1)\n");
+        expect_no_offenses(COP, "C.instance_eval \"x\", __FILE__, __LINE__ - 3\n");
+        // `+` は読める側なので、こちらは報告される。`n + __LINE__` の向きも見る。
+        expect_offense(
+            COP,
+            r#"
+            class_eval "x", __FILE__, 1 + __LINE__
+                                      ^^^^^^^^^^^^ Incorrect line number for `class_eval`; use `__LINE__` instead of `1 + __LINE__`.
+            "#,
+        );
+    }
+
+    /// 引数リストの末尾を tree-sitter が多重代入に読み違える形。本家は
+    /// `line = __LINE__` を 3 つ目の引数として見る。
+    #[test]
+    fn an_assignment_written_as_the_line_argument_is_still_one_argument() {
+        expect_offense(
+            COP,
+            r#"
+            m.module_eval "A = 1", __FILE__, line = __LINE__
+                                             ^^^^^^^^^^^^^^^ Incorrect line number for `module_eval`; use `__LINE__` instead of `line = __LINE__`.
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `eval` は receiver が無いか `Kernel` のときだけ見る。
+        expect_no_offenses(COP, "Foo.eval \"x\", binding\n");
+        // コード文字列がリテラルでなければ何も言わない。
+        expect_no_offenses(COP, "eval code, binding\n");
+        expect_no_offenses(COP, "eval :sym, binding\n");
+        expect_no_offenses(COP, "eval <<~A + <<~B, b\n  x\nA\n  y\nB\n");
+        // 安全参照は `send` ではない。
+        expect_no_offenses(COP, "obj&.instance_eval \"x\"\n");
+        expect_no_offenses(COP, "C.class_eval \"x\", __FILE__, __LINE__\n");
+    }
+}
+
 /// `Style/MultilineTernaryOperator` — 複数行の三項演算子。
 mod style_multiline_ternary_operator {
     use super::*;
@@ -17597,6 +18732,457 @@ mod style_redundant_interpolation {
         // 演算子メソッドは丸ごと括弧に入る。
         expect_correction(COP, "f = \"#{a + b}\"\n", "f = (a + b).to_s\n");
         expect_correction(COP, "m = \"#{[1, 2]}\"\n", "m = ([1, 2]).to_s\n");
+    }
+}
+
+/// `Style/RedundantRegexpCharacterClass`: 要素が 1 つだけの文字クラスは
+/// その要素そのものにする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantRegexpCharacterClass` と `-A` の実測。
+mod redundant_regexp_character_class {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpCharacterClass";
+
+    #[test]
+    fn a_class_of_one_element_is_reported_and_unwrapped() {
+        expect_offense(
+            COP,
+            r#"
+            r = /[x]/
+                 ^^^ Redundant single-element character class, `[x]` can be replaced with `x`.
+            "#,
+        );
+        expect_correction(COP, "r = /[x]/\n", "r = /x/\n");
+        expect_correction(COP, "r = /[\\s]/\n", "r = /\\s/\n");
+        expect_correction(COP, "r = %r{/[b]}\n", "r = %r{/b}\n");
+        expect_correction(COP, "r = /a[x]b[y]c/\n", "r = /axbyc/\n");
+        // `[#]` を裸の `#` に戻すと補間の始まりになるため、`\#` へ逃がす。
+        expect_correction(COP, "r = /[#]{0}/\n", "r = /\\#{0}/\n");
+    }
+
+    /// 中身が 2 つ以上、否定、範囲、入れ子、POSIX クラス、共通部分はいずれも
+    /// 1 要素ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "r = /[ab]/\n");
+        expect_no_offenses(COP, "r = /[^x]/\n");
+        expect_no_offenses(COP, "r = /[a-z]/\n");
+        expect_no_offenses(COP, "r = /[[:alpha:]]/\n");
+        expect_no_offenses(COP, "r = /[a&&b]/\n");
+        expect_no_offenses(COP, "r = /[\\u{41 42}]/\n");
+    }
+
+    /// クラスの外では意味が変わってしまう要素は残す。
+    #[test]
+    fn elements_that_only_work_inside_a_class_are_kept() {
+        // `.` `*` `+` `?` `{` `}` `(` `)` `|` `$` はクラスの外ではメタ文字。
+        expect_no_offenses(COP, "r = /[.]/\n");
+        expect_no_offenses(COP, "r = /[$]/\n");
+        // `\b` はクラスの外では単語境界、中ではバックスペース。
+        expect_no_offenses(COP, "r = /[\\b]/\n");
+        // `\1`〜`\7` はクラスの外では後方参照。
+        expect_no_offenses(COP, "r = /[\\1]/\n");
+        // 自由間隔モードの空白はクラスの外では無視される。
+        expect_no_offenses(COP, "r = / [ ] /x\n");
+        expect_correction(COP, "r = /[ ]/\n", "r = / /\n");
+    }
+
+    /// 入れ子の集合そのものは 1 要素にならないが、内側は内側で見られる。
+    #[test]
+    fn a_nested_class_is_reported_on_its_own() {
+        expect_offense(
+            COP,
+            r#"
+            r = /[[a]]/
+                  ^^^ Redundant single-element character class, `[a]` can be replaced with `a`.
+            "#,
+        );
+        expect_correction(COP, "r = /[[a]]/\n", "r = /a/\n");
+    }
+
+    /// 補間はそのぶんだけ空白に置き換えて数えるので、`[#{x}]` は 1 要素にならない。
+    #[test]
+    fn an_interpolation_fills_the_class() {
+        expect_no_offenses(COP, "r = /[#{y}]/\n");
+    }
+
+    /// `Regexp::Parser` が受け付けないパターンは 1 件も報告されない。閉じない
+    /// 文字クラスがその 1 つで、手前の `[x]` まで巻き添えで見送られる。
+    #[test]
+    fn a_pattern_the_parser_refuses_yields_nothing() {
+        expect_no_offenses(COP, "r = /[x][a/\n");
+    }
+}
+
+/// `Style/RedundantSelf`: 局所変数と衝突しない `self.` は落とす。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantSelf` と `-A` の実測。
+mod redundant_self {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSelf";
+
+    #[test]
+    fn a_receiver_that_disambiguates_nothing_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def foo(bar)
+              self.baz
+              ^^^^ Redundant `self` detected.
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "def foo(bar)\n  self.baz\nend\n",
+            "def foo(bar)\n  baz\nend\n",
+        );
+    }
+
+    /// 引数・局所変数・ブロック引数・rescue の例外変数・パターンで束縛した名前は
+    /// いずれも同名の `self.` を残す。
+    #[test]
+    fn a_name_the_scope_already_binds_keeps_its_receiver() {
+        expect_no_offenses(COP, "def foo(bar)\n  self.bar\nend\n");
+        expect_no_offenses(COP, "def foo\n  bar = 1\n  self.bar\nend\n");
+        expect_no_offenses(
+            COP,
+            "def foo\n  %w[x].select { |bar| self.bar == bar }\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  begin\n    x\n  rescue => err\n    self.err\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "def foo\n  case x\n  in Integer => n\n    self.n\n  end\nend\n",
+        );
+        expect_no_offenses(COP, "def foo((m, n))\n  self.m\nend\n");
+    }
+
+    /// 演算子・キーワード・大文字始まり・セッター・`Kernel` のメソッドは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "def foo\n  self.class\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.Foo\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.puts 'x'\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.loop { }\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar = 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar ||= 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.bar += 1\nend\n");
+        expect_no_offenses(COP, "def foo\n  self.foo, self.bar = 1, 2\nend\n");
+        expect_no_offenses(COP, "def foo\n  self + 1\nend\n");
+    }
+
+    /// 引数の無いブロックの中の `it` は Ruby 3.4 から第 1 ブロック引数を指すので、
+    /// `self.it` はメソッドを呼ぶ唯一の書き方になる。
+    #[test]
+    fn it_inside_a_block_without_parameters_keeps_its_receiver() {
+        expect_no_offenses(COP, "def foo\n  0.times { self.it }\nend\n");
+        expect_offense(
+            COP,
+            r#"
+            def foo
+              0.times { |x| self.it }
+                            ^^^^ Redundant `self` detected.
+            end
+            "#,
+        );
+    }
+
+    /// 代入の右辺そのものが `self.` 付きの呼び出しなら、その名前は代入先と同じでも
+    /// 局所変数の読みには化けない。
+    #[test]
+    fn the_value_of_an_assignment_is_accounted_for() {
+        expect_no_offenses(COP, "def foo\n  y = self.y\nend\n");
+        expect_no_offenses(COP, "def foo\n  z = self.z(1)\nend\n");
+        expect_no_offenses(COP, "def foo\n  if self.cond\n    cond = 1\n  end\nend\n");
+    }
+}
+
+/// `Style/YodaCondition`: リテラル側を左に置いた比較は向きを戻す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/YodaCondition` と `-A` の実測。
+mod yoda_condition {
+    use super::*;
+
+    const COP: &str = "Style/YodaCondition";
+
+    #[test]
+    fn a_literal_on_the_left_is_reversed() {
+        expect_offense(
+            COP,
+            r#"
+            99 == foo
+            ^^^^^^^^^ Reverse the order of the operands `99 == foo`.
+            "#,
+        );
+        expect_correction(COP, "99 == foo\n", "foo == 99\n");
+        expect_correction(COP, "\"bar\" != foo\n", "foo != \"bar\"\n");
+        // 不等号は向きも入れ替わる。
+        expect_correction(COP, "42 >= foo\n", "foo <= 42\n");
+        expect_correction(COP, "10 < bar\n", "bar > 10\n");
+        // `.==(x)` と書いても同じ send。
+        expect_correction(COP, "99.==(foo)\n", "foo == 99\n");
+    }
+
+    /// 両辺が定数、両辺が非定数、左辺が補間のいずれも「向きが決まらない」ので報告しない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo == 99\n");
+        expect_no_offenses(COP, "1 == 2\n");
+        expect_no_offenses(COP, "foo == bar\n");
+        // `CONST` も定数側なので、リテラルと並べても向きは決まらない。
+        expect_no_offenses(COP, "99 == CONST\n");
+        expect_no_offenses(COP, "\"#{interpolation}\" == foo\n");
+        expect_no_offenses(COP, "/#{interpolation}/ == foo\n");
+        // `===` は可換でないので対象外。
+        expect_no_offenses(COP, "99 === foo\n");
+        expect_no_offenses(COP, "99 <=> foo\n");
+        // `__FILE__ == $0` はスクリプト判定のイディオムなので免除。
+        expect_no_offenses(COP, "__FILE__ == $0\n");
+        expect_no_offenses(COP, "__FILE__ != $PROGRAM_NAME\n");
+        // `on_csend` を実装していないので安全参照は届かない。
+        expect_no_offenses(COP, "99&.==(foo)\n");
+    }
+
+    /// パーサが値に解決するキーワードはリテラル側に立つ。`__ENCODING__` は定数。
+    #[test]
+    fn the_keyword_literals_count_as_the_constant_side() {
+        expect_offense(
+            COP,
+            r#"
+            __FILE__ == foo
+            ^^^^^^^^^^^^^^^ Reverse the order of the operands `__FILE__ == foo`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            __ENCODING__ == foo
+            ^^^^^^^^^^^^^^^^^^^ Reverse the order of the operands `__ENCODING__ == foo`.
+            "#,
+        );
+    }
+
+    /// `EnforcedStyle` は 4 種。`*_for_equality_operators_only` は `==` / `!=` だけを見る。
+    #[test]
+    fn the_other_enforced_styles() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo == 99
+            ^^^^^^^^^ Reverse the order of the operands `foo == 99`.
+            "#,
+        )
+        .config("Style/YodaCondition:\n  EnforcedStyle: require_for_all_comparison_operators\n")
+        .run();
+        CopCase::new(COP, "42 >= foo\n", Vec::new())
+            .config("Style/YodaCondition:\n  EnforcedStyle: forbid_for_equality_operators_only\n")
+            .run();
+    }
+}
+
+/// `Style/TernaryParentheses`: 三項演算子の条件を括弧で包むかどうか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/TernaryParentheses` と `-A` の実測。
+mod ternary_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/TernaryParentheses";
+
+    #[test]
+    fn parentheses_around_the_condition_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            foo = (bar?) ? a : b
+                  ^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        );
+        expect_correction(COP, "foo = (bar?) ? a : b\n", "foo = bar? ? a : b\n");
+        expect_correction(
+            COP,
+            "foo = (bar && baz) ? a : b\n",
+            "foo = bar && baz ? a : b\n",
+        );
+        // `)` を外すと述語の `?` が三項の `?` に食い込むので、空白を足す。
+        expect_correction(COP, "(bar?)? a : b\n", "bar? ? a : b\n");
+        // 括弧が引数リストの代わりをしていたら、引数側に括弧を移す。
+        expect_correction(COP, "(foo bar) ? a : b\n", "foo(bar) ? a : b\n");
+        expect_correction(COP, "(a.b c) ? x : y\n", "a.b(c) ? x : y\n");
+        expect_correction(COP, "(defined? x) ? a : b\n", "defined?(x) ? a : b\n");
+    }
+
+    /// `and` / `or` / `not` は三項より結合が弱く、括弧を外すと意味が変わる。
+    /// 報告はするが corrector を触らないので correctable にならない。
+    #[test]
+    fn the_word_operators_are_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            (a and b) ? x : y
+            ^^^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            (not x) ? a : b
+            ^^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "foo = bar? ? a : b\n");
+        // `AllowSafeAssignment: true` (既定)。
+        expect_no_offenses(COP, "foo = (bar = baz) ? a : b\n");
+        expect_no_offenses(COP, "foo = (bar.baz = 1) ? a : b\n");
+        // 修飾子 `if` とワンライナーパターンマッチは括弧が要る。
+        expect_no_offenses(COP, "(x if y) ? a : b\n");
+        expect_no_offenses(COP, "(x in Integer) ? a : b\n");
+        // 最終行が `)` だけの条件は行を跨いで書かれたもの。
+        expect_no_offenses(COP, "(\n  x\n) ? a : b\n");
+        // `while` 修飾子は `if` ではないので免除されない。
+        expect_correction(COP, "(a while b) ? x : y\n", "a while b ? x : y\n");
+    }
+
+    #[test]
+    fn require_parentheses_asks_for_the_other_direction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo = bar? ? a : b
+                  ^^^^^^^^^^^^ Use parentheses for ternary conditions.
+            "#,
+        )
+        .config("Style/TernaryParentheses:\n  EnforcedStyle: require_parentheses\n")
+        .corrected("foo = (bar?) ? a : b\n")
+        .run();
+    }
+}
+
+/// `Style/SoleNestedConditional`: 分岐が条件文 1 個だけなら外側の条件に畳める。
+///
+/// 期待値は本家 1.89.0 の `--only Style/SoleNestedConditional` と `-A` の実測。
+mod sole_nested_conditional {
+    use super::*;
+
+    const COP: &str = "Style/SoleNestedConditional";
+
+    #[test]
+    fn a_nested_conditional_is_merged_into_the_outer_one() {
+        expect_offense(
+            COP,
+            r#"
+            if condition_a
+              if condition_b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                do_something
+              end
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "if condition_a\n  if condition_b\n    do_something\n  end\nend\n",
+            "if condition_a && condition_b\n    do_something\n  end\n",
+        );
+        // 内側が修飾子形なら、条件だけが外に出る。
+        expect_correction(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+        // 外側が修飾子形なら、外側の条件が内側に降りる。
+        expect_correction(
+            COP,
+            "if condition_b\n  do_something\nend if condition_a\n",
+            "if condition_a && condition_b\n  do_something\nend\n",
+        );
+    }
+
+    /// `unless` は条件を否定して畳む。`&&` を否定するときだけ括弧が要る。
+    #[test]
+    fn an_unless_contributes_its_condition_negated() {
+        expect_correction(
+            COP,
+            "unless condition_a\n  if condition_b\n    x\n  end\nend\n",
+            "if !condition_a && condition_b\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "unless a && b\n  if c\n    x\n  end\nend\n",
+            "if !(a && b) && c\n    x\n  end\n",
+        );
+    }
+
+    /// 引数を括弧で括っていない呼び出しや代入は、連結すると読み方が変わるので包む。
+    #[test]
+    fn the_conditions_that_need_parentheses_of_their_own() {
+        expect_correction(
+            COP,
+            "if foo bar\n  if c\n    x\n  end\nend\n",
+            "if foo(bar) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a = b\n  if c\n    x\n  end\nend\n",
+            "if (a = b) && c\n    x\n  end\n",
+        );
+        expect_correction(
+            COP,
+            "if a && (b = 1)\n  if c\n    x\n  end\nend\n",
+            "if a && (b = 1) && c\n    x\n  end\n",
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `else` を持つ側はどちらも畳めない。
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  else\n    d\n  end\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  end\nelse\n  d\nend\n");
+        expect_no_offenses(COP, "if a\n  if b\n    c\n  elsif d\n    e\n  end\nend\n");
+        // 分岐が条件文 1 個ではない。
+        expect_no_offenses(COP, "if a\n  x\n  if b\n    c\n  end\nend\n");
+        // 外側の条件が代入した名前を内側が読んでいると、畳むと順序が変わる。
+        expect_no_offenses(COP, "if a = compute\n  if a\n    b\n  end\nend\n");
+        // `AllowModifier: true` なら修飾子形は対象外。
+        CopCase::new(
+            COP,
+            "if condition_a\n  do_something if condition_b\nend\n",
+            Vec::new(),
+        )
+        .config("Style/SoleNestedConditional:\n  AllowModifier: true\n")
+        .run();
+    }
+
+    /// 入れ子が 3 段のときは、外側 1 組だけが補正され、内側の報告は correctable にならない。
+    #[test]
+    fn only_the_outermost_pair_carries_the_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              if b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                if c
+                ^^ Consider merging nested conditions into outer `if` conditions.
+                  x
+                end
+              end
+            end
+            "#,
+        )
+        .run();
     }
 }
 

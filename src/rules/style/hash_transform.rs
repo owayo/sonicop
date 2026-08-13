@@ -136,10 +136,9 @@ fn each_with_object<'tree>(
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
-    let (block, selector) = call_with_block(context, node, &["each_with_object"])?;
-    empty_hash_argument(context, node)?;
+    let block = call_with_block(context, node, &["each_with_object"])?;
+    empty_hash_argument(node)?;
     hash_receiver(context, node.child_by_field_name("receiver")?)?;
-    let _ = selector;
     let parameters = super::nodes::children(node_parameters(block)?);
     let [destructured, memo] = parameters.as_slice() else {
         return None;
@@ -279,7 +278,7 @@ fn to_h_block<'tree>(
     if context.target_ruby_version() < RubyVersion::new(2, 6) {
         return None;
     }
-    let (block, _) = call_with_block(context, node, &["to_h"])?;
+    let block = call_with_block(context, node, &["to_h"])?;
     if node.child_by_field_name("arguments").is_some() {
         return None;
     }
@@ -304,7 +303,7 @@ fn mapping_block<'tree>(
     node: Node<'tree>,
     half: Half,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>, Node<'tree>)> {
-    let (block, _) = call_with_block(context, node, &["map", "collect"])?;
+    let block = call_with_block(context, node, &["map", "collect"])?;
     if node.child_by_field_name("arguments").is_some() {
         return None;
     }
@@ -348,7 +347,7 @@ fn call_with_block<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
     methods: &[&str],
-) -> Option<(Node<'tree>, Node<'tree>)> {
+) -> Option<Node<'tree>> {
     if node.kind() != "call" {
         return None;
     }
@@ -356,7 +355,7 @@ fn call_with_block<'tree>(
     let selector = node.child_by_field_name("method")?;
     methods
         .contains(&context.source.node_text(selector))
-        .then_some((block, selector))
+        .then_some(block)
 }
 
 fn node_parameters<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
@@ -373,12 +372,11 @@ fn single_statement<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 /// `(hash)`: the single empty-hash argument `each_with_object` is given.
-fn empty_hash_argument<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<()> {
+fn empty_hash_argument(node: Node<'_>) -> Option<()> {
     let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
     let [only] = arguments.as_slice() else {
         return None;
     };
-    let _ = context;
     (only.kind() == "hash" && super::nodes::children(*only).is_empty()).then_some(())
 }
 
@@ -397,7 +395,7 @@ fn hash_receiver<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<
         None => HASH_METHODS.contains(&selector).then_some(()),
         // A call that takes a block builds its hash there, and takes no arguments of its own --
         // except `each_with_object`, which takes the hash it fills in.
-        Some(_) if selector == "each_with_object" => empty_hash_argument(context, node),
+        Some(_) if selector == "each_with_object" => empty_hash_argument(node),
         Some(_) => (HASH_BLOCK_METHODS.contains(&selector)
             && node.child_by_field_name("arguments").is_none())
         .then_some(()),

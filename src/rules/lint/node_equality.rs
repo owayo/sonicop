@@ -14,7 +14,7 @@ use crate::rules::RuleContext;
 /// source -- `Node#==` looks at the type and the children -- so a difference in spacing is no
 /// difference at all, and two literals its parser resolved to the same value are equal however
 /// they were written.
-pub(super) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
+pub(crate) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
     match (literal(left, context), literal(right, context)) {
         (Some(left), Some(right)) => return left == right,
         // A literal is never equal to anything that is not one.
@@ -64,7 +64,7 @@ enum Literal {
 /// The value of an `int` or `float` literal, with a leading sign folded into it the way upstream's
 /// parser folds one. A cop that asks whether a literal *is* some number is asking about the value
 /// rather than about the digits: `0x1` and `1` are one and the same `(int 1)` there.
-pub(super) fn numeric_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<f64> {
+pub(crate) fn numeric_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<f64> {
     match literal(node, context)? {
         // The cast is lossy past 2^53, which is far beyond any literal a cop compares against a
         // small constant.

@@ -12,7 +12,7 @@ use crate::rules::RuleContext;
 
 /// The names `bare_access_modifier_declaration?` matches, interned so a visibility can be carried
 /// around as a `&'static str` rather than borrowed from the source it was read out of.
-pub(super) fn modifier_name(name: &str) -> Option<&'static str> {
+pub(in crate::rules) fn modifier_name(name: &str) -> Option<&'static str> {
     match name {
         "public" => Some("public"),
         "protected" => Some("protected"),
@@ -27,7 +27,10 @@ pub(super) fn modifier_name(name: &str) -> Option<&'static str> {
 /// A call written with `&.` is a `csend` upstream and a call carrying a block is wrapped in a
 /// `block`; neither is a `send`, so neither can be an access modifier. A bare identifier is a
 /// `send` only where the parser would not have built a binding instead.
-pub(super) fn send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
+pub(in crate::rules) fn send_name<'a>(
+    node: Node<'_>,
+    context: &'a RuleContext<'_>,
+) -> Option<&'a str> {
     match node.kind() {
         "identifier" if is_send_identifier(node) => Some(context.source.node_text(node)),
         "call" if node.child_by_field_name("block").is_none() => {
@@ -43,7 +46,10 @@ pub(super) fn send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Opt
 ///
 /// `bare_access_modifier?` needs both halves of that: a receiver makes the call a message to
 /// something else, and an argument makes it a *non*-bare modifier that governs only what it names.
-pub(super) fn bare_send_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
+pub(in crate::rules) fn bare_send_name<'a>(
+    node: Node<'_>,
+    context: &'a RuleContext<'_>,
+) -> Option<&'a str> {
     let name = send_name(node, context)?;
     let bare = node.kind() == "identifier"
         || (node.child_by_field_name("receiver").is_none()
@@ -122,7 +128,7 @@ fn field_name<'tree>(node: Node<'tree>, parent: Node<'tree>) -> Option<&'static 
 /// either the root or a class-like node. tree-sitter has wrappers upstream's parser does not
 /// (`body_statement` around a class body, `then` around a branch), and those stand exactly where
 /// the `begin` they collapse into would, so they pass through the same way.
-pub(super) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     loop {
         let Some(parent) = current.parent() else {
@@ -243,7 +249,7 @@ pub(super) fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 
 /// The children `each_child_node` yields for a body node: its statements, unless a `rescue`,
 /// `else` or `ensure` clause has made the statements children of a node one level further down.
-pub(super) fn statements<'tree>(body: Node<'tree>) -> Option<Vec<Node<'tree>>> {
+pub(in crate::rules) fn statements<'tree>(body: Node<'tree>) -> Option<Vec<Node<'tree>>> {
     let mut cursor = body.walk();
     let mut statements = Vec::new();
     for child in body.named_children(&mut cursor) {

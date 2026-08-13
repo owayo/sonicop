@@ -3516,6 +3516,22 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_each_for_simple_loop")
         .correctable(true),
         CopCase::annotated(
+            "Style/CaseLikeIf",
+            r#"
+            if x == 1
+            ^^^^^^^^^ Convert `if-elsif` to `case-when`.
+              a
+            elsif x == 2
+              b
+            elsif x == 3
+              c
+            end
+            "#,
+        )
+        .id("style_case_like_if")
+        .locations(&[(1, 1, 7, 3)])
+        .correctable(true),
+        CopCase::annotated(
             "Style/RandomWithOffset",
             r#"
             a = 1 + rand(6)
@@ -4162,6 +4178,72 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_freeze")
         .correctable(true),
         CopCase::annotated(
+            "Style/AccessModifierDeclarations",
+            r#"
+            class Foo
+              private def bar; end
+              ^^^^^^^ `private` should not be inlined in method definitions.
+            end
+            "#,
+        )
+        .id("style_access_modifier_declarations")
+        .correctable(true),
+        // 補正は `after_class` でまとめて 1 回積まれるので、offense 自身は
+        // corrector を持たない (`correctable: false`)。
+        CopCase::annotated(
+            "Style/BisectedAttrAccessor",
+            r#"
+            class Foo
+              attr_reader :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+              attr_writer :bar
+                          ^^^^ Combine both accessors into `attr_accessor :bar`.
+            end
+            "#,
+        )
+        .id("style_bisected_attr_accessor")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/MutableConstant",
+            r#"
+            CONST = [1, 2, 3]
+                    ^^^^^^^^^ Freeze mutable objects assigned to constants.
+            "#,
+        )
+        .id("style_mutable_constant")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InfiniteLoop",
+            r#"
+            while true
+            ^^^^^ Use `Kernel#loop` for infinite loops.
+              work
+            end
+            "#,
+        )
+        .id("style_infinite_loop")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpCharacterClass",
+            r#"
+            r = /[x]/
+                 ^^^ Redundant single-element character class, `[x]` can be replaced with `x`.
+            "#,
+        )
+        .id("style_redundant_regexp_character_class")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantSelf",
+            r#"
+            def foo(bar)
+              self.baz
+              ^^^^ Redundant `self` detected.
+            end
+            "#,
+        )
+        .id("style_redundant_self")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end
@@ -4260,6 +4342,110 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_hash_transform_values")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/AndOr",
+            r#"
+            if foo and bar
+                   ^^^ Use `&&` instead of `and`.
+              x
+            end
+            "#,
+        )
+        .id("style_and_or")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TrivialAccessors",
+            r#"
+            class C
+              def foo
+              ^^^ Use `attr_reader` to define trivial reader methods.
+                @foo
+              end
+            end
+            "#,
+        )
+        .id("style_trivial_accessors")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExplicitBlockArgument",
+            r#"
+            def foo
+              bar { |x| yield x }
+              ^^^^^^^^^^^^^^^^^^^ Consider using explicit block argument in the surrounding method's signature over `yield`.
+            end
+            "#,
+        )
+        .id("style_explicit_block_argument")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpEscape",
+            r#"
+            /\-/
+             ^^ Redundant escape inside regexp literal
+            "#,
+        )
+        .id("style_redundant_regexp_escape")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OneLineConditional",
+            r#"
+            if foo then bar else baz end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Favor the ternary operator (`?:`) over single-line `if/then/else/end` constructs.
+            "#,
+        )
+        .id("style_one_line_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantCondition",
+            r#"
+            a ? a : b
+              ^^^^^ Use double pipes `||` instead.
+            "#,
+        )
+        .id("style_redundant_condition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/YodaCondition",
+            r#"
+            99 == foo
+            ^^^^^^^^^ Reverse the order of the operands `99 == foo`.
+            "#,
+        )
+        .id("style_yoda_condition")
+        .corrected("foo == 99\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TernaryParentheses",
+            r#"
+            foo = (bar?) ? a : b
+                  ^^^^^^^^^^^^^^ Omit parentheses for ternary conditions.
+            "#,
+        )
+        .id("style_ternary_parentheses")
+        .corrected("foo = bar? ? a : b\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SoleNestedConditional",
+            r#"
+            if condition_a
+              if condition_b
+              ^^ Consider merging nested conditions into outer `if` conditions.
+                do_something
+              end
+            end
+            "#,
+        )
+        .id("style_sole_nested_conditional")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EvalWithLocation",
+            r#"
+            C.class_eval "x = 1"
+            ^^^^^^^^^^^^^^^^^^^^ Pass `__FILE__` and `__LINE__` to `class_eval`.
+            "#,
+        )
+        .id("style_eval_with_location")
         .correctable(true),
     ]
 }
