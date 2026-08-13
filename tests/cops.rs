@@ -19917,3 +19917,136 @@ mod style_conditional_assignment {
         );
     }
 }
+
+/// `Style/RedundantParentheses`: 意味を持たない括弧は外す。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantParentheses` と `-A` の実測。
+mod redundant_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/RedundantParentheses";
+
+    #[test]
+    fn the_message_names_what_the_parentheses_hold() {
+        expect_offense(
+            COP,
+            r#"
+            x = (1)
+                ^^^ Don't use parentheses around a literal.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = (@y)
+                ^^^^ Don't use parentheses around a variable.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = (Foo)
+                ^^^^^ Don't use parentheses around a constant.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = (foo)
+                ^^^^^ Don't use parentheses around a method call.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x = (self)
+                ^^^^^^ Don't use parentheses around a keyword.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            foo((a))
+                ^^^ Don't use parentheses around a method argument.
+            "#,
+        );
+        // 代入は文の位置にあるときだけ。`x = (a = 1)` の括弧は親が代入なので残る。
+        expect_offense(
+            COP,
+            r#"
+            (a = 1)
+            ^^^^^^^ Don't use parentheses around an assignment.
+            "#,
+        );
+        expect_correction(COP, "x = (1)\n", "x = 1\n");
+        expect_correction(COP, "(x) if ((y.z).nil?)\n", "x if y.z.nil?\n");
+    }
+
+    /// 論理演算子は、括弧が結合を決めているかどうかで分かれる。
+    #[test]
+    fn a_logical_expression_keeps_its_parentheses_where_they_bind() {
+        expect_offense(
+            COP,
+            r#"
+            x = (a && b)
+                ^^^^^^^^ Don't use parentheses around a logical expression.
+            "#,
+        );
+        // 親が send なら括弧が結合を決めているので残す。
+        expect_no_offenses(COP, "current_time - (@last_used_at || @created_at)\n");
+        // `and` / `or` は結合が弱く、括弧が意味を持つ。
+        expect_no_offenses(COP, "x = (a and b)\n");
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        // `()` は消しようがない。
+        expect_no_offenses(COP, "()\n");
+        // `p (1)` の括弧は引数リストの代わりをしている。
+        expect_no_offenses(COP, "p (1)\n");
+        // 修飾された jump は括弧が呼び出しに見える。
+        expect_no_offenses(COP, "break(x)\n");
+        // `rescue` の例外リスト。
+        expect_no_offenses(COP, "begin\n  a\nrescue (Foo)\n  b\nend\n");
+        // 範囲は前後から切り離す括弧が要る。
+        expect_no_offenses(COP, "x = (1..2)\n");
+        expect_no_offenses(COP, "x = (a; b)\n");
+    }
+
+    /// 本家は補正後の再パース木が元と一致した候補だけを報告する。
+    /// 括弧を外すと構文誤りになる / 木が変わるものはここで落ちる。
+    #[test]
+    fn a_candidate_whose_correction_changes_the_tree_is_not_reported() {
+        // 外すと `assert_equal { ... }` がブロックとして読まれる。
+        expect_no_offenses(
+            COP,
+            "assert_equal ({ url: \"http://example.com\" }), driver.options\n",
+        );
+        // 外すと `.any?` が右辺だけに掛かる。
+        expect_no_offenses(COP, "y = (Array(a) & b.map(&:to_s)).any?\n");
+        // 外すと修飾子 `if` が配列要素として読めなくなる。
+        expect_no_offenses(COP, "x = [('-F' if a), ('--profile' if b)]\n");
+        // 外すと `not` が引数の位置に来て構文誤りになる (内側の `(true)` は報告される)。
+        expect_offense(
+            COP,
+            r#"
+            assert_equal(false, (not (true)))
+                                     ^^^^^^ Don't use parentheses around a literal.
+            "#,
+        );
+    }
+
+    /// レシーバとソースが同じ引数は、本家の `Node#!=` が構造で比べるため
+    /// 「括弧付きメソッド呼び出しの引数」とは見なされない。
+    #[test]
+    fn an_argument_written_like_the_receiver_is_not_reported() {
+        expect_no_offenses(COP, "(0..10).send(x, (0..10))\n");
+        expect_offense(
+            COP,
+            r#"
+            (0..1).send(x, (2))
+                           ^^^ Don't use parentheses around a literal.
+            "#,
+        );
+    }
+}
