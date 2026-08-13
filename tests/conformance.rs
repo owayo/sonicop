@@ -4080,6 +4080,15 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_infinite_loop")
         .correctable(true),
         CopCase::annotated(
+            "Style/RedundantRegexpCharacterClass",
+            r#"
+            r = /[x]/
+                 ^^^ Redundant single-element character class, `[x]` can be replaced with `x`.
+            "#,
+        )
+        .id("style_redundant_regexp_character_class")
+        .correctable(true),
+        CopCase::annotated(
             "Style/IfWithSemicolon",
             r#"
             if foo; bar; end

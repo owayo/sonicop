@@ -17316,7 +17316,11 @@ mod mutable_constant {
         expect_correction(COP, "H = { a: 1 }\n", "H = { a: 1 }.freeze\n");
         expect_correction(COP, "S = 'str'\n", "S = 'str'.freeze\n");
         expect_correction(COP, "W = %w[a b]\n", "W = %w[a b].freeze\n");
-        expect_correction(COP, "X = <<~HD\n  text\nHD\n", "X = <<~HD.freeze\n  text\nHD\n");
+        expect_correction(
+            COP,
+            "X = <<~HD\n  text\nHD\n",
+            "X = <<~HD.freeze\n  text\nHD\n",
+        );
         expect_correction(COP, "M::NESTED = [1]\n", "M::NESTED = [1].freeze\n");
         expect_correction(COP, "C ||= [1]\n", "C ||= [1].freeze\n");
     }
@@ -17462,5 +17466,85 @@ mod infinite_loop {
         expect_no_offenses(COP, "while (true)\n  a\nend\n");
         expect_no_offenses(COP, "while x\n  a\nend\n");
         expect_no_offenses(COP, "until true\n  a\nend\n");
+    }
+}
+
+/// `Style/RedundantRegexpCharacterClass`: 要素が 1 つだけの文字クラスは
+/// その要素そのものにする。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantRegexpCharacterClass` と `-A` の実測。
+mod redundant_regexp_character_class {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpCharacterClass";
+
+    #[test]
+    fn a_class_of_one_element_is_reported_and_unwrapped() {
+        expect_offense(
+            COP,
+            r#"
+            r = /[x]/
+                 ^^^ Redundant single-element character class, `[x]` can be replaced with `x`.
+            "#,
+        );
+        expect_correction(COP, "r = /[x]/\n", "r = /x/\n");
+        expect_correction(COP, "r = /[\\s]/\n", "r = /\\s/\n");
+        expect_correction(COP, "r = %r{/[b]}\n", "r = %r{/b}\n");
+        expect_correction(COP, "r = /a[x]b[y]c/\n", "r = /axbyc/\n");
+        // `[#]` を裸の `#` に戻すと補間の始まりになるため、`\#` へ逃がす。
+        expect_correction(COP, "r = /[#]{0}/\n", "r = /\\#{0}/\n");
+    }
+
+    /// 中身が 2 つ以上、否定、範囲、入れ子、POSIX クラス、共通部分はいずれも
+    /// 1 要素ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "r = /[ab]/\n");
+        expect_no_offenses(COP, "r = /[^x]/\n");
+        expect_no_offenses(COP, "r = /[a-z]/\n");
+        expect_no_offenses(COP, "r = /[[:alpha:]]/\n");
+        expect_no_offenses(COP, "r = /[a&&b]/\n");
+        expect_no_offenses(COP, "r = /[\\u{41 42}]/\n");
+    }
+
+    /// クラスの外では意味が変わってしまう要素は残す。
+    #[test]
+    fn elements_that_only_work_inside_a_class_are_kept() {
+        // `.` `*` `+` `?` `{` `}` `(` `)` `|` `$` はクラスの外ではメタ文字。
+        expect_no_offenses(COP, "r = /[.]/\n");
+        expect_no_offenses(COP, "r = /[$]/\n");
+        // `\b` はクラスの外では単語境界、中ではバックスペース。
+        expect_no_offenses(COP, "r = /[\\b]/\n");
+        // `\1`〜`\7` はクラスの外では後方参照。
+        expect_no_offenses(COP, "r = /[\\1]/\n");
+        // 自由間隔モードの空白はクラスの外では無視される。
+        expect_no_offenses(COP, "r = / [ ] /x\n");
+        expect_correction(COP, "r = /[ ]/\n", "r = / /\n");
+    }
+
+    /// 入れ子の集合そのものは 1 要素にならないが、内側は内側で見られる。
+    #[test]
+    fn a_nested_class_is_reported_on_its_own() {
+        expect_offense(
+            COP,
+            r#"
+            r = /[[a]]/
+                  ^^^ Redundant single-element character class, `[a]` can be replaced with `a`.
+            "#,
+        );
+        expect_correction(COP, "r = /[[a]]/\n", "r = /a/\n");
+    }
+
+    /// 補間はそのぶんだけ空白に置き換えて数えるので、`[#{x}]` は 1 要素にならない。
+    #[test]
+    fn an_interpolation_fills_the_class() {
+        expect_no_offenses(COP, "r = /[#{y}]/\n");
+    }
+
+    /// `Regexp::Parser` が受け付けないパターンは 1 件も報告されない。閉じない
+    /// 文字クラスがその 1 つで、手前の `[x]` まで巻き添えで見送られる。
+    #[test]
+    fn a_pattern_the_parser_refuses_yields_nothing() {
+        expect_no_offenses(COP, "r = /[x][a/\n");
     }
 }

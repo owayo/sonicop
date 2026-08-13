@@ -123,6 +123,7 @@ department_rules! {
     redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
+    redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
     redundant_return => ("RedundantReturn", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
     redundant_sort => ("RedundantSort", Convention),
