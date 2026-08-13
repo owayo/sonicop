@@ -157,7 +157,7 @@ fn on_and(
 
         // Every clause of a chain of `and` nodes is walked, so a check of an object further along
         // the chain has to be told from a check of the object itself.
-        let lhs_method_chain = find_method_chain(lhs_receiver);
+        let lhs_method_chain = find_method_chain(context, lhs_receiver);
         if lhs_method_chain.id() != lhs_receiver.id() && not_nil_check.is_none() {
             continue;
         }
@@ -402,15 +402,24 @@ fn comments_to_move(context: &RuleContext<'_>, node: Node<'_>) -> String {
             .iter()
             .any(|(start, end)| line >= *start && line < *end)
         {
-            found.push(context.source.slice(comment.clone()).trim_end());
+            found.push(context.source.slice(comment.clone()));
         }
     }
     found.join("\n")
 }
 
-/// `node.child_nodes` of a conditional, in the order the parser lists them.
+/// `node.child_nodes`, in the order the parser lists them. Only the shapes this cop reports on
+/// need an answer: a conditional and an `and`.
 fn child_nodes<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut found = Vec::new();
+    if node.kind() == "binary" {
+        for field in ["left", "right"] {
+            if let Some(operand) = node.child_by_field_name(field) {
+                found.push(operand);
+            }
+        }
+        return found;
+    }
     if let Some(condition) = node.child_by_field_name("condition") {
         found.push(condition);
     }
@@ -482,26 +491,14 @@ fn nil_or_bang_check<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Opt
         "call" if method_name(context, node).as_deref() == Some("nil?") => {
             node.child_by_field_name("receiver")
         }
-        "unary"
-            if context
-                .source
-                .node_text(node.child_by_field_name("operator")?)
-                == "!" =>
-        {
-            node.child_by_field_name("operand")
-        }
+        "unary" if is_bang(context, node) => node.child_by_field_name("operand"),
         _ => None,
     }
 }
 
 /// `not_nil_check?`: `(send (send $_ :nil?) :!)`.
 fn not_nil_check<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "unary"
-        || context
-            .source
-            .node_text(node.child_by_field_name("operator")?)
-            != "!"
-    {
+    if node.kind() != "unary" || !is_bang(context, node) {
         return None;
     }
     let inner = node.child_by_field_name("operand")?;
@@ -594,12 +591,18 @@ fn matching_call_nodes(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_
 }
 
 /// `find_method_chain`: the outermost call the node is the receiver of.
-fn find_method_chain<'tree>(node: Node<'tree>) -> Node<'tree> {
+fn find_method_chain<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Node<'tree> {
     let mut current = node;
-    while let Some(parent) = current.parent().filter(|parent| parent.kind() == "call") {
+    while let Some(parent) = upstream_parent(current).filter(|parent| is_call(context, *parent)) {
         current = parent;
     }
     current
+}
+
+/// `not x` is `(send x :!)` just as `!x` is.
+fn is_bang(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.child_by_field_name("operator")
+        .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }
 
 /// One element of the flattened `and` chain: a clause, or the operator that joined two of them.
