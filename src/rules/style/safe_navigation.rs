@@ -787,17 +787,15 @@ fn is_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     is_call(context, node) && !is_safe_navigation(context, node)
 }
 
-/// `SendNode#assignment?`: a call to a setter, which the grammar writes as an assignment whose
-/// left-hand side is itself a call.
+/// `SendNode#assignment?`, which is `loc?(:operator)`: the send carries the `=` of an assignment.
+/// The grammar writes those as an `assignment` whose left-hand side is itself a call, and gives
+/// nothing else an operator to find.
 fn is_setter(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
-        "assignment" => node
+    let _ = context;
+    node.kind() == "assignment"
+        && node
             .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference")),
-        "call" => method_name(context, node)
-            .is_some_and(|name| name.ends_with('=') && !super::nodes::is_operator_method(&name)),
-        _ => false,
-    }
+            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
 }
 
 /// `SendNode#method_name`, for whichever shape the grammar gave the call.
