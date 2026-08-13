@@ -36,6 +36,7 @@ department_rules! {
     class_equality_comparison => ("ClassEqualityComparison", Convention),
     class_methods => ("ClassMethods", Convention),
     class_vars => ("ClassVars", Convention),
+    conditional_assignment => ("ConditionalAssignment", Convention),
     colon_method_call => ("ColonMethodCall", Convention),
     combinable_loops => ("CombinableLoops", Convention),
     command_literal => ("CommandLiteral", Convention),

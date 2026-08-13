@@ -3151,6 +3151,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_identical_conditional_branches")
         .correctable(true),
+        // 既定の assign_to_condition では条件そのものを報告する。
+        CopCase::annotated(
+            "Style/ConditionalAssignment",
+            r#"
+            if foo
+            ^^^^^^ Use the return of the conditional for variable assignment and comparison.
+              bar = 1
+            else
+              bar = 2
+            end
+            "#,
+        )
+        .id("style_conditional_assignment")
+        .correctable(true),
         // 同じコレクションを 2 度回すループ。報告は 2 つ目のループ全体。
         CopCase::annotated(
             "Style/CombinableLoops",
