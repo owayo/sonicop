@@ -99,7 +99,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             node,
             method,
             kind,
-            allow_dsl_writers,
             &allowed,
             exact_name_match,
             allow_predicates,
@@ -289,7 +288,6 @@ fn rewrite(
     node: Node<'_>,
     method: &str,
     kind: Kind,
-    allow_dsl_writers: bool,
     allowed: &[String],
     exact_name_match: bool,
     allow_predicates: bool,
@@ -314,7 +312,6 @@ fn rewrite(
         .then_some(Kind::Reader)?,
         other => other,
     };
-    let _ = allow_dsl_writers;
     if !names_match(context, node, method) || method.ends_with('?') {
         return None;
     }

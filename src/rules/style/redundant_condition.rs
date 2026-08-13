@@ -54,8 +54,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(condition) = node.child_by_field_name("condition") else {
             continue;
         };
-        let normalized_if = branch(context, node, true);
-        let normalized_else = branch(context, node, false);
+        let normalized_if = branch(node, true);
+        let normalized_else = branch(node, false);
         // `*node`: the children as the parser stores them, which an `unless` holds the other way
         // round from the way it reads.
         let (raw_if, raw_else) = match node.kind() {
@@ -64,7 +64,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         if !is_offense(
             context,
-            node,
             ternary,
             condition,
             &raw_if,
@@ -111,7 +110,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 #[allow(clippy::too_many_arguments)]
 fn is_offense(
     context: &RuleContext<'_>,
-    node: Node<'_>,
     ternary: bool,
     condition: Node<'_>,
     raw_if: &Option<Branch<'_>>,
@@ -157,7 +155,6 @@ fn is_offense(
     if !is_plain_node(branch) {
         return true;
     }
-    let _ = node;
     context.source.line_column(branch.range.start).0
         == context.source.line_column(branch.range.end).0
 }
@@ -194,17 +191,14 @@ fn synonymous(
     if if_branch_is_true(context, condition, normalized_if, normalized_else, allowed) {
         return true;
     }
-    if let (Some(name), Some(expression)) = (
-        assignment_pair(context, normalized_if, normalized_else),
-        raw_if
+    if assignment_pair(context, normalized_if, normalized_else).is_some()
+        && raw_if
             .as_ref()
             .and_then(|branch| branch.node)
-            .and_then(|node| node.child_by_field_name("right")),
-    ) {
-        let _ = name;
-        if context.source.node_text(expression) == condition_source {
-            return true;
-        }
+            .and_then(|node| node.child_by_field_name("right"))
+            .is_some_and(|expression| context.source.node_text(expression) == condition_source)
+    {
+        return true;
     }
     if !branches_have_method(context, normalized_if, normalized_else) {
         return false;
@@ -289,13 +283,13 @@ fn branches_have_method(
     ) else {
         return false;
     };
-    single_argument_method(context, first)
-        && single_argument_method(context, second)
+    single_argument_method(first)
+        && single_argument_method(second)
         && selector(context, first) == selector(context, second)
         && receiver(context, first) == receiver(context, second)
 }
 
-fn single_argument_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+fn single_argument_method(node: Node<'_>) -> bool {
     if !is_send(node) {
         return false;
     }
@@ -305,7 +299,6 @@ fn single_argument_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if arguments(node).len() != 1 {
         return false;
     }
-    let _ = context;
     // `argument_with_operator?`: a splat, a block pass and a `**` inside a brace-less hash all
     // spread rather than pass one value.
     !SPREAD_ARGUMENTS.contains(&argument.kind())
@@ -376,11 +369,7 @@ fn receiver<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str>
 }
 
 /// One branch of the conditional, read from the clause the grammar hangs off the node.
-fn branch<'tree>(
-    context: &RuleContext<'_>,
-    node: Node<'tree>,
-    want_consequence: bool,
-) -> Option<Branch<'tree>> {
+fn branch<'tree>(node: Node<'tree>, want_consequence: bool) -> Option<Branch<'tree>> {
     let field = match (node.kind(), want_consequence) {
         ("conditional", true) => "consequence",
         ("conditional", false) => "alternative",
@@ -397,7 +386,6 @@ fn branch<'tree>(
     }
     let written = super::nodes::children(clause);
     let (first, last) = (written.first()?, written.last()?);
-    let _ = context;
     Some(Branch {
         node: (written.len() == 1).then_some(*first),
         range: first.start_byte()..last.end_byte(),
@@ -600,12 +588,9 @@ fn else_source(
         let Some(selector) = node.child_by_field_name("method") else {
             return source.to_owned();
         };
-        let _ = selector;
         return format!(
             "{}({})",
-            context
-                .source
-                .node_text(node.child_by_field_name("method").unwrap()),
+            context.source.node_text(selector),
             arguments(node)
                 .into_iter()
                 .map(|(_, range)| context.source.slice(range))
