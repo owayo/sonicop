@@ -19599,6 +19599,26 @@ mod hash_each_methods {
         );
     }
 
+    /// 値を省いたハッシュ (`foo(v:)`) は、その名前の局所変数を読んでいる。
+    #[test]
+    fn a_shorthand_hash_value_counts_as_a_read() {
+        CopCase::annotated(COP, "h.each do |os, arch|\n  foo(os, arch:)\nend\n")
+            .target_ruby("3.3")
+            .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            h.each do |k, v|
+            ^^^^^^^^^^^^^^^^ Use `each_value` instead of `each` and remove the unused `k` block argument.
+              foo(v:)
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .locations(&[(1, 1, 3, 3)])
+        .run();
+    }
+
     #[test]
     fn what_the_cop_leaves_alone() {
         // 両方使っていれば何も言わない。
