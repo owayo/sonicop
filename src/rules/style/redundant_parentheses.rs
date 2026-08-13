@@ -65,7 +65,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("parenthesized_statements") {
         if !is_begin_node(context, node)
-            || parens_allowed(context, &locals, node)
+            || parens_allowed(context, node)
             || ignore_syntax(context, node)
         {
             continue;
@@ -156,13 +156,10 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             "parenthesized_statements" | "interpolation" | "begin" => {
                 super::nodes::children(parent).len()
             }
-            container => super::conditional::self_statements(
-                super::nodes::children(parent)
-                    .first()
-                    .map_or(parent, |_| parent),
-            )
-            .len()
-            .max(usize::from(container.is_empty())),
+            // A statement list the grammar wraps -- a `then`, an `else`, a definition's body --
+            // is a `begin` of the statements it holds, less the clauses that are not statements
+            // of it.
+            _ => super::conditional::self_statements(parent).len(),
         },
         UpstreamParent::Node(parent) => match parent.kind() {
             "array" | "string_array" | "symbol_array" | "exceptions" => {
@@ -198,7 +195,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
 }
 
 /// `parens_allowed?`.
-fn parens_allowed(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn parens_allowed(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let children = super::nodes::children(node);
     // `empty_parentheses?`: `()` says something no rewrite could keep.
     if children.is_empty() {
@@ -207,7 +204,7 @@ fn parens_allowed(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: 
     is_rescue(context, node)
         || in_pattern_matching_in_method_argument(context, node, &children)
         || allowed_pin_operator(node, &children)
-        || allowed_expression(context, locals, node, &children)
+        || allowed_expression(context, node, &children)
 }
 
 /// `rescue?`: `{^resbody ^^resbody}`, the parentheses around an exception list or around the body
@@ -260,13 +257,7 @@ fn allowed_pin_operator(node: Node<'_>, children: &[Node<'_>]) -> bool {
     })
 }
 
-fn allowed_expression(
-    context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
-    node: Node<'_>,
-    children: &[Node<'_>],
-) -> bool {
-    let _ = locals;
+fn allowed_expression(context: &RuleContext<'_>, node: Node<'_>, children: &[Node<'_>]) -> bool {
     allowed_ancestor(context, node)
         || allowed_multiple_expression(context, node, children)
         || allowed_ternary(context, node)
@@ -504,7 +495,7 @@ fn find_offense_message(
     if literal_type(inner, context).is_some() && disallowed_literal(context, node, inner) {
         return Some("a literal");
     }
-    if is_variable(context, locals, inner) {
+    if is_variable(locals, inner) {
         return Some("a variable");
     }
     if is_constant(inner, context) {
@@ -513,7 +504,9 @@ fn find_offense_message(
     if parent_node(context, node).is_some_and(is_block) || body_range(context, node, inner) {
         return Some("block body");
     }
-    if is_assignment(inner) && (parent_of(context, node).is_none() || parent_is_begin(context, node)) {
+    if is_assignment(inner)
+        && (parent_of(context, node).is_none() || parent_is_begin(context, node))
+    {
         return Some("an assignment");
     }
     if is_lambda_or_proc(context, inner) {
@@ -577,8 +570,7 @@ fn is_block(node: Node<'_>) -> bool {
 
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
-fn is_variable(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
-    let _ = context;
+fn is_variable(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
     match node.kind() {
         "instance_variable" | "class_variable" | "global_variable" => true,
         "identifier" => locals.is_lvar(node),
@@ -620,8 +612,9 @@ fn disallowed_one_line_pattern_matching(
 ) -> bool {
     if let Some(parent) = parent_node(context, node) {
         if matches!(parent.kind(), "method" | "singleton_method")
+            // `parent.endless?`: a definition written with `=` and no `end`.
             && parent.child_by_field_name("body").is_some_and(|body| {
-                body.id() == node.id() && !super::conditional::token(parent, &["end"]).is_some()
+                body.id() == node.id() && super::conditional::token(parent, &["end"]).is_none()
             })
         {
             return false;
@@ -635,15 +628,9 @@ fn disallowed_one_line_pattern_matching(
     }
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if ancestor.kind() == "binary"
-            && ancestor
-                .child_by_field_name("operator")
-                .is_some_and(|operator| {
-                    let text = &ancestor.byte_range();
-                    let _ = text;
-                    matches!(operator.kind(), "and" | "or")
-                })
-        {
+        // `each_ancestor.none?(&:operator_keyword?)`: an `and` or an `or` above it makes the
+        // pattern match one operand of a logical expression, which needs the parentheses.
+        if is_operator_keyword(context, ancestor) {
             return false;
         }
         current = ancestor.parent();
