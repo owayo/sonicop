@@ -2571,6 +2571,38 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_numeric_operation_with_constant_result")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousRange",
+            r#"
+            v = 1..a + b
+                   ^^^^^ Wrap complex range boundaries with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateMagicComment",
+            r#"
+            # encoding: utf-8
+            # encoding: ascii
+            ^^^^^^^^^^^^^^^^^ Duplicate magic comment detected.
+            x = 1
+            "#,
+        )
+        .id("lint_duplicate_magic_comment")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/IncompatibleIoSelectWithFiberScheduler",
+            r#"
+            IO.select([io], nil)
+            ^^^^^^^^^^^^^^^^^^^^ Use `io.wait_readable` instead of `IO.select([io], nil)`.
+            "#,
+        )
+        .id("lint_incompatible_io_select_with_fiber_scheduler")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

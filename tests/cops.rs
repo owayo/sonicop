@@ -21517,3 +21517,168 @@ mod lint_numeric_operation_with_constant_result {
         }
     }
 }
+
+/// `Lint/AmbiguousRange`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/AmbiguousRange` で走らせた実出力から取った
+/// (検出・`-A` ともバイト一致を確認済み)。
+mod lint_ambiguous_range {
+    use super::*;
+
+    const COP: &str = "Lint/AmbiguousRange";
+
+    /// 境界が演算子メソッドの呼び出し、あるいは受け手がリテラルの呼び出しのときだけ
+    /// 括弧が要る。
+    #[test]
+    fn a_complex_boundary_gets_parentheses() {
+        expect_offense(
+            COP,
+            r#"
+            v = 1..a + b
+                   ^^^^^ Wrap complex range boundaries with parentheses to avoid ambiguity.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "v = 1..a + b\nt = 1..\"foo\".length\nb = 1..x.+(2)\na = 1..\"x\"[1]\ng = 1..1.upto(2)\n",
+            "v = 1..(a + b)\nt = 1..(\"foo\".length)\nb = 1..(x.+(2))\na = 1..(\"x\"[1])\ng = 1..(1.upto(2))\n",
+        );
+    }
+
+    /// リテラル・変数・定数・`self`・単項演算・添字・括弧付き、そして既定では
+    /// メソッドチェーンも許される。
+    #[test]
+    fn what_the_defaults_leave_alone() {
+        for source in [
+            "y = 1..-2\n",
+            "z = a..b\n",
+            "w = (1)..(2)\n",
+            "u = 1..a[1]\n",
+            "s = 1..CONST\n",
+            "r = 1..@ivar\n",
+            "q = 1..self\n",
+            "p1 = 1..foo\n",
+            "o = 1..foo.bar.baz\n",
+            "n = 1..-x\n",
+            "m = 1..!x\n",
+            "l = 1..1r\n",
+            "k = 1...b\n",
+            "f = 1..%w[a]\n",
+            "h = 1..x.y\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `RequireParenthesesForMethodChains: true` にするとレシーバ付きの呼び出しも対象。
+    #[test]
+    fn the_switch_pulls_method_chains_in() {
+        CopCase::annotated(
+            COP,
+            r#"
+            h = 1..x.y
+                   ^^^ Wrap complex range boundaries with parentheses to avoid ambiguity.
+            "#,
+        )
+        .config("Lint/AmbiguousRange:\n  RequireParenthesesForMethodChains: true\n")
+        .run();
+    }
+}
+
+/// `Lint/DuplicateMagicComment`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DuplicateMagicComment` で走らせた実出力から取った
+/// (検出 2 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_duplicate_magic_comment {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateMagicComment";
+
+    /// 2 つ目以降の同種のマジックコメントを行ごと消す。コードより後ろの行は
+    /// 先導コメントではないので数えない。
+    #[test]
+    fn the_second_comment_of_each_kind_is_removed() {
+        expect_offense(
+            COP,
+            r#"
+            # encoding: utf-8
+            # encoding: ascii
+            ^^^^^^^^^^^^^^^^^ Duplicate magic comment detected.
+            x = 1
+            "#,
+        );
+        expect_correction(
+            COP,
+            "# encoding: utf-8\n# frozen_string_literal: true\n# encoding: ascii\n\
+             # frozen_string_literal: false\nx = 1\n# encoding: utf-8\n",
+            "# encoding: utf-8\n# frozen_string_literal: true\nx = 1\n# encoding: utf-8\n",
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "# encoding: utf-8\n# frozen_string_literal: true\nx = 1\n",
+            "x = 1\n",
+            "",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/IncompatibleIoSelectWithFiberScheduler`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/IncompatibleIoSelectWithFiberScheduler` で走らせた
+/// 実出力から取った (検出 8 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_incompatible_io_select_with_fiber_scheduler {
+    use super::*;
+
+    const COP: &str = "Lint/IncompatibleIoSelectWithFiberScheduler";
+
+    #[test]
+    fn one_stream_in_one_direction_becomes_a_wait() {
+        expect_offense(
+            COP,
+            r#"
+            IO.select([io], nil)
+            ^^^^^^^^^^^^^^^^^^^^ Use `io.wait_readable` instead of `IO.select([io], nil)`.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "IO.select([io], nil)\nIO.select([io])\nIO.select(nil, [io])\nIO.select([io], [])\n\
+             IO.select([io], nil, nil, 1)\n::IO.select([io], nil)\n",
+            "io.wait_readable\nio.wait_readable\nio.wait_writable\nio.wait_readable\n\
+             io.wait_readable(1)\nio.wait_readable\n",
+        );
+    }
+
+    /// 値を受け取る形は置き換えると意味が変わるので、報告だけして補正しない。
+    #[test]
+    fn an_assigned_call_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            x = IO.select([io], nil)
+                ^^^^^^^^^^^^^^^^^^^^ Use `io.wait_readable` instead of `IO.select([io], nil)`.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "IO.select([io], nil, [x])\n",
+            "IO.select([a, b], nil)\n",
+            "IO.select([*a], nil)\n",
+            "IO.select([io], [io2])\n",
+            "Foo::IO.select([io], nil)\n",
+            "IO.select\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
