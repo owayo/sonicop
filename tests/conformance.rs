@@ -2314,6 +2314,455 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_flip_flop")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefined",
+            r#"
+            defined?("foo")
+            ^^^^^^^^^^^^^^^ Calling `defined?` with a string argument will always return a truthy value.
+            "#,
+        )
+        .id("lint_useless_defined")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // `_1 = 1` は 3.0 以降では構文エラーなので、ハーネス既定の 2.7 でしか届かない。
+        CopCase::annotated(
+            "Lint/NumberedParameterAssignment",
+            r#"
+            _1 = 1
+            ^^^^^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        )
+        .id("lint_numbered_parameter_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OrAssignmentToConstant",
+            r#"
+            CONST ||= 1
+                  ^^^ Avoid using or-assignment with constants.
+            "#,
+        )
+        .id("lint_or_assignment_to_constant")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/LambdaWithoutLiteralBlock",
+            r#"
+            lambda(&block)
+            ^^^^^^^^^^^^^^ lambda without a literal block is deprecated; use the proc without lambda instead.
+            "#,
+        )
+        .id("lint_lambda_without_literal_block")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyClass",
+            r#"
+            class Foo
+            ^^^^^^^^^ Empty class detected.
+            end
+            "#,
+        )
+        .id("lint_empty_class")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 2, 3)])
+        .lengths(&[13])
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/AmbiguousAssignment",
+            r#"
+            x =- 1
+              ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        )
+        .id("lint_ambiguous_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/ConstantOverwrittenInRescue",
+            r#"
+            begin
+              x
+            rescue => CONST
+                   ^^ `CONST` is overwritten by `rescue =>`.
+            end
+            "#,
+        )
+        .id("lint_constant_overwritten_in_rescue")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/HashNewWithKeywordArgumentsAsDefault",
+            r#"
+            Hash.new(a: 1)
+                     ^^^^ Use a hash literal instead of keyword arguments.
+            "#,
+        )
+        .id("lint_hash_new_with_keyword_arguments_as_default")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SharedMutableDefault",
+            r#"
+            Hash.new([])
+            ^^^^^^^^^^^^ Do not create a Hash with a mutable default value as the default value can accidentally be changed.
+            "#,
+        )
+        .id("lint_shared_mutable_default")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/TripleQuotes",
+            r#"
+            x = """foo"""
+                ^^^^^^^^^ Delimiting a string with multiple quotes has no effect, use a single quote instead.
+            "#,
+        )
+        .id("lint_triple_quotes")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // `minimum_target_ruby_version 3.1`。ハーネス既定の 2.7 では登録すらされない。
+        CopCase::annotated(
+            "Lint/RefinementImportMethods",
+            r#"
+            module M
+              refine Foo do
+                include Bar
+                ^^^^^^^ Use `import_methods` instead of `include` because it was removed in Ruby 3.2.
+              end
+            end
+            "#,
+        )
+        .id("lint_refinement_import_methods")
+        .target_ruby("3.2")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DeprecatedConstants",
+            r#"
+            NIL
+            ^^^ Use `nil` instead of `NIL`, deprecated since Ruby 2.4.
+            "#,
+        )
+        .id("lint_deprecated_constants")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DataDefineOverride",
+            r#"
+            Data.define(:hash)
+                        ^^^^^ `:hash` member overrides `Data#hash` and it may be unexpected.
+            "#,
+        )
+        .id("lint_data_define_override")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessOr",
+            r#"
+            x.to_s || 'default'
+                   ^^^^^^^^^^^^ `'default'` will never evaluate because `x.to_s` always returns a truthy value.
+            "#,
+        )
+        .id("lint_useless_or")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RequireRelativeSelfPath",
+            r#"
+            require_relative 'b12'
+            ^^^^^^^^^^^^^^^^^^^^^^ Remove the `require_relative` that requires itself.
+            "#,
+        )
+        .id("lint_require_relative_self_path")
+        .path("b12.rb")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyBlock",
+            r#"
+            foo {}
+            ^^^^^^ Empty block detected.
+            "#,
+        )
+        .id("lint_empty_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyInPattern",
+            r#"
+            case x
+            in 1
+            ^^^^ Avoid `in` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_in_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateMatchPattern",
+            r#"
+            case x
+            in 1
+              a
+            in 1
+               ^ Duplicate `in` pattern detected.
+              b
+            end
+            "#,
+        )
+        .id("lint_duplicate_match_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/NoReturnInBeginEndBlocks",
+            r#"
+            x = begin
+              return 1 if a
+              ^^^^^^^^ Do not `return` in `begin..end` blocks in assignment contexts.
+              0
+            end
+            "#,
+        )
+        .id("lint_no_return_in_begin_end_blocks")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantDirGlobSort",
+            r#"
+            Dir.glob('*').sort
+                          ^^^^ Remove redundant `sort`.
+            "#,
+        )
+        .id("lint_redundant_dir_glob_sort")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateSetElement",
+            r#"
+            Set[1, 2, 1]
+                      ^ Remove the duplicate element in Set.
+            "#,
+        )
+        .id("lint_duplicate_set_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessNumericOperation",
+            r#"
+            foo + 0
+            ^^^^^^^ Do not apply inconsequential numeric operations to variables.
+            "#,
+        )
+        .id("lint_useless_numeric_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NumericOperationWithConstantResult",
+            r#"
+            foo * 0
+            ^^^^^^^ Numeric operation with a constant result detected.
+            "#,
+        )
+        .id("lint_numeric_operation_with_constant_result")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousRange",
+            r#"
+            v = 1..a + b
+                   ^^^^^ Wrap complex range boundaries with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateMagicComment",
+            r#"
+            # encoding: utf-8
+            # encoding: ascii
+            ^^^^^^^^^^^^^^^^^ Duplicate magic comment detected.
+            x = 1
+            "#,
+        )
+        .id("lint_duplicate_magic_comment")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/IncompatibleIoSelectWithFiberScheduler",
+            r#"
+            IO.select([io], nil)
+            ^^^^^^^^^^^^^^^^^^^^ Use `io.wait_readable` instead of `IO.select([io], nil)`.
+            "#,
+        )
+        .id("lint_incompatible_io_select_with_fiber_scheduler")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousOperatorPrecedence",
+            r#"
+            a = 1 + 2 * 3
+                    ^^^^^ Wrap expressions with varying precedence with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_operator_precedence")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UnreachablePatternBranch",
+            r#"
+            case x
+            in y
+            in 1
+            ^^^^ Unreachable `in` pattern branch detected.
+            end
+            "#,
+        )
+        .id("lint_unreachable_pattern_branch")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefaultValueArgument",
+            r#"
+            h.fetch(:k, 0) { 1 }
+                        ^ Block supersedes default value argument.
+            "#,
+        )
+        .id("lint_useless_default_value_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ItWithoutArgumentsInBlock",
+            r#"
+            [1].each { it }
+                       ^^ `it` calls without arguments will refer to the first block param in Ruby 3.4; use `it()` or `self.it`.
+            "#,
+        )
+        .id("lint_it_without_arguments_in_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnexpectedBlockArity",
+            r#"
+            x.reduce { |a| a }
+            ^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 1.
+            "#,
+        )
+        .id("lint_unexpected_block_arity")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/LiteralAssignmentInCondition",
+            r#"
+            if x = 1
+                 ^^^ Don't use literal assignment `= 1` in conditional, should be `==` or non-literal operand.
+            end
+            "#,
+        )
+        .id("lint_literal_assignment_in_condition")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessRescue",
+            r#"
+            begin
+              x
+            rescue
+            ^^^^^^ Useless `rescue` detected.
+              raise
+            end
+            "#,
+        )
+        .id("lint_useless_rescue")
+        .severity(Severity::Warning)
+        .locations(&[(3, 1, 4, 7)])
+        .lengths(&[14])
+        .correctable(false),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ConstantResolution",
+            r#"
+            Foo
+            ^^^ Fully qualify this constant to avoid possibly ambiguous resolution.
+            "#,
+        )
+        .id("lint_constant_resolution")
+        .config("Lint/ConstantResolution:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/ArrayLiteralInRegexp",
+            r#"
+            /#{[1, 2]}/
+             ^^^^^^^^^ Use a character class instead of interpolating an array in a regexp.
+            "#,
+        )
+        .id("lint_array_literal_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SuppressedExceptionInNumberConversion",
+            r#"
+            Integer('1') rescue nil
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `Integer('1', exception: false)` instead.
+            "#,
+        )
+        .id("lint_suppressed_exception_in_number_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessRuby2Keywords",
+            r#"
+            ruby2_keywords def qux(a); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `qux`.
+            "#,
+        )
+        .id("lint_useless_ruby2_keywords")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessConstantScoping",
+            r#"
+            class C
+              private
+              FOO = 1
+              ^^^^^^^ Useless `private` access modifier for constant scope.
+            end
+            "#,
+        )
+        .id("lint_useless_constant_scoping")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/CopDirectiveSyntax",
+            r#"
+            # rubocop:disable
+            ^^^^^^^^^^^^^^^^^ Malformed directive comment detected. The cop name is missing.
+            "#,
+        )
+        .id("lint_cop_directive_syntax")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateBranch",
+            r#"
+            if a
+              foo
+            else
+            ^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .id("lint_duplicate_branch")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

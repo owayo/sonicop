@@ -426,6 +426,127 @@ pub(crate) fn directive_header(text: &str) -> Option<DirectiveHeader<'_>> {
     })
 }
 
+/// `DirectiveComment#disabled? && #cop_names.include?(cop)` for one comment on its own.
+///
+/// A cop that has to answer "is *this* comment the directive that switches me off" cannot go
+/// through [`DirectiveState`], which answers about lines rather than comments. The registry a full
+/// expansion would need is not reachable from a cop either, but it only adds one thing to a name
+/// the comment spells out -- whether it is a department -- and a department is exactly the prefix
+/// of the cops it holds.
+pub(crate) fn comment_disables_cop(text: &str, cop: &str) -> bool {
+    let Some(captures) = directive_regex().captures(text) else {
+        return false;
+    };
+    let whole = captures.get(0).expect("group zero always participates");
+    if commented_out(&text[..whole.start()]) {
+        return false;
+    }
+    if !matches!(
+        captures.get(1).map(|mode| mode.as_str()),
+        Some("disable" | "todo")
+    ) {
+        return false;
+    }
+    let Some(names) = captures.get(2) else {
+        return false;
+    };
+    if names.as_str() == "all" {
+        return true;
+    }
+    names.as_str().split(',').map(str::trim).any(|name| {
+        name == cop
+            || cop
+                .strip_prefix(name)
+                .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
+/// `DirectiveComment#malformed?`, with the reason `Lint/CopDirectiveSyntax` names.
+///
+/// `None` means the comment is not a directive at all, or is a well-formed one. The marker has to
+/// open the comment for the question to be asked: a directive written behind prose is still a
+/// directive, but a malformed one there is just prose.
+pub(crate) fn directive_syntax_problem(text: &str) -> Option<&'static str> {
+    const MISSING_MODE_NAME: &str = "The mode name is missing.";
+    const INVALID_MODE_NAME: &str =
+        "The mode name must be one of `enable`, `disable`, `todo`, `push`, or `pop`.";
+    const MISSING_COP_NAME: &str = "The cop name is missing.";
+    const MALFORMED_COP_NAMES: &str = "Cop names must be separated by commas. \
+                                       Comment in the directive must start with `--`.";
+
+    let marker_end = directive_marker_end(text)?;
+    let matched = directive_regex()
+        .captures(text)
+        .filter(|captures| {
+            let whole = captures.get(0).expect("group zero always participates");
+            !commented_out(&text[..whole.start()])
+        })
+        .map(|captures| {
+            let whole = captures.get(0).expect("group zero always participates");
+            (whole.end(), captures.get(1).map(|mode| mode.as_str()))
+        });
+    // `missing_cop_name?`: the whole comment is the header and nothing else. A push or a pop needs
+    // no cop name.
+    let mode_capture = matched.and_then(|(_, mode)| mode);
+    let missing_cop_name =
+        !matches!(mode_capture, Some("push" | "pop")) && is_header_only(&text[marker_end..]);
+    let malformed = match matched {
+        None => true,
+        _ if missing_cop_name => true,
+        Some((end, _)) => {
+            let tail = text[end..].trim_start();
+            !(tail.is_empty() || tail.starts_with("--"))
+        }
+    };
+    if !malformed {
+        return None;
+    }
+    // `offense_message` re-reads the mode off the text rather than off the match, so a name the
+    // header pattern rejected still reaches the message.
+    let mode = text[marker_end..].split_whitespace().next();
+    Some(match mode {
+        None => MISSING_MODE_NAME,
+        Some(mode) if !AVAILABLE_MODES.contains(&mode) => INVALID_MODE_NAME,
+        _ if missing_cop_name => MISSING_COP_NAME,
+        _ => MALFORMED_COP_NAMES,
+    })
+}
+
+/// `MALFORMED_DIRECTIVE_WITHOUT_COP_NAME_REGEXP`, applied to what follows the marker: a mode and
+/// nothing after it.
+fn is_header_only(after_marker: &str) -> bool {
+    AVAILABLE_MODES.iter().any(|mode| {
+        after_marker.strip_prefix(mode).is_some_and(|rest| {
+            rest.chars()
+                .next()
+                .is_none_or(|character| !(character.is_alphanumeric() || character == '_'))
+                && rest.trim().is_empty()
+        })
+    })
+}
+
+/// `AVAILABLE_MODES`.
+const AVAILABLE_MODES: [&str; 5] = ["disable", "enable", "todo", "push", "pop"];
+
+/// `start_with_marker?`: where `#\s*rubocop\s*:\s*` ends, when the comment opens with it.
+fn directive_marker_end(text: &str) -> Option<usize> {
+    let mut rest = text.strip_prefix('#')?;
+    let mut consumed = 1;
+    let eat_space = |rest: &mut &str, consumed: &mut usize| {
+        let trimmed = rest.trim_start_matches([' ', '\t', '\r', '\n', '\x0b', '\x0c']);
+        *consumed += rest.len() - trimmed.len();
+        *rest = trimmed;
+    };
+    eat_space(&mut rest, &mut consumed);
+    rest = rest.strip_prefix("rubocop")?;
+    consumed += "rubocop".len();
+    eat_space(&mut rest, &mut consumed);
+    rest = rest.strip_prefix(':')?;
+    consumed += 1;
+    eat_space(&mut rest, &mut consumed);
+    Some(consumed)
+}
+
 /// Whether everything before the marker is a `#` and whitespace.
 fn commented_out(prefix: &str) -> bool {
     prefix.starts_with('#')

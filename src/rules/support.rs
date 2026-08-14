@@ -537,3 +537,21 @@ fn last_statement<'tree>(list: Node<'tree>) -> Option<Node<'tree>> {
         .into_iter()
         .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
 }
+
+/// `ProcessedSource#contains_comment?`: whether any comment sits on one of the lines the range
+/// touches.
+///
+/// The question is asked of *lines*, not of the span itself, so a trailing comment on the line the
+/// range ends on counts even though it lies outside the range. `class Foo # note` and the `end` of
+/// an otherwise empty body both answer yes for that reason.
+pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -> bool {
+    let first = context.source.line_column(range.start).0;
+    let last = context
+        .source
+        .line_column(range.end.min(context.source.text().len()))
+        .0;
+    context.comment_ranges().iter().any(|comment| {
+        let line = context.source.line_column(comment.start).0;
+        line >= first && line <= last
+    })
+}
