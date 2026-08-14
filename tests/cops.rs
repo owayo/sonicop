@@ -22675,3 +22675,264 @@ mod style_option_hash {
             .run();
     }
 }
+
+/// `Style/OneClassPerFile`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/OneClassPerFile` で走らせた実出力から取った
+/// (検出 3 件一致)。
+mod style_one_class_per_file {
+    use super::*;
+
+    const COP: &str = "Style/OneClassPerFile";
+
+    /// 2 つ目以降が対象。位置はキーワードから名前の末尾まで。
+    #[test]
+    fn every_definition_after_the_first_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            class A; end
+            module B; end
+            ^^^^^^^^ Do not define multiple classes/modules at the top level in a single file.
+            class C::D; end
+            ^^^^^^^^^^ Do not define multiple classes/modules at the top level in a single file.
+            ",
+        );
+    }
+
+    /// 入れ子のクラスと `class << self` は数えない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class A; end\n",
+            "class E\n  class F; end\nend\n",
+            "class A; end\nclass << self\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `AllowedClasses` は名前の末尾の区切りで比べる。
+    #[test]
+    fn the_allowed_classes_setting_skips_a_name() {
+        CopCase::new(COP, "class A; end\nmodule B; end\n".to_owned(), Vec::new())
+            .config("Style/OneClassPerFile:\n  AllowedClasses:\n    - B\n")
+            .run();
+    }
+}
+
+/// `Style/SendWithLiteralMethodName`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/SendWithLiteralMethodName` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_send_with_literal_method_name {
+    use super::*;
+
+    const COP: &str = "Style/SendWithLiteralMethodName";
+
+    /// 既定 (`AllowSend: true`) では `public_send` だけが対象。位置は selector から末尾まで。
+    #[test]
+    fn a_literal_method_name_becomes_the_call() {
+        expect_offense(
+            COP,
+            r"
+            foo.public_send(:bar)
+                ^^^^^^^^^^^^^^^^^ Use `bar` method call directly instead.
+            ",
+        );
+        expect_correction(COP, "foo.public_send(:bar)\n", "foo.bar\n");
+        expect_correction(COP, "foo.public_send('bar')\n", "foo.bar\n");
+        expect_correction(COP, "foo.public_send(:bar, 1, 2)\n", "foo.bar(1, 2)\n");
+        expect_correction(COP, "foo&.public_send(:bar)\n", "foo&.bar\n");
+        expect_correction(COP, "foo.public_send(:bar?)\n", "foo.bar?\n");
+    }
+
+    /// 予約語の一覧はシンボルなので、**文字列**の引数は照らし合わされない。
+    /// `:class` は除外されるが `'class'` は報告される。
+    #[test]
+    fn only_a_symbol_is_checked_against_the_reserved_words() {
+        expect_no_offenses(COP, "foo.public_send(:class)\n");
+        expect_correction(COP, "foo.public_send('class')\n", "foo.class\n");
+    }
+
+    /// メソッド名として書けない綴り・リテラルでない引数・`send` / `__send__` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.public_send(:\"foo bar\")\n",
+            "foo.public_send(name)\n",
+            "foo.public_send(:@ivar)\n",
+            "foo.send(:bar)\n",
+            "foo.__send__(:bar)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `AllowSend: false` にすると `send` / `__send__` も対象になる。
+    #[test]
+    fn allow_send_off_covers_the_other_two() {
+        for (source, corrected) in [
+            ("foo.send(:bar)\n", "foo.bar\n"),
+            ("foo.__send__(:bar)\n", "foo.bar\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/SendWithLiteralMethodName:\n  AllowSend: false\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+}
+
+/// `Style/RedundantSelfAssignmentBranch`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantSelfAssignmentBranch` で走らせた実出力から
+/// 取った (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_self_assignment_branch {
+    use super::*;
+
+    const COP: &str = "Style/RedundantSelfAssignmentBranch";
+
+    /// 位置は自己代入している枝だけ。置き換えは `if` 全体。
+    #[test]
+    fn the_self_assigning_branch_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            x = if c
+              x
+              ^ Remove the self-assignment branch.
+            else
+              y
+            end
+            ",
+        );
+        expect_correction(COP, "x = if c\n  x\nelse\n  y\nend\n", "x = y unless c\n");
+        expect_correction(COP, "a = if c\n  b\nelse\n  a\nend\n", "a = b if c\n");
+        // else が無いときは `nil` が入る。
+        expect_correction(COP, "p = if c\n  p\nend\n", "p = nil unless c\n");
+    }
+
+    /// 三項演算子も対象 (上流の `else?` は三項では偽になるため)。`unless` の枝は
+    /// `IfNode#if_branch` が「先に書かれた方」を返すので `if` と同じ扱い。
+    #[test]
+    fn the_ternary_and_unless_spellings_count_too() {
+        expect_correction(COP, "w = c ? w : z\n", "w = z unless c\n");
+        expect_correction(
+            COP,
+            "bb = unless c\n  bb\nelse\n  cc\nend\n",
+            "bb = cc unless c\n",
+        );
+    }
+
+    /// ヒアドキュメントの本体は文の後ろにあるので、一緒に運ばれる。
+    #[test]
+    fn a_heredoc_body_is_carried_along() {
+        expect_correction(
+            COP,
+            "aa = if c\n  aa\nelse\n  <<~MSG\n    hi\n  MSG\nend\n",
+            "aa = <<~MSG unless c\n    hi\n  MSG\n",
+        );
+    }
+
+    /// 枝が 2 文以上のもの、`elsif` があるものは修飾子に畳めないので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "q = if c\n  q\nelse\n  r\n  s\nend\n",
+            "t = if c\n  t\nelsif d\n  u\nelse\n  v\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantStructKeywordInit` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantStructKeywordInit` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_struct_keyword_init {
+    use super::*;
+
+    const COP: &str = "Style/RedundantStructKeywordInit";
+
+    /// `keyword_init` に意味が無くなるのは 3.2 以降なので、対象版を明示する。
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.2")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は `keyword_init:` のペア。`nil` もメッセージに出る。
+    #[test]
+    fn the_option_is_reported_and_removed() {
+        CopCase::annotated(
+            COP,
+            r"
+            S1 = Struct.new(:a, keyword_init: true)
+                                ^^^^^^^^^^^^^^^^^^ Remove the redundant `keyword_init: true`.
+            ",
+        )
+        .target_ruby("3.2")
+        .run();
+        correction(
+            "S1 = Struct.new(:a, keyword_init: true)\n",
+            "S1 = Struct.new(:a)\n",
+        );
+        correction(
+            "S2 = Struct.new(:a, keyword_init: nil)\n",
+            "S2 = Struct.new(:a)\n",
+        );
+        correction(
+            "S4 = Struct.new(keyword_init: true)\n",
+            "S4 = Struct.new()\n",
+        );
+        // 波括弧を明示した書き方では上流の範囲がペアの末尾で止まるので `}` が残る (本家のバグ)。
+        correction(
+            "S5 = Struct.new(:a, { keyword_init: true })\n",
+            "S5 = Struct.new(:a })\n",
+        );
+    }
+
+    /// 他のキーワードが残るときはペアだけをカンマごと抜く。
+    #[test]
+    fn only_the_pair_leaves_when_others_remain() {
+        correction(
+            "S6 = Struct.new(:a, foo: 1, keyword_init: true)\n",
+            "S6 = Struct.new(:a, foo: 1)\n",
+        );
+        correction(
+            "S7 = Struct.new(:a, keyword_init: true, foo: 1)\n",
+            "S7 = Struct.new(:a, foo: 1)\n",
+        );
+    }
+
+    /// `keyword_init: false` はまだ意味があるので触らない。名前空間付きの `Struct` も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "S3 = Struct.new(:a, keyword_init: false)\n",
+            "S9 = Struct.new(:a)\n",
+            "S10 = Foo::Struct.new(:a, keyword_init: true)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+    }
+
+    /// 3.2 未満では `keyword_init` に意味があるので黙る。
+    #[test]
+    fn it_needs_ruby_3_2() {
+        CopCase::new(
+            COP,
+            "S1 = Struct.new(:a, keyword_init: true)\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .run();
+    }
+}

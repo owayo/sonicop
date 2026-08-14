@@ -3888,6 +3888,52 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_option_hash")
         .correctable(false),
+        // 位置はキーワードから名前の末尾まで。2 つ目以降が対象。
+        CopCase::annotated(
+            "Style/OneClassPerFile",
+            r"
+            class A; end
+            module B; end
+            ^^^^^^^^ Do not define multiple classes/modules at the top level in a single file.
+            ",
+        )
+        .id("style_one_class_per_file")
+        .correctable(false),
+        // 位置は selector から末尾まで。
+        CopCase::annotated(
+            "Style/SendWithLiteralMethodName",
+            r"
+            foo.public_send(:bar)
+                ^^^^^^^^^^^^^^^^^ Use `bar` method call directly instead.
+            ",
+        )
+        .id("style_send_with_literal_method_name")
+        .correctable(true),
+        // 位置は自己代入している枝だけ。
+        CopCase::annotated(
+            "Style/RedundantSelfAssignmentBranch",
+            r"
+            x = if c
+              x
+              ^ Remove the self-assignment branch.
+            else
+              y
+            end
+            ",
+        )
+        .id("style_redundant_self_assignment_branch")
+        .correctable(true),
+        // 位置は `keyword_init:` のペア。
+        CopCase::annotated(
+            "Style/RedundantStructKeywordInit",
+            r"
+            S1 = Struct.new(:a, keyword_init: true)
+                                ^^^^^^^^^^^^^^^^^^ Remove the redundant `keyword_init: true`.
+            ",
+        )
+        .id("style_redundant_struct_keyword_init")
+        .target_ruby("3.2")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
