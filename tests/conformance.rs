@@ -975,6 +975,12 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_space_after_semicolon")
         .correctable(true),
         CopCase::annotated(
+            "Layout/SpaceBeforeBrackets",
+            "collection = [1, 2]\ncollection [0]\n          ^ Remove the space before the opening brackets.\n",
+        )
+        .id("layout_space_before_brackets")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceBeforeComma",
             r#"
             h = [1 , 2]

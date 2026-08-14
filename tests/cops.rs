@@ -21551,3 +21551,86 @@ mod naming_inclusive_language {
         .run();
     }
 }
+
+/// `Layout/SpaceBeforeBrackets` — 期待値は本家 1.89.0 の実測。
+mod layout_space_before_brackets {
+    use super::*;
+
+    const COP: &str = "Layout/SpaceBeforeBrackets";
+    const MSG: &str = "Remove the space before the opening brackets.";
+
+    /// 添字読みの前の空白を消す。`a.[](0)` はドットがあるので対象外。
+    /// 受け手が局所変数でなければ `undefined_method [0]` は配列を渡す呼び出しであって
+    /// 添字ではないので報告しない。
+    #[test]
+    fn the_space_before_an_index_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            collection = [1, 2]
+            collection [0]
+                      ^ %{msg}
+            collection[0]
+            collection  [0]
+                      ^^ %{msg}
+            collection [0] = 2
+                      ^ %{msg}
+            collection.[](0)
+            collection&.[](0)
+            undefined_method [0]
+            foo.bar [1]
+            %w[a b] [0]
+                   ^ %{msg}
+            h = { a: 1 } [:a]
+                        ^ %{msg}
+            "#,
+            &[("msg", MSG)],
+        )
+        .corrected(
+            r#"
+            collection = [1, 2]
+            collection[0]
+            collection[0]
+            collection[0]
+            collection[0] = 2
+            collection.[](0)
+            collection&.[](0)
+            undefined_method [0]
+            foo.bar [1]
+            %w[a b][0]
+            h = { a: 1 }[:a]
+            "#,
+        )
+        .run();
+    }
+
+    /// 添字の連鎖や添字の後ろの呼び出しも、文法上は配列を渡す呼び出しに読まれるが
+    /// 本家では最初の `[` が添字なので報告する。
+    #[test]
+    fn a_chained_index_is_reported_at_the_first_bracket() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            collection = [1, 2]
+            b = collection [0][1]
+                          ^ %{msg}
+            collection [0].foo
+                      ^ %{msg}
+            collection [0, 1]
+                      ^ %{msg}
+            collection %w[a]
+            "#,
+            &[("msg", MSG)],
+        )
+        .corrected(
+            r#"
+            collection = [1, 2]
+            b = collection[0][1]
+            collection[0].foo
+            collection[0, 1]
+            collection %w[a]
+            "#,
+        )
+        .run();
+    }
+}

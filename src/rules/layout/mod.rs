@@ -68,6 +68,7 @@ department_rules! {
     space_before_comma => ("SpaceBeforeComma", Convention),
     space_before_comment => ("SpaceBeforeComment", Convention),
     space_before_block_braces => ("SpaceBeforeBlockBraces", Convention),
+    space_before_brackets => ("SpaceBeforeBrackets", Convention),
     space_before_semicolon => ("SpaceBeforeSemicolon", Convention),
     space_in_lambda_literal => ("SpaceInLambdaLiteral", Convention),
     space_inside_array_literal_brackets => ("SpaceInsideArrayLiteralBrackets", Convention),
