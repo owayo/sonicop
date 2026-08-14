@@ -27925,3 +27925,72 @@ mod lint_number_conversion {
         }
     }
 }
+
+/// `Lint/RedundantTypeConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantTypeConversion` で走らせた実出力から
+/// 取った (検出 34 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_redundant_type_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantTypeConversion";
+
+    /// レンジはセレクタだけ。補正はドットからセレクタ (あるいは閉じ括弧) までを消す。
+    #[test]
+    fn a_conversion_of_the_same_type_is_removed() {
+        expect_offense(
+            COP,
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "\"foo\".to_s\n:foo.to_sym\n1.to_i\n1.0.to_f\n1r.to_r\n1i.to_c\n[].to_a\n{}.to_h\n\
+             \"foo#{x}\".to_s\n?a.to_s\n",
+            "\"foo\"\n:foo\n1\n1.0\n1r\n1i\n[]\n{}\n\"foo#{x}\"\n?a\n",
+        );
+    }
+
+    /// コンストラクタが返した値の変換も冗長。`exception: false` を渡していると
+    /// `nil` になり得るので対象外。
+    #[test]
+    fn a_constructor_result_needs_no_conversion() {
+        expect_correction(
+            COP,
+            "String.new(\"x\").to_s\nString(\"x\").to_s\nKernel.String(\"x\").to_s\n\
+             Integer(\"1\").to_i\nBigDecimal(\"1\").to_d\nArray[1].to_a\nHash[[1,2]].to_h\n\
+             Set.new.to_set\n",
+            "String.new(\"x\")\nString(\"x\")\nKernel.String(\"x\")\nInteger(\"1\")\n\
+             BigDecimal(\"1\")\nArray[1]\nHash[[1,2]]\nSet.new\n",
+        );
+        expect_no_offenses(COP, "Integer(\"1\", exception: false).to_i\n");
+    }
+
+    /// 同じ変換の 2 段重ねと、既に文字列を返すメソッドへの `to_s` も冗長。
+    #[test]
+    fn a_chain_of_the_same_conversion_is_reported() {
+        expect_correction(
+            COP,
+            "foo.to_s.to_s\nfoo.inspect.to_s\nfoo.to_json.to_s\n",
+            "foo.to_s\nfoo.inspect\nfoo.to_json\n",
+        );
+    }
+
+    /// ブロック付きの `to_h` / `to_set`、括弧の中が呼び出しのものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.to_s\n",
+            "foo.to_s()\n",
+            "(foo).to_s\n",
+            "[].to_h { |x| x }\n",
+            "[].to_set(&:foo)\n",
+            "x.to_h { |a| a }\n",
+            "1.to_s\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

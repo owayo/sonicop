@@ -2806,6 +2806,16 @@ fn catalogue() -> Vec<CopCase> {
         .config("Lint/NumberConversion:\n  Enabled: true\n")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantTypeConversion",
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        )
+        .id("lint_redundant_type_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

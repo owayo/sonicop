@@ -133,6 +133,7 @@ department_rules! {
     redundant_safe_navigation => ("RedundantSafeNavigation", Warning),
     redundant_splat_expansion => ("RedundantSplatExpansion", Warning),
     redundant_string_coercion => ("RedundantStringCoercion", Warning),
+    redundant_type_conversion => ("RedundantTypeConversion", Warning),
     redundant_with_index => ("RedundantWithIndex", Warning),
     redundant_with_object => ("RedundantWithObject", Warning),
     regexp_as_condition => ("RegexpAsCondition", Warning),
