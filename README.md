@@ -126,7 +126,8 @@ Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails 
 Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
 match exactly on all five. What remains is concentrated in `Lint/Syntax`, where RuboCop's LALR
 parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct.
-Autocorrect is byte-identical on every corpus it was run against.
+Autocorrect is byte-identical on RuboCop's own tree and on Mastodon, the two corpora held as a hard
+line: a change that breaks byte equality there is a regression, not a new known divergence.
 
 See [CONFORMANCE.md](CONFORMANCE.md) for the commands, the per-corpus numbers, and the two ways a
 measurement of this kind can mislead you.
