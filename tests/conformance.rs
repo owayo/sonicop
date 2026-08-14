@@ -2437,6 +2437,47 @@ fn catalogue() -> Vec<CopCase> {
         .target_ruby("3.2")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/DeprecatedConstants",
+            r#"
+            NIL
+            ^^^ Use `nil` instead of `NIL`, deprecated since Ruby 2.4.
+            "#,
+        )
+        .id("lint_deprecated_constants")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DataDefineOverride",
+            r#"
+            Data.define(:hash)
+                        ^^^^^ `:hash` member overrides `Data#hash` and it may be unexpected.
+            "#,
+        )
+        .id("lint_data_define_override")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessOr",
+            r#"
+            x.to_s || 'default'
+                   ^^^^^^^^^^^^ `'default'` will never evaluate because `x.to_s` always returns a truthy value.
+            "#,
+        )
+        .id("lint_useless_or")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RequireRelativeSelfPath",
+            r#"
+            require_relative 'b12'
+            ^^^^^^^^^^^^^^^^^^^^^^ Remove the `require_relative` that requires itself.
+            "#,
+        )
+        .id("lint_require_relative_self_path")
+        .path("b12.rb")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

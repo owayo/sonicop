@@ -20878,3 +20878,225 @@ mod lint_refinement_import_methods {
         .run();
     }
 }
+
+/// `Lint/DeprecatedConstants`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DeprecatedConstants` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_deprecated_constants {
+    use super::*;
+
+    const COP: &str = "Lint/DeprecatedConstants";
+
+    #[test]
+    fn the_table_entry_names_the_replacement() {
+        CopCase::annotated(
+            COP,
+            r#"
+            NIL
+            ^^^ Use `nil` instead of `NIL`, deprecated since Ruby 2.4.
+            "#,
+        )
+        .target_ruby("3.1")
+        .corrected("nil\n")
+        .run();
+        CopCase::new(
+            COP,
+            "NIL\nTRUE\nFALSE\n::NIL\nNet::HTTPServerException\nRandom::DEFAULT\nStruct::Group\n\
+             Struct::Passwd\n",
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .without_offense_check()
+        .corrected(
+            "nil\ntrue\nfalse\nnil\nNet::HTTPClientException\nRandom.new\nEtc::Group\n\
+             Etc::Passwd\n",
+        )
+        .run();
+    }
+
+    /// 対象 Ruby 版が非推奨になった版に届いていなければ報告しない。
+    #[test]
+    fn a_target_older_than_the_deprecation_is_left_alone() {
+        CopCase::new(COP, "Random::DEFAULT\n", Vec::new())
+            .target_ruby("2.7")
+            .run();
+    }
+
+    /// `casgn` は `const` ではないので代入先は対象外。`::` の後ろの名前も単独の
+    /// 定数ではないが、前に付いたスコープは定数のまま。
+    #[test]
+    fn an_assignment_target_is_not_a_constant_read() {
+        for source in ["NIL = 1\n", "Foo::NIL = 2\n", "NIL ||= 4\n", "Foo::NIL\n"] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.1")
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r#"
+            NIL::Foo = 3
+            ^^^ Use `nil` instead of `NIL`, deprecated since Ruby 2.4.
+            "#,
+        )
+        .target_ruby("3.1")
+        .without_offense_check()
+        .run();
+    }
+}
+
+/// `Lint/DataDefineOverride`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DataDefineOverride` で走らせた実出力から取った。
+mod lint_data_define_override {
+    use super::*;
+
+    const COP: &str = "Lint/DataDefineOverride";
+
+    /// メッセージの引用は `value.inspect` なので、シンボルはコロン付き・文字列は
+    /// ダブルクォート付きで出る。
+    #[test]
+    fn a_member_named_after_a_data_method_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            Data.define(:hash)
+                        ^^^^^ `:hash` member overrides `Data#hash` and it may be unexpected.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            Data.define('to_s')
+                        ^^^^^^ `"to_s"` member overrides `Data#to_s` and it may be unexpected.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            ::Data.define(:members)
+                          ^^^^^^^^ `:members` member overrides `Data#members` and it may be unexpected.
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Data.define(:ok)\n",
+            "Data.define(a)\n",
+            "Foo::Data.define(:hash)\n",
+            "Data.define(:\"foo bar\")\n",
+            "Struct.new(:hash)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/UselessOr`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessOr` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_useless_or {
+    use super::*;
+
+    const COP: &str = "Lint/UselessOr";
+
+    /// レンジは `||` から右辺の末尾まで。補正は `or` 全体を左辺に置き換える。
+    #[test]
+    fn the_operator_and_the_dead_branch_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            x.to_s || 'default'
+                   ^^^^^^^^^^^^ `'default'` will never evaluate because `x.to_s` always returns a truthy value.
+            "#,
+        );
+        expect_correction(COP, "x.to_s || 'default'\n", "x.to_s\n");
+        // レシーバの無い `to_s` も `(send nil :to_s)`。
+        expect_offense(
+            COP,
+            r#"
+            to_s || x
+                 ^^^^ `x` will never evaluate because `to_s` always returns a truthy value.
+            "#,
+        );
+        // 右辺が真値のときは 1 つ外側の `or` が報告される。
+        expect_offense(
+            COP,
+            r#"
+            (a || b.to_s) || c
+                          ^^^^ `c` will never evaluate because `b.to_s` always returns a truthy value.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x.to_s or y
+                   ^^^^ `y` will never evaluate because `x.to_s` always returns a truthy value.
+            "#,
+        );
+    }
+
+    /// `csend`・引数付き・ブロック付き・別のメソッドは対象外。局所変数 `to_s` も
+    /// 呼び出しではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x&.to_s || y\n",
+            "x.size || 1\n",
+            "foo || bar\n",
+            "x.to_s(2) || y\n",
+            "to_s = 1\nto_s || x\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/RequireRelativeSelfPath`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RequireRelativeSelfPath` で走らせた実出力から
+/// 取った (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_require_relative_self_path {
+    use super::*;
+
+    const COP: &str = "Lint/RequireRelativeSelfPath";
+
+    #[test]
+    fn a_file_that_requires_itself_loses_the_whole_line() {
+        CopCase::annotated(
+            COP,
+            r#"
+            require_relative 'b12'
+            ^^^^^^^^^^^^^^^^^^^^^^ Remove the `require_relative` that requires itself.
+            x = 1
+            "#,
+        )
+        .path("b12.rb")
+        .corrected("x = 1\n")
+        .run();
+        CopCase::new(
+            COP,
+            "require_relative 'b12.rb'\nrequire_relative \"b12\"\nrequire_relative 'other'\n",
+            Vec::new(),
+        )
+        .path("b12.rb")
+        .without_offense_check()
+        .corrected("require_relative 'other'\n")
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "require_relative 'other'\n",
+            "require_relative \"#{x}\"\n",
+            "require 'b12'\n",
+            "require_relative x\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).path("b12.rb").run();
+        }
+    }
+}
