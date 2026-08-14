@@ -3934,6 +3934,22 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_struct_keyword_init")
         .target_ruby("3.2")
         .correctable(true),
+        // 位置はファイル先頭の 1 文字。既定の `AutocorrectNotice` は空なので補正は付かない。
+        CopCase::annotated("Style/Copyright", "x = 1\n")
+            .id("style_copyright")
+            .without_offense_check()
+            .locations(&[(1, 1, 1, 1)])
+            .lengths(&[1])
+            .correctable(false),
+        CopCase::annotated(
+            "Style/IpAddresses",
+            r"
+            a = '1.2.3.4'
+                ^^^^^^^^^ Do not hardcode IP addresses.
+            ",
+        )
+        .id("style_ip_addresses")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

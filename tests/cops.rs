@@ -12939,6 +12939,10 @@ mod redundant_cop_disable_directive {
             x = 1
             "#,
         )
+        // ハーネスは `--only` を `--except` で代用するため、`Style/Copyright` も選んで
+        // おかないと動員レジストリから外れてしまう。本家も `--except Style/Copyright`
+        // では同じく黙る。
+        .cops(&["Lint/RedundantCopDisableDirective", "Style/Copyright"])
         .corrected("x = 1\n")
         .run();
     }
@@ -22934,5 +22938,121 @@ mod style_redundant_struct_keyword_init {
         )
         .target_ruby("3.1")
         .run();
+    }
+}
+
+/// `Style/Copyright` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/Copyright` で走らせた実出力から取った (検出 4 件一致)。
+mod style_copyright {
+    use super::*;
+
+    const COP: &str = "Style/Copyright";
+
+    /// 位置はファイル先頭の 1 文字。既定の `AutocorrectNotice` は空なので補正は付かない。
+    #[test]
+    fn a_file_without_a_notice_is_reported() {
+        CopCase::annotated(COP, "x = 1\n")
+            .id("no_notice")
+            .without_offense_check()
+            .locations(&[(1, 1, 1, 1)])
+            .lengths(&[1])
+            .correctable(false)
+            .run();
+    }
+
+    /// コードが無いファイルは上流では AST が nil になり、位置を持たない指摘になる。
+    #[test]
+    fn a_file_with_no_code_gets_a_global_offense() {
+        for source in ["", "# just a comment\n"] {
+            CopCase::annotated(COP, source)
+                .id("blank")
+                .without_offense_check()
+                .locations(&[(1, 1, 1, 1)])
+                .lengths(&[0])
+                .run();
+        }
+    }
+
+    /// shebang の後ろの notice も、複数行に分かれた notice も見つかる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(
+            COP,
+            "#!/usr/bin/env ruby\n# Copyright (c) 2020 Someone\nx = 1\n",
+        );
+    }
+
+    /// `Notice` を差し替えられる。
+    #[test]
+    fn the_notice_setting_is_honoured() {
+        CopCase::new(COP, "# Copyright Acme\nx = 1\n".to_owned(), Vec::new())
+            .config("Style/Copyright:\n  Notice: \"^Copyright Acme\"\n")
+            .run();
+    }
+}
+
+/// `Style/IpAddresses` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/IpAddresses` で走らせた実出力から取った
+/// (検出 7 件一致)。
+mod style_ip_addresses {
+    use super::*;
+
+    const COP: &str = "Style/IpAddresses";
+
+    /// 位置は文字列リテラル全体。
+    #[test]
+    fn a_literal_address_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a = '1.2.3.4'
+                ^^^^^^^^^ Do not hardcode IP addresses.
+            ",
+        );
+    }
+
+    /// IPv6 は 6 通りの綴りがあり、`%scope` 付きのリンクローカルも含む。
+    #[test]
+    fn every_ipv6_spelling_counts() {
+        for source in [
+            "f = '::1'\n",
+            "g = '2001:db8::1'\n",
+            "h = 'fe80::1%eth0'\n",
+            "q = '2001:db8:0:0:0:0:2:1'\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .run();
+        }
+    }
+
+    /// 桁があふれるもの、区切りが足りないもの、先頭に 0 が付くもの、既定の `AllowedAddresses`
+    /// (`::`)、正規表現の中身は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "c = '256.1.1.1'\n",
+            "d = '1.2.3'\n",
+            "e = '::'\n",
+            "i = 'hello world'\n",
+            "j = ''\n",
+            "l = '01.2.3.4'\n",
+            "m = /1\\.2\\.3\\.4/\n",
+            "n = /#{'1.2.3.4'}/\n",
+            "o = '1.2.3.4.5'\n",
+            "p = ':::'\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `AllowedAddresses` は大文字小文字を無視して比べる。
+    #[test]
+    fn the_allowed_addresses_setting_is_honoured() {
+        CopCase::new(COP, "a = '127.0.0.1'\n".to_owned(), Vec::new())
+            .config("Style/IpAddresses:\n  AllowedAddresses:\n    - \"127.0.0.1\"\n")
+            .run();
     }
 }
