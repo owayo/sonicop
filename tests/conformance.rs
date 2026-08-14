@@ -2588,6 +2588,19 @@ fn catalogue() -> Vec<CopCase> {
         // `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1 文字
         // ぶん伸び、`&` は伸びないので名前の途中で切れる。
         CopCase::annotated(
+            "Naming/BlockForwarding",
+            r#"
+            def foo(&block)
+                    ^^^^^^ Use anonymous block forwarding.
+              bar(&block)
+                  ^^^^^^ Use anonymous block forwarding.
+            end
+            "#,
+        )
+        .id("naming_block_forwarding")
+        .target_ruby("3.1")
+        .correctable(true),
+        CopCase::annotated(
             "Naming/BlockParameterName",
             r#"
             bar { |xA, *yB, &zC| xA }
@@ -2698,6 +2711,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("naming_method_parameter_name")
         .correctable(false),
         // 接頭辞のあとが数字だったり、名前が `=` で終われば免れる。
+        CopCase::annotated(
+            "Naming/PredicateMethod",
+            r#"
+            def foo
+                ^^^ Predicate method names should end with `?`.
+              x == y
+            end
+            "#,
+        )
+        .id("naming_predicate_method")
+        .correctable(false),
         CopCase::annotated(
             "Naming/PredicatePrefix",
             r#"

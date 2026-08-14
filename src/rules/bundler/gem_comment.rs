@@ -112,11 +112,63 @@ fn is_commented(node: Node<'_>, comments: &[Comment], context: &RuleContext<'_>)
     let lines = subtree_lines(node, context);
     let last_line = context.source.line_column(range.end).0;
     comments.iter().any(|comment| {
-        (comment.standalone || comment.start > range.start)
-            && comment.line <= last_line
+        let leading = comment.start < range.start;
+        if leading && (!comment.standalone || claimed_by_an_enclosing_node(node, comment, context)) {
+            return false;
+        }
+        comment.line <= last_line
             && (lines.contains(&comment.line) || lines.contains(&(comment.line + 1)))
     })
 }
+
+/// Whether a comment written before the declaration belongs to something the declaration sits inside
+/// rather than to the declaration itself.
+///
+/// `process_leading_comments` hands the comment to the *first* node the walk reaches that begins
+/// after it, and the walk reaches an enclosing node before the one it encloses. A `gem` declaration
+/// written as `gem 'x' if cond` is therefore described by nothing: the comment above it belongs to
+/// the `if`, which begins at the same place. Only upstream's `begin` is passed over, so the wrappers
+/// the grammar adds for statement and argument lists -- which no node upstream corresponds to -- are
+/// skipped here as well.
+fn claimed_by_an_enclosing_node(
+    node: Node<'_>,
+    comment: &Comment,
+    context: &RuleContext<'_>,
+) -> bool {
+    let end = comment_end(comment, context);
+    let mut current = node;
+    while let Some(parent) = current.parent_of(context) {
+        if !SYNTHETIC_KINDS.contains(&parent.kind_str()) && parent.start_byte() >= end {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
+/// Where the comment ends, which is where the line it opens does.
+fn comment_end(comment: &Comment, context: &RuleContext<'_>) -> usize {
+    context
+        .comment_ranges()
+        .iter()
+        .find(|range| range.start == comment.start)
+        .map_or(comment.start, |range| range.end)
+}
+
+/// The node kinds the grammar adds that upstream's parser has no node for, plus its `begin`, which
+/// `process_leading_comments` passes over.
+const SYNTHETIC_KINDS: &[&str] = &[
+    "program",
+    "body_statement",
+    "then",
+    "else",
+    "do",
+    "block_body",
+    "parenthesized_statements",
+    "argument_list",
+    "block",
+    "do_block",
+];
 
 /// The lines the declaration's own nodes begin on, which are the lines a comment can describe.
 fn subtree_lines(node: Node<'_>, context: &RuleContext<'_>) -> HashSet<usize> {

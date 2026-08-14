@@ -21115,3 +21115,279 @@ mod bundler_gem_comment {
             .run();
     }
 }
+
+/// `Naming/BlockForwarding` — 期待値は本家 1.89.0 の実測。既定は `anonymous`。
+mod naming_block_forwarding {
+    use super::*;
+
+    const COP: &str = "Naming/BlockForwarding";
+    const MSG: &str = "Use anonymous block forwarding.";
+
+    /// `&block` の宣言と、それを渡している `&block` の両方を報告する。括弧が無い
+    /// 引数リストには `add_parentheses` で括弧を付ける。
+    #[test]
+    fn the_parameter_and_every_pass_of_it_are_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo(&block)
+                    ^^^^^^ %{msg}
+              bar(&block)
+                  ^^^^^^ %{msg}
+            end
+            def foo &block
+                    ^^^^^^ %{msg}
+              bar &block
+                  ^^^^^^ %{msg}
+            end
+            def self.foo(&block)
+                         ^^^^^^ %{msg}
+              bar(&block)
+                  ^^^^^^ %{msg}
+              baz(&:sym)
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .target_ruby("3.1")
+        .corrected(
+            r#"
+            def foo(&)
+              bar(&)
+            end
+            def foo(&)
+              bar(&)
+            end
+            def self.foo(&)
+              bar(&)
+              baz(&:sym)
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 3.1 未満では構文自体が無いので何も報告しない。
+    #[test]
+    fn nothing_is_reported_before_ruby_31() {
+        CopCase::new(COP, "def foo(&block)\n  bar(&block)\nend\n", Vec::new())
+            .target_ruby("3.0")
+            .run();
+    }
+
+    /// キーワード引数があると匿名の `&` は渡せない。本体が名前を変数として読んでいる
+    /// ときも名前を落とせない。
+    #[test]
+    fn a_keyword_parameter_or_a_variable_read_keeps_the_name() {
+        for source in [
+            "def foo(k:, &block)\n  bar(&block)\nend\n",
+            "def foo(&block)\n  block.call\nend\n",
+            "def foo(&block)\n  block = 1\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.1")
+                .run();
+        }
+        // `**opts` は kwarg ではないので妨げにならない。
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo(**opts, &block)
+                            ^^^^^^ %{msg}
+              bar(&block)
+                  ^^^^^^ %{msg}
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .target_ruby("3.1")
+        .corrected("def foo(**opts, &)\n  bar(&)\nend\n")
+        .run();
+    }
+
+    /// 3.3 以下ではブロックの中の匿名 `&` が構文エラーになるので、ブロックの中で
+    /// 渡している定義は 1 件も報告しない。レシーバや引数の側にあっても、本家では
+    /// `block` ノードが `send` の上に乗るので「ブロックの中」に数える。
+    #[test]
+    fn a_pass_inside_a_block_stops_the_whole_definition() {
+        for source in [
+            "def foo(&block)\n  [1].each { bar(&block) }\nend\n",
+            "def foo(x, &block)\n  Timer.new(x, &block).tap { |t| t }\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.1")
+                .run();
+        }
+    }
+
+    /// `EnforcedStyle: explicit` は逆に匿名の `&` を報告して名前を付ける。
+    #[test]
+    fn the_explicit_style_names_the_anonymous_parameter() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(&)
+                    ^ Use explicit block forwarding.
+              bar(&)
+                  ^ Use explicit block forwarding.
+            end
+            "#,
+        )
+        .target_ruby("3.1")
+        .config("Naming/BlockForwarding:\n  EnforcedStyle: explicit\n")
+        .corrected("def foo(&block)\n  bar(&block)\nend\n")
+        .run();
+    }
+}
+
+/// `Naming/PredicateMethod` — 期待値は本家 1.89.0 の実測。
+mod naming_predicate_method {
+    use super::*;
+
+    const COP: &str = "Naming/PredicateMethod";
+    const PREDICATE: &str = "Predicate method names should end with `?`.";
+    const NON_PREDICATE: &str = "Non-predicate method names should not end with `?`.";
+
+    /// 返す値がすべて真偽値なら `?` を付けるべき。比較・述語・否定の呼び出しも
+    /// 真偽値を返すものとして数える。
+    #[test]
+    fn a_method_returning_only_booleans_should_be_a_predicate() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo
+                ^^^ %{predicate}
+              x == y
+            end
+            def bar
+                ^^^ %{predicate}
+              x.nil?
+            end
+            def baz
+                ^^^ %{predicate}
+              !x
+            end
+            def qux
+                ^^^ %{predicate}
+              true && false
+            end
+            def quux = true
+                ^^^^ %{predicate}
+            "#,
+            &[("predicate", PREDICATE)],
+        )
+        // 終端なし定義は 3.0 の構文。
+        .target_ruby("3.0")
+        .correctable(false)
+        .run();
+    }
+
+    /// 逆に `?` で終わる名前が真偽値でないリテラルを返しうるなら `?` を外すべき。
+    /// 保守的な既定では、真偽値を返しうる枝が 1 つでもあれば見送る。
+    #[test]
+    fn a_predicate_returning_a_literal_should_not_be_one() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo?
+                ^^^^ %{non_predicate}
+              1
+            end
+            def bar?
+              return 1 if x
+              true
+            end
+            def baz?
+                ^^^^ %{non_predicate}
+              return nil
+            end
+            def qux? = 1
+                ^^^^ %{non_predicate}
+            "#,
+            &[("non_predicate", NON_PREDICATE)],
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    /// `super` は読めないので除き、読めない呼び出しが 1 つでもあれば保守的な既定では
+    /// 名前を判定しない。`aggressive` では判定する。
+    #[test]
+    fn an_unreadable_call_is_left_alone_in_conservative_mode() {
+        CopCase::new(COP, "def foo?\n  x.to_s\nend\n", Vec::new()).run();
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo?
+                ^^^^ %{non_predicate}
+              return 1 if x
+              y.to_s
+            end
+            "#,
+            &[("non_predicate", NON_PREDICATE)],
+        )
+        .config("Naming/PredicateMethod:\n  Mode: aggressive\n")
+        .run();
+    }
+
+    /// `initialize` / `AllowedMethods` / 演算子名 / 本体が空のものは対象外。
+    /// `WaywardPredicates` の述語は真偽値を返すものとして数えない。
+    #[test]
+    fn the_exempt_definitions_are_skipped() {
+        for source in [
+            "def initialize\n  1\nend\n",
+            "def call\n  1\nend\n",
+            "def ==(other)\n  1\nend\n",
+            "def foo?\nend\n",
+            "def foo\n  x.infinite?\nend\n",
+            "def foo\n  x.nonzero?\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).run();
+        }
+        // `AllowBangMethods` を立てると `!` で終わる名前も外れる。
+        CopCase::new(COP, "def foo!\n  1\nend\n", Vec::new())
+            .config("Naming/PredicateMethod:\n  AllowBangMethods: true\n")
+            .run();
+    }
+
+    /// 分岐は枝ごとの最後の値に展開される。`else` の無い `if` は `nil` の枝を足すので
+    /// すべて真偽値にはならない。`elsif` があるときは足さない (本家の挙動)。
+    #[test]
+    fn a_conditional_expands_into_the_values_of_its_branches() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def foo
+                ^^^ %{predicate}
+              if x
+                true
+              else
+                false
+              end
+            end
+            def bar
+              if x
+                true
+              end
+            end
+            def baz
+                ^^^ %{predicate}
+              if x
+                true
+              elsif y
+                false
+              end
+            end
+            def qux
+                ^^^ %{predicate}
+              case x
+              when 1 then true
+              else false
+              end
+            end
+            "#,
+            &[("predicate", PREDICATE)],
+        )
+        .run();
+    }
+}
