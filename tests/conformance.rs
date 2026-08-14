@@ -3743,6 +3743,36 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_array_coercion")
         .correctable(true),
+        // 位置は `::` の 2 文字だけ。
+        CopCase::annotated(
+            "Style/RedundantConstantBase",
+            r"
+            ::Foo
+            ^^ Remove redundant `::`.
+            ",
+        )
+        .id("style_redundant_constant_base")
+        .correctable(true),
+        // 位置は `each` とその後ろのドット。
+        CopCase::annotated(
+            "Style/RedundantEach",
+            r"
+            xs.each.each_with_index { |x, i| x }
+               ^^^^^ Remove redundant `each`.
+            ",
+        )
+        .id("style_redundant_each")
+        .correctable(true),
+        // 位置は `select` から述語 selector の末尾まで。
+        CopCase::annotated(
+            "Style/RedundantFilterChain",
+            r"
+            ys.select { |y| y }.any?
+               ^^^^^^^^^^^^^^^^^^^^^ Use `any?` instead of `select.any?`.
+            ",
+        )
+        .id("style_redundant_filter_chain")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

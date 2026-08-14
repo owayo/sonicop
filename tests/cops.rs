@@ -21700,3 +21700,238 @@ mod style_array_coercion {
         }
     }
 }
+
+/// `Style/RedundantConstantBase`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantConstantBase` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_constant_base {
+    use super::*;
+
+    const COP: &str = "Style/RedundantConstantBase";
+
+    /// 位置は `::` の 2 文字だけ。
+    #[test]
+    fn the_leading_colons_are_reported() {
+        expect_offense(
+            COP,
+            r"
+            ::Foo
+            ^^ Remove redundant `::`.
+            ",
+        );
+        expect_correction(COP, "::Foo::Bar\n", "Foo::Bar\n");
+    }
+
+    /// クラス・モジュールの中では影に隠れうるので触らない。ただしスーパークラス部の `::` は
+    /// クラス本体の外で解決されるので、そのクラスは「囲んでいる」に数えない。
+    #[test]
+    fn a_class_or_module_around_it_makes_it_meaningful() {
+        for source in ["class A\n  ::Foo\nend\n", "module B\n  ::Foo\nend\n"] {
+            expect_no_offenses(COP, source);
+        }
+        expect_offense(
+            COP,
+            r"
+            class C < ::Bar
+                      ^^ Remove redundant `::`.
+            end
+            ",
+        );
+        // 本体の `::Foo` は囲まれているので触らず、スーパークラス部の `::Bar` だけが残る。
+        expect_offense(
+            COP,
+            r"
+            class D < ::Bar
+                      ^^ Remove redundant `::`.
+              ::Foo
+            end
+            ",
+        );
+    }
+
+    /// メソッド定義や特異クラスは名前空間を作らないので報告される。
+    #[test]
+    fn a_method_body_is_not_a_namespace() {
+        expect_offense(
+            COP,
+            r"
+            def m
+              ::Foo
+              ^^ Remove redundant `::`.
+            end
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            class << self
+              ::Foo
+              ^^ Remove redundant `::`.
+            end
+            ",
+        );
+    }
+
+    /// `Lint/ConstantResolution` は逆のことを求めるので、有効なら黙る。
+    #[test]
+    fn the_opposite_cop_silences_it() {
+        CopCase::new(COP, "::Foo\n".to_owned(), Vec::new())
+            .config("Lint/ConstantResolution:\n  Enabled: true\n")
+            .run();
+    }
+}
+
+/// `Style/RedundantEach`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantEach` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_each {
+    use super::*;
+
+    const COP: &str = "Style/RedundantEach";
+
+    /// 前に置かれた `each` は、後ろの列挙メソッドが仕事を引き継ぐので消える。位置は
+    /// `each` とその後ろのドット。
+    #[test]
+    fn an_each_in_front_of_another_enumeration_goes_away() {
+        expect_offense(
+            COP,
+            r"
+            xs.each.each_with_index { |x, i| x }
+               ^^^^^ Remove redundant `each`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.each.each_with_index { |x, i| x }\n",
+            "xs.each.with_index { |x, i| x }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.each.each_with_object({}) { |x, h| x }\n",
+            "xs.each.with_object({}) { |x, h| x }\n",
+        );
+        expect_correction(COP, "xs.each.each { |x| x }\n", "xs.each { |x| x }\n");
+        expect_correction(
+            COP,
+            "xs.each.reverse_each { |x| x }\n",
+            "xs.reverse_each { |x| x }\n",
+        );
+    }
+
+    /// 後ろの `each` が消える形もある。位置はドットと `each`。
+    #[test]
+    fn an_each_after_reverse_each_goes_away_too() {
+        expect_offense(
+            COP,
+            r"
+            xs.reverse_each.each { |x| x }
+                           ^^^^^ Remove redundant `each`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.reverse_each.each { |x| x }\n",
+            "xs.reverse_each { |x| x }\n",
+        );
+    }
+
+    /// `each_` で始まるメソッドの後ろの `each_with_index` / `each_with_object` は
+    /// `with_index` / `with_object` になる。位置は selector だけ。
+    #[test]
+    fn the_with_forms_replace_the_selector() {
+        expect_offense(
+            COP,
+            r"
+            xs.each_slice(2).each_with_index { |x, i| x }
+                             ^^^^^^^^^^^^^^^ Use `with_index` to remove redundant `each`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.each_slice(2).each_with_index { |x, i| x }\n",
+            "xs.each_slice(2).with_index { |x, i| x }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.each_entry.each_with_object({}) { |x, h| x }\n",
+            "xs.each_entry.with_object({}) { |x, h| x }\n",
+        );
+    }
+
+    /// ブロック付き・`&:sym` 付きの `each`、列挙でないメソッドが挟まるものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.each { |x| x }.each_with_index { |x, i| x }\n",
+            "xs.each(&:foo).each_with_index { |x, i| x }\n",
+            "xs.each.map { |x| x }\n",
+            "xs.map.each_with_index { |x, i| x }\n",
+            "xs.each_with_index { |x, i| x }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantFilterChain`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantFilterChain` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_filter_chain {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFilterChain";
+
+    /// 位置は `select` から述語 selector の末尾まで。
+    #[test]
+    fn the_report_spans_both_selectors() {
+        expect_offense(
+            COP,
+            r"
+            ys.select { |y| y }.any?
+               ^^^^^^^^^^^^^^^^^^^^^ Use `any?` instead of `select.any?`.
+            ",
+        );
+    }
+
+    /// `empty?` は `none?` になる。`&:sym` 付きの `select` も対象。
+    #[test]
+    fn the_predicate_folds_into_the_filter() {
+        expect_correction(COP, "ys.select { |y| y }.any?\n", "ys.any? { |y| y }\n");
+        expect_correction(COP, "ys.filter { |y| y }.empty?\n", "ys.none? { |y| y }\n");
+        expect_correction(COP, "ys.find_all { |y| y }.none?\n", "ys.none? { |y| y }\n");
+        expect_correction(COP, "ys.select(&:foo).one?\n", "ys.one?(&:foo)\n");
+        expect_correction(COP, "ys&.select { |y| y }&.any?\n", "ys&.any? { |y| y }\n");
+    }
+
+    /// `many?` / `present?` は ActiveSupport の拡張なので、既定では黙る。
+    #[test]
+    fn the_rails_predicates_need_active_support() {
+        for source in [
+            "ys.select { |y| y }.many?\n",
+            "ys.select { |y| y }.present?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        CopCase::new(COP, "ys.select { |y| y }.many?\n".to_owned(), Vec::new())
+            .config("AllCops:\n  ActiveSupportExtensionsEnabled: true\n")
+            .without_offense_check()
+            .corrected("ys.many? { |y| y }\n")
+            .run();
+    }
+
+    /// 述語に引数やブロックが付くもの、`select` に引数が付くもの、絞り込みでないものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ys.select { |y| y }.any? { |y| y }\n",
+            "ys.select { |y| y }.any?(Integer)\n",
+            "ys.select(1) { |y| y }.any?\n",
+            "ys.map { |y| y }.any?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
