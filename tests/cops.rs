@@ -27965,3 +27965,154 @@ mod layout_line_end_string_concatenation_indentation {
         .run();
     }
 }
+
+/// 改行の入れ方を見る Layout の 8 cop (いずれも既定では無効)。
+///
+/// 本家は `FirstElementLineBreak` と `MultilineElementLineBreaks` の 2 つの mixin で
+/// 書かれており、移植も `layout/element_line_breaks.rs` に同じ 2 本を置いて共有している。
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った (`-A` までバイト一致を確認済み)。
+mod layout_element_line_breaks {
+    use super::*;
+
+    fn case(cop: &str, source: &str) -> CopCase {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .config(&format!("{cop}:\n  Enabled: true\n"))
+    }
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        case(cop, source)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 最初の要素が開き括弧と同じ行にあり、かつ全体が 1 行に収まらないときだけ、
+    /// 最初の要素の前に改行を入れる。
+    #[test]
+    fn the_first_element_gets_a_line_of_its_own() {
+        correction(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     2]\n",
+            "a = [\n1,\n     2]\n",
+        );
+        correction(
+            "Layout/FirstHashElementLineBreak",
+            "h = { a: 1,\n      b: 2 }\n",
+            "h = { \na: 1,\n      b: 2 }\n",
+        );
+        correction(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    2)\n",
+            "foo(\n1,\n    2)\n",
+        );
+        correction(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(a,\n      b)\nend\n",
+            "def m(\na,\n      b)\nend\n",
+        );
+    }
+
+    /// 括弧を使わない呼び出しは `method_uses_parens?` で外れる。すでに改行済み、
+    /// 1 行に収まるものも黙る。
+    #[test]
+    fn what_the_first_element_cops_leave_alone() {
+        for (cop, source) in [
+            ("Layout/FirstArrayElementLineBreak", "c = [1, 2]\n"),
+            ("Layout/FirstArrayElementLineBreak", "b = [\n  1,\n  2\n]\n"),
+            ("Layout/FirstMethodArgumentLineBreak", "bar 1,\n    2\n"),
+            (
+                "Layout/FirstMethodArgumentLineBreak",
+                "foo(\n  1,\n  2\n)\n",
+            ),
+            (
+                "Layout/FirstMethodParameterLineBreak",
+                "def o a,\n      b\nend\n",
+            ),
+        ] {
+            case(cop, source).run();
+        }
+    }
+
+    /// 途中の行に 2 つ並んだ要素は、後ろの方が改行を求められる。
+    #[test]
+    fn every_element_opens_a_line_of_its_own() {
+        correction(
+            "Layout/MultilineArrayLineBreaks",
+            "m = [\n  1, 2,\n  3\n]\n",
+            "m = [\n  1, \n2,\n  3\n]\n",
+        );
+        correction(
+            "Layout/MultilineHashKeyLineBreaks",
+            "m = {\n  a: 1, b: 2,\n  c: 3\n}\n",
+            "m = {\n  a: 1, \nb: 2,\n  c: 3\n}\n",
+        );
+        correction(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "m = foo(\n  1, 2,\n  3\n)\n",
+            "m = foo(\n  1, \n2,\n  3\n)\n",
+        );
+        correction(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(\n  a, b,\n  c\n)\nend\n",
+            "def m(\n  a, \nb,\n  c\n)\nend\n",
+        );
+    }
+
+    /// 1 行に収まっているものは対象外。
+    #[test]
+    fn what_the_multiline_cops_leave_alone() {
+        for (cop, source) in [
+            ("Layout/MultilineArrayLineBreaks", "c = [1, 2]\n"),
+            ("Layout/MultilineHashKeyLineBreaks", "h = { a: 1, b: 2 }\n"),
+            ("Layout/MultilineMethodArgumentLineBreaks", "foo(1, 2)\n"),
+            (
+                "Layout/MultilineMethodParameterLineBreaks",
+                "def m(a, b); end\n",
+            ),
+        ] {
+            case(cop, source).run();
+        }
+    }
+
+    /// `AllowMultilineFinalElement` は各要素を「どこで終わるか」ではなく
+    /// 「どこで始まるか」で測るので、最後の要素だけが複数行に広がるのは咎めない。
+    #[test]
+    fn the_final_element_may_span_lines_when_allowed() {
+        CopCase::new(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1, foo(2,\n            3)]\n".to_owned(),
+            Vec::new(),
+        )
+        .config(
+            "Layout/FirstArrayElementLineBreak:\n  Enabled: true\n  AllowMultilineFinalElement: true\n",
+        )
+        .run();
+        // 既定では最後の要素の**終わり**で測るので同じ書き方が咎められる。
+        CopCase::new(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1, foo(2,\n            3)]\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/FirstArrayElementLineBreak:\n  Enabled: true\n")
+        .without_offense_check()
+        .corrected("a = [\n1, foo(2,\n            3)]\n")
+        .run();
+    }
+
+    /// `AllowImplicitArrayLiterals` が外すのは括弧も `%w` も無い配列だけ。
+    /// `bracketed?` は `square_brackets? || percent_literal?` なので `%w[...]` は残る。
+    #[test]
+    fn allowing_implicit_arrays_still_reports_percent_literals() {
+        CopCase::new(
+            "Layout/FirstArrayElementLineBreak",
+            "d = %w[x\n       y]\n".to_owned(),
+            Vec::new(),
+        )
+        .config(
+            "Layout/FirstArrayElementLineBreak:\n  Enabled: true\n  AllowImplicitArrayLiterals: true\n",
+        )
+        .without_offense_check()
+        .corrected("d = %w[\nx\n       y]\n")
+        .run();
+    }
+}

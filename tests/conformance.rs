@@ -4738,6 +4738,62 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_line_end_string_concatenation_indentation")
         .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n     2]\n",
+        )
+        .id("layout_first_array_element_line_break")
+        .config("Layout/FirstArrayElementLineBreak:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementLineBreak",
+            "h = { a: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n      b: 2 }\n",
+        )
+        .id("layout_first_hash_element_line_break")
+        .config("Layout/FirstHashElementLineBreak:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n    2)\n",
+        )
+        .id("layout_first_method_argument_line_break")
+        .config("Layout/FirstMethodArgumentLineBreak:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(a,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n      b)\nend\n",
+        )
+        .id("layout_first_method_parameter_line_break")
+        .config("Layout/FirstMethodParameterLineBreak:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineArrayLineBreaks",
+            "m = [\n  1, 2,\n     ^ Each item in a multi-line array must start on a separate line.\n  3\n]\n",
+        )
+        .id("layout_multiline_array_line_breaks")
+        .config("Layout/MultilineArrayLineBreaks:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashKeyLineBreaks",
+            "m = {\n  a: 1, b: 2,\n        ^^^^ Each key in a multi-line hash must start on a separate line.\n  c: 3\n}\n",
+        )
+        .id("layout_multiline_hash_key_line_breaks")
+        .config("Layout/MultilineHashKeyLineBreaks:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "m = foo(\n  1, 2,\n     ^ Each argument in a multi-line method call must start on a separate line.\n  3\n)\n",
+        )
+        .id("layout_multiline_method_argument_line_breaks")
+        .config("Layout/MultilineMethodArgumentLineBreaks:\n  Enabled: true\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(\n  a, b,\n     ^ Each parameter in a multi-line method definition must start on a separate line.\n  c\n)\nend\n",
+        )
+        .id("layout_multiline_method_parameter_line_breaks")
+        .config("Layout/MultilineMethodParameterLineBreaks:\n  Enabled: true\n")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
