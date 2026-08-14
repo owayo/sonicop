@@ -478,6 +478,60 @@ end
     assert_offenses(&output, &[]);
 }
 
+/// 既定の実行では stderr へ何も出さない。
+///
+/// 既定で有効な 394 cop はすべて実装済みなので、未実装を告げる警告が混ざる余地は無い。
+/// ここが崩れると stderr を読んでいる検証スクリプトや計測が巻き添えになる。
+#[test]
+fn a_default_run_stays_silent_on_stderr() {
+    let directory = project(&[("example.rb", "value = 1\n")]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--format", "quiet"])
+        .assert()
+        .get_output()
+        .clone();
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr),
+        "",
+        "既定実行の stderr に出力があった"
+    );
+}
+
+/// 未実装 cop を名指しで有効にしたら、検査されなかったことを stderr で知らせる。
+///
+/// 黙って 0 件を返すと「違反なし」と読めてしまうが、RuboCop なら報告する。
+/// `Style/StringHashKeys` を実装したら、まだ実装していない別の cop へ差し替えること。
+#[test]
+fn naming_an_unimplemented_cop_warns_on_stderr() {
+    let directory = project(&[("example.rb", "value = 1\n")]);
+    let output = command(directory.path())
+        .args([
+            "--force-default-config",
+            "--only",
+            "Style/StringHashKeys",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .get_output()
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Style/StringHashKeys"),
+        "警告に cop 名が出ていない: {stderr}"
+    );
+
+    // 警告は stdout を汚さない。RuboCop は同種の注記を stdout に出して自分の JSON を壊す。
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.starts_with('{'),
+        "JSON の前に何か出力された: {}",
+        &stdout[..stdout.len().min(80)]
+    );
+}
+
 /// 折り返せる呼び出し / ブロック / do ブロックを 1 行ずつ含む長い行のソース。
 fn breakable_source() -> String {
     let long = "x".repeat(120);

@@ -412,6 +412,9 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         correcting: cli.correct_mode() != CorrectMode::None,
     };
     let correct_mode = cli.correct_mode();
+    if !cli.list_target_files {
+        warn_unimplemented_enabled(&config, &selection);
+    }
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
     let mut reports = if let Some(stdin_path) = &cli.stdin {
@@ -702,6 +705,49 @@ fn validate_selection(values: &[String], flag: &str, config: &Config) -> Result<
         }
     }
     Ok(())
+}
+
+/// Tell the user about cops that resolved to enabled but have no implementation here.
+///
+/// An unimplemented cop is never planned, so a configuration that switches one on — or an explicit
+/// `--only` naming it — yields no offenses at all where RuboCop would report some. Reporting 394 of
+/// RuboCop's 609 cops is fine as long as nobody mistakes silence for a clean file, so say which
+/// checks did not happen.
+///
+/// The note goes to stderr, never stdout: RuboCop's own `-P/--parallel is being ignored` notice
+/// goes to stdout and corrupts its JSON output, which is a mistake worth not repeating.
+fn warn_unimplemented_enabled(config: &Config, selection: &Selection) {
+    let implemented: HashSet<&str> = rule_names().collect();
+    let mut skipped = config
+        .known_cop_names()
+        .filter(|name| !implemented.contains(name))
+        .filter(|&name| {
+            let enabled = config.rule_enabled_with_pending(
+                name,
+                selection.enable_pending,
+                selection.disable_pending,
+            );
+            selection.includes(name, enabled, config.rule_safe(name))
+        })
+        .collect::<Vec<_>>();
+    if skipped.is_empty() {
+        return;
+    }
+    skipped.sort_unstable();
+    const SHOWN: usize = 5;
+    let listed = skipped[..skipped.len().min(SHOWN)].join(", ");
+    let more = skipped.len().saturating_sub(SHOWN);
+    let rest = if more > 0 {
+        format!(" and {more} more (--debug lists every unimplemented cop)")
+    } else {
+        String::new()
+    };
+    let plural = if skipped.len() == 1 { "cop" } else { "cops" };
+    eprintln!(
+        "warning: {} enabled {plural} not implemented by Sonicop; nothing was checked for {}: {listed}{rest}",
+        skipped.len(),
+        if skipped.len() == 1 { "it" } else { "them" }
+    );
 }
 
 fn debug_report(cwd: &Path, config: &Config, targets: usize, parallel: bool) {

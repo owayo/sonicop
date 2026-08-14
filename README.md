@@ -143,13 +143,13 @@ warmed runs.
 
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
-| rubocop/rubocop | 1,765 | 5.30 s | **1.41 s** | 20.88 s | **6.22 s** |
-| mastodon/mastodon | 3,289 | 3.77 s | **1.54 s** | 11.18 s | **5.67 s** |
-| Homebrew/brew | 2,175 | 8.52 s | **1.47 s** | 19.26 s | **5.20 s** |
-| rails/rails | 3,550 | 10.62 s | **5.07 s** | 32.89 s | **15.58 s** |
-| ruby/ruby | 7,465 | 27.31 s | **11.19 s** | 96.19 s | **34.85 s** |
+| rubocop/rubocop | 1,765 | 10.64 s | **2.84 s** | 40.66 s | **13.60 s** |
+| mastodon/mastodon | 3,290 | 10.78 s | **3.13 s** | 33.22 s | **13.57 s** |
+| Homebrew/brew | 2,176 | 11.13 s | **4.61 s** | 37.89 s | **10.81 s** |
+| rails/rails | 3,550 | 23.84 s | **10.15 s** | 84.93 s | **33.69 s** |
+| ruby/ruby | 7,465 | 95.71 s | **35.74 s** | 258.87 s | **107.37 s** |
 
-The gap is 2.1x to 5.8x in parallel and 2.0x to 3.7x single-process, so no single corpus summarizes
+The gap is 2.4x to 3.8x in parallel and 2.4x to 3.5x single-process, so no single corpus summarizes
 it. The single-process column is the steadier of the two — it measures the engines rather than how
 well each one's parallelism happens to fit the tree it was pointed at.
 
@@ -172,8 +172,11 @@ sonicop --force-default-config --format quiet
 ```
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-Measure on an otherwise idle machine: anything else competing for cores inflates both sides
-unevenly, and a contended run here reported RuboCop's Rails time as 21 s rather than 10.6 s.
+The numbers above were taken with a one-minute load average between 4 and 29 — the machine was in
+use, not idle. Both tools ran under the same conditions, so the ratios hold, but the absolute
+seconds are not a floor: expect better on a quiet machine. Anything competing for cores inflates
+both sides, and not by the same factor on each, so measure on an otherwise idle machine when the
+absolute numbers matter to you.
 
 ## Development
 
