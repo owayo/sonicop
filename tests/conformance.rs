@@ -3031,6 +3031,57 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_to_enum_arguments")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UnmodifiedReduceAccumulator",
+            r#"
+            values.reduce({}) do |acc, el|
+              el
+              ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+            end
+            "#,
+        )
+        .id("lint_unmodified_reduce_accumulator")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // どちらも `AllCops: UseProjectIndex` + `rubydex` のときしか索引を持たず、既定では
+        // 何も報告しない。
+        CopCase::new(
+            "Lint/UnusedPrivateMethod",
+            "class C\n  private\n  def unused_one; end\nend\n",
+            Vec::new(),
+        )
+        .id("lint_unused_private_method"),
+        CopCase::new("Lint/NameTypo", "Foo::Barr\nFoo.barr\n", Vec::new()).id("lint_name_typo"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/HeredocMethodCallPosition",
+            r#"
+            x = <<~SQL
+              bar
+            SQL
+              .strip
+            ^ Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.
+            "#,
+        )
+        .id("lint_heredoc_method_call_position")
+        .config("Lint/HeredocMethodCallPosition:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ShadowingOuterLocalVariable",
+            r#"
+            def m
+              x = 1
+              [1].each { |x| }
+                          ^ Shadowing outer local variable - `x`.
+            end
+            "#,
+        )
+        .id("lint_shadowing_outer_local_variable")
+        .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
