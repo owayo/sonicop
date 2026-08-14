@@ -3488,6 +3488,236 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 6, 1, 32)])
         .lengths(&[27])
         .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。`[element]` は括弧ごと消える。
+        CopCase::annotated(
+            "Style/ArrayIntersectWithSingleElement",
+            "array.intersect?([1])\n      ^^^^^^^^^^^^^^^ Use `include?(element)` instead of `intersect?([element])`.\n",
+        )
+        .id("style_array_intersect_with_single_element")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DirEmpty",
+            "Dir.children(path).empty?\n^^^^^^^^^^^^^^^^^^^^^^^^^ Use `Dir.empty?(path)` instead.\n",
+        )
+        .id("style_dir_empty")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FileEmpty",
+            "File.zero?(path)\n^^^^^^^^^^^^^^^^ Use `File.empty?(path)` instead.\n",
+        )
+        .id("style_file_empty")
+        .correctable(true),
+        // 報告されるのは `block` ノード、つまり呼び出しとブロックを合わせた範囲。
+        CopCase::annotated(
+            "Style/FileTouch",
+            "File.open(filename, 'a') {}\n^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `FileUtils.touch(filename)` instead of `File.open` in append mode with empty block.\n",
+        )
+        .id("style_file_touch")
+        .correctable(true),
+        // 位置はヒアドキュメントの開始記号だけ。本体と終端行は補正で消える。
+        CopCase::annotated(
+            "Style/EmptyHeredoc",
+            "x = <<~MSG\n    ^^^^^^ Use an empty string literal instead of heredoc.\nMSG\n",
+        )
+        .id("style_empty_heredoc")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ModuleMemberExistenceCheck",
+            "Foo.instance_methods.include?(:bar)\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `method_defined?(:bar)` instead.\n",
+        )
+        .id("style_module_member_existence_check")
+        .correctable(true),
+        // 位置は `if` 全体。複数行なので注記では表せない。
+        CopCase::annotated("Style/MinMaxComparison", "if a > b\n  a\nelse\n  b\nend\n")
+            .id("style_min_max_comparison")
+            .without_offense_check()
+            .locations(&[(1, 1, 5, 3)])
+            .lengths(&[25])
+            .correctable(true),
+        CopCase::annotated(
+            "Style/ComparableBetween",
+            "x >= 1 && x <= 10\n^^^^^^^^^^^^^^^^^ Prefer `x.between?(1, 10)` over logical comparison.\n",
+        )
+        .id("style_comparable_between")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExactRegexpMatch",
+            "foo.match?(/\\Abar\\z/)\n^^^^^^^^^^^^^^^^^^^^^ Use `foo == 'bar'`.\n",
+        )
+        .id("style_exact_regexp_match")
+        .correctable(true),
+        // 位置は一番内側の `dig` の selector から連鎖の末尾まで。
+        CopCase::annotated(
+            "Style/DigChain",
+            "x.dig(:a).dig(:b)\n  ^^^^^^^^^^^^^^^ Use `dig(:a, :b)` instead of chaining.\n",
+        )
+        .id("style_dig_chain")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashFetchChain",
+            "x.fetch(:a, nil).fetch(:b, nil)\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `dig(:a, :b)` instead.\n",
+        )
+        .id("style_hash_fetch_chain")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ConcatArrayLiterals",
+            "a.concat([1, 2])\n  ^^^^^^^^^^^^^^ Use `push(1, 2)` instead of `concat([1, 2])`.\n",
+        )
+        .id("style_concat_array_literals")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FileNull",
+            "x = '/dev/null'\n    ^^^^^^^^^^^ Use `File::NULL` instead of `/dev/null`.\n",
+        )
+        .id("style_file_null")
+        .correctable(true),
+        // 補正を持たない cop なので `[Correctable]` は付かない。
+        CopCase::annotated(
+            "Style/FileOpen",
+            "File.open('f')\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        )
+        .id("style_file_open")
+        .correctable(false),
+        // 報告されるのは読み出しの側。置き換えは `open` の selector から始まる。
+        CopCase::annotated(
+            "Style/FileRead",
+            "File.open(filename).read\n^^^^^^^^^^^^^^^^^^^^^^^^ Use `File.read`.\n",
+        )
+        .id("style_file_read")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FileWrite",
+            "File.open(filename, 'w') { |f| f.write(content) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `File.write`.\n",
+        )
+        .id("style_file_write")
+        .correctable(true),
+        // 位置は `;` 1 文字だけ。
+        CopCase::annotated("Style/InPatternThen", "case x\nin 1; foo\n    ^ Do not use `in 1;`. Use `in 1 then` instead.\nend\n")
+            .id("style_in_pattern_then")
+            .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineInPatternThen",
+            "case x\nin 1 then\n     ^^^^ Do not use `then` for multiline `in` statement.\n  foo\nend\n",
+        )
+        .id("style_multiline_in_pattern_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ItAssignment",
+            "it = 5\n^^ `it` is the default block parameter; consider another name.\n",
+        )
+        .id("style_it_assignment")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/BitwisePredicate",
+            "(x & 0b0100).positive?\n^^^^^^^^^^^^^^^^^^^^^^ Replace with `x.anybits?(0b0100)` for comparison with bit flags.\n",
+        )
+        .id("style_bitwise_predicate")
+        .correctable(true),
+        // 位置は selector からブロックの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/CollectionCompact",
+            "array.reject { |e| e.nil? }\n      ^^^^^^^^^^^^^^^^^^^^^ Use `compact` instead of `reject { |e| e.nil? }`.\n",
+        )
+        .id("style_collection_compact")
+        .correctable(true),
+        // 位置は `if` 全体。複数行なので注記では表せない。
+        CopCase::annotated(
+            "Style/ComparableClamp",
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+        )
+        .id("style_comparable_clamp")
+        .without_offense_check()
+        .locations(&[(1, 1, 7, 3)])
+        .lengths(&[49])
+        .correctable(true),
+        // 位置は `map` の selector だけ。
+        CopCase::annotated(
+            "Style/MapJoin",
+            "x.map(&:to_s).join\n  ^^^ Remove redundant `map(&:to_s)` before `join`.\n",
+        )
+        .id("style_map_join")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MapToHash",
+            "x.map { |a| [a, a] }.to_h\n  ^^^ Pass a block to `to_h` instead of calling `map.to_h`.\n",
+        )
+        .id("style_map_to_hash")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MapToSet",
+            "x.map { |a| a * 2 }.to_set\n  ^^^ Pass a block to `to_set` instead of calling `map.to_set`.\n",
+        )
+        .id("style_map_to_set")
+        .correctable(true),
+        // 位置は親クラスとして書かれた `Data.define(...)` だけ。
+        CopCase::annotated(
+            "Style/DataInheritance",
+            "class Point < Data.define(:x, :y)\n              ^^^^^^^^^^^^^^^^^^^ Don't extend an instance initialized by `Data.define`. Use a block to customize the class.\nend\n",
+        )
+        .id("style_data_inheritance")
+        .target_ruby("3.2")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyClassDefinition",
+            "Foo = Class.new(Bar)\n^^^^^^^^^^^^^^^^^^^^ Use the `class` keyword instead of `Class.new` to define an empty class.\n",
+        )
+        .id("style_empty_class_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CombinableDefined",
+            "defined?(Foo) && defined?(Foo::Bar)\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Combine nested `defined?` calls.\n",
+        )
+        .id("style_combinable_defined")
+        .correctable(true),
+        // 位置は selector からブロックの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/HashExcept",
+            "hash.reject { |k, v| k == :foo }\n     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `except(:foo)` instead.\n",
+        )
+        .id("style_hash_except")
+        .target_ruby("3.0")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashSlice",
+            "hash.select { |k, v| keys.include?(k) }\n     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `slice(*keys)` instead.\n",
+        )
+        .id("style_hash_slice")
+        .correctable(true),
+        // 位置は `count` の selector から比較の末尾まで。
+        CopCase::annotated(
+            "Style/CollectionQuerying",
+            "x.count { |e| e > 2 }.positive?\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `any?` instead.\n",
+        )
+        .id("style_collection_querying")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ArrayIntersect",
+            "(a & b).any?\n^^^^^^^^^^^^ Use `a.intersect?(b)` instead of `(a & b).any?`.\n",
+        )
+        .id("style_array_intersect")
+        .target_ruby("3.1")
+        .correctable(true),
+        // 位置は条件式全体。補間の `#{` と `}` は置き換えの外に残る。
+        CopCase::annotated(
+            "Style/EmptyStringInsideInterpolation",
+            "\"#{x ? 'foo' : ''}\"\n   ^^^^^^^^^^^^^^ Do not return empty strings in string interpolation.\n",
+        )
+        .id("style_empty_string_inside_interpolation")
+        .correctable(true),
+        // 位置は `merge` の呼び出し。置き換えるのは `**` から始まる引数の方。
+        CopCase::annotated(
+            "Style/KeywordArgumentsMerging",
+            "foo(**opts.merge(a: 1))\n      ^^^^^^^^^^^^^^^^ Provide additional arguments directly rather than using `merge`.\n",
+        )
+        .id("style_keyword_arguments_merging")
+        .correctable(true),
+        // 位置はキーワードだけ。三項では条件の末尾から式の末尾まで。
+        CopCase::annotated(
+            "Style/IfWithBooleanLiteralBranches",
+            "if foo.do_something?\n^^ Remove redundant `if` with boolean literal branches.\n  true\nelse\n  false\nend\n",
+        )
+        .id("style_if_with_boolean_literal_branches")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
