@@ -12758,6 +12758,11 @@ mod lint_late_additions {
 
     /// The permission is read off the file the source came from, so a source with no file behind
     /// it is left alone -- which is what upstream's `File.exist?` guard does.
+    ///
+    /// Unix only, matching the `#[cfg(unix)]` split the cop itself uses: Windows has no execute
+    /// bit and no `PermissionsExt`, so without this gate the Windows job of the CI fails to
+    /// compile the test binary at all (`no associated function ... named 'from_mode'`).
+    #[cfg(unix)]
     #[test]
     fn script_permission_reads_the_mode_of_the_file_on_disk() {
         use std::os::unix::fs::PermissionsExt;
