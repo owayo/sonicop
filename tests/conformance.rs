@@ -3848,6 +3848,46 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_predicate_with_kind")
         .correctable(true),
+        CopCase::annotated(
+            "Style/ReturnNil",
+            r"
+            def m
+              return nil
+              ^^^^^^^^^^ Use `return` instead of `return nil`.
+            end
+            ",
+        )
+        .id("style_return_nil")
+        .correctable(true),
+        // 位置は selector だけ。置き換えはドットから末尾まで。
+        CopCase::annotated(
+            "Style/HashLookupMethod",
+            r"
+            a = h.fetch(:k)
+                  ^^^^^ Use `Hash#[]` instead of `Hash#fetch`.
+            ",
+        )
+        .id("style_hash_lookup_method")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/AutoResourceCleanup",
+            r"
+            f = File.open('x')
+                ^^^^^^^^^^^^^^ Use the block version of `File.open`.
+            ",
+        )
+        .id("style_auto_resource_cleanup")
+        .correctable(false),
+        // 位置は末尾の引数だけ。
+        CopCase::annotated(
+            "Style/OptionHash",
+            r"
+            def m(options = {}); end
+                  ^^^^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        )
+        .id("style_option_hash")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

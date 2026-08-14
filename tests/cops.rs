@@ -22414,3 +22414,264 @@ mod style_predicate_with_kind {
         }
     }
 }
+
+/// `Style/ReturnNil` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ReturnNil` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_return_nil {
+    use super::*;
+
+    const COP: &str = "Style/ReturnNil";
+
+    /// 既定 (`return`) では `return nil` が対象。
+    #[test]
+    fn an_explicit_nil_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def m
+              return nil
+              ^^^^^^^^^^ Use `return` instead of `return nil`.
+            end
+            ",
+        );
+        expect_correction(COP, "def m\n  return nil\nend\n", "def m\n  return\nend\n");
+    }
+
+    /// `lambda` / `->` / `define_method` は上流の走査が break するだけで、報告はされる。
+    #[test]
+    fn a_lambda_or_define_method_still_gets_reported() {
+        for (source, corrected) in [
+            ("lambda { return nil }\n", "lambda { return }\n"),
+            ("-> { return nil }\n", "-> { return }\n"),
+            (
+                "define_method(:x) { return nil }\n",
+                "define_method(:x) { return }\n",
+            ),
+            (
+                "Foo.define_method(:y) { |a| return nil }\n",
+                "Foo.define_method(:y) { |a| return }\n",
+            ),
+            // 引数の無いブロックは走査が上へ抜けるので報告される。
+            ("xs.each { return nil }\n", "xs.each { return }\n"),
+        ] {
+            expect_correction(COP, source, corrected);
+        }
+    }
+
+    /// レシーバ付きの呼び出しに渡した引数付きブロックの `return` は、値がその呼び出しへ渡るので
+    /// 触らない。素の `return` も既定では正しい。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.each { |x| return nil }\n",
+            "def n\n  return\nend\n",
+            "def o\n  return 1\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `return_nil` は逆向きを求める。
+    #[test]
+    fn the_other_enforced_style() {
+        CopCase::annotated(
+            COP,
+            r"
+            def m
+              return
+              ^^^^^^ Use `return nil` instead of `return`.
+            end
+            ",
+        )
+        .config("Style/ReturnNil:\n  EnforcedStyle: return_nil\n")
+        .corrected("def m\n  return nil\nend\n")
+        .run();
+    }
+}
+
+/// `Style/HashLookupMethod` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/HashLookupMethod` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_lookup_method {
+    use super::*;
+
+    const COP: &str = "Style/HashLookupMethod";
+
+    /// 既定 (`brackets`) では位置は selector だけ。置き換えはドットから末尾まで。
+    #[test]
+    fn fetch_becomes_a_subscript() {
+        expect_offense(
+            COP,
+            r"
+            a = h.fetch(:k)
+                  ^^^^^ Use `Hash#[]` instead of `Hash#fetch`.
+            ",
+        );
+        expect_correction(COP, "a = h.fetch(:k)\n", "a = h[:k]\n");
+        expect_correction(COP, "j = Foo.bar.fetch(:k)\n", "j = Foo.bar[:k]\n");
+    }
+
+    /// `&.` の `fetch`、ブロック付き、既定値付き、レシーバ無しは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "b = h&.fetch(:k)\n",
+            "f = h.fetch(:k) { 1 }\n",
+            "g = h.fetch(:k, 1)\n",
+            "i = fetch(:k)\n",
+            "c = h[:k]\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `fetch` は逆向き。位置は呼び出し全体で、`&.` の綴りも扱う。
+    #[test]
+    fn the_other_enforced_style() {
+        for (source, corrected) in [
+            ("c = h[:k]\n", "c = h.fetch(:k)\n"),
+            ("d = h&.[](:k)\n", "d = h&.fetch(:k)\n"),
+            // 上流は selector (`[]`) から置き換えるので、`.` が 2 つ残る (本家のバグ)。
+            ("e = h.[](:k)\n", "e = h..fetch(:k)\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/HashLookupMethod:\n  EnforcedStyle: fetch\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+        // `AllowedReceivers` は受け手の名前で除外する。
+        CopCase::new(COP, "j = Foo.bar[:k]\n".to_owned(), Vec::new())
+            .config(
+                "Style/HashLookupMethod:\n  EnforcedStyle: fetch\n  AllowedReceivers:\n    - Foo.bar\n",
+            )
+            .run();
+    }
+}
+
+/// `Style/AutoResourceCleanup` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/AutoResourceCleanup` で走らせた実出力から取った
+/// (検出 4 件一致)。
+mod style_auto_resource_cleanup {
+    use super::*;
+
+    const COP: &str = "Style/AutoResourceCleanup";
+
+    /// 局所変数に握らせた handle が対象。メッセージにはレシーバから selector までが入る。
+    #[test]
+    fn a_kept_handle_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            f = File.open('x')
+                ^^^^^^^^^^^^^^ Use the block version of `File.open`.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            h = Tempfile.open('x')
+                ^^^^^^^^^^^^^^^^^^ Use the block version of `Tempfile.open`.
+            ",
+        );
+    }
+
+    /// 上流の `node.parent` が nil になるのはファイル全体が 1 文のときで、そのときも報告される。
+    #[test]
+    fn a_file_holding_nothing_else_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            File.open('x')
+            ^^^^^^^^^^^^^^ Use the block version of `File.open`.
+            ",
+        );
+    }
+
+    /// ブロック付き・`&blk` 付き、局所変数以外への代入、別名前空間の `File` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open('x') { |io| io }\nx = 1\n",
+            "File.open('x', &blk)\nx = 1\n",
+            "@i = File.open('x')\nx = 1\n",
+            "Foo::File.open('x')\nx = 1\n",
+            "File.read('x')\nx = 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/OptionHash` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/OptionHash` で走らせた実出力から取った
+/// (検出 5 件一致)。
+mod style_option_hash {
+    use super::*;
+
+    const COP: &str = "Style/OptionHash";
+
+    /// 末尾の `options = {}` が対象。位置はその引数だけ。
+    #[test]
+    fn a_trailing_options_parameter_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def m(options = {}); end
+                  ^^^^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            def n(a, opts = {}); end
+                     ^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            def self.s(params = {}); end
+                       ^^^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        );
+    }
+
+    /// 既定値付き引数が続くとき grammar は 1 個に畳んでしまうが、復元して数える。
+    #[test]
+    fn a_folded_default_run_is_restored() {
+        expect_offense(
+            COP,
+            r"
+            def u(a = nil, options = {}); end
+                           ^^^^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        );
+    }
+
+    /// 名前が候補外・既定値が空でないハッシュ・既定値なし・`super` を呼ぶ定義は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def p(other = {}); end\n",
+            "def q(options = { a: 1 }); end\n",
+            "def r(options); end\n",
+            "def t(options = {})\n  super\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Allowlist` はメソッド名で除外する。
+    #[test]
+    fn the_allowlist_exempts_a_method() {
+        CopCase::new(COP, "def m(options = {}); end\n".to_owned(), Vec::new())
+            .config("Style/OptionHash:\n  Allowlist:\n    - m\n")
+            .run();
+    }
+}
