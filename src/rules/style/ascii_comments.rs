@@ -10,6 +10,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<Vec<String>>("AllowedChars")
         .unwrap_or_default();
     for range in context.comment_ranges() {
+        let range = super::comments::parser_range(range, context);
         let comment = &context.source.text()[range.clone()];
         if comment.is_ascii() {
             continue;

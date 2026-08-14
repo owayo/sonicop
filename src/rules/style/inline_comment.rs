@@ -15,11 +15,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if text.trim_start().starts_with('#') {
             continue;
         }
-        let comment = &context.source.text()[range.clone()];
-        if is_directive(comment) {
+        // A `=begin` block is a comment too, and upstream's range for it takes in the newline
+        // after `=end`.
+        let reported = super::comments::parser_range(range, context);
+        if is_directive(&context.source.text()[reported.clone()]) {
             continue;
         }
-        offenses.push(context.offense(MSG, range.clone()));
+        offenses.push(context.offense(MSG, reported));
     }
 }
 

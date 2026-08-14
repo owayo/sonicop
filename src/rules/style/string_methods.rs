@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
-/// The values of `PreferredMethods` in the bundled default configuration, which upstream reads back
-/// through `default_cop_config` to tell an added mapping from a shipped one.
+/// The values of `PreferredMethods` in the bundled default configuration.
 const DEFAULT_PREFERENCES: [&str; 1] = ["to_sym"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let Some(preferences) = preferred_methods(context) else {
+    let Some(preferences) =
+        super::method_preference::preferred_methods(context, &DEFAULT_PREFERENCES)
+    else {
         return;
     };
     for node in context.nodes_of("call") {
@@ -34,23 +33,4 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 }),
         );
     }
-}
-
-/// `MethodPreference#preferred_methods`.
-///
-/// A mapping whose *key* is the preferred name of another mapping that the configuration added is
-/// dropped, which keeps a chain of renames from being applied one link at a time.
-fn preferred_methods(context: &RuleContext<'_>) -> Option<HashMap<String, String>> {
-    let merged = context.setting::<HashMap<String, String>>("PreferredMethods")?;
-    let added: Vec<&String> = merged
-        .values()
-        .filter(|value| !DEFAULT_PREFERENCES.contains(&value.as_str()))
-        .collect();
-    Some(
-        merged
-            .iter()
-            .filter(|(key, _)| !added.contains(key))
-            .map(|(key, value)| (key.clone(), value.clone()))
-            .collect(),
-    )
 }

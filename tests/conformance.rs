@@ -3698,6 +3698,51 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_method_called_on_do_end_block")
         .correctable(false),
+        CopCase::annotated(
+            "Style/TopLevelMethodDefinition",
+            r"
+            def self.top2; end
+            ^^^^^^^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        )
+        .id("style_top_level_method_definition")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/DateTime",
+            r"
+            DateTime.now
+            ^^^^^^^^^^^^ Prefer `Time` over `DateTime`.
+            ",
+        )
+        .id("style_date_time")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CollectionMethods",
+            r"
+            arr.collect { |x| x }
+                ^^^^^^^ Prefer `map` over `collect`.
+            ",
+        )
+        .id("style_collection_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/YodaExpression",
+            r"
+            p1 = 1 + a
+                 ^^^^^ Non-literal operand (`a`) should be first.
+            ",
+        )
+        .id("style_yoda_expression")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ArrayCoercion",
+            r"
+            q1 = [*foo]
+                 ^^^^^^ Use `Array(foo)` instead of `[*foo]`.
+            ",
+        )
+        .id("style_array_coercion")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

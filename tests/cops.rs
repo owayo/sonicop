@@ -21295,6 +21295,17 @@ mod style_inline_comment {
         );
     }
 
+    /// `=begin` ブロックもコメント。上流のレンジは `=end` の後の改行まで含む。
+    #[test]
+    fn a_block_comment_range_takes_in_the_trailing_newline() {
+        CopCase::annotated(COP, "=begin\n\u{3053}\u{308c} # x\n=end\nx = 1\n")
+            .id("block")
+            .without_offense_check()
+            .locations(&[(1, 1, 4, 1)])
+            .lengths(&[19])
+            .run();
+    }
+
     /// 行頭のコメントと `# rubocop:` ディレクティブは対象外。ディレクティブの判定は
     /// 行頭固定で `#` の後に空白 1 個の形だけなので、`#rubocop:disable` は報告される。
     #[test]
@@ -21400,6 +21411,291 @@ mod style_method_called_on_do_end_block {
     #[test]
     fn what_the_cop_leaves_alone() {
         for source in ["foo { bar }.baz\n", "result = foo do\n  bar\nend\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/TopLevelMethodDefinition` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/TopLevelMethodDefinition` で走らせた実出力から取った
+/// (検出 6 件一致)。
+mod style_top_level_method_definition {
+    use super::*;
+
+    const COP: &str = "Style/TopLevelMethodDefinition";
+
+    /// 位置は定義全体。`def self.` と `define_method` も同じ扱い。
+    #[test]
+    fn a_definition_with_nothing_around_it_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def top; end
+            ^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            def self.top2; end
+            ^^^^^^^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        );
+        // 複数行の定義は注記が 1 行目しか表せないので位置で指定する。
+        CopCase::annotated(COP, "def top\n  1\nend\n")
+            .id("multiline")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[15])
+            .run();
+        expect_offense(
+            COP,
+            r"
+            define_method(:x) { }
+            ^^^^^^^^^^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            define_method(:y)
+            ^^^^^^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        );
+    }
+
+    /// クラスや `begin` の中の定義、引数 2 個の `define_method` ブロックは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class Foo\n  def inner; end\n  define_method(:inner2) { }\nend\n",
+            "begin\n  def wrapped; end\nend\n",
+            "define_method(:a, :b) { }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/DateTime` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DateTime` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_date_time {
+    use super::*;
+
+    const COP: &str = "Style/DateTime";
+
+    #[test]
+    fn a_call_on_date_time_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            DateTime.now
+            ^^^^^^^^^^^^ Prefer `Time` over `DateTime`.
+            ",
+        );
+    }
+
+    /// 置き換えるのは定数の**名前**だけなので、先頭の `::` は残る。
+    #[test]
+    fn only_the_constant_name_is_rewritten() {
+        expect_correction(COP, "DateTime.now\n", "Time.now\n");
+        expect_correction(COP, "::DateTime.now\n", "::Time.now\n");
+    }
+
+    /// `#to_datetime` は別のメッセージで、補正は付かない。
+    #[test]
+    fn the_coercion_has_no_replacement() {
+        expect_offense(
+            COP,
+            r"
+            foo.to_datetime
+            ^^^^^^^^^^^^^^^ Do not use `#to_datetime`.
+            ",
+        );
+    }
+
+    /// `Date::` 定数を第 2 引数に渡す歴史的な日付、名前空間付きの `DateTime`、
+    /// レシーバ無しの `to_datetime` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "DateTime.iso8601('2000-01-01', Date::ENGLAND)\n",
+            "Foo::DateTime.now\n",
+            "to_datetime\n",
+            "Time.now\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/CollectionMethods` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CollectionMethods` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_collection_methods {
+    use super::*;
+
+    const COP: &str = "Style/CollectionMethods";
+
+    /// 位置は selector。
+    #[test]
+    fn the_selector_is_replaced_with_the_preferred_name() {
+        expect_offense(
+            COP,
+            r"
+            arr.collect { |x| x }
+                ^^^^^^^ Prefer `map` over `collect`.
+            ",
+        );
+    }
+
+    /// ブロック付き・`&:sym` 付き・`MethodsAcceptingSymbol` のメソッドに渡したシンボルが対象。
+    #[test]
+    fn a_block_written_or_implied_is_what_makes_it_a_collection_call() {
+        expect_correction(COP, "arr.collect { |x| x }\n", "arr.map { |x| x }\n");
+        expect_correction(COP, "arr.collect(&:foo)\n", "arr.map(&:foo)\n");
+        expect_correction(COP, "arr.inject(:+)\n", "arr.reduce(:+)\n");
+        expect_correction(
+            COP,
+            "arr.inject { |a, b| a + b }\n",
+            "arr.reduce { |a, b| a + b }\n",
+        );
+        expect_correction(COP, "arr.detect { |x| x }\n", "arr.find { |x| x }\n");
+        expect_correction(COP, "arr.find_all { |x| x }\n", "arr.select { |x| x }\n");
+        expect_correction(
+            COP,
+            "arr.inject(0) { |a, b| a }\n",
+            "arr.reduce(0) { |a, b| a }\n",
+        );
+    }
+
+    /// ブロックを取らない呼び出しと、既に望ましい名前のものは触らない。
+    /// `member?(1)` は引数がシンボルでもブロックでもないので対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["arr.collect\n", "arr.member?(1)\n", "arr.map { |x| x }\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/YodaExpression` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/YodaExpression` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_yoda_expression {
+    use super::*;
+
+    const COP: &str = "Style/YodaExpression";
+
+    #[test]
+    fn a_literal_on_the_left_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            p1 = 1 + a
+                 ^^^^^ Non-literal operand (`a`) should be first.
+            ",
+        );
+    }
+
+    /// 符号付きのリテラルは上流では 1 個の `int`、有理数も numeric、定数も定数側。
+    /// `.+()` と書いた呼び出しも同じ。
+    #[test]
+    fn the_two_operands_are_swapped() {
+        expect_correction(COP, "p1 = 1 + a\n", "p1 = a + 1\n");
+        expect_correction(COP, "p3 = -1 + c\n", "p3 = c + -1\n");
+        expect_correction(COP, "p4 = A + d\n", "p4 = d + A\n");
+        expect_correction(COP, "p5 = 1.+(e)\n", "p5 = e.+(1)\n");
+        expect_correction(COP, "p7 = 1r + f\n", "p7 = f + 1r\n");
+        expect_correction(COP, "p10 = 1 & h\n", "p10 = h & 1\n");
+    }
+
+    /// 入れ子は外側だけが報告される。内側は次のパスに回る。
+    #[test]
+    fn only_the_outermost_operation_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            p2 = 2 * (3 + b)
+                 ^^^^^^^^^^^ Non-literal operand (`(3 + b)`) should be first.
+            ",
+        );
+    }
+
+    /// 両側がリテラル・非リテラルが先・対象外の演算子は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["p6 = 1 + 2\n", "p8 = a + 1\n", "p9 = 1 - g\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ArrayCoercion` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayCoercion` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_coercion {
+    use super::*;
+
+    const COP: &str = "Style/ArrayCoercion";
+
+    #[test]
+    fn a_splat_in_brackets_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            q1 = [*foo]
+                 ^^^^^^ Use `Array(foo)` instead of `[*foo]`.
+            ",
+        );
+        expect_correction(COP, "q1 = [*foo]\n", "q1 = Array(foo)\n");
+    }
+
+    /// `unless x.is_a?(Array)` の形も同じ。3 つの名前が同じ**局所変数**であることが条件で、
+    /// 局所変数でなければ上流のパターンの `(lvar _)` に当たらない。
+    #[test]
+    fn the_explicit_array_check_folds_too() {
+        expect_offense(
+            COP,
+            r"
+            def m(x)
+              x = [x] unless x.is_a?(Array)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `Array(x)` instead of explicit `Array` check.
+            end
+            ",
+        );
+        CopCase::new(
+            COP,
+            "def m(x)\n  x = [x] unless x.is_a?(Array)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m(x)\n  x = Array(x)\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "y = 1\nunless y.is_a?(Array)\n  y = [y]\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("y = 1\ny = Array(y)\n")
+        .run();
+    }
+
+    /// 要素が splat だけでない配列、局所変数でない受け手は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "q2 = [*foo, bar]\n",
+            "q3 = [foo]\n",
+            "unless z.is_a?(Array)\n  z = [z]\nend\n",
+        ] {
             expect_no_offenses(COP, source);
         }
     }

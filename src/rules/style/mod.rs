@@ -6,6 +6,7 @@ mod frozen_string;
 mod hash_transform;
 mod line_length_help;
 mod literal;
+mod method_preference;
 mod nodes;
 mod parameters;
 mod parens;
@@ -22,6 +23,7 @@ department_rules! {
     accessor_grouping => ("AccessorGrouping", Convention),
     and_or => ("AndOr", Convention),
     array_join => ("ArrayJoin", Convention),
+    array_coercion => ("ArrayCoercion", Convention),
     ascii_comments => ("AsciiComments", Convention),
     attr => ("Attr", Convention),
     bare_percent_literals => ("BarePercentLiterals", Convention),
@@ -38,12 +40,14 @@ department_rules! {
     class_methods => ("ClassMethods", Convention),
     class_vars => ("ClassVars", Convention),
     conditional_assignment => ("ConditionalAssignment", Convention),
+    collection_methods => ("CollectionMethods", Convention),
     colon_method_call => ("ColonMethodCall", Convention),
     combinable_loops => ("CombinableLoops", Convention),
     command_literal => ("CommandLiteral", Convention),
     colon_method_definition => ("ColonMethodDefinition", Convention),
     comment_annotation => ("CommentAnnotation", Convention),
     commented_keyword => ("CommentedKeyword", Convention),
+    date_time => ("DateTime", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
     dir => ("Dir", Convention),
     documentation => ("Documentation", Convention),
@@ -195,6 +199,7 @@ department_rules! {
     symbol_literal => ("SymbolLiteral", Convention),
     symbol_proc => ("SymbolProc", Convention),
     ternary_parentheses => ("TernaryParentheses", Convention),
+    top_level_method_definition => ("TopLevelMethodDefinition", Convention),
     trailing_body_on_class => ("TrailingBodyOnClass", Convention),
     trailing_body_on_method_definition => ("TrailingBodyOnMethodDefinition", Convention),
     trailing_body_on_module => ("TrailingBodyOnModule", Convention),
@@ -212,6 +217,7 @@ department_rules! {
     while_until_modifier => ("WhileUntilModifier", Convention),
     word_array => ("WordArray", Convention),
     yaml_file_read => ("YAMLFileRead", Convention),
+    yoda_expression => ("YodaExpression", Convention),
     yoda_condition => ("YodaCondition", Convention),
     zero_length_predicate => ("ZeroLengthPredicate", Convention),
 }
