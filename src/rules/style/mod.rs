@@ -108,6 +108,7 @@ department_rules! {
     hash_transform_values => ("HashTransformValues", Convention),
     identical_conditional_branches => ("IdenticalConditionalBranches", Convention),
     if_inside_else => ("IfInsideElse", Convention),
+    if_with_boolean_literal_branches => ("IfWithBooleanLiteralBranches", Convention),
     if_unless_modifier => ("IfUnlessModifier", Convention),
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),

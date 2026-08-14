@@ -3711,6 +3711,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_keyword_arguments_merging")
         .correctable(true),
+        // 位置はキーワードだけ。三項では条件の末尾から式の末尾まで。
+        CopCase::annotated(
+            "Style/IfWithBooleanLiteralBranches",
+            "if foo.do_something?\n^^ Remove redundant `if` with boolean literal branches.\n  true\nelse\n  false\nend\n",
+        )
+        .id("style_if_with_boolean_literal_branches")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

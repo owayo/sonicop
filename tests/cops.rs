@@ -21833,3 +21833,98 @@ mod style_keyword_arguments_merging {
         }
     }
 }
+
+/// `Style/IfWithBooleanLiteralBranches`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/IfWithBooleanLiteralBranches` で走らせた実出力から
+/// 取った (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_if_with_boolean_literal_branches {
+    use super::*;
+
+    const COP: &str = "Style/IfWithBooleanLiteralBranches";
+
+    /// 枝が `true` と `false` なら条件そのもの。`false` が先なら否定が付き、
+    /// `unless` は向きが逆になる。
+    #[test]
+    fn the_condition_replaces_the_whole_conditional() {
+        expect_correction(
+            COP,
+            "if foo.do_something?\n  true\nelse\n  false\nend\n",
+            "foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "if foo.do_something?\n  false\nelse\n  true\nend\n",
+            "!foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "unless foo.do_something?\n  true\nelse\n  false\nend\n",
+            "!foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "foo.do_something? ? true : false\n",
+            "foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "foo.do_something? ? false : true\n",
+            "!foo.do_something?\n",
+        );
+    }
+
+    /// 否定を付けるとき、比較や `and`/`or` は括弧で包む。
+    #[test]
+    fn a_negated_comparison_is_parenthesized() {
+        expect_correction(
+            COP,
+            "if a == b\n  false\nelse\n  true\nend\n",
+            "!(a == b)\n",
+        );
+    }
+
+    /// 条件が真偽を返すと言えるのは、比較・述語・二重否定と、それらを `||` で全部、
+    /// `&&` で右辺だけ繋いだもの。
+    #[test]
+    fn what_counts_as_a_condition_that_already_answers_true_or_false() {
+        expect_correction(
+            COP,
+            "if a.nil? || b.nil?\n  true\nelse\n  false\nend\n",
+            "a.nil? || b.nil?\n",
+        );
+        expect_correction(
+            COP,
+            "if a && b.nil?\n  true\nelse\n  false\nend\n",
+            "a && b.nil?\n",
+        );
+        expect_correction(COP, "if !!a\n  true\nelse\n  false\nend\n", "!!a\n");
+        expect_correction(
+            COP,
+            "if (a.nil?)\n  true\nelse\n  false\nend\n",
+            "(a.nil?)\n",
+        );
+    }
+
+    /// `elsif` は連鎖の残りが `else` を保つよう頭だけを落とす。
+    #[test]
+    fn an_elsif_keeps_the_chain_above_it() {
+        expect_correction(
+            COP,
+            "if x\n  1\nelsif foo.do_something?\n  true\nelse\n  false\nend\n",
+            "if x\n  1\nelse\n  foo.do_something?\nend\n",
+        );
+    }
+
+    /// 述語でない条件、枝が真偽値でないもの、`AllowedMethods` のメソッドは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if foo\n  true\nelse\n  false\nend\n",
+            "if foo.do_something?\n  true\nelse\n  1\nend\n",
+            "if a.infinite?\n  true\nelse\n  false\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
