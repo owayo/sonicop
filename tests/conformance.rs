@@ -2956,6 +2956,81 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_duplicate_branch")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/NonAtomicFileOperation",
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir_p(path)
+            end
+            "#,
+        )
+        .id("lint_non_atomic_file_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ConstantReassignment",
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        )
+        .id("lint_constant_reassignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // 本家は `AllCops: UseProjectIndex` を立てて `rubydex` を入れたときしか索引を
+        // 持たず、既定では何も報告しない。
+        CopCase::new(
+            "Lint/DeprecatedReference",
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            Vec::new(),
+        )
+        .id("lint_deprecated_reference"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/NumberConversion",
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .id("lint_number_conversion")
+        .config("Lint/NumberConversion:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantTypeConversion",
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        )
+        .id("lint_redundant_type_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SymbolConversion",
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        )
+        .id("lint_symbol_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ToEnumArguments",
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        )
+        .id("lint_to_enum_arguments")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

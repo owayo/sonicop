@@ -30501,3 +30501,492 @@ mod style_redundant_regexp_argument {
             .run();
     }
 }
+
+/// `Lint/NonAtomicFileOperation`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NonAtomicFileOperation` で走らせた実出力から取った
+/// (検出 22 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_non_atomic_file_operation {
+    use super::*;
+
+    const COP: &str = "Lint/NonAtomicFileOperation";
+
+    /// 1 か所につき「存在確認を消す」(キーワードから条件の末尾まで) と「アトミックな
+    /// メソッドへ替える」(呼び出し全体) の 2 件。後者は補正を持たない。
+    #[test]
+    fn the_check_and_the_method_are_reported_separately() {
+        CopCase::annotated(
+            COP,
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir(path)
+              ^^^^^^^^^^^^^^^^^^^^^ Use atomic file operation method `FileUtils.mkdir_p`.
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 補正は条件と `end` を消し、メソッドを置き換える。`Dir.mkdir(path, mode)` の
+    /// 位置引数はキーワードへ移り、既に force なメソッドは置き換えない。
+    ///
+    /// 先頭に 1 文置いてあるのは、補正後の 1 行目が空行になるとハーネスの `corrected`
+    /// が字下げを削る際にそれを落としてしまうため。
+    #[test]
+    fn the_condition_and_the_end_are_removed() {
+        expect_correction(
+            COP,
+            "x = 1\nunless File.exist?(path)\n  FileUtils.mkdir(path)\nend\n",
+            "x = 1\n\n  FileUtils.mkdir_p(path)\n\n",
+        );
+        expect_correction(
+            COP,
+            "y = 2\nunless Dir.exist?(path)\n  Dir.mkdir(path, 0o700)\nend\n",
+            "y = 2\n\n  FileUtils.mkdir_p(path, mode: 0o700)\n\n",
+        );
+        expect_correction(
+            COP,
+            "z = 3\nunless File.exist?(path)\n  FileUtils.makedirs(path)\nend\n",
+            "z = 3\n\n  FileUtils.makedirs(path)\n\n",
+        );
+        // 修飾形は本体の後ろの `unless ...` を落とす。
+        expect_correction(
+            COP,
+            "FileUtils.mkdir_p(path) unless File.exist?(path)\n",
+            "FileUtils.mkdir_p(path)\n",
+        );
+    }
+
+    /// `elsif` は連鎖の途中なので報告だけして補正しない。
+    #[test]
+    fn an_elsif_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              b
+            elsif File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.rm(path)
+              ^^^^^^^^^^^^^^^^^^ Use atomic file operation method `FileUtils.rm_f`.
+            end
+            "#,
+        )
+        .without_offense_check()
+        .correctable(false)
+        .run();
+    }
+
+    /// `force: false`、複合条件、`else` 付き、本体が 2 文、引数が食い違うものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if File.exist?(path)\n  FileUtils.rm(path, force: false)\nend\n",
+            "if File.exist?(path) && x\n  FileUtils.rm(path)\nend\n",
+            "if File.exist?(path)\n  FileUtils.rm(path)\nelse\n  y\nend\n",
+            "if File.exist?(other)\n  FileUtils.rm(path)\nend\n",
+            "unless File.exist?(path)\n  puts 1\n  FileUtils.mkdir_p(path)\nend\n",
+            "FileUtils.rm(path)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/ConstantReassignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ConstantReassignment` で走らせた実出力から取った
+/// (検出 12 件を確認済み)。
+mod lint_constant_reassignment {
+    use super::*;
+
+    const COP: &str = "Lint/ConstantReassignment";
+
+    /// 名前空間ごとに追跡する。`class` / `module` の定義も名前を埋めるので、後から
+    /// 同名の定数を代入すると衝突する。
+    #[test]
+    fn a_second_assignment_in_the_same_namespace_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        );
+        for source in [
+            "class C\n  BAR = 1\n  BAR = 2\nend\n",
+            "module M\n  BAZ = 1\nend\nmodule M\n  BAZ = 2\nend\n",
+            "class D\nend\nD = 1\n",
+            "A::B = 1\nA::B = 2\n",
+            "::E = 1\n::E = 2\n",
+            "G = [1].freeze\nG = 2\n",
+            "H, I = 1, 2\nH = 3\n",
+            "::O = 1\nO = 2\n",
+            "class P\n  self::Q = 1\n  self::Q = 2\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 条件付きの代入、`remove_const` を挟んだもの、別の名前空間、動的なスコープは
+    /// 対象外。`Object.send(:remove_const, ...)` はレシーバ付きなので本家も見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "QUX = 1\nQUX = 2 if x\n",
+            "class J\nend\nclass J\nend\n",
+            "module N\n  M1 = 1\n  remove_const :M1\n  M1 = 2\nend\n",
+            "module N2\n  M2 = 1\n  self.remove_const :M2\n  M2 = 3\nend\n",
+            "module Outer\n  module Inner\n    K = 1\n  end\nend\nclass Outer2\n  \
+             L = 1\n  class Inner2\n    L = 2\n  end\nend\n",
+            "foo::T = 1\nfoo::T = 2\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        // `Object.send(:remove_const, :F)` は削除として数えないので、後の代入は衝突する。
+        let report = CopCase::new(
+            COP,
+            "F = 1\nObject.send(:remove_const, :F)\nF = 2\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
+}
+
+/// `Lint/DeprecatedReference`。
+///
+/// 本家のハンドラはどれも `return unless project_index` で始まる。索引は
+/// `AllCops: UseProjectIndex` を立てて `rubydex` gem を入れたときだけ作られるので、
+/// 既定では何も報告しない。sonicop は索引を持たないため常にその側に立つ。
+mod lint_deprecated_reference {
+    use super::*;
+
+    const COP: &str = "Lint/DeprecatedReference";
+
+    #[test]
+    fn nothing_is_reported_without_a_project_index() {
+        for source in [
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            "class C\n  # @deprecated\n  BAR = 1\nend\nC::BAR\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/NumberConversion` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NumberConversion` で走らせた実出力から取った
+/// (検出 17 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_number_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/NumberConversion";
+
+    const ENABLED: &str = "Lint/NumberConversion:\n  Enabled: true\n";
+
+    #[test]
+    fn a_conversion_call_becomes_class_parsing() {
+        CopCase::annotated(
+            COP,
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .config(ENABLED)
+        .corrected("Integer(\"10\", 10)\n")
+        .run();
+        CopCase::new(
+            COP,
+            "\"10.2\".to_f\n\"10\".to_c\n\"10\".to_r\nfoo.to_i\nfoo.to_i.to_f\n\
+             Date.today.to_i\nfoo.bar.to_i\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .corrected(
+            "Float(\"10.2\")\nComplex(\"10\")\nRational(\"10\")\nInteger(foo, 10)\n\
+             Integer(foo, 10).to_f\nInteger(Date.today, 10)\nInteger(foo.bar, 10)\n",
+        )
+        .run();
+    }
+
+    /// `&:to_i` はブロックへ広がり、括弧は空白に置き換わる。
+    #[test]
+    fn a_symbol_proc_becomes_a_block() {
+        CopCase::new(COP, "[1, 2].map(&:to_i)\nfoo.map(&:to_i)\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .corrected("[1, 2].map { |i| Integer(i, 10) }\nfoo.map { |i| Integer(i, 10) }\n")
+            .run();
+    }
+
+    /// `&.` は `nil` を通す意図なので報告だけして補正しない。
+    #[test]
+    fn safe_navigation_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo&.to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `foo&.to_i`, use stricter `Integer(foo, 10)`.
+            "#,
+        )
+        .config(ENABLED)
+        .correctable(false)
+        .run();
+    }
+
+    /// 数値リテラル、変換メソッドの結果、`AllowedClasses` の既定 (`Time` / `DateTime`)、
+    /// 引数が 2 つ以上の呼び出しは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "1.to_i\n",
+            "1.5.to_f\n",
+            "Time.now.to_i\n",
+            "DateTime.now.to_f\n",
+            "::Time.now.to_i\n",
+            "[1, 2].each_with_object({}, &:to_i)\n",
+            "to_i\n",
+            "foo.to_s\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}
+
+/// `Lint/RedundantTypeConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantTypeConversion` で走らせた実出力から
+/// 取った (検出 34 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_redundant_type_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantTypeConversion";
+
+    /// レンジはセレクタだけ。補正はドットからセレクタ (あるいは閉じ括弧) までを消す。
+    #[test]
+    fn a_conversion_of_the_same_type_is_removed() {
+        expect_offense(
+            COP,
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "\"foo\".to_s\n:foo.to_sym\n1.to_i\n1.0.to_f\n1r.to_r\n1i.to_c\n[].to_a\n{}.to_h\n\
+             \"foo#{x}\".to_s\n?a.to_s\n",
+            "\"foo\"\n:foo\n1\n1.0\n1r\n1i\n[]\n{}\n\"foo#{x}\"\n?a\n",
+        );
+    }
+
+    /// コンストラクタが返した値の変換も冗長。`exception: false` を渡していると
+    /// `nil` になり得るので対象外。
+    #[test]
+    fn a_constructor_result_needs_no_conversion() {
+        expect_correction(
+            COP,
+            "String.new(\"x\").to_s\nString(\"x\").to_s\nKernel.String(\"x\").to_s\n\
+             Integer(\"1\").to_i\nBigDecimal(\"1\").to_d\nArray[1].to_a\nHash[[1,2]].to_h\n\
+             Set.new.to_set\n",
+            "String.new(\"x\")\nString(\"x\")\nKernel.String(\"x\")\nInteger(\"1\")\n\
+             BigDecimal(\"1\")\nArray[1]\nHash[[1,2]]\nSet.new\n",
+        );
+        expect_no_offenses(COP, "Integer(\"1\", exception: false).to_i\n");
+    }
+
+    /// 同じ変換の 2 段重ねと、既に文字列を返すメソッドへの `to_s` も冗長。
+    #[test]
+    fn a_chain_of_the_same_conversion_is_reported() {
+        expect_correction(
+            COP,
+            "foo.to_s.to_s\nfoo.inspect.to_s\nfoo.to_json.to_s\n",
+            "foo.to_s\nfoo.inspect\nfoo.to_json\n",
+        );
+    }
+
+    /// ブロック付きの `to_h` / `to_set`、括弧の中が呼び出しのものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.to_s\n",
+            "foo.to_s()\n",
+            "(foo).to_s\n",
+            "[].to_h { |x| x }\n",
+            "[].to_set(&:foo)\n",
+            "x.to_h { |a| a }\n",
+            "1.to_s\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/SymbolConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/SymbolConversion` で走らせた実出力から取った
+/// (検出 20 件・`-A` の結果ともバイト一致を、`strict` / `consistent` 両方で確認済み)。
+mod lint_symbol_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/SymbolConversion";
+
+    /// `to_sym` / `intern` の呼び出しは `Symbol#inspect` の綴りへ畳まれる。
+    #[test]
+    fn a_conversion_call_folds_into_a_symbol_literal() {
+        expect_offense(
+            COP,
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "\"foo\".to_sym\n:foo.to_sym\n\"foo bar\".to_sym\n\"a#{b}\".to_sym\n:foo.intern\n",
+            ":foo\n:foo\n:\"foo bar\"\n:\"a#{b}\"\n:foo\n",
+        );
+    }
+
+    /// 引用符が要らないシンボルは裸で書く。演算子・`@`/`$` 付き・`?` 付きも裸。
+    #[test]
+    fn unnecessary_quotes_are_dropped() {
+        expect_correction(
+            COP,
+            ":\"foo\"\n:'foo'\n:\"[]\"\n:\"+\"\n:\"@a\"\n:\"$a\"\n:\"a?\"\n:\"A\"\n",
+            ":foo\n:foo\n:[]\n:+\n:@a\n:$a\n:a?\n:A\n",
+        );
+    }
+
+    /// ハッシュキーはコロン形なら先頭のコロンを落とした形が期待値になる。
+    #[test]
+    fn a_hash_key_keeps_the_shape_it_was_written_in() {
+        expect_offense(
+            COP,
+            r#"
+            { "a": 1 }
+              ^^^ Unnecessary symbol conversion; use `a:` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "{ \"a\": 1 }\n{ 'a': 1 }\n{ :\"a\" => 1 }\n{ \"_a\": 1 }\n{ \"Ab\": 1 }\n",
+            "{ a: 1 }\n{ a: 1 }\n{ :a => 1 }\n{ _a: 1 }\n{ Ab: 1 }\n",
+        );
+    }
+
+    /// `EnforcedStyle: consistent` では、引用符の要るキーが 1 つでもあるハッシュの
+    /// キーをすべて引用符付きに揃える。`strict` だけの `=` 免除も無くなる。
+    #[test]
+    fn the_consistent_style_quotes_every_key_of_a_mixed_hash() {
+        CopCase::new(COP, "{ \"a\": 1, \"b c\": 2 }\n", Vec::new())
+            .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
+            .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            x = :"foo="
+                ^^^^^^^ Unnecessary symbol conversion; use `:foo=` instead.
+            "#,
+        )
+        .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
+        .corrected("x = :foo=\n")
+        .run();
+    }
+
+    /// 引用符が必要なもの、`alias`、`%i[]`、`=>` の文字列キー、`=` で終わるシンボル
+    /// (既定の `strict`) は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            ":foo\n",
+            ":\"foo bar\"\n",
+            "{ \"a b\": 1 }\n",
+            "{ a: 1 }\n",
+            "{ :a => 1 }\n",
+            "alias :foo :bar\n",
+            "alias :\"a\" :\"b\"\n",
+            "%i[a b]\n",
+            ":\"a#{b}\"\n",
+            "x = :\"foo=\"\n",
+            ":\"1a\"\n",
+            ":\"\"\n",
+            "{ \"1a\": 1 }\n",
+            "{ \"-a\": 1 }\n",
+            "x = { \"a\" => 1 }\n",
+            ":\"a-b\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/ToEnumArguments`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ToEnumArguments` で走らせた実出力から取った
+/// (検出 5 件を確認済み)。
+mod lint_to_enum_arguments {
+    use super::*;
+
+    const COP: &str = "Lint/ToEnumArguments";
+
+    /// 引数が足りない・余っているものだけが報告される。
+    #[test]
+    fn a_mismatched_argument_list_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        );
+        for source in [
+            "def baz(x, y)\n  return to_enum(:baz, x) unless block_given?\nend\n",
+            "def thud(x)\n  to_enum(:thud, x, 1)\nend\n",
+            "def b(x, k: 1)\n  return to_enum(:b, x) unless block_given?\nend\n",
+            "def c(x)\n  return to_enum(:c, x, k: 1) unless block_given?\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 位置引数・省略可能引数・splat・キーワード・`**`・`...`・`__method__` のどれも
+    /// 正しく渡していれば対象外。`def` の外や別のレシーバも見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def foo(x)\n  return to_enum(:foo, x) unless block_given?\nend\n",
+            "def qux(x = 1)\n  return to_enum(:qux, x) unless block_given?\nend\n",
+            "def quux(*args)\n  return to_enum(:quux, *args) unless block_given?\nend\n",
+            "def corge(k:)\n  return to_enum(:corge, k: k) unless block_given?\nend\n",
+            "def garply(**opts)\n  return to_enum(:garply, **opts) unless block_given?\nend\n",
+            "def waldo(x)\n  return to_enum(__method__, x) unless block_given?\nend\n",
+            "def fred(x)\n  return to_enum(:other, x) unless block_given?\nend\n",
+            "def plugh(x, &blk)\n  return to_enum(:plugh, x) unless block_given?\nend\n",
+            "def xyzzy(x)\n  return enum_for(:xyzzy, x) unless block_given?\nend\n",
+            "def d(...)\n  return to_enum(:d, ...) unless block_given?\nend\n",
+            "def g(x)\n  return self.to_enum(:g, x) unless block_given?\nend\n",
+            "def h(x)\n  return foo.to_enum(:h, x) unless block_given?\nend\n",
+            "to_enum(:top)\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
