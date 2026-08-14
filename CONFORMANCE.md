@@ -68,10 +68,29 @@ ruby/ruby also carries five differences at positions both tools reported: two `c
 one `last_column`/`length` pair, all on indentation cops inside files the two parse differently, plus
 one `Lint/Syntax` message naming a different token (`tLCURLY` where RuboCop says `tLAMBEG`).
 
-Autocorrect is compared the same way, byte for byte over the whole tree: run `-a` (and separately
-`-A`) with both tools from a clean checkout and diff the results. On all four corpora measured this way —
-rubocop/rubocop, rails/rails, Homebrew/brew and mastodon/mastodon — the corrected trees are
-**identical**.
+Autocorrect is compared the same way, byte for byte over the whole tree: run `-A` with both tools
+from a clean checkout and diff the results.
+
+| Corpus | Corrected tree |
+|---|---|
+| rubocop/rubocop | **identical** |
+| mastodon/mastodon | **identical** |
+| Homebrew/brew | 2 files differ |
+| rails/rails | 25 files differ |
+| ruby/ruby | not measurable |
+
+RuboCop's own tree and Mastodon are the hard line: a change that breaks byte equality on either is a
+regression to be fixed, not a new known divergence to be recorded.
+
+The rails/rails residue is one shape, and Homebrew contributes one more of it: the body of a
+`begin`/`rescue`/`end` ends up indented two columns off. It appears only in a full `-A` run — the
+first-pass detection matches exactly, and reducing the case to a single file reproduces nothing —
+because what differs is which correction pass a nested indentation fix lands in. Homebrew's other
+file pairs a `disable`/`enable` around `Lint/EmptyBlock`, a cop RuboCop ships as pending; the
+upstream run leaves both comments alone and Sonicop removes them.
+
+ruby/ruby cannot be measured this way at all: RuboCop's own run does not finish on it (see *Reading a
+measurement*), so there is no complete reference tree to diff against.
 
 Run the comparison on a copy of the corpus. Autocorrect rewrites the tree in place, so a run that
 shares a checkout with anything else — another comparison, a lint measurement — has both tools
@@ -91,6 +110,15 @@ formatter still writes a well-formed document from an `ensure` block. The result
 every offense Sonicop found in them counts as "excess". Check `summary.inspected_file_count`
 against `summary.target_file_count` on every run. To get a complete reference for that corpus, split
 the file list into chunks and re-run each chunk past the file that killed it.
+
+**And sometimes it emits nothing at all.** Fifteen files under `test/ruby/` hold offenses whose text
+is not valid UTF-8, and `JSONFormatter#finished` raises `source sequence is illegal/malformed utf-8`
+while serializing — before a single byte reaches stdout. The failure therefore looks like an empty
+file rather than a truncated one, and a chunked reference run has to tell it apart from the case
+above: retrying one file at a time is right when a file killed the parser, and useless when the run
+never had a chance to start. Two other stdout notices break JSON the same way — `--parallel` being
+ignored under `--cache false`, and the plugin suggestions RuboCop prints after a run — so a reference
+reader should skip to the first `{` rather than trust byte zero.
 
 ## Known divergences
 
