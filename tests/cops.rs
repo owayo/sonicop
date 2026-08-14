@@ -20136,3 +20136,42 @@ mod lint_redundant_cop_enable_directive_removal_range {
         );
     }
 }
+
+/// `Style/EnvHome`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_env_home {
+    use super::*;
+
+    const COP: &str = "Style/EnvHome";
+
+    /// `[]` と `fetch`、`::ENV`、二重引用符のどれも同じ 1 件の指摘になり、
+    /// 置換後はどれも `Dir.home`。
+    #[test]
+    fn every_spelling_of_the_home_lookup_is_reported() {
+        for source in [
+            "ENV['HOME']\n",
+            "ENV.fetch('HOME')\n",
+            "ENV.fetch('HOME', nil)\n",
+            "::ENV['HOME']\n",
+            "ENV[\"HOME\"]\n",
+        ] {
+            expect_correction(COP, source, "Dir.home\n");
+        }
+    }
+
+    /// `nil` 以外の既定値・ブロック・別名前空間の `ENV`・別のキーは触らない。
+    /// ブロックは第 2 引数の意味を変えるので、本家も対象から外している。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ENV.fetch('HOME', 'x')\n",
+            "ENV.fetch('HOME') { 'x' }\n",
+            "Foo::ENV['HOME']\n",
+            "ENV['PATH']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

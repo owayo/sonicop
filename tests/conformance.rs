@@ -3468,6 +3468,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_end_block")
         .correctable(true),
+        CopCase::annotated(
+            "Style/EnvHome",
+            r#"
+            ENV['HOME']
+            ^^^^^^^^^^^ Use `Dir.home` instead.
+            "#,
+        )
+        .id("style_env_home")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

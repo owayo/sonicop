@@ -58,6 +58,7 @@ department_rules! {
     empty_method => ("EmptyMethod", Convention),
     encoding => ("Encoding", Convention),
     end_block => ("EndBlock", Convention),
+    env_home => ("EnvHome", Convention),
     eval_with_location => ("EvalWithLocation", Convention),
     even_odd => ("EvenOdd", Convention),
     expand_path_arguments => ("ExpandPathArguments", Convention),
