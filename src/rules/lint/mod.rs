@@ -165,6 +165,7 @@ department_rules! {
     underscore_prefixed_variable_name => ("UnderscorePrefixedVariableName", Warning),
     unified_integer => ("UnifiedInteger", Warning),
     unexpected_block_arity => ("UnexpectedBlockArity", Warning),
+    unmodified_reduce_accumulator => ("UnmodifiedReduceAccumulator", Warning),
     unreachable_code => ("UnreachableCode", Warning),
     unreachable_pattern_branch => ("UnreachablePatternBranch", Warning),
     unreachable_loop => ("UnreachableLoop", Warning),

@@ -28153,3 +28153,87 @@ mod lint_to_enum_arguments {
         }
     }
 }
+
+/// `Lint/UnmodifiedReduceAccumulator`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UnmodifiedReduceAccumulator` で走らせた実出力から
+/// 取った (検出 12 件を確認済み)。
+mod lint_unmodified_reduce_accumulator {
+    use super::*;
+
+    const COP: &str = "Lint/UnmodifiedReduceAccumulator";
+
+    /// 蓄積器を返さない枝はメッセージ 1、蓄積器の要素を返す枝はメッセージ 2。
+    #[test]
+    fn a_branch_that_drops_the_accumulator_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            values.reduce({}) do |acc, el|
+              el
+              ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            values.reduce({}) do |acc, el|
+              acc[el] = el
+              ^^^^^^^^^^^^ Do not return an element of the accumulator in `reduce`.
+            end
+            "#,
+        );
+        for source in [
+            "values.reduce(0) do |acc, el|\n  el * 2\nend\n",
+            "values.reduce({}) do |acc, el|\n  acc[el[0]]\nend\n",
+            "values.reduce(0) { |acc, el| some_method(el) }\n",
+            "values.reduce(0) { |acc, el| \"#{el}\" }\n",
+            "values.inject(0) { |acc, el| el }\n",
+            "values.reduce([]) do |acc, (a, b)|\n  a\nend\n",
+            "values.reduce(0) { _2 }\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+        // `next` が返す値も枝のひとつ。
+        CopCase::annotated(
+            COP,
+            r#"
+            values.reduce(0) do |acc, el|
+              next el if el.nil?
+                   ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+              acc + el
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 蓄積器を返す枝がひとつでもあれば、要素に触っていれば、あるいは要素以外を
+    /// 読んでいれば対象外。ブロック引数が 2 つ未満のものも見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "values.reduce({}) do |acc, el|\n  acc[el] = el\n  acc\nend\n",
+            "values.reduce(0) do |acc, el|\n  acc + el\nend\n",
+            "values.reduce([]) do |acc, el|\n  acc << el\nend\n",
+            "values.reduce([]) do |acc, el|\n  acc.push(el)\n  acc\nend\n",
+            "values.reduce({}) do |acc, el|\n  acc[el]\nend\n",
+            "values.reduce(0) do |acc, el|\n  next acc if el.nil?\n  acc + el\nend\n",
+            "values.reduce(0) { |acc, el| some_method(acc, el) }\n",
+            "values.reduce(0) { |acc| acc }\n",
+            "values.each { |acc, el| el }\n",
+            "values.reduce(0) do |acc, el|\n  el.foo(acc)\n  el\nend\n",
+            "values.reduce(0) { _1 + _2 }\n",
+            "values.reduce(0) { _1 }\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}

@@ -2838,6 +2838,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_to_enum_arguments")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UnmodifiedReduceAccumulator",
+            r#"
+            values.reduce({}) do |acc, el|
+              el
+              ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+            end
+            "#,
+        )
+        .id("lint_unmodified_reduce_accumulator")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
