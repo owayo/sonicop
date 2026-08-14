@@ -22458,3 +22458,111 @@ mod layout_empty_line_after_multiline_condition {
         .run();
     }
 }
+
+/// `Layout/LineEndStringConcatenationIndentation` — 期待値は本家 1.89.0 の実測。
+mod layout_line_end_string_concatenation_indentation {
+    use super::*;
+
+    const COP: &str = "Layout/LineEndStringConcatenationIndentation";
+    const ALIGN: &str = "Align parts of a string concatenated with backslash.";
+    const INDENT: &str = "Indent the first part of a string concatenated with backslash.";
+    const INDENTED: &str =
+        "Layout/LineEndStringConcatenationIndentation:\n  EnforcedStyle: indented\n";
+
+    /// 既定の `aligned` は 2 番目以降の部分を直前の部分の桁に揃える。
+    #[test]
+    fn the_aligned_style_lines_the_parts_up() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            text = 'offense' \
+                   'here'
+            text2 = 'offense' \
+              'here'
+              ^^^^^^ %{align}
+            text3 = 'ok' \
+                    'ok'
+            "#,
+            &[("align", ALIGN)],
+        )
+        .corrected(
+            r#"
+            text = 'offense' \
+                   'here'
+            text2 = 'offense' \
+                    'here'
+            text3 = 'ok' \
+                    'ok'
+            "#,
+        )
+        .run();
+    }
+
+    /// `indented` は 2 番目を 1 段下げる。3 番目以降はその 2 番目に揃える。
+    #[test]
+    fn the_indented_style_shifts_the_second_part_in() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            z = 'a' \
+              'b' \
+                'c'
+                ^^^ %{align}
+            "#,
+            &[("indent", INDENT), ("align", ALIGN)],
+        )
+        .config(INDENTED)
+        .corrected("z = 'a' \\\n  'b' \\\n  'c'\n")
+        .run();
+    }
+
+    /// ハッシュの値のときは pair の桁が基準になる。
+    #[test]
+    fn a_hash_value_is_measured_from_the_pair() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            h = { key: 'a' \
+                       'b' }
+                       ^^^ %{indent}
+            "#,
+            &[("indent", INDENT)],
+        )
+        .config(INDENTED)
+        .corrected("h = { key: 'a' \\\n        'b' }\n")
+        .run();
+    }
+
+    /// 親が `begin` / `block` / `def` / `if` か、そもそも親が無いときは、体裁を問わず
+    /// 字下げで測る (揃える相手が上の行に無いため)。
+    #[test]
+    fn some_parents_are_always_measured_by_indentation() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            'a' \
+              'b'
+            'c' \
+            'd'
+            ^^^ %{indent}
+            foo do
+              'a' \
+                'b'
+            end
+            if x
+              'a' \
+                  'b'
+                  ^^^ %{indent}
+            end
+            "#,
+            &[("indent", INDENT)],
+        )
+        .run();
+    }
+
+    /// バックスラッシュで継いだ 1 個の文字列は `str` なので対象外。
+    #[test]
+    fn a_single_literal_continued_with_a_backslash_is_not_a_concatenation() {
+        CopCase::new(COP, "x = \"a \\\n  b\"\n", Vec::new()).run();
+    }
+}

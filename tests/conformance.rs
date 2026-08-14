@@ -463,6 +463,16 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_line_continuation_spacing")
         .correctable(true),
         CopCase::annotated(
+            "Layout/LineEndStringConcatenationIndentation",
+            r#"
+            text = 'offense' \
+              'here'
+              ^^^^^^ Align parts of a string concatenated with backslash.
+            "#,
+        )
+        .id("layout_line_end_string_concatenation_indentation")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/LineLength",
             r#"
             x = 1234567890

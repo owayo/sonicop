@@ -57,6 +57,7 @@ department_rules! {
     multiline_method_argument_line_breaks => ("MultilineMethodArgumentLineBreaks", Convention),
     multiline_method_parameter_line_breaks => ("MultilineMethodParameterLineBreaks", Convention),
     line_continuation_leading_space => ("LineContinuationLeadingSpace", Convention),
+    line_end_string_concatenation_indentation => ("LineEndStringConcatenationIndentation", Convention),
     line_continuation_spacing => ("LineContinuationSpacing", Convention),
     line_length => ("LineLength", Convention),
     multiline_array_brace_layout => ("MultilineArrayBraceLayout", Convention),
