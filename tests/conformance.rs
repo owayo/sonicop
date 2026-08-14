@@ -89,6 +89,46 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(true),
         // ---- Gemspec ----
         CopCase::annotated(
+            "Gemspec/AddRuntimeDependency",
+            "spec.add_runtime_dependency 'rake'\n     ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.\n",
+        )
+        .id("gemspec_add_runtime_dependency")
+        .path("example.gemspec")
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/AttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = {}
+              spec.metadata['a'] = 'b'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+            end
+            "#,
+        )
+        .id("gemspec_attribute_assignment")
+        .path("example.gemspec")
+        .correctable(false),
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.date = Time.now
+              ^^^^^^^^^^^^^^^^^^^^ Do not set `date` in gemspec.
+            end
+            "#,
+        )
+        .id("gemspec_deprecated_attribute_assignment")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            "spec.add_development_dependency 'rspec'\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.\n",
+        )
+        .id("gemspec_development_dependencies")
+        .path("example.gemspec")
+        .correctable(false),
+        CopCase::annotated(
             "Gemspec/DuplicatedAssignment",
             r#"
             Gem::Specification.new do |spec|

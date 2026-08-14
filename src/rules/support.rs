@@ -369,6 +369,19 @@ fn rotate_same_operator(node: Sexp) -> Sexp {
     })
 }
 
+/// `range_by_whole_lines(range, include_final_newline: true)`: the lines `range` sits on, taken
+/// whole, with the line break that closes the last of them.
+pub(crate) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
+    let text = context.source.text();
+    let start = text[..range.start]
+        .rfind('\n')
+        .map_or(0, |offset| offset + 1);
+    let end = text[range.end..]
+        .find('\n')
+        .map_or(text.len(), |offset| range.end + offset + 1);
+    start..end
+}
+
 /// Pushes `node`'s named children so that popping the stack yields them in
 /// source order, making a `pop`-driven loop reproduce depth-first pre-order.
 pub(crate) fn push_named_children<'tree>(node: Node<'tree>, stack: &mut Vec<Node<'tree>>) {

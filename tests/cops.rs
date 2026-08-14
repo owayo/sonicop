@@ -5011,6 +5011,197 @@ mod gemspec_department {
         .path(GEMSPEC)
         .run();
     }
+
+    /// `RESTRICT_ON_SEND` はメソッド名だけを絞るので、レシーバがあって引数が 1 つ以上あれば
+    /// 仕様以外の受け手でも報告される。安全ナビゲーションは `csend` で `on_send` に届かない。
+    #[test]
+    fn add_runtime_dependency_replaces_the_selector() {
+        CopCase::annotated(
+            "Gemspec/AddRuntimeDependency",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_runtime_dependency 'rake'
+                   ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.
+              spec.add_runtime_dependency('rake', '~> 13.0')
+                   ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.
+              add_runtime_dependency 'rake'
+              spec&.add_runtime_dependency 'rake'
+              spec.add_runtime_dependency
+              Foo.add_runtime_dependency 'x'
+                  ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .corrected(
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rake'
+              spec.add_dependency('rake', '~> 13.0')
+              add_runtime_dependency 'rake'
+              spec&.add_runtime_dependency 'rake'
+              spec.add_runtime_dependency
+              Foo.add_dependency 'x'
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 添字代入が報告されるのは、同じ属性への素の代入も同じファイルにあるときだけ。
+    /// 添字が literal でないもの、添字が 2 つあるものは本家のパターンに合わない。
+    #[test]
+    fn attribute_assignment_flags_the_indexed_form_when_both_styles_appear() {
+        CopCase::annotated(
+            "Gemspec/AttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.name = 'x'
+              spec.metadata = { 'a' => 'b' }
+              spec.metadata['c'] = 'd'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+              spec.metadata['e'] = 'f'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+              spec.other['g'] = 'h'
+              spec.required_ruby_version = '>= 3.1'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .correctable(false)
+        .run();
+        CopCase::new(
+            "Gemspec/AttributeAssignment",
+            "Gem::Specification.new do |spec|\n  spec.metadata = { 'a' => 'b' }\n  spec.metadata[key] = 'd'\n  spec.metadata['x', 'y'] = 'd'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+
+    /// `descendants.detect` なので報告は最初の 1 件だけ。補正は行ごと消す。
+    #[test]
+    fn deprecated_attribute_assignment_reports_only_the_first_attribute() {
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.name = 'x'
+              spec.test_files = Dir['test/**/*']
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not set `test_files` in gemspec.
+              spec.date = Time.now
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        // `-A` は収束するまで回るので、`test_files` を消した次のパスで `date` も消える。
+        .corrected(
+            r#"
+            Gem::Specification.new do |spec|
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `use_deprecated_attributes?` は属性の走査中に `node` を書き換えるので、`+=` は
+    /// 一覧の**先頭**の `test_files` でしか認識されない。`spec.date += 1` は未検出。
+    #[test]
+    fn deprecated_attribute_assignment_reads_op_assign_only_for_the_first_attribute() {
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.test_files += Dir['test/**/*']
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not set `test_files` in gemspec.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .corrected("Gem::Specification.new do |spec|\nend\n")
+        .run();
+        CopCase::new(
+            "Gemspec/DeprecatedAttributeAssignment",
+            "Gem::Specification.new do |spec|\n  spec.date += 1\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .run();
+    }
+
+    /// ブロック引数が無い仕様では本家が `nil.source` で落ちて offense を 1 件も出さない。
+    /// `_1` / `it` のブロックは `numblock` / `itblock` で `on_block` に届かない。
+    #[test]
+    fn deprecated_attribute_assignment_needs_a_block_parameter() {
+        for source in [
+            "Gem::Specification.new do\n  spec.date = 1\nend\n",
+            "Gem::Specification.new { _1.date = 1 }\n",
+        ] {
+            CopCase::new("Gemspec/DeprecatedAttributeAssignment", source, Vec::new())
+                .path(GEMSPEC)
+                .run();
+        }
+    }
+
+    /// 既定の `Gemfile` 体裁では `add_development_dependency` を、`gemspec` 体裁では
+    /// `gem` を報告する。引数の許容数は前者が 3 個まで、後者はちょうど 1 個。
+    #[test]
+    fn development_dependencies_flags_the_method_the_style_rejects() {
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_development_dependency 'rspec'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.
+              spec.add_development_dependency 'rspec', '~> 3.0'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.
+              spec.add_development_dependency 'rspec', '~> 3.0', 'x'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.
+              spec.add_development_dependency 'rspec', '~> 3.0', 'x', 'y'
+              spec.add_development_dependency name
+              add_development_dependency 'foo'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.
+              gem 'bar'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .correctable(false)
+        .run();
+    }
+
+    /// `EnforcedStyle: gemspec` では引数がちょうど 1 つの `gem` だけが報告される。
+    #[test]
+    fn development_dependencies_flags_gem_under_the_gemspec_style() {
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            r#"
+            gem 'rspec'
+            ^^^^^^^^^^^ Specify development dependencies in gemspec.
+            gem 'rspec', '~> 3.0'
+            add_development_dependency 'x'
+            "#,
+        )
+        .path("Gemfile")
+        .config("Gemspec/DevelopmentDependencies:\n  EnforcedStyle: gemspec\n")
+        .run();
+    }
+
+    /// `AllowedGems` に載っている gem は体裁を問わず見送られる。
+    #[test]
+    fn development_dependencies_allows_the_configured_gems() {
+        CopCase::new(
+            "Gemspec/DevelopmentDependencies",
+            "Gem::Specification.new do |spec|\n  spec.add_development_dependency 'rspec'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .config("Gemspec/DevelopmentDependencies:\n  AllowedGems:\n    - rspec\n")
+        .run();
+    }
 }
 
 /// `Bundler` 部門。`Include` は `**/Gemfile` などで、Gemfile 以外には効かない。

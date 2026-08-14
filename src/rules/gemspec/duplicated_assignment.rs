@@ -4,13 +4,10 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{first_line_range, is_plain_send, literal_key, named_children};
 
-use super::support::{enclosing_specification, first_specification_variable};
+use super::support::{
+    enclosing_specification, first_specification_variable, is_literal, is_specification_receiver,
+};
 use crate::rules::node_ext::NodeExt;
-
-/// The names a specification can be reached by besides the block parameter it was opened with:
-/// upstream writes them into the pattern itself, so they match whether or not the file opens a
-/// specification at all.
-const NUMBERED_PARAMETERS: &[&str] = &["_1", "it"];
 
 /// The specification block an assignment was made in, and the target it named. Two assignments
 /// are duplicates of one another only when both agree.
@@ -72,12 +69,10 @@ fn assignment<'tree>(
     match target.kind_str() {
         "call" => {
             let receiver = target.field("receiver")?;
-            if !is_specification(receiver, variable, context) || !is_plain_send(target, context) {
+            if !is_specification_receiver(receiver, variable, context) || !is_plain_send(target, context) {
                 return None;
             }
-            let method = context
-                .source
-                .node_text(target.field("method")?);
+            let method = context.source.node_text(target.field("method")?);
             Some(Assignment {
                 node: assigned_node(node, target),
                 name: format!("{method}="),
@@ -93,12 +88,10 @@ fn assignment<'tree>(
                 return None;
             }
             let receiver = object.field("receiver")?;
-            if !is_specification(receiver, variable, context) {
+            if !is_specification_receiver(receiver, variable, context) {
                 return None;
             }
-            let method = context
-                .source
-                .node_text(object.field("method")?);
+            let method = context.source.node_text(object.field("method")?);
             let indices = named_children(target);
             let [index] = indices.get(1..)? else {
                 return None;
@@ -129,14 +122,6 @@ fn assigned_node<'tree>(node: Node<'tree>, target: Node<'tree>) -> Node<'tree> {
     }
 }
 
-fn is_specification(receiver: Node<'_>, variable: Option<&str>, context: &RuleContext<'_>) -> bool {
-    if receiver.kind_str() != "identifier" {
-        return false;
-    }
-    let name = context.source.node_text(receiver);
-    Some(name) == variable || NUMBERED_PARAMETERS.contains(&name)
-}
-
 /// Groups of assignments that name the same target inside the same specification, in the order
 /// their first member was written.
 fn duplicates<'a, 'tree>(assignments: &'a [Assignment<'tree>]) -> Vec<Vec<&'a Assignment<'tree>>> {
@@ -152,31 +137,4 @@ fn duplicates<'a, 'tree>(assignments: &'a [Assignment<'tree>]) -> Vec<Vec<&'a As
         .map(|(_, group)| group)
         .filter(|group| group.len() > 1)
         .collect()
-}
-
-/// `node.literal?`: what a `literal?` in a node pattern accepts.
-fn is_literal(node: Node<'_>) -> bool {
-    matches!(
-        node.kind_str(),
-        "string"
-            | "chained_string"
-            | "bare_string"
-            | "character"
-            | "simple_symbol"
-            | "delimited_symbol"
-            | "integer"
-            | "float"
-            | "rational"
-            | "complex"
-            | "true"
-            | "false"
-            | "nil"
-            | "array"
-            | "string_array"
-            | "symbol_array"
-            | "hash"
-            | "range"
-            | "regex"
-            | "subshell"
-    )
 }
