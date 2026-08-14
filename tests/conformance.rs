@@ -2850,6 +2850,15 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_unmodified_reduce_accumulator")
         .severity(Severity::Warning)
         .correctable(false),
+        // どちらも `AllCops: UseProjectIndex` + `rubydex` のときしか索引を持たず、既定では
+        // 何も報告しない。
+        CopCase::new(
+            "Lint/UnusedPrivateMethod",
+            "class C\n  private\n  def unused_one; end\nend\n",
+            Vec::new(),
+        )
+        .id("lint_unused_private_method"),
+        CopCase::new("Lint/NameTypo", "Foo::Barr\nFoo.barr\n", Vec::new()).id("lint_name_typo"),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

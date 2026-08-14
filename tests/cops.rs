@@ -28237,3 +28237,21 @@ mod lint_unmodified_reduce_accumulator {
         }
     }
 }
+
+/// `Lint/UnusedPrivateMethod` と `Lint/NameTypo`。
+///
+/// どちらもハンドラが `project_index` の有無で早期 return する。索引は
+/// `AllCops: UseProjectIndex` を立てて `rubydex` gem を入れたときだけ作られるので、
+/// 既定では何も報告しない。sonicop は索引を持たないため常にその側に立つ。
+mod lint_project_index_cops {
+    use super::*;
+
+    #[test]
+    fn nothing_is_reported_without_a_project_index() {
+        expect_no_offenses(
+            "Lint/UnusedPrivateMethod",
+            "class C\n  private\n  def unused_one; end\nend\n",
+        );
+        expect_no_offenses("Lint/NameTypo", "Foo::Barr\nFoo.barr\n");
+    }
+}
