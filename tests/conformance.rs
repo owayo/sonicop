@@ -3683,6 +3683,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_hash_slice")
         .correctable(true),
+        // 位置は `count` の selector から比較の末尾まで。
+        CopCase::annotated(
+            "Style/CollectionQuerying",
+            "x.count { |e| e > 2 }.positive?\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `any?` instead.\n",
+        )
+        .id("style_collection_querying")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ArrayIntersect",
+            "(a & b).any?\n^^^^^^^^^^^^ Use `a.intersect?(b)` instead of `(a & b).any?`.\n",
+        )
+        .id("style_array_intersect")
+        .target_ruby("3.1")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

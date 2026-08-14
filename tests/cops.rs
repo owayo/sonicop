@@ -21601,3 +21601,131 @@ mod style_hash_subset {
         .run();
     }
 }
+
+/// `Style/CollectionQuerying`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CollectionQuerying` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_collection_querying {
+    use super::*;
+
+    const COP: &str = "Style/CollectionQuerying";
+
+    /// 比較の相手が 0 か 1 かで `any?` / `none?` / `one?` が決まる。
+    #[test]
+    fn counting_only_to_compare_has_a_predicate() {
+        expect_correction(COP, "x.count.positive?\n", "x.any?\n");
+        expect_correction(COP, "x.count > 0\n", "x.any?\n");
+        expect_correction(COP, "x.count != 0\n", "x.any?\n");
+        expect_correction(COP, "x.count.zero?\n", "x.none?\n");
+        expect_correction(COP, "x.count == 0\n", "x.none?\n");
+        expect_correction(COP, "x.count == 1\n", "x.one?\n");
+        expect_correction(
+            COP,
+            "x.count { |e| e > 2 }.positive?\n",
+            "x.any? { |e| e > 2 }\n",
+        );
+        expect_correction(COP, "x.count(&:foo).positive?\n", "x.any?(&:foo)\n");
+    }
+
+    /// `> 1` は Active Support の `many?` にしかならないので既定では黙る。引数付きの
+    /// `count`、レシーバの無い `count`、`size` も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.count > 1\n",
+            "x.count(1).positive?\n",
+            "x.count > 2\n",
+            "x.count == 2\n",
+            "count.positive?\n",
+            "x.size.positive?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ArrayIntersect`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayIntersect` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_intersect {
+    use super::*;
+
+    const COP: &str = "Style/ArrayIntersect";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// `&` でも `intersection` でも、述語でも大きさの比較でも同じ `intersect?` になる。
+    /// 「空か」を訊く側には `!` が付く。
+    #[test]
+    fn every_way_of_asking_becomes_the_predicate() {
+        correction("(a & b).any?\n", "a.intersect?(b)\n");
+        correction("(a & b).empty?\n", "!a.intersect?(b)\n");
+        correction("(a & b).none?\n", "!a.intersect?(b)\n");
+        correction("a.intersection(b).any?\n", "a.intersect?(b)\n");
+        correction("(a & b).size > 0\n", "a.intersect?(b)\n");
+        correction("(a & b).length.positive?\n", "a.intersect?(b)\n");
+        correction("(a & b).count != 0\n", "a.intersect?(b)\n");
+        correction("(a & b).size == 0\n", "!a.intersect?(b)\n");
+        correction("(a & b).length.zero?\n", "!a.intersect?(b)\n");
+    }
+
+    /// ブロックで書かれた包含判定も対象。`include?` は相手が配列リテラルのときだけで、
+    /// `none?` に安全参照が付いたものは意味が変わるので触らない。
+    #[test]
+    fn a_block_that_only_tests_membership_is_reported() {
+        correction(
+            "a.any? { |x| [1, 2].include?(x) }\n",
+            "a.intersect?([1, 2])\n",
+        );
+        correction(
+            "a.none? { |x| [1, 2].include?(x) }\n",
+            "!a.intersect?([1, 2])\n",
+        );
+        correction("a.any? { |x| b.member?(x) }\n", "a.intersect?(b)\n");
+        CopCase::new(COP, "a.any? { |x| b.include?(x) }\n".to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .run();
+        CopCase::new(
+            COP,
+            "a&.none? { |x| b.member?(x) }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .run();
+    }
+
+    /// 否定を伴う述語に安全参照が付くと `nil` の意味が変わるので黙る。
+    #[test]
+    fn a_negated_predicate_reached_by_safe_navigation_is_left_alone() {
+        correction("a&.intersection(b)&.any?\n", "a&.intersect?(b)\n");
+        CopCase::new(COP, "a&.intersection(b)&.none?\n".to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .run();
+    }
+
+    /// `&` でない演算、比べる数が違うもの、引数が 2 つの `intersection`、3.1 未満は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "(a & b).size > 1\n",
+            "(a | b).any?\n",
+            "(a & b).first\n",
+            "a.intersection(b, c).any?\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.1")
+                .run();
+        }
+        CopCase::new(COP, "(a & b).any?\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .run();
+    }
+}
