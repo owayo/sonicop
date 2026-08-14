@@ -30990,3 +30990,168 @@ mod lint_to_enum_arguments {
         }
     }
 }
+
+/// `Layout/LineEndStringConcatenationIndentation`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/LineEndStringConcatenationIndentation` で走らせた
+/// 実出力から取った (既定 `aligned` で検出 4 件、`indented` でも `-A` までバイト一致を確認済み)。
+mod layout_line_end_string_concatenation_indentation {
+    use super::*;
+
+    const COP: &str = "Layout/LineEndStringConcatenationIndentation";
+
+    /// 値として渡された連結は先頭の部分に揃える。
+    #[test]
+    fn a_concatenation_used_as_a_value_is_aligned() {
+        expect_correction(
+            COP,
+            "text = 'offense' \\\n  'not aligned'\n",
+            "text = 'offense' \\\n       'not aligned'\n",
+        );
+        expect_no_offenses(COP, "text = 'offense' \\\n       'aligned'\n");
+    }
+
+    /// 呼び出しの引数として渡された連結も「値」なので揃える側。
+    #[test]
+    fn a_concatenation_handed_to_a_call_is_aligned_too() {
+        expect_correction(
+            COP,
+            "puts 'offense' \\\n  'indented'\n",
+            "puts 'offense' \\\n     'indented'\n",
+        );
+        expect_no_offenses(COP, "puts 'offense' \\\n     'aligned'\n");
+    }
+
+    /// 文そのものとして書かれた連結は 1 段下げる。`def` の本体がその場所。
+    #[test]
+    fn a_concatenation_written_as_a_statement_is_indented() {
+        expect_no_offenses(COP, "def foo\n  'a' \\\n    'b'\nend\n");
+        expect_correction(
+            COP,
+            "def bar\n  'a' \\\n  'b'\nend\n",
+            "def bar\n  'a' \\\n    'b'\nend\n",
+        );
+    }
+
+    /// `indented` に切り替えると、値として渡された連結も 1 段下げになる。
+    #[test]
+    fn the_indented_style_asks_for_one_level_everywhere() {
+        CopCase::new(
+            COP,
+            "text = 'offense' \\\n       'aligned'\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/LineEndStringConcatenationIndentation:\n  EnforcedStyle: indented\n")
+        .without_offense_check()
+        .corrected("text = 'offense' \\\n  'aligned'\n")
+        .run();
+    }
+}
+
+/// `Layout/SingleLineBlockChain` / `Layout/EmptyLineAfterMultilineCondition` /
+/// `Layout/MultilineAssignmentLayout` (いずれも既定では無効)。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った (`-A` までバイト一致を確認済み)。
+mod layout_disabled_trio {
+    use super::*;
+
+    fn case(cop: &str, source: &str) -> CopCase {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .config(&format!("{cop}:\n  Enabled: true\n"))
+    }
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        case(cop, source)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 1 行で閉じたブロックに続く呼び出しは改行して分ける。ブロックが複数行なら黙る。
+    #[test]
+    fn a_call_chained_to_a_single_line_block_is_moved_down() {
+        correction(
+            "Layout/SingleLineBlockChain",
+            "foo { }.bar\n",
+            "foo { }\n.bar\n",
+        );
+        for source in [
+            "foo {\n}.bar\n",
+            "foo do\nend.bar\n",
+            "foo { }\n  .bar\n",
+            "foo.bar\n",
+        ] {
+            case("Layout/SingleLineBlockChain", source).run();
+        }
+    }
+
+    /// 複数行に渡る条件の下には空行を置く。`if` / `while` / `until` / `when` / `rescue`。
+    #[test]
+    fn a_multiline_condition_is_followed_by_a_blank_line() {
+        correction(
+            "Layout/EmptyLineAfterMultilineCondition",
+            "if a &&\n   b\n  foo\nend\n",
+            "if a &&\n   b\n\n  foo\nend\n",
+        );
+        correction(
+            "Layout/EmptyLineAfterMultilineCondition",
+            "while a &&\n      b\n  foo\nend\n",
+            "while a &&\n      b\n\n  foo\nend\n",
+        );
+        correction(
+            "Layout/EmptyLineAfterMultilineCondition",
+            "case x\nwhen 1,\n     2\n  foo\nend\n",
+            "case x\nwhen 1,\n     2\n\n  foo\nend\n",
+        );
+        correction(
+            "Layout/EmptyLineAfterMultilineCondition",
+            "begin\n  a\nrescue Foo,\n       Bar\n  b\nend\n",
+            "begin\n  a\nrescue Foo,\n       Bar\n\n  b\nend\n",
+        );
+    }
+
+    /// すでに空行があるもの、1 行に収まる条件、後ろに何も無い後置条件は黙る。
+    #[test]
+    fn what_the_blank_line_cop_leaves_alone() {
+        for source in [
+            "if a &&\n   b\n\n  foo\nend\n",
+            "if a\n  foo\nend\n",
+            "foo if a &&\n       b\n",
+        ] {
+            case("Layout/EmptyLineAfterMultilineCondition", source).run();
+        }
+    }
+
+    /// 既定の `new_line` は、複数行になる右辺を `=` の次の行から始めさせる。
+    #[test]
+    fn a_multiline_right_hand_side_starts_on_its_own_line() {
+        correction(
+            "Layout/MultilineAssignmentLayout",
+            "x = if a\n  1\nend\n",
+            // `insert_after(node.loc.operator, "\n")` なので、`=` の後ろにあった空白は
+            // そのまま次の行の先頭に残る。
+            "x =\n if a\n  1\nend\n",
+        );
+        case(
+            "Layout/MultilineAssignmentLayout",
+            "y =\n  if a\n    1\n  end\n",
+        )
+        .run();
+        // `SupportedTypes` に無い型は対象外。
+        case("Layout/MultilineAssignmentLayout", "w = [1,\n     2]\n").run();
+    }
+
+    /// `same_line` は逆に、右辺を `=` と同じ行から始めさせる。
+    #[test]
+    fn the_same_line_style_asks_for_the_other_direction() {
+        CopCase::new(
+            "Layout/MultilineAssignmentLayout",
+            "y =\n  if a\n    1\n  end\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/MultilineAssignmentLayout:\n  Enabled: true\n  EnforcedStyle: same_line\n")
+        .without_offense_check()
+        .corrected("y = if a\n    1\n  end\n")
+        .run();
+    }
+}

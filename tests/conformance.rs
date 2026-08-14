@@ -5101,7 +5101,14 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_regexp_argument")
         .correctable(true),
-        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        // ---- Layout (pending) ----
+        // 位置は受け手と `[` のあいだの空白 1 文字。
+        CopCase::annotated(
+            "Layout/LineEndStringConcatenationIndentation",
+            "text = 'offense' \\\n  'not aligned'\n  ^^^^^^^^^^^^^ Align parts of a string concatenated with backslash.\n",
+        )
+        .id("layout_line_end_string_concatenation_indentation")
+        .correctable(true),
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",
