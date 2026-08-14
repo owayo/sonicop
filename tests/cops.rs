@@ -5109,6 +5109,10 @@ mod bundler_department {
 
     /// `add_global_offense` なので位置はファイル先頭。メッセージには本家が検査前に
     /// 絶対化したパスがそのまま入る。
+    ///
+    /// Unix 限定。Windows では絶対化の結果がドライブレター付き (`D:\tmp\example\gems.rb`) に
+    /// なり、走るマシンのカレントドライブにも左右されるので、期待値を固定できない。
+    #[cfg(unix)]
     #[test]
     fn gem_filename_reports_the_manifest_the_configuration_did_not_ask_for() {
         CopCase::annotated(

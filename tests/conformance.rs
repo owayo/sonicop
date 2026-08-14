@@ -4529,6 +4529,13 @@ fn matches_rubocop() {
     let mut stale = Vec::new();
 
     for case in catalogue() {
+        // `Bundler/GemFilename` の期待値は本家が絶対化したパスを丸ごと含むため、Windows では
+        // ドライブレターの付いた別の文字列になる (`/tmp/example/gems.rb` →
+        // `D:\tmp\example\gems.rb`、しかも走るマシンのカレントドライブ次第)。その環境の
+        // 本家から期待値を取り直せないので検証から外す。cop の判定自体は OS に依存しない。
+        if cfg!(windows) && case.label() == "bundler_gem_filename" {
+            continue;
+        }
         let (verdict, detail) = manifest.judge(&case);
         if !verdict.unknown.is_empty() {
             regressions.push(format!(
