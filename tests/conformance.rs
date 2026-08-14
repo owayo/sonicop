@@ -3773,6 +3773,46 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_filter_chain")
         .correctable(true),
+        CopCase::annotated(
+            "Style/UnlessLogicalOperators",
+            r"
+            y unless a && b || c
+            ^^^^^^^^^^^^^^^^^^^^ Do not use mixed logical operators in an `unless`.
+            ",
+        )
+        .id("style_unless_logical_operators")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ConstantVisibility",
+            r"
+            class Foo
+              BAZ = 2
+              ^^^^^^^ Explicitly make `BAZ` public or private using either `#public_constant` or `#private_constant`.
+            end
+            ",
+        )
+        .id("style_constant_visibility")
+        .correctable(false),
+        // 位置は最後のカンマ 1 文字。
+        CopCase::annotated(
+            "Style/TrailingCommaInBlockArgs",
+            r"
+            foo { |a, b,| a }
+                       ^ Useless trailing comma present in block arguments.
+            ",
+        )
+        .id("style_trailing_comma_in_block_args")
+        .correctable(true),
+        // 位置は縦棒を含む引数リスト全体。
+        CopCase::annotated(
+            "Style/SingleLineBlockParams",
+            r"
+            xs.reduce { |a, e| a + e }
+                        ^^^^^^ Name `reduce` block params `|acc, elem|`.
+            ",
+        )
+        .id("style_single_line_block_params")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

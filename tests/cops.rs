@@ -21935,3 +21935,259 @@ mod style_redundant_filter_chain {
         }
     }
 }
+
+/// `Style/UnlessLogicalOperators` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/UnlessLogicalOperators` で走らせた実出力から取った
+/// (検出 4 件一致)。
+mod style_unless_logical_operators {
+    use super::*;
+
+    const COP: &str = "Style/UnlessLogicalOperators";
+
+    /// 既定は「混ざっているものだけ」を禁じる。`&&` と `||` の混在、`&&` と `and` のような
+    /// 綴りの混在が対象。
+    #[test]
+    fn mixed_operators_are_reported() {
+        // 複数行のレンジは注記が 1 行目しか表せないので位置で指定する。
+        CopCase::annotated(COP, "unless a && b || c\n  x\nend\n")
+            .id("or_with_and")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[26])
+            .run();
+        CopCase::annotated(COP, "unless a && b and c\n  x\nend\n")
+            .id("mixed_spelling")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[27])
+            .run();
+    }
+
+    /// 条件そのものが論理演算でなくても、中に両方の綴りがあれば混在として報告される
+    /// (上流の `mixed_precedence_and?` は条件の子孫だけを見て、条件自身は種類が合うときだけ
+    /// 足すため)。
+    #[test]
+    fn a_logical_operator_buried_in_an_argument_counts() {
+        expect_offense(
+            COP,
+            r"
+            y unless foo(a && b, (c and d))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Do not use mixed logical operators in an `unless`.
+            ",
+        );
+    }
+
+    /// 綴りが揃っているもの、論理演算の無いものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "unless a && b\n  x\nend\n",
+            "unless a and b\n  x\nend\n",
+            "y unless a || b\n",
+            "y unless foo(a && b)\n",
+            "y unless a\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `forbid_logical_operators` は論理演算そのものを禁じる。
+    #[test]
+    fn the_other_enforced_style() {
+        CopCase::annotated(COP, "unless a && b\n  x\nend\n")
+            .id("forbid_all")
+            .config("Style/UnlessLogicalOperators:\n  EnforcedStyle: forbid_logical_operators\n")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[21])
+            .run();
+        // 1 行の `unless` 修飾子なら注記でそのまま書ける。
+        CopCase::annotated(
+            COP,
+            r"
+            y unless a && b
+            ^^^^^^^^^^^^^^^ Do not use any logical operator in an `unless`.
+            ",
+        )
+        .config("Style/UnlessLogicalOperators:\n  EnforcedStyle: forbid_logical_operators\n")
+        .run();
+    }
+}
+
+/// `Style/ConstantVisibility` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ConstantVisibility` で走らせた実出力から取った
+/// (検出 5 件一致)。
+mod style_constant_visibility {
+    use super::*;
+
+    const COP: &str = "Style/ConstantVisibility";
+
+    /// クラス・モジュール本体の定数代入が対象。位置は代入全体。
+    #[test]
+    fn a_constant_without_a_visibility_declaration_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            class Foo
+              BAZ = 2
+              ^^^^^^^ Explicitly make `BAZ` public or private using either `#public_constant` or `#private_constant`.
+            end
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            module M
+              MOD = 4
+              ^^^^^^^ Explicitly make `MOD` public or private using either `#public_constant` or `#private_constant`.
+            end
+            ",
+        );
+    }
+
+    /// 兄弟に `private_constant` / `public_constant` があれば触らない。文字列でも通る。
+    #[test]
+    fn a_declaration_beside_it_is_enough() {
+        expect_no_offenses(COP, "class Foo\n  BAR = 1\n  private_constant :BAR\nend\n");
+        expect_no_offenses(COP, "class Foo\n  QUX = 1\n  public_constant 'QUX'\nend\n");
+    }
+
+    /// トップレベルとメソッド本体は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "TOP = 6\n");
+    }
+
+    /// `IgnoreModules` はクラス・モジュール構築子への代入を免除する。
+    #[test]
+    fn ignore_modules_exempts_the_constructors() {
+        for source in [
+            "class Foo\n  MOD = Module.new\nend\n",
+            "class Foo\n  KLASS = Class.new\nend\n",
+            "class Foo\n  STR = Struct.new(:a)\nend\n",
+            "class Foo\n  DAT = Data.define(:a)\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/ConstantVisibility:\n  IgnoreModules: true\n")
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            class Foo
+              PLAIN = 1
+              ^^^^^^^^^ Explicitly make `PLAIN` public or private using either `#public_constant` or `#private_constant`.
+            end
+            ",
+        )
+        .config("Style/ConstantVisibility:\n  IgnoreModules: true\n")
+        .run();
+    }
+}
+
+/// `Style/TrailingCommaInBlockArgs` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/TrailingCommaInBlockArgs` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_trailing_comma_in_block_args {
+    use super::*;
+
+    const COP: &str = "Style/TrailingCommaInBlockArgs";
+
+    /// 位置は最後のカンマ 1 文字。
+    #[test]
+    fn the_last_comma_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            foo { |a, b,| a }
+                       ^ Useless trailing comma present in block arguments.
+            ",
+        );
+        expect_correction(COP, "foo { |a, b,| a }\n", "foo { |a, b| a }\n");
+    }
+
+    /// 分解引数はその中の分だけ数える。`lambda { }` は `->` ではないので対象。
+    #[test]
+    fn what_counts_as_more_than_one_parameter() {
+        expect_correction(COP, "foo { |(a, b),| a }\n", "foo { |(a, b)| a }\n");
+        expect_correction(COP, "foo { |a, b, c,| a }\n", "foo { |a, b, c| a }\n");
+        expect_correction(COP, "lambda { |a, b,| a }\n", "lambda { |a, b| a }\n");
+    }
+
+    /// 引数 1 個の `|a,|` は先頭要素の分解を意味するので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo { |a,| a }\n", "foo { |a, b| a }\n", "foo { a }\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/SingleLineBlockParams` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/SingleLineBlockParams` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_single_line_block_params {
+    use super::*;
+
+    const COP: &str = "Style/SingleLineBlockParams";
+
+    /// 位置は縦棒を含む引数リスト全体。本文の読みも一緒に付け替わる。
+    #[test]
+    fn the_parameters_are_renamed_to_the_configured_names() {
+        expect_offense(
+            COP,
+            r"
+            xs.reduce { |a, e| a + e }
+                        ^^^^^^ Name `reduce` block params `|acc, elem|`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.reduce { |a, e| a + e }\n",
+            "xs.reduce { |acc, elem| acc + elem }\n",
+        );
+        // 先頭のアンダースコアは保たれる。
+        expect_correction(
+            COP,
+            "xs.reduce { |_a, e| e }\n",
+            "xs.reduce { |_acc, elem| elem }\n",
+        );
+        expect_correction(COP, "xs.reduce { |a| a }\n", "xs.reduce { |acc| acc }\n");
+    }
+
+    /// 設定より引数が多いと、はみ出た分は名前が無いまま並ぶ (上流も末尾に `, ` を残す)。
+    #[test]
+    fn an_argument_past_the_configured_list_gets_no_name() {
+        expect_offense(
+            COP,
+            r"
+            xs.reduce { |a, e, f| a }
+                        ^^^^^^^^^ Name `reduce` block params `|acc, elem, |`.
+            ",
+        );
+        // この cop 単体の `-A` では末尾のカンマが残る (2 パス目で引数が揃うので黙る)。
+        expect_correction(
+            COP,
+            "xs.reduce { |a, e, f| a }\n",
+            "xs.reduce { |acc, elem, | acc }\n",
+        );
+    }
+
+    /// 名前が合っているもの、レシーバの無い呼び出し、対象外のメソッド、複数行のブロックは
+    /// 触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.inject { |acc, elem| acc + elem }\n",
+            "reduce { |a, e| a }\n",
+            "xs.map { |a, e| a }\n",
+            "xs.reduce do |a, e|\n  a\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
