@@ -4341,6 +4341,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_reduce_to_hash")
         .correctable(true),
+        CopCase::annotated(
+            "Style/DocumentationMethod",
+            r"
+            def foo; end
+            ^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        )
+        .id("style_documentation_method")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

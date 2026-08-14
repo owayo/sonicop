@@ -26111,3 +26111,81 @@ mod style_reduce_to_hash {
         .run();
     }
 }
+
+/// `Style/DocumentationMethod` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DocumentationMethod` で走らせた実出力から取った
+/// (既定と `RequireForNonPublicMethods: true` の両方で一致)。
+mod style_documentation_method {
+    use super::*;
+
+    const COP: &str = "Style/DocumentationMethod";
+
+    /// 位置は定義全体。修飾子に渡した定義はその呼び出し全体になる。
+    #[test]
+    fn a_public_method_without_prose_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def foo; end
+            ^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            module_function def mf; end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        );
+    }
+
+    /// 直前の行のコメントがあれば触らない。注記・マジックコメント・ディレクティブは
+    /// 説明とは数えない。
+    #[test]
+    fn a_comment_directly_above_is_documentation() {
+        expect_no_offenses(COP, "# prose\ndef bar; end\n");
+        expect_no_offenses(COP, "# prose\nmodule_function def mf2; end\n");
+        for source in [
+            "# TODO: annotation\ndef annotated; end\n",
+            "# frozen_string_literal: true\ndef magic; end\n",
+            "# rubocop:disable Style/For\ndef directive; end\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .run();
+        }
+    }
+
+    /// `initialize` と、既定では非公開のメソッドは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def initialize; end\n",
+            "class A\n  private\n  def hidden; end\nend\n",
+            "private def inline; end\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `RequireForNonPublicMethods` と `AllowedMethods` で範囲が変わる。
+    #[test]
+    fn the_settings_change_what_is_required() {
+        CopCase::annotated(
+            COP,
+            r"
+            class A
+              private
+              def hidden; end
+              ^^^^^^^^^^^^^^^ Missing method documentation comment.
+            end
+            ",
+        )
+        .config("Style/DocumentationMethod:\n  RequireForNonPublicMethods: true\n")
+        .run();
+        CopCase::new(COP, "def foo; end\n".to_owned(), Vec::new())
+            .config("Style/DocumentationMethod:\n  AllowedMethods:\n    - foo\n")
+            .run();
+    }
+}
