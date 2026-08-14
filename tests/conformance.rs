@@ -3813,6 +3813,41 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_single_line_block_params")
         .correctable(true),
+        // 既定 (`allow_single_line`) では複数行のブロックだけが対象。
+        CopCase::annotated("Style/NumberedParameters", "xs.map do\n  _1\nend\n")
+            .id("style_numbered_parameters")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[18])
+            .correctable(false),
+        CopCase::annotated(
+            "Style/NumberedParametersLimit",
+            r"
+            xs.map { _1 + _2 }
+            ^^^^^^^^^^^^^^^^^^ Avoid using more than 1 numbered parameter; 2 detected.
+            ",
+        )
+        .id("style_numbered_parameters_limit")
+        .correctable(false),
+        // 位置は selector からブロックの閉じまで。
+        CopCase::annotated(
+            "Style/RedundantMinMaxBy",
+            r"
+            xs.max_by { |x| x }
+               ^^^^^^^^^^^^^^^^ Use `max` instead of `max_by { |x| x }`.
+            ",
+        )
+        .id("style_redundant_min_max_by")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/PredicateWithKind",
+            r"
+            xs.any? { |x| x.is_a?(Foo) }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `any?(Foo)` to `any? { ... }` with a kind check.
+            ",
+        )
+        .id("style_predicate_with_kind")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

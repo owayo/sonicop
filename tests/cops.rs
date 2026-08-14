@@ -22191,3 +22191,226 @@ mod style_single_line_block_params {
         }
     }
 }
+
+/// `Style/NumberedParameters`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NumberedParameters` で走らせた実出力から取った
+/// (検出 2 件一致)。
+mod style_numbered_parameters {
+    use super::*;
+
+    const COP: &str = "Style/NumberedParameters";
+
+    /// 既定 (`allow_single_line`) では複数行のブロックだけが対象。位置は呼び出しとブロック全体。
+    #[test]
+    fn a_multiline_numbered_block_is_reported() {
+        CopCase::annotated(COP, "xs.map do\n  _1\nend\n")
+            .id("multiline")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[18])
+            .run();
+    }
+
+    /// 1 行のブロック・名前付き引数・`it` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["xs.map { _1 }\n", "xs.map { |x| x }\n", "xs.map { it }\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `disallow` は 1 行でも禁じる。
+    #[test]
+    fn the_other_enforced_style() {
+        CopCase::annotated(
+            COP,
+            r"
+            xs.map { _1 }
+            ^^^^^^^^^^^^^ Avoid using numbered parameters.
+            ",
+        )
+        .config("Style/NumberedParameters:\n  EnforcedStyle: disallow\n")
+        .run();
+    }
+
+    /// 2.7 未満では `_1` が普通のメソッド呼び出しなので黙る。
+    #[test]
+    fn it_needs_ruby_2_7() {
+        CopCase::new(COP, "xs.map do\n  _1\nend\n".to_owned(), Vec::new())
+            .target_ruby("2.6")
+            .run();
+    }
+}
+
+/// `Style/NumberedParametersLimit`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NumberedParametersLimit` で走らせた実出力から取った
+/// (検出 3 件一致)。
+mod style_numbered_parameters_limit {
+    use super::*;
+
+    const COP: &str = "Style/NumberedParametersLimit";
+
+    /// 既定の `Max` は 1。数えるのは**異なる**番号の数。
+    #[test]
+    fn more_numbered_parameters_than_max_are_reported() {
+        expect_offense(
+            COP,
+            r"
+            xs.map { _1 + _2 }
+            ^^^^^^^^^^^^^^^^^^ Avoid using more than 1 numbered parameter; 2 detected.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            xs.map { _1 + _2 + _3 }
+            ^^^^^^^^^^^^^^^^^^^^^^^ Avoid using more than 1 numbered parameter; 3 detected.
+            ",
+        );
+    }
+
+    /// 同じ番号を 2 回読んでも 1 個。selector やメソッド名は変数の読みではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.map { _1 }\n",
+            "xs.map { _1 + _1 }\n",
+            "xs.map { _1._2 }\n",
+            "xs.map { |x| x }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Max` を上げると閾値も上がり、メッセージも複数形になる。
+    #[test]
+    fn the_max_setting_moves_the_threshold() {
+        CopCase::annotated(
+            COP,
+            r"
+            xs.map { _1 + _2 + _3 }
+            ^^^^^^^^^^^^^^^^^^^^^^^ Avoid using more than 2 numbered parameters; 3 detected.
+            ",
+        )
+        .config("Style/NumberedParametersLimit:\n  Max: 2\n")
+        .run();
+    }
+}
+
+/// `Style/RedundantMinMaxBy`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantMinMaxBy` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_min_max_by {
+    use super::*;
+
+    const COP: &str = "Style/RedundantMinMaxBy";
+
+    /// 位置は selector からブロックの閉じまで。メッセージにはブロックの綴りが入る。
+    #[test]
+    fn a_block_that_returns_the_element_itself_is_redundant() {
+        expect_offense(
+            COP,
+            r"
+            xs.max_by { |x| x }
+               ^^^^^^^^^^^^^^^^ Use `max` instead of `max_by { |x| x }`.
+            ",
+        );
+        expect_correction(COP, "xs.max_by { |x| x }\n", "xs.max\n");
+        expect_correction(COP, "xs.min_by { |x| x }\n", "xs.min\n");
+        expect_correction(COP, "xs.minmax_by { |x| x }\n", "xs.minmax\n");
+    }
+
+    /// `_1` と `it` の綴りは別のメッセージになる。
+    #[test]
+    fn the_numbered_and_it_spellings_have_their_own_messages() {
+        expect_offense(
+            COP,
+            r"
+            xs.max_by { _1 }
+               ^^^^^^^^^^^^^ Use `max` instead of `max_by { _1 }`.
+            ",
+        );
+        CopCase::annotated(
+            COP,
+            r"
+            xs.max_by { it }
+               ^^^^^^^^^^^^^ Use `max` instead of `max_by { it }`.
+            ",
+        )
+        .target_ruby("3.4")
+        .run();
+    }
+
+    /// 本文が引数そのものでないもの、引数が 2 個のもの、別のメソッドは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.max_by { |x| x.foo }\n",
+            "xs.max_by { |x, y| x }\n",
+            "xs.sort_by { |x| x }\n",
+            "xs.max_by\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/PredicateWithKind`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/PredicateWithKind` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_predicate_with_kind {
+    use super::*;
+
+    const COP: &str = "Style/PredicateWithKind";
+
+    /// 位置は呼び出しとブロック全体。置き換えは selector からブロックの閉じまで。
+    #[test]
+    fn a_kind_check_in_the_block_becomes_an_argument() {
+        expect_offense(
+            COP,
+            r"
+            xs.any? { |x| x.is_a?(Foo) }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `any?(Foo)` to `any? { ... }` with a kind check.
+            ",
+        );
+        expect_correction(COP, "xs.any? { |x| x.is_a?(Foo) }\n", "xs.any?(Foo)\n");
+        expect_correction(COP, "xs.all? { |x| x.kind_of?(Foo) }\n", "xs.all?(Foo)\n");
+        expect_correction(
+            COP,
+            "xs.none? { |x| x.instance_of?(Foo) }\n",
+            "xs.none?(Foo)\n",
+        );
+        expect_correction(COP, "xs.one? { |y| y.is_a?(Bar) }\n", "xs.one?(Bar)\n");
+    }
+
+    /// `_1` と `it` でも同じ。
+    #[test]
+    fn the_numbered_and_it_spellings_work_too() {
+        expect_correction(COP, "xs.any? { _1.is_a?(Foo) }\n", "xs.any?(Foo)\n");
+        CopCase::new(COP, "xs.any? { it.is_a?(Foo) }\n".to_owned(), Vec::new())
+            .target_ruby("3.4")
+            .without_offense_check()
+            .corrected("xs.any?(Foo)\n")
+            .run();
+    }
+
+    /// 別の受け手を調べているもの、引数が 2 個の `is_a?`、種類検査でないメソッド、
+    /// 本文が 2 文以上のもの、対象外の述語、引数が 2 個のブロックは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.any? { |x| y.is_a?(Foo) }\n",
+            "xs.any? { |x| x.is_a?(Foo, Bar) }\n",
+            "xs.any? { |x| x.foo?(Foo) }\n",
+            "xs.any? { |x| p x; x.is_a?(Foo) }\n",
+            "xs.map { |x| x.is_a?(Foo) }\n",
+            "xs.any? { |x, y| x.is_a?(Foo) }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

@@ -6,7 +6,7 @@
 /// questions for the Style cops that reason about where a `private` reaches.
 pub(crate) mod access_modifier;
 mod ambiguity;
-mod blocks;
+pub(crate) mod blocks;
 mod conditions;
 mod cop_directives;
 mod exception_hierarchy;
