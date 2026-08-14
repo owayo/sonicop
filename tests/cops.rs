@@ -28255,3 +28255,72 @@ mod lint_project_index_cops {
         expect_no_offenses("Lint/NameTypo", "Foo::Barr\nFoo.barr\n");
     }
 }
+
+/// `Lint/HeredocMethodCallPosition` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/HeredocMethodCallPosition` で走らせた実出力から
+/// 取った (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_heredoc_method_call_position {
+    use super::*;
+
+    const COP: &str = "Lint/HeredocMethodCallPosition";
+
+    const ENABLED: &str = "Lint/HeredocMethodCallPosition:\n  Enabled: true\n";
+
+    /// レンジは終端行の次の行の 1 文字目。補正は呼び出しを開始行の末尾へ移す。
+    #[test]
+    fn the_call_moves_up_to_the_heredoc_opening() {
+        CopCase::annotated(
+            COP,
+            r#"
+            x = <<~SQL
+              bar
+            SQL
+              .strip
+            ^ Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.
+            "#,
+        )
+        .config(ENABLED)
+        .corrected("x = <<~SQL.strip\n  bar\nSQL\n")
+        .run();
+        // 直後のカンマは呼び出しと一緒に動く。
+        CopCase::new(
+            COP,
+            "w = [\n  <<~SQL\n    bar\n  SQL\n  .strip,\n]\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .corrected("w = [\n  <<~SQL.strip,\n    bar\n  SQL\n]\n")
+        .run();
+    }
+
+    /// 動かすと他のものまで連れて行く形は報告だけする。
+    #[test]
+    fn a_call_that_cannot_be_lifted_is_reported_only() {
+        for source in [
+            "foo(<<~SQL\n  bar\nSQL\n     .strip)\n",
+            "v = <<~SQL\n  bar\nSQL\n  .strip\n  .chomp\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .correctable(false)
+                .run();
+        }
+    }
+
+    /// 開始行に書かれた呼び出しと、呼び出しの無いヒアドキュメントは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo(<<~SQL)\n  bar\nSQL\n",
+            "foo(<<~SQL.strip)\n  bar\nSQL\n",
+            "y = <<~SQL.strip\n  bar\nSQL\n",
+            "z = [\n  <<~SQL,\n    bar\n  SQL\n]\n",
+            "d = <<~SQL.strip.chomp\n  x\nSQL\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}

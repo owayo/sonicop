@@ -2859,6 +2859,21 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_unused_private_method"),
         CopCase::new("Lint/NameTypo", "Foo::Barr\nFoo.barr\n", Vec::new()).id("lint_name_typo"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/HeredocMethodCallPosition",
+            r#"
+            x = <<~SQL
+              bar
+            SQL
+              .strip
+            ^ Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.
+            "#,
+        )
+        .id("lint_heredoc_method_call_position")
+        .config("Lint/HeredocMethodCallPosition:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

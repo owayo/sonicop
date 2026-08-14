@@ -91,6 +91,7 @@ department_rules! {
     float_out_of_range => ("FloatOutOfRange", Warning),
     format_parameter_mismatch => ("FormatParameterMismatch", Warning),
     hash_compare_by_identity => ("HashCompareByIdentity", Warning),
+    heredoc_method_call_position => ("HeredocMethodCallPosition", Warning),
     identity_comparison => ("IdentityComparison", Warning),
     hash_new_with_keyword_arguments_as_default => ("HashNewWithKeywordArgumentsAsDefault", Warning),
     implicit_string_concatenation => ("ImplicitStringConcatenation", Warning),
