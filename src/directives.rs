@@ -426,6 +426,41 @@ pub(crate) fn directive_header(text: &str) -> Option<DirectiveHeader<'_>> {
     })
 }
 
+/// `DirectiveComment#disabled? && #cop_names.include?(cop)` for one comment on its own.
+///
+/// A cop that has to answer "is *this* comment the directive that switches me off" cannot go
+/// through [`DirectiveState`], which answers about lines rather than comments. The registry a full
+/// expansion would need is not reachable from a cop either, but it only adds one thing to a name
+/// the comment spells out -- whether it is a department -- and a department is exactly the prefix
+/// of the cops it holds.
+pub(crate) fn comment_disables_cop(text: &str, cop: &str) -> bool {
+    let Some(captures) = directive_regex().captures(text) else {
+        return false;
+    };
+    let whole = captures.get(0).expect("group zero always participates");
+    if commented_out(&text[..whole.start()]) {
+        return false;
+    }
+    if !matches!(
+        captures.get(1).map(|mode| mode.as_str()),
+        Some("disable" | "todo")
+    ) {
+        return false;
+    }
+    let Some(names) = captures.get(2) else {
+        return false;
+    };
+    if names.as_str() == "all" {
+        return true;
+    }
+    names.as_str().split(',').map(str::trim).any(|name| {
+        name == cop
+            || cop
+                .strip_prefix(name)
+                .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
 /// Whether everything before the marker is a `#` and whitespace.
 fn commented_out(prefix: &str) -> bool {
     prefix.starts_with('#')

@@ -21100,3 +21100,239 @@ mod lint_require_relative_self_path {
         }
     }
 }
+
+/// `Lint/EmptyBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/EmptyBlock` で走らせた実出力から取った。
+mod lint_empty_block {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyBlock";
+
+    /// レンジは本家の `block` ノード、つまり呼び出しと波括弧を合わせた範囲。
+    #[test]
+    fn the_call_and_its_braces_are_the_reported_span() {
+        expect_offense(
+            COP,
+            r#"
+            foo {}
+            ^^^^^^ Empty block detected.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            foo.bar { }
+            ^^^^^^^^^^^ Empty block detected.
+            "#,
+        );
+        CopCase::annotated(
+            COP,
+            r#"
+            foo do end
+            ^^^^^^^^^^ Empty block detected.
+            "#,
+        )
+        .run();
+    }
+
+    /// 既定では lambda / proc とコメント付きは免除される。`begin ... rescue` を持つ
+    /// ブロックは本家では本体があるので空ではない。
+    #[test]
+    fn what_the_defaults_leave_alone() {
+        for source in [
+            "lambda {}\n",
+            "proc {}\n",
+            "Proc.new {}\n",
+            "-> {}\n",
+            "->() {}\n",
+            "foo { # comment\n}\n",
+            "foo {\n  # comment\n}\n",
+            "foo do\nrescue\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 設定を切ると lambda もコメント付きも報告される。
+    #[test]
+    fn the_two_switches_turn_the_exemptions_off() {
+        CopCase::annotated(
+            COP,
+            r#"
+            lambda {}
+            ^^^^^^^^^ Empty block detected.
+            "#,
+        )
+        .config("Lint/EmptyBlock:\n  AllowEmptyLambdas: false\n")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            foo { # note
+            ^^^^^^^^^^^^ Empty block detected.
+            }
+            "#,
+        )
+        .config("Lint/EmptyBlock:\n  AllowComments: false\n")
+        .locations(&[(1, 1, 2, 1)])
+        .lengths(&[14])
+        .run();
+    }
+}
+
+/// `Lint/EmptyInPattern`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/EmptyInPattern` で走らせた実出力から取った。
+mod lint_empty_in_pattern {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyInPattern";
+
+    /// レンジは `in` からパターン (ガードがあればガード) の末尾まで。本体を持たない
+    /// 枝の `then` は本家のノードに含まれない。
+    #[test]
+    fn the_branch_up_to_its_pattern_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            in 1 then
+            ^^^^ Avoid `in` branches without a body.
+            in 2
+            ^^^^ Avoid `in` branches without a body.
+              y
+            in 3
+            ^^^^ Avoid `in` branches without a body.
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .without_offense_check()
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            in 1 if y
+            ^^^^^^^^^ Avoid `in` branches without a body.
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    /// 既定の `AllowComments: true` では、枝の中のコメントが免除になる。
+    #[test]
+    fn a_comment_inside_the_branch_excuses_it() {
+        CopCase::new(
+            COP,
+            "case x\nin 1\n  # comment\nin 2 then z\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+}
+
+/// `Lint/DuplicateMatchPattern`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DuplicateMatchPattern` で走らせた実出力から取った。
+mod lint_duplicate_match_pattern {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateMatchPattern";
+
+    /// ハッシュパターンと選言は順序を問わず同じ。ガードは同一性の一部。
+    #[test]
+    fn order_independent_patterns_are_compared_sorted() {
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            in 1
+            in 1
+               ^ Duplicate `in` pattern detected.
+            in {a: 1, b: 2}
+            in {b: 2, a: 1}
+               ^^^^^^^^^^^^ Duplicate `in` pattern detected.
+            in Integer | String
+            in String | Integer
+               ^^^^^^^^^^^^^^^^ Duplicate `in` pattern detected.
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .without_offense_check()
+        .run();
+    }
+
+    /// 3 つ以上の選言は本家では左結合の入れ子なので、並べ替えても同じにならない。
+    /// ガードが違えば別の枝。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(
+            COP,
+            "case x\nin A | B | C\nin C | B | A\nin 1 if y\nin 1\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+}
+
+/// `Lint/NoReturnInBeginEndBlocks`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NoReturnInBeginEndBlocks` で走らせた実出力から取った。
+mod lint_no_return_in_begin_end_blocks {
+    use super::*;
+
+    const COP: &str = "Lint/NoReturnInBeginEndBlocks";
+
+    #[test]
+    fn a_return_inside_an_assigned_begin_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            x = begin
+              return 1 if a
+              ^^^^^^^^ Do not `return` in `begin..end` blocks in assignment contexts.
+              0
+            end
+            "#,
+        );
+        for source in [
+            "@y = begin\n  return 1 if a\n  0\nend\n",
+            "$g = begin\n  return 1 if a\n  0\nend\n",
+            "@@c = begin\n  return 1 if a\n  0\nend\n",
+            "Foo::Bar = begin\n  return 1 if a\n  0\nend\n",
+            "z ||= begin\n  return 1 if a\n  0\nend\n",
+            "w += begin\n  return 1 if a\n  0\nend\n",
+            "foo.bar ||= begin\n  return 1 if a\n  0\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// `and_asgn` と `masgn`、属性・添字への代入には本家のハンドラが無い。内側の
+    /// メソッドや lambda の `return` はその場を抜けるだけ。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "q &&= begin\n  return 1 if a\n  0\nend\n",
+            "c, d = begin\n  return 1 if a\n  0\nend\n",
+            "foo.bar = begin\n  return 1 if a\n  0\nend\n",
+            "foo[0] = begin\n  return 1 if a\n  0\nend\n",
+            "begin\n  return 1 if a\nend\n",
+            "b = begin\n  def m\n    return 1\n  end\n  0\nend\n",
+            "b = begin\n  -> { return 1 }\n  0\nend\n",
+            "b = begin\n  lambda { return 1 }\n  0\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

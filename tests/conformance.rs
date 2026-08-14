@@ -2478,6 +2478,58 @@ fn catalogue() -> Vec<CopCase> {
         .path("b12.rb")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyBlock",
+            r#"
+            foo {}
+            ^^^^^^ Empty block detected.
+            "#,
+        )
+        .id("lint_empty_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyInPattern",
+            r#"
+            case x
+            in 1
+            ^^^^ Avoid `in` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_in_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateMatchPattern",
+            r#"
+            case x
+            in 1
+              a
+            in 1
+               ^ Duplicate `in` pattern detected.
+              b
+            end
+            "#,
+        )
+        .id("lint_duplicate_match_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/NoReturnInBeginEndBlocks",
+            r#"
+            x = begin
+              return 1 if a
+              ^^^^^^^^ Do not `return` in `begin..end` blocks in assignment contexts.
+              0
+            end
+            "#,
+        )
+        .id("lint_no_return_in_begin_end_blocks")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
