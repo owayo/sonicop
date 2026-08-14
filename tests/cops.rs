@@ -20647,3 +20647,234 @@ mod lint_ambiguous_assignment {
         }
     }
 }
+
+/// `Lint/ConstantOverwrittenInRescue`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ConstantOverwrittenInRescue` で走らせた実出力から
+/// 取った (検出 2 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_constant_overwritten_in_rescue {
+    use super::*;
+
+    const COP: &str = "Lint/ConstantOverwrittenInRescue";
+
+    /// レンジは `=>` の 2 文字で、補正は `rescue` の直後から `=>` の末尾までを消す。
+    #[test]
+    fn the_assoc_is_reported_and_the_arrow_removed() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              x
+            rescue => CONST
+                   ^^ `CONST` is overwritten by `rescue =>`.
+            end
+            "#,
+        );
+        expect_correction(
+            COP,
+            "begin\n  x\nrescue => CONST\nend\nbegin\n  x\nrescue => Foo::Bar\nend\n",
+            "begin\n  x\nrescue CONST\nend\nbegin\n  x\nrescue Foo::Bar\nend\n",
+        );
+    }
+
+    /// `(resbody nil? $(casgn _ _) nil?)` は例外リストも本体も無いものだけ。
+    #[test]
+    fn a_clause_that_catches_or_does_something_is_left_alone() {
+        for source in [
+            "begin\n  x\nrescue => CONST\n  y\nend\n",
+            "begin\n  x\nrescue Foo => CONST\nend\n",
+            "begin\n  x\nrescue => e\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/HashNewWithKeywordArgumentsAsDefault`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/HashNewWithKeywordArgumentsAsDefault` で走らせた
+/// 実出力から取った (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_hash_new_with_keyword_arguments_as_default {
+    use super::*;
+
+    const COP: &str = "Lint/HashNewWithKeywordArgumentsAsDefault";
+
+    #[test]
+    fn the_braceless_hash_is_reported_and_wrapped() {
+        expect_offense(
+            COP,
+            r#"
+            Hash.new(a: 1)
+                     ^^^^ Use a hash literal instead of keyword arguments.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "Hash.new(a: 1)\nHash.new(a: 1, b: 2)\n::Hash.new(a: 1)\n",
+            "Hash.new({a: 1})\nHash.new({a: 1, b: 2})\n::Hash.new({a: 1})\n",
+        );
+    }
+
+    /// 波括弧付き・`capacity:` 1 個・別名前空間の `Hash`・リテラル引数は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Hash.new({ a: 1 })\n",
+            "Hash.new(capacity: 8)\n",
+            "Foo::Hash.new(a: 1)\n",
+            "Hash.new(0)\n",
+            "Hash.new\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/SharedMutableDefault`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/SharedMutableDefault` で走らせた実出力から取った。
+mod lint_shared_mutable_default {
+    use super::*;
+
+    const COP: &str = "Lint/SharedMutableDefault";
+
+    #[test]
+    fn a_mutable_default_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            Hash.new([])
+            ^^^^^^^^^^^^ Do not create a Hash with a mutable default value as the default value can accidentally be changed.
+            "#,
+        );
+        for source in [
+            "Hash.new({})\n",
+            "Hash.new(Array.new)\n",
+            "Hash.new(Hash.new)\n",
+            "Hash.new(a: 1)\n",
+            "Hash.new({ a: 1 })\n",
+            "Hash.new(a: 1, b: 2)\n",
+            "::Hash.new(a: 1)\n",
+            // 2 引数の形は「共有される既定値 + 容量」のときだけ。
+            "Hash.new([], capacity: 2)\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Hash.new(capacity: 8)\n",
+            "Foo::Hash.new(a: 1)\n",
+            "Hash.new(0)\n",
+            "Hash.new(Set.new)\n",
+            "Hash.new(\"\")\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/TripleQuotes`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/TripleQuotes` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_triple_quotes {
+    use super::*;
+
+    const COP: &str = "Lint/TripleQuotes";
+
+    /// 空文字列だけで出来たリテラルは 1 個だけ残す。
+    #[test]
+    fn the_extra_quotes_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            x = """foo"""
+                ^^^^^^^^^ Delimiting a string with multiple quotes has no effect, use a single quote instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "x = \"\"\"foo\"\"\"\nw = \"\"\"\"\"\"\nu = \"\"\"a\"\"\" \"b\"\ny = '''foo'''\n",
+            "x = \"foo\"\nw = \"\"\nu = \"a\" \"b\"\ny = 'foo'\n",
+        );
+    }
+
+    /// 開きの引用符が 3 個未満のもの、空文字列を含まないものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["z = \"\"\n", "y = \"\" \"a\" \"\"\n", "x = \"a\" \"b\"\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/RefinementImportMethods`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RefinementImportMethods` で走らせた実出力から取った
+/// (検出 2 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_refinement_import_methods {
+    use super::*;
+
+    const COP: &str = "Lint/RefinementImportMethods";
+
+    /// メッセージは対象 Ruby 版で変わる。3.1 は「非推奨」、3.2 以降は「削除済み」。
+    #[test]
+    fn the_message_follows_the_target_ruby_version() {
+        CopCase::annotated(
+            COP,
+            r#"
+            module M
+              refine Foo do
+                include Bar
+                ^^^^^^^ Use `import_methods` instead of `include` because it is deprecated in Ruby 3.1.
+              end
+            end
+            "#,
+        )
+        .target_ruby("3.1")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            module M
+              refine Foo do
+                prepend Bar
+                ^^^^^^^ Use `import_methods` instead of `prepend` because it was removed in Ruby 3.2.
+              end
+            end
+            "#,
+        )
+        .target_ruby("3.2")
+        .corrected("module M\n  refine Foo do\n    import_methods Bar\n  end\nend\n")
+        .run();
+    }
+
+    /// 本家は `parent.block_type?` で見るので、文が 2 つ以上あるブロックでは発火しない。
+    /// 2.7 では cop 自体が動かない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        let sources = [
+            "module M\n  refine Foo do\n    include B\n    prepend C\n  end\nend\n",
+            "class D\n  include E\nend\n",
+            "module M\n  refine Foo do\n    Foo.include Bar\n  end\nend\n",
+        ];
+        for source in sources {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+        CopCase::new(
+            COP,
+            "module M\n  refine Foo do\n    include Bar\n  end\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+}

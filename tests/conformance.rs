@@ -2378,6 +2378,65 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_ambiguous_assignment")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/ConstantOverwrittenInRescue",
+            r#"
+            begin
+              x
+            rescue => CONST
+                   ^^ `CONST` is overwritten by `rescue =>`.
+            end
+            "#,
+        )
+        .id("lint_constant_overwritten_in_rescue")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/HashNewWithKeywordArgumentsAsDefault",
+            r#"
+            Hash.new(a: 1)
+                     ^^^^ Use a hash literal instead of keyword arguments.
+            "#,
+        )
+        .id("lint_hash_new_with_keyword_arguments_as_default")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SharedMutableDefault",
+            r#"
+            Hash.new([])
+            ^^^^^^^^^^^^ Do not create a Hash with a mutable default value as the default value can accidentally be changed.
+            "#,
+        )
+        .id("lint_shared_mutable_default")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/TripleQuotes",
+            r#"
+            x = """foo"""
+                ^^^^^^^^^ Delimiting a string with multiple quotes has no effect, use a single quote instead.
+            "#,
+        )
+        .id("lint_triple_quotes")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // `minimum_target_ruby_version 3.1`。ハーネス既定の 2.7 では登録すらされない。
+        CopCase::annotated(
+            "Lint/RefinementImportMethods",
+            r#"
+            module M
+              refine Foo do
+                include Bar
+                ^^^^^^^ Use `import_methods` instead of `include` because it was removed in Ruby 3.2.
+              end
+            end
+            "#,
+        )
+        .id("lint_refinement_import_methods")
+        .target_ruby("3.2")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
