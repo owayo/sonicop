@@ -206,6 +206,7 @@ department_rules! {
     random_with_offset => ("RandomWithOffset", Convention),
     redundant_array_flatten => ("RedundantArrayFlatten", Convention),
     redundant_array_constructor => ("RedundantArrayConstructor", Convention),
+    reduce_to_hash => ("ReduceToHash", Convention),
     redundant_argument => ("RedundantArgument", Convention),
     redundant_assignment => ("RedundantAssignment", Convention),
     redundant_capital_w => ("RedundantCapitalW", Convention),

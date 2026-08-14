@@ -25999,3 +25999,115 @@ mod style_operator_method_call {
         }
     }
 }
+
+/// `Style/ReduceToHash`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ReduceToHash` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_reduce_to_hash {
+    use super::*;
+
+    const COP: &str = "Style/ReduceToHash";
+
+    /// 位置は selector。置き換えは selector からブロックの閉じまで。
+    #[test]
+    fn a_fold_that_only_fills_a_hash_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            xs.each_with_object({}) { |e, h| h[e] = e * 2 }
+               ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = e * 2 }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e.k] = e.v }\n",
+            "xs.to_h { |e| [e.k, e.v] }\n",
+        );
+    }
+
+    /// `inject` / `reduce` は蓄積器を返す 2 文の形。引数の順序が逆になる。
+    #[test]
+    fn the_folding_spellings_take_the_accumulator_first() {
+        expect_correction(
+            COP,
+            "xs.inject({}) { |h, e| h[e] = e * 2; h }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.reduce({}) { |h, e| h[e] = e * 2; h }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+    }
+
+    /// 番号付き引数では `inject` の要素が `_2` なので、`to_h` の `_1` に読み替える。
+    #[test]
+    fn the_numbered_spellings_are_renumbered() {
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { _2[_1] = _1 * 2 }\n",
+            "xs.to_h { [_1, _1 * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.inject({}) { _1[_2] = _2 * 2; _1 }\n",
+            "xs.to_h { [_1, _1 * 2] }\n",
+        );
+    }
+
+    /// `do`...`end` は字下げが受け手の桁に揃う (上流の `block` ノードはレシーバから始まる)。
+    #[test]
+    fn a_do_end_block_keeps_the_receivers_indentation() {
+        expect_correction(
+            COP,
+            "def m\n  xs.inject({}) do |h, e|\n    h[e] = e\n    h\n  end\nend\n",
+            "def m\n  xs.to_h do |e|\n    [e, e]\n  end\nend\n",
+        );
+    }
+
+    /// 種が空のハッシュでないもの、鍵や値が蓄積器を読むもの、蓄積器を返さない `inject`、
+    /// 文が余分にあるものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.each_with_object([]) { |e, h| h[e] = e }\n",
+            "xs.each_with_object({ a: 1 }) { |e, h| h[e] = e }\n",
+            "xs.each_with_object({}) { |e, h| h[e] = h.size }\n",
+            "xs.inject({}) { |h, e| h[e] = e }\n",
+            "xs.each_with_object({}) { |e, h| h[e] = e; other }\n",
+            "xs.each_with_object({}) { |e| e }\n",
+            "xs.map { |e| e }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 入れ子になった同じ形は、その回は内側だけが直る。`-A` は収束するまで回るので
+    /// 2 パス目で外側も畳まれる。
+    #[test]
+    fn a_nested_fold_defers_the_outer_one() {
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = ys.each_with_object({}) { |y, g| g[y] = y } }\n",
+            "xs.to_h { |e| [e, ys.to_h { |y| [y, y] }] }\n",
+        );
+    }
+
+    /// 2.6 未満では `to_h` がブロックを取らないので黙る。
+    #[test]
+    fn it_needs_ruby_2_6() {
+        CopCase::new(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = e }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.5")
+        .run();
+    }
+}

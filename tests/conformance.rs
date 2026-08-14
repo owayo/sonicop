@@ -4331,6 +4331,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_operator_method_call")
         .correctable(true),
+        // 位置は selector。
+        CopCase::annotated(
+            "Style/ReduceToHash",
+            r"
+            xs.each_with_object({}) { |e, h| h[e] = e * 2 }
+               ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            ",
+        )
+        .id("style_reduce_to_hash")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
