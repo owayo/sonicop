@@ -22462,3 +22462,81 @@ mod style_magic_comment_format {
             .run();
     }
 }
+
+/// `Style/MapIntoArray`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MapIntoArray` で走らせた実出力から取った
+/// (検出 8 件 / 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_into_array {
+    use super::*;
+
+    const COP: &str = "Style/MapIntoArray";
+
+    /// 空配列を作って `each` で詰めるだけの形は `map` の戻り値そのもの。詰め先の代入も
+    /// 直後の読みも消え、`map` の結果がその変数に入る。
+    #[test]
+    fn pushing_into_a_fresh_array_becomes_map() {
+        expect_correction(
+            COP,
+            "dest = []\nsrc.each { |e| dest << e * 2 }\ndest\n",
+            "dest = src.map { |e| e * 2 }\n",
+        );
+        expect_correction(
+            COP,
+            "dest = []\nsrc.each { |e| dest.push(e) }\ndest\n",
+            "dest = src.map { |e| e }\n",
+        );
+        expect_correction(
+            COP,
+            "dest = []\nsrc.each { |e| dest.append(e) }\n",
+            "dest = src.map { |e| e }\n",
+        );
+    }
+
+    /// 「空の配列」の書き方は 4 通りある。
+    #[test]
+    fn every_spelling_of_an_empty_array_counts() {
+        for empty in ["[]", "Array.new", "Array[]", "Array.new([])"] {
+            expect_correction(
+                COP,
+                &format!("dest = {empty}\nsrc.each {{ |e| dest << e }}\n"),
+                "dest = src.map { |e| e }\n",
+            );
+        }
+    }
+
+    /// `[].tap { |dest| ... }` で包んだ形も対象で、`tap` ごと畳まれる。
+    #[test]
+    fn an_empty_array_tap_is_folded_too() {
+        expect_correction(
+            COP,
+            "[].tap do |dest|\n  src.each { |e| dest << e }\nend\n",
+            "dest = src.map { |e| e }\n",
+        );
+    }
+
+    /// 空でない配列、詰め先が別の用途にも使われるもの、ブロックが詰める以外もするもの、
+    /// 詰め先が宣言されていないもの、splat を詰めるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "dest = [1]\nsrc.each { |e| dest << e }\n",
+            "dest = []\nsrc.each { |e| dest << e; foo }\n",
+            "src.each { |e| dest << e }\n",
+            "dest = []\nsrc.each { |e| dest.push(*e) }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `begin ... end` は本家では `kwbegin` で、最後の文だけがその値になる。途中に置かれた
+    /// `each` は戻り値が使われないので補正できる。
+    #[test]
+    fn a_keyword_begin_only_hands_on_its_last_statement() {
+        expect_correction(
+            COP,
+            "x = begin\n  dest = []\n  src.each { |e| dest << e }\n  dest\nend\n",
+            "x = begin\n  dest = src.map { |e| e }\nend\n",
+        );
+    }
+}

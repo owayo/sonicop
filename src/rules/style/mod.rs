@@ -133,6 +133,7 @@ department_rules! {
     map_compact_with_conditional_block => ("MapCompactWithConditionalBlock", Convention),
     magic_comment_format => ("MagicCommentFormat", Convention),
     map_join => ("MapJoin", Convention),
+    map_into_array => ("MapIntoArray", Convention),
     map_to_hash => ("MapToHash", Convention),
     map_to_set => ("MapToSet", Convention),
     min_max_comparison => ("MinMaxComparison", Convention),
