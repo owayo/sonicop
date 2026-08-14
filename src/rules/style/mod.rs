@@ -131,6 +131,7 @@ department_rules! {
     method_def_parentheses => ("MethodDefParentheses", Convention),
     min_max => ("MinMax", Convention),
     map_compact_with_conditional_block => ("MapCompactWithConditionalBlock", Convention),
+    magic_comment_format => ("MagicCommentFormat", Convention),
     map_join => ("MapJoin", Convention),
     map_to_hash => ("MapToHash", Convention),
     map_to_set => ("MapToSet", Convention),

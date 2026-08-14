@@ -3768,6 +3768,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_document_dynamic_eval_definition")
         .correctable(false),
+        // 位置はディレクティブの綴りだけ。値と `#` は範囲の外に残る。
+        CopCase::annotated(
+            "Style/MagicCommentFormat",
+            "# frozen-string-literal: true\n  ^^^^^^^^^^^^^^^^^^^^^ Prefer lower snake case for magic comments.\nx = 1\n",
+        )
+        .id("style_magic_comment_format")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

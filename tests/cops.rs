@@ -22384,3 +22384,81 @@ mod style_document_dynamic_eval_definition {
         }
     }
 }
+
+/// `Style/MagicCommentFormat`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MagicCommentFormat` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み。設定 4 通りでも一致を確認)。
+mod style_magic_comment_format {
+    use super::*;
+
+    const COP: &str = "Style/MagicCommentFormat";
+
+    /// 既定は snake_case と小文字。ハイフン区切りも大文字も直される。
+    #[test]
+    fn a_directive_is_written_in_lower_snake_case() {
+        expect_correction(
+            COP,
+            "# frozen-string-literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# FROZEN_STRING_LITERAL: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# Frozen-String-Literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        // Emacs 形式のディレクティブも同じ扱い。
+        expect_correction(
+            COP,
+            "# -*- frozen-string-literal: true -*-\nx = 1\n",
+            "# -*- frozen_string_literal: true -*-\nx = 1\n",
+        );
+    }
+
+    /// 値は `ValueCapitalization` が未設定のあいだ触られない。
+    #[test]
+    fn values_are_left_alone_by_default() {
+        for source in [
+            "# frozen_string_literal: true\nx = 1\n",
+            "# coding: UTF-8\nx = 1\n",
+            "# typed: TRUE\nx = 1\n",
+            "# rbs_inline: enabled\nx = 1\n",
+            "# shareable_constant_value: literal\nx = 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 魔法のコメントでないもの、コードより下にあるものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "# some other comment\nx = 1\n");
+        expect_no_offenses(COP, "x = 1\n# frozen-string-literal: true\n");
+        // Vim 形式は `fileencoding` しか読まず、トークンが 2 つ以上要る。
+        expect_no_offenses(COP, "# vim: fileencoding=utf-8, foo=bar\nx = 1\n");
+    }
+
+    /// `kebab_case` は向きが逆になり、`ValueCapitalization` を入れると値も直る。
+    #[test]
+    fn the_other_settings_ask_for_the_other_directions() {
+        CopCase::new(
+            COP,
+            "# frozen_string_literal: true\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MagicCommentFormat:\n  EnforcedStyle: kebab_case\n")
+        .without_offense_check()
+        .corrected("# frozen-string-literal: true\nx = 1\n")
+        .run();
+        CopCase::new(COP, "# typed: STRICT\nx = 1\n".to_owned(), Vec::new())
+            .config("Style/MagicCommentFormat:\n  ValueCapitalization: lowercase\n")
+            .without_offense_check()
+            .corrected("# typed: strict\nx = 1\n")
+            .run();
+    }
+}
