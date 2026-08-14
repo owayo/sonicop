@@ -21092,3 +21092,243 @@ mod style_it_assignment {
         }
     }
 }
+
+/// `Style/BitwisePredicate`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/BitwisePredicate` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_bitwise_predicate {
+    use super::*;
+
+    const COP: &str = "Style/BitwisePredicate";
+
+    /// 「立っているビットがあるか」の 4 通り、「全部立っているか」、「1 つも立っていないか」の
+    /// 2 通り。
+    #[test]
+    fn every_mask_comparison_has_a_predicate() {
+        expect_correction(COP, "(x & 0b0100).positive?\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) > 0\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) >= 1\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) != 0\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100).zero?\n", "x.nobits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) == 0\n", "x.nobits?(0b0100)\n");
+    }
+
+    /// `allbits?` は比較が繰り返している側をフラグとして読む。マスクのどちら側に
+    /// 書かれていても答えは同じ。
+    #[test]
+    fn allbits_reads_the_flags_off_the_repeated_side() {
+        expect_correction(COP, "(x & flags) == flags\n", "x.allbits?(flags)\n");
+        expect_correction(COP, "(flags & x) == flags\n", "x.allbits?(flags)\n");
+    }
+
+    /// 括弧の無いマスク、`&` でない演算、比べる数が違うものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x & 0b0100 > 0\n",
+            "(x | 0b0100).positive?\n",
+            "(x & 0b0100) > 1\n",
+            "(x & 0b0100) >= 2\n",
+            "(x & 0b0100).negative?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/CollectionCompact`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CollectionCompact` で走らせた実出力から取った
+/// (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_collection_compact {
+    use super::*;
+
+    const COP: &str = "Style/CollectionCompact";
+
+    /// `reject`・`select`・`filter`・`grep_v` のどれもが `compact` になり、破壊版は
+    /// `compact!` になる。
+    #[test]
+    fn every_way_of_dropping_nils_becomes_compact() {
+        expect_correction(COP, "array.reject(&:nil?)\n", "array.compact\n");
+        expect_correction(COP, "array.reject! { |e| e.nil? }\n", "array.compact!\n");
+        expect_correction(COP, "array.select { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.filter { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.grep_v(nil)\n", "array.compact\n");
+        expect_correction(COP, "array.grep_v(NilClass)\n", "array.compact\n");
+        expect_correction(COP, "array.reject { _1.nil? }\n", "array.compact\n");
+    }
+
+    /// ブロック引数が 2 つあるときは**最後の**引数が `nil?` を呼ばれていなければならない。
+    #[test]
+    fn the_last_block_parameter_is_the_one_that_has_to_be_tested() {
+        expect_correction(COP, "hash.reject { |k, v| v.nil? }\n", "hash.compact\n");
+        expect_no_offenses(COP, "hash.reject { |k, v| k.nil? }\n");
+    }
+
+    /// `nil?` 以外の判定、条件が複合のもの、`to_enum` / `lazy` を挟んだもの、
+    /// レシーバの無い呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "array.reject { |e| e.empty? }\n",
+            "array.reject { |e| e.nil? && x }\n",
+            "array.to_enum.reject { |e| e.nil? }\n",
+            "array.lazy.reject(&:nil?)\n",
+            "reject(&:nil?)\n",
+            "array.grep_v(1)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ComparableClamp`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ComparableClamp` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_comparable_clamp {
+    use super::*;
+
+    const COP: &str = "Style/ComparableClamp";
+
+    /// 8 通りの書き方のどれもが `clamp` になる。どちらの枝が下限かは条件の向きで決まる。
+    #[test]
+    fn the_if_elsif_else_becomes_clamp() {
+        expect_correction(
+            COP,
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+        expect_correction(
+            COP,
+            "if min > x\n  min\nelsif x > max\n  max\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+        expect_correction(
+            COP,
+            "if max < x\n  max\nelsif x < min\n  min\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+    }
+
+    /// `elsif` として書かれているときは、連鎖の残りが `else` を保つよう頭だけを落とす。
+    /// 字下げは `Alignment#indentation` (自分の桁 + 1 段) で決まる。
+    #[test]
+    fn an_elsif_keeps_the_chain_above_it() {
+        expect_correction(
+            COP,
+            "if foo\n  1\nelsif x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+            "if foo\n  1\nelse\n  x.clamp(min, max)\nend\n",
+        );
+    }
+
+    /// 配列で最小と最大を取るものは報告だけで、補正は無い。
+    #[test]
+    fn taking_a_min_of_a_max_is_reported_without_a_correction() {
+        for source in [
+            "[[a, b].max, c].min\n",
+            "[c, [a, b].max].min\n",
+            "[[a, b].min, c].max\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "Use `Comparable#clamp` instead."
+            );
+            assert!(!report.offenses[0].is_correctable());
+        }
+        expect_no_offenses(COP, "[a, b].min\n");
+    }
+
+    /// 枝が 3 つ揃っていないもの、最後の枝が比べた値でないものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if x < min\n  min\nelse\n  x\nend\n",
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  y\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/MapToSet` / `Style/MapToHash` / `Style/MapJoin`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 4 件 / 8 件 / 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_chain {
+    use super::*;
+
+    /// `map` の selector が `to_set` になり、後ろの `.to_set` は前の空白ごと消える。
+    #[test]
+    fn map_to_set_moves_the_block_to_the_conversion() {
+        expect_correction(
+            "Style/MapToSet",
+            "x.map { |a| a * 2 }.to_set\n",
+            "x.to_set { |a| a * 2 }\n",
+        );
+        expect_correction(
+            "Style/MapToSet",
+            "x.map(&:foo).to_set\n",
+            "x.to_set(&:foo)\n",
+        );
+        expect_correction(
+            "Style/MapToSet",
+            "x.map { |a| a }\n  .to_set\n",
+            "x.to_set { |a| a }\n",
+        );
+        expect_no_offenses("Style/MapToSet", "x.map { |a| a }.to_set { |b| b }\n");
+    }
+
+    /// `to_h` は鍵と値を別々に受け取るので、対を分解していた引数は括弧を落とす。
+    /// `map` 側のドットは `to_h` 側のドットを引き継ぐ。
+    #[test]
+    fn map_to_hash_carries_the_dot_and_undoes_the_destructuring() {
+        expect_correction(
+            "Style/MapToHash",
+            "x.map { |(k, v)| [k, v] }.to_h\n",
+            "x.to_h { |k, v| [k, v] }\n",
+        );
+        expect_correction(
+            "Style/MapToHash",
+            "x.map { |a| a }&.to_h\n",
+            "x&.to_h { |a| a }\n",
+        );
+        expect_correction(
+            "Style/MapToHash",
+            "x&.map { |a| a }.to_h\n",
+            "x.to_h { |a| a }\n",
+        );
+    }
+
+    /// `join` は要素に `to_s` を呼ぶので、その前の `map(&:to_s)` は丸ごと消える。
+    #[test]
+    fn map_join_drops_the_redundant_conversion() {
+        expect_correction("Style/MapJoin", "x.map(&:to_s).join\n", "x.join\n");
+        expect_correction(
+            "Style/MapJoin",
+            "x.collect(&:to_s).join(', ')\n",
+            "x.join(', ')\n",
+        );
+        expect_correction("Style/MapJoin", "x.map { |e| e.to_s }.join\n", "x.join\n");
+        expect_correction("Style/MapJoin", "x.map { _1.to_s }.join\n", "x.join\n");
+        expect_correction("Style/MapJoin", "map(&:to_s).join\n", "join\n");
+        // レシーバが前の行で終わっているときは、改行ごと持っていく。
+        expect_correction("Style/MapJoin", "x\n  .map(&:to_s).join\n", "x.join\n");
+    }
+
+    /// 変換が `to_s` でないもの、`map` が別のことをするものは黙る。
+    #[test]
+    fn what_the_cops_leave_alone() {
+        expect_no_offenses("Style/MapJoin", "x.map(&:to_i).join\n");
+        expect_no_offenses("Style/MapJoin", "x.map { |e| e.foo }.join\n");
+        expect_no_offenses("Style/MapJoin", "x.join\n");
+        expect_no_offenses("Style/MapToSet", "x.foo { |a| a }.to_set\n");
+        expect_no_offenses("Style/MapToSet", "x.map { |a| a }.to_set(1)\n");
+        expect_no_offenses("Style/MapToHash", "x.to_h\n");
+    }
+}

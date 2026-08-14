@@ -3607,6 +3607,48 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_it_assignment")
         .correctable(false),
+        CopCase::annotated(
+            "Style/BitwisePredicate",
+            "(x & 0b0100).positive?\n^^^^^^^^^^^^^^^^^^^^^^ Replace with `x.anybits?(0b0100)` for comparison with bit flags.\n",
+        )
+        .id("style_bitwise_predicate")
+        .correctable(true),
+        // 位置は selector からブロックの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/CollectionCompact",
+            "array.reject { |e| e.nil? }\n      ^^^^^^^^^^^^^^^^^^^^^ Use `compact` instead of `reject { |e| e.nil? }`.\n",
+        )
+        .id("style_collection_compact")
+        .correctable(true),
+        // 位置は `if` 全体。複数行なので注記では表せない。
+        CopCase::annotated(
+            "Style/ComparableClamp",
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+        )
+        .id("style_comparable_clamp")
+        .without_offense_check()
+        .locations(&[(1, 1, 7, 3)])
+        .lengths(&[49])
+        .correctable(true),
+        // 位置は `map` の selector だけ。
+        CopCase::annotated(
+            "Style/MapJoin",
+            "x.map(&:to_s).join\n  ^^^ Remove redundant `map(&:to_s)` before `join`.\n",
+        )
+        .id("style_map_join")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MapToHash",
+            "x.map { |a| [a, a] }.to_h\n  ^^^ Pass a block to `to_h` instead of calling `map.to_h`.\n",
+        )
+        .id("style_map_to_hash")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/MapToSet",
+            "x.map { |a| a * 2 }.to_set\n  ^^^ Pass a block to `to_set` instead of calling `map.to_set`.\n",
+        )
+        .id("style_map_to_set")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

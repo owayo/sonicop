@@ -7,6 +7,7 @@ mod frozen_string;
 mod hash_transform;
 mod line_length_help;
 mod literal;
+mod map_chain;
 mod nodes;
 mod parameters;
 mod parens;
@@ -28,6 +29,7 @@ department_rules! {
     bare_percent_literals => ("BarePercentLiterals", Convention),
     begin_block => ("BeginBlock", Convention),
     bisected_attr_accessor => ("BisectedAttrAccessor", Convention),
+    bitwise_predicate => ("BitwisePredicate", Convention),
     block_comments => ("BlockComments", Convention),
     block_delimiters => ("BlockDelimiters", Convention),
     case_equality => ("CaseEquality", Convention),
@@ -38,10 +40,12 @@ department_rules! {
     class_equality_comparison => ("ClassEqualityComparison", Convention),
     class_methods => ("ClassMethods", Convention),
     class_vars => ("ClassVars", Convention),
+    collection_compact => ("CollectionCompact", Convention),
     conditional_assignment => ("ConditionalAssignment", Convention),
     colon_method_call => ("ColonMethodCall", Convention),
     combinable_loops => ("CombinableLoops", Convention),
     comparable_between => ("ComparableBetween", Convention),
+    comparable_clamp => ("ComparableClamp", Convention),
     concat_array_literals => ("ConcatArrayLiterals", Convention),
     command_literal => ("CommandLiteral", Convention),
     colon_method_definition => ("ColonMethodDefinition", Convention),
@@ -108,6 +112,9 @@ department_rules! {
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     method_def_parentheses => ("MethodDefParentheses", Convention),
     min_max => ("MinMax", Convention),
+    map_join => ("MapJoin", Convention),
+    map_to_hash => ("MapToHash", Convention),
+    map_to_set => ("MapToSet", Convention),
     min_max_comparison => ("MinMaxComparison", Convention),
     module_member_existence_check => ("ModuleMemberExistenceCheck", Convention),
     method_call_without_args_parentheses => ("MethodCallWithoutArgsParentheses", Convention),
