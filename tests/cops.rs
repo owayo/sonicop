@@ -21499,3 +21499,105 @@ mod style_combinable_defined {
         }
     }
 }
+
+/// `Style/HashExcept` / `Style/HashSlice`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 11 件 / 2 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_subset {
+    use super::*;
+
+    fn except(source: &str, corrected: &str) {
+        CopCase::new("Style/HashExcept", source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 鍵だけを見る `reject`/`select` が `except` になる。等値・`eql?`・`include?` の
+    /// どれもが対象で、否定が付くと向きが入れ替わる。
+    #[test]
+    fn a_block_that_only_tests_the_key_becomes_except() {
+        except("hash.reject { |k, v| k == :foo }\n", "hash.except(:foo)\n");
+        except("hash.reject { |k, v| :foo == k }\n", "hash.except(:foo)\n");
+        except("hash.select { |k, v| k != :foo }\n", "hash.except(:foo)\n");
+        except("hash.filter { |k, v| k != :foo }\n", "hash.except(:foo)\n");
+        except(
+            "hash.reject { |k, v| k.eql?(:foo) }\n",
+            "hash.except(:foo)\n",
+        );
+        except(
+            "hash.reject { |k, v| keys.include?(k) }\n",
+            "hash.except(*keys)\n",
+        );
+        except(
+            "hash.select { |k, v| !keys.include?(k) }\n",
+            "hash.except(*keys)\n",
+        );
+    }
+
+    /// 配列で書かれた鍵はそのまま並べ直す。パーセントリテラルは要素の値を
+    /// リテラルとして書き戻す。
+    #[test]
+    fn a_list_of_keys_is_spelled_back_as_arguments() {
+        except(
+            "hash.reject { |k, v| [:foo, :bar].include?(k) }\n",
+            "hash.except(:foo, :bar)\n",
+        );
+        except(
+            "hash.reject { |k, v| %i[foo bar].include?(k) }\n",
+            "hash.except(:foo, :bar)\n",
+        );
+        except(
+            "hash.reject { |k, v| %w[foo bar].include?(k) }\n",
+            "hash.except('foo', 'bar')\n",
+        );
+    }
+
+    /// 「残す側」の書き方は `slice` になる。
+    #[test]
+    fn the_other_direction_is_slice() {
+        expect_correction(
+            "Style/HashSlice",
+            "hash.select { |k, v| keys.include?(k) }\n",
+            "hash.slice(*keys)\n",
+        );
+        expect_correction(
+            "Style/HashSlice",
+            "hash.reject { |k, v| !keys.include?(k) }\n",
+            "hash.slice(*keys)\n",
+        );
+    }
+
+    /// 等値の相手がリテラルでないもの、値を読むもの、範囲の判定、引数が 1 つのブロック、
+    /// 条件が複合のものは黙る。
+    #[test]
+    fn what_the_cops_leave_alone() {
+        for source in [
+            "hash.reject { |k, v| k == foo }\n",
+            "hash.reject { |k, v| v == :foo }\n",
+            "hash.reject { |k, v| (1..5).include?(k) }\n",
+            "hash.reject { |k, v| k.include?(v) }\n",
+            "hash.reject { |k| k == :foo }\n",
+            "hash.reject { |k, v| k == :foo && v }\n",
+        ] {
+            CopCase::new("Style/HashExcept", source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+            expect_no_offenses("Style/HashSlice", source);
+        }
+    }
+
+    /// 3.0 未満では `Hash#except` が無いので `HashExcept` は黙る。
+    #[test]
+    fn except_needs_ruby_three() {
+        CopCase::new(
+            "Style/HashExcept",
+            "hash.reject { |k, v| k == :foo }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+}

@@ -3669,6 +3669,20 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_combinable_defined")
         .correctable(true),
+        // 位置は selector からブロックの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/HashExcept",
+            "hash.reject { |k, v| k == :foo }\n     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `except(:foo)` instead.\n",
+        )
+        .id("style_hash_except")
+        .target_ruby("3.0")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashSlice",
+            "hash.select { |k, v| keys.include?(k) }\n     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `slice(*keys)` instead.\n",
+        )
+        .id("style_hash_slice")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

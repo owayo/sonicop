@@ -4,6 +4,7 @@ mod conditional;
 mod file_open_call;
 mod format_sequences;
 mod frozen_string;
+mod hash_subset;
 mod hash_transform;
 mod line_length_help;
 mod literal;
@@ -95,6 +96,8 @@ department_rules! {
     guard_clause => ("GuardClause", Convention),
     hash_as_last_array_item => ("HashAsLastArrayItem", Convention),
     hash_each_methods => ("HashEachMethods", Convention),
+    hash_except => ("HashExcept", Convention),
+    hash_slice => ("HashSlice", Convention),
     hash_like_case => ("HashLikeCase", Convention),
     hash_syntax => ("HashSyntax", Convention),
     hash_fetch_chain => ("HashFetchChain", Convention),
