@@ -54,6 +54,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("bundler_duplicated_group")
         .path("Gemfile")
         .severity(Severity::Warning),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemComment",
+            "gem 'a'\n^^^^^^^ Missing gem description comment.\n",
+        )
+        .id("bundler_gem_comment")
+        .path("Gemfile")
+        .correctable(false),
         // `add_global_offense` はファイル先頭の長さ 0 のレンジ。メッセージには本家が
         // 検査前に絶対化したパスがそのまま入る。
         CopCase::annotated(
@@ -64,6 +72,14 @@ fn catalogue() -> Vec<CopCase> {
         .path("/tmp/example/gems.rb")
         .locations(&[(1, 1, 1, 1)])
         .lengths(&[0])
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemVersion",
+            "gem 'rubocop'\n^^^^^^^^^^^^^ Gem version specification is required.\n",
+        )
+        .id("bundler_gem_version")
+        .path("Gemfile")
         .correctable(false),
         CopCase::annotated(
             "Bundler/InsecureProtocolSource",
@@ -88,6 +104,59 @@ fn catalogue() -> Vec<CopCase> {
         .path("Gemfile")
         .correctable(true),
         // ---- Gemspec ----
+        CopCase::annotated(
+            "Gemspec/AddRuntimeDependency",
+            "spec.add_runtime_dependency 'rake'\n     ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.\n",
+        )
+        .id("gemspec_add_runtime_dependency")
+        .path("example.gemspec")
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/AttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = {}
+              spec.metadata['a'] = 'b'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+            end
+            "#,
+        )
+        .id("gemspec_attribute_assignment")
+        .path("example.gemspec")
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+            end
+            "#,
+        )
+        .id("gemspec_dependency_version")
+        .path("example.gemspec")
+        .correctable(false),
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.date = Time.now
+              ^^^^^^^^^^^^^^^^^^^^ Do not set `date` in gemspec.
+            end
+            "#,
+        )
+        .id("gemspec_deprecated_attribute_assignment")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            "spec.add_development_dependency 'rspec'\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.\n",
+        )
+        .id("gemspec_development_dependencies")
+        .path("example.gemspec")
+        .correctable(false),
         CopCase::annotated(
             "Gemspec/DuplicatedAssignment",
             r#"
@@ -115,6 +184,21 @@ fn catalogue() -> Vec<CopCase> {
         .id("gemspec_ordered_dependencies")
         .path("example.gemspec")
         .correctable(true),
+        // ブロック全体が報告され、`end` の直前に設定が書き足される。
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .id("gemspec_require_mfa")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[54]),
         // `add_global_offense`。宣言が 1 つも無いこと自体が offense なので、指す構文が無い。
         CopCase::annotated(
             "Gemspec/RequiredRubyVersion",
@@ -178,6 +262,20 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 2, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/EmptyLineAfterMultilineCondition",
+            r#"
+            if a &&
+               ^^^^ Use empty line after multiline condition.
+               b
+              do_x
+            end
+            "#,
+        )
+        .id("layout_empty_line_after_multiline_condition")
+        .locations(&[(1, 4, 2, 4)])
+        .lengths(&[9])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterGuardClause",
             r#"
             def foo
@@ -189,6 +287,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_empty_line_after_guard_clause")
         .locations(&[(2, 3, 2, 13)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAfterModuleInclusion",
+            r#"
+            class A
+              include Foo
+              ^^^^^^^^^^^ Add an empty line after module inclusion.
+              def bar; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_after_module_inclusion")
         .correctable(true),
         CopCase::annotated(
             "Layout/EmptyLinesAroundAccessModifier",
@@ -229,6 +339,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_first_hash_element_indentation")
         .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n  2]\n",
+        )
+        .id("layout_first_array_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementLineBreak",
+            "a = { b: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n  c: 2 }\n",
+        )
+        .id("layout_first_hash_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n  2)\n",
+        )
+        .id("layout_first_method_argument_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(x,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n  y); end\n",
+        )
+        .id("layout_first_method_parameter_line_break")
         .correctable(true),
         CopCase::annotated(
             "Layout/FirstArgumentIndentation",
@@ -315,6 +449,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_indentation_width")
         .locations(&[(2, 1, 2, 4)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationLeadingSpace",
+            "x = 'foo' \\\n    ' bar'\n     ^ Move leading spaces to the end of the previous line.\n",
+        )
+        .id("layout_line_continuation_leading_space")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationSpacing",
+            "x = 1 +  \\\n       ^^^ Use one space in front of backslash.\n  2\n",
+        )
+        .id("layout_line_continuation_spacing")
         .correctable(true),
         CopCase::annotated(
             "Layout/LineLength",
@@ -601,6 +747,41 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 1, 3, 1)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/MultilineArrayLineBreaks",
+            "a = [1, 2,\n        ^ Each item in a multi-line array must start on a separate line.\n  3]\n",
+        )
+        .id("layout_multiline_array_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashKeyLineBreaks",
+            "a = { b: 1, c: 2,\n            ^^^^ Each key in a multi-line hash must start on a separate line.\n  d: 3 }\n",
+        )
+        .id("layout_multiline_hash_key_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "foo(1, 2,\n       ^ Each argument in a multi-line method call must start on a separate line.\n  3)\n",
+        )
+        .id("layout_multiline_method_argument_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(x, y,\n         ^ Each parameter in a multi-line method definition must start on a separate line.\n  z); end\n",
+        )
+        .id("layout_multiline_method_parameter_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineAssignmentLayout",
+            r#"
+            foo = if bar
+            ^^^^^^^^^^^^ Right hand side of multi-line assignment is on the same line as the assignment operator `=`.
+                    1
+                  end
+            "#,
+        )
+        .id("layout_multiline_assignment_layout")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/MultilineArrayBraceLayout",
             r#"
             [ :a,
@@ -864,6 +1045,12 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[1])
         .correctable(true),
         CopCase::annotated(
+            "Layout/SingleLineBlockChain",
+            "a = b.map { |x| x }.first\n                   ^^^^^^ Put method call on a separate line if chained to a single line block.\n",
+        )
+        .id("layout_single_line_block_chain")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceAfterColon",
             r#"
             h = {a:3}
@@ -889,6 +1076,12 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("layout_space_after_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceBeforeBrackets",
+            "collection = [1, 2]\ncollection [0]\n          ^ Remove the space before the opening brackets.\n",
+        )
+        .id("layout_space_before_brackets")
         .correctable(true),
         CopCase::annotated(
             "Layout/SpaceBeforeComma",
@@ -2314,6 +2507,530 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_flip_flop")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefined",
+            r#"
+            defined?("foo")
+            ^^^^^^^^^^^^^^^ Calling `defined?` with a string argument will always return a truthy value.
+            "#,
+        )
+        .id("lint_useless_defined")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // `_1 = 1` は 3.0 以降では構文エラーなので、ハーネス既定の 2.7 でしか届かない。
+        CopCase::annotated(
+            "Lint/NumberedParameterAssignment",
+            r#"
+            _1 = 1
+            ^^^^^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        )
+        .id("lint_numbered_parameter_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OrAssignmentToConstant",
+            r#"
+            CONST ||= 1
+                  ^^^ Avoid using or-assignment with constants.
+            "#,
+        )
+        .id("lint_or_assignment_to_constant")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/LambdaWithoutLiteralBlock",
+            r#"
+            lambda(&block)
+            ^^^^^^^^^^^^^^ lambda without a literal block is deprecated; use the proc without lambda instead.
+            "#,
+        )
+        .id("lint_lambda_without_literal_block")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyClass",
+            r#"
+            class Foo
+            ^^^^^^^^^ Empty class detected.
+            end
+            "#,
+        )
+        .id("lint_empty_class")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 2, 3)])
+        .lengths(&[13])
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/AmbiguousAssignment",
+            r#"
+            x =- 1
+              ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        )
+        .id("lint_ambiguous_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/ConstantOverwrittenInRescue",
+            r#"
+            begin
+              x
+            rescue => CONST
+                   ^^ `CONST` is overwritten by `rescue =>`.
+            end
+            "#,
+        )
+        .id("lint_constant_overwritten_in_rescue")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/HashNewWithKeywordArgumentsAsDefault",
+            r#"
+            Hash.new(a: 1)
+                     ^^^^ Use a hash literal instead of keyword arguments.
+            "#,
+        )
+        .id("lint_hash_new_with_keyword_arguments_as_default")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SharedMutableDefault",
+            r#"
+            Hash.new([])
+            ^^^^^^^^^^^^ Do not create a Hash with a mutable default value as the default value can accidentally be changed.
+            "#,
+        )
+        .id("lint_shared_mutable_default")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/TripleQuotes",
+            r#"
+            x = """foo"""
+                ^^^^^^^^^ Delimiting a string with multiple quotes has no effect, use a single quote instead.
+            "#,
+        )
+        .id("lint_triple_quotes")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // `minimum_target_ruby_version 3.1`。ハーネス既定の 2.7 では登録すらされない。
+        CopCase::annotated(
+            "Lint/RefinementImportMethods",
+            r#"
+            module M
+              refine Foo do
+                include Bar
+                ^^^^^^^ Use `import_methods` instead of `include` because it was removed in Ruby 3.2.
+              end
+            end
+            "#,
+        )
+        .id("lint_refinement_import_methods")
+        .target_ruby("3.2")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DeprecatedConstants",
+            r#"
+            NIL
+            ^^^ Use `nil` instead of `NIL`, deprecated since Ruby 2.4.
+            "#,
+        )
+        .id("lint_deprecated_constants")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DataDefineOverride",
+            r#"
+            Data.define(:hash)
+                        ^^^^^ `:hash` member overrides `Data#hash` and it may be unexpected.
+            "#,
+        )
+        .id("lint_data_define_override")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessOr",
+            r#"
+            x.to_s || 'default'
+                   ^^^^^^^^^^^^ `'default'` will never evaluate because `x.to_s` always returns a truthy value.
+            "#,
+        )
+        .id("lint_useless_or")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RequireRelativeSelfPath",
+            r#"
+            require_relative 'b12'
+            ^^^^^^^^^^^^^^^^^^^^^^ Remove the `require_relative` that requires itself.
+            "#,
+        )
+        .id("lint_require_relative_self_path")
+        .path("b12.rb")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyBlock",
+            r#"
+            foo {}
+            ^^^^^^ Empty block detected.
+            "#,
+        )
+        .id("lint_empty_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/EmptyInPattern",
+            r#"
+            case x
+            in 1
+            ^^^^ Avoid `in` branches without a body.
+            end
+            "#,
+        )
+        .id("lint_empty_in_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateMatchPattern",
+            r#"
+            case x
+            in 1
+              a
+            in 1
+               ^ Duplicate `in` pattern detected.
+              b
+            end
+            "#,
+        )
+        .id("lint_duplicate_match_pattern")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/NoReturnInBeginEndBlocks",
+            r#"
+            x = begin
+              return 1 if a
+              ^^^^^^^^ Do not `return` in `begin..end` blocks in assignment contexts.
+              0
+            end
+            "#,
+        )
+        .id("lint_no_return_in_begin_end_blocks")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantDirGlobSort",
+            r#"
+            Dir.glob('*').sort
+                          ^^^^ Remove redundant `sort`.
+            "#,
+        )
+        .id("lint_redundant_dir_glob_sort")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateSetElement",
+            r#"
+            Set[1, 2, 1]
+                      ^ Remove the duplicate element in Set.
+            "#,
+        )
+        .id("lint_duplicate_set_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessNumericOperation",
+            r#"
+            foo + 0
+            ^^^^^^^ Do not apply inconsequential numeric operations to variables.
+            "#,
+        )
+        .id("lint_useless_numeric_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NumericOperationWithConstantResult",
+            r#"
+            foo * 0
+            ^^^^^^^ Numeric operation with a constant result detected.
+            "#,
+        )
+        .id("lint_numeric_operation_with_constant_result")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousRange",
+            r#"
+            v = 1..a + b
+                   ^^^^^ Wrap complex range boundaries with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateMagicComment",
+            r#"
+            # encoding: utf-8
+            # encoding: ascii
+            ^^^^^^^^^^^^^^^^^ Duplicate magic comment detected.
+            x = 1
+            "#,
+        )
+        .id("lint_duplicate_magic_comment")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/IncompatibleIoSelectWithFiberScheduler",
+            r#"
+            IO.select([io], nil)
+            ^^^^^^^^^^^^^^^^^^^^ Use `io.wait_readable` instead of `IO.select([io], nil)`.
+            "#,
+        )
+        .id("lint_incompatible_io_select_with_fiber_scheduler")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousOperatorPrecedence",
+            r#"
+            a = 1 + 2 * 3
+                    ^^^^^ Wrap expressions with varying precedence with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_operator_precedence")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UnreachablePatternBranch",
+            r#"
+            case x
+            in y
+            in 1
+            ^^^^ Unreachable `in` pattern branch detected.
+            end
+            "#,
+        )
+        .id("lint_unreachable_pattern_branch")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefaultValueArgument",
+            r#"
+            h.fetch(:k, 0) { 1 }
+                        ^ Block supersedes default value argument.
+            "#,
+        )
+        .id("lint_useless_default_value_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ItWithoutArgumentsInBlock",
+            r#"
+            [1].each { it }
+                       ^^ `it` calls without arguments will refer to the first block param in Ruby 3.4; use `it()` or `self.it`.
+            "#,
+        )
+        .id("lint_it_without_arguments_in_block")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnexpectedBlockArity",
+            r#"
+            x.reduce { |a| a }
+            ^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 1.
+            "#,
+        )
+        .id("lint_unexpected_block_arity")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/LiteralAssignmentInCondition",
+            r#"
+            if x = 1
+                 ^^^ Don't use literal assignment `= 1` in conditional, should be `==` or non-literal operand.
+            end
+            "#,
+        )
+        .id("lint_literal_assignment_in_condition")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessRescue",
+            r#"
+            begin
+              x
+            rescue
+            ^^^^^^ Useless `rescue` detected.
+              raise
+            end
+            "#,
+        )
+        .id("lint_useless_rescue")
+        .severity(Severity::Warning)
+        .locations(&[(3, 1, 4, 7)])
+        .lengths(&[14])
+        .correctable(false),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ConstantResolution",
+            r#"
+            Foo
+            ^^^ Fully qualify this constant to avoid possibly ambiguous resolution.
+            "#,
+        )
+        .id("lint_constant_resolution")
+        .config("Lint/ConstantResolution:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/ArrayLiteralInRegexp",
+            r#"
+            /#{[1, 2]}/
+             ^^^^^^^^^ Use a character class instead of interpolating an array in a regexp.
+            "#,
+        )
+        .id("lint_array_literal_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SuppressedExceptionInNumberConversion",
+            r#"
+            Integer('1') rescue nil
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `Integer('1', exception: false)` instead.
+            "#,
+        )
+        .id("lint_suppressed_exception_in_number_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessRuby2Keywords",
+            r#"
+            ruby2_keywords def qux(a); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `qux`.
+            "#,
+        )
+        .id("lint_useless_ruby2_keywords")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessConstantScoping",
+            r#"
+            class C
+              private
+              FOO = 1
+              ^^^^^^^ Useless `private` access modifier for constant scope.
+            end
+            "#,
+        )
+        .id("lint_useless_constant_scoping")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/CopDirectiveSyntax",
+            r#"
+            # rubocop:disable
+            ^^^^^^^^^^^^^^^^^ Malformed directive comment detected. The cop name is missing.
+            "#,
+        )
+        .id("lint_cop_directive_syntax")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateBranch",
+            r#"
+            if a
+              foo
+            else
+            ^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .id("lint_duplicate_branch")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/NonAtomicFileOperation",
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir_p(path)
+            end
+            "#,
+        )
+        .id("lint_non_atomic_file_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ConstantReassignment",
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        )
+        .id("lint_constant_reassignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // 本家は `AllCops: UseProjectIndex` を立てて `rubydex` を入れたときしか索引を
+        // 持たず、既定では何も報告しない。
+        CopCase::new(
+            "Lint/DeprecatedReference",
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            Vec::new(),
+        )
+        .id("lint_deprecated_reference"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/NumberConversion",
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .id("lint_number_conversion")
+        .config("Lint/NumberConversion:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantTypeConversion",
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        )
+        .id("lint_redundant_type_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SymbolConversion",
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        )
+        .id("lint_symbol_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ToEnumArguments",
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        )
+        .id("lint_to_enum_arguments")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
@@ -2369,6 +3086,13 @@ fn catalogue() -> Vec<CopCase> {
         .id("metrics_class_length")
         .config("Metrics/ClassLength:\n  Max: 1\n")
         .locations(&[(1, 1, 4, 3)]),
+        CopCase::annotated(
+            "Metrics/CollectionLiteralLength",
+            "[1, 2, 3]\n^^^^^^^^^ Avoid hard coding large quantities of data in code. Prefer reading the data from an external source.\n",
+        )
+        .id("metrics_collection_literal_length")
+        .config("Metrics/CollectionLiteralLength:\n  Max: 3\n")
+        .correctable(false),
         CopCase::annotated(
             "Metrics/CyclomaticComplexity",
             r#"
@@ -2497,6 +3221,19 @@ fn catalogue() -> Vec<CopCase> {
         // `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1 文字
         // ぶん伸び、`&` は伸びないので名前の途中で切れる。
         CopCase::annotated(
+            "Naming/BlockForwarding",
+            r#"
+            def foo(&block)
+                    ^^^^^^ Use anonymous block forwarding.
+              bar(&block)
+                  ^^^^^^ Use anonymous block forwarding.
+            end
+            "#,
+        )
+        .id("naming_block_forwarding")
+        .target_ruby("3.1")
+        .correctable(true),
+        CopCase::annotated(
             "Naming/BlockParameterName",
             r#"
             bar { |xA, *yB, &zC| xA }
@@ -2571,6 +3308,14 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // メモ化は本体の末尾にあるときだけ見られ、`defined?` 形式は 3 か所すべてが
         // 報告される。
+        // 既定無効。`CheckFilepaths` はテスト用の一時ディレクトリを読むので切っておく。
+        CopCase::annotated(
+            "Naming/InclusiveLanguage",
+            "whitelist = 1\n^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist' or 'permit'.\n",
+        )
+        .id("naming_inclusive_language")
+        .config("Naming/InclusiveLanguage:\n  CheckFilepaths: false\n")
+        .correctable(false),
         CopCase::annotated(
             "Naming/MemoizedInstanceVariableName",
             r#"
@@ -2607,6 +3352,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("naming_method_parameter_name")
         .correctable(false),
         // 接頭辞のあとが数字だったり、名前が `=` で終われば免れる。
+        CopCase::annotated(
+            "Naming/PredicateMethod",
+            r#"
+            def foo
+                ^^^ Predicate method names should end with `?`.
+              x == y
+            end
+            "#,
+        )
+        .id("naming_predicate_method")
+        .correctable(false),
         CopCase::annotated(
             "Naming/PredicatePrefix",
             r#"
@@ -2669,6 +3425,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("security_eval")
         .severity(Severity::Convention),
+        CopCase::annotated(
+            "Security/CompoundHash",
+            r#"
+            def hash
+              a.hash ^ b.hash
+              ^^^^^^^^^^^^^^^ Use `[...].hash` instead of combining hash values manually.
+            end
+            "#,
+        )
+        .id("security_compound_hash")
+        .correctable(false),
+        CopCase::annotated(
+            "Security/IoMethods",
+            "IO.read('x')\n^^^^^^^^^^^^ `File.read` is safer than `IO.read`.\n",
+        )
+        .id("security_io_methods")
+        .correctable(true),
         CopCase::annotated(
             "Security/JSONLoad",
             r#"
@@ -4249,6 +5022,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_magic_comment_format")
         .correctable(true),
+        // 位置は `each` のブロック全体。
+        CopCase::annotated(
+            "Style/MapIntoArray",
+            "dest = []\nsrc.each { |e| dest << e * 2 }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `map` instead of `each` to map elements into an array.\ndest\n",
+        )
+        .id("style_map_into_array")
+        .correctable(true),
         // 位置は鍵の文字列だけ。
         CopCase::annotated(
             "Style/StringHashKeys",
@@ -4351,6 +5131,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_documentation_method")
         .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        // ---- Layout (pending) ----
+        // 位置は受け手と `[` のあいだの空白 1 文字。
+        CopCase::annotated(
+            "Layout/LineEndStringConcatenationIndentation",
+            "text = 'offense' \\\n  'not aligned'\n  ^^^^^^^^^^^^^ Align parts of a string concatenated with backslash.\n",
+        )
+        .id("layout_line_end_string_concatenation_indentation")
+        .correctable(true),
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",

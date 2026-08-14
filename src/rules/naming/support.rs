@@ -38,11 +38,18 @@ pub(super) fn valid_name(name: &str, style: &str) -> bool {
 /// tree-sitter spells both as `identifier`, so the scopes have to be replayed to separate them.
 pub(in crate::rules) struct Variables {
     roles: HashMap<usize, Role>,
+    /// The method names of receiverless calls that also name a local variable in scope.
+    ///
+    /// The grammar reads `collection [0]` as a call handed an array while Ruby reads it as an index
+    /// on the local variable, and only the scope replay can tell the two apart. Nothing upstream
+    /// corresponds to this position, so it is kept apart from the roles a variable handler sees.
+    local_calls: HashSet<usize>,
 }
 
 impl Variables {
     pub(in crate::rules) fn resolve<'a>(root: Node<'_>, source: &'a SourceFile) -> Self {
         let mut roles = HashMap::new();
+        let mut local_calls = HashSet::new();
         let mut scopes: Vec<Scope<'a>> = vec![Scope::new(true)];
         let mut steps = vec![Step::Visit(root)];
         while let Some(step) = steps.pop() {
@@ -52,12 +59,18 @@ impl Variables {
                     scopes.pop();
                 }
                 Step::Visit(node) => {
-                    record(node, source, &mut scopes, &mut roles);
+                    record(node, source, &mut scopes, &mut roles, &mut local_calls);
                     push_children(node, &mut steps);
                 }
             }
         }
-        Self { roles }
+        Self { roles, local_calls }
+    }
+
+    /// Whether a receiverless call's name is a local variable in scope, which is what makes Ruby
+    /// read `collection [0]` as an index rather than as a call handed an array.
+    pub(in crate::rules) fn names_a_local(&self, node: Node<'_>) -> bool {
+        self.local_calls.contains(&node.start_byte())
     }
 
     /// Whether RuboCop's variable handlers see this node at all: an assignment target, a
@@ -113,6 +126,7 @@ fn record<'a>(
     source: &'a SourceFile,
     scopes: &mut Vec<Scope<'a>>,
     roles: &mut HashMap<usize, Role>,
+    local_calls: &mut HashSet<usize>,
 ) {
     match node.kind_str() {
         "identifier" => {
@@ -123,7 +137,11 @@ fn record<'a>(
                     roles.insert(node.start_byte(), Role::Definition);
                 }
                 Position::Shadow => define(scopes, name),
-                Position::MethodName => {}
+                Position::MethodName => {
+                    if resolves(scopes, name) {
+                        local_calls.insert(node.start_byte());
+                    }
+                }
                 Position::Value => {
                     if resolves(scopes, name) {
                         roles.insert(node.start_byte(), Role::Reference);

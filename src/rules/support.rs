@@ -1,6 +1,9 @@
 //! Tree walks shared by cops in more than one department.
 
 use std::ops::Range;
+use std::sync::LazyLock;
+
+use regex::Regex;
 
 /// `RangeHelp#final_pos`: how far a range grows when it takes in the blanks beside it.
 ///
@@ -59,6 +62,7 @@ use tree_sitter::{Node, Parser};
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{Argument, is_string, pair_key_symbol, string_text};
 
 /// `ReparsedEquivalence#correction_parses?`: whether the exact correction a cop is about to offer
 /// leaves source that still parses.
@@ -369,6 +373,79 @@ fn rotate_same_operator(node: Sexp) -> Sexp {
     })
 }
 
+/// `VERSION_SPECIFICATION_REGEX`, shared by the two cops that ask whether a dependency was pinned.
+/// Ruby anchors `^` at the start of a *line*, which this engine only does under `(?m)`.
+static VERSION_SPECIFICATION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^\s*[~<>=]*\s*[0-9.]+").expect("the version requirement pattern compiles")
+});
+
+/// The keys that pin a dependency to a commit rather than to a version.
+const COMMIT_KEYS: &[&str] = &["branch", "ref", "tag"];
+
+/// `<(str #version_specification?) ...>`: whether the argument is a string that opens with a version
+/// requirement.
+pub(crate) fn is_version_specification(argument: &Argument<'_>, context: &RuleContext<'_>) -> bool {
+    let node = argument.first();
+    argument.parts().len() == 1
+        && is_string(node, context)
+        && VERSION_SPECIFICATION.is_match(string_text(node, context))
+}
+
+/// `<(hash <(pair (sym {:branch :ref :tag}) (str _)) ...>) ...>`: whether the argument is a hash that
+/// pins the dependency to a commit.
+pub(crate) fn is_commit_reference(argument: &Argument<'_>, context: &RuleContext<'_>) -> bool {
+    // A trailing run of `key: value` pairs is one `hash` argument upstream even though it was
+    // written without braces, so both spellings have to be looked into.
+    let pairs: Vec<Node<'_>> = match argument.first().kind_str() {
+        "hash" if argument.parts().len() == 1 => {
+            let mut cursor = argument.first().walk();
+            argument.first().named_children(&mut cursor).collect()
+        }
+        _ => argument.parts().to_vec(),
+    };
+    pairs.iter().any(|pair| {
+        pair.kind_str() == "pair"
+            && pair_key_symbol(*pair, context).is_some_and(|key| COMMIT_KEYS.contains(&key))
+            && pair
+                .field("value")
+                .is_some_and(|value| is_string(value, context))
+    })
+}
+
+/// `File.expand_path`: RuboCop resolves every target against the working directory before it
+/// inspects it, so a cop that reads the path of the file it is inspecting always sees an absolute
+/// one.
+pub(crate) fn expand_path(path: &std::path::Path) -> std::path::PathBuf {
+    let absolute = match path.is_absolute() {
+        true => path.to_path_buf(),
+        false => std::env::current_dir().unwrap_or_default().join(path),
+    };
+    let mut expanded = std::path::PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                expanded.pop();
+            }
+            component => expanded.push(component),
+        }
+    }
+    expanded
+}
+
+/// `range_by_whole_lines(range, include_final_newline: true)`: the lines `range` sits on, taken
+/// whole, with the line break that closes the last of them.
+pub(crate) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
+    let text = context.source.text();
+    let start = text[..range.start]
+        .rfind('\n')
+        .map_or(0, |offset| offset + 1);
+    let end = text[range.end..]
+        .find('\n')
+        .map_or(text.len(), |offset| range.end + offset + 1);
+    start..end
+}
+
 /// Pushes `node`'s named children so that popping the stack yields them in
 /// source order, making a `pop`-driven loop reproduce depth-first pre-order.
 pub(crate) fn push_named_children<'tree>(node: Node<'tree>, stack: &mut Vec<Node<'tree>>) {
@@ -536,4 +613,22 @@ fn last_statement<'tree>(list: Node<'tree>) -> Option<Node<'tree>> {
     children
         .into_iter()
         .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
+}
+
+/// `ProcessedSource#contains_comment?`: whether any comment sits on one of the lines the range
+/// touches.
+///
+/// The question is asked of *lines*, not of the span itself, so a trailing comment on the line the
+/// range ends on counts even though it lies outside the range. `class Foo # note` and the `end` of
+/// an otherwise empty body both answer yes for that reason.
+pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -> bool {
+    let first = context.source.line_column(range.start).0;
+    let last = context
+        .source
+        .line_column(range.end.min(context.source.text().len()))
+        .0;
+    context.comment_ranges().iter().any(|comment| {
+        let line = context.source.line_column(comment.start).0;
+        line >= first && line <= last
+    })
 }
