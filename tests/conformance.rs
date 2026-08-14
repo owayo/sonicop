@@ -3526,6 +3526,76 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_array_flatten")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SafeNavigationChainLength",
+            r"
+            x&.a&.b&.c
+            ^^^^^^^^^^ Avoid safe navigation chains longer than 2 calls.
+            ",
+        )
+        .id("style_safe_navigation_chain_length")
+        .correctable(false),
+        // 位置は先頭の `./` だけ。
+        CopCase::annotated(
+            "Style/RedundantCurrentDirectoryInPath",
+            r"
+            require_relative './foo'
+                              ^^ Remove the redundant current directory path.
+            ",
+        )
+        .id("style_redundant_current_directory_in_path")
+        .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。`YAML.` は外に残る。
+        CopCase::annotated(
+            "Style/YAMLFileRead",
+            r"
+            YAML.load(File.read(path))
+                 ^^^^^^^^^^^^^^^^^^^^^ Use `load_file(path)` instead.
+            ",
+        )
+        .id("style_yaml_file_read")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OpenStructUse",
+            r"
+            OpenStruct.new
+            ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        )
+        .id("style_open_struct_use")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ObjectThen",
+            r"
+            foo.yield_self { |y| y }
+                ^^^^^^^^^^ Prefer `then` over `yield_self`.
+            ",
+        )
+        .id("style_object_then")
+        .correctable(true),
+        // 位置は開き側の `<<~'FOO'` 全体。
+        CopCase::annotated(
+            "Style/RedundantHeredocDelimiterQuotes",
+            r"
+            h = <<~'FOO'
+                ^^^^^^^^ Remove the redundant heredoc delimiter quotes, use `<<~FOO` instead.
+              plain
+            FOO
+            ",
+        )
+        .id("style_redundant_heredoc_delimiter_quotes")
+        .correctable(true),
+        // 位置は `String.new` まで。引数のリテラルは外に残る。
+        CopCase::annotated(
+            "Style/RedundantInterpolationUnfreeze",
+            r##"
+            u = String.new("#{a}")
+                ^^^^^^^^^^ Don't unfreeze interpolated strings as they are already unfrozen.
+            "##,
+        )
+        .id("style_redundant_interpolation_unfreeze")
+        .target_ruby("3.0")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
