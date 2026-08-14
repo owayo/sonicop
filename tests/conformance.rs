@@ -4794,6 +4794,32 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_multiline_method_parameter_line_breaks")
         .config("Layout/MultilineMethodParameterLineBreaks:\n  Enabled: true\n")
         .correctable(true),
+        CopCase::annotated(
+            "Layout/SingleLineBlockChain",
+            "foo { }.bar\n       ^^^^ Put method call on a separate line if chained to a single line block.\n",
+        )
+        .id("layout_single_line_block_chain")
+        .config("Layout/SingleLineBlockChain:\n  Enabled: true\n")
+        .correctable(true),
+        // 位置は条件式全体。複数行なので注記では表せない。
+        CopCase::annotated(
+            "Layout/EmptyLineAfterMultilineCondition",
+            "if a &&\n   b\n  foo\nend\n",
+        )
+        .id("layout_empty_line_after_multiline_condition")
+        .config("Layout/EmptyLineAfterMultilineCondition:\n  Enabled: true\n")
+        .without_offense_check()
+        .locations(&[(1, 4, 2, 4)])
+        .lengths(&[9])
+        .correctable(true),
+        // 位置は代入全体。
+        CopCase::annotated("Layout/MultilineAssignmentLayout", "x = if a\n  1\nend\n")
+            .id("layout_multiline_assignment_layout")
+            .config("Layout/MultilineAssignmentLayout:\n  Enabled: true\n")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[16])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
