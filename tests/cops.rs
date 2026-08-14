@@ -27664,3 +27664,95 @@ mod lint_duplicate_branch {
         }
     }
 }
+
+/// `Lint/NonAtomicFileOperation`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NonAtomicFileOperation` で走らせた実出力から取った
+/// (検出 22 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_non_atomic_file_operation {
+    use super::*;
+
+    const COP: &str = "Lint/NonAtomicFileOperation";
+
+    /// 1 か所につき「存在確認を消す」(キーワードから条件の末尾まで) と「アトミックな
+    /// メソッドへ替える」(呼び出し全体) の 2 件。後者は補正を持たない。
+    #[test]
+    fn the_check_and_the_method_are_reported_separately() {
+        CopCase::annotated(
+            COP,
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir(path)
+              ^^^^^^^^^^^^^^^^^^^^^ Use atomic file operation method `FileUtils.mkdir_p`.
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 補正は条件と `end` を消し、メソッドを置き換える。`Dir.mkdir(path, mode)` の
+    /// 位置引数はキーワードへ移り、既に force なメソッドは置き換えない。
+    ///
+    /// 先頭に 1 文置いてあるのは、補正後の 1 行目が空行になるとハーネスの `corrected`
+    /// が字下げを削る際にそれを落としてしまうため。
+    #[test]
+    fn the_condition_and_the_end_are_removed() {
+        expect_correction(
+            COP,
+            "x = 1\nunless File.exist?(path)\n  FileUtils.mkdir(path)\nend\n",
+            "x = 1\n\n  FileUtils.mkdir_p(path)\n\n",
+        );
+        expect_correction(
+            COP,
+            "y = 2\nunless Dir.exist?(path)\n  Dir.mkdir(path, 0o700)\nend\n",
+            "y = 2\n\n  FileUtils.mkdir_p(path, mode: 0o700)\n\n",
+        );
+        expect_correction(
+            COP,
+            "z = 3\nunless File.exist?(path)\n  FileUtils.makedirs(path)\nend\n",
+            "z = 3\n\n  FileUtils.makedirs(path)\n\n",
+        );
+        // 修飾形は本体の後ろの `unless ...` を落とす。
+        expect_correction(
+            COP,
+            "FileUtils.mkdir_p(path) unless File.exist?(path)\n",
+            "FileUtils.mkdir_p(path)\n",
+        );
+    }
+
+    /// `elsif` は連鎖の途中なので報告だけして補正しない。
+    #[test]
+    fn an_elsif_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              b
+            elsif File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.rm(path)
+              ^^^^^^^^^^^^^^^^^^ Use atomic file operation method `FileUtils.rm_f`.
+            end
+            "#,
+        )
+        .without_offense_check()
+        .correctable(false)
+        .run();
+    }
+
+    /// `force: false`、複合条件、`else` 付き、本体が 2 文、引数が食い違うものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if File.exist?(path)\n  FileUtils.rm(path, force: false)\nend\n",
+            "if File.exist?(path) && x\n  FileUtils.rm(path)\nend\n",
+            "if File.exist?(path)\n  FileUtils.rm(path)\nelse\n  y\nend\n",
+            "if File.exist?(other)\n  FileUtils.rm(path)\nend\n",
+            "unless File.exist?(path)\n  puts 1\n  FileUtils.mkdir_p(path)\nend\n",
+            "FileUtils.rm(path)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

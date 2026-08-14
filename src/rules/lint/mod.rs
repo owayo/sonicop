@@ -111,6 +111,7 @@ department_rules! {
     numbered_parameter_assignment => ("NumberedParameterAssignment", Warning),
     next_without_accumulator => ("NextWithoutAccumulator", Warning),
     no_return_in_begin_end_blocks => ("NoReturnInBeginEndBlocks", Warning),
+    non_atomic_file_operation => ("NonAtomicFileOperation", Warning),
     non_deterministic_require_order => ("NonDeterministicRequireOrder", Warning),
     non_local_exit_from_iterator => ("NonLocalExitFromIterator", Warning),
     numeric_operation_with_constant_result => ("NumericOperationWithConstantResult", Warning),

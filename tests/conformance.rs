@@ -2763,6 +2763,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_duplicate_branch")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/NonAtomicFileOperation",
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir_p(path)
+            end
+            "#,
+        )
+        .id("lint_non_atomic_file_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
