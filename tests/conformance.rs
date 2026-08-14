@@ -3718,6 +3718,480 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_if_with_boolean_literal_branches")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SuperWithArgsParentheses",
+            r"
+            super bar, baz
+            ^^^^^^^^^^^^^^ Use parentheses for `super` with arguments.
+            ",
+        )
+        .id("style_super_with_args_parentheses")
+        .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/StringChars",
+            r#"
+            "x".split('')
+                ^^^^^^^^^ Use `chars` instead of `split('')`.
+            "#,
+        )
+        .id("style_string_chars")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpConstructor",
+            r"
+            Regexp.new(/foo/im)
+            ^^^^^^^^^^^^^^^^^^^ Remove the redundant `Regexp.new`.
+            ",
+        )
+        .id("style_redundant_regexp_constructor")
+        .correctable(true),
+        // 位置はドットから `flatten` 呼び出しの末尾まで。
+        CopCase::annotated(
+            "Style/RedundantArrayFlatten",
+            r"
+            x.flatten(1).join
+             ^^^^^^^^^^^ Remove the redundant `flatten`.
+            ",
+        )
+        .id("style_redundant_array_flatten")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SafeNavigationChainLength",
+            r"
+            x&.a&.b&.c
+            ^^^^^^^^^^ Avoid safe navigation chains longer than 2 calls.
+            ",
+        )
+        .id("style_safe_navigation_chain_length")
+        .correctable(false),
+        // 位置は先頭の `./` だけ。
+        CopCase::annotated(
+            "Style/RedundantCurrentDirectoryInPath",
+            r"
+            require_relative './foo'
+                              ^^ Remove the redundant current directory path.
+            ",
+        )
+        .id("style_redundant_current_directory_in_path")
+        .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。`YAML.` は外に残る。
+        CopCase::annotated(
+            "Style/YAMLFileRead",
+            r"
+            YAML.load(File.read(path))
+                 ^^^^^^^^^^^^^^^^^^^^^ Use `load_file(path)` instead.
+            ",
+        )
+        .id("style_yaml_file_read")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/OpenStructUse",
+            r"
+            OpenStruct.new
+            ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        )
+        .id("style_open_struct_use")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ObjectThen",
+            r"
+            foo.yield_self { |y| y }
+                ^^^^^^^^^^ Prefer `then` over `yield_self`.
+            ",
+        )
+        .id("style_object_then")
+        .correctable(true),
+        // 位置は開き側の `<<~'FOO'` 全体。
+        CopCase::annotated(
+            "Style/RedundantHeredocDelimiterQuotes",
+            r"
+            h = <<~'FOO'
+                ^^^^^^^^ Remove the redundant heredoc delimiter quotes, use `<<~FOO` instead.
+              plain
+            FOO
+            ",
+        )
+        .id("style_redundant_heredoc_delimiter_quotes")
+        .correctable(true),
+        // 位置は `String.new` まで。引数のリテラルは外に残る。
+        CopCase::annotated(
+            "Style/RedundantInterpolationUnfreeze",
+            r##"
+            u = String.new("#{a}")
+                ^^^^^^^^^^ Don't unfreeze interpolated strings as they are already unfrozen.
+            "##,
+        )
+        .id("style_redundant_interpolation_unfreeze")
+        .target_ruby("3.0")
+        .correctable(true),
+        // 位置はブロック全体 (上流の `block` ノード)。
+        CopCase::annotated(
+            "Style/NilLambda",
+            r"
+            a = -> { nil }
+                ^^^^^^^^^^ Use an empty lambda instead of always returning nil.
+            ",
+        )
+        .id("style_nil_lambda")
+        .correctable(true),
+        // 位置はレシーバから selector まで。
+        CopCase::annotated(
+            "Style/RedundantArrayConstructor",
+            r"
+            Array.new([1, 2])
+            ^^^^^^^^^ Remove the redundant `Array` constructor.
+            ",
+        )
+        .id("style_redundant_array_constructor")
+        .correctable(true),
+        // `rfind` は Ruby 4.0 で入る。
+        CopCase::annotated(
+            "Style/ReverseFind",
+            r"
+            x.reverse.find { |y| y }
+              ^^^^^^^^^^^^ Use `rfind` instead.
+            ",
+        )
+        .id("style_reverse_find")
+        .target_ruby("4.0")
+        .correctable(true),
+        // 位置は 1 つ目の代入だけ。
+        CopCase::annotated(
+            "Style/SwapValues",
+            r"
+            tmp = x
+            ^^^^^^^ Replace this and assignments at lines 2 and 3 with `x, y = y, x`.
+            x = y
+            y = tmp
+            ",
+        )
+        .id("style_swap_values")
+        .correctable(true),
+        // 位置は selector だけ。
+        CopCase::annotated(
+            "Style/Send",
+            r"
+            foo.send(:bar)
+                ^^^^ Prefer `Object#__send__` or `Object#public_send` to `send`.
+            ",
+        )
+        .id("style_send")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ImplicitRuntimeError",
+            r"
+            raise 'boom'
+            ^^^^^^^^^^^^ Use `raise` with an explicit exception class and message, rather than just a message.
+            ",
+        )
+        .id("style_implicit_runtime_error")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/StringMethods",
+            r"
+            'x'.intern
+                ^^^^^^ Prefer `to_sym` over `intern`.
+            ",
+        )
+        .id("style_string_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InlineComment",
+            r"
+            x = 1 # trailing
+                  ^^^^^^^^^^ Avoid trailing inline comments.
+            ",
+        )
+        .id("style_inline_comment")
+        .correctable(false),
+        // 位置は最初の非 ASCII の連続だけ。長さは文字数。
+        CopCase::annotated(
+            "Style/AsciiComments",
+            "# mixed \u{a9}\u{3068}\u{65e5}\u{672c}\u{8a9e}\n",
+        )
+        .id("style_ascii_comments")
+        .without_offense_check()
+        .locations(&[(1, 9, 1, 13)])
+        .lengths(&[5])
+        .correctable(false),
+        // 位置は `end` から呼び出しの末尾まで。
+        CopCase::annotated(
+            "Style/MethodCalledOnDoEndBlock",
+            r"
+            foo do
+              bar
+            end.baz
+            ^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        )
+        .id("style_method_called_on_do_end_block")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/TopLevelMethodDefinition",
+            r"
+            def self.top2; end
+            ^^^^^^^^^^^^^^^^^^ Do not define methods at the top-level.
+            ",
+        )
+        .id("style_top_level_method_definition")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/DateTime",
+            r"
+            DateTime.now
+            ^^^^^^^^^^^^ Prefer `Time` over `DateTime`.
+            ",
+        )
+        .id("style_date_time")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CollectionMethods",
+            r"
+            arr.collect { |x| x }
+                ^^^^^^^ Prefer `map` over `collect`.
+            ",
+        )
+        .id("style_collection_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/YodaExpression",
+            r"
+            p1 = 1 + a
+                 ^^^^^ Non-literal operand (`a`) should be first.
+            ",
+        )
+        .id("style_yoda_expression")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ArrayCoercion",
+            r"
+            q1 = [*foo]
+                 ^^^^^^ Use `Array(foo)` instead of `[*foo]`.
+            ",
+        )
+        .id("style_array_coercion")
+        .correctable(true),
+        // 位置は `::` の 2 文字だけ。
+        CopCase::annotated(
+            "Style/RedundantConstantBase",
+            r"
+            ::Foo
+            ^^ Remove redundant `::`.
+            ",
+        )
+        .id("style_redundant_constant_base")
+        .correctable(true),
+        // 位置は `each` とその後ろのドット。
+        CopCase::annotated(
+            "Style/RedundantEach",
+            r"
+            xs.each.each_with_index { |x, i| x }
+               ^^^^^ Remove redundant `each`.
+            ",
+        )
+        .id("style_redundant_each")
+        .correctable(true),
+        // 位置は `select` から述語 selector の末尾まで。
+        CopCase::annotated(
+            "Style/RedundantFilterChain",
+            r"
+            ys.select { |y| y }.any?
+               ^^^^^^^^^^^^^^^^^^^^^ Use `any?` instead of `select.any?`.
+            ",
+        )
+        .id("style_redundant_filter_chain")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/UnlessLogicalOperators",
+            r"
+            y unless a && b || c
+            ^^^^^^^^^^^^^^^^^^^^ Do not use mixed logical operators in an `unless`.
+            ",
+        )
+        .id("style_unless_logical_operators")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ConstantVisibility",
+            r"
+            class Foo
+              BAZ = 2
+              ^^^^^^^ Explicitly make `BAZ` public or private using either `#public_constant` or `#private_constant`.
+            end
+            ",
+        )
+        .id("style_constant_visibility")
+        .correctable(false),
+        // 位置は最後のカンマ 1 文字。
+        CopCase::annotated(
+            "Style/TrailingCommaInBlockArgs",
+            r"
+            foo { |a, b,| a }
+                       ^ Useless trailing comma present in block arguments.
+            ",
+        )
+        .id("style_trailing_comma_in_block_args")
+        .correctable(true),
+        // 位置は縦棒を含む引数リスト全体。
+        CopCase::annotated(
+            "Style/SingleLineBlockParams",
+            r"
+            xs.reduce { |a, e| a + e }
+                        ^^^^^^ Name `reduce` block params `|acc, elem|`.
+            ",
+        )
+        .id("style_single_line_block_params")
+        .correctable(true),
+        // 既定 (`allow_single_line`) では複数行のブロックだけが対象。
+        CopCase::annotated("Style/NumberedParameters", "xs.map do\n  _1\nend\n")
+            .id("style_numbered_parameters")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[18])
+            .correctable(false),
+        CopCase::annotated(
+            "Style/NumberedParametersLimit",
+            r"
+            xs.map { _1 + _2 }
+            ^^^^^^^^^^^^^^^^^^ Avoid using more than 1 numbered parameter; 2 detected.
+            ",
+        )
+        .id("style_numbered_parameters_limit")
+        .correctable(false),
+        // 位置は selector からブロックの閉じまで。
+        CopCase::annotated(
+            "Style/RedundantMinMaxBy",
+            r"
+            xs.max_by { |x| x }
+               ^^^^^^^^^^^^^^^^ Use `max` instead of `max_by { |x| x }`.
+            ",
+        )
+        .id("style_redundant_min_max_by")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/PredicateWithKind",
+            r"
+            xs.any? { |x| x.is_a?(Foo) }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `any?(Foo)` to `any? { ... }` with a kind check.
+            ",
+        )
+        .id("style_predicate_with_kind")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ReturnNil",
+            r"
+            def m
+              return nil
+              ^^^^^^^^^^ Use `return` instead of `return nil`.
+            end
+            ",
+        )
+        .id("style_return_nil")
+        .correctable(true),
+        // 位置は selector だけ。置き換えはドットから末尾まで。
+        CopCase::annotated(
+            "Style/HashLookupMethod",
+            r"
+            a = h.fetch(:k)
+                  ^^^^^ Use `Hash#[]` instead of `Hash#fetch`.
+            ",
+        )
+        .id("style_hash_lookup_method")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/AutoResourceCleanup",
+            r"
+            f = File.open('x')
+                ^^^^^^^^^^^^^^ Use the block version of `File.open`.
+            ",
+        )
+        .id("style_auto_resource_cleanup")
+        .correctable(false),
+        // 位置は末尾の引数だけ。
+        CopCase::annotated(
+            "Style/OptionHash",
+            r"
+            def m(options = {}); end
+                  ^^^^^^^^^^^^ Prefer keyword arguments to options hashes.
+            ",
+        )
+        .id("style_option_hash")
+        .correctable(false),
+        // 位置はキーワードから名前の末尾まで。2 つ目以降が対象。
+        CopCase::annotated(
+            "Style/OneClassPerFile",
+            r"
+            class A; end
+            module B; end
+            ^^^^^^^^ Do not define multiple classes/modules at the top level in a single file.
+            ",
+        )
+        .id("style_one_class_per_file")
+        .correctable(false),
+        // 位置は selector から末尾まで。
+        CopCase::annotated(
+            "Style/SendWithLiteralMethodName",
+            r"
+            foo.public_send(:bar)
+                ^^^^^^^^^^^^^^^^^ Use `bar` method call directly instead.
+            ",
+        )
+        .id("style_send_with_literal_method_name")
+        .correctable(true),
+        // 位置は自己代入している枝だけ。
+        CopCase::annotated(
+            "Style/RedundantSelfAssignmentBranch",
+            r"
+            x = if c
+              x
+              ^ Remove the self-assignment branch.
+            else
+              y
+            end
+            ",
+        )
+        .id("style_redundant_self_assignment_branch")
+        .correctable(true),
+        // 位置は `keyword_init:` のペア。
+        CopCase::annotated(
+            "Style/RedundantStructKeywordInit",
+            r"
+            S1 = Struct.new(:a, keyword_init: true)
+                                ^^^^^^^^^^^^^^^^^^ Remove the redundant `keyword_init: true`.
+            ",
+        )
+        .id("style_redundant_struct_keyword_init")
+        .target_ruby("3.2")
+        .correctable(true),
+        // 位置はファイル先頭の 1 文字。既定の `AutocorrectNotice` は空なので補正は付かない。
+        CopCase::annotated("Style/Copyright", "x = 1\n")
+            .id("style_copyright")
+            .without_offense_check()
+            .locations(&[(1, 1, 1, 1)])
+            .lengths(&[1])
+            .correctable(false),
+        CopCase::annotated(
+            "Style/IpAddresses",
+            r"
+            a = '1.2.3.4'
+                ^^^^^^^^^ Do not hardcode IP addresses.
+            ",
+        )
+        .id("style_ip_addresses")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ReturnNilInPredicateMethodDefinition",
+            r"
+            def foo?
+              return if bar
+              ^^^^^^ Return `false` instead of `nil` in predicate methods.
+              baz
+            end
+            ",
+        )
+        .id("style_return_nil_in_predicate_method_definition")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

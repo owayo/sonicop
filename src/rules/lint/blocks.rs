@@ -17,7 +17,7 @@ use crate::rules::node_ext::NodeExt;
 
 /// The kinds tree-sitter writes a block as. A `lambda` is `-> { }`, which upstream also reaches
 /// through `on_block`.
-pub(super) const BLOCK_KINDS: &[&str] = &["block", "do_block"];
+pub(crate) const BLOCK_KINDS: &[&str] = &["block", "do_block"];
 
 /// The version that made `_1` a block parameter rather than a receiverless call.
 const NUMBERED_VERSION: RubyVersion = RubyVersion::new(2, 7);
@@ -26,7 +26,7 @@ const NUMBERED_VERSION: RubyVersion = RubyVersion::new(2, 7);
 const IT_VERSION: RubyVersion = RubyVersion::new(3, 4);
 
 /// The parameters of a block, as the node type upstream builds for it.
-pub(super) enum BlockArgs<'tree> {
+pub(crate) enum BlockArgs<'tree> {
     /// `(block _ (args ...) _)`: what was written between the bars, which may be nothing.
     Written(Vec<Node<'tree>>),
     /// `(numblock _ n _)`: the highest `_n` the body reads.
@@ -36,7 +36,7 @@ pub(super) enum BlockArgs<'tree> {
 }
 
 impl<'tree> BlockArgs<'tree> {
-    pub(super) fn of(
+    pub(crate) fn of(
         block: Node<'tree>,
         context: &RuleContext<'_>,
         locals: &LocalVariables<'_, '_>,
@@ -68,12 +68,12 @@ impl<'tree> BlockArgs<'tree> {
     }
 
     /// `(args (arg _))`: exactly one plain required parameter.
-    pub(super) fn single_plain_arg(&self) -> bool {
+    pub(crate) fn single_plain_arg(&self) -> bool {
         matches!(self, Self::Written(params) if params.len() == 1 && params[0].kind_str() == "identifier")
     }
 
     /// `(args)`: no parameters written at all.
-    pub(super) fn none(&self) -> bool {
+    pub(crate) fn none(&self) -> bool {
         matches!(self, Self::Written(params) if params.is_empty())
     }
 }
