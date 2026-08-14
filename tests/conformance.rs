@@ -275,6 +275,18 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 2, 13)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/EmptyLinesAfterModuleInclusion",
+            r#"
+            class A
+              include Foo
+              ^^^^^^^^^^^ Add an empty line after module inclusion.
+              def bar; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_after_module_inclusion")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLinesAroundAccessModifier",
             r#"
             class Foo

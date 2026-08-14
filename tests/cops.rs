@@ -21823,3 +21823,144 @@ mod layout_line_continuation_leading_space {
         .run();
     }
 }
+
+/// `Layout/EmptyLinesAfterModuleInclusion` — 期待値は本家 1.89.0 の実測。
+mod layout_empty_lines_after_module_inclusion {
+    use super::*;
+
+    const COP: &str = "Layout/EmptyLinesAfterModuleInclusion";
+    const MSG: &str = "Add an empty line after module inclusion.";
+
+    /// `include` / `extend` / `prepend` の後ろには空行を置く。次の文がまた
+    /// モジュール取り込みなら不要。ブロックの最後なら次の文が無いので不要。
+    #[test]
+    fn an_inclusion_followed_by_something_else_wants_a_blank_line() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            class A
+              include Foo
+              ^^^^^^^^^^^ %{msg}
+              def bar; end
+            end
+            class B
+              include Foo
+
+              def bar; end
+            end
+            class C
+              include Foo
+              extend Bar
+              prepend Baz
+
+              def qux; end
+            end
+            class D
+              include Foo
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .corrected(
+            r#"
+            class A
+              include Foo
+
+              def bar; end
+            end
+            class B
+              include Foo
+
+              def bar; end
+            end
+            class C
+              include Foo
+              extend Bar
+              prepend Baz
+
+              def qux; end
+            end
+            class D
+              include Foo
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 直下の `# rubocop:enable` は空行の代わりにならないが、補正の挿入位置は
+    /// そのコメントの後ろになる。`# rubocop:disable` や普通のコメントは違う。
+    #[test]
+    fn an_enable_directive_below_takes_the_inserted_line() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            class E
+              include Foo
+              # rubocop:enable Style/For
+
+              def bar; end
+            end
+            class F
+              include Foo
+              ^^^^^^^^^^^ %{msg}
+              # rubocop:enable Style/For
+              def bar; end
+            end
+            class G
+              include Foo
+              ^^^^^^^^^^^ %{msg}
+              # a comment
+              def bar; end
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .corrected(
+            r#"
+            class E
+              include Foo
+              # rubocop:enable Style/For
+
+              def bar; end
+            end
+            class F
+              include Foo
+              # rubocop:enable Style/For
+
+              def bar; end
+            end
+            class G
+              include Foo
+
+              # a comment
+              def bar; end
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 受け手付き・引数無し・他の呼び出しの引数・配列の要素は対象外。条件分岐の枝に
+    /// 書かれた取り込みも次の文を持たないので対象外 (`elsif` の枝も同じ)。
+    #[test]
+    fn the_shapes_the_cop_passes_over() {
+        for source in [
+            "class J\n  self.include Foo\n  def bar; end\nend\n",
+            "class K\n  include\n  def bar; end\nend\n",
+            "class L\n  foo(include Bar)\n  def baz; end\nend\n",
+            "class M\n  x = [include(Foo)]\n  def baz; end\nend\n",
+            "class H\n  include Foo if x\n  def bar; end\nend\n",
+            "class N\n  if a\n    include Foo\n  elsif b\n    include Bar\n  elsif c\n    include Baz\n  end\n  def bar; end\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).run();
+        }
+        // 次の文が修飾形の取り込みでも取り込みとして扱う。
+        CopCase::new(
+            COP,
+            "class I\n  include Foo\n  include Bar if x\n  def bar; end\nend\n",
+            Vec::new(),
+        )
+        .run();
+    }
+}
