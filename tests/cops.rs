@@ -25571,3 +25571,143 @@ mod style_redundant_initialize {
         .run();
     }
 }
+
+/// `Style/NegativeArrayIndex`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NegativeArrayIndex` で走らせた実出力から取った
+/// (検出 19 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_negative_array_index {
+    use super::*;
+
+    const COP: &str = "Style/NegativeArrayIndex";
+
+    /// 位置は添字の式だけ。メッセージには元の書き方が入る。
+    #[test]
+    fn a_length_subtraction_becomes_a_negative_index() {
+        expect_offense(
+            COP,
+            r"
+            arr[arr.length - 1]
+                ^^^^^^^^^^^^^^ Use `arr[-1]` instead of `arr[arr.length - 1]`.
+            ",
+        );
+        expect_correction(COP, "arr[arr.length - 1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.size - 1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.count - 2]\n", "arr[-2]\n");
+        expect_correction(COP, "arr[arr.length-1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.length - 1, 2]\n", "arr[-1, 2]\n");
+        expect_correction(COP, "arr&.[](arr.length - 1)\n", "arr&.[](-1)\n");
+        expect_correction(COP, "@arr[@arr.length - 1]\n", "@arr[-1]\n");
+        expect_correction(COP, "self[length - 1]\n", "self[-1]\n");
+    }
+
+    /// 長さを保つメソッドが挟まっていても対象。並びが違っていても、受け手に土台があれば通る。
+    #[test]
+    fn length_preserving_chains_count() {
+        expect_correction(COP, "arr.sort[arr.sort.length - 1]\n", "arr.sort[-1]\n");
+        expect_correction(
+            COP,
+            "arr.sort.reverse[arr.sort.reverse.length - 1]\n",
+            "arr.sort.reverse[-1]\n",
+        );
+        expect_correction(COP, "arr.sort[arr.length - 1]\n", "arr.sort[-1]\n");
+    }
+
+    /// 範囲の終端でも同じ。位置は終端の式で、置き換えは添字全体。
+    #[test]
+    fn a_range_end_is_handled_too() {
+        expect_offense(
+            COP,
+            r"
+            arr[0..arr.length - 1]
+                   ^^^^^^^^^^^^^^ Use `arr[0..-1]` instead of `arr[0..arr.length - 1]`.
+            ",
+        );
+        expect_correction(COP, "arr[0..arr.length - 1]\n", "arr[0..-1]\n");
+        expect_correction(COP, "arr[0...arr.length - 1]\n", "arr[0...-1]\n");
+        expect_correction(COP, "arr[1..arr.length - 2]\n", "arr[1..-2]\n");
+        expect_correction(COP, "arr[(0..arr.length - 1)]\n", "arr[(0..-1)]\n");
+        expect_correction(COP, "arr[foo..arr.length - 1]\n", "arr[foo..-1]\n");
+    }
+
+    /// 引き算でないもの、引く数が 0 や整数でないもの、受け手が違うもの、
+    /// 長さを保たないメソッドが挟まるものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "arr[arr.length - 0]\n",
+            "arr[arr.length + 1]\n",
+            "arr[other.length - 1]\n",
+            "arr[length - 1]\n",
+            "a.b[a.b.length - 1]\n",
+            "arr[0..arr.length - 1.0]\n",
+            "arr[arr.length - 1..2]\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/StaticClass` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StaticClass` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_static_class {
+    use super::*;
+
+    const COP: &str = "Style/StaticClass";
+
+    /// 位置はクラス全体。`class` が `module` になり、名前の後ろに `module_function` が入る。
+    #[test]
+    fn a_class_of_only_class_methods_is_reported() {
+        CopCase::annotated(COP, "class A\n  def self.foo; end\nend\n")
+            .id("static")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[31])
+            .run();
+        expect_correction(
+            COP,
+            "class A\n  def self.foo; end\nend\n",
+            "module A\nmodule_function\n\n  def foo; end\nend\n",
+        );
+    }
+
+    /// `class << self`・定数代入・`extend` が混ざっていても通る。`class << self` は
+    /// 見出しと `end` が消えるだけなので、字下げがそのまま残る。
+    #[test]
+    fn the_other_shapes_a_convertible_class_may_hold() {
+        expect_correction(
+            COP,
+            "class C\n  class << self\n    def foo; end\n  end\nend\n",
+            "module C\nmodule_function\n\n  \n    def foo; end\n  \nend\n",
+        );
+        expect_correction(
+            COP,
+            "class D\n  CONST = 1\n  def self.foo; end\nend\n",
+            "module D\nmodule_function\n\n  CONST = 1\n  def foo; end\nend\n",
+        );
+        // `extend_call?` は selector しか見ないので、レシーバ付きの `extend` も通る。
+        expect_correction(
+            COP,
+            "class F\n  Foo.extend Bar\n  def self.foo; end\nend\n",
+            "module F\nmodule_function\n\n  Foo.extend Bar\n  def foo; end\nend\n",
+        );
+    }
+
+    /// インスタンスメソッド・空のクラス・スーパークラス付き・可視性の指定が混ざったものは
+    /// 触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class F\n  def foo; end\nend\n",
+            "class G\nend\n",
+            "class H < Base\n  def self.foo; end\nend\n",
+            "class I\n  private\n  def self.foo; end\nend\n",
+            "class J\n  class << self\n    private\n    def foo; end\n  end\nend\n",
+            "module K\n  def self.foo; end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

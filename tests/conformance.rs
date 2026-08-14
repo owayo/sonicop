@@ -4276,6 +4276,23 @@ fn catalogue() -> Vec<CopCase> {
             .locations(&[(2, 3, 3, 5)])
             .lengths(&[20])
             .correctable(true),
+        // 位置は添字の式だけ。
+        CopCase::annotated(
+            "Style/NegativeArrayIndex",
+            r"
+            arr[arr.length - 1]
+                ^^^^^^^^^^^^^^ Use `arr[-1]` instead of `arr[arr.length - 1]`.
+            ",
+        )
+        .id("style_negative_array_index")
+        .correctable(true),
+        // 位置はクラス全体。
+        CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
+            .id("style_static_class")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[31])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
