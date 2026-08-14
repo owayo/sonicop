@@ -28093,3 +28093,63 @@ mod lint_symbol_conversion {
         }
     }
 }
+
+/// `Lint/ToEnumArguments`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ToEnumArguments` で走らせた実出力から取った
+/// (検出 5 件を確認済み)。
+mod lint_to_enum_arguments {
+    use super::*;
+
+    const COP: &str = "Lint/ToEnumArguments";
+
+    /// 引数が足りない・余っているものだけが報告される。
+    #[test]
+    fn a_mismatched_argument_list_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        );
+        for source in [
+            "def baz(x, y)\n  return to_enum(:baz, x) unless block_given?\nend\n",
+            "def thud(x)\n  to_enum(:thud, x, 1)\nend\n",
+            "def b(x, k: 1)\n  return to_enum(:b, x) unless block_given?\nend\n",
+            "def c(x)\n  return to_enum(:c, x, k: 1) unless block_given?\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 位置引数・省略可能引数・splat・キーワード・`**`・`...`・`__method__` のどれも
+    /// 正しく渡していれば対象外。`def` の外や別のレシーバも見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def foo(x)\n  return to_enum(:foo, x) unless block_given?\nend\n",
+            "def qux(x = 1)\n  return to_enum(:qux, x) unless block_given?\nend\n",
+            "def quux(*args)\n  return to_enum(:quux, *args) unless block_given?\nend\n",
+            "def corge(k:)\n  return to_enum(:corge, k: k) unless block_given?\nend\n",
+            "def garply(**opts)\n  return to_enum(:garply, **opts) unless block_given?\nend\n",
+            "def waldo(x)\n  return to_enum(__method__, x) unless block_given?\nend\n",
+            "def fred(x)\n  return to_enum(:other, x) unless block_given?\nend\n",
+            "def plugh(x, &blk)\n  return to_enum(:plugh, x) unless block_given?\nend\n",
+            "def xyzzy(x)\n  return enum_for(:xyzzy, x) unless block_given?\nend\n",
+            "def d(...)\n  return to_enum(:d, ...) unless block_given?\nend\n",
+            "def g(x)\n  return self.to_enum(:g, x) unless block_given?\nend\n",
+            "def h(x)\n  return foo.to_enum(:h, x) unless block_given?\nend\n",
+            "to_enum(:top)\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}

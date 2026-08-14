@@ -2826,6 +2826,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_symbol_conversion")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/ToEnumArguments",
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        )
+        .id("lint_to_enum_arguments")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

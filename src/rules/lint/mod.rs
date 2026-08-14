@@ -157,6 +157,7 @@ department_rules! {
     suppressed_exception_in_number_conversion => ("SuppressedExceptionInNumberConversion", Warning),
     symbol_conversion => ("SymbolConversion", Warning),
     syntax => ("Syntax", Fatal),
+    to_enum_arguments => ("ToEnumArguments", Warning),
     to_json => ("ToJSON", Warning),
     top_level_return_with_argument => ("TopLevelReturnWithArgument", Warning),
     triple_quotes => ("TripleQuotes", Warning),
