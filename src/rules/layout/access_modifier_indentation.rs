@@ -33,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // The line a block opens on is the line of the call it hangs off, not of its `do`.
         let owner = match node.kind_str() {
-            "block" | "do_block" => node.parent().unwrap_or(node),
+            "block" | "do_block" => node.parent_of(context).unwrap_or(node),
             _ => node,
         };
         let owner_line = context.source.line_column(owner.start_byte()).0;

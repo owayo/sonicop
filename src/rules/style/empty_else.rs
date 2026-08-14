@@ -105,7 +105,7 @@ fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn comment_in_else(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut outermost = node;
     while outermost.kind_str() == "elsif" {
-        let Some(parent) = outermost.parent() else {
+        let Some(parent) = outermost.parent_of(context) else {
             break;
         };
         outermost = parent;

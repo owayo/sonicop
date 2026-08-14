@@ -64,7 +64,7 @@ fn correct(
     }];
     // A comment written into the condition has nowhere to go in the rewrite, so it moves above the
     // statement the ternary stood in.
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return offense.corrected_by_all(edits);
     };
     let comments = comments_in_condition(context, node);

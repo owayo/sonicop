@@ -28,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The method the block is passed to. A lambda literal has no call of its own; RuboCop still sees
 /// a block there, and names the method `lambda`.
 fn block_method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let parent = node.parent()?;
+    let parent = node.parent_of(context)?;
     if parent.kind_str() == "lambda" {
         return Some("lambda");
     }
@@ -41,7 +41,7 @@ fn block_method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option
 }
 
 fn block_receiver<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let call = node.parent().filter(|parent| parent.kind_str() == "call")?;
+    let call = node.parent_of(context).filter(|parent| parent.kind_str() == "call")?;
     Some(
         context
             .source
@@ -68,7 +68,7 @@ fn block_method_allowed(node: Node<'_>, context: &RuleContext<'_>, allowed: &[St
 /// which RuboCop measures with `Metrics/ClassLength` instead. The constant has to be the global
 /// one, so a namespaced `Foo::Class` is not exempt.
 fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(call) = node.parent().filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = node.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return false;
     };
     matches!(

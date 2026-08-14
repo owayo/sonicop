@@ -94,7 +94,7 @@ pub(super) fn comments(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     context
         .nodes_of("comment")
         .filter(|node| {
-            node.parent()
+            node.parent_of(context)
                 .is_none_or(|parent| parent.kind_str() != "heredoc_body")
         })
         .map(|node| node.byte_range())
@@ -686,7 +686,7 @@ pub(super) fn statement_groups<'ctx, 'tree>(
         let parent_start = if has_clause(container) {
             Some(statements[0].start_byte())
         } else {
-            container.parent().map(parser_node_start)
+            container.parent_of(context).map(parser_node_start)
         };
         groups.push(StatementGroup {
             statements,
@@ -728,7 +728,7 @@ pub(super) fn statement_groups<'ctx, 'tree>(
         }
         groups.push(StatementGroup {
             statements,
-            parent_start: container.parent().map(parser_node_start),
+            parent_start: container.parent_of(context).map(parser_node_start),
         });
     }
     groups

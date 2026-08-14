@@ -31,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `implements_respond_to_missing?`: a definition of the same kind, in the same scope.
 fn implements_respond_to_missing(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let scope = enclosing_scope(node);
-    let Some(root) = scope.or_else(|| node.parent()) else {
+    let Some(root) = scope.or_else(|| node.parent_of(context)) else {
         return false;
     };
     let mut found = false;

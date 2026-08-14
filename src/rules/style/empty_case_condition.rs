@@ -79,11 +79,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `NOT_SUPPORTED_PARENT_TYPES`, read through the wrappers the grammar puts between a node and
 /// what upstream calls its parent.
 fn is_unsupported_parent(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     let parent = match parent.kind_str() {
-        "argument_list" => match parent.parent() {
+        "argument_list" => match parent.parent_of(context) {
             Some(call) => call,
             None => return false,
         },

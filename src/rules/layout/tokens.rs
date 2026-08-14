@@ -155,7 +155,7 @@ impl Builder<'_, '_> {
             // name was written as a string), and a setter's `=` to the method name.
             ":" if closes_a_label(node) => self.extend(node),
             "=" if node
-                .parent()
+                .parent_of(self.context)
                 .is_some_and(|parent| parent.kind_str() == "setter") =>
             {
                 self.extend(node);

@@ -194,7 +194,7 @@ fn replacement(
         // only a bracketed literal widens the range.
         let range = match position {
             Position::BracketedArray => node
-                .parent()
+                .parent_of(context)
                 .map_or(node.byte_range(), |parent| parent.byte_range()),
             _ => node.byte_range(),
         };

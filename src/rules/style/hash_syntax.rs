@@ -74,7 +74,7 @@ fn every_key_takes_the_new_syntax(
     context: &RuleContext<'_>,
     quoted_keys_allowed: bool,
 ) -> bool {
-    let Some(container) = node.parent() else {
+    let Some(container) = node.parent_of(context) else {
         return false;
     };
     let mut cursor = container.walk();

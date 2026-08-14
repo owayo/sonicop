@@ -96,7 +96,7 @@ fn ends_with_its_own_delimiter(text: &str) -> bool {
 
 /// The sentence upstream appends when the two literals stand where a comma was likely meant.
 fn suffix(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return "";
     };
     match parent.kind_str() {
@@ -118,7 +118,7 @@ fn suffix(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
         "unary" | "element_reference" => FOR_METHOD,
         "call" if is_plain_send(parent, context) => FOR_METHOD,
         "argument_list" => parent
-            .parent()
+            .parent_of(context)
             .filter(|call| call.kind_str() == "call" && is_plain_send(*call, context))
             .map_or("", |_| FOR_METHOD),
         _ => "",

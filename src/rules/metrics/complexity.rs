@@ -943,7 +943,7 @@ fn statements<'a>(node: Node<'a>) -> Option<Node<'a>> {
 /// The literal name a `define_method` block defines, when it defines one.
 fn define_method_name<'a>(context: &'a RuleContext<'_>, block: Node<'a>) -> Option<&'a str> {
     let call = block
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "call")?;
     if call.field("receiver").is_some() {
         return None;

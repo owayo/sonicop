@@ -184,7 +184,7 @@ fn is_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `require_safe_navigation?`: `foo&.bar && foo.bar.baz` already guards the chain.
 fn requires_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return true;
     };
     if parent.kind_str() != "binary"
@@ -224,7 +224,7 @@ fn ternary_branch(
     safe_navigation: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<Branch> {
-    let parent = node.parent()?;
+    let parent = node.parent_of(context)?;
     if parent.kind_str() != "conditional" {
         return None;
     }
@@ -286,7 +286,7 @@ fn autocorrect(chain: &Chain<'_>, range: &Range<usize>, context: &RuleContext<'_
 /// `require_parentheses?`: an operator written inside a collection literal, or a comparison whose
 /// parent would bind the rewritten call the wrong way.
 fn requires_parentheses(chain: &Chain<'_>, context: &RuleContext<'_>) -> bool {
-    let parent = chain.node.parent();
+    let parent = chain.node.parent_of(context);
     if chain.dot.is_none() && parent.is_some_and(|parent| matches!(parent.kind_str(), "array" | "pair"))
     {
         return true;

@@ -97,7 +97,7 @@ fn is_index_assignment(context: &RuleContext<'_>, call: Node<'_>) -> bool {
         return true;
     }
     call.kind_str() == "element_reference"
-        && call.parent().is_some_and(|parent| {
+        && call.parent_of(context).is_some_and(|parent| {
             parent.kind_str() == "assignment" && parent.field("left") == Some(call)
         })
 }

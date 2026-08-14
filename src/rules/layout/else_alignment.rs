@@ -107,7 +107,7 @@ impl Checker<'_, '_> {
                 }
             }
             current = candidate
-                .parent()
+                .parent_of(self.context)
                 .filter(|parent| IF_KINDS.contains(&parent.kind_str()));
         }
         node.byte_range()
@@ -145,11 +145,11 @@ impl Checker<'_, '_> {
         if container.kind_str() == "begin" {
             return container.child(0).map(|keyword| keyword.byte_range());
         }
-        let owner = container.parent()?;
+        let owner = container.parent_of(self.context)?;
         match owner.kind_str() {
             "method" | "singleton_method" => Some(self.base_for_method_definition(owner)),
             "block" | "do_block" => {
-                let block = owner.parent()?;
+                let block = owner.parent_of(self.context)?;
                 Some(start_line_range(self.context, block.start_byte()))
             }
             _ => None,
@@ -162,9 +162,9 @@ impl Checker<'_, '_> {
             .child(0)
             .map_or_else(|| definition.byte_range(), |node| node.byte_range());
         let Some(call) = definition
-            .parent()
+            .parent_of(self.context)
             .filter(|parent| parent.kind_str() == "argument_list")
-            .and_then(|list| list.parent())
+            .and_then(|list| list.parent_of(self.context))
             .filter(|call| call.kind_str() == "call")
         else {
             return keyword;

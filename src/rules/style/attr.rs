@@ -60,7 +60,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `allowed_context?`: only a class body, or a `class_eval` block, is where `attr` means what this
 /// cop thinks it means -- and even there a locally defined `attr` excuses it.
 fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(ancestor) = std::iter::successors(node.parent(), |current| current.parent())
+    let Some(ancestor) = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
         .find(|current| matches!(current.kind_str(), "class" | "block" | "do_block"))
     else {
         return false;
@@ -75,7 +75,7 @@ fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// the call is the block's parent rather than its first child.
 fn is_class_eval(context: &RuleContext<'_>, block: Node<'_>) -> bool {
     block
-        .parent()
+        .parent_of(context)
         .and_then(|call| call.field("method"))
         .is_some_and(|method| {
             matches!(

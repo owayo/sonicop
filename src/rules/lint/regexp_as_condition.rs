@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let source = context.source.node_text(regexp);
         // `!` binds tighter than `=~`, so the rewritten match has to be parenthesised when the
         // literal was the operand of one.
-        let negation = regexp.parent().filter(|parent| is_negation(*parent, context));
+        let negation = regexp.parent_of(context).filter(|parent| is_negation(*parent, context));
         let edit = match negation {
             Some(parent) => Edit {
                 start: parent.start_byte(),

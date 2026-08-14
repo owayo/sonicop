@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `implicit_concatenation?` / `embedded_in_percent_array?`.
         if node
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| NOT_ON_ITS_OWN.contains(&parent.kind_str()))
         {
             continue;
@@ -158,7 +158,7 @@ fn replace(node: Node<'_>, replacement: String) -> Edit {
 
 /// Whether the literal is a hash key written with the `:` separator, which makes it a symbol.
 fn is_symbol_key(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     parent.kind_str() == "pair"

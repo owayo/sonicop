@@ -286,7 +286,7 @@ fn space_after(text: &str, offset: usize) -> usize {
 
 /// `Node#chained?`: the node is the receiver of the call written around it.
 fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     match parent.kind_str() {
@@ -304,11 +304,11 @@ fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `Node#argument?`: the node is an argument of the `send` written around it. A `csend` is not a
 /// `send`, so an argument of `foo&.bar(...)` answers no.
 fn is_argument(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     match parent.kind_str() {
-        "argument_list" => parent.parent().is_some_and(|call| {
+        "argument_list" => parent.parent_of(context).is_some_and(|call| {
             call.kind_str() == "call" && crate::rules::send_node::is_plain_send(call, context)
         }),
         "element_reference" => parent.field("object") != Some(node),

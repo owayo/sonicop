@@ -78,7 +78,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn parse_errors(context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
     let mut ran_out_of_input = false;
     for node in context.nodes() {
-        let nested_error = node.parent().is_some_and(|parent| parent.is_error());
+        let nested_error = node.parent_of(context).is_some_and(|parent| parent.is_error());
         if (!node.is_error() && !node.is_missing()) || nested_error {
             continue;
         }
@@ -429,7 +429,7 @@ fn command_argument_parentheses(paren: Node<'_>, context: &RuleContext<'_>) -> b
     }
     let mut current = paren;
     loop {
-        let Some(parent) = current.parent() else {
+        let Some(parent) = current.parent_of(context) else {
             return false;
         };
         if opens_command_argument(parent, current) {

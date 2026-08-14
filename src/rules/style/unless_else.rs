@@ -26,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ) else {
             continue;
         };
-        let inside_reported = std::iter::successors(node.parent(), |current| current.parent())
+        let inside_reported = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
             .any(|ancestor| ignored.contains(&ancestor.id()));
         let offense = context.offense(MSG, node.byte_range());
         if inside_reported {

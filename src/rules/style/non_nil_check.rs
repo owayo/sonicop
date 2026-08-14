@@ -84,13 +84,13 @@ fn comparison_with_nil<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<
 /// `on_def`'s `ignore_node`: the value a predicate method hands back is the one place an explicit
 /// comparison earns its keep.
 fn is_predicate_method_result(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() != "body_statement" {
         return false;
     }
-    let Some(definition) = parent.parent() else {
+    let Some(definition) = parent.parent_of(context) else {
         return false;
     };
     if !matches!(definition.kind_str(), "method" | "singleton_method") {

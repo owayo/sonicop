@@ -303,7 +303,7 @@ pub(super) fn inside_interpolation(node: Node<'_>) -> bool {
 /// A quoted hash key such as `'a': 1` is a symbol rather than a string, so re-quoting it would
 /// change what it means.
 pub(super) fn quoted_label_key(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     parent.kind_str() == "pair"

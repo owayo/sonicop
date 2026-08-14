@@ -55,7 +55,7 @@ fn enclosing_block(node: Node<'_>) -> Option<Node<'_>> {
 
 fn block_method<'a>(block: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
     block
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "call")
         .and_then(|call| call.field("method"))
         .map_or("", |method| context.source.node_text(method))

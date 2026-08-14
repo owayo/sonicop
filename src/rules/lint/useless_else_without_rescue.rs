@@ -16,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The `:useless_else` diagnostic the parser emits: a body split by an `else` that no `rescue`
     // precedes. The `else` keyword is what it points at.
     for clause in context.nodes_of("else") {
-        let Some(body) = clause.parent() else {
+        let Some(body) = clause.parent_of(context) else {
             continue;
         };
         // A `case` keeps its `else` under the `case` itself, so only the bodies that a `rescue`

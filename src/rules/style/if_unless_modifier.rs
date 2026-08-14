@@ -247,7 +247,7 @@ impl Cop<'_, '_> {
     /// `chained?`: the conditional stands where a receiver goes, so the call after it would bind to
     /// the condition instead once the form changed.
     fn chained(&self, node: Node<'_>) -> bool {
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(self.context) else {
             return false;
         };
         let receiver = match parent.kind_str() {

@@ -92,7 +92,7 @@ fn inside_an_allowed_namespace(
     context: &RuleContext<'_>,
     allowed: &[String],
 ) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if parent.kind_str() == "module"
             && parent.field("name").is_some_and(|name| {
@@ -102,7 +102,7 @@ fn inside_an_allowed_namespace(
         {
             return true;
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }

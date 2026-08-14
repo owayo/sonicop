@@ -141,7 +141,7 @@ fn within_matrix_of_complex_content(
     word: Option<&Regex>,
     cache: &mut HashMap<usize, bool>,
 ) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() != "array" {

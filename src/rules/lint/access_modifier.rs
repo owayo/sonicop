@@ -132,7 +132,7 @@ fn field_name<'tree>(node: Node<'tree>, parent: Node<'tree>) -> Option<&'static 
 pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     loop {
-        let Some(parent) = current.parent() else {
+        let Some(parent) = current.parent_of(context) else {
             return true;
         };
         match parent.kind_str() {
@@ -192,7 +192,7 @@ fn has_rescue_clause(body: Node<'_>) -> bool {
 /// the block that gives the class its body.
 pub(super) fn class_constructor(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let call = match node.kind_str() {
-        "do_block" | "block" => match node.parent() {
+        "do_block" | "block" => match node.parent_of(context) {
             Some(parent) if parent.kind_str() == "call" => parent,
             _ => return false,
         },

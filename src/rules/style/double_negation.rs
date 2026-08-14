@@ -106,7 +106,7 @@ fn end_of_method_definition(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         None => {
             if matches!(last_child.kind_str(), "pair" | "hash")
                 || last_child
-                    .parent()
+                    .parent_of(context)
                     .is_some_and(|parent| parent.kind_str() == "array")
             {
                 return false;

@@ -158,7 +158,7 @@ fn find_definition<'tree>(
 /// The name a `define_method(:foo) { ... }` block defines. The receiver may be anything, but the
 /// call takes exactly one argument and it has to be a literal string or symbol.
 fn dynamic_definition_name(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
-    let call = block.parent().filter(|parent| parent.kind_str() == "call")?;
+    let call = block.parent_of(context).filter(|parent| parent.kind_str() == "call")?;
     let method = call.field("method")?;
     if !DYNAMIC_DEFINE_METHODS.contains(&context.source.node_text(method)) {
         return None;

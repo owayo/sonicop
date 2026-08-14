@@ -32,7 +32,7 @@ pub(super) const CONDITIONALS: &[&str] = &[
 pub(super) fn in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     loop {
-        let Some(parent) = current.parent() else {
+        let Some(parent) = current.parent_of(context) else {
             return false;
         };
         if is_negation(parent, context) || is_condition_of(parent, current) {

@@ -178,13 +178,13 @@ fn require_cbase(node: Node<'_>) -> bool {
 
 /// `node.each_ancestor(:any_def).first`: the method the comparison is written in.
 fn enclosing_method(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if matches!(parent.kind_str(), "method" | "singleton_method") {
             let name = parent.field("name")?;
             return Some(context.source.node_text(name).to_owned());
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     None
 }

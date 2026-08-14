@@ -279,7 +279,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         // Deliberately imperfect, exactly as upstream: resolving a constant properly would need an
         // index of the whole project, so only the enclosing definitions are consulted.
         let mut current = node;
-        while let Some(parent) = current.parent() {
+        while let Some(parent) = current.parent_of(self.context) {
             if let Some(defined) = defined_module_name(self.context, parent) {
                 let bare = defined.rsplit("::").next().unwrap_or(&defined);
                 if bare == const_name.trim_start_matches("::") {
@@ -374,7 +374,7 @@ fn rescue_scope(node: Node<'_>) -> Option<&'static str> {
 fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let mut parts: Vec<String> = Vec::new();
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         match parent.kind_str() {
             "class" | "module" | "assignment" => {
                 if let Some(name) = defined_module_name(context, parent) {
@@ -474,7 +474,7 @@ enum BlockScope {
 }
 
 fn block_module_name(context: &RuleContext<'_>, block: Node<'_>) -> BlockScope {
-    let Some(call) = block.parent().filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = block.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return BlockScope::Opaque;
     };
     let Some(method) = call.field("method") else {

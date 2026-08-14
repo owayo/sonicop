@@ -36,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `default_argument?`: `def m(a = foo())` needs them to stay a call.
         if node
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| parent.kind_str() == "optional_parameter")
         {
             continue;
@@ -70,7 +70,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// variable being assigned rather than calling the method.
 fn same_name_assignment(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         current = parent;
         let shorthand = parent.kind_str() == "operator_assignment";
         if !shorthand && parent.kind_str() != "assignment" {

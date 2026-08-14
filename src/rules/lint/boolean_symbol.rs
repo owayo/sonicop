@@ -39,7 +39,7 @@ fn boolean_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a 
         // upstream and no literal name at all.
         "delimited_symbol" => quoted_content(node, context)?,
         "string" => {
-            let pair = node.parent().filter(|parent| parent.kind_str() == "pair")?;
+            let pair = node.parent_of(context).filter(|parent| parent.kind_str() == "pair")?;
             let key = pair.field("key")?;
             if key.id() != node.id() || !colon_pair(pair) {
                 return None;
@@ -80,7 +80,7 @@ fn separator(pair: Node<'_>) -> Option<Node<'_>> {
 fn corrections(node: Node<'_>, context: &RuleContext<'_>) -> Vec<Edit> {
     let source = context.source.node_text(node);
     let key_of = node
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "pair" && colon_pair(*parent))
         .filter(|parent| {
             parent

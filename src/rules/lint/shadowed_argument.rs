@@ -117,7 +117,7 @@ fn assignment_without_argument_usage<'tree>(
             location_known = false;
             continue;
         }
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(context) else {
             location_known = false;
             continue;
         };

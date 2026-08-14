@@ -211,10 +211,10 @@ struct SendParent {
 }
 
 fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> {
-    let parent = node.parent()?;
+    let parent = node.parent_of(context)?;
     match parent.kind_str() {
         // An argument list is the grammar's own node; upstream hangs an argument off the call.
-        "argument_list" => dispatch(context, parent.parent()?),
+        "argument_list" => dispatch(context, parent.parent_of(context)?),
         // An index read is a call to `[]`, whose arguments sit directly under it.
         "element_reference" => Some(SendParent {
             method: "[]".to_owned(),

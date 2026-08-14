@@ -41,7 +41,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// in, named by that block's method and its first argument.
 fn source_key(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut child = node;
-    while let Some(parent) = child.parent() {
+    while let Some(parent) = child.parent_of(context) {
         if matches!(child.kind_str(), "do_block" | "block")
             && parent.kind_str() == "call"
             && let Some(method) = parent.field("method")

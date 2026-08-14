@@ -196,7 +196,7 @@ impl Hash {
         Self {
             first_line: context.source.line_column(first.start_byte()).0,
             last_line: context.source.line_column(last.end_byte()).0,
-            parent_kind: first.parent().map_or("", |parent| parent.kind_str()),
+            parent_kind: first.parent_of(context).map_or("", |parent| parent.kind_str()),
             starts_beside: starts_beside_its_call(context, first, &elements),
             elements,
         }
@@ -577,10 +577,10 @@ fn starts_beside_its_call(
     let Some(pair) = elements.iter().find(|element| !element.kwsplat) else {
         return false;
     };
-    let Some(parent) = first.parent() else {
+    let Some(parent) = first.parent_of(context) else {
         return false;
     };
-    let Some(call) = parent.parent() else {
+    let Some(call) = parent.parent_of(context) else {
         return false;
     };
     let anchor = first

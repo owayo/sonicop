@@ -380,7 +380,7 @@ impl<'tree> Cop<'_, 'tree> {
         if !self.regular_method_call(node) {
             return;
         }
-        if node.parent().is_some_and(|parent| {
+        if node.parent_of(self.context).is_some_and(|parent| {
             matches!(
                 parent.kind_str(),
                 "left_assignment_list" | "destructured_left_assignment"
@@ -436,7 +436,7 @@ impl<'tree> Cop<'_, 'tree> {
             return false;
         }
         // `setter_method?`: an assignment writes the `=` into the call's own location.
-        !node.parent().is_some_and(|parent| {
+        !node.parent_of(self.context).is_some_and(|parent| {
             matches!(parent.kind_str(), "assignment" | "operator_assignment")
                 && parent
                     .field("left")
@@ -463,7 +463,7 @@ impl<'tree> Cop<'_, 'tree> {
             {
                 return true;
             }
-            current = visited.parent();
+            current = visited.parent_of(self.context);
         }
         false
     }
@@ -480,14 +480,14 @@ impl<'tree> Cop<'_, 'tree> {
         if !send_node::arguments(node).is_empty() || node.field("block").is_some() {
             return false;
         }
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(visited) = current {
             if matches!(visited.kind_str(), "do_block" | "block" | "lambda") {
                 return send_node::named_children(visited)
                     .iter()
                     .all(|child| child.kind_str() != "block_parameters");
             }
-            current = visited.parent();
+            current = visited.parent_of(self.context);
         }
         false
     }

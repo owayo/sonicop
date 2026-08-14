@@ -80,7 +80,7 @@ fn correct(
     let mut anchor = None;
     if !context.source.node_text(list).starts_with('(')
         && list
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| matches!(parent.kind_str(), "method" | "singleton_method"))
         && last.kind_str() == "keyword_parameter"
         && !is_optional(*last)

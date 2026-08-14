@@ -26,9 +26,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `each_ancestor(:any_block, :any_def)` with its three exits: a scope of its own stops the search,
 /// so does a block handed to `define_method`, and a block without arguments merely passes it on.
 fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let mut ancestor = node.parent();
+    let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
-        ancestor = current.parent();
+        ancestor = current.parent_of(context);
         match current.kind_str() {
             // `scoped_node?`: `any_def_type?`.
             "method" | "singleton_method" => return false,
@@ -61,7 +61,7 @@ fn block_send<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
 
 fn is_lambda(block: Node<'_>, send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
     if block
-        .parent()
+        .parent_of(context)
         .is_some_and(|parent| parent.kind_str() == "lambda")
     {
         return true;

@@ -36,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The name of the nearest enclosing definition, when `void_context?` holds for it: a constructor
 /// or a setter answers with its argument whatever the body says.
 fn enclosing_void_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let mut ancestor = node.parent();
+    let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
         if matches!(current.kind_str(), "method" | "singleton_method") {
             let name = context
@@ -46,7 +46,7 @@ fn enclosing_void_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Op
                 || (name.ends_with('=') && !COMPARISON_METHODS.contains(&name));
             return void.then_some(name);
         }
-        ancestor = current.parent();
+        ancestor = current.parent_of(context);
     }
     None
 }
@@ -54,21 +54,21 @@ fn enclosing_void_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Op
 /// `each_ancestor(:any_block).any?`, which upstream runs over every ancestor rather than stopping
 /// at the definition the `return` belongs to.
 fn in_scope_changing_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let mut ancestor = node.parent();
+    let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
-        ancestor = current.parent();
+        ancestor = current.parent_of(context);
         if !matches!(current.kind_str(), "block" | "do_block") {
             continue;
         }
         // A `->() {}` reaches upstream as a receiverless `lambda` call.
         if current
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| parent.kind_str() == "lambda")
         {
             return true;
         }
         let method = current
-            .parent()
+            .parent_of(context)
             .filter(|parent| parent.kind_str() == "call")
             .and_then(|call| call.field("method"))
             .map(|method| context.source.node_text(method));

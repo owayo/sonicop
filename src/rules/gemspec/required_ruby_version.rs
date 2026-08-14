@@ -93,7 +93,7 @@ fn is_variable(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         // path it stood for in its place.
         "identifier" => {
             context.source.node_text(node) != FILE_KEYWORD
-                && node.parent().is_none_or(|parent| {
+                && node.parent_of(context).is_none_or(|parent| {
                     parent.field("method") != Some(node)
                         && parent.field("name") != Some(node)
                 })

@@ -37,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `leftmost_multiple_assignment` climbs exactly one level: it recurses but throws the
         // result away and hands back the parent.
         let anchor = node
-            .parent()
+            .parent_of(context)
             .filter(|parent| {
                 matches!(parent.kind_str(), "assignment" | "operator_assignment")
                     && parent.start_position().row == node.start_position().row

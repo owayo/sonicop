@@ -313,7 +313,7 @@ fn operator_of(node: Node<'_>) -> Option<&'static str> {
 fn variable_in_loop_condition(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     let mut loop_node = None;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         if matches!(parent.kind_str(), "method" | "singleton_method") {
             return false;
         }
@@ -340,7 +340,7 @@ fn reads_name(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
         if context.source.node_text(node) != name {
             return false;
         }
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(context) else {
             return true;
         };
         let target = matches!(parent.kind_str(), "assignment" | "operator_assignment")
@@ -365,7 +365,7 @@ fn reads_name(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
 fn autocorrect(context: &RuleContext<'_>, assignment: &Assignment<'_>, name: &str) -> Option<Edit> {
     let node = assignment.node;
     if exception_assignment(node) {
-        let clause = node.parent()?.parent()?;
+        let clause = node.parent_of(context)?.parent_of(context)?;
         let start = clause.field("exceptions").map_or_else(
             || clause.start_byte() + "rescue".len(),
             |list| list.end_byte(),

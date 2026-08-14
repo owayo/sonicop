@@ -197,7 +197,7 @@ fn hoist(
     edits: &mut Vec<Edit>,
 ) -> Range<usize> {
     let source = context.source.node_text(expression);
-    let assignment = node.parent().filter(|parent| is_assignment(*parent));
+    let assignment = node.parent_of(context).filter(|parent| is_assignment(*parent));
     let anchored = assignment.unwrap_or(node);
     let indentation = " ".repeat(context.source.line_column(anchored.start_byte()).1 - 1);
     match (assignment, position) {

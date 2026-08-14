@@ -117,7 +117,7 @@ fn ternary(
         branch(context, second)
     );
     // An operator written around the conditional binds tighter than the ternary does.
-    let wrapped = node.parent().is_some_and(|parent| match parent.kind_str() {
+    let wrapped = node.parent_of(context).is_some_and(|parent| match parent.kind_str() {
         "binary" | "element_reference" => true,
         // `defined?` is a node of its own upstream rather than an operator call.
         "unary" => parent

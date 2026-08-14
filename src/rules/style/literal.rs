@@ -426,7 +426,7 @@ pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<De
             ))
         }
         "bare_string" | "bare_symbol" => {
-            let array = node.parent()?;
+            let array = node.parent_of(context)?;
             let opener = context.source.node_text(array.child(0)?);
             let closing = context
                 .source

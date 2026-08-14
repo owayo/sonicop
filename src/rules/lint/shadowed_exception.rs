@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut clauses: HashMap<usize, Vec<Node<'_>>> = HashMap::new();
     let mut order: Vec<usize> = Vec::new();
     for node in context.nodes_of("rescue") {
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(context) else {
             continue;
         };
         clauses

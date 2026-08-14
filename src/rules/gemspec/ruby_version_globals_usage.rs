@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn ruby_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     match node.kind_str() {
         "constant" => {
-            node.parent()
+            node.parent_of(context)
                 .is_none_or(|parent| parent.kind_str() != "scope_resolution")
                 && context.source.node_text(node) == "RUBY_VERSION"
         }

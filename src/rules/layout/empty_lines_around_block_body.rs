@@ -11,7 +11,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "no_empty_lines".to_owned());
     let mut targets = Vec::new();
     for node in context.nodes_of_any(&["block", "do_block"]) {
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(context) else {
             continue;
         };
         // `node.send_node.last_line`: everything of the call but the block itself. A stabby lambda's

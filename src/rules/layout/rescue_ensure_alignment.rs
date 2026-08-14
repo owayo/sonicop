@@ -135,7 +135,7 @@ fn aligned_with_line_break_method(
     block: Node<'_>,
     keyword: Node<'_>,
 ) -> bool {
-    let Some(send) = block.parent() else {
+    let Some(send) = block.parent_of(context) else {
         return false;
     };
     let Some(open) = block_open(block) else {

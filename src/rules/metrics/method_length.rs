@@ -46,7 +46,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn defines_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String]) -> bool {
-    let Some(call) = node.parent().filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = node.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return false;
     };
     if call

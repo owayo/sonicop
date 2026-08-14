@@ -220,7 +220,7 @@ fn heredoc_squish(context: &RuleContext<'_>, opener: Node<'_>) -> bool {
     {
         return false;
     }
-    opener.parent().is_some_and(|parent| {
+    opener.parent_of(context).is_some_and(|parent| {
         parent.kind_str() == "call"
             && parent.field("receiver") == Some(opener)
             && parent

@@ -21,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `a[0] = 1` is one `:[]=` send upstream and spans the whole assignment, which is what
         // `multiline?` is asked about. `a[0] += 1` keeps the plain `:[]` send.
         let send = node
-            .parent()
+            .parent_of(context)
             .filter(|parent| {
                 parent.kind_str() == "assignment" && parent.field("left") == Some(node)
             })

@@ -38,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if IGNORED.contains(&argument.kind_str()) {
             continue;
         }
-        if chains && (is_dig(context, receiver) || node.parent().is_some_and(|parent| is_dig(context, parent)))
+        if chains && (is_dig(context, receiver) || node.parent_of(context).is_some_and(|parent| is_dig(context, parent)))
         {
             continue;
         }
@@ -50,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         );
         let offense = context.offense(message, node.byte_range());
         // `ignore_node`: only the outermost `dig` of a chain is rewritten.
-        let nested = std::iter::successors(node.parent(), |current| current.parent())
+        let nested = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
             .any(|ancestor| reported.contains(&ancestor.id()));
         reported.push(node.id());
         offenses.push(match nested {

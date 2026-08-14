@@ -261,7 +261,7 @@ impl Reporter<'_, '_> {
     /// front of it belongs to the operator cop.
     fn preceded_by_operator(&self, node: Node<'_>) -> bool {
         let mut current = node;
-        while let Some(parent) = current.parent() {
+        while let Some(parent) = current.parent_of(self.context) {
             if parent.kind_str() == "range" {
                 return true;
             }

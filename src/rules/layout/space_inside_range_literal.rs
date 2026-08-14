@@ -46,7 +46,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let text = context.source.text();
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         match parent.kind_str() {
             "parenthesized_statements" => {
                 let mut cursor = parent.walk();

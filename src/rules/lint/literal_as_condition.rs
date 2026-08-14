@@ -33,7 +33,7 @@ fn rewritten_in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
     let mut current = node;
     loop {
-        let Some(parent) = current.parent() else {
+        let Some(parent) = current.parent_of(context) else {
             return false;
         };
         let reaches_through = match parent.kind_str() {
@@ -228,7 +228,7 @@ fn check_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offe
 fn handle_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if literal(node, context) {
         // The left operand of an `and` is already `on_and`'s to report.
-        if node.parent().is_some_and(|parent| {
+        if node.parent_of(context).is_some_and(|parent| {
             parent.kind_str() == "binary"
                 && parent
                     .field("operator")

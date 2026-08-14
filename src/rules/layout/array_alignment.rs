@@ -78,7 +78,7 @@ fn inspect(
         let anchor = if bracketed(node) {
             node
         } else {
-            node.parent().unwrap_or(node)
+            node.parent_of(context).unwrap_or(node)
         };
         line_indentation(context, anchor.start_byte()) + width
     } else {

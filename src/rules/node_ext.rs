@@ -15,6 +15,8 @@ use std::sync::LazyLock;
 
 use tree_sitter::{Language, Node};
 
+use crate::rules::RuleContext;
+
 fn language() -> Language {
     tree_sitter_ruby::LANGUAGE.into()
 }
@@ -93,6 +95,10 @@ pub(crate) trait NodeExt<'tree> {
 
     /// `Node::child_by_field_name`, with the name resolved to its id ahead of time.
     fn field(&self, name: &str) -> Option<Node<'tree>>;
+
+    /// `Node::parent`, answered from the file's parent index rather than by walking down from the
+    /// root. See `AstIndex::parent`.
+    fn parent_of(&self, context: &'tree RuleContext<'_>) -> Option<Node<'tree>>;
 }
 
 impl<'tree> NodeExt<'tree> for Node<'tree> {
@@ -114,6 +120,11 @@ impl<'tree> NodeExt<'tree> for Node<'tree> {
             Some(id) => self.child_by_field_id(id),
             None => self.child_by_field_name(name),
         }
+    }
+
+    #[inline]
+    fn parent_of(&self, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
+        context.parent(*self)
     }
 }
 

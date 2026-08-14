@@ -128,7 +128,7 @@ fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> 
     {
         return false;
     }
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if CONDITIONALS.contains(&parent.kind_str())

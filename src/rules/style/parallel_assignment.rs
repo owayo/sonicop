@@ -232,7 +232,7 @@ impl Cop<'_, '_> {
             .collect();
 
         // `ModifierCorrector`: the modifier keyword opens a block the assignments live in.
-        if let Some(modifier) = node.parent().filter(|parent| {
+        if let Some(modifier) = node.parent_of(self.context).filter(|parent| {
             MODIFIER_KINDS.contains(&parent.kind_str())
                 && parent
                     .field("body")
@@ -285,7 +285,7 @@ impl Cop<'_, '_> {
             Some('W' | 'I') => Quoting::Double,
             _ => Quoting::Word,
         };
-        match (node.kind_str(), node.parent()) {
+        match (node.kind_str(), node.parent_of(self.context)) {
             ("bare_string", Some(array)) => {
                 quote(&decode(self.source(node), quoting(array), &[]).value)
             }

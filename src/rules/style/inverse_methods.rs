@@ -205,7 +205,7 @@ fn inverse_block(
     // A block whose result is handed to a `!` twice over is not simply inverted.
     if is_negated(context, node)
         && node
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| is_negated(context, parent))
     {
         return None;
@@ -338,7 +338,7 @@ impl<'t> Negation<'t> {
 }
 
 fn is_negated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent()
+    node.parent_of(context)
         .is_some_and(|parent| Negation::new(context, parent).is_some())
 }
 

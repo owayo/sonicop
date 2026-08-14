@@ -273,6 +273,11 @@ impl<'a> RuleContext<'a> {
         )
     }
 
+    /// `Node::parent` for a node of this file's tree. See [`AstIndex::parent`].
+    pub fn parent<'node>(&'node self, node: Node<'node>) -> Option<Node<'node>> {
+        self.ast.parent(node)
+    }
+
     pub fn root_node(&self) -> Node<'a> {
         self.ast.root
     }
@@ -350,7 +355,21 @@ pub(crate) struct AstIndex<'tree> {
     protected_ranges: Vec<Range<usize>>,
     heredoc_ranges: Vec<Range<usize>>,
     comment_ranges: Vec<Range<usize>>,
+    /// Each node's parent, as its position in `nodes`, keyed by the node's own id. [`NO_PARENT`]
+    /// stands for the root, which has none.
+    ///
+    /// `Node::parent` walks down from the root of the tree comparing byte ranges, which costs a
+    /// pass over the children of every ancestor -- 43% of a run over RuboCop's own tree once the
+    /// cheaper accessors were dealt with. The walk that builds this index already knows every
+    /// node's parent, so recording it turns the question into one hash lookup.
+    ///
+    /// Deferred because a run narrowed to a handful of cops may never ask. The map holds no
+    /// borrows, so it does not make `AstIndex` invariant the way a cache of nodes would.
+    parents: OnceCell<HashMap<usize, u32>>,
 }
+
+/// The value [`AstIndex::parents`] carries for the root.
+const NO_PARENT: u32 = u32::MAX;
 
 impl<'tree> AstIndex<'tree> {
     pub fn new(root: Node<'tree>) -> Self {
@@ -362,6 +381,7 @@ impl<'tree> AstIndex<'tree> {
             protected_ranges: Vec::new(),
             heredoc_ranges: Vec::new(),
             comment_ranges: Vec::new(),
+            parents: OnceCell::new(),
         };
         index.collect(root);
         index.protected_ranges.sort_by_key(|range| range.start);
@@ -384,6 +404,54 @@ impl<'tree> AstIndex<'tree> {
 
     fn named_node(&self, index: u32) -> Node<'tree> {
         self.named_nodes[index as usize]
+    }
+
+    /// `Node::parent`, answered from [`Self::parents`].
+    ///
+    /// A node the index does not know -- one belonging to a tree parsed beside this one, which
+    /// `Metrics`' recovered fragments are -- is asked of the parser itself, so the answer is the
+    /// one `Node::parent` would have given whatever tree the node came from.
+    fn parent<'node>(&'node self, node: Node<'node>) -> Option<Node<'node>> {
+        match self
+            .parents
+            .get_or_init(|| self.index_parents())
+            .get(&node.id())
+        {
+            Some(&NO_PARENT) => None,
+            Some(&index) => Some(self.nodes[index as usize]),
+            None => node.parent(),
+        }
+    }
+
+    /// Walks the tree once more, recording where each node hangs. The walk that filled `nodes`
+    /// cannot do it: most runs never ask, and a file's nodes outnumber the parents any one cop
+    /// looks up.
+    fn index_parents(&self) -> HashMap<usize, u32> {
+        let mut parents = HashMap::with_capacity(self.nodes.len());
+        let mut cursor = self.root.walk();
+        let mut ancestors: Vec<u32> = Vec::new();
+        let mut position = 0u32;
+        loop {
+            parents.insert(
+                cursor.node().id(),
+                ancestors.last().copied().unwrap_or(NO_PARENT),
+            );
+            let here = position;
+            position += 1;
+            if cursor.goto_first_child() {
+                ancestors.push(here);
+                continue;
+            }
+            loop {
+                if cursor.goto_next_sibling() {
+                    break;
+                }
+                if !cursor.goto_parent() {
+                    return parents;
+                }
+                ancestors.pop();
+            }
+        }
     }
 
     /// Visits every node in depth-first pre-order. Iterative on purpose: rayon

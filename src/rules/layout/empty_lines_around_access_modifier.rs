@@ -37,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // A block node upstream spans the call it hangs off, so its first line is the call's.
         "block" | "do_block" => {
-            let owner = node.parent().unwrap_or(node);
+            let owner = node.parent_of(context).unwrap_or(node);
             scope.block_line = Some(owner.start_position().row + 1);
         }
         "identifier" if MODIFIERS.contains(&&text[node.byte_range()]) => {

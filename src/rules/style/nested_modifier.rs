@@ -27,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let Some(outer) = node
-            .parent()
+            .parent_of(context)
             .filter(|parent| MODIFIERS.contains(&parent.kind_str()))
         else {
             continue;

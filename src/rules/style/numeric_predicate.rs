@@ -196,7 +196,7 @@ fn require_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `negated?`: the comparison this cop is about to write sits under a `!`.
 fn negated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
+    node.parent_of(context).is_some_and(|parent| {
         parent.kind_str() == "unary"
             && parent
                 .field("operator")
@@ -245,7 +245,7 @@ impl Allowed {
 
 /// `node.each_ancestor(:send, :any_block)`: a call or block written around this one.
 fn ancestor_is_allowed(context: &RuleContext<'_>, node: Node<'_>, allowed: &Allowed) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if matches!(
             parent.kind_str(),
@@ -254,7 +254,7 @@ fn ancestor_is_allowed(context: &RuleContext<'_>, node: Node<'_>, allowed: &Allo
         {
             return true;
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }

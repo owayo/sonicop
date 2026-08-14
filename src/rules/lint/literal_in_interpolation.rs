@@ -69,7 +69,7 @@ fn offending(literal: Node<'_>, interpolation: Node<'_>, context: &RuleContext<'
         // `Lint/ArrayLiteralInRegexp` has this one.
         && !(literal.kind_str() == "array"
             && interpolation
-                .parent()
+                .parent_of(context)
                 .is_some_and(|parent| parent.kind_str() == "regex"))
 }
 
@@ -154,7 +154,7 @@ fn in_array_percent_literal(interpolation: Node<'_>) -> bool {
 /// is not the number written: 0-2 compile to 1, 3-6 to 3, and so on.
 fn regexp_slashes(interpolation: Node<'_>, value: String, context: &RuleContext<'_>) -> String {
     let slash_literal = interpolation
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "regex")
         .is_some_and(|regex| context.source.node_text(regex).starts_with('/'));
     if !slash_literal || !value.contains('/') {

@@ -70,7 +70,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             safe: true,
         }];
         for (condition, conditions) in branches.iter().zip(&per_branch) {
-            let Some(keyword) = condition.parent().and_then(|parent| parent.child(0)) else {
+            let Some(keyword) = condition.parent_of(context).and_then(|parent| parent.child(0)) else {
                 continue;
             };
             edits.push(Edit {

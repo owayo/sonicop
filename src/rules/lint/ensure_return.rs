@@ -41,7 +41,7 @@ fn returns_from_inner_scope(
     ensure_node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if ancestor.id() == ensure_node.id() {
             return false;
@@ -51,7 +51,7 @@ fn returns_from_inner_scope(
         {
             return true;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     false
 }
@@ -60,7 +60,7 @@ fn returns_from_inner_scope(
 /// neither is any other method taking a block.
 fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(node.kind_str(), "block" | "do_block")
-        && node.parent().is_some_and(|call| {
+        && node.parent_of(context).is_some_and(|call| {
             call.kind_str() == "call"
                 && call
                     .field("method")

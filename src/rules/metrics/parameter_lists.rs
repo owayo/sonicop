@@ -109,7 +109,7 @@ fn folded_parameter_count(parameter: Node<'_>) -> usize {
 /// as the block holds a second statement. tree-sitter always interposes a `body_statement`, which
 /// is why the def has to be the block's only statement here rather than merely one of them.
 fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(method) = node.parent().filter(|parent| parent.kind_str() == "method") else {
+    let Some(method) = node.parent_of(context).filter(|parent| parent.kind_str() == "method") else {
         return false;
     };
     if method
@@ -119,13 +119,13 @@ fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool 
         return false;
     }
     let Some(body) = method
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "body_statement" && parent.named_child_count() == 1)
     else {
         return false;
     };
     let Some(block) = body
-        .parent()
+        .parent_of(context)
         .filter(|parent| matches!(parent.kind_str(), "block" | "do_block"))
     else {
         return false;
@@ -136,7 +136,7 @@ fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool 
         return false;
     }
     block
-        .parent()
+        .parent_of(context)
         .filter(|parent| parent.kind_str() == "call")
         .is_some_and(|call| {
             matches!(
@@ -149,7 +149,7 @@ fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool 
 /// `lambda`, `proc` and `Proc.new` take whatever arity their body needs, so RuboCop leaves their
 /// parameter lists alone.
 fn argument_to_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() == "lambda" {
@@ -158,7 +158,7 @@ fn argument_to_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool
     if !matches!(parent.kind_str(), "block" | "do_block") {
         return false;
     }
-    let Some(call) = parent.parent().filter(|node| node.kind_str() == "call") else {
+    let Some(call) = parent.parent_of(context).filter(|node| node.kind_str() == "call") else {
         return false;
     };
     let Some(method) = call.field("method") else {

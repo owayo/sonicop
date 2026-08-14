@@ -79,7 +79,7 @@ fn has_enclosing_definition(node: Node<'_>) -> bool {
 
 /// `each_ancestor(:any_block, :sclass).any? { |a| scoping_method_call?(a) }`.
 fn opens_its_own_scope(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if ancestor.kind_str() == "singleton_class" {
             return true;
@@ -87,13 +87,13 @@ fn opens_its_own_scope(node: Node<'_>, context: &RuleContext<'_>, allowed: &[Str
         if BLOCK_KINDS.contains(&ancestor.kind_str()) && is_scoping_block(ancestor, context, allowed) {
             return true;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     false
 }
 
 fn is_scoping_block(block: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
-    let Some(call) = block.parent().filter(|call| call.kind_str() == "call") else {
+    let Some(call) = block.parent_of(context).filter(|call| call.kind_str() == "call") else {
         return false;
     };
     let Some(selector) = call.field("method") else {

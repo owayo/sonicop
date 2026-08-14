@@ -693,7 +693,7 @@ fn and_inside_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 fn has_block_ancestor(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         if node_is_block(parent) && !is_implicit_block(context, parent) {
             return true;
         }

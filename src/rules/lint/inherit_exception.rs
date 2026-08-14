@@ -95,7 +95,7 @@ fn shadowed_by_a_sibling_definition(
     if parent_class.kind_str() == "scope_resolution" {
         return false;
     }
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     let mut cursor = parent.walk();

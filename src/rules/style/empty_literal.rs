@@ -155,11 +155,11 @@ fn unparenthesized_first_argument(
     node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<(usize, usize, Vec<String>)> {
-    let parent = node.parent()?;
+    let parent = node.parent_of(context)?;
     let list = match parent.kind_str() {
         "call" | "super" => parent.field("arguments")?,
         "argument_list" => {
-            let call = parent.parent()?;
+            let call = parent.parent_of(context)?;
             if !matches!(call.kind_str(), "call" | "super") {
                 return None;
             }
@@ -171,7 +171,7 @@ fn unparenthesized_first_argument(
         return None;
     }
     let call = match list.id() == parent.id() {
-        true => parent.parent()?,
+        true => parent.parent_of(context)?,
         false => parent,
     };
     let all = arguments(call);

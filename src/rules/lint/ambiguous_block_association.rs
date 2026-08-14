@@ -157,7 +157,7 @@ fn check_do_block(
     allowed: &Allowed,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(call) = node.parent().filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = node.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return;
     };
     // `super do ... end` is a `zsuper` upstream, not a send.

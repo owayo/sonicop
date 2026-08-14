@@ -56,7 +56,7 @@ pub(super) fn first_specification_variable<'a>(context: &'a RuleContext<'_>) -> 
 /// upstream makes the enclosing block part of what it groups them by.
 pub(super) fn enclosing_specification(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     let mut child = node;
-    while let Some(parent) = child.parent() {
+    while let Some(parent) = child.parent_of(context) {
         if matches!(child.kind_str(), "do_block" | "block")
             && specification_variable(parent, context).is_some()
         {

@@ -159,7 +159,7 @@ fn collect_symbols<'tree>(
             // A label is a symbol, except in a pattern match where `{key:}` binds a variable and
             // builds no symbol at all.
             "hash_key_symbol" => {
-                let bare_pattern = node.parent().is_some_and(|parent| {
+                let bare_pattern = node.parent_of(context).is_some_and(|parent| {
                     parent.kind_str() == "keyword_pattern"
                         && parent.field("value").is_none()
                 });

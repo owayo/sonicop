@@ -19,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // A rational or imaginary suffix makes a different literal upstream (`rational` / `complex`
         // nodes), and this cop only visits integers and floats.
         if node
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| matches!(parent.kind_str(), "rational" | "complex"))
         {
             continue;

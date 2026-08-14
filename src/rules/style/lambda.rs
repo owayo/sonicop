@@ -294,19 +294,19 @@ fn needs_separating_space(lambda: &Lambda<'_>, begin: Node<'_>, parenthesized: b
 
 /// `arg_to_unparenthesized_call?`.
 fn argument_of_unparenthesized_call(context: &RuleContext<'_>, block: Node<'_>) -> bool {
-    let Some(mut parent) = block.parent() else {
+    let Some(mut parent) = block.parent_of(context) else {
         return false;
     };
     // A lambda written as a hash value stands where the hash stands. The grammar leaves the pairs
     // of a trailing hash argument as siblings of the other arguments, so the hash is only there to
     // step over when the braces were written.
     if parent.kind_str() == "pair" {
-        let Some(above) = parent.parent() else {
+        let Some(above) = parent.parent_of(context) else {
             return false;
         };
         parent = above;
         if parent.kind_str() == "hash" {
-            let Some(above) = parent.parent() else {
+            let Some(above) = parent.parent_of(context) else {
                 return false;
             };
             parent = above;

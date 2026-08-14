@@ -165,7 +165,7 @@ fn assemble(context: &RuleContext<'_>, node: Node<'_>, arguments: &str) -> Strin
 /// `requires_parens?`: an operand of `and`/`or`, or part of a ternary. `operator_keyword?` is
 /// `type?(:and, :or)`, which `&&` and `||` build just as the keywords do.
 fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     match parent.kind_str() {

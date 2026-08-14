@@ -168,7 +168,7 @@ impl Void<'_, '_> {
         if has_clause(container) {
             return false;
         }
-        let Some(parent) = container.parent() else {
+        let Some(parent) = container.parent_of(self.context) else {
             return false;
         };
         match parent.kind_str() {
@@ -191,7 +191,7 @@ impl Void<'_, '_> {
         if container.kind_str() == "ensure" || has_clause(container) {
             return false;
         }
-        container.parent().is_some_and(|parent| {
+        container.parent_of(self.context).is_some_and(|parent| {
             matches!(parent.kind_str(), "method" | "singleton_method")
                 && self
                     .method_name(parent)
@@ -217,12 +217,12 @@ impl Void<'_, '_> {
 
     /// `node.each_ancestor(:any_block).first&.method?(:each)`.
     fn inside_each_block(&self, node: Node<'_>) -> bool {
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
             if BLOCK_KINDS.contains(&ancestor.kind_str()) || ancestor.kind_str() == "lambda" {
                 return self.block_method(ancestor) == Some("each");
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         false
     }
@@ -401,7 +401,7 @@ impl Void<'_, '_> {
 
     /// Whether the name is one of the parameters the innermost block never spelled out.
     fn is_block_parameter(&self, node: Node<'_>) -> bool {
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
             if BLOCK_KINDS.contains(&ancestor.kind_str()) {
                 return match BlockArgs::of(ancestor, self.context, &self.locals) {
@@ -411,7 +411,7 @@ impl Void<'_, '_> {
                     BlockArgs::Written(_) => false,
                 };
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         false
     }
@@ -436,7 +436,7 @@ impl Void<'_, '_> {
     fn check_nonmutating_send(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         let call = match node.kind_str() {
             "call" => node,
-            kind if BLOCK_KINDS.contains(&kind) => match node.parent() {
+            kind if BLOCK_KINDS.contains(&kind) => match node.parent_of(self.context) {
                 Some(parent) if parent.kind_str() == "call" => parent,
                 _ => return,
             },
@@ -490,12 +490,12 @@ impl Void<'_, '_> {
         }
         // `node.parent` upstream is the conditional itself: a branch holding one statement *is*
         // that statement there, where the grammar wraps it in a `then` or an `else`.
-        let mut parent = node.parent();
+        let mut parent = node.parent_of(self.context);
         while let Some(container) = parent
             .filter(|container| matches!(container.kind_str(), "then" | "else"))
             .filter(|container| statements(*container).len() == 1)
         {
-            parent = container.parent();
+            parent = container.parent_of(self.context);
         }
         if parent.is_some_and(|parent| {
             matches!(
@@ -512,7 +512,7 @@ impl Void<'_, '_> {
         }) {
             return None;
         }
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
             if matches!(ancestor.kind_str(), "method" | "singleton_method") {
                 if self
@@ -523,7 +523,7 @@ impl Void<'_, '_> {
                 }
                 break;
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         let start = self.expand_left(node.start_byte());
         Some(Edit {

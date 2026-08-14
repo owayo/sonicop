@@ -163,7 +163,7 @@ fn assumed_usage_context(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if is_assumed_argument(node, context) {
         return true;
     }
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if BLOCK_KINDS.contains(&ancestor.kind_str())
             || matches!(ancestor.kind_str(), "lambda" | "begin")
@@ -171,7 +171,7 @@ fn assumed_usage_context(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         {
             return false;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     true
 }
@@ -214,7 +214,7 @@ fn upstream_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// `lambda_or_proc?`: a block passed to `lambda` or `proc`.
 fn is_proc_or_lambda(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     BLOCK_KINDS.contains(&node.kind_str())
-        && node.parent().is_some_and(|call| {
+        && node.parent_of(context).is_some_and(|call| {
             call.kind_str() == "call"
                 && call.field("receiver").is_none()
                 && call.field("method").is_some_and(|method| {

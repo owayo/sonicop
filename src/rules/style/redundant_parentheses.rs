@@ -109,7 +109,7 @@ fn record<'tree>(
 /// `defined?(x)` is the one place the grammar parks a parenthesized group where the parser has
 /// none: written without a space, the parentheses belong to the keyword itself.
 fn is_begin_node(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return true;
     };
     if parent.kind_str() == "unary" {
@@ -231,7 +231,7 @@ fn is_rescue(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     }
     parent.kind_str() == "exceptions"
         && parent
-            .parent()
+            .parent_of(context)
             .is_some_and(|grandparent| grandparent.kind_str() == "rescue")
 }
 
@@ -354,7 +354,7 @@ fn allowed_multiple_expression(
 /// `allowed_ternary?`: the neighbouring cop asks for these parentheses.
 fn allowed_ternary(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if !node
-        .parent()
+        .parent_of(context)
         .is_some_and(|parent| parent.kind_str() == "conditional")
     {
         return false;
@@ -563,7 +563,7 @@ fn find_offense_message(
             return None;
         }
         if node
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| parent.kind_str() == "conditional")
         {
             return None;
@@ -639,28 +639,28 @@ fn disallowed_one_line_pattern_matching(
     if !matches!(inner.kind_str(), "match_pattern" | "test_pattern") {
         return false;
     }
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         // `each_ancestor.none?(&:operator_keyword?)`: an `and` or an `or` above it makes the
         // pattern match one operand of a logical expression, which needs the parentheses.
         if is_operator_keyword(context, ancestor) {
             return false;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     true
 }
 
 /// `interpolation?`: `[^begin ^^dstr]`, a group written straight inside a `#{}` of a string.
 fn is_interpolation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() != "interpolation" {
         return false;
     }
     parent
-        .parent()
+        .parent_of(context)
         .is_some_and(|grandparent| literal_type(grandparent, context) == Some("dstr"))
 }
 
@@ -765,7 +765,7 @@ fn is_conditional(node: Node<'_>) -> bool {
 
 /// `node.chained?`: the group is the receiver a call hangs off.
 fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     is_call(context, parent)

@@ -55,9 +55,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         // `top_level_node?`: a definition with no parent at all is left alone.
         if node
-            .parent()
+            .parent_of(context)
             .is_none_or(|parent| parent.kind_str() == "program")
-            && node.parent().is_some_and(|parent| {
+            && node.parent_of(context).is_some_and(|parent| {
                 super::nodes::children(parent).len() == 1 && parent.kind_str() != "program"
             })
         {
@@ -120,14 +120,14 @@ fn is_top_level(node: Node<'_>) -> bool {
 
 /// `in_module_or_instance_eval?`: an accessor is only worth suggesting where one would be defined.
 fn in_module_or_instance_eval(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         match parent.kind_str() {
             "class" | "singleton_class" => return false,
             "module" => return true,
             "block" | "do_block" => {
                 let method = parent
-                    .parent()
+                    .parent_of(context)
                     .and_then(|call| call.field("method"))
                     .map(|selector| context.source.node_text(selector));
                 if method == Some("instance_eval") {
@@ -136,7 +136,7 @@ fn in_module_or_instance_eval(context: &RuleContext<'_>, node: Node<'_>) -> bool
             }
             _ => {}
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }
@@ -295,7 +295,7 @@ fn rewrite(
 ) -> Option<Edit> {
     // A definition used as an argument -- `private def foo` -- is not replaced.
     if node
-        .parent()
+        .parent_of(context)
         .is_some_and(|parent| matches!(parent.kind_str(), "argument_list") || parent.kind_str() == "call")
     {
         return None;

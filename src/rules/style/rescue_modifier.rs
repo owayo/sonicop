@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `parenthesized?`: the parentheses around the whole expression go with the rewrite.
         let parenthesized = node
-            .parent()
+            .parent_of(context)
             .filter(|parent| parent.kind_str() == "parenthesized_statements");
         let (indentation, offset) = indentation_and_offset(context, node, width, parenthesized);
 

@@ -51,7 +51,7 @@ fn stream_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a s
         }
         _ => {
             // The name half of a qualified constant is reached through the resolution above.
-            if node.parent().is_some_and(|parent| {
+            if node.parent_of(context).is_some_and(|parent| {
                 parent.kind_str() == "scope_resolution"
                     && parent
                         .field("name")
@@ -79,7 +79,7 @@ fn is_assignment_target(node: Node<'_>) -> bool {
 }
 
 fn assigns_matching_global(context: &RuleContext<'_>, node: Node<'_>, global: &str) -> bool {
-    node.parent().is_some_and(|parent| {
+    node.parent_of(context).is_some_and(|parent| {
         parent.kind_str() == "assignment"
             && parent
                 .field("right")

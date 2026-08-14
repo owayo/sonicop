@@ -50,7 +50,7 @@ pub(super) fn scan<'tree>(
         {
             continue;
         }
-        let Some(owner) = list.parent() else {
+        let Some(owner) = list.parent_of(context) else {
             continue;
         };
         if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind_str()) {

@@ -151,17 +151,17 @@ impl Flow {
 /// Whether the node is inside a block passed to `instance_eval`, where what a bare name calls
 /// depends on a receiver the syntax tree says nothing about.
 fn in_instance_eval(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if matches!(ancestor.kind_str(), "block" | "do_block")
-            && ancestor.parent().is_some_and(|call| {
+            && ancestor.parent_of(context).is_some_and(|call| {
                 call.field("method")
                     .is_some_and(|method| context.source.node_text(method) == "instance_eval")
             })
         {
             return true;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     false
 }

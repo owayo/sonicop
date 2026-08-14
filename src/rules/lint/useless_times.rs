@@ -80,7 +80,7 @@ fn correction(
     let node = call;
     // Nothing is rewritten unless the call stands alone: anything else on the line, or a call it
     // is the receiver of, would be left dangling.
-    if !own_line(node, context) || node.parent().is_some_and(is_upstream_send) {
+    if !own_line(node, context) || node.parent_of(context).is_some_and(is_upstream_send) {
         return None;
     }
     let body = block

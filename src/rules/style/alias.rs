@@ -211,7 +211,7 @@ fn value_used(node: Node<'_>) -> bool {
 
 /// `scope_type`.
 fn scope(context: &RuleContext<'_>, node: Node<'_>) -> Scope {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         match parent.kind_str() {
             // `sclass` is none of the types `scope_type` names, so a `class << self` block does
@@ -226,14 +226,14 @@ fn scope(context: &RuleContext<'_>, node: Node<'_>) -> Scope {
             }
             _ => {}
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     Scope::Lexical
 }
 
 fn instance_eval_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
     block
-        .parent()
+        .parent_of(context)
         .filter(|call| call.kind_str() == "call")
         .and_then(|call| call.field("method"))
         .is_some_and(|method| context.source.node_text(method) == "instance_eval")

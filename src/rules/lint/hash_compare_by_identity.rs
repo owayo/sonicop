@@ -41,7 +41,7 @@ fn keyed_call<'tree>(
         // brackets. Written in a multiple assignment the send holds no value and stops at the
         // brackets, which is where the node already ends.
         let range = node
-            .parent()
+            .parent_of(context)
             .filter(|parent| parent.kind_str() == "assignment")
             .filter(|parent| {
                 parent

@@ -55,7 +55,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         let mut edits = vec![edit];
         // `corrector.wrap(node, '(', ')')`: the rewrite binds differently under a `!`.
-        if node.parent().is_some_and(|parent| is_negation(context, parent, node)) {
+        if node.parent_of(context).is_some_and(|parent| is_negation(context, parent, node)) {
             edits.push(Edit {
                 start: node.end_byte(),
                 end: node.end_byte(),

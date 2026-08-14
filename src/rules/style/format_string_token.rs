@@ -181,7 +181,7 @@ fn split_parts(
 /// `format_string_in_typical_context?`: the literal is the first argument of `format`, `sprintf` or
 /// `printf`, or the receiver of `%`.
 fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() == "binary" {
@@ -203,7 +203,7 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if parent.kind_str() != "argument_list" {
         return false;
     }
-    let Some(call) = parent.parent().filter(|call| call.kind_str() == "call") else {
+    let Some(call) = parent.parent_of(context).filter(|call| call.kind_str() == "call") else {
         return false;
     };
     let named = call
@@ -218,14 +218,14 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `node.each_ancestor(:dstr).any? { format_string_in_typical_context?(_1) }`: a literal handed to
 /// `format` through an interpolation or an adjacent-literal chain is still a format string.
 fn enclosing_typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if matches!(parent.kind_str(), "chained_string" | "string" | "heredoc_body")
             && typical_context(context, parent)
         {
             return true;
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }
@@ -248,7 +248,7 @@ fn allowed_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String])
     if allowed.is_empty() {
         return false;
     }
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if parent.kind_str() == "call" {
             return parent.field("method").is_some_and(|method| {
@@ -257,7 +257,7 @@ fn allowed_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String])
                     .any(|name| name == context.source.node_text(method))
             });
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }

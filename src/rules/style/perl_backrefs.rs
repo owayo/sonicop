@@ -64,7 +64,7 @@ fn constant_prefix(node: Node<'_>) -> &'static str {
 /// `dstr` / `regexp` / `xstr` when it was written as `#$1`, so the correction has to supply the
 /// braces the source did without.
 fn derived_from_braceless_interpolation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
+    node.parent_of(context).is_some_and(|parent| {
         parent.kind_str() == "interpolation" && !context.source.node_text(parent).starts_with("#{")
     })
 }

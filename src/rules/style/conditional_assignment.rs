@@ -456,7 +456,7 @@ impl Cop<'_, '_> {
             // `assignment_rhs_exist?`: a target of a multiple assignment or a `rescue => e` has no
             // right-hand side of its own.
             if node
-                .parent()
+                .parent_of(self.context)
                 .is_some_and(|parent| matches!(parent.kind_str(), "left_assignment_list" | "rescue"))
             {
                 continue;

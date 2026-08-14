@@ -469,7 +469,7 @@ fn line_break_edits(
             if let Some(offset) = breaker.block_break_position(node) {
                 // Upstream's block node starts at the receiver, not at the brace, so a call split
                 // over two lines files its break under the line the receiver is on.
-                let owner = node.parent().unwrap_or(node);
+                let owner = node.parent_of(context).unwrap_or(node);
                 positions.insert(owner.start_position().row + 1, offset..(offset + 1));
             }
         } else if let Some(element) = breaker.breakable_element(node) {
@@ -782,7 +782,7 @@ impl Breaker<'_, '_> {
     }
 
     fn receiver_contains_heredoc(&self, node: Node<'_>) -> bool {
-        node.parent()
+        node.parent_of(self.context)
             .and_then(|parent| parent.field("receiver"))
             .is_some_and(|receiver| self.contains_heredoc(receiver))
     }
@@ -907,7 +907,7 @@ fn group_pairs<'t>(children: Vec<Node<'t>>, expand: bool) -> Vec<Element<'t>> {
 
 /// Whether the block belongs to a lambda: `-> {}` and `lambda {}` are the same node upstream.
 fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.parent() {
+    match node.parent_of(context) {
         Some(parent) if parent.kind_str() == "lambda" => true,
         Some(parent) => parent
             .field("method")

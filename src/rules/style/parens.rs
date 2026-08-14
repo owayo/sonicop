@@ -83,7 +83,7 @@ fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize
 
 /// `ternary_condition?(node) && next_char_is_question_mark?(node)`.
 fn is_ternary_condition_before_question_mark(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     if parent.kind_str() != "conditional" {

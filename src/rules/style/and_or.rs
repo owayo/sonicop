@@ -292,7 +292,7 @@ fn keep_operator_precedence(context: &RuleContext<'_>, node: Node<'_>, edits: &m
     let own = kind(node);
     if matches!(own, Some("or"))
         && node
-            .parent()
+            .parent_of(context)
             .and_then(kind)
             .is_some_and(|parent| matches!(parent, "and" | "&&"))
     {

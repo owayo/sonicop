@@ -8,7 +8,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for block in context.nodes_of_any(&["block", "do_block"]) {
         // `-> () { }` belongs to `Style/EmptyLambdaParameter`; every other block is this cop's.
         if block
-            .parent()
+            .parent_of(context)
             .is_some_and(|parent| parent.kind_str() == "lambda")
         {
             continue;

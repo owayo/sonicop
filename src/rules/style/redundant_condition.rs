@@ -503,7 +503,7 @@ fn ternary_form(
         form.push(')');
     }
     // A conditional written as an argument keeps the `||` from spilling out of the call.
-    let wrapped = node.parent().is_some_and(|parent| {
+    let wrapped = node.parent_of(context).is_some_and(|parent| {
         matches!(parent.kind_str(), "argument_list")
             || (parent.kind_str() == "call" && parent.field("receiver").is_some())
     });

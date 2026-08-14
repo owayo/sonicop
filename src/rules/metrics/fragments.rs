@@ -36,7 +36,7 @@ impl Fragments {
             .nodes_of("comment")
             .filter(|comment| {
                 comment
-                    .parent()
+                    .parent_of(context)
                     .is_some_and(|parent| parent.kind_str() == "heredoc_body")
                     && source[comment.byte_range()].contains("#{")
             })

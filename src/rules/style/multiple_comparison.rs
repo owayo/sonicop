@@ -16,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `root_of_or_node`: only the outermost `||` of a chain reports.
-        if node.parent().is_some_and(|parent| is_or(parent, context)) {
+        if node.parent_of(context).is_some_and(|parent| is_or(parent, context)) {
             continue;
         }
         if !is_nested_comparison(node, context, &locals, allow_method_comparison) {
