@@ -2716,6 +2716,29 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_suppressed_exception_in_number_conversion")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessRuby2Keywords",
+            r#"
+            ruby2_keywords def qux(a); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `qux`.
+            "#,
+        )
+        .id("lint_useless_ruby2_keywords")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessConstantScoping",
+            r#"
+            class C
+              private
+              FOO = 1
+              ^^^^^^^ Useless `private` access modifier for constant scope.
+            end
+            "#,
+        )
+        .id("lint_useless_constant_scoping")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

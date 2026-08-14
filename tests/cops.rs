@@ -22224,3 +22224,113 @@ mod lint_suppressed_exception_in_number_conversion {
         }
     }
 }
+
+/// `Lint/UselessRuby2Keywords`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessRuby2Keywords` で走らせた実出力から取った
+/// (検出 4 件を確認済み)。
+mod lint_useless_ruby2_keywords {
+    use super::*;
+
+    const COP: &str = "Lint/UselessRuby2Keywords";
+
+    /// `def` を直接渡した形はセレクタだけ、シンボルで指す形は呼び出し全体がレンジ。
+    #[test]
+    fn a_signature_that_does_not_need_the_flag_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            ruby2_keywords def baz(*args, **kw); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `baz`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            ruby2_keywords def qux(a); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `qux`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            ruby2_keywords def non(); end
+            ^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `non`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            class C
+              def n(a); end
+              ruby2_keywords :n
+              ^^^^^^^^^^^^^^^^^ `ruby2_keywords` is unnecessary for method `n`.
+            end
+            "#,
+        );
+    }
+
+    /// `*args` があってキーワード引数が無い形は本来の用途。定義が見つからないものも
+    /// 対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ruby2_keywords def foo(*args); end\n",
+            "ruby2_keywords def bar(a, *args); end\n",
+            "class C\n  def m(*args); end\n  ruby2_keywords :m\nend\n",
+            "class C\n  define_method(:o) { |*args| }\n  ruby2_keywords :o\nend\n",
+            "ruby2_keywords :unknown\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/UselessConstantScoping`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessConstantScoping` で走らせた実出力から取った
+/// (検出 3 件を確認済み)。
+mod lint_useless_constant_scoping {
+    use super::*;
+
+    const COP: &str = "Lint/UselessConstantScoping";
+
+    /// 直前の bare な可視性が `private` で、`private_constant` に載っていない定数が対象。
+    #[test]
+    fn a_constant_under_private_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            class C
+              private
+              FOO = 1
+              ^^^^^^^ Useless `private` access modifier for constant scope.
+            end
+            "#,
+        );
+        // 一番後ろの可視性宣言だけが効く。
+        expect_offense(
+            COP,
+            r#"
+            class F
+              public
+              private
+              FOO = 1
+              ^^^^^^^ Useless `private` access modifier for constant scope.
+            end
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class C\n  private\n  BAR = 2\n  private_constant :BAR\nend\n",
+            "class D\n  FOO = 1\n  private\n  def m; end\nend\n",
+            "class G\n  private\n  public\n  BAR = 2\nend\n",
+            "module M\n  private\n  Foo::BAR = 1\n  private_constant 'BAR'\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
