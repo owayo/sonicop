@@ -108,6 +108,19 @@ fn catalogue() -> Vec<CopCase> {
         .id("gemspec_attribute_assignment")
         .path("example.gemspec")
         .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+            end
+            "#,
+        )
+        .id("gemspec_dependency_version")
+        .path("example.gemspec")
+        .correctable(false),
         CopCase::annotated(
             "Gemspec/DeprecatedAttributeAssignment",
             r#"
@@ -155,6 +168,21 @@ fn catalogue() -> Vec<CopCase> {
         .id("gemspec_ordered_dependencies")
         .path("example.gemspec")
         .correctable(true),
+        // ブロック全体が報告され、`end` の直前に設定が書き足される。
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .id("gemspec_require_mfa")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[54]),
         // `add_global_offense`。宣言が 1 つも無いこと自体が offense なので、指す構文が無い。
         CopCase::annotated(
             "Gemspec/RequiredRubyVersion",

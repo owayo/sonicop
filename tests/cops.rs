@@ -5202,6 +5202,264 @@ mod gemspec_department {
         .config("Gemspec/DevelopmentDependencies:\n  AllowedGems:\n    - rspec\n")
         .run();
     }
+
+    /// `metadata['rubygems_mfa_required']` が無い仕様はブロック全体が報告され、
+    /// 補正は `end` の直前へ 1 行を挿入する。
+    #[test]
+    fn require_mfa_writes_the_setting_into_a_specification_without_metadata() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[54])
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.name = 'x'\nspec.metadata['rubygems_mfa_required'] = 'true'\nend\n",
+        )
+        .run();
+    }
+
+    /// メタデータのハッシュに鍵が無ければ最後の pair の後ろへ、空のハッシュなら
+    /// `}` の手前へ書き足す。
+    #[test]
+    fn require_mfa_adds_the_pair_to_the_metadata_hash() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.metadata = { 'a' => 'b' }
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[69])
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.metadata = { 'a' => 'b',\n'rubygems_mfa_required' => 'true' }\nend\n",
+        )
+        .run();
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.metadata = {}
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[57])
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.metadata = {'rubygems_mfa_required' => 'true'}\nend\n",
+        )
+        .run();
+    }
+
+    /// 値が `(str "true")` でなければその値だけを報告して置き換える。真偽値の `true` も
+    /// 文字列ではないので対象。
+    #[test]
+    fn require_mfa_replaces_a_value_that_is_not_the_true_string() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata['rubygems_mfa_required'] = 'false'
+                                                       ^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.metadata['rubygems_mfa_required'] = 'true'\nend\n",
+        )
+        .run();
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = { 'rubygems_mfa_required' => true }
+                                                           ^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.metadata = { 'rubygems_mfa_required' => 'true' }\nend\n",
+        )
+        .run();
+    }
+
+    /// 文字列の `'true'` は文字列鍵でもシンボル鍵でも通る。
+    #[test]
+    fn require_mfa_accepts_the_setting_however_the_key_is_written() {
+        for source in [
+            "Gem::Specification.new do |spec|\n  spec.metadata['rubygems_mfa_required'] = 'true'\nend\n",
+            "Gem::Specification.new do |spec|\n  spec.metadata = { rubygems_mfa_required: 'true' }\nend\n",
+            "Gem::Specification.new do |spec|\n  spec.metadata = { 'rubygems_mfa_required' => 'true' }\nend\n",
+        ] {
+            CopCase::new("Gemspec/RequireMFA", source, Vec::new())
+                .path(GEMSPEC)
+                .run();
+        }
+    }
+
+    /// メタデータがハッシュリテラルでなければ書き足す先が無いので correctable でない。
+    #[test]
+    fn require_mfa_cannot_correct_metadata_that_is_not_a_hash_literal() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.metadata = other
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .correctable(false)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[60])
+        .run();
+    }
+
+    /// 既にメタデータの代入があるときは、鍵を問わずその**最後**の代入の後ろへ足す。
+    #[test]
+    fn require_mfa_appends_after_the_last_metadata_assignment() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.metadata['homepage'] = 'x'
+              spec.metadata['source'] = 'y'
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 4, 3)])
+        .lengths(&[102])
+        .corrected(
+            "Gem::Specification.new do |spec|\n  spec.metadata['homepage'] = 'x'\n  spec.metadata['source'] = 'y'\nspec.metadata['rubygems_mfa_required'] = 'true'\nend\n",
+        )
+        .run();
+    }
+
+    /// `on_block` はすべてのブロックで走り、そこから仕様を**探す**ので、他のブロックに
+    /// 入れ子になった仕様は外側のブロックとそれ自身の 2 回報告される。
+    #[test]
+    fn require_mfa_reports_a_nested_specification_twice() {
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            foo do
+            ^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              Gem::Specification.new do |spec|
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+                spec.name = 'x'
+              end
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 5, 3), (2, 3, 4, 5)])
+        .lengths(&[71, 58])
+        .corrected(
+            "foo do\n  Gem::Specification.new do |spec|\n    spec.name = 'x'\n  spec.metadata['rubygems_mfa_required'] = 'true'\nend\nspec.metadata['rubygems_mfa_required'] = 'true'\nend\n",
+        )
+        .run();
+    }
+
+    /// `EnforcedStyle: required` (既定) はバージョン要求もコミット参照も無い依存を
+    /// 報告する。`spec.add_dependency` のような引数無しの呼び出しでは本家が
+    /// `nil.str_content` で落ちるため、そのノードだけ報告されない。
+    #[test]
+    fn dependency_version_requires_a_version_by_default() {
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+              spec.add_dependency 'rubocop', '~> 1.0'
+              spec.add_dependency 'rubocop', '>= 1.0', '< 2.0'
+              spec.add_runtime_dependency 'a'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+              spec.add_development_dependency 'b', '1.2.3'
+              spec.add_dependency 'c', branch: 'main'
+              spec.add_dependency 'd', ref: 'abc'
+              spec.add_dependency 'e', tag: 'v1'
+              spec.add_dependency 'f', github: 'x'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+              spec.add_dependency 'g', { tag: 'v1' }
+              spec.add_dependency 'h', tag: 1
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+              spec.add_dependency name
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+              spec.add_dependency
+              other.add_dependency 'i'
+              spec.add_dependency 'j', version
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .config("Gemspec/DependencyVersion:\n  Enabled: true\n")
+        .correctable(false)
+        .run();
+    }
+
+    /// `EnforcedStyle: forbidden` は逆に、バージョン要求かコミット参照を持つ依存を報告する。
+    #[test]
+    fn dependency_version_forbids_a_version_under_the_other_style() {
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              spec.add_dependency 'rubocop', '~> 1.0'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is forbidden.
+              spec.add_dependency 'c', branch: 'main'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is forbidden.
+              spec.add_dependency 'g', { tag: 'v1' }
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is forbidden.
+              spec.add_dependency 'h', tag: 1
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .config("Gemspec/DependencyVersion:\n  Enabled: true\n  EnforcedStyle: forbidden\n")
+        .run();
+    }
+
+    /// `AllowedGems` の gem はどちらの体裁でも見送られる。受け手が仕様の引数名でなければ
+    /// そもそも対象外。
+    #[test]
+    fn dependency_version_skips_the_allowed_gems() {
+        CopCase::new(
+            "Gemspec/DependencyVersion",
+            "Gem::Specification.new do |spec|\n  spec.add_dependency 'rubocop'\n  other.add_dependency 'rspec'\nend\n",
+            Vec::new(),
+        )
+        .path(GEMSPEC)
+        .config("Gemspec/DependencyVersion:\n  Enabled: true\n  AllowedGems:\n    - rubocop\n")
+        .run();
+    }
 }
 
 /// `Bundler` 部門。`Include` は `**/Gemfile` などで、Gemfile 以外には効かない。

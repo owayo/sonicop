@@ -6,10 +6,12 @@ department_rules! {
     // is `:convention`.
     add_runtime_dependency => ("AddRuntimeDependency", Convention),
     attribute_assignment => ("AttributeAssignment", Convention),
+    dependency_version => ("DependencyVersion", Convention),
     deprecated_attribute_assignment => ("DeprecatedAttributeAssignment", Warning),
     development_dependencies => ("DevelopmentDependencies", Convention),
     duplicated_assignment => ("DuplicatedAssignment", Warning),
     ordered_dependencies => ("OrderedDependencies", Convention),
+    require_mfa => ("RequireMFA", Warning),
     required_ruby_version => ("RequiredRubyVersion", Warning),
     ruby_version_globals_usage => ("RubyVersionGlobalsUsage", Warning),
 }
