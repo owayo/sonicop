@@ -22156,3 +22156,159 @@ mod style_it_block_parameter {
             .run();
     }
 }
+
+/// `Style/FetchEnvVar`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FetchEnvVar` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_fetch_env_var {
+    use super::*;
+
+    const COP: &str = "Style/FetchEnvVar";
+
+    /// 既定では `nil` を明示した `fetch` に置き換える。
+    #[test]
+    fn a_bracket_read_becomes_a_fetch() {
+        expect_correction(COP, "ENV['X']\n", "ENV.fetch('X', nil)\n");
+        expect_correction(COP, "x = ENV['X']\n", "x = ENV.fetch('X', nil)\n");
+        expect_correction(COP, "foo(ENV['X'])\n", "foo(ENV.fetch('X', nil))\n");
+        expect_correction(COP, "[ENV['X']]\n", "[ENV.fetch('X', nil)]\n");
+        expect_correction(COP, "puts ENV['X']\n", "puts ENV.fetch('X', nil)\n");
+    }
+
+    /// 真偽の判定に使っているもの、メソッドを繋いだもの、代入の左辺、`||` の左は
+    /// 「無いかもしれない」ことが書けているので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ENV['X'].split(',')\n",
+            "ENV['X'] || 'default'\n",
+            "y || ENV['X'] || z\n",
+            "ENV['X'] ||= 'y'\n",
+            "!ENV['X']\n",
+            "ENV['X'] == 'y'\n",
+            "if ENV['X']\n  foo\nend\n",
+            "if ENV['X'] == 'y'\n  foo\nend\n",
+            "if ENV['X'].nil?\n  foo\nend\n",
+            "unless ENV['X']\n  foo\nend\n",
+            "foo if ENV['X']\n",
+            "ENV['X'] ? 1 : 2\n",
+            // `(const nil? :ENV)` は scope が無いものだけ。
+            "::ENV['X']\n",
+            "ENV['X', 'Y']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 条件の中で使われていても、その条件が読んでいるのが別の式なら報告する。
+    #[test]
+    fn a_read_the_condition_does_not_test_is_still_reported() {
+        expect_correction(
+            COP,
+            "if cond\n  x = ENV['X']\nend\n",
+            "if cond\n  x = ENV.fetch('X', nil)\nend\n",
+        );
+    }
+
+    /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
+    #[test]
+    fn the_default_can_be_left_out() {
+        CopCase::new(COP, "ENV['X']\n".to_owned(), Vec::new())
+            .config("Style/FetchEnvVar:\n  DefaultToNil: false\n")
+            .without_offense_check()
+            .corrected("ENV.fetch('X')\n")
+            .run();
+    }
+}
+
+/// `Style/MapCompactWithConditionalBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MapCompactWithConditionalBlock` で走らせた実出力から
+/// 取った (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_compact_with_conditional_block {
+    use super::*;
+
+    const COP: &str = "Style/MapCompactWithConditionalBlock";
+
+    /// 条件が真のときだけ値を返す形は `select`、偽のときだけ返す形は `reject`。
+    #[test]
+    fn the_direction_of_the_conditional_picks_the_method() {
+        expect_correction(
+            COP,
+            "ary.map { |x| x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| x unless cond(x) }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next if cond(x); x }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next unless cond(x); x }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x); nil }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// `filter_map` はそれ自体が対象で、`.compact` は要らない。
+    #[test]
+    fn filter_map_is_reported_on_its_own() {
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| next x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 複数行で書かれていても 1 行に畳まれる。
+    #[test]
+    fn a_multiline_block_collapses_onto_one_line() {
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  else\n    next\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 返すのがブロック引数でないもの、`compact` の無い `map`、引数が 2 つのブロック、
+    /// 条件の無いもの、`map` でない呼び出し (`collect` を含む) は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ary.collect { |x| x if cond(x) }.compact\n",
+            "ary.map { |x| y if cond(x) }.compact\n",
+            "ary.map { |x| x if cond(x) }\n",
+            "ary.map { |x, y| x if cond(x) }.compact\n",
+            "ary.map { |x| x }.compact\n",
+            "ary.each { |x| x if cond(x) }.compact\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

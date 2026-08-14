@@ -3748,6 +3748,19 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_it_block_parameter")
         .target_ruby("3.4")
         .correctable(true),
+        CopCase::annotated(
+            "Style/FetchEnvVar",
+            "ENV['X']\n^^^^^^^^ Use `ENV.fetch('X', nil)` instead of `ENV['X']`.\n",
+        )
+        .id("style_fetch_env_var")
+        .correctable(true),
+        // 位置は `map` の selector から `.compact` の末尾まで。
+        CopCase::annotated(
+            "Style/MapCompactWithConditionalBlock",
+            "ary.map { |x| x if cond(x) }.compact\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Replace `map { ... }.compact` with `select`.\n",
+        )
+        .id("style_map_compact_with_conditional_block")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
