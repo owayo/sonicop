@@ -151,6 +151,7 @@ department_rules! {
     script_permission => ("ScriptPermission", Warning),
     self_assignment => ("SelfAssignment", Warning),
     send_with_mixin_argument => ("SendWithMixinArgument", Warning),
+    shadowing_outer_local_variable => ("ShadowingOuterLocalVariable", Warning),
     shadowed_argument => ("ShadowedArgument", Warning),
     shared_mutable_default => ("SharedMutableDefault", Warning),
     shadowed_exception => ("ShadowedException", Warning),

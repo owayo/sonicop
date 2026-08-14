@@ -28324,3 +28324,69 @@ mod lint_heredoc_method_call_position {
         }
     }
 }
+
+/// `Lint/ShadowingOuterLocalVariable` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ShadowingOuterLocalVariable` で走らせた実出力から
+/// 取った (検出 17 件を確認済み)。
+mod lint_shadowing_outer_local_variable {
+    use super::*;
+
+    const COP: &str = "Lint/ShadowingOuterLocalVariable";
+
+    const ENABLED: &str = "Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n";
+
+    /// 報告されるのはブロックの引数だけ。本家の `before_declaring_variable` は、表に
+    /// 無い名前の宣言でしか呼ばれないので、既にある名前への代入は宣言ではない。
+    #[test]
+    fn a_block_parameter_that_hides_an_outer_name_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def m
+              x = 1
+              [1].each { |x| }
+                          ^ Shadowing outer local variable - `x`.
+            end
+            "#,
+        )
+        .config(ENABLED)
+        .run();
+        for source in [
+            "x = 1\n[1].each { |x| }\n",
+            "def a\n  x = 1\n  [1].each { |y; x| }\nend\n",
+            "def d(x)\n  [1].each { |x| }\nend\n",
+            "def t\n  x = 1\n  [1].each do |y|\n    [2].each { |x| }\n  end\nend\n",
+            "def u\n  x = 1\n  ->(x) { }\nend\n",
+            "def f\n  x = 1\n  y = [1].each { |x| }\nend\n",
+            "def b\n  x = 1\n  case z\n  when 1\n    [1].each { |x| }\n  end\nend\n",
+            "def c\n  x = 1\n  while z\n    [1].each { |x| }\n  end\nend\n",
+            // 外側の宣言が条件式の外にあるので、`else` の中でも隠している。
+            "def c\n  x = 1\n  unless z\n    1\n  else\n    [1].each { |x| }\n  end\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// `_` 始まり、`Ractor.new`、外側の宣言そのものの中、そして同じ条件式の別の枝は
+    /// 対象外。`def` はスコープの探索を打ち切る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def n\n  [1].each { |x| }\n  x = 1\nend\n",
+            "def o\n  _x = 1\n  [1].each { |_x| }\nend\n",
+            "def p1\n  x = 1\n  Ractor.new { |x| }\nend\n",
+            "def q\n  x = [1].map { |x| x }\nend\n",
+            "def r\n  if a\n    x = 1\n  else\n    [1].each { |x| }\n  end\nend\n",
+            "def b\n  if z\n    x = 1\n  elsif w\n    [1].each { |x| }\n  end\nend\n",
+            "def s\n  x = 1\n  def inner\n    [1].each { |x| }\n  end\nend\n",
+            "class Foo\n  x = 1\n  def h\n    [1].each { |x| }\n  end\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}

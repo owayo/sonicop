@@ -2874,6 +2874,21 @@ fn catalogue() -> Vec<CopCase> {
         .config("Lint/HeredocMethodCallPosition:\n  Enabled: true\n")
         .severity(Severity::Warning)
         .correctable(true),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ShadowingOuterLocalVariable",
+            r#"
+            def m
+              x = 1
+              [1].each { |x| }
+                          ^ Shadowing outer local variable - `x`.
+            end
+            "#,
+        )
+        .id("lint_shadowing_outer_local_variable")
+        .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
