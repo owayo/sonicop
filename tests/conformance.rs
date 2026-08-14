@@ -54,6 +54,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("bundler_duplicated_group")
         .path("Gemfile")
         .severity(Severity::Warning),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemComment",
+            "gem 'a'\n^^^^^^^ Missing gem description comment.\n",
+        )
+        .id("bundler_gem_comment")
+        .path("Gemfile")
+        .correctable(false),
         // `add_global_offense` はファイル先頭の長さ 0 のレンジ。メッセージには本家が
         // 検査前に絶対化したパスがそのまま入る。
         CopCase::annotated(

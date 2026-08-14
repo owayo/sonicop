@@ -20979,3 +20979,139 @@ mod bundler_gem_version {
             .run();
     }
 }
+
+/// `Bundler/GemComment` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod bundler_gem_comment {
+    use super::*;
+
+    const COP: &str = "Bundler/GemComment";
+    const GEMFILE: &str = "Gemfile";
+    const MSG: &str = "Missing gem description comment.";
+
+    /// 直上の行の**行頭コメント**が説明になる。前の宣言の行末コメントは前の宣言に
+    /// 紐づくので、次の宣言の説明にはならない。空行を挟むと 2 行離れるので効かない。
+    /// 先頭の magic comment は associator が読み飛ばすので説明にならない。
+    #[test]
+    fn a_comment_on_the_line_above_describes_the_declaration() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            # frozen_string_literal: true
+            gem 'a'
+            ^^^^^^^ %{msg}
+
+            # A described gem
+            gem 'b'
+            gem 'c'
+            ^^^^^^^ %{msg}
+            gem 'd' # trailing description
+            gem 'e'
+            ^^^^^^^ %{msg}
+
+            # far away
+
+            gem 'f'
+            ^^^^^^^ %{msg}
+            "#,
+            &[("msg", MSG)],
+        )
+        .path(GEMFILE)
+        .correctable(false)
+        .run();
+    }
+
+    /// 宣言の子ノードに紐づくコメントも説明になるので、複数行の宣言の途中や行末の
+    /// コメントで足りる。`group` の直上のコメントは `group` の説明であって
+    /// 中の宣言の説明ではない。
+    #[test]
+    fn a_comment_inside_the_declaration_or_the_group_body_counts() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            gem 'g',
+              # why this version
+              '1.0'
+            gem 'h', # inline why
+              '1.0'
+            group :test do
+              # described inside
+              gem 'i'
+              gem 'j'
+              ^^^^^^^ %{msg}
+            end
+            # above the group
+            group :dev do
+              gem 'k'
+              ^^^^^^^ %{msg}
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .path(GEMFILE)
+        .run();
+    }
+
+    /// `OnlyFor` が空でなければ、そこに挙げたものを持つ宣言だけを報告する。
+    #[test]
+    fn only_for_narrows_the_declarations_that_need_a_comment() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            gem 'a'
+            gem 'b', '~> 1.0'
+            ^^^^^^^^^^^^^^^^^ %{msg}
+            gem 'c', '>= 1.0'
+            ^^^^^^^^^^^^^^^^^ %{msg}
+            gem 'd', require: false
+            gem 'e', github: 'x'
+            "#,
+            &[("msg", MSG)],
+        )
+        .path(GEMFILE)
+        .config("Bundler/GemComment:\n  OnlyFor:\n    - version_specifiers\n")
+        .run();
+        // `>=` は先頭が `>` なので `restrictive_version_specifiers` に当たらない。
+        CopCase::annotated_with(
+            COP,
+            r#"
+            gem 'a'
+            gem 'b', '~> 1.0'
+            ^^^^^^^^^^^^^^^^^ %{msg}
+            gem 'c', '>= 1.0'
+            gem 'd', require: false
+            gem 'e', github: 'x'
+            "#,
+            &[("msg", MSG)],
+        )
+        .path(GEMFILE)
+        .config("Bundler/GemComment:\n  OnlyFor:\n    - restrictive_version_specifiers\n")
+        .run();
+        // 末尾ハッシュの鍵の名前も指定できる。`:require => false` の書き方も同じ鍵。
+        CopCase::annotated_with(
+            COP,
+            r#"
+            gem 'a'
+            gem 'b', '~> 1.0'
+            gem 'd', require: false
+            ^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            gem 'e', github: 'x'
+            ^^^^^^^^^^^^^^^^^^^^ %{msg}
+            gem 'f', :require => false
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            "#,
+            &[("msg", MSG)],
+        )
+        .path(GEMFILE)
+        .config("Bundler/GemComment:\n  OnlyFor:\n    - require\n    - github\n")
+        .run();
+    }
+
+    /// `AllowedGems` の gem は説明が無くても報告しない。
+    #[test]
+    fn allowed_gems_need_no_comment() {
+        CopCase::new(COP, "gem 'a'\ngem 'b'\n", Vec::new())
+            .path(GEMFILE)
+            .config("Bundler/GemComment:\n  AllowedGems:\n    - a\n    - b\n")
+            .run();
+    }
+}
