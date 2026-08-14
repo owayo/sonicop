@@ -20815,3 +20815,280 @@ mod style_concat_array_literals {
         }
     }
 }
+
+/// `Style/FileNull`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileNull` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_null {
+    use super::*;
+
+    const COP: &str = "Style/FileNull";
+
+    /// `/dev/null` は大文字小文字を問わず `File::NULL` になる。`NUL:` も同じ。
+    #[test]
+    fn the_null_device_path_becomes_the_constant() {
+        expect_correction(COP, "x = '/dev/null'\n", "x = File::NULL\n");
+        expect_correction(COP, "y = \"/DEV/NULL\"\n", "y = File::NULL\n");
+        expect_correction(COP, "w = 'nul:'\n", "w = File::NULL\n");
+    }
+
+    /// 素の `NUL` は Windows でしか意味を持たないので、同じファイルが `/dev/null` にも
+    /// 触れているときだけ報告する。
+    #[test]
+    fn a_bare_nul_waits_for_the_file_to_mention_dev_null() {
+        expect_no_offenses(COP, "z = 'NUL'\n");
+        CopCase::new(COP, "z = 'NUL'\nq = '/dev/null'\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected("z = File::NULL\nq = File::NULL\n")
+            .run();
+    }
+
+    /// 配列・ハッシュの値・連結された文字列の一部は「データ」なので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "v = ['/dev/null']\n",
+            "u = { a: '/dev/null' }\n",
+            "t = 'foo'\n",
+            "s = ''\n",
+            "r = \"/dev/#{null}\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileOpen`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileOpen` で走らせた実出力から取った
+/// (検出 6 件で一致。この cop は補正を持たない)。
+mod style_file_open {
+    use super::*;
+
+    const COP: &str = "Style/FileOpen";
+
+    /// 結果を誰も読まないもの、局所変数に入れるもの、そのまま次の呼び出しのレシーバに
+    /// なるものが対象。
+    #[test]
+    fn an_open_with_nothing_to_close_it_is_reported() {
+        expect_offense(
+            COP,
+            "File.open('f')\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+        expect_offense(
+            COP,
+            "x = File.open('f')\n    ^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+        expect_offense(
+            COP,
+            "File.open('f').read\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+    }
+
+    /// ブロック付き・`&:read` 付き、そして結果が別の呼び出しの引数になるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open('f') { |g| g.read }\n",
+            "File.open('f') do |g|\n  g.read\nend\n",
+            "File.open('f', &:read)\n",
+            "foo(File.open('f'))\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileRead`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileRead` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_read {
+    use super::*;
+
+    const COP: &str = "Style/FileRead";
+
+    /// 読み出しの書き方は 3 通りあり、モードが `b` で終わるときだけ `binread`。
+    #[test]
+    fn every_way_of_reading_the_whole_file_is_reported() {
+        expect_correction(COP, "File.open(f).read\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f, 'r').read\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f, 'rb').read\n", "File.binread(f)\n");
+        expect_correction(COP, "File.open(f, &:read)\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f) { |g| g.read }\n", "File.read(f)\n");
+        expect_correction(
+            COP,
+            "File.open(f) do |g|\n  g.read\nend\n",
+            "File.read(f)\n",
+        );
+        expect_correction(COP, "::File.open(f).read\n", "::File.read(f)\n");
+    }
+
+    /// ブロックが読み出し以外もするものは、本家では `node.parent` がそのブロックで止まるので
+    /// 外側の `.read` までは見に行かない。
+    #[test]
+    fn a_block_that_does_something_else_ends_the_search() {
+        expect_no_offenses(COP, "File.open(f) { |g| g.foo }.read\n");
+        expect_no_offenses(COP, "File.open(f) { |g| g.read; g.foo }\n");
+    }
+
+    /// 書き込みモード、読み出し以外の呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["File.open(f, 'w').read\n", "File.open(f).write(x)\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileWrite`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileWrite` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_write {
+    use super::*;
+
+    const COP: &str = "Style/FileWrite";
+
+    /// モードは必須で、`b` で終わるときだけ `binwrite`。
+    #[test]
+    fn every_way_of_writing_the_whole_file_is_reported() {
+        expect_correction(
+            COP,
+            "File.open(f, 'w') { |g| g.write(x) }\n",
+            "File.write(f, x)\n",
+        );
+        expect_correction(COP, "File.open(f, 'w').write(x)\n", "File.write(f, x)\n");
+        expect_correction(
+            COP,
+            "File.open(f, 'wb') { |g| g.write(x) }\n",
+            "File.binwrite(f, x)\n",
+        );
+        expect_correction(
+            COP,
+            "File.open(f, 'w') do |g|\n  g.write(x)\nend\n",
+            "File.write(f, x)\n",
+        );
+    }
+
+    /// 置き換えが飲み込んでしまうヒアドキュメントは、本文をそのまま下に書き戻す。
+    #[test]
+    fn a_heredoc_the_replacement_would_swallow_is_carried_along() {
+        expect_correction(
+            COP,
+            "File.open(f, 'w') do |g|\n  g.write(<<~TEXT)\n    hi\n  TEXT\nend\n",
+            "File.write(f, <<~TEXT)\n    hi\n  TEXT\n",
+        );
+    }
+
+    /// splat の内容、モードの無い・切り詰めない `open`、書き込み以外の呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open(f, 'w') { |g| g.write(*x) }\n",
+            "File.open(f) { |g| g.write(x) }\n",
+            "File.open(f, 'r') { |g| g.write(x) }\n",
+            "File.open(f, 'w') { |g| g.puts(x) }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/InPatternThen` と `Style/MultilineInPatternThen`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 2 件 / 1 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_in_pattern_then {
+    use super::*;
+
+    /// 1 行に収まる `in` の `;` は ` then` になる。選択パターンはメッセージ側で
+    /// ` | ` 区切りに整形される。
+    #[test]
+    fn a_semicolon_on_one_line_becomes_then() {
+        expect_correction(
+            "Style/InPatternThen",
+            "case x\nin 1; foo\nend\n",
+            "case x\nin 1 then foo\nend\n",
+        );
+        expect_offense(
+            "Style/InPatternThen",
+            "case x\nin 4|5; qux\n      ^ Do not use `in 4 | 5;`. Use `in 4 | 5 then` instead.\nend\n",
+        );
+    }
+
+    /// 本体が次の行にある `then` は落とす。パターンが複数行のときは `then` が要る。
+    #[test]
+    fn a_then_whose_body_is_on_the_next_line_is_removed() {
+        expect_correction(
+            "Style/MultilineInPatternThen",
+            "case x\nin 1 then\n  foo\nend\n",
+            "case x\nin 1\n  foo\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultilineInPatternThen",
+            "case x\nin [7,\n    8] then\n  corge\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultilineInPatternThen",
+            "case x\nin 9 then grault\nend\n",
+        );
+    }
+
+    /// 区切りの無い `in`、複数行の `in`、`then` 付きの `in` は `InPatternThen` の対象外。
+    #[test]
+    fn what_in_pattern_then_leaves_alone() {
+        for source in ["case x\nin 3\n  baz\nend\n", "case x\nin 2 then bar\nend\n"] {
+            expect_no_offenses("Style/InPatternThen", source);
+        }
+    }
+}
+
+/// `Style/ItAssignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ItAssignment` で走らせた実出力から取った
+/// (検出 15 件で一致。この cop は補正を持たない)。
+mod style_it_assignment {
+    use super::*;
+
+    const COP: &str = "Style/ItAssignment";
+
+    /// 代入・多重代入・自己代入と、引数の 7 種すべてが対象。
+    #[test]
+    fn every_binding_named_it_is_reported() {
+        for source in [
+            "it = 1\n",
+            "it, x = 1, 2\n",
+            "it ||= 1\n",
+            "def m(it); end\n",
+            "def m(it = 1); end\n",
+            "def m(*it); end\n",
+            "def m(**it); end\n",
+            "def m(&it); end\n",
+            "def m(it:); end\n",
+            "def m(it: 1); end\n",
+            "foo { |it| }\n",
+            "->(it) {}\n",
+            "for it in [1] do end\n",
+            "begin; rescue => it; end\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "`it` is the default block parameter; consider another name."
+            );
+        }
+    }
+
+    /// 局所変数でない `@it` や `IT`、ただの読みは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["@it = 1\n", "IT = 1\n", "it\n", "x = it\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

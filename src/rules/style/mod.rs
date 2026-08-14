@@ -1,6 +1,7 @@
 mod block_args;
 mod comments;
 mod conditional;
+mod file_open_call;
 mod format_sequences;
 mod frozen_string;
 mod hash_transform;
@@ -73,7 +74,11 @@ department_rules! {
     exponential_notation => ("ExponentialNotation", Convention),
     float_division => ("FloatDivision", Convention),
     file_empty => ("FileEmpty", Convention),
+    file_null => ("FileNull", Convention),
+    file_open => ("FileOpen", Convention),
+    file_read => ("FileRead", Convention),
     file_touch => ("FileTouch", Convention),
+    file_write => ("FileWrite", Convention),
     r#for => ("For", Convention),
     format_string => ("FormatString", Convention),
     format_string_token => ("FormatStringToken", Convention),
@@ -94,6 +99,8 @@ department_rules! {
     if_unless_modifier_of_if_unless => ("IfUnlessModifierOfIfUnless", Convention),
     if_with_semicolon => ("IfWithSemicolon", Convention),
     infinite_loop => ("InfiniteLoop", Convention),
+    in_pattern_then => ("InPatternThen", Convention),
+    it_assignment => ("ItAssignment", Convention),
     lambda => ("Lambda", Convention),
     line_end_concatenation => ("LineEndConcatenation", Convention),
     lambda_call => ("LambdaCall", Convention),
@@ -114,6 +121,7 @@ department_rules! {
     multiple_comparison => ("MultipleComparison", Convention),
     multiline_if_modifier => ("MultilineIfModifier", Convention),
     multiline_if_then => ("MultilineIfThen", Convention),
+    multiline_in_pattern_then => ("MultilineInPatternThen", Convention),
     multiline_memoization => ("MultilineMemoization", Convention),
     multiline_ternary_operator => ("MultilineTernaryOperator", Convention),
     multiline_when_then => ("MultilineWhenThen", Convention),

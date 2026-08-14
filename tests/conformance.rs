@@ -3565,6 +3565,48 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_concat_array_literals")
         .correctable(true),
+        CopCase::annotated(
+            "Style/FileNull",
+            "x = '/dev/null'\n    ^^^^^^^^^^^ Use `File::NULL` instead of `/dev/null`.\n",
+        )
+        .id("style_file_null")
+        .correctable(true),
+        // 補正を持たない cop なので `[Correctable]` は付かない。
+        CopCase::annotated(
+            "Style/FileOpen",
+            "File.open('f')\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        )
+        .id("style_file_open")
+        .correctable(false),
+        // 報告されるのは読み出しの側。置き換えは `open` の selector から始まる。
+        CopCase::annotated(
+            "Style/FileRead",
+            "File.open(filename).read\n^^^^^^^^^^^^^^^^^^^^^^^^ Use `File.read`.\n",
+        )
+        .id("style_file_read")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FileWrite",
+            "File.open(filename, 'w') { |f| f.write(content) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `File.write`.\n",
+        )
+        .id("style_file_write")
+        .correctable(true),
+        // 位置は `;` 1 文字だけ。
+        CopCase::annotated("Style/InPatternThen", "case x\nin 1; foo\n    ^ Do not use `in 1;`. Use `in 1 then` instead.\nend\n")
+            .id("style_in_pattern_then")
+            .correctable(true),
+        CopCase::annotated(
+            "Style/MultilineInPatternThen",
+            "case x\nin 1 then\n     ^^^^ Do not use `then` for multiline `in` statement.\n  foo\nend\n",
+        )
+        .id("style_multiline_in_pattern_then")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ItAssignment",
+            "it = 5\n^^ `it` is the default block parameter; consider another name.\n",
+        )
+        .id("style_it_assignment")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
