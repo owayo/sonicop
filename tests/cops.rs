@@ -25919,3 +25919,83 @@ mod style_redundant_regexp_argument {
             .run();
     }
 }
+
+/// `Style/OperatorMethodCall`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/OperatorMethodCall` で走らせた実出力から取った
+/// (検出 28 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_operator_method_call {
+    use super::*;
+
+    const COP: &str = "Style/OperatorMethodCall";
+
+    /// 位置はドット 1 文字。
+    #[test]
+    fn the_dot_before_an_operator_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            foo.+(bar)
+               ^ Redundant dot detected.
+            ",
+        );
+        expect_correction(COP, "foo.+(bar)\n", "foo +(bar)\n");
+        expect_correction(COP, "foo.==(bar)\n", "foo ==(bar)\n");
+        expect_correction(COP, "foo.<<(bar)\n", "foo <<(bar)\n");
+        expect_correction(COP, "1.+(2)\n", "1 +(2)\n");
+        // 括弧が無ければ selector の後ろに空白が入る。
+        expect_correction(COP, "foo.+ bar\n", "foo + bar\n");
+        // `/` の後ろの `(` は正規表現の始まりに読めるので空白を足す。
+        expect_correction(COP, "foo./(bar)\n", "foo / (bar)\n");
+    }
+
+    /// 続きが繋がっているときは、引数の括弧を外して式全体を括弧で包む。
+    #[test]
+    fn a_chained_call_gets_parentheses_around_the_operation() {
+        expect_correction(COP, "foo.+(bar).baz\n", "(foo + bar).baz\n");
+        expect_correction(COP, "a.+(b) + c\n", "(a + b) + c\n");
+        expect_correction(COP, "-foo.+(bar)\n", "-(foo + bar)\n");
+        expect_correction(COP, "foo.+(\n  bar\n).baz\n", "(foo + bar).baz\n");
+        // 引数の位置にあるものは包まない。
+        expect_correction(COP, "baz(foo.+(bar))\n", "baz(foo +(bar))\n");
+        expect_correction(COP, "a + b.+(c)\n", "a + b +(c)\n");
+        expect_correction(COP, "x[foo.+(bar)]\n", "x[foo +(bar)]\n");
+    }
+
+    /// 引数が「子を持つ」ノードで、続きが繋がっていて、括弧付き — の 3 つが揃うと見送る。
+    /// レシーバ無しの呼び出しと `nil` は上流では children.first が nil なので当たらない。
+    #[test]
+    fn an_argument_with_a_first_child_is_left_alone_when_chained() {
+        for source in [
+            "foo.+(1).baz\n",
+            "foo.+(bar.baz).qux\n",
+            "x = 1\nfoo.+(x).baz\n",
+            "foo.+(@iv).baz\n",
+            "foo.+(:sym).baz\n",
+            "foo.+(\"s\").baz\n",
+            "foo.+([1]).baz\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(COP, "foo.+(nil).baz\n", "(foo + nil).baz\n");
+    }
+
+    /// `[]`、定数レシーバ、splat / `&block`、引数が 1 個でないもの、`&.` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.[](bar)\n",
+            "Foo.+(bar)\n",
+            "foo.+(*bar)\n",
+            "foo.+(&bar)\n",
+            "foo.+(bar, baz)\n",
+            "foo.+()\n",
+            "foo + bar\n",
+            "foo.!\n",
+            "foo.~\n",
+            "foo&.+(bar)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

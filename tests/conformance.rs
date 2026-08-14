@@ -4321,6 +4321,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_regexp_argument")
         .correctable(true),
+        // 位置はドット 1 文字。
+        CopCase::annotated(
+            "Style/OperatorMethodCall",
+            r"
+            foo.+(bar)
+               ^ Redundant dot detected.
+            ",
+        )
+        .id("style_operator_method_call")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

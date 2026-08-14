@@ -190,6 +190,7 @@ department_rules! {
     one_line_conditional => ("OneLineConditional", Convention),
     optional_arguments => ("OptionalArguments", Convention),
     optional_boolean_parameter => ("OptionalBooleanParameter", Convention),
+    operator_method_call => ("OperatorMethodCall", Convention),
     option_hash => ("OptionHash", Convention),
     or_assignment => ("OrAssignment", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
