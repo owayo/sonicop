@@ -27742,3 +27742,226 @@ mod style_map_into_array {
         );
     }
 }
+
+/// `Layout/SpaceBeforeBrackets`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/SpaceBeforeBrackets` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod layout_space_before_brackets {
+    use super::*;
+
+    const COP: &str = "Layout/SpaceBeforeBrackets";
+
+    /// 受け手が値であれば `x [1]` は添字なので、あいだの空白が咎められる。
+    /// 局所変数・インスタンス変数・グローバル変数・リテラルのどれでも同じ。
+    #[test]
+    fn a_space_before_a_subscript_is_removed() {
+        expect_correction(COP, "a = [1]\na [1]\n", "a = [1]\na[1]\n");
+        expect_correction(
+            COP,
+            "collection = {}\ncollection [index] = value\n",
+            "collection = {}\ncollection[index] = value\n",
+        );
+        expect_correction(COP, "%w[x] [0]\n", "%w[x][0]\n");
+        expect_correction(COP, "@x [1]\n", "@x[1]\n");
+        expect_correction(COP, "$g [1]\n", "$g[1]\n");
+    }
+
+    /// 局所変数でない名前に続く `[...]` は配列を渡す呼び出しなので触らない。定数も同じ。
+    /// ドット付きの `[]` 呼び出しとレシーバ付きの呼び出しも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "puts [1]\n",
+            "a.[](1)\n",
+            "b = {}\nb['x']\n",
+            "foo.bar [1]\n",
+            "X [1]\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Layout/LineContinuationSpacing`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/LineContinuationSpacing` で走らせた実出力から取った
+/// (既定 `space` で検出 2 件、`no_space` でも `-A` までバイト一致を確認済み)。
+mod layout_line_continuation_spacing {
+    use super::*;
+
+    const COP: &str = "Layout/LineContinuationSpacing";
+
+    /// 既定の `space` はバックスラッシュの前を空白ちょうど 1 つに揃える。
+    #[test]
+    fn one_space_is_wanted_in_front_of_the_backslash() {
+        expect_correction(COP, "foo = 1 +\\\n  2\n", "foo = 1 + \\\n  2\n");
+        expect_correction(COP, "foo = 1 +   \\\n  2\n", "foo = 1 + \\\n  2\n");
+        expect_no_offenses(COP, "foo = 1 + \\\n  2\n");
+    }
+
+    /// 文字列・正規表現・バッククォート・パーセント配列・ヒアドキュメント本体・コメントの
+    /// 中にあるバックスラッシュは本文なので触らない。
+    #[test]
+    fn a_backslash_inside_a_literal_is_left_alone() {
+        for source in [
+            "s = \"a \\\nb\"\n",
+            "r = /a \\\nb/\n",
+            "c = `a \\\nb`\n",
+            "w = %w[a \\\nb]\n",
+            "# comment \\\nx = 1\n",
+            "x = <<~T\n  a \\\n  b\nT\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `no_space` は逆に空白を落とす。
+    #[test]
+    fn the_no_space_style_asks_for_the_other_direction() {
+        CopCase::new(COP, "foo = 1 + \\\n  2\n".to_owned(), Vec::new())
+            .config("Layout/LineContinuationSpacing:\n  EnforcedStyle: no_space\n")
+            .without_offense_check()
+            .corrected("foo = 1 +\\\n  2\n")
+            .run();
+    }
+}
+
+/// `Layout/LineContinuationLeadingSpace`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/LineContinuationLeadingSpace` で走らせた実出力から
+/// 取った (既定 `trailing` で検出 4 件、`leading` でも `-A` までバイト一致を確認済み)。
+mod layout_line_continuation_leading_space {
+    use super::*;
+
+    const COP: &str = "Layout/LineContinuationLeadingSpace";
+
+    /// 既定の `trailing` は、次の行の先頭にある空白を前の行の末尾へ移す。
+    #[test]
+    fn leading_spaces_move_to_the_end_of_the_previous_line() {
+        expect_correction(
+            COP,
+            "a = 'this text is too' \\\n    ' long'\n",
+            "a = 'this text is too ' \\\n    'long'\n",
+        );
+        expect_correction(
+            COP,
+            "c = \"this text is too\" \\\n    \" long\"\n",
+            "c = \"this text is too \" \\\n    \"long\"\n",
+        );
+        expect_no_offenses(COP, "b = 'this text is too ' \\\n    'long'\n");
+        expect_no_offenses(COP, "d = 'no space here' \\\n    'and none here'\n");
+    }
+
+    /// `leading` は逆に、前の行の末尾の空白を次の行の先頭へ移す。
+    #[test]
+    fn the_leading_style_asks_for_the_other_direction() {
+        CopCase::new(
+            COP,
+            "a = 'this text is too ' \\\n    'long'\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/LineContinuationLeadingSpace:\n  EnforcedStyle: leading\n")
+        .without_offense_check()
+        .corrected("a = 'this text is too' \\\n    ' long'\n")
+        .run();
+    }
+}
+
+/// `Layout/EmptyLinesAfterModuleInclusion`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/EmptyLinesAfterModuleInclusion` で走らせた実出力から
+/// 取った (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod layout_empty_lines_after_module_inclusion {
+    use super::*;
+
+    const COP: &str = "Layout/EmptyLinesAfterModuleInclusion";
+
+    /// 取り込みの次の行が空でなければ空行を入れる。
+    #[test]
+    fn an_empty_line_is_inserted_after_the_inclusion() {
+        expect_correction(
+            COP,
+            "class A\n  include Foo\n  def bar; end\nend\n",
+            "class A\n  include Foo\n\n  def bar; end\nend\n",
+        );
+        // `rubocop:enable` が挟まっているときは、その下に入れる。
+        expect_correction(
+            COP,
+            "class F\n  include Foo\n  # rubocop:enable Style/For\n  def bar; end\nend\n",
+            "class F\n  include Foo\n  # rubocop:enable Style/For\n\n  def bar; end\nend\n",
+        );
+    }
+
+    /// 取り込みが続くとき、次が無いとき、値として渡されたとき、後置条件が付いたときは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class B\n  include Foo\n\n  def bar; end\nend\n",
+            "class C\n  include Foo\n  extend Bar\n  prepend Baz\n\n  def qux; end\nend\n",
+            "class D\n  include Foo\nend\n",
+            "class G\n  x = include Foo\n  def bar; end\nend\n",
+            "class H\n  [include(Foo)]\n  def bar; end\nend\n",
+            "class I\n  include Foo if cond\n  def bar; end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Layout/LineEndStringConcatenationIndentation`。
+///
+/// 期待値は本家 1.89.0 を `--only Layout/LineEndStringConcatenationIndentation` で走らせた
+/// 実出力から取った (既定 `aligned` で検出 4 件、`indented` でも `-A` までバイト一致を確認済み)。
+mod layout_line_end_string_concatenation_indentation {
+    use super::*;
+
+    const COP: &str = "Layout/LineEndStringConcatenationIndentation";
+
+    /// 値として渡された連結は先頭の部分に揃える。
+    #[test]
+    fn a_concatenation_used_as_a_value_is_aligned() {
+        expect_correction(
+            COP,
+            "text = 'offense' \\\n  'not aligned'\n",
+            "text = 'offense' \\\n       'not aligned'\n",
+        );
+        expect_no_offenses(COP, "text = 'offense' \\\n       'aligned'\n");
+    }
+
+    /// 呼び出しの引数として渡された連結も「値」なので揃える側。
+    #[test]
+    fn a_concatenation_handed_to_a_call_is_aligned_too() {
+        expect_correction(
+            COP,
+            "puts 'offense' \\\n  'indented'\n",
+            "puts 'offense' \\\n     'indented'\n",
+        );
+        expect_no_offenses(COP, "puts 'offense' \\\n     'aligned'\n");
+    }
+
+    /// 文そのものとして書かれた連結は 1 段下げる。`def` の本体がその場所。
+    #[test]
+    fn a_concatenation_written_as_a_statement_is_indented() {
+        expect_no_offenses(COP, "def foo\n  'a' \\\n    'b'\nend\n");
+        expect_correction(
+            COP,
+            "def bar\n  'a' \\\n  'b'\nend\n",
+            "def bar\n  'a' \\\n    'b'\nend\n",
+        );
+    }
+
+    /// `indented` に切り替えると、値として渡された連結も 1 段下げになる。
+    #[test]
+    fn the_indented_style_asks_for_one_level_everywhere() {
+        CopCase::new(
+            COP,
+            "text = 'offense' \\\n       'aligned'\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/LineEndStringConcatenationIndentation:\n  EnforcedStyle: indented\n")
+        .without_offense_check()
+        .corrected("text = 'offense' \\\n  'aligned'\n")
+        .run();
+    }
+}

@@ -4705,6 +4705,39 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_map_into_array")
         .correctable(true),
+        // ---- Layout (pending) ----
+        // 位置は受け手と `[` のあいだの空白 1 文字。
+        CopCase::annotated(
+            "Layout/SpaceBeforeBrackets",
+            "collection = {}\ncollection [index] = value\n          ^ Remove the space before the opening brackets.\n",
+        )
+        .id("layout_space_before_brackets")
+        .correctable(true),
+        // 位置は空白とバックスラッシュをまとめた範囲。空白が無いときは `\` 1 文字だけ。
+        CopCase::annotated(
+            "Layout/LineContinuationSpacing",
+            "foo = 1 +\\\n         ^ Use one space in front of backslash.\n  2\n",
+        )
+        .id("layout_line_continuation_spacing")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationLeadingSpace",
+            "a = 'this text is too' \\\n    ' long'\n     ^ Move leading spaces to the end of the previous line.\n",
+        )
+        .id("layout_line_continuation_leading_space")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAfterModuleInclusion",
+            "class A\n  include Foo\n  ^^^^^^^^^^^ Add an empty line after module inclusion.\n  def bar; end\nend\n",
+        )
+        .id("layout_empty_lines_after_module_inclusion")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineEndStringConcatenationIndentation",
+            "text = 'offense' \\\n  'not aligned'\n  ^^^^^^^^^^^^^ Align parts of a string concatenated with backslash.\n",
+        )
+        .id("layout_line_end_string_concatenation_indentation")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
