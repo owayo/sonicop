@@ -29957,3 +29957,547 @@ mod layout_empty_line_after_multiline_condition {
         .run();
     }
 }
+
+/// `Style/StringHashKeys` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StringHashKeys` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_string_hash_keys {
+    use super::*;
+
+    const COP: &str = "Style/StringHashKeys";
+
+    /// 位置は鍵の文字列だけ。置き換えは `Symbol#inspect` の綴り。
+    #[test]
+    fn a_string_key_becomes_a_symbol() {
+        expect_offense(
+            COP,
+            r"
+            { 'a' => 1 }
+              ^^^ Prefer symbols instead of strings as hash keys.
+            ",
+        );
+        expect_correction(COP, "{ 'a' => 1 }\n", "{ :a => 1 }\n");
+        expect_correction(COP, "{ 'a' => 1, 'b' => 2 }\n", "{ :a => 1, :b => 2 }\n");
+        // 素の名前にできない綴りは引用符付きのシンボルになる。
+        expect_correction(COP, "{ 'a-b' => 1 }\n", "{ :\"a-b\" => 1 }\n");
+        expect_correction(COP, "{ 'with space' => 1 }\n", "{ :\"with space\" => 1 }\n");
+        expect_correction(
+            COP,
+            "{ \"tab\\there\" => 1 }\n",
+            "{ :\"tab\\there\" => 1 }\n",
+        );
+    }
+
+    /// 環境変数を渡す呼び出しでは文字列の鍵しか通らないので触らない。
+    #[test]
+    fn an_environment_hash_is_exempt() {
+        for source in [
+            "IO.popen({ 'A' => 'b' }, 'cmd')\n",
+            "::IO.popen({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.capture2({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.popen3({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.pipeline([{ 'A' => 'b' }, 'cmd'])\n",
+            "Kernel.spawn({ 'A' => 'b' }, 'cmd')\n",
+            "spawn({ 'A' => 'b' }, 'cmd')\n",
+            "system({ 'A' => 'b' }, 'cmd')\n",
+            "str.gsub(/x/, { 'a' => 'b' })\n",
+            "str.gsub!(/x/, { 'a' => 'b' })\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// シンボルの鍵と補間する文字列は触らない。名前空間の違う `popen` は除外されない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["{ a: 1 }\n", "{ :a => 1 }\n", "{ \"#{x}\" => 1 }\n"] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(
+            COP,
+            "Foo.popen({ 'A' => 'b' }, 'cmd')\n",
+            "Foo.popen({ :A => 'b' }, 'cmd')\n",
+        );
+    }
+}
+
+/// `Style/ArrayFirstLast` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayFirstLast` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_first_last {
+    use super::*;
+
+    const COP: &str = "Style/ArrayFirstLast";
+
+    /// 位置は `[...]` の部分。ドット付きで書かれていると selector から末尾まで。
+    #[test]
+    fn a_zero_or_minus_one_subscript_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a[0]
+             ^^^ Use `first`.
+            ",
+        );
+        expect_correction(COP, "a[0]\n", "a.first\n");
+        expect_correction(COP, "a[-1]\n", "a.last\n");
+        expect_correction(COP, "a.[](0)\n", "a.first\n");
+        expect_correction(COP, "a.[](-1)\n", "a.last\n");
+        expect_correction(COP, "a&.[](0)\n", "a&.first\n");
+        expect_correction(COP, "[1, 2][0]\n", "[1, 2].first\n");
+        expect_correction(COP, "a.b[0]\n", "a.b.first\n");
+        expect_correction(COP, "h[0].c\n", "h.first.c\n");
+    }
+
+    /// 添字が続くもの、代入の左辺、`[0, 1]`、文字列の鍵は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a[1]\n",
+            "a[0][1]\n",
+            "a[0][0]\n",
+            "a[0] = 1\n",
+            "a[0] += 1\n",
+            "a[0, 1]\n",
+            "a['k']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantInitialize`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantInitialize` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_initialize {
+    use super::*;
+
+    const COP: &str = "Style/RedundantInitialize";
+
+    /// 引数の無い空の `initialize` は「空」の方のメッセージになる。位置は定義全体。
+    #[test]
+    fn an_empty_initialize_is_reported() {
+        CopCase::annotated(COP, "class A\n  def initialize\n  end\nend\n")
+            .id("empty")
+            .without_offense_check()
+            .locations(&[(2, 3, 3, 5)])
+            .lengths(&[20])
+            .run();
+        expect_correction(
+            COP,
+            "class A\n  def initialize\n  end\nend\n",
+            "class A\nend\n",
+        );
+    }
+
+    /// `super` へそのまま渡すだけの定義も消える。並びが変わっていたら残す。
+    #[test]
+    fn a_definition_that_only_forwards_is_reported() {
+        expect_correction(
+            COP,
+            "class C\n  def initialize(a)\n    super\n  end\nend\n",
+            "class C\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class D\n  def initialize(a, b)\n    super(a, b)\n  end\nend\n",
+            "class D\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class E\n  def initialize(a, b)\n    super(b, a)\n  end\nend\n",
+        );
+    }
+
+    /// `*args` / `**kw` / `...` は渡す先が変わりうるので残す。`&blk` は `forwards?` には
+    /// 数えないが、上流のパターン `(args $arg*)` が素の引数だけを取るので結局対象外になる。
+    #[test]
+    fn forwarding_parameters_keep_the_definition() {
+        for source in [
+            "class F\n  def initialize(*args)\n    super\n  end\nend\n",
+            "class G\n  def initialize(**kw)\n    super\n  end\nend\n",
+            "class H\n  def initialize(&blk)\n    super\n  end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引数付きの空の定義、2 文以上の本体、`super` でない本体は触らない。
+    /// 既定の `AllowComments: true` は本体にコメントがあるものを見送る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class B\n  def initialize(a)\n  end\nend\n",
+            "class I\n  def initialize\n    # comment\n  end\nend\n",
+            "class J\n  def initialize\n    do_something\n  end\nend\n",
+            "class K\n  def initialize(a)\n    super(a)\n    other\n  end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `AllowComments: false` ならコメントがあっても報告する。
+    #[test]
+    fn allow_comments_off_reports_anyway() {
+        CopCase::new(
+            COP,
+            "class I\n  def initialize\n    # comment\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/RedundantInitialize:\n  AllowComments: false\n")
+        .without_offense_check()
+        .corrected("class I\nend\n")
+        .run();
+    }
+}
+
+/// `Style/NegativeArrayIndex`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NegativeArrayIndex` で走らせた実出力から取った
+/// (検出 19 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_negative_array_index {
+    use super::*;
+
+    const COP: &str = "Style/NegativeArrayIndex";
+
+    /// 位置は添字の式だけ。メッセージには元の書き方が入る。
+    #[test]
+    fn a_length_subtraction_becomes_a_negative_index() {
+        expect_offense(
+            COP,
+            r"
+            arr[arr.length - 1]
+                ^^^^^^^^^^^^^^ Use `arr[-1]` instead of `arr[arr.length - 1]`.
+            ",
+        );
+        expect_correction(COP, "arr[arr.length - 1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.size - 1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.count - 2]\n", "arr[-2]\n");
+        expect_correction(COP, "arr[arr.length-1]\n", "arr[-1]\n");
+        expect_correction(COP, "arr[arr.length - 1, 2]\n", "arr[-1, 2]\n");
+        expect_correction(COP, "arr&.[](arr.length - 1)\n", "arr&.[](-1)\n");
+        expect_correction(COP, "@arr[@arr.length - 1]\n", "@arr[-1]\n");
+        expect_correction(COP, "self[length - 1]\n", "self[-1]\n");
+    }
+
+    /// 長さを保つメソッドが挟まっていても対象。並びが違っていても、受け手に土台があれば通る。
+    #[test]
+    fn length_preserving_chains_count() {
+        expect_correction(COP, "arr.sort[arr.sort.length - 1]\n", "arr.sort[-1]\n");
+        expect_correction(
+            COP,
+            "arr.sort.reverse[arr.sort.reverse.length - 1]\n",
+            "arr.sort.reverse[-1]\n",
+        );
+        expect_correction(COP, "arr.sort[arr.length - 1]\n", "arr.sort[-1]\n");
+    }
+
+    /// 範囲の終端でも同じ。位置は終端の式で、置き換えは添字全体。
+    #[test]
+    fn a_range_end_is_handled_too() {
+        expect_offense(
+            COP,
+            r"
+            arr[0..arr.length - 1]
+                   ^^^^^^^^^^^^^^ Use `arr[0..-1]` instead of `arr[0..arr.length - 1]`.
+            ",
+        );
+        expect_correction(COP, "arr[0..arr.length - 1]\n", "arr[0..-1]\n");
+        expect_correction(COP, "arr[0...arr.length - 1]\n", "arr[0...-1]\n");
+        expect_correction(COP, "arr[1..arr.length - 2]\n", "arr[1..-2]\n");
+        expect_correction(COP, "arr[(0..arr.length - 1)]\n", "arr[(0..-1)]\n");
+        expect_correction(COP, "arr[foo..arr.length - 1]\n", "arr[foo..-1]\n");
+    }
+
+    /// 引き算でないもの、引く数が 0 や整数でないもの、受け手が違うもの、
+    /// 長さを保たないメソッドが挟まるものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "arr[arr.length - 0]\n",
+            "arr[arr.length + 1]\n",
+            "arr[other.length - 1]\n",
+            "arr[length - 1]\n",
+            "a.b[a.b.length - 1]\n",
+            "arr[0..arr.length - 1.0]\n",
+            "arr[arr.length - 1..2]\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/StaticClass` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StaticClass` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_static_class {
+    use super::*;
+
+    const COP: &str = "Style/StaticClass";
+
+    /// 位置はクラス全体。`class` が `module` になり、名前の後ろに `module_function` が入る。
+    #[test]
+    fn a_class_of_only_class_methods_is_reported() {
+        CopCase::annotated(COP, "class A\n  def self.foo; end\nend\n")
+            .id("static")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[31])
+            .run();
+        expect_correction(
+            COP,
+            "class A\n  def self.foo; end\nend\n",
+            "module A\nmodule_function\n\n  def foo; end\nend\n",
+        );
+    }
+
+    /// `class << self`・定数代入・`extend` が混ざっていても通る。`class << self` は
+    /// 見出しと `end` が消えるだけなので、字下げがそのまま残る。
+    #[test]
+    fn the_other_shapes_a_convertible_class_may_hold() {
+        expect_correction(
+            COP,
+            "class C\n  class << self\n    def foo; end\n  end\nend\n",
+            "module C\nmodule_function\n\n  \n    def foo; end\n  \nend\n",
+        );
+        expect_correction(
+            COP,
+            "class D\n  CONST = 1\n  def self.foo; end\nend\n",
+            "module D\nmodule_function\n\n  CONST = 1\n  def foo; end\nend\n",
+        );
+        // `extend_call?` は selector しか見ないので、レシーバ付きの `extend` も通る。
+        expect_correction(
+            COP,
+            "class F\n  Foo.extend Bar\n  def self.foo; end\nend\n",
+            "module F\nmodule_function\n\n  Foo.extend Bar\n  def foo; end\nend\n",
+        );
+    }
+
+    /// インスタンスメソッド・空のクラス・スーパークラス付き・可視性の指定が混ざったものは
+    /// 触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class F\n  def foo; end\nend\n",
+            "class G\nend\n",
+            "class H < Base\n  def self.foo; end\nend\n",
+            "class I\n  private\n  def self.foo; end\nend\n",
+            "class J\n  class << self\n    private\n    def foo; end\n  end\nend\n",
+            "module K\n  def self.foo; end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantArgument`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantArgument` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_argument {
+    use super::*;
+
+    const COP: &str = "Style/RedundantArgument";
+
+    /// 位置は括弧ごと。メッセージには書かれたままの引数が入る。
+    #[test]
+    fn an_argument_equal_to_the_default_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a.join('')
+                  ^^^^ Argument '' is redundant because it is implied by default.
+            ",
+        );
+        expect_correction(COP, "a.join('')\n", "a.join\n");
+        expect_correction(COP, "a.join(\"\")\n", "a.join\n");
+        expect_correction(COP, "a.sum(0)\n", "a.sum\n");
+        expect_correction(COP, "'x'.split(' ')\n", "'x'.split\n");
+        expect_correction(COP, "\"x\".chomp(\"\\n\")\n", "\"x\".chomp\n");
+        expect_correction(COP, "\"x\".chomp!(\"\\n\")\n", "\"x\".chomp!\n");
+    }
+
+    /// 比べるのは Ruby が `inspect` する値なので、基数が違っても同じ数なら当たる。
+    /// `true` / `false` は値を持たないノードで、ソースがそのまま比べられる。
+    #[test]
+    fn the_value_is_compared_the_way_ruby_inspects_it() {
+        expect_correction(COP, "'x'.to_i(10)\n", "'x'.to_i\n");
+        expect_correction(COP, "'x'.to_i(0xa)\n", "'x'.to_i\n");
+        expect_correction(COP, "exit(true)\n", "exit\n");
+        expect_correction(COP, "exit!(false)\n", "exit!\n");
+    }
+
+    /// 括弧なしなら前後の空白ごと落ちる。改行までは食わない。
+    #[test]
+    fn without_parentheses_the_spaces_go_too() {
+        expect_correction(COP, "a.join ''\n", "a.join\n");
+        expect_correction(COP, "a.chomp \"\\n\"\n", "a.chomp\n");
+    }
+
+    /// 既定と違う値、引数 2 個、レシーバの要る呼び出しをレシーバ無しで書いたもの、
+    /// 単一引用符の `'\n'` (中身はバックスラッシュと n) は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a.join(', ')\n",
+            "a.sum(1)\n",
+            "exit(false)\n",
+            "'x'.to_i(16)\n",
+            "'x'.split(\"\\t\")\n",
+            "\"x\".chomp('\\n')\n",
+            "join('')\n",
+            "a.join\n",
+            "a.join('', 1)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/QuotedSymbols`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/QuotedSymbols` で走らせた実出力から取った
+/// (既定・両 `EnforcedStyle` それぞれで検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_quoted_symbols {
+    use super::*;
+
+    const COP: &str = "Style/QuotedSymbols";
+
+    /// 既定 (`same_as_string_literals`) は `Style/StringLiterals` に従い、その既定は単一引用符。
+    #[test]
+    fn a_double_quoted_symbol_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            :"a"
+            ^^^^ Prefer single-quoted symbols when you don't need string interpolation or special symbols.
+            "#,
+        );
+        expect_correction(COP, ":\"a\"\n", ":'a'\n");
+        expect_correction(COP, ":\"a-b\"\n", ":'a-b'\n");
+        expect_correction(COP, "{ \"k\": 1 }\n", "{ 'k': 1 }\n");
+        // 中身が空のものはハッシュの鍵でだけ `sym` になる。
+        expect_correction(COP, "{ \"\": 1 }\n", "{ '': 1 }\n");
+    }
+
+    /// 単一引用符が要る綴り、補間するもの、`:''` / `:\"\"` (上流では dsym)、
+    /// 引用符の無いシンボルは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            ":'a'\n",
+            ":a\n",
+            "{ 'k' => 1 }\n",
+            "{ k: 1 }\n",
+            ":\"it's\"\n",
+            ":'it\\'s'\n",
+            ":\"a\\nb\"\n",
+            ":'a\\nb'\n",
+            ":\"#{x}\"\n",
+            ":\"a#{'b'}\"\n",
+            ":''\n",
+            ":\"\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        // バックスラッシュだけの中身は単一引用符でもそのまま書けるので置き換わる。
+        expect_correction(COP, ":\"\\\\\"\n", ":'\\\\'\n");
+    }
+
+    /// `double_quotes` は逆向き。`\n` のような意味のあるエスケープを持つ単一引用符は
+    /// そのまま残る。
+    #[test]
+    fn the_double_quotes_style() {
+        for (source, corrected) in [
+            (":'a'\n", ":\"a\"\n"),
+            ("{ 'k': 1 }\n", "{ \"k\": 1 }\n"),
+            (":'a-b'\n", ":\"a-b\"\n"),
+            (":'it\\'s'\n", ":\"it's\"\n"),
+            (":'\\t'\n", ":'\\t'\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/QuotedSymbols:\n  EnforcedStyle: double_quotes\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// `same_as_string_literals` は `Style/StringLiterals` の設定を見に行く。
+    #[test]
+    fn the_default_style_follows_string_literals() {
+        CopCase::new(COP, ":'a'\n".to_owned(), Vec::new())
+            .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+            .without_offense_check()
+            .corrected(":\"a\"\n")
+            .run();
+    }
+}
+
+/// `Style/RedundantRegexpArgument`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantRegexpArgument` で走らせた実出力から取った
+/// (検出 14 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_regexp_argument {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpArgument";
+
+    /// 1 つの文字列しか表さない正規表現は文字列に置き換わる。位置は引数だけ。
+    #[test]
+    fn a_deterministic_regexp_becomes_a_string() {
+        expect_offense(
+            COP,
+            r"
+            'a'.split(/,/)
+                      ^^^ Use string `','` as argument instead of regexp `/,/`.
+            ",
+        );
+        expect_correction(COP, "'a'.split(/,/)\n", "'a'.split(',')\n");
+        expect_correction(COP, "'a'.gsub(/a/, 'b')\n", "'a'.gsub('a', 'b')\n");
+        expect_correction(COP, "'a'.scan(/ab/)\n", "'a'.scan('ab')\n");
+        expect_correction(COP, "'a'.start_with?(/a/)\n", "'a'.start_with?('a')\n");
+        // 正規表現でだけ意味を持つバックスラッシュは落ちる。
+        expect_correction(COP, "'a'.split(/\\./)\n", "'a'.split('.')\n");
+    }
+
+    /// 引用符は中身で決まる。文字列としても意味のあるエスケープは二重引用符が要る。
+    #[test]
+    fn the_quotes_follow_what_the_content_needs() {
+        expect_correction(COP, "'a'.split(/\\n/)\n", "'a'.split(\"\\n\")\n");
+        expect_correction(COP, "'a'.split(/\"/)\n", "'a'.split('\"')\n");
+        expect_correction(COP, "'a'.split(/'/)\n", "'a'.split('\\'')\n");
+        expect_correction(COP, "'a'.split(/\\\\/)\n", "'a'.split(\"\\\\\")\n");
+        expect_correction(COP, "'a'.split(/a\\tb/)\n", "'a'.split(\"a\\tb\")\n");
+    }
+
+    /// 量指定子・文字クラス・オプション付き、`/ /`、対象外のメソッドは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "'a'.split(/ /)\n",
+            "'a'.split(/\\s/)\n",
+            "'a'.split(/a+/)\n",
+            "'a'.split(/[ab]/)\n",
+            "'a'.split(/a/i)\n",
+            "'a'.split(',')\n",
+            "'a'.index(/a/)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引用符の既定は `Style/StringLiterals` に従う。
+    #[test]
+    fn the_default_quotes_follow_string_literals() {
+        CopCase::new(COP, "'a'.split(/,/)\n".to_owned(), Vec::new())
+            .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+            .without_offense_check()
+            .corrected("'a'.split(\",\")\n")
+            .run();
+    }
+}

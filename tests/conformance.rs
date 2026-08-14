@@ -4954,6 +4954,78 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_map_into_array")
         .correctable(true),
+        // 位置は鍵の文字列だけ。
+        CopCase::annotated(
+            "Style/StringHashKeys",
+            r"
+            { 'a' => 1 }
+              ^^^ Prefer symbols instead of strings as hash keys.
+            ",
+        )
+        .id("style_string_hash_keys")
+        .correctable(true),
+        // 位置は `[...]` の部分。
+        CopCase::annotated(
+            "Style/ArrayFirstLast",
+            r"
+            a[0]
+             ^^^ Use `first`.
+            ",
+        )
+        .id("style_array_first_last")
+        .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/RedundantInitialize", "class A\n  def initialize\n  end\nend\n")
+            .id("style_redundant_initialize")
+            .without_offense_check()
+            .locations(&[(2, 3, 3, 5)])
+            .lengths(&[20])
+            .correctable(true),
+        // 位置は添字の式だけ。
+        CopCase::annotated(
+            "Style/NegativeArrayIndex",
+            r"
+            arr[arr.length - 1]
+                ^^^^^^^^^^^^^^ Use `arr[-1]` instead of `arr[arr.length - 1]`.
+            ",
+        )
+        .id("style_negative_array_index")
+        .correctable(true),
+        // 位置はクラス全体。
+        CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
+            .id("style_static_class")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[31])
+            .correctable(true),
+        // 位置は括弧ごと。
+        CopCase::annotated(
+            "Style/RedundantArgument",
+            r"
+            a.join('')
+                  ^^^^ Argument '' is redundant because it is implied by default.
+            ",
+        )
+        .id("style_redundant_argument")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/QuotedSymbols",
+            r#"
+            :"a"
+            ^^^^ Prefer single-quoted symbols when you don't need string interpolation or special symbols.
+            "#,
+        )
+        .id("style_quoted_symbols")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpArgument",
+            r"
+            'a'.split(/,/)
+                      ^^^ Use string `','` as argument instead of regexp `/,/`.
+            ",
+        )
+        .id("style_redundant_regexp_argument")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
