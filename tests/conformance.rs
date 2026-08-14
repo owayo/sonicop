@@ -4698,6 +4698,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_magic_comment_format")
         .correctable(true),
+        // 位置は `each` のブロック全体。
+        CopCase::annotated(
+            "Style/MapIntoArray",
+            "dest = []\nsrc.each { |e| dest << e * 2 }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `map` instead of `each` to map elements into an array.\ndest\n",
+        )
+        .id("style_map_into_array")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
