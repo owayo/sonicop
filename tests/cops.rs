@@ -21336,3 +21336,184 @@ mod lint_no_return_in_begin_end_blocks {
         }
     }
 }
+
+/// `Lint/RedundantDirGlobSort`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantDirGlobSort` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_redundant_dir_glob_sort {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantDirGlobSort";
+
+    /// `short_name` で見るので名前空間付きの `Dir` も対象。補正はセレクタとドットを
+    /// それぞれ消す。
+    #[test]
+    fn the_sort_and_its_dot_are_removed() {
+        CopCase::annotated(
+            COP,
+            r#"
+            Dir.glob('*').sort
+                          ^^^^ Remove redundant `sort`.
+            "#,
+        )
+        .target_ruby("3.0")
+        .corrected("Dir.glob('*')\n")
+        .run();
+        CopCase::new(COP, "Dir['*'].sort\nFoo::Dir.glob('*').sort\n", Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected("Dir['*']\nFoo::Dir.glob('*')\n")
+            .run();
+    }
+
+    /// 比較子付き・複数引数・splat・別メソッドは対象外。2.7 では cop 自体が動かない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Dir.glob('*').sort { |a, b| a <=> b }\n",
+            "Dir.glob('*').sort(&:foo)\n",
+            "Dir.glob('a', 'b').sort\n",
+            "Dir.glob(*x).sort\n",
+            "Dir['a','b'].sort\n",
+            "Dir[*x].sort\n",
+            "Dir.entries('.').sort\n",
+            "Dir.glob('*').sort!\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+        CopCase::new(COP, "Dir.glob('*').sort\n", Vec::new())
+            .target_ruby("2.7")
+            .run();
+    }
+}
+
+/// `Lint/DuplicateSetElement`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DuplicateSetElement` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_duplicate_set_element {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateSetElement";
+
+    /// 補正は「前の要素の末尾から重複要素の末尾まで」を消す。
+    #[test]
+    fn the_duplicate_and_the_comma_before_it_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            Set[1, 2, 1]
+                      ^ Remove the duplicate element in Set.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "Set[1, 2, 1]\nSet.new([1, 2, 1])\n[1, 2, 1].to_set\nSortedSet[:a, :b, :a]\n::Set[1, 1]\n",
+            "Set[1, 2]\nSet.new([1, 2])\n[1, 2].to_set\nSortedSet[:a, :b]\n::Set[1]\n",
+        );
+    }
+
+    /// 呼び出しの結果は同じとは限らないので、リテラル・定数・変数だけが比べられる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Set[foo, foo]\n",
+            "Set[x.y, x.y]\n",
+            "Set[1, 2]\n",
+            "Set.new(x)\n",
+            "Set[]\n",
+            "Set.new([1], 2)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/UselessNumericOperation`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessNumericOperation` で走らせた実出力から
+/// 取った (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_useless_numeric_operation {
+    use super::*;
+
+    const COP: &str = "Lint/UselessNumericOperation";
+
+    #[test]
+    fn an_operation_that_changes_nothing_is_replaced_by_its_receiver() {
+        expect_offense(
+            COP,
+            r#"
+            foo + 0
+            ^^^^^^^ Do not apply inconsequential numeric operations to variables.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "foo + 0\nfoo - 0\nfoo * 1\nfoo / 1\nfoo ** 1\n@a + 0\n$g - 0\nCONST * 1\nx = 1\nx + 0\n",
+            "foo\nfoo\nfoo\nfoo\nfoo\n@a\n$g\nCONST\nx = 1\nx\n",
+        );
+        // 略記代入は `x = x` へ展開される。
+        expect_correction(COP, "y += 0\nz *= 1\n", "y = y\nz = z\n");
+        // 基数はどれでも同じ値。
+        expect_correction(COP, "foo + 0x0\nfoo * 0x1\nfoo * 0b1\n", "foo\nfoo\nfoo\n");
+    }
+
+    /// レシーバ付きの呼び出し・浮動小数点・他の数は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "bar.baz + 0\n",
+            "bar(1) + 0\n",
+            "foo + 0.0\n",
+            "foo * 1.0\n",
+            "foo * 2\n",
+            "foo ** 1_0\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/NumericOperationWithConstantResult`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NumericOperationWithConstantResult` で走らせた
+/// 実出力から取った (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_numeric_operation_with_constant_result {
+    use super::*;
+
+    const COP: &str = "Lint/NumericOperationWithConstantResult";
+
+    #[test]
+    fn the_whole_operation_becomes_its_constant() {
+        expect_offense(
+            COP,
+            r#"
+            foo * 0
+            ^^^^^^^ Numeric operation with a constant result detected.
+            "#,
+        );
+        expect_correction(COP, "foo * 0\nfoo ** 0\nfoo / foo\n", "0\n1\n1\n");
+        expect_correction(
+            COP,
+            "w = 2\nw *= 0\nw **= 0\nw /= w\n",
+            "w = 2\nw = 0\nw = 1\nw = 1\n",
+        );
+    }
+
+    /// 本家の左辺は `(call nil? _)` なので、局所変数はどれも対象外。`&.` も除かれる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo = 1\nfoo / foo\n",
+            "foo = 1\nfoo * 0\n",
+            "foo&.* 0\n",
+            "foo * 1\n",
+            "bar.baz * 0\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

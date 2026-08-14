@@ -2530,6 +2530,47 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_no_return_in_begin_end_blocks")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/RedundantDirGlobSort",
+            r#"
+            Dir.glob('*').sort
+                          ^^^^ Remove redundant `sort`.
+            "#,
+        )
+        .id("lint_redundant_dir_glob_sort")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateSetElement",
+            r#"
+            Set[1, 2, 1]
+                      ^ Remove the duplicate element in Set.
+            "#,
+        )
+        .id("lint_duplicate_set_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessNumericOperation",
+            r#"
+            foo + 0
+            ^^^^^^^ Do not apply inconsequential numeric operations to variables.
+            "#,
+        )
+        .id("lint_useless_numeric_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/NumericOperationWithConstantResult",
+            r#"
+            foo * 0
+            ^^^^^^^ Numeric operation with a constant result detected.
+            "#,
+        )
+        .id("lint_numeric_operation_with_constant_result")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
