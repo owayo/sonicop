@@ -54,6 +54,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("bundler_duplicated_group")
         .path("Gemfile")
         .severity(Severity::Warning),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemComment",
+            "gem 'a'\n^^^^^^^ Missing gem description comment.\n",
+        )
+        .id("bundler_gem_comment")
+        .path("Gemfile")
+        .correctable(false),
         // `add_global_offense` はファイル先頭の長さ 0 のレンジ。メッセージには本家が
         // 検査前に絶対化したパスがそのまま入る。
         CopCase::annotated(
@@ -64,6 +72,14 @@ fn catalogue() -> Vec<CopCase> {
         .path("/tmp/example/gems.rb")
         .locations(&[(1, 1, 1, 1)])
         .lengths(&[0])
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemVersion",
+            "gem 'rubocop'\n^^^^^^^^^^^^^ Gem version specification is required.\n",
+        )
+        .id("bundler_gem_version")
+        .path("Gemfile")
         .correctable(false),
         CopCase::annotated(
             "Bundler/InsecureProtocolSource",
@@ -88,6 +104,59 @@ fn catalogue() -> Vec<CopCase> {
         .path("Gemfile")
         .correctable(true),
         // ---- Gemspec ----
+        CopCase::annotated(
+            "Gemspec/AddRuntimeDependency",
+            "spec.add_runtime_dependency 'rake'\n     ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.\n",
+        )
+        .id("gemspec_add_runtime_dependency")
+        .path("example.gemspec")
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/AttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = {}
+              spec.metadata['a'] = 'b'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+            end
+            "#,
+        )
+        .id("gemspec_attribute_assignment")
+        .path("example.gemspec")
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+            end
+            "#,
+        )
+        .id("gemspec_dependency_version")
+        .path("example.gemspec")
+        .correctable(false),
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.date = Time.now
+              ^^^^^^^^^^^^^^^^^^^^ Do not set `date` in gemspec.
+            end
+            "#,
+        )
+        .id("gemspec_deprecated_attribute_assignment")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            "spec.add_development_dependency 'rspec'\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.\n",
+        )
+        .id("gemspec_development_dependencies")
+        .path("example.gemspec")
+        .correctable(false),
         CopCase::annotated(
             "Gemspec/DuplicatedAssignment",
             r#"
@@ -115,6 +184,21 @@ fn catalogue() -> Vec<CopCase> {
         .id("gemspec_ordered_dependencies")
         .path("example.gemspec")
         .correctable(true),
+        // ブロック全体が報告され、`end` の直前に設定が書き足される。
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .id("gemspec_require_mfa")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[54]),
         // `add_global_offense`。宣言が 1 つも無いこと自体が offense なので、指す構文が無い。
         CopCase::annotated(
             "Gemspec/RequiredRubyVersion",
@@ -178,6 +262,20 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 2, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/EmptyLineAfterMultilineCondition",
+            r#"
+            if a &&
+               ^^^^ Use empty line after multiline condition.
+               b
+              do_x
+            end
+            "#,
+        )
+        .id("layout_empty_line_after_multiline_condition")
+        .locations(&[(1, 4, 2, 4)])
+        .lengths(&[9])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterGuardClause",
             r#"
             def foo
@@ -189,6 +287,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_empty_line_after_guard_clause")
         .locations(&[(2, 3, 2, 13)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAfterModuleInclusion",
+            r#"
+            class A
+              include Foo
+              ^^^^^^^^^^^ Add an empty line after module inclusion.
+              def bar; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_after_module_inclusion")
         .correctable(true),
         CopCase::annotated(
             "Layout/EmptyLinesAroundAccessModifier",
@@ -229,6 +339,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_first_hash_element_indentation")
         .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n  2]\n",
+        )
+        .id("layout_first_array_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementLineBreak",
+            "a = { b: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n  c: 2 }\n",
+        )
+        .id("layout_first_hash_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n  2)\n",
+        )
+        .id("layout_first_method_argument_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(x,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n  y); end\n",
+        )
+        .id("layout_first_method_parameter_line_break")
         .correctable(true),
         CopCase::annotated(
             "Layout/FirstArgumentIndentation",
@@ -315,6 +449,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_indentation_width")
         .locations(&[(2, 1, 2, 4)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationLeadingSpace",
+            "x = 'foo' \\\n    ' bar'\n     ^ Move leading spaces to the end of the previous line.\n",
+        )
+        .id("layout_line_continuation_leading_space")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationSpacing",
+            "x = 1 +  \\\n       ^^^ Use one space in front of backslash.\n  2\n",
+        )
+        .id("layout_line_continuation_spacing")
         .correctable(true),
         CopCase::annotated(
             "Layout/LineLength",
@@ -601,6 +747,41 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 1, 3, 1)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/MultilineArrayLineBreaks",
+            "a = [1, 2,\n        ^ Each item in a multi-line array must start on a separate line.\n  3]\n",
+        )
+        .id("layout_multiline_array_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashKeyLineBreaks",
+            "a = { b: 1, c: 2,\n            ^^^^ Each key in a multi-line hash must start on a separate line.\n  d: 3 }\n",
+        )
+        .id("layout_multiline_hash_key_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "foo(1, 2,\n       ^ Each argument in a multi-line method call must start on a separate line.\n  3)\n",
+        )
+        .id("layout_multiline_method_argument_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(x, y,\n         ^ Each parameter in a multi-line method definition must start on a separate line.\n  z); end\n",
+        )
+        .id("layout_multiline_method_parameter_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineAssignmentLayout",
+            r#"
+            foo = if bar
+            ^^^^^^^^^^^^ Right hand side of multi-line assignment is on the same line as the assignment operator `=`.
+                    1
+                  end
+            "#,
+        )
+        .id("layout_multiline_assignment_layout")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/MultilineArrayBraceLayout",
             r#"
             [ :a,
@@ -864,6 +1045,12 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[1])
         .correctable(true),
         CopCase::annotated(
+            "Layout/SingleLineBlockChain",
+            "a = b.map { |x| x }.first\n                   ^^^^^^ Put method call on a separate line if chained to a single line block.\n",
+        )
+        .id("layout_single_line_block_chain")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceAfterColon",
             r#"
             h = {a:3}
@@ -889,6 +1076,12 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("layout_space_after_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceBeforeBrackets",
+            "collection = [1, 2]\ncollection [0]\n          ^ Remove the space before the opening brackets.\n",
+        )
+        .id("layout_space_before_brackets")
         .correctable(true),
         CopCase::annotated(
             "Layout/SpaceBeforeComma",
@@ -2819,6 +3012,13 @@ fn catalogue() -> Vec<CopCase> {
         .config("Metrics/ClassLength:\n  Max: 1\n")
         .locations(&[(1, 1, 4, 3)]),
         CopCase::annotated(
+            "Metrics/CollectionLiteralLength",
+            "[1, 2, 3]\n^^^^^^^^^ Avoid hard coding large quantities of data in code. Prefer reading the data from an external source.\n",
+        )
+        .id("metrics_collection_literal_length")
+        .config("Metrics/CollectionLiteralLength:\n  Max: 3\n")
+        .correctable(false),
+        CopCase::annotated(
             "Metrics/CyclomaticComplexity",
             r#"
             def foo
@@ -2946,6 +3146,19 @@ fn catalogue() -> Vec<CopCase> {
         // `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1 文字
         // ぶん伸び、`&` は伸びないので名前の途中で切れる。
         CopCase::annotated(
+            "Naming/BlockForwarding",
+            r#"
+            def foo(&block)
+                    ^^^^^^ Use anonymous block forwarding.
+              bar(&block)
+                  ^^^^^^ Use anonymous block forwarding.
+            end
+            "#,
+        )
+        .id("naming_block_forwarding")
+        .target_ruby("3.1")
+        .correctable(true),
+        CopCase::annotated(
             "Naming/BlockParameterName",
             r#"
             bar { |xA, *yB, &zC| xA }
@@ -3020,6 +3233,14 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // メモ化は本体の末尾にあるときだけ見られ、`defined?` 形式は 3 か所すべてが
         // 報告される。
+        // 既定無効。`CheckFilepaths` はテスト用の一時ディレクトリを読むので切っておく。
+        CopCase::annotated(
+            "Naming/InclusiveLanguage",
+            "whitelist = 1\n^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist' or 'permit'.\n",
+        )
+        .id("naming_inclusive_language")
+        .config("Naming/InclusiveLanguage:\n  CheckFilepaths: false\n")
+        .correctable(false),
         CopCase::annotated(
             "Naming/MemoizedInstanceVariableName",
             r#"
@@ -3056,6 +3277,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("naming_method_parameter_name")
         .correctable(false),
         // 接頭辞のあとが数字だったり、名前が `=` で終われば免れる。
+        CopCase::annotated(
+            "Naming/PredicateMethod",
+            r#"
+            def foo
+                ^^^ Predicate method names should end with `?`.
+              x == y
+            end
+            "#,
+        )
+        .id("naming_predicate_method")
+        .correctable(false),
         CopCase::annotated(
             "Naming/PredicatePrefix",
             r#"
@@ -3118,6 +3350,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("security_eval")
         .severity(Severity::Convention),
+        CopCase::annotated(
+            "Security/CompoundHash",
+            r#"
+            def hash
+              a.hash ^ b.hash
+              ^^^^^^^^^^^^^^^ Use `[...].hash` instead of combining hash values manually.
+            end
+            "#,
+        )
+        .id("security_compound_hash")
+        .correctable(false),
+        CopCase::annotated(
+            "Security/IoMethods",
+            "IO.read('x')\n^^^^^^^^^^^^ `File.read` is safer than `IO.read`.\n",
+        )
+        .id("security_io_methods")
+        .correctable(true),
         CopCase::annotated(
             "Security/JSONLoad",
             r#"

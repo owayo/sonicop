@@ -4,6 +4,7 @@ department_rules! {
     block_length => ("BlockLength", Convention),
     block_nesting => ("BlockNesting", Convention),
     class_length => ("ClassLength", Convention),
+    collection_literal_length => ("CollectionLiteralLength", Convention),
     cyclomatic_complexity => ("CyclomaticComplexity", Convention),
     method_length => ("MethodLength", Convention),
     module_length => ("ModuleLength", Convention),
