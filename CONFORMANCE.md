@@ -1,6 +1,6 @@
 # RuboCop conformance
 
-Snapshot date: 2026-08-12
+Snapshot date: 2026-08-14
 Reference: RuboCop 1.89.0 on Ruby 4.0.6
 Configuration: RuboCop 1.89.0 built-in defaults (`--force-default-config`) on both sides
 
@@ -26,15 +26,16 @@ worth stating separately because file discovery is where a port silently diverge
 never reads `.gitignore`, applies a shebang test only to extensionless files, descends through
 directory symlinks, and treats a hidden path by its *first* component rather than by any dot in it.
 
-Only the cops Sonicop implements are compared; the reference process is restricted to them with
-`--only`. RuboCop's extension plugins are not installed, so this measures the range that can be
-checked without them.
+Sonicop implements **394 of RuboCop's 609 cops**: every cop RuboCop enables by default, matched name
+for name, with nothing extra on either side. The other 215 are the ones RuboCop ships switched off —
+159 `Enabled: pending` and 56 `Enabled: false` — and are not implemented yet.
+
+Because the two enabled sets are identical, neither side is restricted with `--only`; the plain run
+is already like for like. RuboCop's extension plugins are not installed, so this measures the range
+that can be checked without them.
 
 ```bash
-cops=$(sonicop --show-cops --force-default-config \
-       | grep -B3 'Implemented: true' | grep '^[A-Z].*:$' | tr -d ':' | paste -sd, -)
-
-rubocop --force-default-config --cache false --only "$cops" -f json
+rubocop --force-default-config --cache false -f json
 sonicop --force-default-config --format json
 ```
 
