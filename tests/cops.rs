@@ -21132,3 +21132,275 @@ mod style_swap_values {
         }
     }
 }
+
+/// `Style/Send` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/Send` で走らせた実出力から取った (検出 3 件一致)。
+mod style_send {
+    use super::*;
+
+    const COP: &str = "Style/Send";
+
+    /// 位置は selector だけ。引数があるときだけ発火し、レシーバは問わない。
+    #[test]
+    fn the_selector_is_reported_when_arguments_are_given() {
+        expect_offense(
+            COP,
+            r"
+            foo.send(:bar)
+                ^^^^ Prefer `Object#__send__` or `Object#public_send` to `send`.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            send(:bar)
+            ^^^^ Prefer `Object#__send__` or `Object#public_send` to `send`.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            foo&.send(:bar)
+                 ^^^^ Prefer `Object#__send__` or `Object#public_send` to `send`.
+            ",
+        );
+    }
+
+    /// 引数の無い `send` と `__send__` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.send\n",
+            "foo.__send__(:bar)\n",
+            "foo.public_send(:bar)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ImplicitRuntimeError` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ImplicitRuntimeError` で走らせた実出力から取った
+/// (検出 3 件一致)。
+mod style_implicit_runtime_error {
+    use super::*;
+
+    const COP: &str = "Style/ImplicitRuntimeError";
+
+    #[test]
+    fn a_raise_with_only_a_message_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            raise 'boom'
+            ^^^^^^^^^^^^ Use `raise` with an explicit exception class and message, rather than just a message.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            fail 'boom'
+            ^^^^^^^^^^^ Use `fail` with an explicit exception class and message, rather than just a message.
+            ",
+        );
+    }
+
+    /// 補間付きの文字列も `dstr` として対象。
+    #[test]
+    fn an_interpolated_message_counts_too() {
+        expect_offense(
+            COP,
+            r#"
+            raise "boom #{x}"
+            ^^^^^^^^^^^^^^^^^ Use `raise` with an explicit exception class and message, rather than just a message.
+            "#,
+        );
+    }
+
+    /// クラスを明示しているもの・レシーバ付き・引数なしは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "raise ArgumentError, 'boom'\n",
+            "raise ArgumentError.new('boom')\n",
+            "Foo.raise 'boom'\n",
+            "raise\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/StringMethods` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StringMethods` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_string_methods {
+    use super::*;
+
+    const COP: &str = "Style/StringMethods";
+
+    /// 既定の `PreferredMethods` は `intern: to_sym` の 1 件だけ。位置は selector。
+    #[test]
+    fn the_selector_is_replaced_with_the_preferred_name() {
+        expect_offense(
+            COP,
+            r"
+            'x'.intern
+                ^^^^^^ Prefer `to_sym` over `intern`.
+            ",
+        );
+        expect_correction(COP, "'x'.intern\n", "'x'.to_sym\n");
+        expect_correction(COP, "foo.intern\n", "foo.to_sym\n");
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "'x'.to_sym\n");
+    }
+
+    /// 設定で足した対応も効く。上流は「足された対応の**変換先**を鍵に持つ対応」だけを落とす
+    /// ので、`intern: to_sym` と `to_sym: to_s` はどちらも生き残る。
+    #[test]
+    fn the_preferred_methods_setting_is_merged() {
+        CopCase::new(COP, "'x'.to_sym\n".to_owned(), Vec::new())
+            .config(
+                "Style/StringMethods:\n  PreferredMethods:\n    intern: to_sym\n    to_sym: to_s\n",
+            )
+            .without_offense_check()
+            .corrected("'x'.to_s\n")
+            .run();
+    }
+}
+
+/// `Style/InlineComment` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/InlineComment` で走らせた実出力から取った
+/// (検出 6 件一致)。
+mod style_inline_comment {
+    use super::*;
+
+    const COP: &str = "Style/InlineComment";
+
+    #[test]
+    fn a_comment_that_trails_code_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            x = 1 # trailing
+                  ^^^^^^^^^^ Avoid trailing inline comments.
+            ",
+        );
+    }
+
+    /// 行頭のコメントと `# rubocop:` ディレクティブは対象外。ディレクティブの判定は
+    /// 行頭固定で `#` の後に空白 1 個の形だけなので、`#rubocop:disable` は報告される。
+    #[test]
+    fn directives_and_standalone_comments_are_exempt() {
+        expect_no_offenses(COP, "# standalone\nx = 1\n");
+        expect_no_offenses(COP, "y = 2 # rubocop:disable Style/For\n");
+        expect_no_offenses(COP, "z = 3 # rubocop:todo Style/For\n");
+        expect_offense(
+            COP,
+            r"
+            w = 4 #rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid trailing inline comments.
+            ",
+        );
+    }
+}
+
+/// `Style/AsciiComments` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/AsciiComments` で走らせた実出力から取った
+/// (検出 3 件一致)。
+mod style_ascii_comments {
+    use super::*;
+
+    const COP: &str = "Style/AsciiComments";
+
+    /// 位置は**最初の非 ASCII の連続**だけ。長さは文字数で数える。
+    #[test]
+    fn the_first_run_of_non_ascii_characters_is_reported() {
+        CopCase::annotated(COP, "# mixed \u{a9}\u{3068}\u{65e5}\u{672c}\u{8a9e}\n")
+            .id("ascii")
+            .without_offense_check()
+            .locations(&[(1, 9, 1, 13)])
+            .lengths(&[5])
+            .run();
+    }
+
+    /// 既定の `AllowedChars` は `©` の 1 文字。すべて許可文字なら黙る。
+    #[test]
+    fn allowed_chars_are_exempt() {
+        expect_no_offenses(COP, "# \u{a9} allowed\n");
+        expect_no_offenses(COP, "# \u{a9}\u{a9} allowed twice\n");
+        expect_no_offenses(COP, "# ascii only\n");
+    }
+
+    /// 設定で許可文字を足せる。
+    #[test]
+    fn the_allowed_chars_setting_is_honoured() {
+        CopCase::new(COP, "# \u{a9} and \u{2192} ok\n".to_owned(), Vec::new())
+            .config("Style/AsciiComments:\n  AllowedChars:\n    - \"\u{a9}\"\n    - \"\u{2192}\"\n")
+            .run();
+    }
+}
+
+/// `Style/MethodCalledOnDoEndBlock` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MethodCalledOnDoEndBlock` で走らせた実出力から取った
+/// (検出 3 件一致)。
+mod style_method_called_on_do_end_block {
+    use super::*;
+
+    const COP: &str = "Style/MethodCalledOnDoEndBlock";
+
+    /// 位置は `end` から呼び出しの末尾まで。
+    #[test]
+    fn the_report_starts_at_the_end_keyword() {
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end.baz
+            ^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+    }
+
+    /// 連鎖しても報告は 1 件。2 段目のレシーバはブロックではない。
+    /// `-> do ... end` も上流では `block` ノードなので対象。
+    #[test]
+    fn only_the_call_directly_on_the_block_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end.baz.qux
+            ^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            -> do
+              bar
+            end.call
+            ^^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+    }
+
+    /// 波括弧のブロックと、呼び出しを繋げていないブロックは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo { bar }.baz\n", "result = foo do\n  bar\nend\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

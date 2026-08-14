@@ -3639,6 +3639,65 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_swap_values")
         .correctable(true),
+        // 位置は selector だけ。
+        CopCase::annotated(
+            "Style/Send",
+            r"
+            foo.send(:bar)
+                ^^^^ Prefer `Object#__send__` or `Object#public_send` to `send`.
+            ",
+        )
+        .id("style_send")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ImplicitRuntimeError",
+            r"
+            raise 'boom'
+            ^^^^^^^^^^^^ Use `raise` with an explicit exception class and message, rather than just a message.
+            ",
+        )
+        .id("style_implicit_runtime_error")
+        .correctable(false),
+        CopCase::annotated(
+            "Style/StringMethods",
+            r"
+            'x'.intern
+                ^^^^^^ Prefer `to_sym` over `intern`.
+            ",
+        )
+        .id("style_string_methods")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InlineComment",
+            r"
+            x = 1 # trailing
+                  ^^^^^^^^^^ Avoid trailing inline comments.
+            ",
+        )
+        .id("style_inline_comment")
+        .correctable(false),
+        // 位置は最初の非 ASCII の連続だけ。長さは文字数。
+        CopCase::annotated(
+            "Style/AsciiComments",
+            "# mixed \u{a9}\u{3068}\u{65e5}\u{672c}\u{8a9e}\n",
+        )
+        .id("style_ascii_comments")
+        .without_offense_check()
+        .locations(&[(1, 9, 1, 13)])
+        .lengths(&[5])
+        .correctable(false),
+        // 位置は `end` から呼び出しの末尾まで。
+        CopCase::annotated(
+            "Style/MethodCalledOnDoEndBlock",
+            r"
+            foo do
+              bar
+            end.baz
+            ^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        )
+        .id("style_method_called_on_do_end_block")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
