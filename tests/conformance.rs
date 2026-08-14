@@ -2749,6 +2749,20 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_cop_directive_syntax")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/DuplicateBranch",
+            r#"
+            if a
+              foo
+            else
+            ^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .id("lint_duplicate_branch")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

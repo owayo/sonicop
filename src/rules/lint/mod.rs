@@ -61,6 +61,7 @@ department_rules! {
     deprecated_constants => ("DeprecatedConstants", Warning),
     deprecated_open_ssl_constant => ("DeprecatedOpenSSLConstant", Warning),
     disjunctive_assignment_in_constructor => ("DisjunctiveAssignmentInConstructor", Warning),
+    duplicate_branch => ("DuplicateBranch", Warning),
     duplicate_case_condition => ("DuplicateCaseCondition", Warning),
     duplicate_elsif_condition => ("DuplicateElsifCondition", Warning),
     duplicate_hash_key => ("DuplicateHashKey", Warning),

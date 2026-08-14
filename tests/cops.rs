@@ -22400,3 +22400,135 @@ mod lint_cop_directive_syntax {
         }
     }
 }
+
+/// `Lint/DuplicateBranch`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/DuplicateBranch` で走らせた実出力から取った
+/// (検出 17 件を確認済み)。
+mod lint_duplicate_branch {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateBranch";
+
+    /// レンジは本家の `duplicate_branch.parent`。`elsif` / `when` / `in` / `rescue` は
+    /// その節全体、`else` はキーワードだけ、三項演算子は枝そのもの。
+    #[test]
+    fn the_owning_clause_is_the_reported_span() {
+        CopCase::annotated(
+            COP,
+            r#"
+            if a
+              foo
+            elsif b
+            ^^^^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .locations(&[(3, 1, 4, 5)])
+        .lengths(&[13])
+        .run();
+        expect_offense(
+            COP,
+            r#"
+            if a
+              foo
+            else
+            ^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        );
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            when 1
+              foo
+            when 2
+            ^^^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .locations(&[(4, 1, 5, 5)])
+        .lengths(&[12])
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            begin
+              x
+            rescue Foo
+              foo
+            rescue Bar
+            ^^^^^^^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .locations(&[(5, 1, 6, 5)])
+        .lengths(&[16])
+        .run();
+        expect_offense(
+            COP,
+            r#"
+            a ? foo : foo
+                      ^^^ Duplicate branch body detected.
+            "#,
+        );
+        CopCase::annotated(
+            COP,
+            r#"
+            case y
+            in 1
+              foo
+            in 2
+            ^^^^ Duplicate branch body detected.
+              foo
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .locations(&[(4, 1, 5, 5)])
+        .lengths(&[10])
+        .run();
+    }
+
+    /// 既定ではリテラルも定数も比べる。設定で切ると外れる。
+    #[test]
+    fn the_three_switches_narrow_what_is_compared() {
+        let literal = "if a\n  [1, 2]\nelse\n  [1, 2]\nend\n";
+        let constant = "if a\n  CONST\nelse\n  CONST\nend\n";
+        for source in [literal, constant] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+        CopCase::new(COP, literal, Vec::new())
+            .config("Lint/DuplicateBranch:\n  IgnoreLiteralBranches: true\n")
+            .run();
+        CopCase::new(COP, constant, Vec::new())
+            .config("Lint/DuplicateBranch:\n  IgnoreConstantBranches: true\n")
+            .run();
+        CopCase::new(
+            COP,
+            "if a\n  foo\nelsif b\n  bar\nelse\n  foo\nend\n",
+            Vec::new(),
+        )
+        .config("Lint/DuplicateBranch:\n  IgnoreDuplicateElseBranch: true\n")
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if a\n  foo\nend\n",
+            "if a\n  foo\nelse\n  bar\nend\n",
+            "case x\nwhen 1\n  foo\nwhen 2\n  bar\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
