@@ -3488,6 +3488,44 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 6, 1, 32)])
         .lengths(&[27])
         .correctable(true),
+        CopCase::annotated(
+            "Style/SuperWithArgsParentheses",
+            r"
+            super bar, baz
+            ^^^^^^^^^^^^^^ Use parentheses for `super` with arguments.
+            ",
+        )
+        .id("style_super_with_args_parentheses")
+        .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/StringChars",
+            r#"
+            "x".split('')
+                ^^^^^^^^^ Use `chars` instead of `split('')`.
+            "#,
+        )
+        .id("style_string_chars")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpConstructor",
+            r"
+            Regexp.new(/foo/im)
+            ^^^^^^^^^^^^^^^^^^^ Remove the redundant `Regexp.new`.
+            ",
+        )
+        .id("style_redundant_regexp_constructor")
+        .correctable(true),
+        // 位置はドットから `flatten` 呼び出しの末尾まで。
+        CopCase::annotated(
+            "Style/RedundantArrayFlatten",
+            r"
+            x.flatten(1).join
+             ^^^^^^^^^^^ Remove the redundant `flatten`.
+            ",
+        )
+        .id("style_redundant_array_flatten")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
