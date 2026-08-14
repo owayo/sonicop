@@ -25855,3 +25855,67 @@ mod style_quoted_symbols {
             .run();
     }
 }
+
+/// `Style/RedundantRegexpArgument`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantRegexpArgument` で走らせた実出力から取った
+/// (検出 14 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_regexp_argument {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpArgument";
+
+    /// 1 つの文字列しか表さない正規表現は文字列に置き換わる。位置は引数だけ。
+    #[test]
+    fn a_deterministic_regexp_becomes_a_string() {
+        expect_offense(
+            COP,
+            r"
+            'a'.split(/,/)
+                      ^^^ Use string `','` as argument instead of regexp `/,/`.
+            ",
+        );
+        expect_correction(COP, "'a'.split(/,/)\n", "'a'.split(',')\n");
+        expect_correction(COP, "'a'.gsub(/a/, 'b')\n", "'a'.gsub('a', 'b')\n");
+        expect_correction(COP, "'a'.scan(/ab/)\n", "'a'.scan('ab')\n");
+        expect_correction(COP, "'a'.start_with?(/a/)\n", "'a'.start_with?('a')\n");
+        // 正規表現でだけ意味を持つバックスラッシュは落ちる。
+        expect_correction(COP, "'a'.split(/\\./)\n", "'a'.split('.')\n");
+    }
+
+    /// 引用符は中身で決まる。文字列としても意味のあるエスケープは二重引用符が要る。
+    #[test]
+    fn the_quotes_follow_what_the_content_needs() {
+        expect_correction(COP, "'a'.split(/\\n/)\n", "'a'.split(\"\\n\")\n");
+        expect_correction(COP, "'a'.split(/\"/)\n", "'a'.split('\"')\n");
+        expect_correction(COP, "'a'.split(/'/)\n", "'a'.split('\\'')\n");
+        expect_correction(COP, "'a'.split(/\\\\/)\n", "'a'.split(\"\\\\\")\n");
+        expect_correction(COP, "'a'.split(/a\\tb/)\n", "'a'.split(\"a\\tb\")\n");
+    }
+
+    /// 量指定子・文字クラス・オプション付き、`/ /`、対象外のメソッドは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "'a'.split(/ /)\n",
+            "'a'.split(/\\s/)\n",
+            "'a'.split(/a+/)\n",
+            "'a'.split(/[ab]/)\n",
+            "'a'.split(/a/i)\n",
+            "'a'.split(',')\n",
+            "'a'.index(/a/)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引用符の既定は `Style/StringLiterals` に従う。
+    #[test]
+    fn the_default_quotes_follow_string_literals() {
+        CopCase::new(COP, "'a'.split(/,/)\n".to_owned(), Vec::new())
+            .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+            .without_offense_check()
+            .corrected("'a'.split(\",\")\n")
+            .run();
+    }
+}

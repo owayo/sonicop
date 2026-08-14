@@ -4312,6 +4312,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_quoted_symbols")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpArgument",
+            r"
+            'a'.split(/,/)
+                      ^^^ Use string `','` as argument instead of regexp `/,/`.
+            ",
+        )
+        .id("style_redundant_regexp_argument")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

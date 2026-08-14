@@ -222,6 +222,7 @@ department_rules! {
     redundant_min_max_by => ("RedundantMinMaxBy", Convention),
     redundant_parentheses => ("RedundantParentheses", Convention),
     redundant_percent_q => ("RedundantPercentQ", Convention),
+    redundant_regexp_argument => ("RedundantRegexpArgument", Convention),
     redundant_regexp_character_class => ("RedundantRegexpCharacterClass", Convention),
     redundant_constant_base => ("RedundantConstantBase", Convention),
     redundant_current_directory_in_path => ("RedundantCurrentDirectoryInPath", Convention),
