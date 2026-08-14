@@ -21729,3 +21729,107 @@ mod style_array_intersect {
             .run();
     }
 }
+
+/// `Style/EmptyStringInsideInterpolation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EmptyStringInsideInterpolation` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_empty_string_inside_interpolation {
+    use super::*;
+
+    const COP: &str = "Style/EmptyStringInsideInterpolation";
+
+    /// 既定の `trailing_conditional` では、空の枝を持つ三項も `if/else` も後置条件になる。
+    /// 空でない側がどちらかで `if` と `unless` が決まる。
+    #[test]
+    fn a_branch_that_yields_nothing_becomes_a_trailing_conditional() {
+        expect_correction(COP, "\"#{x ? 'foo' : ''}\"\n", "\"#{'foo' if x}\"\n");
+        expect_correction(COP, "\"#{x ? '' : 'foo'}\"\n", "\"#{'foo' unless x}\"\n");
+        expect_correction(
+            COP,
+            "\"#{if x then 'foo' else '' end}\"\n",
+            "\"#{'foo' if x}\"\n",
+        );
+        expect_correction(COP, "\"#{x ? 'foo' : nil}\"\n", "\"#{'foo' if x}\"\n");
+    }
+
+    /// `unless` の `if_branch` は本家でも**書かれたとおりの本体**なので、枝は入れ替わらない。
+    #[test]
+    fn an_unless_keeps_its_own_body_as_the_if_branch() {
+        expect_correction(
+            COP,
+            "\"#{unless x then 'foo' else '' end}\"\n",
+            "\"#{'foo' if x}\"\n",
+        );
+    }
+
+    /// すでに後置条件になっているもの、空の枝が無いものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "\"#{'foo' if x}\"\n",
+            "\"#{x ? 'a' : 'b'}\"\n",
+            "\"#{x}\"\n",
+            "\"plain\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `ternary` に切り替えると向きが逆になり、補間ごと三項に書き換わる。
+    #[test]
+    fn the_ternary_style_asks_for_the_other_direction() {
+        for (source, corrected) in [
+            ("\"#{'foo' if x}\"\n", "\"#{x ? 'foo' : ''}\"\n"),
+            ("\"#{'foo' unless x}\"\n", "\"#{x ? '' : 'foo'}\"\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/EmptyStringInsideInterpolation:\n  EnforcedStyle: ternary\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+}
+
+/// `Style/KeywordArgumentsMerging`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/KeywordArgumentsMerging` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_keyword_arguments_merging {
+    use super::*;
+
+    const COP: &str = "Style/KeywordArgumentsMerging";
+
+    /// `merge` の引数はそのままキーワード引数として並ぶ。ハッシュは波括弧を落とし、
+    /// ハッシュでないものは `**` が付く。
+    #[test]
+    fn the_merged_keys_are_written_directly() {
+        expect_correction(COP, "foo(**opts.merge(a: 1))\n", "foo(**opts, a: 1)\n");
+        expect_correction(COP, "foo(**opts.merge({a: 1}))\n", "foo(**opts, a: 1)\n");
+        expect_correction(COP, "foo(**opts.merge(other))\n", "foo(**opts, **other)\n");
+        expect_correction(
+            COP,
+            "foo(1, **opts.merge(a: 1))\n",
+            "foo(1, **opts, a: 1)\n",
+        );
+        expect_correction(
+            COP,
+            "foo(**opts.merge(a: 1), b: 2)\n",
+            "foo(**opts, a: 1, b: 2)\n",
+        );
+        expect_correction(COP, "foo({**opts.merge(a: 1)})\n", "foo({**opts, a: 1})\n");
+    }
+
+    /// ブロック渡しを含む `merge`、`merge` でない呼び出し、素の `**` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo(**opts.merge(&blk))\n",
+            "foo(**opts)\n",
+            "foo(**opts.other(a: 1))\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

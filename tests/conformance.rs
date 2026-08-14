@@ -3697,6 +3697,20 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_array_intersect")
         .target_ruby("3.1")
         .correctable(true),
+        // 位置は条件式全体。補間の `#{` と `}` は置き換えの外に残る。
+        CopCase::annotated(
+            "Style/EmptyStringInsideInterpolation",
+            "\"#{x ? 'foo' : ''}\"\n   ^^^^^^^^^^^^^^ Do not return empty strings in string interpolation.\n",
+        )
+        .id("style_empty_string_inside_interpolation")
+        .correctable(true),
+        // 位置は `merge` の呼び出し。置き換えるのは `**` から始まる引数の方。
+        CopCase::annotated(
+            "Style/KeywordArgumentsMerging",
+            "foo(**opts.merge(a: 1))\n      ^^^^^^^^^^^^^^^^ Provide additional arguments directly rather than using `merge`.\n",
+        )
+        .id("style_keyword_arguments_merging")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
