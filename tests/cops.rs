@@ -20243,3 +20243,214 @@ mod style_env_home {
         }
     }
 }
+
+/// `Lint/UselessDefined`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessDefined` で走らせた実出力から取った。
+mod lint_useless_defined {
+    use super::*;
+
+    const COP: &str = "Lint/UselessDefined";
+
+    /// 文字列・シンボルは書き方を問わず「常に真」。`?a`・`"a" "b"`・ヒアドキュメント・
+    /// 補間付き・`__FILE__` まで本家は同じ 1 件を出す。
+    #[test]
+    fn every_literal_spelling_of_a_string_or_symbol_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            defined?("foo")
+            ^^^^^^^^^^^^^^^ Calling `defined?` with a string argument will always return a truthy value.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            defined?(:foo)
+            ^^^^^^^^^^^^^^ Calling `defined?` with a symbol argument will always return a truthy value.
+            "#,
+        );
+        for source in [
+            "defined? \"foo\"\n",
+            "defined?(?a)\n",
+            "defined?(\"a\" \"b\")\n",
+            "defined?(\"a#{b}\")\n",
+            "defined?(__FILE__)\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+        for source in ["defined?(:\"a#{b}\")\n", "defined?(:'foo')\n"] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// キーワードから離れた括弧は `defined?` の引数括弧ではなく `begin`。本家は
+    /// `defined? ("foo")` を報告しない。
+    #[test]
+    fn parentheses_written_apart_from_the_keyword_are_a_begin() {
+        expect_no_offenses(COP, "defined? (\"foo\")\n");
+        expect_no_offenses(COP, "defined?((1))\n");
+    }
+
+    #[test]
+    fn a_name_or_a_number_can_still_be_undefined() {
+        for source in [
+            "defined?(foo)\n",
+            "defined?(1)\n",
+            "defined?(@x)\n",
+            "defined?(__LINE__)\n",
+            "defined?(%w[a])\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/NumberedParameterAssignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NumberedParameterAssignment` で走らせた実出力から
+/// 取った (`_1` は 3.0 以降では構文エラーになるので、ハーネス既定の 2.7 で確認した)。
+mod lint_numbered_parameter_assignment {
+    use super::*;
+
+    const COP: &str = "Lint/NumberedParameterAssignment";
+
+    /// 値を持つ `lvasgn` は代入式全体、値を持たないもの (多重代入・`op_asgn`・`for`・
+    /// `rescue =>`) は名前だけがレンジになる。
+    #[test]
+    fn the_range_is_the_whole_assignment_only_when_it_carries_a_value() {
+        expect_offense(
+            COP,
+            r#"
+            _1 = 1
+            ^^^^^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            _1, _2 = [1, 2]
+            ^^ `_1` is reserved for numbered parameter; consider another name.
+                ^^ `_2` is reserved for numbered parameter; consider another name.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            _1 += 1
+            ^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            for _1 in [1] do end
+                ^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            begin; rescue => _1; end
+                             ^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        );
+    }
+
+    /// `_1`〜`_9` の外は「似ている」という別のメッセージになる。
+    #[test]
+    fn a_number_outside_one_through_nine_is_only_similar() {
+        expect_offense(
+            COP,
+            r#"
+            _10 = 5
+            ^^^^^^^ `_10` is similar to numbered parameter; consider another name.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            _0 = 6
+            ^^^^^^ `_0` is similar to numbered parameter; consider another name.
+            "#,
+        );
+    }
+
+    /// 引数・インスタンス変数・ただの `_` は `lvasgn` ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "_ = 7\n",
+            "@_1 = 8\n",
+            "def m(_1); end\n",
+            "[1].each { |_1| }\n",
+            "_a1 = 9\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/OrAssignmentToConstant`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/OrAssignmentToConstant` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_or_assignment_to_constant {
+    use super::*;
+
+    const COP: &str = "Lint/OrAssignmentToConstant";
+
+    /// レンジは `||=` だけで、補正はそこを `=` に替える。
+    #[test]
+    fn the_operator_alone_is_reported_and_replaced() {
+        expect_offense(
+            COP,
+            r#"
+            CONST ||= 1
+                  ^^^ Avoid using or-assignment with constants.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "CONST ||= 1\nFoo::Bar ||= 2\n::Baz ||= 3\n",
+            "CONST = 1\nFoo::Bar = 2\n::Baz = 3\n",
+        );
+    }
+
+    /// メソッドの中の定数代入は呼び出しごとに走るので、報告はしても補正しない。
+    #[test]
+    fn a_constant_inside_a_method_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def m
+              CONST ||= 1
+                    ^^^ Avoid using or-assignment with constants.
+            end
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// `&&=` と `+=`、定数でない代入先は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "CONST &&= 4\n",
+            "CONST += 5\n",
+            "Foo::bar ||= 8\n",
+            "foo ||= 9\n",
+            "@x ||= 10\n",
+            "Foo[:a] ||= 11\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

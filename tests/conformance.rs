@@ -2314,6 +2314,37 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_flip_flop")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefined",
+            r#"
+            defined?("foo")
+            ^^^^^^^^^^^^^^^ Calling `defined?` with a string argument will always return a truthy value.
+            "#,
+        )
+        .id("lint_useless_defined")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // `_1 = 1` は 3.0 以降では構文エラーなので、ハーネス既定の 2.7 でしか届かない。
+        CopCase::annotated(
+            "Lint/NumberedParameterAssignment",
+            r#"
+            _1 = 1
+            ^^^^^^ `_1` is reserved for numbered parameter; consider another name.
+            "#,
+        )
+        .id("lint_numbered_parameter_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/OrAssignmentToConstant",
+            r#"
+            CONST ||= 1
+                  ^^^ Avoid using or-assignment with constants.
+            "#,
+        )
+        .id("lint_or_assignment_to_constant")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
