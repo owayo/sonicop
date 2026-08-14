@@ -22321,3 +22321,140 @@ mod layout_multiline_assignment_layout {
         .run();
     }
 }
+
+/// `Layout/EmptyLineAfterMultilineCondition` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_empty_line_after_multiline_condition {
+    use super::*;
+
+    const COP: &str = "Layout/EmptyLineAfterMultilineCondition";
+    const MSG: &str = "Use empty line after multiline condition.";
+
+    /// 複数行の条件の下には空行を置く。`if` / `unless` / `while` / `until` と
+    /// その修飾形、`elsif` も同じ。
+    #[test]
+    fn a_multiline_condition_wants_a_blank_line_under_it() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            if a &&
+               ^^^^ %{msg}
+               b
+              do_x
+            end
+            if a &&
+               b
+
+              do_x
+            end
+            if a
+              do_x
+            end
+            unless a &&
+                   ^^^^ %{msg}
+                   b
+              do_x
+            end
+            while a &&
+                  ^^^^ %{msg}
+                  b
+              do_x
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 4, 2, 4), (13, 8, 14, 8), (17, 7, 18, 7)])
+        .lengths(&[9, 13, 12])
+        .run();
+    }
+
+    /// 修飾形は後ろに文があるときだけ見る。`begin ... end while` は `while_post`。
+    #[test]
+    fn a_modifier_form_needs_something_after_it() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            do_x if a &&
+                    ^^^^ %{msg}
+                    b
+            do_y
+            do_x if a &&
+                    b
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 9, 2, 9)])
+        .lengths(&[14])
+        .run();
+    }
+
+    /// `case` は `when` ごとに条件の一覧を、`rescue` は例外の一覧を見る。報告される
+    /// ノードは条件ではなく `when` / `rescue` の枝で、空行は一覧の最後の行の下に入る。
+    #[test]
+    fn a_when_list_and_a_rescue_list_are_measured_whole() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            case x
+            when 1,
+            ^^^^^^^ %{msg}
+                 2
+              do_x
+            when 3
+              do_y
+            end
+            begin
+              do_x
+            rescue AError,
+            ^^^^^^^^^^^^^^ %{msg}
+                   BError
+              do_y
+            end
+            begin
+              do_x
+            rescue AError
+              do_y
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(2, 1, 4, 6), (10, 1, 12, 6)])
+        .lengths(&[21, 35])
+        .corrected(
+            r#"
+            case x
+            when 1,
+                 2
+
+              do_x
+            when 3
+              do_y
+            end
+            begin
+              do_x
+            rescue AError,
+                   BError
+
+              do_y
+            end
+            begin
+              do_x
+            rescue AError
+              do_y
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `condition.multiline?` はブロックのときだけ**自身の区切り文字**で測る。
+    /// `%w(...).any? { |k| k }` は書き方が複数行でも 1 行扱いなので報告しない。
+    #[test]
+    fn a_condition_ending_in_a_single_line_block_is_not_multiline() {
+        CopCase::new(
+            COP,
+            "if %w(\n  A\n  B\n).any? { |key| ENV[key] }\n  do_x\nend\n",
+            Vec::new(),
+        )
+        .run();
+    }
+}

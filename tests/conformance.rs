@@ -262,6 +262,20 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 2, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/EmptyLineAfterMultilineCondition",
+            r#"
+            if a &&
+               ^^^^ Use empty line after multiline condition.
+               b
+              do_x
+            end
+            "#,
+        )
+        .id("layout_empty_line_after_multiline_condition")
+        .locations(&[(1, 4, 2, 4)])
+        .lengths(&[9])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterGuardClause",
             r#"
             def foo

@@ -23,6 +23,7 @@ department_rules! {
     empty_line_between_defs => ("EmptyLineBetweenDefs", Convention),
     empty_lines => ("EmptyLines", Convention),
     empty_lines_around_attribute_accessor => ("EmptyLinesAroundAttributeAccessor", Convention),
+    empty_line_after_multiline_condition => ("EmptyLineAfterMultilineCondition", Convention),
     empty_lines_after_module_inclusion => ("EmptyLinesAfterModuleInclusion", Convention),
     empty_lines_around_access_modifier => ("EmptyLinesAroundAccessModifier", Convention),
     empty_lines_around_arguments => ("EmptyLinesAroundArguments", Convention),
