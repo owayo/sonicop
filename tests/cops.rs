@@ -22334,3 +22334,69 @@ mod lint_useless_constant_scoping {
         }
     }
 }
+
+/// `Lint/CopDirectiveSyntax`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/CopDirectiveSyntax` で走らせた実出力から取った
+/// (検出 7 件を確認済み)。
+mod lint_cop_directive_syntax {
+    use super::*;
+
+    const COP: &str = "Lint/CopDirectiveSyntax";
+
+    /// 追加メッセージはモード名の有無・妥当性・cop 名の有無で 4 通りに分かれる。
+    #[test]
+    fn the_four_reasons_have_their_own_messages() {
+        expect_offense(
+            COP,
+            r#"
+            # rubocop:
+            ^^^^^^^^^^ Malformed directive comment detected. The mode name is missing.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            # rubocop:disable
+            ^^^^^^^^^^^^^^^^^ Malformed directive comment detected. The cop name is missing.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            # rubocop:foo Style/For
+            ^^^^^^^^^^^^^^^^^^^^^^^ Malformed directive comment detected. The mode name must be one of `enable`, `disable`, `todo`, `push`, or `pop`.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            # rubocop:disable Style/For Layout/LineLength
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Malformed directive comment detected. Cop names must be separated by commas. Comment in the directive must start with `--`.
+            "#,
+        );
+    }
+
+    /// マーカーで始まらないもの、`--` で始まる注記付き、`push` / `pop`、`all` は
+    /// 正しい形。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "# rubocop:disable Style/For\n",
+            "# rubocop:enable Style/For\n",
+            "# rubocop:disable Style/For, Layout/LineLength\n",
+            "# rubocop:disable Style/For -- reason\n",
+            "# rubocop:push\n",
+            "# rubocop:pop\n",
+            "# rubocop:push +Style/For\n",
+            "#   # rubocop:disable Style/For\n",
+            "# some text # rubocop:disable Style/For\n",
+            "# rubocop : disable Style/For\n",
+            "#rubocop:disable Style/For\n",
+            "# rubocop:disable all\n",
+            "# rubocop:todo Style/For\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

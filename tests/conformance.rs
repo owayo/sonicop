@@ -2739,6 +2739,16 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_useless_constant_scoping")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/CopDirectiveSyntax",
+            r#"
+            # rubocop:disable
+            ^^^^^^^^^^^^^^^^^ Malformed directive comment detected. The cop name is missing.
+            "#,
+        )
+        .id("lint_cop_directive_syntax")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

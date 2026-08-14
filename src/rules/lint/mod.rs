@@ -54,6 +54,7 @@ department_rules! {
     constant_resolution => ("ConstantResolution", Warning),
     constant_definition_in_block => ("ConstantDefinitionInBlock", Warning),
     constant_overwritten_in_rescue => ("ConstantOverwrittenInRescue", Warning),
+    cop_directive_syntax => ("CopDirectiveSyntax", Warning),
     debugger => ("Debugger", Warning),
     data_define_override => ("DataDefineOverride", Warning),
     deprecated_class_methods => ("DeprecatedClassMethods", Warning),
