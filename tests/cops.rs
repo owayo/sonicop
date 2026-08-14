@@ -21634,3 +21634,192 @@ mod layout_space_before_brackets {
         .run();
     }
 }
+
+/// `Layout/LineContinuationSpacing` — 期待値は本家 1.89.0 の実測。
+mod layout_line_continuation_spacing {
+    use super::*;
+
+    const COP: &str = "Layout/LineContinuationSpacing";
+
+    /// 既定の `space` は空白 0 個と 2 個以上を報告する。1 個なら正しい。
+    #[test]
+    fn the_space_style_wants_exactly_one_blank() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo = 1 + \
+              2
+            baz = 1 +  \
+                     ^^^ Use one space in front of backslash.
+              2
+            qux = 1 +\
+                     ^ Use one space in front of backslash.
+              2
+            "#,
+        )
+        .corrected(
+            r#"
+            foo = 1 + \
+              2
+            baz = 1 + \
+              2
+            qux = 1 + \
+              2
+            "#,
+        )
+        .run();
+    }
+
+    /// `no_space` は逆に空白をすべて消す。
+    #[test]
+    fn the_no_space_style_wants_none() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo = 1 + \
+                     ^^ Use zero spaces in front of backslash.
+              2
+            qux = 1 +\
+              2
+            "#,
+        )
+        .config("Layout/LineContinuationSpacing:\n  EnforcedStyle: no_space\n")
+        .corrected(
+            r#"
+            foo = 1 +\
+              2
+            qux = 1 +\
+              2
+            "#,
+        )
+        .run();
+    }
+
+    /// 文字列・正規表現・逆クォート・ヒアドキュメント本体・`%w`・コメントの中の
+    /// バックスラッシュは行継続ではないので見送る。
+    #[test]
+    fn a_backslash_inside_a_literal_is_not_a_continuation() {
+        let source = concat!(
+            "s = 'a \\\n",
+            "b'\n",
+            "d = \"a \\\n",
+            "b\"\n",
+            "r = /a \\\n",
+            "b/\n",
+            "c = `a \\\n",
+            "b`\n",
+            "w = %w[a \\\n",
+            "b]\n",
+            "h = <<~X\n",
+            "  a \\\n",
+            "  b\n",
+            "X\n",
+            "# comment \\\n",
+        );
+        CopCase::new(COP, source, Vec::new()).run();
+        CopCase::new(COP, source, Vec::new())
+            .config("Layout/LineContinuationSpacing:\n  EnforcedStyle: no_space\n")
+            .run();
+    }
+}
+
+/// `Layout/LineContinuationLeadingSpace` — 期待値は本家 1.89.0 の実測。
+mod layout_line_continuation_leading_space {
+    use super::*;
+
+    const COP: &str = "Layout/LineContinuationLeadingSpace";
+
+    /// 既定の `trailing` は次の行の先頭の空白を前の行の末尾へ移す。
+    #[test]
+    fn the_trailing_style_moves_the_leading_blanks_back() {
+        CopCase::annotated(
+            COP,
+            r#"
+            a = 'foo bar' \
+                'baz qux'
+            b = 'foo ' \
+                'bar'
+            c = 'foo' \
+                ' bar'
+                 ^ Move leading spaces to the end of the previous line.
+            g = 'foo' \
+                '   bar'
+                 ^^^ Move leading spaces to the end of the previous line.
+            i = "a" +
+                " b"
+            "#,
+        )
+        .corrected(
+            r#"
+            a = 'foo bar' \
+                'baz qux'
+            b = 'foo ' \
+                'bar'
+            c = 'foo ' \
+                'bar'
+            g = 'foo   ' \
+                'bar'
+            i = "a" +
+                " b"
+            "#,
+        )
+        .run();
+    }
+
+    /// `leading` は逆に前の行の末尾の空白を次の行の先頭へ移す。
+    #[test]
+    fn the_leading_style_moves_the_trailing_blanks_on() {
+        CopCase::annotated(
+            COP,
+            r#"
+            b = 'foo ' \
+                    ^ Move trailing spaces to the start of the next line.
+                'bar'
+            f = 'foo   ' \
+                    ^^^ Move trailing spaces to the start of the next line.
+                'bar'
+            c = 'foo' \
+                ' bar'
+            "#,
+        )
+        .config("Layout/LineContinuationLeadingSpace:\n  EnforcedStyle: leading\n")
+        .corrected(
+            r#"
+            b = 'foo' \
+                ' bar'
+            f = 'foo' \
+                '   bar'
+            c = 'foo' \
+                ' bar'
+            "#,
+        )
+        .run();
+    }
+
+    /// 補間を含む文字列も `dstr` なので対象。3 つ以上の連結でも各継ぎ目を見る。
+    #[test]
+    fn an_interpolated_literal_and_a_longer_chain_are_read_too() {
+        CopCase::annotated(
+            COP,
+            r#"
+            k = "a#{1} " \
+                      ^ Move trailing spaces to the start of the next line.
+                "b"
+            h = 'a' \
+                'b' \
+                ' c'
+            "#,
+        )
+        .config("Layout/LineContinuationLeadingSpace:\n  EnforcedStyle: leading\n")
+        .corrected(
+            r#"
+            k = "a#{1}" \
+                " b"
+            h = 'a' \
+                'b' \
+                ' c'
+            "#,
+        )
+        .run();
+    }
+}

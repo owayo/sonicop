@@ -45,6 +45,8 @@ department_rules! {
     initial_indentation => ("InitialIndentation", Convention),
     leading_comment_space => ("LeadingCommentSpace", Convention),
     leading_empty_lines => ("LeadingEmptyLines", Convention),
+    line_continuation_leading_space => ("LineContinuationLeadingSpace", Convention),
+    line_continuation_spacing => ("LineContinuationSpacing", Convention),
     line_length => ("LineLength", Convention),
     multiline_array_brace_layout => ("MultilineArrayBraceLayout", Convention),
     multiline_block_layout => ("MultilineBlockLayout", Convention),

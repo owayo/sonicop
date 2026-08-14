@@ -401,6 +401,18 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 1, 2, 4)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/LineContinuationLeadingSpace",
+            "x = 'foo' \\\n    ' bar'\n     ^ Move leading spaces to the end of the previous line.\n",
+        )
+        .id("layout_line_continuation_leading_space")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationSpacing",
+            "x = 1 +  \\\n       ^^^ Use one space in front of backslash.\n  2\n",
+        )
+        .id("layout_line_continuation_spacing")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/LineLength",
             r#"
             x = 1234567890
