@@ -2603,6 +2603,50 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_incompatible_io_select_with_fiber_scheduler")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/AmbiguousOperatorPrecedence",
+            r#"
+            a = 1 + 2 * 3
+                    ^^^^^ Wrap expressions with varying precedence with parentheses to avoid ambiguity.
+            "#,
+        )
+        .id("lint_ambiguous_operator_precedence")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UnreachablePatternBranch",
+            r#"
+            case x
+            in y
+            in 1
+            ^^^^ Unreachable `in` pattern branch detected.
+            end
+            "#,
+        )
+        .id("lint_unreachable_pattern_branch")
+        .target_ruby("3.0")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessDefaultValueArgument",
+            r#"
+            h.fetch(:k, 0) { 1 }
+                        ^ Block supersedes default value argument.
+            "#,
+        )
+        .id("lint_useless_default_value_argument")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ItWithoutArgumentsInBlock",
+            r#"
+            [1].each { it }
+                       ^^ `it` calls without arguments will refer to the first block param in Ruby 3.4; use `it()` or `self.it`.
+            "#,
+        )
+        .id("lint_it_without_arguments_in_block")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

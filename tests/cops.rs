@@ -21682,3 +21682,205 @@ mod lint_incompatible_io_select_with_fiber_scheduler {
         }
     }
 }
+
+/// `Lint/AmbiguousOperatorPrecedence`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/AmbiguousOperatorPrecedence` で走らせた実出力から
+/// 取った (検出 8 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_ambiguous_operator_precedence {
+    use super::*;
+
+    const COP: &str = "Lint/AmbiguousOperatorPrecedence";
+
+    #[test]
+    fn the_tighter_half_gets_parentheses() {
+        expect_offense(
+            COP,
+            r#"
+            a = 1 + 2 * 3
+                    ^^^^^ Wrap expressions with varying precedence with parentheses to avoid ambiguity.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "a = 1 + 2 * 3\nb = 1 * 2 + 3\nc = 1 ** 2 * 3\ne = x && y || z\ng = 1 | 2 & 3\n\
+             h = 1 << 2 + 3\nl = x || y && z\n",
+            "a = 1 + (2 * 3)\nb = (1 * 2) + 3\nc = (1 ** 2) * 3\ne = (x && y) || z\n\
+             g = 1 | (2 & 3)\nh = 1 << (2 + 3)\nl = x || (y && z)\n",
+        );
+        // `and` / `or` は `on_and` 側なので綴りを問わない。
+        expect_correction(COP, "f = x and y or z\n", "(f = x and y) or z\n");
+    }
+
+    /// 本家は `and` / `or` の優先順位を表から引けないので、算術演算の親がキーワード形の
+    /// ときは報告しない。同じ優先順位どうしと、括弧で括られたものも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a = 1 + 2 and 3\n",
+            "d = (1 + 2) * 3\n",
+            "k = 1 + 2 + 3\n",
+            "i = -a * b\n",
+            "j = a.+(b) * c\n",
+            "d = x and y\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/UnreachablePatternBranch`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UnreachablePatternBranch` で走らせた実出力から取った。
+mod lint_unreachable_pattern_branch {
+    use super::*;
+
+    const COP: &str = "Lint/UnreachablePatternBranch";
+
+    /// 何でも束縛するパターンより後ろの枝と `else` は届かない。`else` のレンジは
+    /// キーワードだけ。
+    #[test]
+    fn everything_after_a_catch_all_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            in Integer
+            in y
+            in 1
+            ^^^^ Unreachable `in` pattern branch detected.
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            case x
+            in y
+            else
+            ^^^^ Unreachable `else` branch detected.
+            end
+            "#,
+        )
+        .target_ruby("3.0")
+        .run();
+        // 括弧付きも `match_alt` の片側も catch-all。
+        CopCase::new(COP, "case x\nin (y)\nin 1\nend\n", Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .inspect();
+    }
+
+    /// ガード付き、`match_as` の左が定数、選言のどちらもリテラルなら catch-all ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "case x\nin y if z\nin 1\nend\n",
+            "case x\nin Integer => n\nin 1\nend\n",
+            "case x\nin Integer | String\nin 1\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
+
+/// `Lint/UselessDefaultValueArgument`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessDefaultValueArgument` で走らせた実出力から
+/// 取った (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_useless_default_value_argument {
+    use super::*;
+
+    const COP: &str = "Lint/UselessDefaultValueArgument";
+
+    #[test]
+    fn the_default_and_the_comma_before_it_are_removed() {
+        expect_offense(
+            COP,
+            r#"
+            h.fetch(:k, 0) { 1 }
+                        ^ Block supersedes default value argument.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "h.fetch(:k, 0) { 1 }\nh.fetch(:k, 0) do 1 end\nArray.new(3, 0) { 1 }\n\
+             Foo::Array.new(3, 0) { 1 }\nh.fetch(:k, {a: 1}) { 1 }\nh&.fetch(:k, 0) { 1 }\n",
+            "h.fetch(:k) { 1 }\nh.fetch(:k) do 1 end\nArray.new(3) { 1 }\n\
+             Foo::Array.new(3) { 1 }\nh.fetch(:k) { 1 }\nh&.fetch(:k) { 1 }\n",
+        );
+    }
+
+    /// レシーバ無し・引数 1 個・波括弧なしハッシュ・ブロック無しは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "h.fetch(:k) { 1 }\n",
+            "h.fetch(:k, 0)\n",
+            "fetch(:k, 0) { 1 }\n",
+            "h.fetch(:k, a: 1) { 1 }\n",
+            "Array.new(3) { 1 }\n",
+            "Array.new(3, 0)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/ItWithoutArgumentsInBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ItWithoutArgumentsInBlock` で走らせた実出力から
+/// 取った (検出 3 件を確認済み)。
+mod lint_it_without_arguments_in_block {
+    use super::*;
+
+    const COP: &str = "Lint/ItWithoutArgumentsInBlock";
+
+    #[test]
+    fn a_bare_it_inside_a_block_without_parameters_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            [1].each { it }
+                       ^^ `it` calls without arguments will refer to the first block param in Ruby 3.4; use `it()` or `self.it`.
+            "#,
+        );
+        for source in [
+            "[1].each do it end\n",
+            "[1].each { [2].each { it } }\n",
+            "proc { it }\n",
+            "[1].map { it.to_s }\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 引数・括弧・レシーバ・自前のブロックが付けば `it` は曖昧ではない。パラメータを
+    /// 持つブロックも対象外。3.4 以降は cop 自体が動かない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "[1].each { it(1) }\n",
+            "[1].each { it() }\n",
+            "[1].each { |x| it }\n",
+            "[1].each { self.it }\n",
+            "[1].each { it { } }\n",
+            "[1].each { |  | it }\n",
+            "it\n",
+            "def m; it; end\n",
+            "it = 1\n[1].each { it }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        CopCase::new(COP, "[1].each { it }\n", Vec::new())
+            .target_ruby("3.4")
+            .run();
+    }
+}
