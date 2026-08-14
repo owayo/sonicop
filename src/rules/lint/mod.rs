@@ -110,6 +110,7 @@ department_rules! {
     multiple_comparison => ("MultipleComparison", Warning),
     nested_method_definition => ("NestedMethodDefinition", Warning),
     nested_percent_literal => ("NestedPercentLiteral", Warning),
+    number_conversion => ("NumberConversion", Warning),
     numbered_parameter_assignment => ("NumberedParameterAssignment", Warning),
     next_without_accumulator => ("NextWithoutAccumulator", Warning),
     no_return_in_begin_end_blocks => ("NoReturnInBeginEndBlocks", Warning),

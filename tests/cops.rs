@@ -27843,3 +27843,85 @@ mod lint_deprecated_reference {
         }
     }
 }
+
+/// `Lint/NumberConversion` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/NumberConversion` で走らせた実出力から取った
+/// (検出 17 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_number_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/NumberConversion";
+
+    const ENABLED: &str = "Lint/NumberConversion:\n  Enabled: true\n";
+
+    #[test]
+    fn a_conversion_call_becomes_class_parsing() {
+        CopCase::annotated(
+            COP,
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .config(ENABLED)
+        .corrected("Integer(\"10\", 10)\n")
+        .run();
+        CopCase::new(
+            COP,
+            "\"10.2\".to_f\n\"10\".to_c\n\"10\".to_r\nfoo.to_i\nfoo.to_i.to_f\n\
+             Date.today.to_i\nfoo.bar.to_i\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .corrected(
+            "Float(\"10.2\")\nComplex(\"10\")\nRational(\"10\")\nInteger(foo, 10)\n\
+             Integer(foo, 10).to_f\nInteger(Date.today, 10)\nInteger(foo.bar, 10)\n",
+        )
+        .run();
+    }
+
+    /// `&:to_i` はブロックへ広がり、括弧は空白に置き換わる。
+    #[test]
+    fn a_symbol_proc_becomes_a_block() {
+        CopCase::new(COP, "[1, 2].map(&:to_i)\nfoo.map(&:to_i)\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .corrected("[1, 2].map { |i| Integer(i, 10) }\nfoo.map { |i| Integer(i, 10) }\n")
+            .run();
+    }
+
+    /// `&.` は `nil` を通す意図なので報告だけして補正しない。
+    #[test]
+    fn safe_navigation_is_reported_but_not_corrected() {
+        CopCase::annotated(
+            COP,
+            r#"
+            foo&.to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `foo&.to_i`, use stricter `Integer(foo, 10)`.
+            "#,
+        )
+        .config(ENABLED)
+        .correctable(false)
+        .run();
+    }
+
+    /// 数値リテラル、変換メソッドの結果、`AllowedClasses` の既定 (`Time` / `DateTime`)、
+    /// 引数が 2 つ以上の呼び出しは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "1.to_i\n",
+            "1.5.to_f\n",
+            "Time.now.to_i\n",
+            "DateTime.now.to_f\n",
+            "::Time.now.to_i\n",
+            "[1, 2].each_with_object({}, &:to_i)\n",
+            "to_i\n",
+            "foo.to_s\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}

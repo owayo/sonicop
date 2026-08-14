@@ -2794,6 +2794,18 @@ fn catalogue() -> Vec<CopCase> {
             Vec::new(),
         )
         .id("lint_deprecated_reference"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/NumberConversion",
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .id("lint_number_conversion")
+        .config("Lint/NumberConversion:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
