@@ -2668,6 +2668,34 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_literal_assignment_in_condition")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UselessRescue",
+            r#"
+            begin
+              x
+            rescue
+            ^^^^^^ Useless `rescue` detected.
+              raise
+            end
+            "#,
+        )
+        .id("lint_useless_rescue")
+        .severity(Severity::Warning)
+        .locations(&[(3, 1, 4, 7)])
+        .lengths(&[14])
+        .correctable(false),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ConstantResolution",
+            r#"
+            Foo
+            ^^^ Fully qualify this constant to avoid possibly ambiguous resolution.
+            "#,
+        )
+        .id("lint_constant_resolution")
+        .config("Lint/ConstantResolution:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

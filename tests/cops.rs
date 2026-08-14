@@ -21996,3 +21996,124 @@ mod lint_literal_assignment_in_condition {
         }
     }
 }
+
+/// `Lint/UselessRescue`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UselessRescue` で走らせた実出力から取った
+/// (検出 7 件を確認済み)。
+mod lint_useless_rescue {
+    use super::*;
+
+    const COP: &str = "Lint/UselessRescue";
+
+    /// 捕まえた例外をそのまま投げ直すだけの節は無意味。報告されるのは最後の節だけ。
+    #[test]
+    fn a_clause_that_only_reraises_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            begin
+              x
+            rescue
+            ^^^^^^ Useless `rescue` detected.
+              raise
+            end
+            "#,
+        );
+        for source in [
+            "begin\n  x\nrescue => e\n  raise e\nend\n",
+            "begin\n  x\nrescue => e\n  raise\nend\n",
+            "begin\n  x\nrescue\n  raise $!\nend\n",
+            "begin\n  x\nrescue\n  raise $ERROR_INFO\nend\n",
+            "def m\n  x\nrescue\n  raise\nend\n",
+            "begin\n  x\nrescue Foo => e\n  raise e\nrescue Bar => f\n  raise f\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 本体が 2 文以上・引数が 2 つ・別の例外・空、そして `ensure` が例外変数を読む形は
+    /// 無意味ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "begin\n  x\nrescue => e\n  log(e)\n  raise e\nend\n",
+            "begin\n  x\nrescue => e\n  raise Foo, e\nend\n",
+            "begin\n  x\nrescue => e\n  raise other\nend\n",
+            "begin\n  x\nrescue => e\n  raise e\nensure\n  puts e\nend\n",
+            "begin\n  x\nrescue => e\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/ConstantResolution` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ConstantResolution` で走らせた実出力から取った。
+mod lint_constant_resolution {
+    use super::*;
+
+    const COP: &str = "Lint/ConstantResolution";
+
+    const ENABLED: &str = "Lint/ConstantResolution:\n  Enabled: true\n";
+
+    #[test]
+    fn an_unqualified_constant_read_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            Foo
+            ^^^ Fully qualify this constant to avoid possibly ambiguous resolution.
+            "#,
+        )
+        .config(ENABLED)
+        .run();
+        // `Baz::Qux` の `Baz` は修飾されていない。`Foo::Bar = 1` の `Foo` も同じ。
+        for source in [
+            "Baz::Qux\n",
+            "Foo::Bar = 1\n",
+            "defined?(Foo)\n",
+            "def m(x = Foo); end\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// `::` 付き・定数代入の代入先・`class` / `module` が定義する名前とその親クラスは
+    /// 対象外。1 文だけの本体は本家ではその文が直接 `class` の子になる。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "::Bar\n",
+            "Foo = 1\n",
+            "module M\nend\n",
+            "class C\nend\n",
+            "class C < Foo\nend\n",
+            "module M\n  Bar\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+
+    /// `Only` と `Ignore` は名前で絞る。
+    #[test]
+    fn the_two_name_lists_narrow_what_is_reported() {
+        CopCase::new(COP, "Foo\nBaz::Qux\n", Vec::new())
+            .config("Lint/ConstantResolution:\n  Enabled: true\n  Only: ['Foo']\n")
+            .without_offense_check()
+            .run();
+        let report = CopCase::new(COP, "Foo\nBaz::Qux\n", Vec::new())
+            .config("Lint/ConstantResolution:\n  Enabled: true\n  Ignore: ['Foo']\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
+}
