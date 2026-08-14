@@ -71,6 +71,7 @@ department_rules! {
     empty_line_after_multiline_condition => ("EmptyLineAfterMultilineCondition", Convention),
     multiline_assignment_layout => ("MultilineAssignmentLayout", Convention),
     single_line_block_chain => ("SingleLineBlockChain", Convention),
+    heredoc_argument_closing_parenthesis => ("HeredocArgumentClosingParenthesis", Convention),
     first_array_element_line_break => ("FirstArrayElementLineBreak", Convention),
     first_hash_element_line_break => ("FirstHashElementLineBreak", Convention),
     first_method_argument_line_break => ("FirstMethodArgumentLineBreak", Convention),

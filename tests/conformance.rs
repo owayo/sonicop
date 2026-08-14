@@ -4801,6 +4801,15 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_single_line_block_chain")
         .config("Layout/SingleLineBlockChain:\n  Enabled: true\n")
         .correctable(true),
+        CopCase::annotated(
+            "Layout/HeredocArgumentClosingParenthesis",
+            "foo(<<~SQL\n  text\nSQL\n)\n^ Put the closing parenthesis for a method call with a HEREDOC parameter on the same line as the HEREDOC opening.\n",
+        )
+        .id("layout_heredoc_argument_closing_parenthesis")
+        .config("Layout/HeredocArgumentClosingParenthesis:\n  Enabled: true\n")
+        .locations(&[(4, 1, 4, 1)])
+        .lengths(&[1])
+        .correctable(true),
         // 位置は条件式全体。複数行なので注記では表せない。
         CopCase::annotated(
             "Layout/EmptyLineAfterMultilineCondition",
