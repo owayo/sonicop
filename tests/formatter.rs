@@ -13,6 +13,15 @@
 //! rubocop --force-default-config --cache false --only <ONLY> <flags> -f <fmt>
 //! sonicop --force-default-config --cache false --only <ONLY> <flags> -f <fmt>
 //! ```
+//!
+//! **Unix 限定。** フィクスチャは macOS で本家を走らせて得たバイト列なので、絶対パスの綴りも
+//! パス区切りもその OS のものが焼き付いている。Windows では出力が `\` 区切りになり、
+//! `canonicalize` が `\\?\` を前置するため `{root}` に畳めず 7 本すべてが落ちる。区切りだけを
+//! 機械的に潰して比べることはできるが、それは「区切り以外は本家と同じ」という仮定を
+//! 検証せずに置くことになる。Windows で本家を走らせてフィクスチャを別に取るまで、
+//! この回帰は Unix で守る (フォーマッタの描画そのものは OS に依存しない)。
+
+#![cfg(unix)]
 
 mod support;
 
