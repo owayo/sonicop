@@ -10,6 +10,7 @@ department_rules! {
     file_name => ("FileName", Convention),
     heredoc_delimiter_case => ("HeredocDelimiterCase", Convention),
     heredoc_delimiter_naming => ("HeredocDelimiterNaming", Convention),
+    inclusive_language => ("InclusiveLanguage", Convention),
     method_name => ("MethodName", Convention),
     memoized_instance_variable_name => ("MemoizedInstanceVariableName", Convention),
     method_parameter_name => ("MethodParameterName", Convention),

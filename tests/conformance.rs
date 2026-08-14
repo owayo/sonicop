@@ -2675,6 +2675,14 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // メモ化は本体の末尾にあるときだけ見られ、`defined?` 形式は 3 か所すべてが
         // 報告される。
+        // 既定無効。`CheckFilepaths` はテスト用の一時ディレクトリを読むので切っておく。
+        CopCase::annotated(
+            "Naming/InclusiveLanguage",
+            "whitelist = 1\n^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist' or 'permit'.\n",
+        )
+        .id("naming_inclusive_language")
+        .config("Naming/InclusiveLanguage:\n  CheckFilepaths: false\n")
+        .correctable(false),
         CopCase::annotated(
             "Naming/MemoizedInstanceVariableName",
             r#"

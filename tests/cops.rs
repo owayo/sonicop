@@ -21391,3 +21391,163 @@ mod naming_predicate_method {
         .run();
     }
 }
+
+/// `Naming/InclusiveLanguage` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod naming_inclusive_language {
+    use super::*;
+
+    const COP: &str = "Naming/InclusiveLanguage";
+    const BLACK: &str = "Consider replacing 'blacklist' with 'denylist' or 'block'.";
+    const WHITE: &str = "Consider replacing 'whitelist' with 'allowlist' or 'permit'.";
+    /// ファイルパスも既定で検査されるので、既定設定のケースは `CheckFilepaths: false` で
+    /// 切ってからトークンだけを見る。
+    const NO_PATH: &str = "Naming/InclusiveLanguage:\n  CheckFilepaths: false\n";
+
+    /// 検査されるのは識別子・定数・インスタンス/クラス/グローバル変数・シンボル・
+    /// コメント。文字列は既定で検査しない。ラベル (`foo:`) は `tLABEL` なので対象外。
+    #[test]
+    fn each_token_type_follows_its_own_switch() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            whitelist = 1
+            ^^^^^^^^^ %{white}
+            def blacklist; end
+                ^^^^^^^^^ %{black}
+            BLACKLIST = 1
+            ^^^^^^^^^ Consider replacing 'BLACKLIST' with 'denylist' or 'block'.
+            @whitelist = 3
+             ^^^^^^^^^ %{white}
+            @@whitelist = 4
+              ^^^^^^^^^ %{white}
+            $whitelist = 5
+             ^^^^^^^^^ %{white}
+            :blacklist
+             ^^^^^^^^^ %{black}
+            foo(blacklist: 1)
+            { blacklist: 1 }
+            'blacklist string'
+            # a blacklist comment
+                ^^^^^^^^^ %{black}
+            "#,
+            &[("white", WHITE), ("black", BLACK)],
+        )
+        .config(NO_PATH)
+        .correctable(false)
+        .run();
+    }
+
+    /// `?` / `!` で終わる名前は `tFID` なので対象外。素の `def` の名前だけが
+    /// `tIDENTIFIER` になる (`def self.foo?` は `tFID`)。
+    #[test]
+    fn a_name_ending_in_a_question_mark_is_a_different_token() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def blacklist?; end
+                ^^^^^^^^^ %{black}
+            def self.blacklist?; end
+            blacklist?
+            x.blacklist?
+            alias blacklist? whitelist?
+            :blacklist?
+             ^^^^^^^^^ %{black}
+            "#,
+            &[("black", BLACK)],
+        )
+        .config(NO_PATH)
+        .run();
+    }
+
+    /// `WholeWord` の項は語境界で切る。`_` の隣は境界として扱う。
+    #[test]
+    fn a_whole_word_term_needs_a_boundary() {
+        CopCase::annotated(
+            COP,
+            r#"
+            slave = 1
+            ^^^^^ Consider replacing 'slave' with 'replica', 'secondary', or 'follower'.
+            foo_slave = 2
+                ^^^^^ Consider replacing 'slave' with 'replica', 'secondary', or 'follower'.
+            slaves = 3
+            enslaved = 4
+            "#,
+        )
+        .config(NO_PATH)
+        .run();
+    }
+
+    /// `CheckStrings` を立てると文字列・ヒアドキュメント・正規表現・`%w` の中も見る。
+    /// 1 つのトークンに同じ語が 2 度あっても `add_offense` がレンジで弾くので 1 件。
+    #[test]
+    fn strings_are_checked_only_when_asked_for() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            'blacklist string'
+             ^^^^^^^^^ %{black}
+            "blacklist blacklist"
+             ^^^^^^^^^ %{black}
+            %w[blacklist]
+               ^^^^^^^^^ %{black}
+            /blacklist/
+             ^^^^^^^^^ %{black}
+            "#,
+            &[("black", BLACK)],
+        )
+        .config("Naming/InclusiveLanguage:\n  CheckFilepaths: false\n  CheckStrings: true\n")
+        .run();
+    }
+
+    /// 候補が 1 つだけの項は置き換えられる。`AllowedRegex` に当たる部分は
+    /// `*` で覆ってから探すので見送られるが、レンジは元のトークンから引き直すため
+    /// 同じ語の**最初の**出現位置になる。
+    #[test]
+    fn a_sole_suggestion_is_written_in() {
+        CopCase::annotated(
+            COP,
+            r#"
+            whitelist_ok = 1
+            whitelist = 2
+            ^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist'.
+            whitelist_ok_and_whitelist = 3
+            ^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist'.
+            "#,
+        )
+        .config(concat!(
+            "Naming/InclusiveLanguage:\n",
+            "  CheckFilepaths: false\n",
+            "  FlaggedTerms:\n",
+            "    whitelist:\n",
+            "      Regex: !ruby/regexp '/white[-_\\s]?list/'\n",
+            "      AllowedRegex:\n",
+            "        - 'whitelist_ok'\n",
+            "      Suggestions:\n",
+            "        - allowlist\n",
+        ))
+        .corrected("whitelist_ok = 1\nallowlist = 2\nallowlist_ok_and_allowlist = 3\n")
+        .run();
+    }
+
+    /// `CheckFilepaths` はパスを 1 件の global offense で報告する。語が 2 つ以上なら
+    /// 候補ではなく `with other terms` になる。
+    #[test]
+    fn the_file_path_is_reported_once() {
+        CopCase::annotated(
+            COP,
+            "x = 1\n^{} Consider replacing 'blacklist' in file path with 'denylist' or 'block'.\n",
+        )
+        .path("blacklist_dir/plain.rb")
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0])
+        .run();
+        CopCase::annotated(
+            COP,
+            "x = 1\n^{} Consider replacing 'blacklist', 'whitelist' in file path with other terms.\n",
+        )
+        .path("blacklist_dir/whitelist_file.rb")
+        .locations(&[(1, 1, 1, 1)])
+        .lengths(&[0])
+        .run();
+    }
+}

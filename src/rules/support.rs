@@ -412,6 +412,27 @@ pub(crate) fn is_commit_reference(argument: &Argument<'_>, context: &RuleContext
     })
 }
 
+/// `File.expand_path`: RuboCop resolves every target against the working directory before it
+/// inspects it, so a cop that reads the path of the file it is inspecting always sees an absolute
+/// one.
+pub(crate) fn expand_path(path: &std::path::Path) -> std::path::PathBuf {
+    let absolute = match path.is_absolute() {
+        true => path.to_path_buf(),
+        false => std::env::current_dir().unwrap_or_default().join(path),
+    };
+    let mut expanded = std::path::PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                expanded.pop();
+            }
+            component => expanded.push(component),
+        }
+    }
+    expanded
+}
+
 /// `range_by_whole_lines(range, include_final_newline: true)`: the lines `range` sits on, taken
 /// whole, with the line break that closes the last of them.
 pub(crate) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
