@@ -21332,3 +21332,170 @@ mod style_map_chain {
         expect_no_offenses("Style/MapToHash", "x.to_h\n");
     }
 }
+
+/// `Style/DataInheritance`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DataInheritance` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_data_inheritance {
+    use super::*;
+
+    const COP: &str = "Style/DataInheritance";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.2")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 本体の無いクラスは `end` の行ごと消えて代入になり、本体があるときは
+    /// `Data.define` の後ろに `do` が付いてクラスの `end` がブロックの `end` になる。
+    #[test]
+    fn the_class_definition_becomes_an_assignment() {
+        correction(
+            "class Point < Data.define(:x, :y)\nend\n",
+            "Point = Data.define(:x, :y)\n",
+        );
+        correction(
+            "class Point2 < Data.define(:x, :y)\n  def foo; end\nend\n",
+            "Point2 = Data.define(:x, :y) do\n  def foo; end\nend\n",
+        );
+        correction(
+            "class P3 < Data.define(:x); end\n",
+            "P3 = Data.define(:x)\n",
+        );
+        correction(
+            "class P4 < ::Data.define(:x)\nend\n",
+            "P4 = ::Data.define(:x)\n",
+        );
+    }
+
+    /// 名前空間付きの `Data`、`Data` でない親、3.2 未満の対象版は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class P5 < Foo::Data.define(:x)\nend\n",
+            "class P6 < Struct.new(:x)\nend\n",
+            "Point7 = Data.define(:x)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+        CopCase::new(
+            COP,
+            "class Point < Data.define(:x)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .run();
+    }
+}
+
+/// `Style/EmptyClassDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EmptyClassDefinition` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_empty_class_definition {
+    use super::*;
+
+    const COP: &str = "Style/EmptyClassDefinition";
+
+    /// 既定の `class_keyword` では `Class.new(Parent)` の代入が `class` 定義になる。
+    #[test]
+    fn class_new_becomes_the_keyword_form() {
+        expect_correction(COP, "Foo = Class.new(Bar)\n", "class Foo < Bar\nend\n");
+        expect_correction(
+            COP,
+            "Foo::Baz = Class.new(Bar)\n",
+            "class Foo::Baz < Bar\nend\n",
+        );
+        expect_correction(
+            COP,
+            "Qux = Class.new(Foo::Bar)\n",
+            "class Qux < Foo::Bar\nend\n",
+        );
+    }
+
+    /// 親クラスの無いもの、ブロック付き、定数でない親、`Class` でないレシーバは黙る。
+    /// 既定の style では `class` 定義そのものも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Quux = Class.new\n",
+            "Corge = Class.new(Bar) { def x; end }\n",
+            "Grault = Class.new(foo)\n",
+            "Garply = Bar.new(Baz)\n",
+            "class Empty < Base\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `class_new` に切り替えると向きが逆になる。
+    #[test]
+    fn the_class_new_style_asks_for_the_other_direction() {
+        CopCase::new(COP, "class Empty < Base\nend\n".to_owned(), Vec::new())
+            .config("Style/EmptyClassDefinition:\n  EnforcedStyle: class_new\n")
+            .without_offense_check()
+            .corrected("Empty = Class.new(Base)\n")
+            .run();
+    }
+}
+
+/// `Style/CombinableDefined`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CombinableDefined` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_combinable_defined {
+    use super::*;
+
+    const COP: &str = "Style/CombinableDefined";
+
+    /// 名前空間の側の `defined?` が落ちる。定数でもメソッド連鎖でも同じ。
+    #[test]
+    fn the_namespace_check_is_the_one_removed() {
+        expect_correction(
+            COP,
+            "defined?(Foo) && defined?(Foo::Bar)\n",
+            "defined?(Foo::Bar)\n",
+        );
+        expect_correction(
+            COP,
+            "defined?(Foo::Bar) && defined?(Foo)\n",
+            "defined?(Foo::Bar)\n",
+        );
+        expect_correction(COP, "defined?(x) && defined?(x.y)\n", "defined?(x.y)\n");
+        expect_correction(
+            COP,
+            "defined?(x.y) && defined?(x.y.z)\n",
+            "defined?(x.y.z)\n",
+        );
+        expect_correction(
+            COP,
+            "defined?(Foo) and defined?(Foo::Bar)\n",
+            "defined?(Foo::Bar)\n",
+        );
+    }
+
+    /// 3 つ以上の連鎖では入れ子の `and` も同じ位置で報告されるが、本家は
+    /// `Offense#eql?` が位置とメッセージだけを見るので 1 件に畳まれる。
+    #[test]
+    fn a_longer_chain_still_reports_once() {
+        expect_correction(
+            COP,
+            "defined?(Foo) && defined?(Foo::Bar) && defined?(Baz)\n",
+            "defined?(Foo::Bar) && defined?(Baz)\n",
+        );
+    }
+
+    /// 名前空間の関係が無いもの、`defined?` でない項が混じるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["defined?(Foo) && defined?(Bar)\n", "defined?(Foo) && x\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

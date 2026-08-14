@@ -3649,6 +3649,26 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_map_to_set")
         .correctable(true),
+        // 位置は親クラスとして書かれた `Data.define(...)` だけ。
+        CopCase::annotated(
+            "Style/DataInheritance",
+            "class Point < Data.define(:x, :y)\n              ^^^^^^^^^^^^^^^^^^^ Don't extend an instance initialized by `Data.define`. Use a block to customize the class.\nend\n",
+        )
+        .id("style_data_inheritance")
+        .target_ruby("3.2")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/EmptyClassDefinition",
+            "Foo = Class.new(Bar)\n^^^^^^^^^^^^^^^^^^^^ Use the `class` keyword instead of `Class.new` to define an empty class.\n",
+        )
+        .id("style_empty_class_definition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/CombinableDefined",
+            "defined?(Foo) && defined?(Foo::Bar)\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Combine nested `defined?` calls.\n",
+        )
+        .id("style_combinable_defined")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
