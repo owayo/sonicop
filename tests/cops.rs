@@ -20243,3 +20243,657 @@ mod style_env_home {
         }
     }
 }
+
+/// `Style/SuperWithArgsParentheses`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/SuperWithArgsParentheses` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_super_with_args_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/SuperWithArgsParentheses";
+
+    /// 位置は `super` の先頭から**最後の引数の末尾**まで。ブロックは上流の `super` ノードの
+    /// 外なので入らない。
+    #[test]
+    fn the_report_spans_the_keyword_and_its_arguments() {
+        expect_offense(
+            COP,
+            r"
+            def foo
+              super bar, baz
+              ^^^^^^^^^^^^^^ Use parentheses for `super` with arguments.
+            end
+            ",
+        );
+    }
+
+    /// 空白が開き括弧になり、閉じ括弧は最後の引数の直後に入る。
+    #[test]
+    fn the_space_becomes_the_opening_paren() {
+        expect_correction(COP, "super bar\n", "super(bar)\n");
+        expect_correction(COP, "super bar, baz\n", "super(bar, baz)\n");
+        expect_correction(
+            COP,
+            "super bar do\n  qux\nend\n",
+            "super(bar) do\n  qux\nend\n",
+        );
+    }
+
+    /// 括弧付き・引数なしの `super` と、引数を持たない `super()` は触らない。
+    /// 裸の `super` は上流では `zsuper` で、この cop に届かない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["super(bar)\n", "super\n", "super()\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/StringChars`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StringChars` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_string_chars {
+    use super::*;
+
+    const COP: &str = "Style/StringChars";
+
+    /// 位置は selector から呼び出しの末尾まで。メッセージにはその範囲の元テキストが入る。
+    #[test]
+    fn the_report_spans_the_selector_and_the_argument() {
+        expect_offense(
+            COP,
+            r#"
+            "x".split('')
+                ^^^^^^^^^ Use `chars` instead of `split('')`.
+            "#,
+        );
+    }
+
+    /// 「空で分ける」3 通りの書き方はすべて対象。`RESTRICT_ON_SEND` はメソッド名だけを絞るので
+    /// レシーバは問わず、レシーバ無しの `split('')` も報告される。
+    #[test]
+    fn every_spelling_of_splitting_on_nothing_is_reported() {
+        expect_correction(COP, "\"x\".split(\"\")\n", "\"x\".chars\n");
+        expect_correction(COP, "foo.split(//)\n", "foo.chars\n");
+        expect_correction(COP, "bar.split('')\n", "bar.chars\n");
+        expect_correction(COP, "split('')\n", "chars\n");
+        expect_correction(COP, "x&.split('')\n", "x&.chars\n");
+        expect_correction(
+            COP,
+            "\"x\".split('').map(&:upcase)\n",
+            "\"x\".chars.map(&:upcase)\n",
+        );
+    }
+
+    /// 区切りが空でないものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "\"x\".split(\",\")\n",
+            "\"x\".split\n",
+            "\"x\".split('', 2)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantRegexpConstructor`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantRegexpConstructor` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_regexp_constructor {
+    use super::*;
+
+    const COP: &str = "Style/RedundantRegexpConstructor";
+
+    #[test]
+    fn the_report_spans_the_whole_call() {
+        expect_offense(
+            COP,
+            r"
+            Regexp.new(/foo/im)
+            ^^^^^^^^^^^^^^^^^^^ Remove the redundant `Regexp.new`.
+            ",
+        );
+    }
+
+    /// 置換は引数の写しではなく**パーツからの組み立て**なので、`%r{...}` で書かれていても
+    /// `/.../` で出てくる。オプションはそのまま残る。
+    #[test]
+    fn the_literal_is_rebuilt_from_its_parts() {
+        expect_correction(COP, "Regexp.new(/foo/)\n", "/foo/\n");
+        expect_correction(COP, "Regexp.new(/foo/im)\n", "/foo/im\n");
+        expect_correction(COP, "::Regexp.compile(/bar/)\n", "/bar/\n");
+        expect_correction(COP, "Regexp.new(%r{baz})\n", "/baz/\n");
+        expect_correction(COP, "Regexp.new(/a#{b}c/x)\n", "/a#{b}c/x\n");
+        expect_correction(COP, "Regexp.new(//)\n", "//\n");
+    }
+
+    /// リテラルでない引数・第 2 引数付き・別名前空間の `Regexp` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Regexp.new(\"foo\")\n",
+            "Regexp.new(/foo/, Regexp::IGNORECASE)\n",
+            "Foo::Regexp.new(/x/)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantArrayFlatten`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantArrayFlatten` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_array_flatten {
+    use super::*;
+
+    const COP: &str = "Style/RedundantArrayFlatten";
+
+    /// 位置はドットから `flatten` 呼び出しの末尾まで。深さ引数もその中に入る。
+    #[test]
+    fn the_report_spans_the_dot_and_the_call() {
+        expect_offense(
+            COP,
+            r"
+            x.flatten(1).join
+             ^^^^^^^^^^^ Remove the redundant `flatten`.
+            ",
+        );
+    }
+
+    /// `join` は引数なしか `nil` のときだけ。区切りを渡していると畳めないので対象外。
+    #[test]
+    fn only_a_join_without_a_separator_counts() {
+        expect_correction(COP, "x.flatten.join\n", "x.join\n");
+        expect_correction(COP, "x.flatten(1).join\n", "x.join\n");
+        expect_correction(COP, "x.flatten.join(nil)\n", "x.join(nil)\n");
+        expect_correction(COP, "x&.flatten&.join\n", "x&.join\n");
+    }
+
+    /// 区切り付きの `join`、レシーバ無しの `flatten`、ブロック付きの `flatten` は触らない。
+    /// ブロックが付くと上流では `block` ノードになり、パターンの内側の `(call ...)` に当たらない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.flatten.join(\", \")\n",
+            "flatten.join\n",
+            "x.flatten { |y| y }.join\n",
+            "x.flatten.size\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+/// `Style/SafeNavigationChainLength`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/SafeNavigationChainLength` で走らせた実出力から取った
+/// (検出 4 件が位置・メッセージまで一致)。
+mod style_safe_navigation_chain_length {
+    use super::*;
+
+    const COP: &str = "Style/SafeNavigationChainLength";
+
+    /// 報告されるのは連鎖の**一番外側**。`Max` が 2 なので `&.` が 3 段で発火する。
+    #[test]
+    fn the_outermost_call_of_the_chain_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            x&.a&.b&.c
+            ^^^^^^^^^^ Avoid safe navigation chains longer than 2 calls.
+            ",
+        );
+    }
+
+    /// 連鎖はレシーバだけを辿るのではない。上流では引数は呼び出しに直接ぶら下がるので、
+    /// 引数の中の `&.` から外側の `&.` へ数えが続く。
+    #[test]
+    fn the_chain_crosses_into_the_enclosing_call() {
+        expect_offense(
+            COP,
+            r"
+            a&.b(c&.d&.e&.f)
+            ^^^^^^^^^^^^^^^^ Avoid safe navigation chains longer than 2 calls.
+            ",
+        );
+    }
+
+    /// 2 段まで、`.` が混ざったもの、ブロックで途切れたものは触らない。
+    /// ブロックは上流では `block` ノードになって連鎖を切る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["x&.a&.b\n", "x.a&.b&.c\n", "x&.a { }&.b&.c\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Max` を上げると必要な段数も上がる。
+    #[test]
+    fn the_max_setting_moves_the_threshold() {
+        CopCase::new(COP, "x&.a&.b&.c\n".to_owned(), Vec::new())
+            .config("Style/SafeNavigationChainLength:\n  Max: 3\n")
+            .run();
+        CopCase::annotated(
+            COP,
+            r"
+            x&.a&.b&.c&.d&.e
+            ^^^^^^^^^^^^^^^^ Avoid safe navigation chains longer than 3 calls.
+            ",
+        )
+        .config("Style/SafeNavigationChainLength:\n  Max: 3\n")
+        .run();
+    }
+}
+
+/// `Style/RedundantCurrentDirectoryInPath`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantCurrentDirectoryInPath` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_current_directory_in_path {
+    use super::*;
+
+    const COP: &str = "Style/RedundantCurrentDirectoryInPath";
+
+    #[test]
+    fn the_report_spans_only_the_prefix() {
+        expect_offense(
+            COP,
+            r"
+            require_relative './foo'
+                              ^^ Remove the redundant current directory path.
+            ",
+        );
+    }
+
+    /// 先頭の `./` は何段スラッシュが続いても丸ごと消える。補間付きの文字列でも
+    /// 先頭が素の `./` なら対象。
+    #[test]
+    fn the_leading_current_directory_is_removed() {
+        expect_correction(
+            COP,
+            "require_relative './foo'\n",
+            "require_relative 'foo'\n",
+        );
+        // `-A` は収束するまで回るので、`././` は 2 パスで丸ごと落ちる。
+        expect_correction(
+            COP,
+            "require_relative '././bar'\n",
+            "require_relative 'bar'\n",
+        );
+        expect_correction(
+            COP,
+            "require_relative './/baz'\n",
+            "require_relative 'baz'\n",
+        );
+        expect_correction(
+            COP,
+            "require_relative \"./#{qux}\"\n",
+            "require_relative \"#{qux}\"\n",
+        );
+        expect_correction(
+            COP,
+            "require_relative %q{./quux}\n",
+            "require_relative %q{quux}\n",
+        );
+    }
+
+    /// 途中の `./` は意味があるので残す。`./` で始まらない相対パスも触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "require_relative 'foo/./bar'\n",
+            "require_relative 'plain'\n",
+            "require_relative path\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/YAMLFileRead`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/YAMLFileRead` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_yaml_file_read {
+    use super::*;
+
+    const COP: &str = "Style/YAMLFileRead";
+
+    /// 位置は selector から呼び出しの末尾まで。`YAML.` は置き換えの外に残る。
+    #[test]
+    fn the_report_spans_the_selector_and_the_arguments() {
+        expect_offense(
+            COP,
+            r"
+            YAML.load(File.read(path))
+                 ^^^^^^^^^^^^^^^^^^^^^ Use `load_file(path)` instead.
+            ",
+        );
+    }
+
+    /// 残りの引数はそのまま `_file` 版へ持ち越す。
+    #[test]
+    fn the_remaining_arguments_are_carried_over() {
+        expect_correction(
+            COP,
+            "YAML.load(File.read(path))\n",
+            "YAML.load_file(path)\n",
+        );
+        // `safe_load_file` は 3.0 以降。
+        CopCase::new(
+            COP,
+            "YAML.safe_load(File.read(p2), aliases: true)\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .without_offense_check()
+        .corrected("YAML.safe_load_file(p2, aliases: true)\n")
+        .run();
+        expect_correction(COP, "YAML.parse(File.read(p3))\n", "YAML.parse_file(p3)\n");
+        expect_correction(
+            COP,
+            "::YAML.load(::File.read(p4))\n",
+            "::YAML.load_file(p4)\n",
+        );
+    }
+
+    /// `File.read` でない引数・対象外のメソッド・引数 2 個の `File.read` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "YAML.load(x)\n",
+            "YAML.dump(File.read(p5))\n",
+            "YAML.load(File.read(a, b))\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `safe_load_file` は 3.0 以降にしか無いので、2.7 以下では黙る。
+    #[test]
+    fn safe_load_needs_ruby_3_0() {
+        CopCase::new(
+            COP,
+            "YAML.safe_load(File.read(path))\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+}
+
+/// `Style/OpenStructUse`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/OpenStructUse` で走らせた実出力から取った
+/// (検出 6 件が位置・メッセージまで一致)。
+mod style_open_struct_use {
+    use super::*;
+
+    const COP: &str = "Style/OpenStructUse";
+
+    #[test]
+    fn the_constant_itself_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            OpenStruct.new
+            ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        );
+    }
+
+    /// `::OpenStruct` は上流では 1 個の const なので `::` ごと報告される。
+    /// `OpenStruct::Foo` の `OpenStruct` は別の const で、そこだけが報告される。
+    #[test]
+    fn every_spelling_that_reaches_the_top_level_constant() {
+        expect_offense(
+            COP,
+            r"
+            ::OpenStruct.new
+            ^^^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            OpenStruct::Foo
+            ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            class Bar < OpenStruct; end
+                        ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            def OpenStruct.foo; end
+                ^^^^^^^^^^ Avoid using `OpenStruct`; use `Struct`, `Hash`, a class or test doubles instead.
+            ",
+        );
+    }
+
+    /// 自前で `OpenStruct` を定義・代入しているものは使用ではない。名前空間付きの
+    /// `Foo::OpenStruct` は別の定数なので対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "OpenStruct = 1\n",
+            "class OpenStruct; end\n",
+            "module OpenStruct; end\n",
+            "Foo::OpenStruct.new\n",
+            "A, OpenStruct = 1, 2\n",
+            "OpenStruct ||= 2\n",
+            "{ OpenStruct: 1 }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ObjectThen`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ObjectThen` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_object_then {
+    use super::*;
+
+    const COP: &str = "Style/ObjectThen";
+
+    #[test]
+    fn the_report_spans_the_selector() {
+        expect_offense(
+            COP,
+            r"
+            foo.yield_self { |y| y }
+                ^^^^^^^^^^ Prefer `then` over `yield_self`.
+            ",
+        );
+    }
+
+    /// ブロック付きか `&:sym` 1 個のときだけ対象。レシーバが無いと素の `then` は
+    /// キーワードに読めてしまうので `self.then` が入る。
+    #[test]
+    fn the_selector_is_replaced_with_the_enforced_name() {
+        expect_correction(COP, "foo.yield_self { |y| y }\n", "foo.then { |y| y }\n");
+        expect_correction(COP, "yield_self { |y| y }\n", "self.then { |y| y }\n");
+        expect_correction(COP, "foo.yield_self(&:bar)\n", "foo.then(&:bar)\n");
+        expect_correction(COP, "w&.yield_self { |y| y }\n", "w&.then { |y| y }\n");
+    }
+
+    /// ブロックも `&:sym` も付かない `yield_self` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo.then { |y| y }\n", "foo.yield_self\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `EnforcedStyle: yield_self` は逆向きを求める。
+    #[test]
+    fn the_other_enforced_style() {
+        CopCase::new(COP, "foo.then { |y| y }\n".to_owned(), Vec::new())
+            .config("Style/ObjectThen:\n  EnforcedStyle: yield_self\n")
+            .without_offense_check()
+            .corrected("foo.yield_self { |y| y }\n")
+            .run();
+    }
+
+    /// 2.6 未満では `Object#then` が無いので黙る。
+    #[test]
+    fn it_needs_ruby_2_6() {
+        CopCase::new(COP, "foo.yield_self { |y| y }\n".to_owned(), Vec::new())
+            .target_ruby("2.5")
+            .run();
+    }
+}
+
+/// `Style/RedundantHeredocDelimiterQuotes`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantHeredocDelimiterQuotes` で走らせた実出力から
+/// 取った (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_heredoc_delimiter_quotes {
+    use super::*;
+
+    const COP: &str = "Style/RedundantHeredocDelimiterQuotes";
+
+    /// 位置は開き側の `<<~'FOO'` 全体。
+    #[test]
+    fn the_report_spans_the_opening_delimiter() {
+        expect_offense(
+            COP,
+            r"
+            h = <<~'FOO'
+                ^^^^^^^^ Remove the redundant heredoc delimiter quotes, use `<<~FOO` instead.
+              plain
+            FOO
+            ",
+        );
+    }
+
+    /// 引用符が要らないのは、区切りが素の語で、かつ二重引用符か本文に補間もエスケープも
+    /// 無いとき。
+    #[test]
+    fn the_quotes_come_off_when_nothing_needs_them() {
+        expect_correction(
+            COP,
+            "h = <<~'FOO'\n  plain\nFOO\n",
+            "h = <<~FOO\n  plain\nFOO\n",
+        );
+        expect_correction(
+            COP,
+            "h = <<-\"BAZ\"\n  plain\nBAZ\n",
+            "h = <<-BAZ\n  plain\nBAZ\n",
+        );
+        // 二重引用符は本文に補間があっても引用符が要らない。
+        expect_correction(
+            COP,
+            "h = <<~\"DQ\"\n  #{interp}\nDQ\n",
+            "h = <<~DQ\n  #{interp}\nDQ\n",
+        );
+        expect_correction(
+            COP,
+            "h = <<'PLAIN'\n  x\nPLAIN\n",
+            "h = <<PLAIN\n  x\nPLAIN\n",
+        );
+    }
+
+    /// 単一引用符で本文に補間・エスケープがあるもの、区切りに語以外の文字を含むもの、
+    /// はじめから引用符が無いものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "h = <<~'QUX'\n  #{interp}\nQUX\n",
+            "h = <<~'ESC'\n  back\\slash\nESC\n",
+            "h = <<~'IV'\n  #@iv\nIV\n",
+            "h = <<~'GV'\n  #$gv\nGV\n",
+            "h = <<~'A B'\n  x\nA B\n",
+            "h = <<~PLAIN\n  plain\nPLAIN\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantInterpolationUnfreeze`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantInterpolationUnfreeze` で走らせた実出力から
+/// 取った (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_interpolation_unfreeze {
+    use super::*;
+
+    const COP: &str = "Style/RedundantInterpolationUnfreeze";
+
+    /// `+@` と `dup` は selector だけ、`String.new` は `String.new` までが位置。
+    #[test]
+    fn the_report_spans_the_unfreezing_selector() {
+        CopCase::annotated(
+            COP,
+            r##"
+            u = +"#{a}"
+                ^ Don't unfreeze interpolated strings as they are already unfrozen.
+            "##,
+        )
+        .target_ruby("3.0")
+        .run();
+        CopCase::annotated(
+            COP,
+            r##"
+            u = String.new("#{a}")
+                ^^^^^^^^^^ Don't unfreeze interpolated strings as they are already unfrozen.
+            "##,
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+
+    /// 補正はリテラルだけを残す。
+    #[test]
+    fn only_the_literal_is_left() {
+        for (source, corrected) in [
+            ("u = +\"#{a}\"\n", "u = \"#{a}\"\n"),
+            ("u = \"#{a}\".dup\n", "u = \"#{a}\"\n"),
+            ("u = String.new(\"#{a}\")\n", "u = \"#{a}\"\n"),
+            // `"#@iv"` も上流では補間付きの dstr。
+            ("u = +\"#@iv\"\n", "u = \"#@iv\"\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// 補間の無いリテラル・`-@`・`::String.new` は触らない。
+    /// パターンの `(const nil? :String)` は素の `String` だけを取る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "u = +\"plain\"\n",
+            "u = -\"#{a}\"\n",
+            "u = ::String.new(\"#{a}\")\n",
+            "u = \"plain\".dup\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+
+    /// 3.0 未満では黙る。
+    #[test]
+    fn it_needs_ruby_3_0() {
+        CopCase::new(COP, "u = +\"#{a}\"\n".to_owned(), Vec::new())
+            .target_ruby("2.7")
+            .run();
+    }
+}
