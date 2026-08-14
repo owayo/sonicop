@@ -5152,6 +5152,36 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_regexp_argument")
         .correctable(true),
+        // 位置はドット 1 文字。
+        CopCase::annotated(
+            "Style/OperatorMethodCall",
+            r"
+            foo.+(bar)
+               ^ Redundant dot detected.
+            ",
+        )
+        .id("style_operator_method_call")
+        .correctable(true),
+        // 位置は selector。
+        CopCase::annotated(
+            "Style/ReduceToHash",
+            r"
+            xs.each_with_object({}) { |e, h| h[e] = e * 2 }
+               ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            ",
+        )
+        .id("style_reduce_to_hash")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DocumentationMethod",
+            r"
+            def foo; end
+            ^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        )
+        .id("style_documentation_method")
+        .correctable(false),
+        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         // ---- Layout (pending) ----
         // 位置は受け手と `[` のあいだの空白 1 文字。
         CopCase::annotated(

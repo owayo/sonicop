@@ -165,7 +165,7 @@ fn receiverless_call<'a, 'tree>(
 }
 
 /// `documentation_comment?`: a real comment sits directly above the definition.
-fn documentation_comment(
+pub(super) fn documentation_comment(
     context: &RuleContext<'_>,
     preceding: &PrecedingComments,
     node: Node<'_>,

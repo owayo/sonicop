@@ -139,14 +139,10 @@ fn is_public(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(position) = siblings.iter().position(|child| child.id() == node.id()) else {
         return true;
     };
-    !siblings[..position].iter().rev().any(|sibling| {
-        sibling.kind_str() == "call"
-            && sibling.field("receiver").is_none()
-            && sibling.field("arguments").is_none()
-            && sibling.field("method").is_some_and(|selector| {
-                matches!(context.source.node_text(selector), "private" | "protected")
-            })
-    })
+    !siblings[..position]
+        .iter()
+        .rev()
+        .any(|sibling| is_visibility_marker(*sibling, context))
 }
 
 /// `class_elements`: the statements a class or `class << self` body holds.
@@ -157,4 +153,20 @@ fn class_elements<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
             .filter(|child| child.kind_str() != "comment")
             .collect()
     })
+}
+
+/// `visibility_block?`: `(send nil? {:private :protected :public})`, which the grammar leaves as a
+/// bare `identifier` when it takes neither receiver nor arguments.
+fn is_visibility_marker(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let name = match node.kind_str() {
+        "identifier" => context.source.node_text(node),
+        "call" if node.field("receiver").is_none() && node.field("arguments").is_none() => {
+            match node.field("method") {
+                Some(selector) => context.source.node_text(selector),
+                None => return false,
+            }
+        }
+        _ => return false,
+    };
+    matches!(name, "private" | "protected")
 }

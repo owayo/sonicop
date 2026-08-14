@@ -30502,6 +30502,276 @@ mod style_redundant_regexp_argument {
     }
 }
 
+/// `Style/OperatorMethodCall`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/OperatorMethodCall` で走らせた実出力から取った
+/// (検出 28 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_operator_method_call {
+    use super::*;
+
+    const COP: &str = "Style/OperatorMethodCall";
+
+    /// 位置はドット 1 文字。
+    #[test]
+    fn the_dot_before_an_operator_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            foo.+(bar)
+               ^ Redundant dot detected.
+            ",
+        );
+        expect_correction(COP, "foo.+(bar)\n", "foo +(bar)\n");
+        expect_correction(COP, "foo.==(bar)\n", "foo ==(bar)\n");
+        expect_correction(COP, "foo.<<(bar)\n", "foo <<(bar)\n");
+        expect_correction(COP, "1.+(2)\n", "1 +(2)\n");
+        // 括弧が無ければ selector の後ろに空白が入る。
+        expect_correction(COP, "foo.+ bar\n", "foo + bar\n");
+        // `/` の後ろの `(` は正規表現の始まりに読めるので空白を足す。
+        expect_correction(COP, "foo./(bar)\n", "foo / (bar)\n");
+    }
+
+    /// 続きが繋がっているときは、引数の括弧を外して式全体を括弧で包む。
+    #[test]
+    fn a_chained_call_gets_parentheses_around_the_operation() {
+        expect_correction(COP, "foo.+(bar).baz\n", "(foo + bar).baz\n");
+        expect_correction(COP, "a.+(b) + c\n", "(a + b) + c\n");
+        expect_correction(COP, "-foo.+(bar)\n", "-(foo + bar)\n");
+        expect_correction(COP, "foo.+(\n  bar\n).baz\n", "(foo + bar).baz\n");
+        // 引数の位置にあるものは包まない。
+        expect_correction(COP, "baz(foo.+(bar))\n", "baz(foo +(bar))\n");
+        expect_correction(COP, "a + b.+(c)\n", "a + b +(c)\n");
+        expect_correction(COP, "x[foo.+(bar)]\n", "x[foo +(bar)]\n");
+    }
+
+    /// 引数が「子を持つ」ノードで、続きが繋がっていて、括弧付き — の 3 つが揃うと見送る。
+    /// レシーバ無しの呼び出しと `nil` は上流では children.first が nil なので当たらない。
+    #[test]
+    fn an_argument_with_a_first_child_is_left_alone_when_chained() {
+        for source in [
+            "foo.+(1).baz\n",
+            "foo.+(bar.baz).qux\n",
+            "x = 1\nfoo.+(x).baz\n",
+            "foo.+(@iv).baz\n",
+            "foo.+(:sym).baz\n",
+            "foo.+(\"s\").baz\n",
+            "foo.+([1]).baz\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(COP, "foo.+(nil).baz\n", "(foo + nil).baz\n");
+    }
+
+    /// `[]`、定数レシーバ、splat / `&block`、引数が 1 個でないもの、`&.` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.[](bar)\n",
+            "Foo.+(bar)\n",
+            "foo.+(*bar)\n",
+            "foo.+(&bar)\n",
+            "foo.+(bar, baz)\n",
+            "foo.+()\n",
+            "foo + bar\n",
+            "foo.!\n",
+            "foo.~\n",
+            "foo&.+(bar)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ReduceToHash`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ReduceToHash` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_reduce_to_hash {
+    use super::*;
+
+    const COP: &str = "Style/ReduceToHash";
+
+    /// 位置は selector。置き換えは selector からブロックの閉じまで。
+    #[test]
+    fn a_fold_that_only_fills_a_hash_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            xs.each_with_object({}) { |e, h| h[e] = e * 2 }
+               ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            ",
+        );
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = e * 2 }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e.k] = e.v }\n",
+            "xs.to_h { |e| [e.k, e.v] }\n",
+        );
+    }
+
+    /// `inject` / `reduce` は蓄積器を返す 2 文の形。引数の順序が逆になる。
+    #[test]
+    fn the_folding_spellings_take_the_accumulator_first() {
+        expect_correction(
+            COP,
+            "xs.inject({}) { |h, e| h[e] = e * 2; h }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.reduce({}) { |h, e| h[e] = e * 2; h }\n",
+            "xs.to_h { |e| [e, e * 2] }\n",
+        );
+    }
+
+    /// 番号付き引数では `inject` の要素が `_2` なので、`to_h` の `_1` に読み替える。
+    #[test]
+    fn the_numbered_spellings_are_renumbered() {
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { _2[_1] = _1 * 2 }\n",
+            "xs.to_h { [_1, _1 * 2] }\n",
+        );
+        expect_correction(
+            COP,
+            "xs.inject({}) { _1[_2] = _2 * 2; _1 }\n",
+            "xs.to_h { [_1, _1 * 2] }\n",
+        );
+    }
+
+    /// `do`...`end` は字下げが受け手の桁に揃う (上流の `block` ノードはレシーバから始まる)。
+    #[test]
+    fn a_do_end_block_keeps_the_receivers_indentation() {
+        expect_correction(
+            COP,
+            "def m\n  xs.inject({}) do |h, e|\n    h[e] = e\n    h\n  end\nend\n",
+            "def m\n  xs.to_h do |e|\n    [e, e]\n  end\nend\n",
+        );
+    }
+
+    /// 種が空のハッシュでないもの、鍵や値が蓄積器を読むもの、蓄積器を返さない `inject`、
+    /// 文が余分にあるものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "xs.each_with_object([]) { |e, h| h[e] = e }\n",
+            "xs.each_with_object({ a: 1 }) { |e, h| h[e] = e }\n",
+            "xs.each_with_object({}) { |e, h| h[e] = h.size }\n",
+            "xs.inject({}) { |h, e| h[e] = e }\n",
+            "xs.each_with_object({}) { |e, h| h[e] = e; other }\n",
+            "xs.each_with_object({}) { |e| e }\n",
+            "xs.map { |e| e }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 入れ子になった同じ形は、その回は内側だけが直る。`-A` は収束するまで回るので
+    /// 2 パス目で外側も畳まれる。
+    #[test]
+    fn a_nested_fold_defers_the_outer_one() {
+        expect_correction(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = ys.each_with_object({}) { |y, g| g[y] = y } }\n",
+            "xs.to_h { |e| [e, ys.to_h { |y| [y, y] }] }\n",
+        );
+    }
+
+    /// 2.6 未満では `to_h` がブロックを取らないので黙る。
+    #[test]
+    fn it_needs_ruby_2_6() {
+        CopCase::new(
+            COP,
+            "xs.each_with_object({}) { |e, h| h[e] = e }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.5")
+        .run();
+    }
+}
+
+/// `Style/DocumentationMethod` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DocumentationMethod` で走らせた実出力から取った
+/// (既定と `RequireForNonPublicMethods: true` の両方で一致)。
+mod style_documentation_method {
+    use super::*;
+
+    const COP: &str = "Style/DocumentationMethod";
+
+    /// 位置は定義全体。修飾子に渡した定義はその呼び出し全体になる。
+    #[test]
+    fn a_public_method_without_prose_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def foo; end
+            ^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            module_function def mf; end
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        );
+    }
+
+    /// 直前の行のコメントがあれば触らない。注記・マジックコメント・ディレクティブは
+    /// 説明とは数えない。
+    #[test]
+    fn a_comment_directly_above_is_documentation() {
+        expect_no_offenses(COP, "# prose\ndef bar; end\n");
+        expect_no_offenses(COP, "# prose\nmodule_function def mf2; end\n");
+        for source in [
+            "# TODO: annotation\ndef annotated; end\n",
+            "# frozen_string_literal: true\ndef magic; end\n",
+            "# rubocop:disable Style/For\ndef directive; end\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .run();
+        }
+    }
+
+    /// `initialize` と、既定では非公開のメソッドは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def initialize; end\n",
+            "class A\n  private\n  def hidden; end\nend\n",
+            "private def inline; end\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `RequireForNonPublicMethods` と `AllowedMethods` で範囲が変わる。
+    #[test]
+    fn the_settings_change_what_is_required() {
+        CopCase::annotated(
+            COP,
+            r"
+            class A
+              private
+              def hidden; end
+              ^^^^^^^^^^^^^^^ Missing method documentation comment.
+            end
+            ",
+        )
+        .config("Style/DocumentationMethod:\n  RequireForNonPublicMethods: true\n")
+        .run();
+        CopCase::new(COP, "def foo; end\n".to_owned(), Vec::new())
+            .config("Style/DocumentationMethod:\n  AllowedMethods:\n    - foo\n")
+            .run();
+    }
+}
+
 /// `Lint/NonAtomicFileOperation`。
 ///
 /// 期待値は本家 1.89.0 を `--only Lint/NonAtomicFileOperation` で走らせた実出力から取った
