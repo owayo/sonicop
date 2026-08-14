@@ -3761,6 +3761,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_map_compact_with_conditional_block")
         .correctable(true),
+        // 位置は selector だけ。補正は無い。
+        CopCase::annotated(
+            "Style/DocumentDynamicEvalDefinition",
+            "class_eval <<~RUBY\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  def #{name}\n  end\nRUBY\n",
+        )
+        .id("style_document_dynamic_eval_definition")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

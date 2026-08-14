@@ -63,6 +63,7 @@ department_rules! {
     dig_chain => ("DigChain", Convention),
     data_inheritance => ("DataInheritance", Convention),
     documentation => ("Documentation", Convention),
+    document_dynamic_eval_definition => ("DocumentDynamicEvalDefinition", Convention),
     double_cop_disable_directive => ("DoubleCopDisableDirective", Convention),
     double_negation => ("DoubleNegation", Convention),
     each_for_simple_loop => ("EachForSimpleLoop", Convention),

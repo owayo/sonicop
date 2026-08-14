@@ -22312,3 +22312,75 @@ mod style_map_compact_with_conditional_block {
         }
     }
 }
+
+/// `Style/DocumentDynamicEvalDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DocumentDynamicEvalDefinition` で走らせた実出力から
+/// 取った (検出 5 件 / 4 件で一致。この cop は補正を持たない)。
+mod style_document_dynamic_eval_definition {
+    use super::*;
+
+    const COP: &str = "Style/DocumentDynamicEvalDefinition";
+
+    /// 補間を含む文字列を `eval` 系に渡していて、何ができるのかを書いた注釈が無いものが対象。
+    #[test]
+    fn an_undocumented_interpolated_definition_is_reported() {
+        for source in [
+            "class_eval <<~RUBY\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+            "class_eval \"def #{name}; end\"\n",
+            "module_eval <<~RUBY\n  def #{name}\n  end\nRUBY\n",
+            "instance_eval <<-RUBY\n  def #{name}\n  end\nRUBY\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "Add a comment block showing its appearance if interpolated."
+            );
+            assert!(!report.offenses[0].is_correctable());
+        }
+    }
+
+    /// ヒアドキュメントの**中**に書かれた注釈が、補間後の姿と読める形なら黙る。
+    #[test]
+    fn a_comment_block_inside_the_heredoc_is_enough() {
+        expect_no_offenses(
+            COP,
+            "class_eval <<~RUBY\n  # def foo\n  #   @foo\n  # end\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// ヒアドキュメントの**外**に書かれた注釈は拾われない。`preceding_comment_blocks` が
+    /// 見るのは呼び出し自身が載っている行だけで、ヒアドキュメント本体はその外にある。
+    #[test]
+    fn a_comment_block_above_the_call_is_not_looked_at() {
+        expect_offense(
+            COP,
+            "# def foo\n#   @foo\n# end\nclass_eval <<~RUBY\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間のある行そのものに注釈が付いていれば足りるが、**すべての**補間の行に要る。
+    #[test]
+    fn a_comment_on_every_interpolated_line_is_enough() {
+        expect_no_offenses(COP, "class_eval \"def #{name}; end\" # def foo; end\n");
+        expect_offense(
+            COP,
+            "class_eval(<<~RUBY)\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  # def #{name}\n  def #{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間の無い文字列、`eval` 系でない呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class_eval \"def foo; end\"\n",
+            "class_eval <<~RUBY\n  def foo\n  end\nRUBY\n",
+            "define_method(\"#{name}\") { }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
