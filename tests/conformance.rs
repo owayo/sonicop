@@ -3488,6 +3488,83 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 6, 1, 32)])
         .lengths(&[27])
         .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。`[element]` は括弧ごと消える。
+        CopCase::annotated(
+            "Style/ArrayIntersectWithSingleElement",
+            "array.intersect?([1])\n      ^^^^^^^^^^^^^^^ Use `include?(element)` instead of `intersect?([element])`.\n",
+        )
+        .id("style_array_intersect_with_single_element")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DirEmpty",
+            "Dir.children(path).empty?\n^^^^^^^^^^^^^^^^^^^^^^^^^ Use `Dir.empty?(path)` instead.\n",
+        )
+        .id("style_dir_empty")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FileEmpty",
+            "File.zero?(path)\n^^^^^^^^^^^^^^^^ Use `File.empty?(path)` instead.\n",
+        )
+        .id("style_file_empty")
+        .correctable(true),
+        // 報告されるのは `block` ノード、つまり呼び出しとブロックを合わせた範囲。
+        CopCase::annotated(
+            "Style/FileTouch",
+            "File.open(filename, 'a') {}\n^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `FileUtils.touch(filename)` instead of `File.open` in append mode with empty block.\n",
+        )
+        .id("style_file_touch")
+        .correctable(true),
+        // 位置はヒアドキュメントの開始記号だけ。本体と終端行は補正で消える。
+        CopCase::annotated(
+            "Style/EmptyHeredoc",
+            "x = <<~MSG\n    ^^^^^^ Use an empty string literal instead of heredoc.\nMSG\n",
+        )
+        .id("style_empty_heredoc")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ModuleMemberExistenceCheck",
+            "Foo.instance_methods.include?(:bar)\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `method_defined?(:bar)` instead.\n",
+        )
+        .id("style_module_member_existence_check")
+        .correctable(true),
+        // 位置は `if` 全体。複数行なので注記では表せない。
+        CopCase::annotated("Style/MinMaxComparison", "if a > b\n  a\nelse\n  b\nend\n")
+            .id("style_min_max_comparison")
+            .without_offense_check()
+            .locations(&[(1, 1, 5, 3)])
+            .lengths(&[25])
+            .correctable(true),
+        CopCase::annotated(
+            "Style/ComparableBetween",
+            "x >= 1 && x <= 10\n^^^^^^^^^^^^^^^^^ Prefer `x.between?(1, 10)` over logical comparison.\n",
+        )
+        .id("style_comparable_between")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ExactRegexpMatch",
+            "foo.match?(/\\Abar\\z/)\n^^^^^^^^^^^^^^^^^^^^^ Use `foo == 'bar'`.\n",
+        )
+        .id("style_exact_regexp_match")
+        .correctable(true),
+        // 位置は一番内側の `dig` の selector から連鎖の末尾まで。
+        CopCase::annotated(
+            "Style/DigChain",
+            "x.dig(:a).dig(:b)\n  ^^^^^^^^^^^^^^^ Use `dig(:a, :b)` instead of chaining.\n",
+        )
+        .id("style_dig_chain")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashFetchChain",
+            "x.fetch(:a, nil).fetch(:b, nil)\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `dig(:a, :b)` instead.\n",
+        )
+        .id("style_hash_fetch_chain")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ConcatArrayLiterals",
+            "a.concat([1, 2])\n  ^^^^^^^^^^^^^^ Use `push(1, 2)` instead of `concat([1, 2])`.\n",
+        )
+        .id("style_concat_array_literals")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
