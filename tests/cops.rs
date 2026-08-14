@@ -23056,3 +23056,103 @@ mod style_ip_addresses {
             .run();
     }
 }
+
+/// `Style/ReturnNilInPredicateMethodDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ReturnNilInPredicateMethodDefinition` で走らせた
+/// 実出力から取った (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_return_nil_in_predicate_method_definition {
+    use super::*;
+
+    const COP: &str = "Style/ReturnNilInPredicateMethodDefinition";
+
+    /// 明示的な `return` / `return nil` は `return false` になる。
+    #[test]
+    fn an_explicit_return_of_nil_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            def foo?
+              return if bar
+              ^^^^^^ Return `false` instead of `nil` in predicate methods.
+              baz
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def bar?\n  return nil if x\n  true\nend\n",
+            "def bar?\n  return false if x\n  true\nend\n",
+        );
+    }
+
+    /// 暗黙の戻り値も対象。分岐の中まで辿る。
+    #[test]
+    fn an_implicit_nil_is_reported_too() {
+        expect_correction(
+            COP,
+            "def baz?\n  x\n  nil\nend\n",
+            "def baz?\n  x\n  false\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def quux?\n  if x\n    nil\n  else\n    true\n  end\nend\n",
+            "def quux?\n  if x\n    false\n  else\n    true\n  end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def corge?\n  if x\n    true\n  elsif y\n    nil\n  end\nend\n",
+            "def corge?\n  if x\n    true\n  elsif y\n    false\n  end\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def grault?\n  x ? nil : true\nend\n",
+            "def grault?\n  x ? false : true\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def thud?\n  unless x\n    nil\n  end\nend\n",
+            "def thud?\n  unless x\n    false\n  end\nend\n",
+        );
+    }
+
+    /// 本体が `return nil` **だけ**のときは上流の `each_descendant(:return)` が自分自身を
+    /// 含まないため見逃す。`?` で終わらない名前も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def plugh?\n  return nil\nend\n",
+            "def self.plugh?\n  return nil\nend\n",
+            "def garply?\n  return false\nend\n",
+            "def waldo?\n  true\nend\n",
+            "def fred\n  return nil\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// ブロックの中の `return` も子孫なので拾う。
+    #[test]
+    fn a_return_inside_a_block_counts() {
+        expect_correction(
+            COP,
+            "def xyzzy?\n  xs.each { return nil }\nend\n",
+            "def xyzzy?\n  xs.each { return false }\nend\n",
+        );
+    }
+
+    /// `AllowedMethods` と `AllowedPatterns` で名前を外せる。
+    #[test]
+    fn the_allowed_settings_skip_a_name() {
+        for source in [
+            "def foo?\n  x\n  nil\nend\n",
+            "def barbaz?\n  x\n  nil\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(
+                    "Style/ReturnNilInPredicateMethodDefinition:\n  AllowedMethods:\n    - foo?\n  AllowedPatterns:\n    - \"\\\\Abar\"\n",
+                )
+                .run();
+        }
+    }
+}

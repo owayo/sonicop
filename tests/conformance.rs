@@ -3950,6 +3950,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_ip_addresses")
         .correctable(false),
+        CopCase::annotated(
+            "Style/ReturnNilInPredicateMethodDefinition",
+            r"
+            def foo?
+              return if bar
+              ^^^^^^ Return `false` instead of `nil` in predicate methods.
+              baz
+            end
+            ",
+        )
+        .id("style_return_nil_in_predicate_method_definition")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

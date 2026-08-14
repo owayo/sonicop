@@ -180,6 +180,7 @@ department_rules! {
     reverse_find => ("ReverseFind", Convention),
     redundant_return => ("RedundantReturn", Convention),
     return_nil => ("ReturnNil", Convention),
+    return_nil_in_predicate_method_definition => ("ReturnNilInPredicateMethodDefinition", Convention),
     redundant_self_assignment_branch => ("RedundantSelfAssignmentBranch", Convention),
     redundant_self => ("RedundantSelf", Convention),
     redundant_self_assignment => ("RedundantSelfAssignment", Convention),
