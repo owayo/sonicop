@@ -21884,3 +21884,115 @@ mod lint_it_without_arguments_in_block {
             .run();
     }
 }
+
+/// `Lint/UnexpectedBlockArity`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UnexpectedBlockArity` で走らせた実出力から取った
+/// (検出 6 件を確認済み)。
+mod lint_unexpected_block_arity {
+    use super::*;
+
+    const COP: &str = "Lint/UnexpectedBlockArity";
+
+    #[test]
+    fn a_block_with_too_few_parameters_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            x.reduce { |a| a }
+            ^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 1.
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x.reduce { }
+            ^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 0.
+            "#,
+        );
+        // 分解引数は 1 個として数える。
+        expect_offense(
+            COP,
+            r#"
+            x.inject { |(a, b)| a }
+            ^^^^^^^^^^^^^^^^^^^^^^^ `inject` expects at least 2 positional arguments, got 1.
+            "#,
+        );
+    }
+
+    /// `restarg` はいくつでも受け取れる。レシーバ無しの呼び出しと一覧に無いメソッドは
+    /// 対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.reduce { |a, b| a }\n",
+            "x.sort { |a, *b| a }\n",
+            "reduce { |a| a }\n",
+            "x.map { |a| a }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/LiteralAssignmentInCondition`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/LiteralAssignmentInCondition` で走らせた実出力から
+/// 取った (検出 18 件を確認済み)。
+mod lint_literal_assignment_in_condition {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralAssignmentInCondition";
+
+    /// レンジは `=` から右辺の末尾まで。
+    #[test]
+    fn a_literal_assigned_in_a_condition_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if x = 1
+                 ^^^ Don't use literal assignment `= 1` in conditional, should be `==` or non-literal operand.
+            end
+            "#,
+        );
+        for source in [
+            "while y = \"str\"\nend\n",
+            "until z = [1, 2]\nend\n",
+            "if a = { b: 1 }\nend\n",
+            "if (c = 1)\nend\n",
+            "if f = :sym\nend\n",
+            "if g = nil\nend\n",
+            "if h = 1..2\nend\n",
+            "x if y = 1\n",
+            "x unless y = 2\n",
+            "a = 1 if b = /re/\n",
+            "c = (d = 4) ? 1 : 2\n",
+            "if g = -1\nend\n",
+            "if i = :\"a#{b}\"\nend\n",
+            "def m\n  if n = 5\n  end\nend\n",
+            "while r = 7 do end\n",
+            "if e = <<~TXT\n  one\nTXT\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// `dstr` / `xstr` はリテラル扱いされず、`= *x` も対象外。本体がブロックの中に
+    /// あるものは条件ではない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if x = foo\nend\n",
+            "if b = [*c]\nend\n",
+            "if d == 1\nend\n",
+            "if e = \"a#{b}\"\nend\n",
+            "if h = `cmd`\nend\n",
+            "if j = [1].map { |k| k = 2 }\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

@@ -2647,6 +2647,27 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_it_without_arguments_in_block")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UnexpectedBlockArity",
+            r#"
+            x.reduce { |a| a }
+            ^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 1.
+            "#,
+        )
+        .id("lint_unexpected_block_arity")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/LiteralAssignmentInCondition",
+            r#"
+            if x = 1
+                 ^^^ Don't use literal assignment `= 1` in conditional, should be `==` or non-literal operand.
+            end
+            "#,
+        )
+        .id("lint_literal_assignment_in_condition")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
