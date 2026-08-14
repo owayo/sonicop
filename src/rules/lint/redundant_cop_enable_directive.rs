@@ -14,11 +14,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let parsed = directives(context);
     // `registry.disabled_names(config)`: an `enable` of a cop the configuration switched off has
     // something to undo, so it starts out counted as disabled.
+    //
+    // Ask for the resolved state rather than the literal `Enabled` value. RuboCop ships 159 cops
+    // as `Enabled: pending`, which is neither `true` nor `false` but resolves to off, so reading
+    // the literal as a boolean missed every one of them and their `enable` looked redundant.
+    // Homebrew pairs a `disable`/`enable` around such cops in ten files, and autocorrect deleted
+    // the `enable` line that the upstream run keeps.
     for directive in &parsed {
         for name in &directive.names {
-            if !disabled.named.contains_key(name)
-                && context.setting_of::<bool>(name, "Enabled") == Some(false)
-            {
+            if !disabled.named.contains_key(name) && !context.cop_enabled(name) {
                 disabled.named.insert(name.clone(), 1);
             }
         }
