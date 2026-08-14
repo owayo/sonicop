@@ -118,12 +118,12 @@ reuse, custom Ruby cops, or cops outside the implemented set.
 ### Conformance
 
 The implemented cops are verified against RuboCop 1.89.0 over five Ruby projects — RuboCop itself,
-Rails, Ruby, Homebrew and Mastodon — totalling 18,244 files, with the upstream default
+Rails, Ruby, Homebrew and Mastodon — totalling 18,246 files, with the upstream default
 configuration on both sides. Every offense is compared by cop, path, line, column, last line, last
 column, length, message, severity and correctability.
 
-Three of the five match **exactly**: RuboCop's own tree (4,142 offenses), Rails (117,541) and
-Mastodon (7,610), with no excess, no shortfall and no metadata differences. The target file lists
+Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,535) and
+Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
 match exactly on all five. What remains is concentrated in `Lint/Syntax`, where RuboCop's LALR
 parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct.
 Autocorrect is byte-identical on every corpus it was run against.

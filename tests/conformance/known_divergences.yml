@@ -13,9 +13,9 @@
 
 # 検証コーパスが見ていないもの。CONFORMANCE.md に必ず出す。
 #
-# 現在の検証コーパスは 5 本、計 18,242 ファイル:
-#   rubocop/rubocop 1,763 / rails/rails 3,550 / ruby/ruby 7,465 /
-#   Homebrew/brew 2,175 / mastodon/mastodon 3,289
+# 現在の検証コーパスは 5 本、計 18,246 ファイル:
+#   rubocop/rubocop 1,765 / rails/rails 3,550 / ruby/ruby 7,465 /
+#   Homebrew/brew 2,176 / mastodon/mastodon 3,290
 # 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
 # 版依存の挙動はこの 3 つの範囲では踏めている。
 blind_spots:
