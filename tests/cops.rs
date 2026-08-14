@@ -20454,3 +20454,196 @@ mod lint_or_assignment_to_constant {
         }
     }
 }
+
+/// `Lint/LambdaWithoutLiteralBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/LambdaWithoutLiteralBlock` で走らせた実出力から取った。
+mod lint_lambda_without_literal_block {
+    use super::*;
+
+    const COP: &str = "Lint/LambdaWithoutLiteralBlock";
+
+    /// `RESTRICT_ON_SEND` はメソッド名しか絞らないので、レシーバ付きの `Foo.lambda` も
+    /// 同じように報告され、`&` を落とした引数へ置き換わる。
+    #[test]
+    fn the_argument_replaces_the_whole_call_receiver_and_all() {
+        expect_offense(
+            COP,
+            r#"
+            lambda(&block)
+            ^^^^^^^^^^^^^^ lambda without a literal block is deprecated; use the proc without lambda instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "lambda(&block)\nFoo.lambda(&block)\nlambda(&method(:x))\nlambda &block\n",
+            "block\nblock\nmethod(:x)\nblock\n",
+        );
+    }
+
+    /// リテラルブロック付き・引数無しは対象外。`lambda(&:foo)` はレシーバ無しで引数が
+    /// 1 個のシンボル proc のときだけ免除される。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "lambda { |x| x }\n",
+            "lambda do |x| x end\n",
+            "lambda\n",
+            "lambda(&:foo)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(COP, "Foo.lambda(&:foo)\nlambda(x, &:foo)\n", ":foo\nx\n");
+    }
+}
+
+/// `Lint/EmptyClass`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/EmptyClass` で走らせた実出力から取った。
+mod lint_empty_class {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyClass";
+
+    /// レンジは `end` までを含む。注記は 1 行目の幅までしか書けないので、真のレンジは
+    /// `locations` / `lengths` で押さえる。
+    #[test]
+    fn a_class_and_a_metaclass_get_different_messages() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class Foo
+            ^^^^^^^^^ Empty class detected.
+            end
+            "#,
+        )
+        .locations(&[(1, 1, 2, 3)])
+        .lengths(&[13])
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class << self
+            ^^^^^^^^^^^^^ Empty metaclass detected.
+            end
+            "#,
+        )
+        .locations(&[(1, 1, 2, 3)])
+        .lengths(&[17])
+        .run();
+    }
+
+    /// 既定の `AllowComments: false` ではコメントだけの本体も空。親クラスがあるものは
+    /// それだけで意味があるので対象外。
+    #[test]
+    fn a_comment_is_not_a_body_unless_allow_comments_is_on() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class Baz
+            ^^^^^^^^^ Empty class detected.
+              # comment
+            end
+            "#,
+        )
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[25])
+        .run();
+        CopCase::new(COP, "class Baz\n  # comment\nend\n", Vec::new())
+            .config("Lint/EmptyClass:\n  AllowComments: true\n")
+            .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class Bar < Base\nend\n",
+            "class Foo\n  def x; end\nend\n",
+            "class << self\n  def x; end\nend\n",
+            "module M; end\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Lint/AmbiguousAssignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/AmbiguousAssignment` で走らせた実出力から取った。
+mod lint_ambiguous_assignment {
+    use super::*;
+
+    const COP: &str = "Lint/AmbiguousAssignment";
+
+    /// レンジは代入演算子の末尾 1 文字と右辺の先頭 1 文字の 2 文字ちょうど。空白が入ると
+    /// 3 文字になり、本家の対応表に載らないので報告されない。
+    #[test]
+    fn the_two_characters_across_the_operator_are_reported() {
+        expect_offense(
+            COP,
+            r#"
+            x =- 1
+              ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            x ||=- 1
+                ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            foo.bar =* 1
+                    ^^ Suspicious assignment detected. Did you mean `*=`?
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            @x =! 1
+               ^^ Suspicious assignment detected. Did you mean `!=`?
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            a, b =+ 1
+                 ^^ Suspicious assignment detected. Did you mean `+=`?
+            "#,
+        );
+    }
+
+    /// `optarg` は `CheckAssignment` の対象外。文法が `def r(a = nil, b = nil)` を
+    /// 多重代入へ畳んでも、本家に無い代入を報告してはいけない。
+    #[test]
+    fn a_default_value_is_not_an_assignment() {
+        expect_no_offenses(COP, "def m(a =- 1); end\n");
+        expect_no_offenses(COP, "def r(a = nil, b =-1); end\n");
+        expect_no_offenses(COP, "def s(x = 1, y =-2); end\n");
+        // 引数リストの中の代入は本家でも `lvasgn` なので残る。
+        expect_offense(
+            COP,
+            r#"
+            foo(a = 1, b =-2)
+                         ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        );
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x = -1\n",
+            "x == -1\n",
+            "x >= -1\n",
+            "x =~ -1\n",
+            "foo(-1)\n",
+            "h = { a: -1 }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

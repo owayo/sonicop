@@ -39,6 +39,7 @@ pub(in crate::rules) mod variable_force;
 
 department_rules! {
     "Lint";
+    ambiguous_assignment => ("AmbiguousAssignment", Warning),
     ambiguous_block_association => ("AmbiguousBlockAssociation", Warning),
     ambiguous_operator => ("AmbiguousOperator", Warning),
     ambiguous_regexp_literal => ("AmbiguousRegexpLiteral", Warning),
@@ -60,6 +61,7 @@ department_rules! {
     duplicate_rescue_exception => ("DuplicateRescueException", Warning),
     each_with_object_argument => ("EachWithObjectArgument", Warning),
     else_layout => ("ElseLayout", Warning),
+    empty_class => ("EmptyClass", Warning),
     empty_conditional_body => ("EmptyConditionalBody", Warning),
     empty_ensure => ("EmptyEnsure", Warning),
     empty_expression => ("EmptyExpression", Warning),
@@ -78,6 +80,7 @@ department_rules! {
     ineffective_access_modifier => ("IneffectiveAccessModifier", Warning),
     inherit_exception => ("InheritException", Warning),
     interpolation_check => ("InterpolationCheck", Warning),
+    lambda_without_literal_block => ("LambdaWithoutLiteralBlock", Warning),
     literal_as_condition => ("LiteralAsCondition", Warning),
     literal_in_interpolation => ("LiteralInInterpolation", Warning),
     r#loop => ("Loop", Warning),

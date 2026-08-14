@@ -2345,6 +2345,39 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_or_assignment_to_constant")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/LambdaWithoutLiteralBlock",
+            r#"
+            lambda(&block)
+            ^^^^^^^^^^^^^^ lambda without a literal block is deprecated; use the proc without lambda instead.
+            "#,
+        )
+        .id("lint_lambda_without_literal_block")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/EmptyClass",
+            r#"
+            class Foo
+            ^^^^^^^^^ Empty class detected.
+            end
+            "#,
+        )
+        .id("lint_empty_class")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 2, 3)])
+        .lengths(&[13])
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/AmbiguousAssignment",
+            r#"
+            x =- 1
+              ^^ Suspicious assignment detected. Did you mean `-=`?
+            "#,
+        )
+        .id("lint_ambiguous_assignment")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
