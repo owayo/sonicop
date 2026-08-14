@@ -4249,6 +4249,33 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_magic_comment_format")
         .correctable(true),
+        // 位置は鍵の文字列だけ。
+        CopCase::annotated(
+            "Style/StringHashKeys",
+            r"
+            { 'a' => 1 }
+              ^^^ Prefer symbols instead of strings as hash keys.
+            ",
+        )
+        .id("style_string_hash_keys")
+        .correctable(true),
+        // 位置は `[...]` の部分。
+        CopCase::annotated(
+            "Style/ArrayFirstLast",
+            r"
+            a[0]
+             ^^^ Use `first`.
+            ",
+        )
+        .id("style_array_first_last")
+        .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/RedundantInitialize", "class A\n  def initialize\n  end\nend\n")
+            .id("style_redundant_initialize")
+            .without_offense_check()
+            .locations(&[(2, 3, 3, 5)])
+            .lengths(&[20])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

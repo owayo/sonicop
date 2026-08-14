@@ -25375,3 +25375,199 @@ mod style_magic_comment_format {
             .run();
     }
 }
+
+/// `Style/StringHashKeys` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/StringHashKeys` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_string_hash_keys {
+    use super::*;
+
+    const COP: &str = "Style/StringHashKeys";
+
+    /// 位置は鍵の文字列だけ。置き換えは `Symbol#inspect` の綴り。
+    #[test]
+    fn a_string_key_becomes_a_symbol() {
+        expect_offense(
+            COP,
+            r"
+            { 'a' => 1 }
+              ^^^ Prefer symbols instead of strings as hash keys.
+            ",
+        );
+        expect_correction(COP, "{ 'a' => 1 }\n", "{ :a => 1 }\n");
+        expect_correction(COP, "{ 'a' => 1, 'b' => 2 }\n", "{ :a => 1, :b => 2 }\n");
+        // 素の名前にできない綴りは引用符付きのシンボルになる。
+        expect_correction(COP, "{ 'a-b' => 1 }\n", "{ :\"a-b\" => 1 }\n");
+        expect_correction(COP, "{ 'with space' => 1 }\n", "{ :\"with space\" => 1 }\n");
+        expect_correction(
+            COP,
+            "{ \"tab\\there\" => 1 }\n",
+            "{ :\"tab\\there\" => 1 }\n",
+        );
+    }
+
+    /// 環境変数を渡す呼び出しでは文字列の鍵しか通らないので触らない。
+    #[test]
+    fn an_environment_hash_is_exempt() {
+        for source in [
+            "IO.popen({ 'A' => 'b' }, 'cmd')\n",
+            "::IO.popen({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.capture2({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.popen3({ 'A' => 'b' }, 'cmd')\n",
+            "Open3.pipeline([{ 'A' => 'b' }, 'cmd'])\n",
+            "Kernel.spawn({ 'A' => 'b' }, 'cmd')\n",
+            "spawn({ 'A' => 'b' }, 'cmd')\n",
+            "system({ 'A' => 'b' }, 'cmd')\n",
+            "str.gsub(/x/, { 'a' => 'b' })\n",
+            "str.gsub!(/x/, { 'a' => 'b' })\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// シンボルの鍵と補間する文字列は触らない。名前空間の違う `popen` は除外されない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["{ a: 1 }\n", "{ :a => 1 }\n", "{ \"#{x}\" => 1 }\n"] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(
+            COP,
+            "Foo.popen({ 'A' => 'b' }, 'cmd')\n",
+            "Foo.popen({ :A => 'b' }, 'cmd')\n",
+        );
+    }
+}
+
+/// `Style/ArrayFirstLast` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayFirstLast` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_first_last {
+    use super::*;
+
+    const COP: &str = "Style/ArrayFirstLast";
+
+    /// 位置は `[...]` の部分。ドット付きで書かれていると selector から末尾まで。
+    #[test]
+    fn a_zero_or_minus_one_subscript_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a[0]
+             ^^^ Use `first`.
+            ",
+        );
+        expect_correction(COP, "a[0]\n", "a.first\n");
+        expect_correction(COP, "a[-1]\n", "a.last\n");
+        expect_correction(COP, "a.[](0)\n", "a.first\n");
+        expect_correction(COP, "a.[](-1)\n", "a.last\n");
+        expect_correction(COP, "a&.[](0)\n", "a&.first\n");
+        expect_correction(COP, "[1, 2][0]\n", "[1, 2].first\n");
+        expect_correction(COP, "a.b[0]\n", "a.b.first\n");
+        expect_correction(COP, "h[0].c\n", "h.first.c\n");
+    }
+
+    /// 添字が続くもの、代入の左辺、`[0, 1]`、文字列の鍵は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a[1]\n",
+            "a[0][1]\n",
+            "a[0][0]\n",
+            "a[0] = 1\n",
+            "a[0] += 1\n",
+            "a[0, 1]\n",
+            "a['k']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantInitialize`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantInitialize` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_initialize {
+    use super::*;
+
+    const COP: &str = "Style/RedundantInitialize";
+
+    /// 引数の無い空の `initialize` は「空」の方のメッセージになる。位置は定義全体。
+    #[test]
+    fn an_empty_initialize_is_reported() {
+        CopCase::annotated(COP, "class A\n  def initialize\n  end\nend\n")
+            .id("empty")
+            .without_offense_check()
+            .locations(&[(2, 3, 3, 5)])
+            .lengths(&[20])
+            .run();
+        expect_correction(
+            COP,
+            "class A\n  def initialize\n  end\nend\n",
+            "class A\nend\n",
+        );
+    }
+
+    /// `super` へそのまま渡すだけの定義も消える。並びが変わっていたら残す。
+    #[test]
+    fn a_definition_that_only_forwards_is_reported() {
+        expect_correction(
+            COP,
+            "class C\n  def initialize(a)\n    super\n  end\nend\n",
+            "class C\nend\n",
+        );
+        expect_correction(
+            COP,
+            "class D\n  def initialize(a, b)\n    super(a, b)\n  end\nend\n",
+            "class D\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "class E\n  def initialize(a, b)\n    super(b, a)\n  end\nend\n",
+        );
+    }
+
+    /// `*args` / `**kw` / `...` は渡す先が変わりうるので残す。`&blk` は `forwards?` には
+    /// 数えないが、上流のパターン `(args $arg*)` が素の引数だけを取るので結局対象外になる。
+    #[test]
+    fn forwarding_parameters_keep_the_definition() {
+        for source in [
+            "class F\n  def initialize(*args)\n    super\n  end\nend\n",
+            "class G\n  def initialize(**kw)\n    super\n  end\nend\n",
+            "class H\n  def initialize(&blk)\n    super\n  end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引数付きの空の定義、2 文以上の本体、`super` でない本体は触らない。
+    /// 既定の `AllowComments: true` は本体にコメントがあるものを見送る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class B\n  def initialize(a)\n  end\nend\n",
+            "class I\n  def initialize\n    # comment\n  end\nend\n",
+            "class J\n  def initialize\n    do_something\n  end\nend\n",
+            "class K\n  def initialize(a)\n    super(a)\n    other\n  end\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `AllowComments: false` ならコメントがあっても報告する。
+    #[test]
+    fn allow_comments_off_reports_anyway() {
+        CopCase::new(
+            COP,
+            "class I\n  def initialize\n    # comment\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/RedundantInitialize:\n  AllowComments: false\n")
+        .without_offense_check()
+        .corrected("class I\nend\n")
+        .run();
+    }
+}
