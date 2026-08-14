@@ -3718,6 +3718,36 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_if_with_boolean_literal_branches")
         .correctable(true),
+        // 位置は定義全体。複数行なので注記では表せない。
+        CopCase::annotated("Style/EndlessMethod", "def m =\n  42\n")
+            .id("style_endless_method")
+            .target_ruby("3.0")
+            .without_offense_check()
+            .locations(&[(1, 1, 2, 4)])
+            .lengths(&[12])
+            .correctable(true),
+        // 位置は修飾子を含む式全体。置き換わるのは定義の側。
+        CopCase::annotated(
+            "Style/AmbiguousEndlessMethodDefinition",
+            "def m = 42 if cond\n^^^^^^^^^^^^^^^^^^ Avoid using `if` statements with endless methods.\n",
+        )
+        .id("style_ambiguous_endless_method_definition")
+        .target_ruby("3.0")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashConversion",
+            "Hash[ary]\n^^^^^^^^^ Prefer `ary.to_h` to `Hash[ary]`.\n",
+        )
+        .id("style_hash_conversion")
+        .correctable(true),
+        // 位置は `_1` の読みそのもの。
+        CopCase::annotated(
+            "Style/ItBlockParameter",
+            "foo { _1 * 2 }\n      ^^ Use `it` block parameter.\n",
+        )
+        .id("style_it_block_parameter")
+        .target_ruby("3.4")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

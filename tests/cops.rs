@@ -21928,3 +21928,231 @@ mod style_if_with_boolean_literal_branches {
         }
     }
 }
+
+/// `Style/EndlessMethod`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EndlessMethod` で走らせた実出力から取った
+/// (既定 style で検出 4 件、他の 4 style も含め `-A` の結果までバイト一致を確認済み)。
+mod style_endless_method {
+    use super::*;
+
+    const COP: &str = "Style/EndlessMethod";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 既定の `allow_single_line` が咎めるのは複数行の endless method だけ。
+    #[test]
+    fn only_a_multiline_endless_definition_is_reported() {
+        correction("def m =\n  42\n", "def m\n  42\nend\n");
+        correction("def self.m =\n  42\n", "def self.m\n  42\nend\n");
+        correction("def m(a) =\n  a * 2\n", "def m(a)\n  a * 2\nend\n");
+        correction(
+            "class C\n  def n =\n    1\nend\n",
+            "class C\n  def n\n    1\n  end\nend\n",
+        );
+    }
+
+    /// 1 行で書かれた endless method、通常の定義、ヒアドキュメントを返すものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def m = 42\n",
+            "def m\n  42\nend\n",
+            "def m = <<~X\n  hi\nX\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+
+    /// `disallow` は 1 行のものも咎め、`require_always` は逆に endless へ書き換える。
+    #[test]
+    fn the_other_styles_ask_for_the_other_directions() {
+        CopCase::new(COP, "def m = 42\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: disallow\n")
+            .without_offense_check()
+            .corrected("def m\n  42\nend\n")
+            .run();
+        CopCase::new(COP, "def m(a)\n  a * 2\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .without_offense_check()
+            .corrected("def m(a) = a * 2\n")
+            .run();
+        // 本体が 2 文あるものは endless にできない。
+        CopCase::new(COP, "def m\n  a\n  b\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .run();
+    }
+}
+
+/// `Style/AmbiguousEndlessMethodDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/AmbiguousEndlessMethodDefinition` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_ambiguous_endless_method_definition {
+    use super::*;
+
+    const COP: &str = "Style/AmbiguousEndlessMethodDefinition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の修飾子と `and`/`or` はどちらに掛かるか読めないので、定義を複数行へ戻す。
+    #[test]
+    fn a_modifier_after_an_endless_definition_is_reported() {
+        correction("def m = 42 if cond\n", "def m\n  42\nend if cond\n");
+        correction("def m = 42 unless cond\n", "def m\n  42\nend unless cond\n");
+        correction(
+            "def m(a) = a while cond\n",
+            "def m(a)\n  a\nend while cond\n",
+        );
+        correction("def m = 42 until cond\n", "def m\n  42\nend until cond\n");
+        correction("def m = foo and bar\n", "def m\n  foo\nend and bar\n");
+    }
+
+    /// 修飾子でない `if` の中に書かれた定義、endless でない定義は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["if cond\n  def m = 42\nend\n", "def m\n  42\nend\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
+
+/// `Style/HashConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/HashConversion` で走らせた実出力から取った
+/// (検出 19 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_conversion {
+    use super::*;
+
+    const COP: &str = "Style/HashConversion";
+
+    /// 引数が 1 つなら `to_h`。演算子や括弧無しの引数を持つ呼び出しは括弧で包む。
+    #[test]
+    fn a_single_argument_becomes_to_h() {
+        expect_correction(COP, "Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[[[1, 2]]]\n", "[[1, 2]].to_h\n");
+        expect_correction(COP, "::Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[a.zip b]\n", "(a.zip b).to_h\n");
+        expect_correction(COP, "Hash[foo(1)]\n", "foo(1).to_h\n");
+        expect_correction(COP, "Hash[a && b]\n", "(a && b).to_h\n");
+    }
+
+    /// 引数が偶数個ならハッシュリテラル。奇数個なら報告だけで補正しない。
+    #[test]
+    fn an_even_number_of_arguments_becomes_a_literal() {
+        expect_correction(COP, "Hash[a, b]\n", "{a => b}\n");
+        expect_correction(COP, "Hash[a, b, c, d]\n", "{a => b, c => d}\n");
+        let report = CopCase::new(COP, "Hash[a, b, c]\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(!report.offenses[0].is_correctable());
+    }
+
+    /// 括弧の無い呼び出しに渡すと、ハッシュリテラルがブロックに見えるので括弧が付く。
+    #[test]
+    fn a_literal_handed_to_a_bare_call_gains_parentheses() {
+        expect_correction(COP, "foo Hash[a, b]\n", "foo({a => b})\n");
+        expect_correction(COP, "foo Hash[key: :value]\n", "foo({key: :value})\n");
+    }
+
+    /// `zip` に引数が無いときは、まず第 2 の配列を補い、次のパスで `to_h` になる。
+    #[test]
+    fn a_zip_without_an_argument_gains_the_second_array_first() {
+        expect_correction(COP, "Hash[a.zip]\n", "a.zip([]).to_h\n");
+        expect_correction(COP, "Hash[a.zip()]\n", "a.zip([]).to_h\n");
+    }
+
+    /// splat 引数は既定で許され、名前空間付きの `Hash` は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["Hash[*ary]\n", "Foo::Hash[ary]\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ItBlockParameter`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ItBlockParameter` で走らせた実出力から取った
+/// (4 style すべてで検出と `-A` の一致を確認済み)。
+mod style_it_block_parameter {
+    use super::*;
+
+    const COP: &str = "Style/ItBlockParameter";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new()).target_ruby("3.4")
+    }
+
+    /// 既定の `allow_single_line` では `_1` を `it` に置き換え、複数行の `it` ブロックを咎める。
+    #[test]
+    fn numbered_parameters_become_it() {
+        case("foo { _1 * 2 }\n")
+            .without_offense_check()
+            .corrected("foo { it * 2 }\n")
+            .run();
+        case("foo { _1 + _1 }\n")
+            .without_offense_check()
+            .corrected("foo { it + it }\n")
+            .run();
+        case("foo do\n  _1 * 2\nend\n")
+            .without_offense_check()
+            .corrected("foo do\n  it * 2\nend\n")
+            .run();
+    }
+
+    /// 複数行の `it` ブロックは報告だけで補正は無い。1 行なら黙る。
+    #[test]
+    fn a_multiline_it_block_is_reported_without_a_correction() {
+        let report = case("foo do\n  it * 2\nend\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert_eq!(
+            report.offenses[0].message,
+            "Avoid using `it` block parameter for multi-line blocks."
+        );
+        assert!(!report.offenses[0].is_correctable());
+        case("foo { it * 2 }\n").run();
+    }
+
+    /// `_2` まで使うブロック、明示的な引数、3.4 未満の対象版は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo { _1 + _2 }\n", "foo { |x| x * 2 }\n", "foo { 1 }\n"] {
+            case(source).run();
+        }
+        CopCase::new(COP, "foo { _1 * 2 }\n".to_owned(), Vec::new())
+            .target_ruby("3.3")
+            .run();
+    }
+
+    /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
+    /// 何も見つからない。
+    #[test]
+    fn a_body_that_is_only_the_parameter_finds_nothing() {
+        case("foo { bar { it } }\n")
+            .config("Style/ItBlockParameter:\n  EnforcedStyle: disallow\n")
+            .run();
+    }
+}
