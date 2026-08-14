@@ -442,3 +442,98 @@ impl Interpolations {
             .any(|literal| literal.start > innermost && literal.contains(&offset))
     }
 }
+
+/// Node kinds upstream's parser writes as a container whose own value decides its children's,
+/// which is the first arm of `Node#value_used?`.
+const VALUE_CONTAINERS: &[&str] = &[
+    "array",
+    "string_array",
+    "symbol_array",
+    "hash",
+    "pair",
+    "string",
+    "chained_string",
+    "delimited_symbol",
+    "subshell",
+    "regex",
+    "range",
+    "when",
+];
+
+/// Node kinds that hold a list of statements, which upstream folds into one `begin` when there is
+/// more than one. Only the last statement of such a list carries the list's value.
+const STATEMENT_LISTS: &[&str] = &[
+    "program",
+    "then",
+    "else",
+    "body_statement",
+    "block_body",
+    "do",
+    "begin",
+    "parenthesized_statements",
+    "ensure",
+];
+
+/// `RuboCop::AST::Node#value_used?`: whether anything reads what this expression evaluates to.
+///
+/// A cop asks this to tell `File.open(path)` written for its side effect from one whose result is
+/// handed on. It is answered by walking up rather than down, because the same expression is used
+/// or discarded depending only on where it was written.
+pub(crate) fn value_used(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let Some(parent) = context.parent(node) else {
+        return false;
+    };
+    let kind = parent.kind_str();
+    if VALUE_CONTAINERS.contains(&kind) || (kind == "unary" && is_logical_not(parent, context)) {
+        return value_used(context, parent);
+    }
+    if STATEMENT_LISTS.contains(&kind) {
+        // `begin_value_used?`.
+        return last_statement(parent).is_some_and(|last| last.id() == node.id())
+            && value_used(context, parent);
+    }
+    match kind {
+        // `for_value_used?`: the variable and the collection are both read; the body is not,
+        // unless the loop itself is.
+        "for" => {
+            parent
+                .field("body")
+                .is_none_or(|body| body.id() != node.id())
+                || value_used(context, parent)
+        }
+        // `case_if_value_used?`: the condition is always read.
+        "case" | "case_match" | "if" | "unless" | "elsif" | "conditional" => {
+            is_field(parent, "condition", node)
+                || is_field(parent, "value", node)
+                || value_used(context, parent)
+        }
+        // `while_until_value_used?`: a loop always evaluates to `nil`, so only its condition is
+        // read.
+        "while" | "until" | "while_modifier" | "until_modifier" => {
+            is_field(parent, "condition", node)
+        }
+        _ => true,
+    }
+}
+
+fn is_field(parent: Node<'_>, name: &str, node: Node<'_>) -> bool {
+    parent
+        .field(name)
+        .is_some_and(|child| child.id() == node.id())
+}
+
+/// `!x` and `not x`, which upstream's parser writes as a `not` node rather than a call.
+fn is_logical_not(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.child(0)
+        .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
+}
+
+/// The last statement of a statement list, skipping what the grammar parks there that upstream's
+/// `begin` has no child for.
+fn last_statement<'tree>(list: Node<'tree>) -> Option<Node<'tree>> {
+    let mut cursor = list.walk();
+    let children: Vec<Node<'tree>> = list.named_children(&mut cursor).collect();
+    children
+        .into_iter()
+        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
+}

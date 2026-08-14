@@ -20248,6 +20248,1691 @@ mod style_env_home {
     }
 }
 
+/// `Style/ArrayIntersectWithSingleElement`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayIntersectWithSingleElement` で走らせた実出力から
+/// 取った (検出 8 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_intersect_with_single_element {
+    use super::*;
+
+    const COP: &str = "Style/ArrayIntersectWithSingleElement";
+
+    /// 括弧配列は要素の**ソース**が、パーセントリテラルは要素の**値の `inspect`** が入る。
+    /// `%i[foo-bar]` はダブルクォートで囲まれた `:"foo-bar"` になる。
+    #[test]
+    fn the_single_element_replaces_the_array() {
+        expect_correction(COP, "a.intersect?([1])\n", "a.include?(1)\n");
+        expect_correction(COP, "a.intersect?([foo])\n", "a.include?(foo)\n");
+        expect_correction(COP, "a.intersect?(%i[foo])\n", "a.include?(:foo)\n");
+        expect_correction(COP, "a.intersect?(%w[foo])\n", "a.include?(\"foo\")\n");
+        expect_correction(
+            COP,
+            "a.intersect?(%i[foo-bar])\n",
+            "a.include?(:\"foo-bar\")\n",
+        );
+        expect_correction(COP, "intersect?([1])\n", "include?(1)\n");
+    }
+
+    /// splat・複数要素・空配列・引数が配列でないものは対象外。`&.` はパターンが `send` を
+    /// 名指しているので本家でも一致しない (`on_csend` の別名は死んでいる)。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a.intersect?([*foo])\n",
+            "a.intersect?([1, 2])\n",
+            "a.intersect?([])\n",
+            "a.intersect?(b)\n",
+            "a&.intersect?([1])\n",
+            "a.intersect?([1], 2)\n",
+            "a.intersect?(%w[foo bar])\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/DirEmpty`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DirEmpty` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_dir_empty {
+    use super::*;
+
+    const COP: &str = "Style/DirEmpty";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// `entries` は `.` と `..` を数えるので 2、`children` は 0 と比べる。
+    /// `!=` と `>` は「空でない」なので `!` が付く。
+    #[test]
+    fn every_way_of_counting_entries_becomes_the_predicate() {
+        correction("Dir.entries(path).size == 2\n", "Dir.empty?(path)\n");
+        correction("Dir.entries(path).size != 2\n", "!Dir.empty?(path)\n");
+        correction("Dir.entries(path).size > 2\n", "!Dir.empty?(path)\n");
+        correction("Dir.children(path).size == 0\n", "Dir.empty?(path)\n");
+        correction("Dir.children(path).empty?\n", "Dir.empty?(path)\n");
+        correction("Dir.each_child(path).none?\n", "Dir.empty?(path)\n");
+        correction("::Dir.children(path).empty?\n", "::Dir.empty?(path)\n");
+    }
+
+    /// 比較する数が合わないもの、ブロック付き、名前空間付きの `Dir`、対象版が 2.4 未満は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Dir.entries(path).size == 0\n",
+            "Dir.children(path).size == 2\n",
+            "Dir.entries(path).count == 2\n",
+            "Dir.each_child(path).none? { |x| x }\n",
+            "Foo::Dir.children(path).empty?\n",
+            "Dir.children(path, 1).empty?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        CopCase::new(COP, "Dir.children(path).empty?\n".to_owned(), Vec::new())
+            .target_ruby("2.3")
+            .run();
+    }
+}
+
+/// `Style/FileEmpty`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileEmpty` で走らせた実出力から取った
+/// (検出 14 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_empty {
+    use super::*;
+
+    const COP: &str = "Style/FileEmpty";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// `File` と `FileTest` のどちらも対象。`>=`・`!=` と、`!` を挟んだ `==` が
+    /// 「空でない」側に回る。
+    #[test]
+    fn every_size_and_read_check_becomes_the_predicate() {
+        correction("File.zero?('f')\n", "File.empty?('f')\n");
+        correction("FileTest.zero?('f')\n", "FileTest.empty?('f')\n");
+        correction("File.size('f') == 0\n", "File.empty?('f')\n");
+        correction("File.size('f') >= 0\n", "!File.empty?('f')\n");
+        correction("!File.size('f') == 0\n", "!File.empty?('f')\n");
+        correction("!File.size('f') >= 0\n", "File.empty?('f')\n");
+        correction("File.size('f').zero?\n", "File.empty?('f')\n");
+        correction("File.read('f') == ''\n", "File.empty?('f')\n");
+        correction("File.read('f') != ''\n", "!File.empty?('f')\n");
+        correction("File.binread('f') == ''\n", "File.empty?('f')\n");
+        correction("!File.read('f') == ''\n", "!File.empty?('f')\n");
+        correction("!File.read('f') != ''\n", "File.empty?('f')\n");
+        correction("File.read('f').empty?\n", "File.empty?('f')\n");
+    }
+
+    /// メッセージは補正が否定形でも `File.empty?(...)` のまま。本家の `format` が
+    /// `bang` を外に置いているため。
+    #[test]
+    fn the_message_never_carries_the_negation() {
+        expect_offense(
+            COP,
+            "File.size('f') >= 0\n^^^^^^^^^^^^^^^^^^^ Use `File.empty?('f')` instead.\n",
+        );
+    }
+
+    /// 比べる相手が違うもの、引数の数が合わないもの、名前空間付きの `File` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Foo::File.read('f').empty?\n",
+            "File.size('f') == 1\n",
+            "File.read('f') == 'x'\n",
+            "File.size('f') != 0\n",
+            "File.zero?\n",
+            "File.zero?('f', 'g')\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileTouch`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileTouch` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_touch {
+    use super::*;
+
+    const COP: &str = "Style/FileTouch";
+
+    /// 追記モードの綴りは 6 通りあり、どれも中身の無いブロックと組み合わさったときだけ。
+    #[test]
+    fn every_append_mode_with_an_empty_block_is_a_touch() {
+        for mode in ["a", "a+", "ab", "a+b", "at", "a+t"] {
+            expect_correction(
+                COP,
+                &format!("File.open('f', '{mode}') {{}}\n"),
+                "FileUtils.touch('f')\n",
+            );
+        }
+        expect_correction(
+            COP,
+            "File.open('f', 'a') do\nend\n",
+            "FileUtils.touch('f')\n",
+        );
+        expect_correction(COP, "::File.open('f', 'a') {}\n", "FileUtils.touch('f')\n");
+    }
+
+    /// 追記でないモード、中身のあるブロック、ブロックの無い呼び出し、名前空間付きの
+    /// `File` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open('f', 'w') {}\n",
+            "File.open('f', 'a') { |f| f.write 'x' }\n",
+            "File.open('f', 'a')\n",
+            "Foo::File.open('f', 'a') {}\n",
+            "File.open('f') {}\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/EmptyHeredoc`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EmptyHeredoc` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_empty_heredoc {
+    use super::*;
+
+    const COP: &str = "Style/EmptyHeredoc";
+
+    /// 開始記号が `''` に置き換わり、終端行は行ごと消える。字下げされた終端記号でも同じ
+    /// (本家の `heredoc_body` は終端の字下げを含まない)。
+    #[test]
+    fn an_empty_heredoc_becomes_an_empty_string_literal() {
+        expect_correction(COP, "x = <<~EOS\nEOS\n", "x = ''\n");
+        expect_correction(COP, "y = <<-EOS\nEOS\n", "y = ''\n");
+        expect_correction(COP, "z = <<EOS\nEOS\n", "z = ''\n");
+        expect_correction(COP, "w = <<~'EOS'\nEOS\n", "w = ''\n");
+        expect_correction(
+            COP,
+            "def m\n  s = <<~TXT\n  TXT\nend\n",
+            "def m\n  s = ''\nend\n",
+        );
+    }
+
+    /// 同じ行に 2 つ書いたときは、空だった方だけが畳まれる。
+    #[test]
+    fn only_the_empty_one_of_two_is_replaced() {
+        expect_correction(
+            COP,
+            "foo(<<~A, <<~B)\nA\n  b\nB\n",
+            "foo('', <<~B)\n  b\nB\n",
+        );
+    }
+
+    /// 中身のあるヒアドキュメントと、コマンドを走らせるバッククォート版は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "t = <<~EOS\n  a\nEOS\n");
+        expect_no_offenses(COP, "u = <<~`SH`\nSH\n");
+    }
+}
+
+/// `Style/ModuleMemberExistenceCheck`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ModuleMemberExistenceCheck` で走らせた実出力から
+/// 取った (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_module_member_existence_check {
+    use super::*;
+
+    const COP: &str = "Style/ModuleMemberExistenceCheck";
+
+    /// 5 つの一覧メソッドそれぞれに対応する述語がある。`inherit` の引数は
+    /// `true` のとき述語の既定と同じなので落ちる。
+    #[test]
+    fn every_listing_has_a_predicate() {
+        expect_correction(
+            COP,
+            "Foo.instance_methods.include?(:bar)\n",
+            "Foo.method_defined?(:bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.instance_methods.member?(:bar)\n",
+            "Foo.method_defined?(:bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.instance_methods(false).include?(:bar)\n",
+            "Foo.method_defined?(:bar, false)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.instance_methods(true).include?(:bar)\n",
+            "Foo.method_defined?(:bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.class_variables.include?(:@@bar)\n",
+            "Foo.class_variable_defined?(:@@bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.private_instance_methods.include?(:bar)\n",
+            "Foo.private_method_defined?(:bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.protected_instance_methods(false).include?(:bar)\n",
+            "Foo.protected_method_defined?(:bar, false)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo.public_instance_methods.include?(:bar)\n",
+            "Foo.public_method_defined?(:bar)\n",
+        );
+    }
+
+    /// レシーバ無しの一覧も対象。tree-sitter はこれを裸の識別子として書くので、
+    /// 局所変数の読みと区別が要る。
+    #[test]
+    fn a_receiverless_listing_is_reported_too() {
+        expect_correction(
+            COP,
+            "instance_methods.include?(:bar)\n",
+            "method_defined?(:bar)\n",
+        );
+        expect_correction(
+            COP,
+            "Foo&.instance_methods&.include?(:bar)\n",
+            "Foo&.method_defined?(:bar)\n",
+        );
+    }
+
+    /// splat・ブロック渡し・ハッシュ引数、括弧で包まれた一覧、別のメソッドは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Foo.instance_methods.include?(*args)\n",
+            "Foo.instance_methods(*args).include?(:bar)\n",
+            "Foo.instance_methods.include?(a: 1)\n",
+            "Foo.instance_methods(a: 1).include?(:bar)\n",
+            "Foo.instance_methods.include?(&blk)\n",
+            "(Foo.instance_methods).include?(:bar)\n",
+            "Foo.instance_methods.any?(:bar)\n",
+            "Foo.instance_methods\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/MinMaxComparison`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MinMaxComparison` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_min_max_comparison {
+    use super::*;
+
+    const COP: &str = "Style/MinMaxComparison";
+
+    /// どちらの枝がどちらの被演算子かで `max` と `min` が決まり、`unless` は枝が逆になる。
+    #[test]
+    fn the_branches_decide_which_end_is_taken() {
+        expect_correction(COP, "if a > b\n  a\nelse\n  b\nend\n", "[a, b].max\n");
+        expect_correction(COP, "if a >= b\n  a\nelse\n  b\nend\n", "[a, b].max\n");
+        expect_correction(COP, "if a < b\n  a\nelse\n  b\nend\n", "[a, b].min\n");
+        expect_correction(COP, "a > b ? a : b\n", "[a, b].max\n");
+        expect_correction(COP, "a < b ? a : b\n", "[a, b].min\n");
+        expect_correction(COP, "unless a > b\n  a\nelse\n  b\nend\n", "[a, b].min\n");
+        expect_correction(COP, "if (a > b)\n  a\nelse\n  b\nend\n", "[a, b].max\n");
+    }
+
+    /// `elsif` は丸ごとは置き換えられない。連鎖の残りが `else` を保つよう、枝の頭だけを
+    /// 落として本体を書き換える。
+    #[test]
+    fn an_elsif_keeps_the_chain_above_it() {
+        expect_correction(
+            COP,
+            "if x\n  1\nelsif a > b\n  a\nelse\n  b\nend\n",
+            "if x\n  1\nelse\n  [a, b].max\nend\n",
+        );
+    }
+
+    /// `else` が無いもの、枝が被演算子と違うもの、比較でない条件は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if a > b\n  a\nend\n",
+            "if a > b\n  c\nelse\n  d\nend\n",
+            "if a == b\n  a\nelse\n  b\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ComparableBetween`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ComparableBetween` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_comparable_between {
+    use super::*;
+
+    const COP: &str = "Style/ComparableBetween";
+
+    /// 4 通りの書き方がどれも同じ `between?` になる。共有されている側が値、
+    /// 残りが下限と上限。
+    #[test]
+    fn either_order_of_the_two_bounds_is_reported() {
+        expect_correction(COP, "x >= 1 && x <= 10\n", "x.between?(1, 10)\n");
+        expect_correction(COP, "1 <= x && x <= 10\n", "x.between?(1, 10)\n");
+        expect_correction(COP, "x <= 10 && x >= 1\n", "x.between?(1, 10)\n");
+        expect_correction(COP, "10 >= x && 1 <= x\n", "x.between?(1, 10)\n");
+        expect_correction(
+            COP,
+            "foo.bar >= 1 && foo.bar <= 10\n",
+            "foo.bar.between?(1, 10)\n",
+        );
+    }
+
+    /// 値が共有されていないもの、両端が閉じていない比較は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["a >= b && c <= d\n", "x > 1 && x < 10\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ExactRegexpMatch`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ExactRegexpMatch` で走らせた実出力から取った
+/// (検出 8 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_exact_regexp_match {
+    use super::*;
+
+    const COP: &str = "Style/ExactRegexpMatch";
+
+    /// 5 つのメソッドが対象で、`!~` だけ `!=` になる。`%r{}` でも同じ。
+    #[test]
+    fn an_anchored_literal_becomes_a_string_comparison() {
+        expect_correction(COP, "foo =~ /\\Abar\\z/\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo !~ /\\Abar\\z/\n", "foo != 'bar'\n");
+        expect_correction(COP, "foo === /\\Abar\\z/\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo.match(/\\Abar\\z/)\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo.match?(/\\Abar\\z/)\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo.match?(%r{\\Abar\\z})\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo&.match?(/\\Abar\\z/)\n", "foo == 'bar'\n");
+        expect_correction(COP, "foo.match?(/\\Aba'r\\z/)\n", "foo == 'ba\\'r'\n");
+    }
+
+    /// メタ文字を含むもの、リテラルが空のもの、フラグ付き、片側だけのアンカー、
+    /// レシーバ無しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo.match?(/\\Aba.r\\z/)\n",
+            "foo.match?(/\\Ab+ar\\z/)\n",
+            "foo.match?(/\\A\\z/)\n",
+            "foo.match?(/\\Abar\\z/i)\n",
+            "foo =~ /\\Abar/\n",
+            "foo =~ /bar\\z/\n",
+            "foo.match?(/\\Abar\\z/, 1)\n",
+            "match?(/\\Abar\\z/)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/DigChain`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DigChain` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_dig_chain {
+    use super::*;
+
+    const COP: &str = "Style/DigChain";
+
+    /// 連鎖の全キーが 1 つの `dig` にまとまる。置き換わるのは一番内側の selector から
+    /// 末尾までなので、レシーバはそのまま残る。
+    #[test]
+    fn the_whole_chain_collapses_into_one_call() {
+        expect_correction(COP, "x.dig(:a).dig(:b)\n", "x.dig(:a, :b)\n");
+        expect_correction(COP, "x.dig(:a).dig(:b).dig(:c)\n", "x.dig(:a, :b, :c)\n");
+        expect_correction(COP, "x.dig(:a, :b).dig(:c)\n", "x.dig(:a, :b, :c)\n");
+        expect_correction(COP, "x&.dig(:a)&.dig(:b)\n", "x&.dig(:a, :b)\n");
+        expect_correction(COP, "dig(:a).dig(:b)\n", "dig(:a, :b)\n");
+    }
+
+    /// 連鎖でないもの、引数の無い `dig`、ハッシュやブロック渡しを取るものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.dig(:a)\n",
+            "x.dig(:a).foo(:b)\n",
+            "x.dig(:a).dig\n",
+            "x.dig(:a).dig(**opts)\n",
+            "x.dig(:a).dig(&blk)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/HashFetchChain`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/HashFetchChain` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_fetch_chain {
+    use super::*;
+
+    const COP: &str = "Style/HashFetchChain";
+
+    /// 「無ければ空」を意味する既定値は `nil`・`{}`・`Hash.new` の 3 つ。ただし一番外側は
+    /// `nil` でなければならない。
+    #[test]
+    fn a_chain_of_nil_defaulted_fetches_is_a_dig() {
+        expect_correction(COP, "x.fetch(:a, nil).fetch(:b, nil)\n", "x.dig(:a, :b)\n");
+        expect_correction(COP, "x.fetch(:a, {}).fetch(:b, nil)\n", "x.dig(:a, :b)\n");
+        expect_correction(
+            COP,
+            "x.fetch(:a, Hash.new).fetch(:b, nil)\n",
+            "x.dig(:a, :b)\n",
+        );
+        expect_correction(
+            COP,
+            "x.fetch(:a, nil).fetch(:b, nil).fetch(:c, nil)\n",
+            "x.dig(:a, :b, :c)\n",
+        );
+        expect_correction(
+            COP,
+            "x&.fetch(:a, nil)&.fetch(:b, nil)\n",
+            "x&.dig(:a, :b)\n",
+        );
+    }
+
+    /// 連鎖でないもの、既定値が `nil` でないもの、既定値の無い `fetch` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.fetch(:a, nil)\n",
+            "x.fetch(:a, nil).fetch(:b, 0)\n",
+            "x.fetch(:a, 0).fetch(:b, nil)\n",
+            "x.fetch(:a).fetch(:b)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ConcatArrayLiterals`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ConcatArrayLiterals` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_concat_array_literals {
+    use super::*;
+
+    const COP: &str = "Style/ConcatArrayLiterals";
+
+    /// 括弧配列は角括弧だけが消え、パーセントリテラルと空配列は呼び出しごと書き直される。
+    #[test]
+    fn the_array_literals_become_push_arguments() {
+        expect_correction(COP, "a.concat([1, 2])\n", "a.push(1, 2)\n");
+        expect_correction(COP, "a.concat([1], [2])\n", "a.push(1, 2)\n");
+        expect_correction(COP, "a.concat(%w[foo])\n", "a.push(\"foo\")\n");
+        expect_correction(COP, "a.concat(%i[foo])\n", "a.push(:foo)\n");
+        expect_correction(COP, "a.concat([])\n", "a.push()\n");
+        expect_correction(COP, "a.concat(%w[foo], [1])\n", "a.push(\"foo\", 1)\n");
+        expect_correction(COP, "a&.concat([1])\n", "a&.push(1)\n");
+        expect_correction(COP, "a.concat([1, 2], [])\n", "a.push(1, 2)\n");
+    }
+
+    /// 補間を含むパーセントリテラルは値を書き戻せないので、報告だけして補正しない。
+    #[test]
+    fn an_interpolated_percent_literal_is_reported_without_a_correction() {
+        let report = CopCase::new(COP, "a.concat(%W[#{x}])\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert_eq!(
+            report.offenses[0].message,
+            "Use `push` with elements as arguments without array brackets instead of \
+             `concat(%W[#{x}])`."
+        );
+        assert!(!report.offenses[0].is_correctable());
+    }
+
+    /// 引数が配列でないもの、引数の無い `concat` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["a.concat(b)\n", "a.concat([1], b)\n", "a.concat\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileNull`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileNull` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_null {
+    use super::*;
+
+    const COP: &str = "Style/FileNull";
+
+    /// `/dev/null` は大文字小文字を問わず `File::NULL` になる。`NUL:` も同じ。
+    #[test]
+    fn the_null_device_path_becomes_the_constant() {
+        expect_correction(COP, "x = '/dev/null'\n", "x = File::NULL\n");
+        expect_correction(COP, "y = \"/DEV/NULL\"\n", "y = File::NULL\n");
+        expect_correction(COP, "w = 'nul:'\n", "w = File::NULL\n");
+    }
+
+    /// 素の `NUL` は Windows でしか意味を持たないので、同じファイルが `/dev/null` にも
+    /// 触れているときだけ報告する。
+    #[test]
+    fn a_bare_nul_waits_for_the_file_to_mention_dev_null() {
+        expect_no_offenses(COP, "z = 'NUL'\n");
+        CopCase::new(COP, "z = 'NUL'\nq = '/dev/null'\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected("z = File::NULL\nq = File::NULL\n")
+            .run();
+    }
+
+    /// 配列・ハッシュの値・連結された文字列の一部は「データ」なので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "v = ['/dev/null']\n",
+            "u = { a: '/dev/null' }\n",
+            "t = 'foo'\n",
+            "s = ''\n",
+            "r = \"/dev/#{null}\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileOpen`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileOpen` で走らせた実出力から取った
+/// (検出 6 件で一致。この cop は補正を持たない)。
+mod style_file_open {
+    use super::*;
+
+    const COP: &str = "Style/FileOpen";
+
+    /// 結果を誰も読まないもの、局所変数に入れるもの、そのまま次の呼び出しのレシーバに
+    /// なるものが対象。
+    #[test]
+    fn an_open_with_nothing_to_close_it_is_reported() {
+        expect_offense(
+            COP,
+            "File.open('f')\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+        expect_offense(
+            COP,
+            "x = File.open('f')\n    ^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+        expect_offense(
+            COP,
+            "File.open('f').read\n^^^^^^^^^^^^^^ `File.open` without a block may leak a file descriptor; use the block form.\n",
+        );
+    }
+
+    /// ブロック付き・`&:read` 付き、そして結果が別の呼び出しの引数になるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open('f') { |g| g.read }\n",
+            "File.open('f') do |g|\n  g.read\nend\n",
+            "File.open('f', &:read)\n",
+            "foo(File.open('f'))\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileRead`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileRead` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_read {
+    use super::*;
+
+    const COP: &str = "Style/FileRead";
+
+    /// 読み出しの書き方は 3 通りあり、モードが `b` で終わるときだけ `binread`。
+    #[test]
+    fn every_way_of_reading_the_whole_file_is_reported() {
+        expect_correction(COP, "File.open(f).read\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f, 'r').read\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f, 'rb').read\n", "File.binread(f)\n");
+        expect_correction(COP, "File.open(f, &:read)\n", "File.read(f)\n");
+        expect_correction(COP, "File.open(f) { |g| g.read }\n", "File.read(f)\n");
+        expect_correction(
+            COP,
+            "File.open(f) do |g|\n  g.read\nend\n",
+            "File.read(f)\n",
+        );
+        expect_correction(COP, "::File.open(f).read\n", "::File.read(f)\n");
+    }
+
+    /// ブロックが読み出し以外もするものは、本家では `node.parent` がそのブロックで止まるので
+    /// 外側の `.read` までは見に行かない。
+    #[test]
+    fn a_block_that_does_something_else_ends_the_search() {
+        expect_no_offenses(COP, "File.open(f) { |g| g.foo }.read\n");
+        expect_no_offenses(COP, "File.open(f) { |g| g.read; g.foo }\n");
+    }
+
+    /// 書き込みモード、読み出し以外の呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["File.open(f, 'w').read\n", "File.open(f).write(x)\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/FileWrite`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FileWrite` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_file_write {
+    use super::*;
+
+    const COP: &str = "Style/FileWrite";
+
+    /// モードは必須で、`b` で終わるときだけ `binwrite`。
+    #[test]
+    fn every_way_of_writing_the_whole_file_is_reported() {
+        expect_correction(
+            COP,
+            "File.open(f, 'w') { |g| g.write(x) }\n",
+            "File.write(f, x)\n",
+        );
+        expect_correction(COP, "File.open(f, 'w').write(x)\n", "File.write(f, x)\n");
+        expect_correction(
+            COP,
+            "File.open(f, 'wb') { |g| g.write(x) }\n",
+            "File.binwrite(f, x)\n",
+        );
+        expect_correction(
+            COP,
+            "File.open(f, 'w') do |g|\n  g.write(x)\nend\n",
+            "File.write(f, x)\n",
+        );
+    }
+
+    /// 置き換えが飲み込んでしまうヒアドキュメントは、本文をそのまま下に書き戻す。
+    #[test]
+    fn a_heredoc_the_replacement_would_swallow_is_carried_along() {
+        expect_correction(
+            COP,
+            "File.open(f, 'w') do |g|\n  g.write(<<~TEXT)\n    hi\n  TEXT\nend\n",
+            "File.write(f, <<~TEXT)\n    hi\n  TEXT\n",
+        );
+    }
+
+    /// splat の内容、モードの無い・切り詰めない `open`、書き込み以外の呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "File.open(f, 'w') { |g| g.write(*x) }\n",
+            "File.open(f) { |g| g.write(x) }\n",
+            "File.open(f, 'r') { |g| g.write(x) }\n",
+            "File.open(f, 'w') { |g| g.puts(x) }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/InPatternThen` と `Style/MultilineInPatternThen`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 2 件 / 1 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_in_pattern_then {
+    use super::*;
+
+    /// 1 行に収まる `in` の `;` は ` then` になる。選択パターンはメッセージ側で
+    /// ` | ` 区切りに整形される。
+    #[test]
+    fn a_semicolon_on_one_line_becomes_then() {
+        expect_correction(
+            "Style/InPatternThen",
+            "case x\nin 1; foo\nend\n",
+            "case x\nin 1 then foo\nend\n",
+        );
+        expect_offense(
+            "Style/InPatternThen",
+            "case x\nin 4|5; qux\n      ^ Do not use `in 4 | 5;`. Use `in 4 | 5 then` instead.\nend\n",
+        );
+    }
+
+    /// 本体が次の行にある `then` は落とす。パターンが複数行のときは `then` が要る。
+    #[test]
+    fn a_then_whose_body_is_on_the_next_line_is_removed() {
+        expect_correction(
+            "Style/MultilineInPatternThen",
+            "case x\nin 1 then\n  foo\nend\n",
+            "case x\nin 1\n  foo\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultilineInPatternThen",
+            "case x\nin [7,\n    8] then\n  corge\nend\n",
+        );
+        expect_no_offenses(
+            "Style/MultilineInPatternThen",
+            "case x\nin 9 then grault\nend\n",
+        );
+    }
+
+    /// 区切りの無い `in`、複数行の `in`、`then` 付きの `in` は `InPatternThen` の対象外。
+    #[test]
+    fn what_in_pattern_then_leaves_alone() {
+        for source in ["case x\nin 3\n  baz\nend\n", "case x\nin 2 then bar\nend\n"] {
+            expect_no_offenses("Style/InPatternThen", source);
+        }
+    }
+}
+
+/// `Style/ItAssignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ItAssignment` で走らせた実出力から取った
+/// (検出 15 件で一致。この cop は補正を持たない)。
+mod style_it_assignment {
+    use super::*;
+
+    const COP: &str = "Style/ItAssignment";
+
+    /// 代入・多重代入・自己代入と、引数の 7 種すべてが対象。
+    #[test]
+    fn every_binding_named_it_is_reported() {
+        for source in [
+            "it = 1\n",
+            "it, x = 1, 2\n",
+            "it ||= 1\n",
+            "def m(it); end\n",
+            "def m(it = 1); end\n",
+            "def m(*it); end\n",
+            "def m(**it); end\n",
+            "def m(&it); end\n",
+            "def m(it:); end\n",
+            "def m(it: 1); end\n",
+            "foo { |it| }\n",
+            "->(it) {}\n",
+            "for it in [1] do end\n",
+            "begin; rescue => it; end\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "`it` is the default block parameter; consider another name."
+            );
+        }
+    }
+
+    /// 局所変数でない `@it` や `IT`、ただの読みは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["@it = 1\n", "IT = 1\n", "it\n", "x = it\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/BitwisePredicate`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/BitwisePredicate` で走らせた実出力から取った
+/// (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_bitwise_predicate {
+    use super::*;
+
+    const COP: &str = "Style/BitwisePredicate";
+
+    /// 「立っているビットがあるか」の 4 通り、「全部立っているか」、「1 つも立っていないか」の
+    /// 2 通り。
+    #[test]
+    fn every_mask_comparison_has_a_predicate() {
+        expect_correction(COP, "(x & 0b0100).positive?\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) > 0\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) >= 1\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) != 0\n", "x.anybits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100).zero?\n", "x.nobits?(0b0100)\n");
+        expect_correction(COP, "(x & 0b0100) == 0\n", "x.nobits?(0b0100)\n");
+    }
+
+    /// `allbits?` は比較が繰り返している側をフラグとして読む。マスクのどちら側に
+    /// 書かれていても答えは同じ。
+    #[test]
+    fn allbits_reads_the_flags_off_the_repeated_side() {
+        expect_correction(COP, "(x & flags) == flags\n", "x.allbits?(flags)\n");
+        expect_correction(COP, "(flags & x) == flags\n", "x.allbits?(flags)\n");
+    }
+
+    /// 括弧の無いマスク、`&` でない演算、比べる数が違うものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x & 0b0100 > 0\n",
+            "(x | 0b0100).positive?\n",
+            "(x & 0b0100) > 1\n",
+            "(x & 0b0100) >= 2\n",
+            "(x & 0b0100).negative?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/CollectionCompact`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CollectionCompact` で走らせた実出力から取った
+/// (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_collection_compact {
+    use super::*;
+
+    const COP: &str = "Style/CollectionCompact";
+
+    /// `reject`・`select`・`filter`・`grep_v` のどれもが `compact` になり、破壊版は
+    /// `compact!` になる。
+    #[test]
+    fn every_way_of_dropping_nils_becomes_compact() {
+        expect_correction(COP, "array.reject(&:nil?)\n", "array.compact\n");
+        expect_correction(COP, "array.reject! { |e| e.nil? }\n", "array.compact!\n");
+        expect_correction(COP, "array.select { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.filter { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.grep_v(nil)\n", "array.compact\n");
+        expect_correction(COP, "array.grep_v(NilClass)\n", "array.compact\n");
+        expect_correction(COP, "array.reject { _1.nil? }\n", "array.compact\n");
+    }
+
+    /// ブロック引数が 2 つあるときは**最後の**引数が `nil?` を呼ばれていなければならない。
+    #[test]
+    fn the_last_block_parameter_is_the_one_that_has_to_be_tested() {
+        expect_correction(COP, "hash.reject { |k, v| v.nil? }\n", "hash.compact\n");
+        expect_no_offenses(COP, "hash.reject { |k, v| k.nil? }\n");
+    }
+
+    /// `nil?` 以外の判定、条件が複合のもの、`to_enum` / `lazy` を挟んだもの、
+    /// レシーバの無い呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "array.reject { |e| e.empty? }\n",
+            "array.reject { |e| e.nil? && x }\n",
+            "array.to_enum.reject { |e| e.nil? }\n",
+            "array.lazy.reject(&:nil?)\n",
+            "reject(&:nil?)\n",
+            "array.grep_v(1)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ComparableClamp`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ComparableClamp` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_comparable_clamp {
+    use super::*;
+
+    const COP: &str = "Style/ComparableClamp";
+
+    /// 8 通りの書き方のどれもが `clamp` になる。どちらの枝が下限かは条件の向きで決まる。
+    #[test]
+    fn the_if_elsif_else_becomes_clamp() {
+        expect_correction(
+            COP,
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+        expect_correction(
+            COP,
+            "if min > x\n  min\nelsif x > max\n  max\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+        expect_correction(
+            COP,
+            "if max < x\n  max\nelsif x < min\n  min\nelse\n  x\nend\n",
+            "x.clamp(min, max)\n",
+        );
+    }
+
+    /// `elsif` として書かれているときは、連鎖の残りが `else` を保つよう頭だけを落とす。
+    /// 字下げは `Alignment#indentation` (自分の桁 + 1 段) で決まる。
+    #[test]
+    fn an_elsif_keeps_the_chain_above_it() {
+        expect_correction(
+            COP,
+            "if foo\n  1\nelsif x < min\n  min\nelsif max < x\n  max\nelse\n  x\nend\n",
+            "if foo\n  1\nelse\n  x.clamp(min, max)\nend\n",
+        );
+    }
+
+    /// 配列で最小と最大を取るものは報告だけで、補正は無い。
+    #[test]
+    fn taking_a_min_of_a_max_is_reported_without_a_correction() {
+        for source in [
+            "[[a, b].max, c].min\n",
+            "[c, [a, b].max].min\n",
+            "[[a, b].min, c].max\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "Use `Comparable#clamp` instead."
+            );
+            assert!(!report.offenses[0].is_correctable());
+        }
+        expect_no_offenses(COP, "[a, b].min\n");
+    }
+
+    /// 枝が 3 つ揃っていないもの、最後の枝が比べた値でないものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if x < min\n  min\nelse\n  x\nend\n",
+            "if x < min\n  min\nelsif max < x\n  max\nelse\n  y\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/MapToSet` / `Style/MapToHash` / `Style/MapJoin`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 4 件 / 8 件 / 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_chain {
+    use super::*;
+
+    /// `map` の selector が `to_set` になり、後ろの `.to_set` は前の空白ごと消える。
+    #[test]
+    fn map_to_set_moves_the_block_to_the_conversion() {
+        expect_correction(
+            "Style/MapToSet",
+            "x.map { |a| a * 2 }.to_set\n",
+            "x.to_set { |a| a * 2 }\n",
+        );
+        expect_correction(
+            "Style/MapToSet",
+            "x.map(&:foo).to_set\n",
+            "x.to_set(&:foo)\n",
+        );
+        expect_correction(
+            "Style/MapToSet",
+            "x.map { |a| a }\n  .to_set\n",
+            "x.to_set { |a| a }\n",
+        );
+        expect_no_offenses("Style/MapToSet", "x.map { |a| a }.to_set { |b| b }\n");
+    }
+
+    /// `to_h` は鍵と値を別々に受け取るので、対を分解していた引数は括弧を落とす。
+    /// `map` 側のドットは `to_h` 側のドットを引き継ぐ。
+    #[test]
+    fn map_to_hash_carries_the_dot_and_undoes_the_destructuring() {
+        expect_correction(
+            "Style/MapToHash",
+            "x.map { |(k, v)| [k, v] }.to_h\n",
+            "x.to_h { |k, v| [k, v] }\n",
+        );
+        expect_correction(
+            "Style/MapToHash",
+            "x.map { |a| a }&.to_h\n",
+            "x&.to_h { |a| a }\n",
+        );
+        expect_correction(
+            "Style/MapToHash",
+            "x&.map { |a| a }.to_h\n",
+            "x.to_h { |a| a }\n",
+        );
+    }
+
+    /// `join` は要素に `to_s` を呼ぶので、その前の `map(&:to_s)` は丸ごと消える。
+    #[test]
+    fn map_join_drops_the_redundant_conversion() {
+        expect_correction("Style/MapJoin", "x.map(&:to_s).join\n", "x.join\n");
+        expect_correction(
+            "Style/MapJoin",
+            "x.collect(&:to_s).join(', ')\n",
+            "x.join(', ')\n",
+        );
+        expect_correction("Style/MapJoin", "x.map { |e| e.to_s }.join\n", "x.join\n");
+        expect_correction("Style/MapJoin", "x.map { _1.to_s }.join\n", "x.join\n");
+        expect_correction("Style/MapJoin", "map(&:to_s).join\n", "join\n");
+        // レシーバが前の行で終わっているときは、改行ごと持っていく。
+        expect_correction("Style/MapJoin", "x\n  .map(&:to_s).join\n", "x.join\n");
+    }
+
+    /// 変換が `to_s` でないもの、`map` が別のことをするものは黙る。
+    #[test]
+    fn what_the_cops_leave_alone() {
+        expect_no_offenses("Style/MapJoin", "x.map(&:to_i).join\n");
+        expect_no_offenses("Style/MapJoin", "x.map { |e| e.foo }.join\n");
+        expect_no_offenses("Style/MapJoin", "x.join\n");
+        expect_no_offenses("Style/MapToSet", "x.foo { |a| a }.to_set\n");
+        expect_no_offenses("Style/MapToSet", "x.map { |a| a }.to_set(1)\n");
+        expect_no_offenses("Style/MapToHash", "x.to_h\n");
+    }
+}
+
+/// `Style/DataInheritance`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DataInheritance` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_data_inheritance {
+    use super::*;
+
+    const COP: &str = "Style/DataInheritance";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.2")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 本体の無いクラスは `end` の行ごと消えて代入になり、本体があるときは
+    /// `Data.define` の後ろに `do` が付いてクラスの `end` がブロックの `end` になる。
+    #[test]
+    fn the_class_definition_becomes_an_assignment() {
+        correction(
+            "class Point < Data.define(:x, :y)\nend\n",
+            "Point = Data.define(:x, :y)\n",
+        );
+        correction(
+            "class Point2 < Data.define(:x, :y)\n  def foo; end\nend\n",
+            "Point2 = Data.define(:x, :y) do\n  def foo; end\nend\n",
+        );
+        correction(
+            "class P3 < Data.define(:x); end\n",
+            "P3 = Data.define(:x)\n",
+        );
+        correction(
+            "class P4 < ::Data.define(:x)\nend\n",
+            "P4 = ::Data.define(:x)\n",
+        );
+    }
+
+    /// 名前空間付きの `Data`、`Data` でない親、3.2 未満の対象版は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class P5 < Foo::Data.define(:x)\nend\n",
+            "class P6 < Struct.new(:x)\nend\n",
+            "Point7 = Data.define(:x)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+        CopCase::new(
+            COP,
+            "class Point < Data.define(:x)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .run();
+    }
+}
+
+/// `Style/EmptyClassDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EmptyClassDefinition` で走らせた実出力から取った
+/// (検出 3 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_empty_class_definition {
+    use super::*;
+
+    const COP: &str = "Style/EmptyClassDefinition";
+
+    /// 既定の `class_keyword` では `Class.new(Parent)` の代入が `class` 定義になる。
+    #[test]
+    fn class_new_becomes_the_keyword_form() {
+        expect_correction(COP, "Foo = Class.new(Bar)\n", "class Foo < Bar\nend\n");
+        expect_correction(
+            COP,
+            "Foo::Baz = Class.new(Bar)\n",
+            "class Foo::Baz < Bar\nend\n",
+        );
+        expect_correction(
+            COP,
+            "Qux = Class.new(Foo::Bar)\n",
+            "class Qux < Foo::Bar\nend\n",
+        );
+    }
+
+    /// 親クラスの無いもの、ブロック付き、定数でない親、`Class` でないレシーバは黙る。
+    /// 既定の style では `class` 定義そのものも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Quux = Class.new\n",
+            "Corge = Class.new(Bar) { def x; end }\n",
+            "Grault = Class.new(foo)\n",
+            "Garply = Bar.new(Baz)\n",
+            "class Empty < Base\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `class_new` に切り替えると向きが逆になる。
+    #[test]
+    fn the_class_new_style_asks_for_the_other_direction() {
+        CopCase::new(COP, "class Empty < Base\nend\n".to_owned(), Vec::new())
+            .config("Style/EmptyClassDefinition:\n  EnforcedStyle: class_new\n")
+            .without_offense_check()
+            .corrected("Empty = Class.new(Base)\n")
+            .run();
+    }
+}
+
+/// `Style/CombinableDefined`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CombinableDefined` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_combinable_defined {
+    use super::*;
+
+    const COP: &str = "Style/CombinableDefined";
+
+    /// 名前空間の側の `defined?` が落ちる。定数でもメソッド連鎖でも同じ。
+    #[test]
+    fn the_namespace_check_is_the_one_removed() {
+        expect_correction(
+            COP,
+            "defined?(Foo) && defined?(Foo::Bar)\n",
+            "defined?(Foo::Bar)\n",
+        );
+        expect_correction(
+            COP,
+            "defined?(Foo::Bar) && defined?(Foo)\n",
+            "defined?(Foo::Bar)\n",
+        );
+        expect_correction(COP, "defined?(x) && defined?(x.y)\n", "defined?(x.y)\n");
+        expect_correction(
+            COP,
+            "defined?(x.y) && defined?(x.y.z)\n",
+            "defined?(x.y.z)\n",
+        );
+        expect_correction(
+            COP,
+            "defined?(Foo) and defined?(Foo::Bar)\n",
+            "defined?(Foo::Bar)\n",
+        );
+    }
+
+    /// 3 つ以上の連鎖では入れ子の `and` も同じ位置で報告されるが、本家は
+    /// `Offense#eql?` が位置とメッセージだけを見るので 1 件に畳まれる。
+    #[test]
+    fn a_longer_chain_still_reports_once() {
+        expect_correction(
+            COP,
+            "defined?(Foo) && defined?(Foo::Bar) && defined?(Baz)\n",
+            "defined?(Foo::Bar) && defined?(Baz)\n",
+        );
+    }
+
+    /// 名前空間の関係が無いもの、`defined?` でない項が混じるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["defined?(Foo) && defined?(Bar)\n", "defined?(Foo) && x\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/HashExcept` / `Style/HashSlice`。
+///
+/// 期待値は本家 1.89.0 を各 cop で走らせた実出力から取った
+/// (検出 11 件 / 2 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_subset {
+    use super::*;
+
+    fn except(source: &str, corrected: &str) {
+        CopCase::new("Style/HashExcept", source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 鍵だけを見る `reject`/`select` が `except` になる。等値・`eql?`・`include?` の
+    /// どれもが対象で、否定が付くと向きが入れ替わる。
+    #[test]
+    fn a_block_that_only_tests_the_key_becomes_except() {
+        except("hash.reject { |k, v| k == :foo }\n", "hash.except(:foo)\n");
+        except("hash.reject { |k, v| :foo == k }\n", "hash.except(:foo)\n");
+        except("hash.select { |k, v| k != :foo }\n", "hash.except(:foo)\n");
+        except("hash.filter { |k, v| k != :foo }\n", "hash.except(:foo)\n");
+        except(
+            "hash.reject { |k, v| k.eql?(:foo) }\n",
+            "hash.except(:foo)\n",
+        );
+        except(
+            "hash.reject { |k, v| keys.include?(k) }\n",
+            "hash.except(*keys)\n",
+        );
+        except(
+            "hash.select { |k, v| !keys.include?(k) }\n",
+            "hash.except(*keys)\n",
+        );
+    }
+
+    /// 配列で書かれた鍵はそのまま並べ直す。パーセントリテラルは要素の値を
+    /// リテラルとして書き戻す。
+    #[test]
+    fn a_list_of_keys_is_spelled_back_as_arguments() {
+        except(
+            "hash.reject { |k, v| [:foo, :bar].include?(k) }\n",
+            "hash.except(:foo, :bar)\n",
+        );
+        except(
+            "hash.reject { |k, v| %i[foo bar].include?(k) }\n",
+            "hash.except(:foo, :bar)\n",
+        );
+        except(
+            "hash.reject { |k, v| %w[foo bar].include?(k) }\n",
+            "hash.except('foo', 'bar')\n",
+        );
+    }
+
+    /// 「残す側」の書き方は `slice` になる。
+    #[test]
+    fn the_other_direction_is_slice() {
+        expect_correction(
+            "Style/HashSlice",
+            "hash.select { |k, v| keys.include?(k) }\n",
+            "hash.slice(*keys)\n",
+        );
+        expect_correction(
+            "Style/HashSlice",
+            "hash.reject { |k, v| !keys.include?(k) }\n",
+            "hash.slice(*keys)\n",
+        );
+    }
+
+    /// 等値の相手がリテラルでないもの、値を読むもの、範囲の判定、引数が 1 つのブロック、
+    /// 条件が複合のものは黙る。
+    #[test]
+    fn what_the_cops_leave_alone() {
+        for source in [
+            "hash.reject { |k, v| k == foo }\n",
+            "hash.reject { |k, v| v == :foo }\n",
+            "hash.reject { |k, v| (1..5).include?(k) }\n",
+            "hash.reject { |k, v| k.include?(v) }\n",
+            "hash.reject { |k| k == :foo }\n",
+            "hash.reject { |k, v| k == :foo && v }\n",
+        ] {
+            CopCase::new("Style/HashExcept", source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+            expect_no_offenses("Style/HashSlice", source);
+        }
+    }
+
+    /// 3.0 未満では `Hash#except` が無いので `HashExcept` は黙る。
+    #[test]
+    fn except_needs_ruby_three() {
+        CopCase::new(
+            "Style/HashExcept",
+            "hash.reject { |k, v| k == :foo }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+}
+
+/// `Style/CollectionQuerying`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/CollectionQuerying` で走らせた実出力から取った
+/// (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_collection_querying {
+    use super::*;
+
+    const COP: &str = "Style/CollectionQuerying";
+
+    /// 比較の相手が 0 か 1 かで `any?` / `none?` / `one?` が決まる。
+    #[test]
+    fn counting_only_to_compare_has_a_predicate() {
+        expect_correction(COP, "x.count.positive?\n", "x.any?\n");
+        expect_correction(COP, "x.count > 0\n", "x.any?\n");
+        expect_correction(COP, "x.count != 0\n", "x.any?\n");
+        expect_correction(COP, "x.count.zero?\n", "x.none?\n");
+        expect_correction(COP, "x.count == 0\n", "x.none?\n");
+        expect_correction(COP, "x.count == 1\n", "x.one?\n");
+        expect_correction(
+            COP,
+            "x.count { |e| e > 2 }.positive?\n",
+            "x.any? { |e| e > 2 }\n",
+        );
+        expect_correction(COP, "x.count(&:foo).positive?\n", "x.any?(&:foo)\n");
+    }
+
+    /// `> 1` は Active Support の `many?` にしかならないので既定では黙る。引数付きの
+    /// `count`、レシーバの無い `count`、`size` も対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.count > 1\n",
+            "x.count(1).positive?\n",
+            "x.count > 2\n",
+            "x.count == 2\n",
+            "count.positive?\n",
+            "x.size.positive?\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ArrayIntersect`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ArrayIntersect` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_array_intersect {
+    use super::*;
+
+    const COP: &str = "Style/ArrayIntersect";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// `&` でも `intersection` でも、述語でも大きさの比較でも同じ `intersect?` になる。
+    /// 「空か」を訊く側には `!` が付く。
+    #[test]
+    fn every_way_of_asking_becomes_the_predicate() {
+        correction("(a & b).any?\n", "a.intersect?(b)\n");
+        correction("(a & b).empty?\n", "!a.intersect?(b)\n");
+        correction("(a & b).none?\n", "!a.intersect?(b)\n");
+        correction("a.intersection(b).any?\n", "a.intersect?(b)\n");
+        correction("(a & b).size > 0\n", "a.intersect?(b)\n");
+        correction("(a & b).length.positive?\n", "a.intersect?(b)\n");
+        correction("(a & b).count != 0\n", "a.intersect?(b)\n");
+        correction("(a & b).size == 0\n", "!a.intersect?(b)\n");
+        correction("(a & b).length.zero?\n", "!a.intersect?(b)\n");
+    }
+
+    /// ブロックで書かれた包含判定も対象。`include?` は相手が配列リテラルのときだけで、
+    /// `none?` に安全参照が付いたものは意味が変わるので触らない。
+    #[test]
+    fn a_block_that_only_tests_membership_is_reported() {
+        correction(
+            "a.any? { |x| [1, 2].include?(x) }\n",
+            "a.intersect?([1, 2])\n",
+        );
+        correction(
+            "a.none? { |x| [1, 2].include?(x) }\n",
+            "!a.intersect?([1, 2])\n",
+        );
+        correction("a.any? { |x| b.member?(x) }\n", "a.intersect?(b)\n");
+        CopCase::new(COP, "a.any? { |x| b.include?(x) }\n".to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .run();
+        CopCase::new(
+            COP,
+            "a&.none? { |x| b.member?(x) }\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.1")
+        .run();
+    }
+
+    /// 否定を伴う述語に安全参照が付くと `nil` の意味が変わるので黙る。
+    #[test]
+    fn a_negated_predicate_reached_by_safe_navigation_is_left_alone() {
+        correction("a&.intersection(b)&.any?\n", "a&.intersect?(b)\n");
+        CopCase::new(COP, "a&.intersection(b)&.none?\n".to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .run();
+    }
+
+    /// `&` でない演算、比べる数が違うもの、引数が 2 つの `intersection`、3.1 未満は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "(a & b).size > 1\n",
+            "(a | b).any?\n",
+            "(a & b).first\n",
+            "a.intersection(b, c).any?\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.1")
+                .run();
+        }
+        CopCase::new(COP, "(a & b).any?\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .run();
+    }
+}
+
+/// `Style/EmptyStringInsideInterpolation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EmptyStringInsideInterpolation` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_empty_string_inside_interpolation {
+    use super::*;
+
+    const COP: &str = "Style/EmptyStringInsideInterpolation";
+
+    /// 既定の `trailing_conditional` では、空の枝を持つ三項も `if/else` も後置条件になる。
+    /// 空でない側がどちらかで `if` と `unless` が決まる。
+    #[test]
+    fn a_branch_that_yields_nothing_becomes_a_trailing_conditional() {
+        expect_correction(COP, "\"#{x ? 'foo' : ''}\"\n", "\"#{'foo' if x}\"\n");
+        expect_correction(COP, "\"#{x ? '' : 'foo'}\"\n", "\"#{'foo' unless x}\"\n");
+        expect_correction(
+            COP,
+            "\"#{if x then 'foo' else '' end}\"\n",
+            "\"#{'foo' if x}\"\n",
+        );
+        expect_correction(COP, "\"#{x ? 'foo' : nil}\"\n", "\"#{'foo' if x}\"\n");
+    }
+
+    /// `unless` の `if_branch` は本家でも**書かれたとおりの本体**なので、枝は入れ替わらない。
+    #[test]
+    fn an_unless_keeps_its_own_body_as_the_if_branch() {
+        expect_correction(
+            COP,
+            "\"#{unless x then 'foo' else '' end}\"\n",
+            "\"#{'foo' if x}\"\n",
+        );
+    }
+
+    /// すでに後置条件になっているもの、空の枝が無いものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "\"#{'foo' if x}\"\n",
+            "\"#{x ? 'a' : 'b'}\"\n",
+            "\"#{x}\"\n",
+            "\"plain\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `ternary` に切り替えると向きが逆になり、補間ごと三項に書き換わる。
+    #[test]
+    fn the_ternary_style_asks_for_the_other_direction() {
+        for (source, corrected) in [
+            ("\"#{'foo' if x}\"\n", "\"#{x ? 'foo' : ''}\"\n"),
+            ("\"#{'foo' unless x}\"\n", "\"#{x ? '' : 'foo'}\"\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/EmptyStringInsideInterpolation:\n  EnforcedStyle: ternary\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+}
+
+/// `Style/KeywordArgumentsMerging`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/KeywordArgumentsMerging` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_keyword_arguments_merging {
+    use super::*;
+
+    const COP: &str = "Style/KeywordArgumentsMerging";
+
+    /// `merge` の引数はそのままキーワード引数として並ぶ。ハッシュは波括弧を落とし、
+    /// ハッシュでないものは `**` が付く。
+    #[test]
+    fn the_merged_keys_are_written_directly() {
+        expect_correction(COP, "foo(**opts.merge(a: 1))\n", "foo(**opts, a: 1)\n");
+        expect_correction(COP, "foo(**opts.merge({a: 1}))\n", "foo(**opts, a: 1)\n");
+        expect_correction(COP, "foo(**opts.merge(other))\n", "foo(**opts, **other)\n");
+        expect_correction(
+            COP,
+            "foo(1, **opts.merge(a: 1))\n",
+            "foo(1, **opts, a: 1)\n",
+        );
+        expect_correction(
+            COP,
+            "foo(**opts.merge(a: 1), b: 2)\n",
+            "foo(**opts, a: 1, b: 2)\n",
+        );
+        expect_correction(COP, "foo({**opts.merge(a: 1)})\n", "foo({**opts, a: 1})\n");
+    }
+
+    /// ブロック渡しを含む `merge`、`merge` でない呼び出し、素の `**` は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo(**opts.merge(&blk))\n",
+            "foo(**opts)\n",
+            "foo(**opts.other(a: 1))\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/IfWithBooleanLiteralBranches`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/IfWithBooleanLiteralBranches` で走らせた実出力から
+/// 取った (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_if_with_boolean_literal_branches {
+    use super::*;
+
+    const COP: &str = "Style/IfWithBooleanLiteralBranches";
+
+    /// 枝が `true` と `false` なら条件そのもの。`false` が先なら否定が付き、
+    /// `unless` は向きが逆になる。
+    #[test]
+    fn the_condition_replaces_the_whole_conditional() {
+        expect_correction(
+            COP,
+            "if foo.do_something?\n  true\nelse\n  false\nend\n",
+            "foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "if foo.do_something?\n  false\nelse\n  true\nend\n",
+            "!foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "unless foo.do_something?\n  true\nelse\n  false\nend\n",
+            "!foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "foo.do_something? ? true : false\n",
+            "foo.do_something?\n",
+        );
+        expect_correction(
+            COP,
+            "foo.do_something? ? false : true\n",
+            "!foo.do_something?\n",
+        );
+    }
+
+    /// 否定を付けるとき、比較や `and`/`or` は括弧で包む。
+    #[test]
+    fn a_negated_comparison_is_parenthesized() {
+        expect_correction(
+            COP,
+            "if a == b\n  false\nelse\n  true\nend\n",
+            "!(a == b)\n",
+        );
+    }
+
+    /// 条件が真偽を返すと言えるのは、比較・述語・二重否定と、それらを `||` で全部、
+    /// `&&` で右辺だけ繋いだもの。
+    #[test]
+    fn what_counts_as_a_condition_that_already_answers_true_or_false() {
+        expect_correction(
+            COP,
+            "if a.nil? || b.nil?\n  true\nelse\n  false\nend\n",
+            "a.nil? || b.nil?\n",
+        );
+        expect_correction(
+            COP,
+            "if a && b.nil?\n  true\nelse\n  false\nend\n",
+            "a && b.nil?\n",
+        );
+        expect_correction(COP, "if !!a\n  true\nelse\n  false\nend\n", "!!a\n");
+        expect_correction(
+            COP,
+            "if (a.nil?)\n  true\nelse\n  false\nend\n",
+            "(a.nil?)\n",
+        );
+    }
+
+    /// `elsif` は連鎖の残りが `else` を保つよう頭だけを落とす。
+    #[test]
+    fn an_elsif_keeps_the_chain_above_it() {
+        expect_correction(
+            COP,
+            "if x\n  1\nelsif foo.do_something?\n  true\nelse\n  false\nend\n",
+            "if x\n  1\nelse\n  foo.do_something?\nend\n",
+        );
+    }
+
+    /// 述語でない条件、枝が真偽値でないもの、`AllowedMethods` のメソッドは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if foo\n  true\nelse\n  false\nend\n",
+            "if foo.do_something?\n  true\nelse\n  1\nend\n",
+            "if a.infinite?\n  true\nelse\n  false\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
 /// `Style/SuperWithArgsParentheses`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/SuperWithArgsParentheses` で走らせた実出力から取った
@@ -23154,5 +24839,539 @@ mod style_return_nil_in_predicate_method_definition {
                 )
                 .run();
         }
+    }
+}
+
+/// `Style/EndlessMethod`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EndlessMethod` で走らせた実出力から取った
+/// (既定 style で検出 4 件、他の 4 style も含め `-A` の結果までバイト一致を確認済み)。
+mod style_endless_method {
+    use super::*;
+
+    const COP: &str = "Style/EndlessMethod";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 既定の `allow_single_line` が咎めるのは複数行の endless method だけ。
+    #[test]
+    fn only_a_multiline_endless_definition_is_reported() {
+        correction("def m =\n  42\n", "def m\n  42\nend\n");
+        correction("def self.m =\n  42\n", "def self.m\n  42\nend\n");
+        correction("def m(a) =\n  a * 2\n", "def m(a)\n  a * 2\nend\n");
+        correction(
+            "class C\n  def n =\n    1\nend\n",
+            "class C\n  def n\n    1\n  end\nend\n",
+        );
+    }
+
+    /// 1 行で書かれた endless method、通常の定義、ヒアドキュメントを返すものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def m = 42\n",
+            "def m\n  42\nend\n",
+            "def m = <<~X\n  hi\nX\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+
+    /// `disallow` は 1 行のものも咎め、`require_always` は逆に endless へ書き換える。
+    #[test]
+    fn the_other_styles_ask_for_the_other_directions() {
+        CopCase::new(COP, "def m = 42\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: disallow\n")
+            .without_offense_check()
+            .corrected("def m\n  42\nend\n")
+            .run();
+        CopCase::new(COP, "def m(a)\n  a * 2\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .without_offense_check()
+            .corrected("def m(a) = a * 2\n")
+            .run();
+        // 本体が 2 文あるものは endless にできない。
+        CopCase::new(COP, "def m\n  a\n  b\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .run();
+    }
+}
+
+/// `Style/AmbiguousEndlessMethodDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/AmbiguousEndlessMethodDefinition` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_ambiguous_endless_method_definition {
+    use super::*;
+
+    const COP: &str = "Style/AmbiguousEndlessMethodDefinition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の修飾子と `and`/`or` はどちらに掛かるか読めないので、定義を複数行へ戻す。
+    #[test]
+    fn a_modifier_after_an_endless_definition_is_reported() {
+        correction("def m = 42 if cond\n", "def m\n  42\nend if cond\n");
+        correction("def m = 42 unless cond\n", "def m\n  42\nend unless cond\n");
+        correction(
+            "def m(a) = a while cond\n",
+            "def m(a)\n  a\nend while cond\n",
+        );
+        correction("def m = 42 until cond\n", "def m\n  42\nend until cond\n");
+        correction("def m = foo and bar\n", "def m\n  foo\nend and bar\n");
+    }
+
+    /// 修飾子でない `if` の中に書かれた定義、endless でない定義は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["if cond\n  def m = 42\nend\n", "def m\n  42\nend\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
+
+/// `Style/HashConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/HashConversion` で走らせた実出力から取った
+/// (検出 19 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_conversion {
+    use super::*;
+
+    const COP: &str = "Style/HashConversion";
+
+    /// 引数が 1 つなら `to_h`。演算子や括弧無しの引数を持つ呼び出しは括弧で包む。
+    #[test]
+    fn a_single_argument_becomes_to_h() {
+        expect_correction(COP, "Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[[[1, 2]]]\n", "[[1, 2]].to_h\n");
+        expect_correction(COP, "::Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[a.zip b]\n", "(a.zip b).to_h\n");
+        expect_correction(COP, "Hash[foo(1)]\n", "foo(1).to_h\n");
+        expect_correction(COP, "Hash[a && b]\n", "(a && b).to_h\n");
+    }
+
+    /// 引数が偶数個ならハッシュリテラル。奇数個なら報告だけで補正しない。
+    #[test]
+    fn an_even_number_of_arguments_becomes_a_literal() {
+        expect_correction(COP, "Hash[a, b]\n", "{a => b}\n");
+        expect_correction(COP, "Hash[a, b, c, d]\n", "{a => b, c => d}\n");
+        let report = CopCase::new(COP, "Hash[a, b, c]\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(!report.offenses[0].is_correctable());
+    }
+
+    /// 括弧の無い呼び出しに渡すと、ハッシュリテラルがブロックに見えるので括弧が付く。
+    #[test]
+    fn a_literal_handed_to_a_bare_call_gains_parentheses() {
+        expect_correction(COP, "foo Hash[a, b]\n", "foo({a => b})\n");
+        expect_correction(COP, "foo Hash[key: :value]\n", "foo({key: :value})\n");
+    }
+
+    /// `zip` に引数が無いときは、まず第 2 の配列を補い、次のパスで `to_h` になる。
+    #[test]
+    fn a_zip_without_an_argument_gains_the_second_array_first() {
+        expect_correction(COP, "Hash[a.zip]\n", "a.zip([]).to_h\n");
+        expect_correction(COP, "Hash[a.zip()]\n", "a.zip([]).to_h\n");
+    }
+
+    /// splat 引数は既定で許され、名前空間付きの `Hash` は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["Hash[*ary]\n", "Foo::Hash[ary]\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ItBlockParameter`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ItBlockParameter` で走らせた実出力から取った
+/// (4 style すべてで検出と `-A` の一致を確認済み)。
+mod style_it_block_parameter {
+    use super::*;
+
+    const COP: &str = "Style/ItBlockParameter";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new()).target_ruby("3.4")
+    }
+
+    /// 既定の `allow_single_line` では `_1` を `it` に置き換え、複数行の `it` ブロックを咎める。
+    #[test]
+    fn numbered_parameters_become_it() {
+        case("foo { _1 * 2 }\n")
+            .without_offense_check()
+            .corrected("foo { it * 2 }\n")
+            .run();
+        case("foo { _1 + _1 }\n")
+            .without_offense_check()
+            .corrected("foo { it + it }\n")
+            .run();
+        case("foo do\n  _1 * 2\nend\n")
+            .without_offense_check()
+            .corrected("foo do\n  it * 2\nend\n")
+            .run();
+    }
+
+    /// 複数行の `it` ブロックは報告だけで補正は無い。1 行なら黙る。
+    #[test]
+    fn a_multiline_it_block_is_reported_without_a_correction() {
+        let report = case("foo do\n  it * 2\nend\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert_eq!(
+            report.offenses[0].message,
+            "Avoid using `it` block parameter for multi-line blocks."
+        );
+        assert!(!report.offenses[0].is_correctable());
+        case("foo { it * 2 }\n").run();
+    }
+
+    /// `_2` まで使うブロック、明示的な引数、3.4 未満の対象版は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo { _1 + _2 }\n", "foo { |x| x * 2 }\n", "foo { 1 }\n"] {
+            case(source).run();
+        }
+        CopCase::new(COP, "foo { _1 * 2 }\n".to_owned(), Vec::new())
+            .target_ruby("3.3")
+            .run();
+    }
+
+    /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
+    /// 何も見つからない。
+    #[test]
+    fn a_body_that_is_only_the_parameter_finds_nothing() {
+        case("foo { bar { it } }\n")
+            .config("Style/ItBlockParameter:\n  EnforcedStyle: disallow\n")
+            .run();
+    }
+}
+
+/// `Style/FetchEnvVar`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FetchEnvVar` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_fetch_env_var {
+    use super::*;
+
+    const COP: &str = "Style/FetchEnvVar";
+
+    /// 既定では `nil` を明示した `fetch` に置き換える。
+    #[test]
+    fn a_bracket_read_becomes_a_fetch() {
+        expect_correction(COP, "ENV['X']\n", "ENV.fetch('X', nil)\n");
+        expect_correction(COP, "x = ENV['X']\n", "x = ENV.fetch('X', nil)\n");
+        expect_correction(COP, "foo(ENV['X'])\n", "foo(ENV.fetch('X', nil))\n");
+        expect_correction(COP, "[ENV['X']]\n", "[ENV.fetch('X', nil)]\n");
+        expect_correction(COP, "puts ENV['X']\n", "puts ENV.fetch('X', nil)\n");
+    }
+
+    /// 真偽の判定に使っているもの、メソッドを繋いだもの、代入の左辺、`||` の左は
+    /// 「無いかもしれない」ことが書けているので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ENV['X'].split(',')\n",
+            "ENV['X'] || 'default'\n",
+            "y || ENV['X'] || z\n",
+            "ENV['X'] ||= 'y'\n",
+            "!ENV['X']\n",
+            "ENV['X'] == 'y'\n",
+            "if ENV['X']\n  foo\nend\n",
+            "if ENV['X'] == 'y'\n  foo\nend\n",
+            "if ENV['X'].nil?\n  foo\nend\n",
+            "unless ENV['X']\n  foo\nend\n",
+            "foo if ENV['X']\n",
+            "ENV['X'] ? 1 : 2\n",
+            // `(const nil? :ENV)` は scope が無いものだけ。
+            "::ENV['X']\n",
+            "ENV['X', 'Y']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 条件の中で使われていても、その条件が読んでいるのが別の式なら報告する。
+    #[test]
+    fn a_read_the_condition_does_not_test_is_still_reported() {
+        expect_correction(
+            COP,
+            "if cond\n  x = ENV['X']\nend\n",
+            "if cond\n  x = ENV.fetch('X', nil)\nend\n",
+        );
+    }
+
+    /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
+    #[test]
+    fn the_default_can_be_left_out() {
+        CopCase::new(COP, "ENV['X']\n".to_owned(), Vec::new())
+            .config("Style/FetchEnvVar:\n  DefaultToNil: false\n")
+            .without_offense_check()
+            .corrected("ENV.fetch('X')\n")
+            .run();
+    }
+}
+
+/// `Style/MapCompactWithConditionalBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MapCompactWithConditionalBlock` で走らせた実出力から
+/// 取った (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_compact_with_conditional_block {
+    use super::*;
+
+    const COP: &str = "Style/MapCompactWithConditionalBlock";
+
+    /// 条件が真のときだけ値を返す形は `select`、偽のときだけ返す形は `reject`。
+    #[test]
+    fn the_direction_of_the_conditional_picks_the_method() {
+        expect_correction(
+            COP,
+            "ary.map { |x| x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| x unless cond(x) }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next if cond(x); x }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next unless cond(x); x }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x); nil }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// `filter_map` はそれ自体が対象で、`.compact` は要らない。
+    #[test]
+    fn filter_map_is_reported_on_its_own() {
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| next x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 複数行で書かれていても 1 行に畳まれる。
+    #[test]
+    fn a_multiline_block_collapses_onto_one_line() {
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  else\n    next\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 返すのがブロック引数でないもの、`compact` の無い `map`、引数が 2 つのブロック、
+    /// 条件の無いもの、`map` でない呼び出し (`collect` を含む) は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ary.collect { |x| x if cond(x) }.compact\n",
+            "ary.map { |x| y if cond(x) }.compact\n",
+            "ary.map { |x| x if cond(x) }\n",
+            "ary.map { |x, y| x if cond(x) }.compact\n",
+            "ary.map { |x| x }.compact\n",
+            "ary.each { |x| x if cond(x) }.compact\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/DocumentDynamicEvalDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DocumentDynamicEvalDefinition` で走らせた実出力から
+/// 取った (検出 5 件 / 4 件で一致。この cop は補正を持たない)。
+mod style_document_dynamic_eval_definition {
+    use super::*;
+
+    const COP: &str = "Style/DocumentDynamicEvalDefinition";
+
+    /// 補間を含む文字列を `eval` 系に渡していて、何ができるのかを書いた注釈が無いものが対象。
+    #[test]
+    fn an_undocumented_interpolated_definition_is_reported() {
+        for source in [
+            "class_eval <<~RUBY\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+            "class_eval \"def #{name}; end\"\n",
+            "module_eval <<~RUBY\n  def #{name}\n  end\nRUBY\n",
+            "instance_eval <<-RUBY\n  def #{name}\n  end\nRUBY\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "Add a comment block showing its appearance if interpolated."
+            );
+            assert!(!report.offenses[0].is_correctable());
+        }
+    }
+
+    /// ヒアドキュメントの**中**に書かれた注釈が、補間後の姿と読める形なら黙る。
+    #[test]
+    fn a_comment_block_inside_the_heredoc_is_enough() {
+        expect_no_offenses(
+            COP,
+            "class_eval <<~RUBY\n  # def foo\n  #   @foo\n  # end\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// ヒアドキュメントの**外**に書かれた注釈は拾われない。`preceding_comment_blocks` が
+    /// 見るのは呼び出し自身が載っている行だけで、ヒアドキュメント本体はその外にある。
+    #[test]
+    fn a_comment_block_above_the_call_is_not_looked_at() {
+        expect_offense(
+            COP,
+            "# def foo\n#   @foo\n# end\nclass_eval <<~RUBY\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間のある行そのものに注釈が付いていれば足りるが、**すべての**補間の行に要る。
+    #[test]
+    fn a_comment_on_every_interpolated_line_is_enough() {
+        expect_no_offenses(COP, "class_eval \"def #{name}; end\" # def foo; end\n");
+        expect_offense(
+            COP,
+            "class_eval(<<~RUBY)\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  # def #{name}\n  def #{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間の無い文字列、`eval` 系でない呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class_eval \"def foo; end\"\n",
+            "class_eval <<~RUBY\n  def foo\n  end\nRUBY\n",
+            "define_method(\"#{name}\") { }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/MagicCommentFormat`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MagicCommentFormat` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み。設定 4 通りでも一致を確認)。
+mod style_magic_comment_format {
+    use super::*;
+
+    const COP: &str = "Style/MagicCommentFormat";
+
+    /// 既定は snake_case と小文字。ハイフン区切りも大文字も直される。
+    #[test]
+    fn a_directive_is_written_in_lower_snake_case() {
+        expect_correction(
+            COP,
+            "# frozen-string-literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# FROZEN_STRING_LITERAL: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# Frozen-String-Literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        // Emacs 形式のディレクティブも同じ扱い。
+        expect_correction(
+            COP,
+            "# -*- frozen-string-literal: true -*-\nx = 1\n",
+            "# -*- frozen_string_literal: true -*-\nx = 1\n",
+        );
+    }
+
+    /// 値は `ValueCapitalization` が未設定のあいだ触られない。
+    #[test]
+    fn values_are_left_alone_by_default() {
+        for source in [
+            "# frozen_string_literal: true\nx = 1\n",
+            "# coding: UTF-8\nx = 1\n",
+            "# typed: TRUE\nx = 1\n",
+            "# rbs_inline: enabled\nx = 1\n",
+            "# shareable_constant_value: literal\nx = 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 魔法のコメントでないもの、コードより下にあるものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "# some other comment\nx = 1\n");
+        expect_no_offenses(COP, "x = 1\n# frozen-string-literal: true\n");
+        // Vim 形式は `fileencoding` しか読まず、トークンが 2 つ以上要る。
+        expect_no_offenses(COP, "# vim: fileencoding=utf-8, foo=bar\nx = 1\n");
+    }
+
+    /// `kebab_case` は向きが逆になり、`ValueCapitalization` を入れると値も直る。
+    #[test]
+    fn the_other_settings_ask_for_the_other_directions() {
+        CopCase::new(
+            COP,
+            "# frozen_string_literal: true\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MagicCommentFormat:\n  EnforcedStyle: kebab_case\n")
+        .without_offense_check()
+        .corrected("# frozen-string-literal: true\nx = 1\n")
+        .run();
+        CopCase::new(COP, "# typed: STRICT\nx = 1\n".to_owned(), Vec::new())
+            .config("Style/MagicCommentFormat:\n  ValueCapitalization: lowercase\n")
+            .without_offense_check()
+            .corrected("# typed: strict\nx = 1\n")
+            .run();
     }
 }

@@ -318,6 +318,19 @@ fn next_character(bytes: &[u8], index: usize) -> Option<(char, usize)> {
 }
 
 /// `to_symbol_literal`: a name the parser reads back as this symbol.
+/// `String#inspect`, which is `to_string_literal`'s double-quoted half without the choice.
+pub(super) fn inspect_string(value: &str) -> String {
+    format!("\"{}\"", inspect_body(value))
+}
+
+/// `Symbol#inspect`, which quotes with `"` where RuboCop's own `to_symbol_literal` reaches for `'`.
+pub(super) fn inspect_symbol(value: &str) -> String {
+    if symbol_without_quote(value) {
+        return format!(":{value}");
+    }
+    format!(":{}", inspect_string(value))
+}
+
 pub(super) fn to_symbol_literal(value: &str) -> String {
     if symbol_without_quote(value) {
         return format!(":{value}");
@@ -338,7 +351,7 @@ const REDEFINABLE_OPERATORS: &[&str] = &[
     "%", "**", "~", "+@", "-@", "[]", "[]=", "`", "!", "!=", "!~",
 ];
 
-fn symbol_without_quote(value: &str) -> bool {
+pub(super) fn symbol_without_quote(value: &str) -> bool {
     let bare = |name: &str| {
         let mut characters = name.chars();
         characters
