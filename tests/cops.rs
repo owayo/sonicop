@@ -27994,3 +27994,102 @@ mod lint_redundant_type_conversion {
         }
     }
 }
+
+/// `Lint/SymbolConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/SymbolConversion` で走らせた実出力から取った
+/// (検出 20 件・`-A` の結果ともバイト一致を、`strict` / `consistent` 両方で確認済み)。
+mod lint_symbol_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/SymbolConversion";
+
+    /// `to_sym` / `intern` の呼び出しは `Symbol#inspect` の綴りへ畳まれる。
+    #[test]
+    fn a_conversion_call_folds_into_a_symbol_literal() {
+        expect_offense(
+            COP,
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "\"foo\".to_sym\n:foo.to_sym\n\"foo bar\".to_sym\n\"a#{b}\".to_sym\n:foo.intern\n",
+            ":foo\n:foo\n:\"foo bar\"\n:\"a#{b}\"\n:foo\n",
+        );
+    }
+
+    /// 引用符が要らないシンボルは裸で書く。演算子・`@`/`$` 付き・`?` 付きも裸。
+    #[test]
+    fn unnecessary_quotes_are_dropped() {
+        expect_correction(
+            COP,
+            ":\"foo\"\n:'foo'\n:\"[]\"\n:\"+\"\n:\"@a\"\n:\"$a\"\n:\"a?\"\n:\"A\"\n",
+            ":foo\n:foo\n:[]\n:+\n:@a\n:$a\n:a?\n:A\n",
+        );
+    }
+
+    /// ハッシュキーはコロン形なら先頭のコロンを落とした形が期待値になる。
+    #[test]
+    fn a_hash_key_keeps_the_shape_it_was_written_in() {
+        expect_offense(
+            COP,
+            r#"
+            { "a": 1 }
+              ^^^ Unnecessary symbol conversion; use `a:` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "{ \"a\": 1 }\n{ 'a': 1 }\n{ :\"a\" => 1 }\n{ \"_a\": 1 }\n{ \"Ab\": 1 }\n",
+            "{ a: 1 }\n{ a: 1 }\n{ :a => 1 }\n{ _a: 1 }\n{ Ab: 1 }\n",
+        );
+    }
+
+    /// `EnforcedStyle: consistent` では、引用符の要るキーが 1 つでもあるハッシュの
+    /// キーをすべて引用符付きに揃える。`strict` だけの `=` 免除も無くなる。
+    #[test]
+    fn the_consistent_style_quotes_every_key_of_a_mixed_hash() {
+        CopCase::new(COP, "{ \"a\": 1, \"b c\": 2 }\n", Vec::new())
+            .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
+            .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            x = :"foo="
+                ^^^^^^^ Unnecessary symbol conversion; use `:foo=` instead.
+            "#,
+        )
+        .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
+        .corrected("x = :foo=\n")
+        .run();
+    }
+
+    /// 引用符が必要なもの、`alias`、`%i[]`、`=>` の文字列キー、`=` で終わるシンボル
+    /// (既定の `strict`) は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            ":foo\n",
+            ":\"foo bar\"\n",
+            "{ \"a b\": 1 }\n",
+            "{ a: 1 }\n",
+            "{ :a => 1 }\n",
+            "alias :foo :bar\n",
+            "alias :\"a\" :\"b\"\n",
+            "%i[a b]\n",
+            ":\"a#{b}\"\n",
+            "x = :\"foo=\"\n",
+            ":\"1a\"\n",
+            ":\"\"\n",
+            "{ \"1a\": 1 }\n",
+            "{ \"-a\": 1 }\n",
+            "x = { \"a\" => 1 }\n",
+            ":\"a-b\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

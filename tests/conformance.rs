@@ -2816,6 +2816,16 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_redundant_type_conversion")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/SymbolConversion",
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        )
+        .id("lint_symbol_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

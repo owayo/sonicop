@@ -155,6 +155,7 @@ department_rules! {
     struct_new_override => ("StructNewOverride", Warning),
     suppressed_exception => ("SuppressedException", Warning),
     suppressed_exception_in_number_conversion => ("SuppressedExceptionInNumberConversion", Warning),
+    symbol_conversion => ("SymbolConversion", Warning),
     syntax => ("Syntax", Fatal),
     to_json => ("ToJSON", Warning),
     top_level_return_with_argument => ("TopLevelReturnWithArgument", Warning),
