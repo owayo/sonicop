@@ -1,6 +1,9 @@
 //! Tree walks shared by cops in more than one department.
 
 use std::ops::Range;
+use std::sync::LazyLock;
+
+use regex::Regex;
 
 /// `RangeHelp#final_pos`: how far a range grows when it takes in the blanks beside it.
 ///
@@ -59,6 +62,7 @@ use tree_sitter::{Node, Parser};
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{Argument, is_string, pair_key_symbol, string_text};
 
 /// `ReparsedEquivalence#correction_parses?`: whether the exact correction a cop is about to offer
 /// leaves source that still parses.
@@ -366,6 +370,45 @@ fn rotate_same_operator(node: Sexp) -> Sexp {
     rotate_same_operator(Sexp {
         label,
         children: vec![rotated, right_right],
+    })
+}
+
+/// `VERSION_SPECIFICATION_REGEX`, shared by the two cops that ask whether a dependency was pinned.
+/// Ruby anchors `^` at the start of a *line*, which this engine only does under `(?m)`.
+static VERSION_SPECIFICATION: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^\s*[~<>=]*\s*[0-9.]+").expect("the version requirement pattern compiles")
+});
+
+/// The keys that pin a dependency to a commit rather than to a version.
+const COMMIT_KEYS: &[&str] = &["branch", "ref", "tag"];
+
+/// `<(str #version_specification?) ...>`: whether the argument is a string that opens with a version
+/// requirement.
+pub(crate) fn is_version_specification(argument: &Argument<'_>, context: &RuleContext<'_>) -> bool {
+    let node = argument.first();
+    argument.parts().len() == 1
+        && is_string(node, context)
+        && VERSION_SPECIFICATION.is_match(string_text(node, context))
+}
+
+/// `<(hash <(pair (sym {:branch :ref :tag}) (str _)) ...>) ...>`: whether the argument is a hash that
+/// pins the dependency to a commit.
+pub(crate) fn is_commit_reference(argument: &Argument<'_>, context: &RuleContext<'_>) -> bool {
+    // A trailing run of `key: value` pairs is one `hash` argument upstream even though it was
+    // written without braces, so both spellings have to be looked into.
+    let pairs: Vec<Node<'_>> = match argument.first().kind_str() {
+        "hash" if argument.parts().len() == 1 => {
+            let mut cursor = argument.first().walk();
+            argument.first().named_children(&mut cursor).collect()
+        }
+        _ => argument.parts().to_vec(),
+    };
+    pairs.iter().any(|pair| {
+        pair.kind_str() == "pair"
+            && pair_key_symbol(*pair, context).is_some_and(|key| COMMIT_KEYS.contains(&key))
+            && pair
+                .field("value")
+                .is_some_and(|value| is_string(value, context))
     })
 }
 

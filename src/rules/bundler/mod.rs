@@ -6,6 +6,7 @@ department_rules! {
     duplicated_gem => ("DuplicatedGem", Warning),
     duplicated_group => ("DuplicatedGroup", Warning),
     gem_filename => ("GemFilename", Convention),
+    gem_version => ("GemVersion", Convention),
     insecure_protocol_source => ("InsecureProtocolSource", Warning),
     ordered_gems => ("OrderedGems", Convention),
 }

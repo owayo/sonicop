@@ -20692,3 +20692,290 @@ mod style_env_home {
         }
     }
 }
+
+/// `Security/IoMethods` — `IO` の読み書きを `File` へ寄せる。期待値は本家 1.89.0 の実測。
+mod security_io_methods {
+    use super::*;
+
+    const COP: &str = "Security/IoMethods";
+
+    /// レシーバは**ソースが `IO`** であることが条件なので、`::IO` も `Foo::IO` も対象外。
+    /// 安全ナビゲーションは `csend` で `on_send` に届かない。
+    #[test]
+    fn only_a_receiver_written_exactly_as_io_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            IO.read('/path/to/file')
+            ^^^^^^^^^^^^^^^^^^^^^^^^ `File.read` is safer than `IO.read`.
+            IO.foreach('/path/to/file') { |l| p l }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `File.foreach` is safer than `IO.foreach`.
+            IO.read
+            ^^^^^^^ `File.read` is safer than `IO.read`.
+            ::IO.read('x')
+            Foo::IO.read('x')
+            IO&.read('x')
+            File.read('x')
+            IO.popen('x')
+            "#,
+        )
+        .corrected(
+            r#"
+            File.read('/path/to/file')
+            File.foreach('/path/to/file') { |l| p l }
+            File.read
+            ::IO.read('x')
+            Foo::IO.read('x')
+            IO&.read('x')
+            File.read('x')
+            IO.popen('x')
+            "#,
+        )
+        .run();
+    }
+
+    /// 第 1 引数が `|` で始まる文字列はコマンドの実行なので `File` に置き換えられない。
+    #[test]
+    fn a_command_argument_is_left_alone() {
+        for source in [
+            "IO.read('| ls')\n",
+            "IO.read('  | ls')\n",
+            "IO.read(\"|ls\")\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        // 文字列でなければ判定できないので報告される。
+        CopCase::annotated(
+            COP,
+            "IO.read(path)\n^^^^^^^^^^^^^ `File.read` is safer than `IO.read`.\n",
+        )
+        .corrected("File.read(path)\n")
+        .run();
+    }
+}
+
+/// `Security/CompoundHash` — 期待値は本家 1.89.0 の実測。
+mod security_compound_hash {
+    use super::*;
+
+    const COP: &str = "Security/CompoundHash";
+    const COMBINATOR: &str = "Use `[...].hash` instead of combining hash values manually.";
+    const MONUPLE: &str =
+        "Delegate hash directly without wrapping in an array when only using a single value.";
+    const REDUNDANT: &str = "Calling .hash on elements of a hashed array is redundant.";
+
+    /// 報告されるのは**最も外側**の結合だけ。`hash` の定義の中に限る。
+    /// `def hash(x)` のように引数を取る定義は `(args)` に合わないので対象外。
+    #[test]
+    fn the_outermost_combination_inside_a_hash_definition_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def hash
+              a.hash ^ b.hash
+              ^^^^^^^^^^^^^^^ %{combinator}
+            end
+            def hash
+              a.hash ^ (b.hash * c.hash)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^ %{combinator}
+            end
+            def hash
+              a.hash - b.hash
+            end
+            def other
+              a.hash ^ b.hash
+            end
+            def hash(x)
+              a.hash | b.hash
+            end
+            def hash()
+              a.hash | b.hash
+              ^^^^^^^^^^^^^^^ %{combinator}
+            end
+            "#,
+            &[("combinator", COMBINATOR)],
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// `def self.hash` / `define_method(:hash)` も定義。`x ^= y` の op-asgn と
+    /// `a.^(b)` の呼び出しも結合として数える。
+    #[test]
+    fn every_spelling_of_the_definition_and_the_operator_counts() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            def self.hash
+              x = a.hash
+              x ^= b.hash
+              ^^^^^^^^^^^ %{combinator}
+            end
+            define_method(:hash) do
+              a.^(b)
+              ^^^^^^ %{combinator}
+            end
+            define_method(:hash) do |x|
+              a.hash * b.hash
+            end
+            "#,
+            &[("combinator", COMBINATOR)],
+        )
+        .run();
+    }
+
+    /// 配列 1 要素の `.hash` は委譲すべき。要素の `.hash` は冗長。同じレンジに
+    /// 2 つ当たると `add_offense` がレンジで弾くので最初の 1 件だけ残る。
+    #[test]
+    fn a_hashed_array_reports_its_wrapper_and_its_elements() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            [a].hash
+            ^^^^^^^^ %{monuple}
+            [a.hash, b.hash].hash
+             ^^^^^^ %{redundant}
+                     ^^^^^^ %{redundant}
+            [[a].hash].hash
+            ^^^^^^^^^^^^^^^ %{monuple}
+             ^^^^^^^^ %{monuple}
+            [a, b].hash
+            "#,
+            &[("monuple", MONUPLE), ("redundant", REDUNDANT)],
+        )
+        .run();
+    }
+}
+
+/// `Metrics/CollectionLiteralLength` — 期待値は本家 1.89.0 の実測。
+mod metrics_collection_literal_length {
+    use super::*;
+
+    const COP: &str = "Metrics/CollectionLiteralLength";
+    const MSG: &str = "Avoid hard coding large quantities of data in code. \
+                       Prefer reading the data from an external source.";
+    const MAX3: &str = "Metrics/CollectionLiteralLength:\n  Max: 3\n";
+
+    /// 数えるのは要素数で、閾値は `>=`。`%w[]` も配列。
+    #[test]
+    fn an_array_or_a_hash_at_the_threshold_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            [1, 2, 3]
+            ^^^^^^^^^ %{msg}
+            [1, 2]
+            { a: 1, b: 2, c: 3 }
+            ^^^^^^^^^^^^^^^^^^^^ %{msg}
+            %w[a b c]
+            ^^^^^^^^^ %{msg}
+            %i[a b c]
+            ^^^^^^^^^ %{msg}
+            "#,
+            &[("msg", MSG)],
+        )
+        .config(MAX3)
+        .correctable(false)
+        .run();
+    }
+
+    /// `Set[...]` は `:[]` の呼び出しとして数える。定数はトップレベルの `Set` だけ。
+    #[test]
+    fn a_set_literal_is_counted_by_its_indices() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            Set[1, 2, 3]
+            ^^^^^^^^^^^^ %{msg}
+            Set[1, 2]
+            ::Set[1, 2, 3]
+            ^^^^^^^^^^^^^^ %{msg}
+            Foo::Set[1, 2, 3]
+            Set[1, 2, 3] = x
+            "#,
+            &[("msg", MSG)],
+        )
+        .config(MAX3)
+        .run();
+    }
+
+    /// 波括弧を書かない `key: value` の並びも本家では 1 個の `hash` なので数えられる。
+    /// 配列の中に書いた並びは配列の要素 1 個に畳まれる。
+    #[test]
+    fn a_braceless_hash_is_counted_as_the_hash_it_stands_for() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo(a: 1, b: 2, c: 3)
+                ^^^^^^^^^^^^^^^^ %{msg}
+            foo(1, a: 1, b: 2, c: 3)
+                   ^^^^^^^^^^^^^^^^ %{msg}
+            [a: 1, b: 2, c: 3]
+             ^^^^^^^^^^^^^^^^ %{msg}
+            "#,
+            &[("msg", MSG)],
+        )
+        .config(MAX3)
+        .run();
+    }
+
+    /// `Max` が無ければ閾値は `Float::INFINITY` なので何も報告されない。
+    #[test]
+    fn no_max_reports_nothing() {
+        CopCase::new(COP, "[1, 2, 3]\n", Vec::new())
+            .config("Metrics/CollectionLiteralLength:\n  Max: ~\n")
+            .run();
+    }
+}
+
+/// `Bundler/GemVersion` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod bundler_gem_version {
+    use super::*;
+
+    const COP: &str = "Bundler/GemVersion";
+    const GEMFILE: &str = "Gemfile";
+
+    /// 既定の `required` はバージョン要求もコミット参照も無い宣言を報告する。
+    #[test]
+    fn a_version_is_required_by_default() {
+        CopCase::annotated(
+            COP,
+            r#"
+            gem 'rubocop'
+            ^^^^^^^^^^^^^ Gem version specification is required.
+            gem 'rubocop', '~> 1.0'
+            gem 'a', branch: 'main'
+            gem 'b', { tag: 'v1' }
+            gem 'd', github: 'x'
+            ^^^^^^^^^^^^^^^^^^^^ Gem version specification is required.
+            gem 'f', tag: 1
+            ^^^^^^^^^^^^^^^ Gem version specification is required.
+            "#,
+        )
+        .path(GEMFILE)
+        .correctable(false)
+        .run();
+    }
+
+    /// `forbidden` は逆向き。`AllowedGems` はどちらの体裁でも見送られる。
+    #[test]
+    fn the_forbidden_style_reports_the_pinned_declarations() {
+        CopCase::annotated(
+            COP,
+            r#"
+            gem 'rubocop'
+            gem 'rubocop', '~> 1.0'
+            ^^^^^^^^^^^^^^^^^^^^^^^ Gem version specification is forbidden.
+            gem 'a', branch: 'main'
+            ^^^^^^^^^^^^^^^^^^^^^^^ Gem version specification is forbidden.
+            "#,
+        )
+        .path(GEMFILE)
+        .config("Bundler/GemVersion:\n  EnforcedStyle: forbidden\n")
+        .run();
+        CopCase::new(COP, "gem 'rubocop'\ngem 'rspec'\n", Vec::new())
+            .path(GEMFILE)
+            .config("Bundler/GemVersion:\n  AllowedGems:\n    - rubocop\n    - rspec\n")
+            .run();
+    }
+}

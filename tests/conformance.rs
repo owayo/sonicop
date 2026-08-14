@@ -65,6 +65,14 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 1, 1, 1)])
         .lengths(&[0])
         .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemVersion",
+            "gem 'rubocop'\n^^^^^^^^^^^^^ Gem version specification is required.\n",
+        )
+        .id("bundler_gem_version")
+        .path("Gemfile")
+        .correctable(false),
         CopCase::annotated(
             "Bundler/InsecureProtocolSource",
             r#"
@@ -2438,6 +2446,13 @@ fn catalogue() -> Vec<CopCase> {
         .config("Metrics/ClassLength:\n  Max: 1\n")
         .locations(&[(1, 1, 4, 3)]),
         CopCase::annotated(
+            "Metrics/CollectionLiteralLength",
+            "[1, 2, 3]\n^^^^^^^^^ Avoid hard coding large quantities of data in code. Prefer reading the data from an external source.\n",
+        )
+        .id("metrics_collection_literal_length")
+        .config("Metrics/CollectionLiteralLength:\n  Max: 3\n")
+        .correctable(false),
+        CopCase::annotated(
             "Metrics/CyclomaticComplexity",
             r#"
             def foo
@@ -2737,6 +2752,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("security_eval")
         .severity(Severity::Convention),
+        CopCase::annotated(
+            "Security/CompoundHash",
+            r#"
+            def hash
+              a.hash ^ b.hash
+              ^^^^^^^^^^^^^^^ Use `[...].hash` instead of combining hash values manually.
+            end
+            "#,
+        )
+        .id("security_compound_hash")
+        .correctable(false),
+        CopCase::annotated(
+            "Security/IoMethods",
+            "IO.read('x')\n^^^^^^^^^^^^ `File.read` is safer than `IO.read`.\n",
+        )
+        .id("security_io_methods")
+        .correctable(true),
         CopCase::annotated(
             "Security/JSONLoad",
             r#"
