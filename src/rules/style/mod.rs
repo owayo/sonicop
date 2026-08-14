@@ -1,6 +1,7 @@
 mod block_args;
 mod comments;
 mod conditional;
+mod endless;
 mod file_open_call;
 mod format_sequences;
 mod frozen_string;
@@ -25,6 +26,7 @@ department_rules! {
     alias => ("Alias", Convention),
     accessor_grouping => ("AccessorGrouping", Convention),
     and_or => ("AndOr", Convention),
+    ambiguous_endless_method_definition => ("AmbiguousEndlessMethodDefinition", Convention),
     array_intersect => ("ArrayIntersect", Convention),
     array_intersect_with_single_element => ("ArrayIntersectWithSingleElement", Convention),
     array_join => ("ArrayJoin", Convention),
@@ -69,6 +71,7 @@ department_rules! {
     dig_chain => ("DigChain", Convention),
     data_inheritance => ("DataInheritance", Convention),
     documentation => ("Documentation", Convention),
+    document_dynamic_eval_definition => ("DocumentDynamicEvalDefinition", Convention),
     double_cop_disable_directive => ("DoubleCopDisableDirective", Convention),
     double_negation => ("DoubleNegation", Convention),
     each_for_simple_loop => ("EachForSimpleLoop", Convention),
@@ -84,6 +87,7 @@ department_rules! {
     empty_string_inside_interpolation => ("EmptyStringInsideInterpolation", Convention),
     encoding => ("Encoding", Convention),
     end_block => ("EndBlock", Convention),
+    endless_method => ("EndlessMethod", Convention),
     env_home => ("EnvHome", Convention),
     eval_with_location => ("EvalWithLocation", Convention),
     even_odd => ("EvenOdd", Convention),
@@ -92,6 +96,7 @@ department_rules! {
     explicit_block_argument => ("ExplicitBlockArgument", Convention),
     exponential_notation => ("ExponentialNotation", Convention),
     float_division => ("FloatDivision", Convention),
+    fetch_env_var => ("FetchEnvVar", Convention),
     file_empty => ("FileEmpty", Convention),
     file_null => ("FileNull", Convention),
     file_open => ("FileOpen", Convention),
@@ -106,6 +111,7 @@ department_rules! {
     global_vars => ("GlobalVars", Convention),
     guard_clause => ("GuardClause", Convention),
     hash_as_last_array_item => ("HashAsLastArrayItem", Convention),
+    hash_conversion => ("HashConversion", Convention),
     hash_each_methods => ("HashEachMethods", Convention),
     hash_except => ("HashExcept", Convention),
     hash_slice => ("HashSlice", Convention),
@@ -126,6 +132,7 @@ department_rules! {
     infinite_loop => ("InfiniteLoop", Convention),
     in_pattern_then => ("InPatternThen", Convention),
     it_assignment => ("ItAssignment", Convention),
+    it_block_parameter => ("ItBlockParameter", Convention),
     lambda => ("Lambda", Convention),
     line_end_concatenation => ("LineEndConcatenation", Convention),
     lambda_call => ("LambdaCall", Convention),
@@ -136,6 +143,8 @@ department_rules! {
     method_def_parentheses => ("MethodDefParentheses", Convention),
     method_called_on_do_end_block => ("MethodCalledOnDoEndBlock", Convention),
     min_max => ("MinMax", Convention),
+    map_compact_with_conditional_block => ("MapCompactWithConditionalBlock", Convention),
+    magic_comment_format => ("MagicCommentFormat", Convention),
     map_join => ("MapJoin", Convention),
     map_to_hash => ("MapToHash", Convention),
     map_to_set => ("MapToSet", Convention),

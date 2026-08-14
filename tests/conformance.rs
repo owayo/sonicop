@@ -4192,6 +4192,63 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_return_nil_in_predicate_method_definition")
         .correctable(true),
+        // 位置は定義全体。複数行なので注記では表せない。
+        CopCase::annotated("Style/EndlessMethod", "def m =\n  42\n")
+            .id("style_endless_method")
+            .target_ruby("3.0")
+            .without_offense_check()
+            .locations(&[(1, 1, 2, 4)])
+            .lengths(&[12])
+            .correctable(true),
+        // 位置は修飾子を含む式全体。置き換わるのは定義の側。
+        CopCase::annotated(
+            "Style/AmbiguousEndlessMethodDefinition",
+            "def m = 42 if cond\n^^^^^^^^^^^^^^^^^^ Avoid using `if` statements with endless methods.\n",
+        )
+        .id("style_ambiguous_endless_method_definition")
+        .target_ruby("3.0")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/HashConversion",
+            "Hash[ary]\n^^^^^^^^^ Prefer `ary.to_h` to `Hash[ary]`.\n",
+        )
+        .id("style_hash_conversion")
+        .correctable(true),
+        // 位置は `_1` の読みそのもの。
+        CopCase::annotated(
+            "Style/ItBlockParameter",
+            "foo { _1 * 2 }\n      ^^ Use `it` block parameter.\n",
+        )
+        .id("style_it_block_parameter")
+        .target_ruby("3.4")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/FetchEnvVar",
+            "ENV['X']\n^^^^^^^^ Use `ENV.fetch('X', nil)` instead of `ENV['X']`.\n",
+        )
+        .id("style_fetch_env_var")
+        .correctable(true),
+        // 位置は `map` の selector から `.compact` の末尾まで。
+        CopCase::annotated(
+            "Style/MapCompactWithConditionalBlock",
+            "ary.map { |x| x if cond(x) }.compact\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Replace `map { ... }.compact` with `select`.\n",
+        )
+        .id("style_map_compact_with_conditional_block")
+        .correctable(true),
+        // 位置は selector だけ。補正は無い。
+        CopCase::annotated(
+            "Style/DocumentDynamicEvalDefinition",
+            "class_eval <<~RUBY\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  def #{name}\n  end\nRUBY\n",
+        )
+        .id("style_document_dynamic_eval_definition")
+        .correctable(false),
+        // 位置はディレクティブの綴りだけ。値と `#` は範囲の外に残る。
+        CopCase::annotated(
+            "Style/MagicCommentFormat",
+            "# frozen-string-literal: true\n  ^^^^^^^^^^^^^^^^^^^^^ Prefer lower snake case for magic comments.\nx = 1\n",
+        )
+        .id("style_magic_comment_format")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

@@ -24841,3 +24841,537 @@ mod style_return_nil_in_predicate_method_definition {
         }
     }
 }
+
+/// `Style/EndlessMethod`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/EndlessMethod` で走らせた実出力から取った
+/// (既定 style で検出 4 件、他の 4 style も含め `-A` の結果までバイト一致を確認済み)。
+mod style_endless_method {
+    use super::*;
+
+    const COP: &str = "Style/EndlessMethod";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 既定の `allow_single_line` が咎めるのは複数行の endless method だけ。
+    #[test]
+    fn only_a_multiline_endless_definition_is_reported() {
+        correction("def m =\n  42\n", "def m\n  42\nend\n");
+        correction("def self.m =\n  42\n", "def self.m\n  42\nend\n");
+        correction("def m(a) =\n  a * 2\n", "def m(a)\n  a * 2\nend\n");
+        correction(
+            "class C\n  def n =\n    1\nend\n",
+            "class C\n  def n\n    1\n  end\nend\n",
+        );
+    }
+
+    /// 1 行で書かれた endless method、通常の定義、ヒアドキュメントを返すものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def m = 42\n",
+            "def m\n  42\nend\n",
+            "def m = <<~X\n  hi\nX\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+
+    /// `disallow` は 1 行のものも咎め、`require_always` は逆に endless へ書き換える。
+    #[test]
+    fn the_other_styles_ask_for_the_other_directions() {
+        CopCase::new(COP, "def m = 42\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: disallow\n")
+            .without_offense_check()
+            .corrected("def m\n  42\nend\n")
+            .run();
+        CopCase::new(COP, "def m(a)\n  a * 2\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .without_offense_check()
+            .corrected("def m(a) = a * 2\n")
+            .run();
+        // 本体が 2 文あるものは endless にできない。
+        CopCase::new(COP, "def m\n  a\n  b\nend\n".to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .config("Style/EndlessMethod:\n  EnforcedStyle: require_always\n")
+            .run();
+    }
+}
+
+/// `Style/AmbiguousEndlessMethodDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/AmbiguousEndlessMethodDefinition` で走らせた実出力から
+/// 取った (検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_ambiguous_endless_method_definition {
+    use super::*;
+
+    const COP: &str = "Style/AmbiguousEndlessMethodDefinition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の修飾子と `and`/`or` はどちらに掛かるか読めないので、定義を複数行へ戻す。
+    #[test]
+    fn a_modifier_after_an_endless_definition_is_reported() {
+        correction("def m = 42 if cond\n", "def m\n  42\nend if cond\n");
+        correction("def m = 42 unless cond\n", "def m\n  42\nend unless cond\n");
+        correction(
+            "def m(a) = a while cond\n",
+            "def m(a)\n  a\nend while cond\n",
+        );
+        correction("def m = 42 until cond\n", "def m\n  42\nend until cond\n");
+        correction("def m = foo and bar\n", "def m\n  foo\nend and bar\n");
+    }
+
+    /// 修飾子でない `if` の中に書かれた定義、endless でない定義は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["if cond\n  def m = 42\nend\n", "def m\n  42\nend\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
+
+/// `Style/HashConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/HashConversion` で走らせた実出力から取った
+/// (検出 19 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_hash_conversion {
+    use super::*;
+
+    const COP: &str = "Style/HashConversion";
+
+    /// 引数が 1 つなら `to_h`。演算子や括弧無しの引数を持つ呼び出しは括弧で包む。
+    #[test]
+    fn a_single_argument_becomes_to_h() {
+        expect_correction(COP, "Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[[[1, 2]]]\n", "[[1, 2]].to_h\n");
+        expect_correction(COP, "::Hash[ary]\n", "ary.to_h\n");
+        expect_correction(COP, "Hash[a.zip b]\n", "(a.zip b).to_h\n");
+        expect_correction(COP, "Hash[foo(1)]\n", "foo(1).to_h\n");
+        expect_correction(COP, "Hash[a && b]\n", "(a && b).to_h\n");
+    }
+
+    /// 引数が偶数個ならハッシュリテラル。奇数個なら報告だけで補正しない。
+    #[test]
+    fn an_even_number_of_arguments_becomes_a_literal() {
+        expect_correction(COP, "Hash[a, b]\n", "{a => b}\n");
+        expect_correction(COP, "Hash[a, b, c, d]\n", "{a => b, c => d}\n");
+        let report = CopCase::new(COP, "Hash[a, b, c]\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(!report.offenses[0].is_correctable());
+    }
+
+    /// 括弧の無い呼び出しに渡すと、ハッシュリテラルがブロックに見えるので括弧が付く。
+    #[test]
+    fn a_literal_handed_to_a_bare_call_gains_parentheses() {
+        expect_correction(COP, "foo Hash[a, b]\n", "foo({a => b})\n");
+        expect_correction(COP, "foo Hash[key: :value]\n", "foo({key: :value})\n");
+    }
+
+    /// `zip` に引数が無いときは、まず第 2 の配列を補い、次のパスで `to_h` になる。
+    #[test]
+    fn a_zip_without_an_argument_gains_the_second_array_first() {
+        expect_correction(COP, "Hash[a.zip]\n", "a.zip([]).to_h\n");
+        expect_correction(COP, "Hash[a.zip()]\n", "a.zip([]).to_h\n");
+    }
+
+    /// splat 引数は既定で許され、名前空間付きの `Hash` は対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["Hash[*ary]\n", "Foo::Hash[ary]\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ItBlockParameter`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ItBlockParameter` で走らせた実出力から取った
+/// (4 style すべてで検出と `-A` の一致を確認済み)。
+mod style_it_block_parameter {
+    use super::*;
+
+    const COP: &str = "Style/ItBlockParameter";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new()).target_ruby("3.4")
+    }
+
+    /// 既定の `allow_single_line` では `_1` を `it` に置き換え、複数行の `it` ブロックを咎める。
+    #[test]
+    fn numbered_parameters_become_it() {
+        case("foo { _1 * 2 }\n")
+            .without_offense_check()
+            .corrected("foo { it * 2 }\n")
+            .run();
+        case("foo { _1 + _1 }\n")
+            .without_offense_check()
+            .corrected("foo { it + it }\n")
+            .run();
+        case("foo do\n  _1 * 2\nend\n")
+            .without_offense_check()
+            .corrected("foo do\n  it * 2\nend\n")
+            .run();
+    }
+
+    /// 複数行の `it` ブロックは報告だけで補正は無い。1 行なら黙る。
+    #[test]
+    fn a_multiline_it_block_is_reported_without_a_correction() {
+        let report = case("foo do\n  it * 2\nend\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert_eq!(
+            report.offenses[0].message,
+            "Avoid using `it` block parameter for multi-line blocks."
+        );
+        assert!(!report.offenses[0].is_correctable());
+        case("foo { it * 2 }\n").run();
+    }
+
+    /// `_2` まで使うブロック、明示的な引数、3.4 未満の対象版は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["foo { _1 + _2 }\n", "foo { |x| x * 2 }\n", "foo { 1 }\n"] {
+            case(source).run();
+        }
+        CopCase::new(COP, "foo { _1 * 2 }\n".to_owned(), Vec::new())
+            .target_ruby("3.3")
+            .run();
+    }
+
+    /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
+    /// 何も見つからない。
+    #[test]
+    fn a_body_that_is_only_the_parameter_finds_nothing() {
+        case("foo { bar { it } }\n")
+            .config("Style/ItBlockParameter:\n  EnforcedStyle: disallow\n")
+            .run();
+    }
+}
+
+/// `Style/FetchEnvVar`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/FetchEnvVar` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_fetch_env_var {
+    use super::*;
+
+    const COP: &str = "Style/FetchEnvVar";
+
+    /// 既定では `nil` を明示した `fetch` に置き換える。
+    #[test]
+    fn a_bracket_read_becomes_a_fetch() {
+        expect_correction(COP, "ENV['X']\n", "ENV.fetch('X', nil)\n");
+        expect_correction(COP, "x = ENV['X']\n", "x = ENV.fetch('X', nil)\n");
+        expect_correction(COP, "foo(ENV['X'])\n", "foo(ENV.fetch('X', nil))\n");
+        expect_correction(COP, "[ENV['X']]\n", "[ENV.fetch('X', nil)]\n");
+        expect_correction(COP, "puts ENV['X']\n", "puts ENV.fetch('X', nil)\n");
+    }
+
+    /// 真偽の判定に使っているもの、メソッドを繋いだもの、代入の左辺、`||` の左は
+    /// 「無いかもしれない」ことが書けているので触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ENV['X'].split(',')\n",
+            "ENV['X'] || 'default'\n",
+            "y || ENV['X'] || z\n",
+            "ENV['X'] ||= 'y'\n",
+            "!ENV['X']\n",
+            "ENV['X'] == 'y'\n",
+            "if ENV['X']\n  foo\nend\n",
+            "if ENV['X'] == 'y'\n  foo\nend\n",
+            "if ENV['X'].nil?\n  foo\nend\n",
+            "unless ENV['X']\n  foo\nend\n",
+            "foo if ENV['X']\n",
+            "ENV['X'] ? 1 : 2\n",
+            // `(const nil? :ENV)` は scope が無いものだけ。
+            "::ENV['X']\n",
+            "ENV['X', 'Y']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 条件の中で使われていても、その条件が読んでいるのが別の式なら報告する。
+    #[test]
+    fn a_read_the_condition_does_not_test_is_still_reported() {
+        expect_correction(
+            COP,
+            "if cond\n  x = ENV['X']\nend\n",
+            "if cond\n  x = ENV.fetch('X', nil)\nend\n",
+        );
+    }
+
+    /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
+    #[test]
+    fn the_default_can_be_left_out() {
+        CopCase::new(COP, "ENV['X']\n".to_owned(), Vec::new())
+            .config("Style/FetchEnvVar:\n  DefaultToNil: false\n")
+            .without_offense_check()
+            .corrected("ENV.fetch('X')\n")
+            .run();
+    }
+}
+
+/// `Style/MapCompactWithConditionalBlock`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MapCompactWithConditionalBlock` で走らせた実出力から
+/// 取った (検出 10 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_map_compact_with_conditional_block {
+    use super::*;
+
+    const COP: &str = "Style/MapCompactWithConditionalBlock";
+
+    /// 条件が真のときだけ値を返す形は `select`、偽のときだけ返す形は `reject`。
+    #[test]
+    fn the_direction_of_the_conditional_picks_the_method() {
+        expect_correction(
+            COP,
+            "ary.map { |x| x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| x unless cond(x) }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x) }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next if cond(x); x }.compact\n",
+            "ary.reject { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next unless cond(x); x }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map { |x| next x if cond(x); nil }.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// `filter_map` はそれ自体が対象で、`.compact` は要らない。
+    #[test]
+    fn filter_map_is_reported_on_its_own() {
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.filter_map { |x| next x if cond(x) }\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 複数行で書かれていても 1 行に畳まれる。
+    #[test]
+    fn a_multiline_block_collapses_onto_one_line() {
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+        expect_correction(
+            COP,
+            "ary.map do |x|\n  if cond(x)\n    x\n  else\n    next\n  end\nend.compact\n",
+            "ary.select { |x| cond(x) }\n",
+        );
+    }
+
+    /// 返すのがブロック引数でないもの、`compact` の無い `map`、引数が 2 つのブロック、
+    /// 条件の無いもの、`map` でない呼び出し (`collect` を含む) は黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "ary.collect { |x| x if cond(x) }.compact\n",
+            "ary.map { |x| y if cond(x) }.compact\n",
+            "ary.map { |x| x if cond(x) }\n",
+            "ary.map { |x, y| x if cond(x) }.compact\n",
+            "ary.map { |x| x }.compact\n",
+            "ary.each { |x| x if cond(x) }.compact\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/DocumentDynamicEvalDefinition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/DocumentDynamicEvalDefinition` で走らせた実出力から
+/// 取った (検出 5 件 / 4 件で一致。この cop は補正を持たない)。
+mod style_document_dynamic_eval_definition {
+    use super::*;
+
+    const COP: &str = "Style/DocumentDynamicEvalDefinition";
+
+    /// 補間を含む文字列を `eval` 系に渡していて、何ができるのかを書いた注釈が無いものが対象。
+    #[test]
+    fn an_undocumented_interpolated_definition_is_reported() {
+        for source in [
+            "class_eval <<~RUBY\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+            "class_eval \"def #{name}; end\"\n",
+            "module_eval <<~RUBY\n  def #{name}\n  end\nRUBY\n",
+            "instance_eval <<-RUBY\n  def #{name}\n  end\nRUBY\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+            assert_eq!(
+                report.offenses[0].message,
+                "Add a comment block showing its appearance if interpolated."
+            );
+            assert!(!report.offenses[0].is_correctable());
+        }
+    }
+
+    /// ヒアドキュメントの**中**に書かれた注釈が、補間後の姿と読める形なら黙る。
+    #[test]
+    fn a_comment_block_inside_the_heredoc_is_enough() {
+        expect_no_offenses(
+            COP,
+            "class_eval <<~RUBY\n  # def foo\n  #   @foo\n  # end\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// ヒアドキュメントの**外**に書かれた注釈は拾われない。`preceding_comment_blocks` が
+    /// 見るのは呼び出し自身が載っている行だけで、ヒアドキュメント本体はその外にある。
+    #[test]
+    fn a_comment_block_above_the_call_is_not_looked_at() {
+        expect_offense(
+            COP,
+            "# def foo\n#   @foo\n# end\nclass_eval <<~RUBY\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  def #{name}\n    @#{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間のある行そのものに注釈が付いていれば足りるが、**すべての**補間の行に要る。
+    #[test]
+    fn a_comment_on_every_interpolated_line_is_enough() {
+        expect_no_offenses(COP, "class_eval \"def #{name}; end\" # def foo; end\n");
+        expect_offense(
+            COP,
+            "class_eval(<<~RUBY)\n^^^^^^^^^^ Add a comment block showing its appearance if interpolated.\n  # def #{name}\n  def #{name}\n  end\nRUBY\n",
+        );
+    }
+
+    /// 補間の無い文字列、`eval` 系でない呼び出しは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class_eval \"def foo; end\"\n",
+            "class_eval <<~RUBY\n  def foo\n  end\nRUBY\n",
+            "define_method(\"#{name}\") { }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/MagicCommentFormat`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MagicCommentFormat` で走らせた実出力から取った
+/// (検出 5 件・`-A` の結果ともバイト一致を確認済み。設定 4 通りでも一致を確認)。
+mod style_magic_comment_format {
+    use super::*;
+
+    const COP: &str = "Style/MagicCommentFormat";
+
+    /// 既定は snake_case と小文字。ハイフン区切りも大文字も直される。
+    #[test]
+    fn a_directive_is_written_in_lower_snake_case() {
+        expect_correction(
+            COP,
+            "# frozen-string-literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# FROZEN_STRING_LITERAL: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        expect_correction(
+            COP,
+            "# Frozen-String-Literal: true\nx = 1\n",
+            "# frozen_string_literal: true\nx = 1\n",
+        );
+        // Emacs 形式のディレクティブも同じ扱い。
+        expect_correction(
+            COP,
+            "# -*- frozen-string-literal: true -*-\nx = 1\n",
+            "# -*- frozen_string_literal: true -*-\nx = 1\n",
+        );
+    }
+
+    /// 値は `ValueCapitalization` が未設定のあいだ触られない。
+    #[test]
+    fn values_are_left_alone_by_default() {
+        for source in [
+            "# frozen_string_literal: true\nx = 1\n",
+            "# coding: UTF-8\nx = 1\n",
+            "# typed: TRUE\nx = 1\n",
+            "# rbs_inline: enabled\nx = 1\n",
+            "# shareable_constant_value: literal\nx = 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 魔法のコメントでないもの、コードより下にあるものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "# some other comment\nx = 1\n");
+        expect_no_offenses(COP, "x = 1\n# frozen-string-literal: true\n");
+        // Vim 形式は `fileencoding` しか読まず、トークンが 2 つ以上要る。
+        expect_no_offenses(COP, "# vim: fileencoding=utf-8, foo=bar\nx = 1\n");
+    }
+
+    /// `kebab_case` は向きが逆になり、`ValueCapitalization` を入れると値も直る。
+    #[test]
+    fn the_other_settings_ask_for_the_other_directions() {
+        CopCase::new(
+            COP,
+            "# frozen_string_literal: true\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MagicCommentFormat:\n  EnforcedStyle: kebab_case\n")
+        .without_offense_check()
+        .corrected("# frozen-string-literal: true\nx = 1\n")
+        .run();
+        CopCase::new(COP, "# typed: STRICT\nx = 1\n".to_owned(), Vec::new())
+            .config("Style/MagicCommentFormat:\n  ValueCapitalization: lowercase\n")
+            .without_offense_check()
+            .corrected("# typed: strict\nx = 1\n")
+            .run();
+    }
+}
