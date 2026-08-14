@@ -137,8 +137,9 @@ Measured over all five conformance corpora. Both tools were given their own bund
 configuration (`--force-default-config`), so neither reads the project's `.rubocop.yml`, and on every
 corpus the two resolve **the same file list**.
 
-RuboCop is restricted to the 28 cops Sonicop implements, which is the only like-for-like comparison
-available. Times are the fastest of two warmed runs.
+Both tools run their full default set — **the same 394 cops**, matched name for name — so neither
+side is restricted and the comparison is like-for-like as it stands. Times are the fastest of two
+warmed runs.
 
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
@@ -152,13 +153,8 @@ The gap is 2.1x to 5.8x in parallel and 2.0x to 3.7x single-process, so no singl
 it. The single-process column is the steadier of the two — it measures the engines rather than how
 well each one's parallelism happens to fit the tree it was pointed at.
 
-Out of the box the two commands do different amounts of work — RuboCop enables 394 cops by default
-against Sonicop's 28 — so that comparison is **not** like-for-like. For the record, RuboCop's default
-parallel run takes 10.46 s on its own tree, 9.91 s on Mastodon, 10.83 s on Homebrew, 20.73 s on
-Rails and 75.05 s on Ruby.
-
-Over the 28 shared cops the two agree on **every offense** on RuboCop's own tree, on Rails and on
-Mastodon, so the speed is not bought by skipping work.
+The speed is not bought by skipping work: over those same 394 cops the two agree on **every offense**
+on RuboCop's own tree and on Mastodon, and autocorrect there is byte-identical.
 
 Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
@@ -167,9 +163,9 @@ overstates the difference. RuboCop's default is a single process, while Sonicop 
 `--no-parallel` is passed.
 
 ```bash
-# RuboCop, parallel, cold cache, restricted to the cops Sonicop implements
+# RuboCop, parallel, cold cache, its full default set of 394 cops
 rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
-        --no-color --parallel --only "$COPS" -f quiet
+        --no-color --parallel -f quiet
 
 # Sonicop
 sonicop --force-default-config --format quiet

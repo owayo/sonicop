@@ -126,7 +126,8 @@ Mastodon（7,610 件）で、過剰も不足もメタデータ差もありませ
 （`--force-default-config`）で走らせているためプロジェクト側の `.rubocop.yml` は読まず、
 どのコーパスでも**対象ファイル一覧は完全に一致**しています。
 
-RuboCop は Sonicop の実装済み 28 Cop に絞っています。これが唯一の対等な比較です。
+両者とも既定の全 Cop で走らせています。**同じ 394 Cop** が名前まで一致しているため、
+どちらも絞る必要がなく、素の実行がそのまま対等な比較になります。
 各値は暖機後 2 回の最速値です。
 
 | コーパス | ファイル | RuboCop 並列 | Sonicop 並列 | RuboCop 単一 | Sonicop 単一 |
@@ -141,12 +142,8 @@ RuboCop は Sonicop の実装済み 28 Cop に絞っています。これが唯�
 単一プロセスの列のほうが安定しています。エンジンそのものを測っており、
 各ツールの並列化が対象ツリーにたまたま噛み合ったかどうかに左右されないためです。
 
-素で叩くと両者は違う量の仕事をします。RuboCop は既定で 394 Cop、Sonicop は 28 Cop なので、
-**対等な比較ではありません**。参考までに RuboCop の既定・並列は、自身のツリーで 10.46 秒、
-Mastodon で 9.91 秒、Homebrew で 10.83 秒、Rails で 20.73 秒、Ruby で 75.05 秒です。
-
-この 28 Cop について、RuboCop 自身のツリー・Rails・Mastodon では**すべての offense が一致**
-しているため、仕事を省いて速いわけではありません。
+仕事を省いて速いわけではありません。この同じ 394 Cop について、RuboCop 自身のツリーと
+Mastodon では**すべての offense が一致**し、autocorrect もバイト単位で一致します。
 
 再現時に注意が必要な点が 2 つあります。RuboCop は **`--cache false` と併用すると
 `--parallel` を黙って無効化します**。そのためここでの並列実行はキャッシュを有効にしたうえで
@@ -155,9 +152,9 @@ Mastodon で 9.91 秒、Homebrew で 10.83 秒、Rails で 20.73 秒、Ruby で 
 Sonicop は `--no-parallel` を渡さない限り並列です。
 
 ```bash
-# RuboCop（並列・キャッシュは毎回空・Sonicop の実装済み Cop に限定）
+# RuboCop（並列・キャッシュは毎回空・既定の全 394 Cop）
 rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
-        --no-color --parallel --only "$COPS" -f quiet
+        --no-color --parallel -f quiet
 
 # Sonicop
 sonicop --force-default-config --format quiet
