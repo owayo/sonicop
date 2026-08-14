@@ -2696,6 +2696,26 @@ fn catalogue() -> Vec<CopCase> {
         .config("Lint/ConstantResolution:\n  Enabled: true\n")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/ArrayLiteralInRegexp",
+            r#"
+            /#{[1, 2]}/
+             ^^^^^^^^^ Use a character class instead of interpolating an array in a regexp.
+            "#,
+        )
+        .id("lint_array_literal_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SuppressedExceptionInNumberConversion",
+            r#"
+            Integer('1') rescue nil
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `Integer('1', exception: false)` instead.
+            "#,
+        )
+        .id("lint_suppressed_exception_in_number_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

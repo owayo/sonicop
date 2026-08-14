@@ -22117,3 +22117,110 @@ mod lint_constant_resolution {
         assert_eq!(report.offenses.len(), 1);
     }
 }
+
+/// `Lint/ArrayLiteralInRegexp`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ArrayLiteralInRegexp` で走らせた実出力から取った
+/// (検出 12 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_array_literal_in_regexp {
+    use super::*;
+
+    const COP: &str = "Lint/ArrayLiteralInRegexp";
+
+    /// 全部が 1 文字なら文字クラス、そうでなければ選言。値は `Regexp.escape` される。
+    #[test]
+    fn a_literal_array_becomes_a_character_class_or_an_alternation() {
+        expect_offense(
+            COP,
+            r#"
+            /#{[1, 2]}/
+             ^^^^^^^^^ Use a character class instead of interpolating an array in a regexp.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "/#{[1, 2]}/\n/#{['a', 'b']}/\n/#{[:a, :b]}/\n/#{['ab', 'cd']}/\n\
+             /#{[1, 'a', nil, true]}/\n/x#{[1, 2]}y/\n/#{[]}/\n/#{[1]}/\n/#{['.', '*']}/\n",
+            "/[12]/\n/[ab]/\n/[ab]/\n/(?:ab|cd)/\n/(?:1|a|nil|true)/\n/x[12]y/\n/[]/\n/[1]/\n\
+             /[\\.\\*]/\n",
+        );
+    }
+
+    /// リテラルでない要素は置き換え先が決められないので、別のメッセージで報告だけする。
+    #[test]
+    fn a_computed_element_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            /#{[foo, bar]}/
+             ^^^^^^^^^^^^^ Use alternation or a character class instead of interpolating an array in a regexp.
+            "#,
+        )
+        .correctable(false)
+        .run();
+    }
+
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        expect_no_offenses(COP, "\"#{[1, 2]}\"\n");
+        expect_no_offenses(COP, "/#{foo}/\n");
+    }
+}
+
+/// `Lint/SuppressedExceptionInNumberConversion`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/SuppressedExceptionInNumberConversion` で走らせた
+/// 実出力から取った (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_suppressed_exception_in_number_conversion {
+    use super::*;
+
+    const COP: &str = "Lint/SuppressedExceptionInNumberConversion";
+
+    #[test]
+    fn the_rescue_becomes_an_exception_keyword_argument() {
+        expect_offense(
+            COP,
+            r#"
+            Integer('1') rescue nil
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `Integer('1', exception: false)` instead.
+            "#,
+        );
+        expect_correction(
+            COP,
+            "Integer('1') rescue nil\nFloat('1.0') rescue nil\nInteger('1', 10) rescue nil\n\
+             Kernel.Integer('1') rescue nil\nRational('1') rescue nil\nBigDecimal('1') rescue nil\n\
+             Complex('1') rescue nil\n",
+            "Integer('1', exception: false)\nFloat('1.0', exception: false)\n\
+             Integer('1', 10, exception: false)\nKernel.Integer('1', exception: false)\n\
+             Rational('1', exception: false)\nBigDecimal('1', exception: false)\n\
+             Complex('1', exception: false)\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  Integer('1')\nrescue ArgumentError, TypeError\n  nil\nend\n",
+            "Integer('1', exception: false)\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  Integer('1')\nrescue ArgumentError\nend\n",
+            "Integer('1', exception: false)\n",
+        );
+    }
+
+    /// 例外クラスが広すぎる・例外変数を取る・`exception:` を既に書いている・戻り値が
+    /// `nil` でないものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "begin\n  Integer('1')\nrescue StandardError\n  nil\nend\n",
+            "begin\n  Integer('1')\nrescue => e\n  nil\nend\n",
+            "begin\n  Integer('1')\nrescue ArgumentError\n  0\nend\n",
+            "Integer('1', exception: false) rescue nil\n",
+            "Float('1', 2) rescue nil\n",
+            "foo('1') rescue nil\n",
+            "Integer('1') rescue 0\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
