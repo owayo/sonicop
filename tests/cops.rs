@@ -20897,3 +20897,238 @@ mod style_redundant_interpolation_unfreeze {
             .run();
     }
 }
+
+/// `Style/NilLambda`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NilLambda` で走らせた実出力から取った
+/// (検出 11 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_nil_lambda {
+    use super::*;
+
+    const COP: &str = "Style/NilLambda";
+
+    /// 位置はブロック全体 (上流の `block` ノード)。`->` から `}` まで。
+    #[test]
+    fn the_report_spans_the_whole_block() {
+        expect_offense(
+            COP,
+            r"
+            a = -> { nil }
+                ^^^^^^^^^^ Use an empty lambda instead of always returning nil.
+            ",
+        );
+    }
+
+    /// `lambda` / `->` は lambda、`proc` / `Proc.new` は proc。`return` / `next` / `break` の
+    /// `nil` も同じ扱い。
+    #[test]
+    fn every_way_of_always_returning_nil() {
+        expect_correction(COP, "-> { nil }\n", "-> {}\n");
+        expect_correction(COP, "lambda { nil }\n", "lambda {}\n");
+        expect_correction(COP, "proc { nil }\n", "proc {}\n");
+        expect_correction(COP, "Proc.new { nil }\n", "Proc.new {}\n");
+        expect_correction(COP, "-> { return nil }\n", "-> {}\n");
+        expect_correction(COP, "-> { next nil }\n", "-> {}\n");
+        expect_correction(COP, "-> { break nil }\n", "-> {}\n");
+        expect_correction(COP, "->(x) { nil }\n", "->(x) {}\n");
+        expect_correction(COP, "proc { |x| nil }\n", "proc { |x|}\n");
+        // 前後の空白はまとめて落ちる。
+        expect_correction(COP, "-> {  nil  }\n", "-> {}\n");
+    }
+
+    /// 複数行のブロックは本文の行を丸ごと落とす。
+    #[test]
+    fn a_multiline_block_loses_the_whole_line() {
+        expect_correction(COP, "-> do\n  nil\nend\n", "-> do\nend\n");
+    }
+
+    /// `proc { return nil }` は `return` が囲みメソッドから戻るので空ブロックと同じではない。
+    /// `nil` を返さないブロックも触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "proc { return nil }\n",
+            "Proc.new { return nil }\n",
+            "-> { 1 }\n",
+            "foo { nil }\n",
+            "-> { x; nil }\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantArrayConstructor`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantArrayConstructor` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_array_constructor {
+    use super::*;
+
+    const COP: &str = "Style/RedundantArrayConstructor";
+
+    /// `Array.new` の位置はレシーバから selector まで。`Array[...]` はレシーバだけ。
+    #[test]
+    fn the_reported_range_depends_on_the_constructor() {
+        expect_offense(
+            COP,
+            r"
+            Array.new([1, 2])
+            ^^^^^^^^^ Remove the redundant `Array` constructor.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            Array[1, 2]
+            ^^^^^ Remove the redundant `Array` constructor.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            Array([1, 2])
+            ^^^^^ Remove the redundant `Array` constructor.
+            ",
+        );
+    }
+
+    /// 空の配列リテラルも `(array ...)` に当たる。
+    #[test]
+    fn the_literal_is_left_on_its_own() {
+        expect_correction(COP, "Array.new([1, 2])\n", "[1, 2]\n");
+        expect_correction(COP, "Array.new([])\n", "[]\n");
+        expect_correction(COP, "Array[1, 2]\n", "[1, 2]\n");
+        expect_correction(COP, "Array[]\n", "[]\n");
+        expect_correction(COP, "Array([1, 2])\n", "[1, 2]\n");
+        expect_correction(COP, "::Array.new([1, 2])\n", "[1, 2]\n");
+        expect_correction(COP, "::Array[1, 2]\n", "[1, 2]\n");
+    }
+
+    /// 引数がリテラルでないもの・2 個あるもの・名前空間付きの `Array` は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "Array.new\n",
+            "Array.new(3)\n",
+            "Array.new(3) { 1 }\n",
+            "Array(foo)\n",
+            "Foo::Array.new([1, 2])\n",
+            "Array.new([1, 2], 3)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ReverseFind`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ReverseFind` で走らせた実出力から取った
+/// (検出 7 件・`-A` の結果ともバイト一致を確認済み)。`rfind` は Ruby 4.0 で入るので
+/// 対象版を明示する。
+mod style_reverse_find {
+    use super::*;
+
+    const COP: &str = "Style/ReverseFind";
+
+    fn offense(annotated: &str) {
+        CopCase::annotated(COP, annotated).target_ruby("4.0").run();
+    }
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("4.0")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は内側の selector から外側の selector まで。間のドットもろとも 1 語になる。
+    #[test]
+    fn the_report_spans_both_selectors() {
+        offense(
+            r"
+            x.reverse.find { |y| y }
+              ^^^^^^^^^^^^ Use `rfind` instead.
+            ",
+        );
+    }
+
+    /// レシーバ無しの `reverse` も上流では `(send nil :reverse)` なので対象。
+    #[test]
+    fn every_shape_the_pattern_accepts() {
+        correction("x.reverse.find { |y| y }\n", "x.rfind { |y| y }\n");
+        correction("x.reverse_each.detect(&:foo)\n", "x.rfind(&:foo)\n");
+        correction("reverse.find { |y| y }\n", "rfind { |y| y }\n");
+        correction("x&.reverse&.find { |y| y }\n", "x&.rfind { |y| y }\n");
+        correction("self.reverse.find { |y| y }\n", "self.rfind { |y| y }\n");
+    }
+
+    /// `&blk` の引数・引数付きの `find`・並べ替えでないメソッド・局所変数の `reverse` は触らない。
+    /// 4.0 未満では `rfind` が無いので黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x.reverse.find(&blk)\n",
+            "x.reverse.find(1) { |y| y }\n",
+            "x.sort.find { |y| y }\n",
+            "x.reverse.map { |y| y }\n",
+            "reverse = [1]\nreverse.find { |y| y }\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("4.0")
+                .run();
+        }
+        CopCase::new(COP, "x.reverse.find { |y| y }\n".to_owned(), Vec::new())
+            .target_ruby("3.4")
+            .run();
+    }
+}
+
+/// `Style/SwapValues`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/SwapValues` で走らせた実出力から取った
+/// (検出 4 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_swap_values {
+    use super::*;
+
+    const COP: &str = "Style/SwapValues";
+
+    /// 位置は 1 つ目の代入だけ。残りの 2 行はメッセージで示す。
+    #[test]
+    fn the_report_spans_the_first_assignment() {
+        expect_offense(
+            COP,
+            r"
+            tmp = x
+            ^^^^^^^ Replace this and assignments at lines 2 and 3 with `x, y = y, x`.
+            x = y
+            y = tmp
+            ",
+        );
+    }
+
+    /// 3 行が 1 行の並列代入に畳まれる。インスタンス変数・定数でも同じ。
+    #[test]
+    fn the_three_lines_collapse_into_one() {
+        expect_correction(COP, "tmp = x\nx = y\ny = tmp\n", "x, y = y, x\n");
+        expect_correction(COP, "a = @b\n@b = c\nc = a\n", "@b, c = c, @b\n");
+        expect_correction(
+            COP,
+            "FOO = bar\nbar = baz\nbaz = FOO\n",
+            "bar, baz = baz, bar\n",
+        );
+    }
+
+    /// 値が回っていないものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "t = u\nu = v\nv = w\n",
+            "tmp = x\nx = y\n",
+            "tmp += x\nx = y\ny = tmp\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

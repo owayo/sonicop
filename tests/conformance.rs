@@ -3596,6 +3596,49 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_interpolation_unfreeze")
         .target_ruby("3.0")
         .correctable(true),
+        // 位置はブロック全体 (上流の `block` ノード)。
+        CopCase::annotated(
+            "Style/NilLambda",
+            r"
+            a = -> { nil }
+                ^^^^^^^^^^ Use an empty lambda instead of always returning nil.
+            ",
+        )
+        .id("style_nil_lambda")
+        .correctable(true),
+        // 位置はレシーバから selector まで。
+        CopCase::annotated(
+            "Style/RedundantArrayConstructor",
+            r"
+            Array.new([1, 2])
+            ^^^^^^^^^ Remove the redundant `Array` constructor.
+            ",
+        )
+        .id("style_redundant_array_constructor")
+        .correctable(true),
+        // `rfind` は Ruby 4.0 で入る。
+        CopCase::annotated(
+            "Style/ReverseFind",
+            r"
+            x.reverse.find { |y| y }
+              ^^^^^^^^^^^^ Use `rfind` instead.
+            ",
+        )
+        .id("style_reverse_find")
+        .target_ruby("4.0")
+        .correctable(true),
+        // 位置は 1 つ目の代入だけ。
+        CopCase::annotated(
+            "Style/SwapValues",
+            r"
+            tmp = x
+            ^^^^^^^ Replace this and assignments at lines 2 and 3 with `x, y = y, x`.
+            x = y
+            y = tmp
+            ",
+        )
+        .id("style_swap_values")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
