@@ -25775,3 +25775,83 @@ mod style_redundant_argument {
         }
     }
 }
+
+/// `Style/QuotedSymbols`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/QuotedSymbols` で走らせた実出力から取った
+/// (既定・両 `EnforcedStyle` それぞれで検出 5 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_quoted_symbols {
+    use super::*;
+
+    const COP: &str = "Style/QuotedSymbols";
+
+    /// 既定 (`same_as_string_literals`) は `Style/StringLiterals` に従い、その既定は単一引用符。
+    #[test]
+    fn a_double_quoted_symbol_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            :"a"
+            ^^^^ Prefer single-quoted symbols when you don't need string interpolation or special symbols.
+            "#,
+        );
+        expect_correction(COP, ":\"a\"\n", ":'a'\n");
+        expect_correction(COP, ":\"a-b\"\n", ":'a-b'\n");
+        expect_correction(COP, "{ \"k\": 1 }\n", "{ 'k': 1 }\n");
+        // 中身が空のものはハッシュの鍵でだけ `sym` になる。
+        expect_correction(COP, "{ \"\": 1 }\n", "{ '': 1 }\n");
+    }
+
+    /// 単一引用符が要る綴り、補間するもの、`:''` / `:\"\"` (上流では dsym)、
+    /// 引用符の無いシンボルは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            ":'a'\n",
+            ":a\n",
+            "{ 'k' => 1 }\n",
+            "{ k: 1 }\n",
+            ":\"it's\"\n",
+            ":'it\\'s'\n",
+            ":\"a\\nb\"\n",
+            ":'a\\nb'\n",
+            ":\"#{x}\"\n",
+            ":\"a#{'b'}\"\n",
+            ":''\n",
+            ":\"\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        // バックスラッシュだけの中身は単一引用符でもそのまま書けるので置き換わる。
+        expect_correction(COP, ":\"\\\\\"\n", ":'\\\\'\n");
+    }
+
+    /// `double_quotes` は逆向き。`\n` のような意味のあるエスケープを持つ単一引用符は
+    /// そのまま残る。
+    #[test]
+    fn the_double_quotes_style() {
+        for (source, corrected) in [
+            (":'a'\n", ":\"a\"\n"),
+            ("{ 'k': 1 }\n", "{ \"k\": 1 }\n"),
+            (":'a-b'\n", ":\"a-b\"\n"),
+            (":'it\\'s'\n", ":\"it's\"\n"),
+            (":'\\t'\n", ":'\\t'\n"),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/QuotedSymbols:\n  EnforcedStyle: double_quotes\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// `same_as_string_literals` は `Style/StringLiterals` の設定を見に行く。
+    #[test]
+    fn the_default_style_follows_string_literals() {
+        CopCase::new(COP, ":'a'\n".to_owned(), Vec::new())
+            .config("Style/StringLiterals:\n  EnforcedStyle: double_quotes\n")
+            .without_offense_check()
+            .corrected(":\"a\"\n")
+            .run();
+    }
+}

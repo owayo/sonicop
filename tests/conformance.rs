@@ -4303,6 +4303,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_argument")
         .correctable(true),
+        CopCase::annotated(
+            "Style/QuotedSymbols",
+            r#"
+            :"a"
+            ^^^^ Prefer single-quoted symbols when you don't need string interpolation or special symbols.
+            "#,
+        )
+        .id("style_quoted_symbols")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

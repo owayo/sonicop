@@ -200,6 +200,7 @@ department_rules! {
     predicate_with_kind => ("PredicateWithKind", Convention),
     preferred_hash_methods => ("PreferredHashMethods", Convention),
     proc => ("Proc", Convention),
+    quoted_symbols => ("QuotedSymbols", Convention),
     raise_args => ("RaiseArgs", Convention),
     random_with_offset => ("RandomWithOffset", Convention),
     redundant_array_flatten => ("RedundantArrayFlatten", Convention),
