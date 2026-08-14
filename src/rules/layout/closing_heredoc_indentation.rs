@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::is_send_like;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let openers: Vec<Node<'_>> = context.nodes_of("heredoc_beginning").collect();
@@ -27,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut cursor = body.walk();
         let Some(delimiter) = body
             .named_children(&mut cursor)
-            .find(|child| child.kind() == "heredoc_end")
+            .find(|child| child.kind_str() == "heredoc_end")
         else {
             continue;
         };
@@ -118,12 +119,12 @@ fn argument_send<'tree>(
     opener: Node<'tree>,
 ) -> Option<Node<'tree>> {
     let parent = opener.parent()?;
-    match parent.kind() {
-        "argument_list" => parent.parent().filter(|call| call.kind() == "call"),
-        "assignment" => (parent.child_by_field_name("right") == Some(opener)
+    match parent.kind_str() {
+        "argument_list" => parent.parent().filter(|call| call.kind_str() == "call"),
+        "assignment" => (parent.field("right") == Some(opener)
             && parent
-                .child_by_field_name("left")
-                .is_some_and(|left| matches!(left.kind(), "call" | "element_reference")))
+                .field("left")
+                .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference")))
         .then_some(parent),
         _ if is_send_like(context, parent) => {
             (receiver_of(parent) != Some(opener)).then_some(parent)
@@ -134,11 +135,11 @@ fn argument_send<'tree>(
 
 /// The node upstream calls the send's receiver, whichever shape the grammar gave the call.
 fn receiver_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "element_reference" => node.child(0),
-        "binary" => node.child_by_field_name("left"),
-        "unary" => node.child_by_field_name("operand"),
-        _ => node.child_by_field_name("receiver"),
+        "binary" => node.field("left"),
+        "unary" => node.field("operand"),
+        _ => node.field("receiver"),
     }
 }
 
@@ -163,7 +164,7 @@ fn outermost_send<'tree>(context: &RuleContext<'_>, send: Node<'tree>) -> Node<'
     loop {
         let parent = current
             .parent()
-            .and_then(|parent| match parent.kind() {
+            .and_then(|parent| match parent.kind_str() {
                 "argument_list" => parent.parent(),
                 _ => Some(parent),
             })
@@ -177,8 +178,8 @@ fn outermost_send<'tree>(context: &RuleContext<'_>, send: Node<'tree>) -> Node<'
 
 /// An assignment the parser files under `send`, because its target is an attribute or an index.
 fn is_setter(node: Node<'_>) -> bool {
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }

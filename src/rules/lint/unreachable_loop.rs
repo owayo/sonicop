@@ -9,6 +9,7 @@ use crate::rules::send_node::send_range;
 use super::flow;
 use super::locals::LocalVariables;
 use super::statements::{body_children, body_statements, statements};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "This loop will have at most one iteration.";
 
@@ -98,7 +99,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     {
         inspect(
             node,
-            node.child_by_field_name("body"),
+            node.field("body"),
             context,
             &locals,
             &allowed,
@@ -106,7 +107,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         );
     }
     for node in context.nodes_of("call") {
-        let Some(block) = node.child_by_field_name("block") else {
+        let Some(block) = node.field("block") else {
             continue;
         };
         if !loop_method(node, context, &allowed) {
@@ -114,7 +115,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         inspect(
             node,
-            block.child_by_field_name("body"),
+            block.field("body"),
             context,
             &locals,
             &allowed,
@@ -127,8 +128,8 @@ fn inspect(
     node: Node<'_>,
     body: Option<Node<'_>>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
-    allowed: &[Regex],
+    locals: &LocalVariables<'_, '_>,
+    allowed: &[&'static Regex],
     offenses: &mut Vec<Offense>,
 ) {
     let statements = body_statements(body);
@@ -152,15 +153,15 @@ fn inspect(
 fn is_break(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
-    allowed: &[Regex],
+    locals: &LocalVariables<'_, '_>,
+    allowed: &[&'static Regex],
 ) -> bool {
     if flow::is_break_command(node, context, locals) {
         return true;
     }
-    match node.kind() {
+    match node.kind_str() {
         "begin" | "parenthesized_statements" => {
-            let inner = if node.kind() == "begin" {
+            let inner = if node.kind_str() == "begin" {
                 body_children(node)
             } else {
                 statements(node)
@@ -188,7 +189,7 @@ fn preceded_by_sibling_continue(
     statements: &[Node<'_>],
     index: usize,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     statements[..index]
         .iter()
@@ -200,7 +201,7 @@ fn preceded_by_continue(
     statements: &[Node<'_>],
     index: usize,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
     // A body of one statement is that statement upstream, so its left siblings are the loop's own
     // other children: the condition of a `while`, or the call and the parameters of a block.
@@ -216,9 +217,9 @@ fn is_continue_sibling(
     sibling: Node<'_>,
     skip: Option<Node<'_>>,
     context: &RuleContext<'_>,
-    allowed: &[Regex],
+    allowed: &[&'static Regex],
 ) -> bool {
-    !LOOP_KEYWORDS.contains(&sibling.kind())
+    !LOOP_KEYWORDS.contains(&sibling.kind_str())
         && !is_loop_shape(sibling, context, allowed)
         && has_continue(sibling, skip)
 }
@@ -226,27 +227,27 @@ fn is_continue_sibling(
 /// The children a loop node has before its body, each with the subtree that is the body rather
 /// than a sibling.
 fn outer_siblings<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Option<Node<'tree>>)> {
-    if let Some(block) = node.child_by_field_name("block") {
+    if let Some(block) = node.field("block") {
         // The block is `(block send args body)` upstream: the send is one sibling, the parameters
         // another, and the send is everything of the call but the block itself.
         let mut siblings = vec![(node, Some(block))];
-        if let Some(parameters) = block.child_by_field_name("parameters") {
+        if let Some(parameters) = block.field("parameters") {
             siblings.push((parameters, None));
         }
         return siblings;
     }
     ["condition", "pattern", "value"]
         .iter()
-        .filter_map(|field| node.child_by_field_name(field))
+        .filter_map(|field| node.field(field))
         .map(|child| (child, None))
         .collect()
 }
 
 /// Whether the node is a block on a method that iterates, which upstream skips because its own
 /// `next` belongs to it.
-fn is_loop_shape(node: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> bool {
-    node.kind() == "call"
-        && node.child_by_field_name("block").is_some()
+fn is_loop_shape(node: Node<'_>, context: &RuleContext<'_>, allowed: &[&'static Regex]) -> bool {
+    node.kind_str() == "call"
+        && node.field("block").is_some()
         && loop_method(node, context, allowed)
 }
 
@@ -255,7 +256,7 @@ fn has_continue(node: Node<'_>, skip: Option<Node<'_>>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .filter(|child| skip.is_none_or(|skip| skip.id() != child.id()))
-        .any(|child| CONTINUE.contains(&child.kind()) || has_continue(child, skip))
+        .any(|child| CONTINUE.contains(&child.kind_str()) || has_continue(child, skip))
 }
 
 /// `conditional_continue_keyword?`: the last `or` written anywhere in the break statement, when its
@@ -264,8 +265,8 @@ fn conditional_continue(node: Node<'_>) -> bool {
     let Some(last) = last_or(node) else {
         return false;
     };
-    last.child_by_field_name("right")
-        .is_some_and(|right| CONTINUE.contains(&right.kind()))
+    last.field("right")
+        .is_some_and(|right| CONTINUE.contains(&right.kind_str()))
 }
 
 fn last_or<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
@@ -283,15 +284,15 @@ fn last_or<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 fn is_or(node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
-            .is_some_and(|operator| matches!(operator.kind(), "||" | "or"))
+            .field("operator")
+            .is_some_and(|operator| matches!(operator.kind_str(), "||" | "or"))
 }
 
 /// `loop_method?`: a block on a method that iterates, unless its source matches `AllowedPatterns`.
-fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> bool {
-    let Some(method) = call.child_by_field_name("method") else {
+fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[&'static Regex]) -> bool {
+    let Some(method) = call.field("method") else {
         return false;
     };
     let name = context.source.node_text(method);
@@ -302,7 +303,7 @@ fn loop_method(call: Node<'_>, context: &RuleContext<'_>, allowed: &[Regex]) -> 
     !allowed.iter().any(|pattern| pattern.is_match(source))
 }
 
-fn allowed_patterns(context: &RuleContext<'_>) -> Vec<Regex> {
+fn allowed_patterns(context: &RuleContext<'_>) -> Vec<&'static Regex> {
     context
         .setting::<Vec<serde_yaml_ng::Value>>("AllowedPatterns")
         .unwrap_or_default()

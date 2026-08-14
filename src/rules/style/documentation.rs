@@ -7,6 +7,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
 use super::comments::{AnnotationKeywords, PrecedingComments, is_annotation, is_rubocop_directive};
+use crate::rules::node_ext::NodeExt;
 
 /// `nodoc?` without `require_all`: the comment that exempts one class or module.
 static NODOC: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^#\s*:nodoc:").unwrap());
@@ -33,10 +34,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["class", "module"]) {
         let body = body_statements(node);
         // A class with no body documents nothing; a module with no body still has to be documented.
-        if node.kind() == "class" && body.is_empty() {
+        if node.kind_str() == "class" && body.is_empty() {
             continue;
         }
-        let Some(name) = node.child_by_field_name("name") else {
+        let Some(name) = node.field("name") else {
             continue;
         };
         if namespace(context, &body)
@@ -53,7 +54,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         offenses.push(context.offense(
             format!(
                 "Missing top-level documentation comment for `{} {}`.",
-                node.kind(),
+                node.kind_str(),
                 identifier(context, node, name)
             ),
             node.start_byte()..name.end_byte(),
@@ -64,7 +65,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The statements of the body, as RuboCop's `node.body` holds them: an empty list where upstream
 /// has `nil`, one entry for a single expression, several where upstream builds a `begin` node.
 fn body_statements<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return Vec::new();
     };
     super::nodes::children(body)
@@ -83,11 +84,11 @@ fn namespace(context: &RuleContext<'_>, body: &[Node<'_>]) -> bool {
 
 /// `constant_definition?`: `{class module casgn}`.
 fn constant_definition(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "class" | "module" => true,
         "assignment" => node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "constant" | "scope_resolution")),
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "constant" | "scope_resolution")),
         _ => false,
     }
 }
@@ -99,7 +100,7 @@ fn constant_visibility(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     };
     CONSTANT_VISIBILITY.contains(&name)
         && matches!(arguments.as_slice(), [only] if matches!(
-            only.kind(),
+            only.kind_str(),
             "simple_symbol" | "delimited_symbol" | "string"
         ))
 }
@@ -123,7 +124,7 @@ fn include_statement_only_node(context: &RuleContext<'_>, node: Node<'_>) -> boo
     if include_statement(context, node) {
         return true;
     }
-    match node.kind() {
+    match node.kind_str() {
         // Upstream builds these with no children at all, so `children.all?` is vacuously true.
         "true" | "false" | "nil" | "self" | "redo" | "retry" => true,
         "array" | "hash" | "begin" => super::nodes::children(node)
@@ -140,7 +141,7 @@ fn include_statement(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     };
     INCLUSION_METHODS.contains(&name)
         && matches!(arguments.as_slice(), [only] if matches!(
-            only.kind(),
+            only.kind_str(),
             "constant" | "scope_resolution"
         ))
 }
@@ -150,15 +151,15 @@ fn receiverless_call<'a, 'tree>(
     context: &'a RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(&'a str, Vec<Node<'tree>>)> {
-    if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+    if node.kind_str() != "call" || node.field("receiver").is_some() {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
-    if method.kind() != "identifier" {
+    let method = node.field("method")?;
+    if method.kind_str() != "identifier" {
         return None;
     }
     let arguments = node
-        .child_by_field_name("arguments")
+        .field("arguments")
         .map_or_else(Vec::new, super::nodes::children);
     Some((context.source.node_text(method), arguments))
 }
@@ -215,7 +216,7 @@ fn shadowed_by_enclosing_node(node: Node<'_>) -> bool {
         if parent.start_byte() != node.start_byte() {
             return false;
         }
-        if !STATEMENT_SEQUENCE_KINDS.contains(&parent.kind()) {
+        if !STATEMENT_SEQUENCE_KINDS.contains(&parent.kind_str()) {
             return true;
         }
         current = parent.parent();
@@ -239,10 +240,10 @@ fn nodoc_comment(context: &RuleContext<'_>, node: Node<'_>, require_all: bool) -
     let mut current = Some(node);
     let mut require_all = require_all;
     while let Some(definition) = current {
-        let name = definition.child_by_field_name("name");
+        let name = definition.field("name");
         // Only a plain constant puts the trailing comment where upstream looks for it: a compact
         // name hands it to the constant nested inside, leaving the definition itself untagged.
-        if name.is_some_and(|name| name.kind() == "constant")
+        if name.is_some_and(|name| name.kind_str() == "constant")
             && tagged_on_line(context, definition, require_all)
         {
             return true;
@@ -278,11 +279,11 @@ fn tagged_on_line(context: &RuleContext<'_>, node: Node<'_>, require_all: bool) 
 fn outer_module<'tree>(name: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = name;
     loop {
-        if current.kind() != "scope_resolution" {
+        if current.kind_str() != "scope_resolution" {
             return None;
         }
-        let scope = current.child_by_field_name("scope")?;
-        if scope.kind() == "constant" {
+        let scope = current.field("scope")?;
+        if scope.kind_str() == "constant" {
             return Some(current);
         }
         current = scope;
@@ -292,7 +293,7 @@ fn outer_module<'tree>(name: Node<'tree>) -> Option<Node<'tree>> {
 fn enclosing_definition<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(candidate.kind(), "class" | "module") {
+        if matches!(candidate.kind_str(), "class" | "module") {
             return Some(candidate);
         }
         current = candidate.parent();
@@ -305,7 +306,7 @@ fn identifier(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) -> Stri
     let mut parts = vec![qualify(context, name)];
     let mut current = enclosing_definition(node);
     while let Some(definition) = current {
-        if let Some(outer) = definition.child_by_field_name("name") {
+        if let Some(outer) = definition.field("name") {
             parts.push(qualify(context, outer));
         }
         current = enclosing_definition(definition);
@@ -317,15 +318,15 @@ fn identifier(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) -> Stri
 }
 
 fn qualify(context: &RuleContext<'_>, node: Node<'_>) -> String {
-    if node.kind() != "scope_resolution" {
+    if node.kind_str() != "scope_resolution" {
         return context.source.node_text(node).to_owned();
     }
     let name = node
-        .child_by_field_name("name")
+        .field("name")
         .map_or_else(String::new, |part| {
             context.source.node_text(part).to_owned()
         });
-    match node.child_by_field_name("scope") {
+    match node.field("scope") {
         Some(scope) => format!("{}::{name}", qualify(context, scope)),
         // A leading `::` is a part of its own upstream, so the join puts a separator on both sides.
         None => format!("::::{name}"),
@@ -334,8 +335,8 @@ fn qualify(context: &RuleContext<'_>, node: Node<'_>) -> String {
 
 /// `short_name`: the last constant of the name, which `AllowedConstants` lists.
 fn short_name<'a>(context: &'a RuleContext<'_>, name: Node<'_>) -> &'a str {
-    let part = match name.kind() {
-        "scope_resolution" => name.child_by_field_name("name").unwrap_or(name),
+    let part = match name.kind_str() {
+        "scope_resolution" => name.field("name").unwrap_or(name),
         _ => name,
     };
     context.source.node_text(part)

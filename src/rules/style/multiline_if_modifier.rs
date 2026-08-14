@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width = context
@@ -12,8 +13,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut reported: Vec<std::ops::Range<usize>> = Vec::new();
     for node in context.nodes_of_any(&["if_modifier", "unless_modifier"]) {
         let (Some(body), Some(condition)) = (
-            node.child_by_field_name("body"),
-            node.child_by_field_name("condition"),
+            node.field("body"),
+            node.field("condition"),
         ) else {
             continue;
         };
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         reported.push(node.byte_range());
-        let keyword = match node.kind() {
+        let keyword = match node.kind_str() {
             "if_modifier" => "if",
             _ => "unless",
         };
@@ -54,9 +55,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `multiline?`, which `BlockNode` overrides to compare the braces rather than the whole
 /// expression: a chain broken over several lines ending in a one-line block is not multiline.
 fn is_multiline(node: Node<'_>) -> bool {
-    let span = match node.kind() {
-        "call" => node.child_by_field_name("block"),
-        "lambda" => node.child_by_field_name("body"),
+    let span = match node.kind_str() {
+        "call" => node.field("block"),
+        "lambda" => node.field("body"),
         _ => None,
     }
     .unwrap_or(node);

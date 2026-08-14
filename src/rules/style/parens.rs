@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `ParenthesesCorrector.correct`: the opening parenthesis takes the whitespace after it, and the
 /// closing one the whitespace before it.
@@ -82,10 +83,10 @@ fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize
 
 /// `ternary_condition?(node) && next_char_is_question_mark?(node)`.
 fn is_ternary_condition_before_question_mark(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    if parent.kind() != "conditional" {
+    if parent.kind_str() != "conditional" {
         return false;
     }
     // The `?` sits where the closing parenthesis ended, so removing it would join the two.

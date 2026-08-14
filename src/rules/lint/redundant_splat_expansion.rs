@@ -8,6 +8,7 @@ use crate::rules::send_node::{is_plain_send, named_children, top_level_constant}
 
 use super::literals::literal_type;
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Replace splat expansion with comma separated values.";
 const ARRAY_PARAM_MSG: &str = "Pass array contents as separate arguments.";
@@ -75,7 +76,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let message = if array_splat && in_collection {
             if allow_percent
                 && matches!(position, Position::Argument)
-                && matches!(expanded.kind(), "string_array" | "symbol_array")
+                && matches!(expanded.kind_str(), "string_array" | "symbol_array")
             {
                 continue;
             }
@@ -104,9 +105,9 @@ fn position_of<'tree>(node: Node<'tree>) -> (Position, Option<Node<'tree>>) {
     let Some(parent) = node.parent() else {
         return (Position::Other, None);
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => match parent.parent() {
-            Some(call) if call.kind() == "call" => (Position::Argument, upstream_parent(call)),
+            Some(call) if call.kind_str() == "call" => (Position::Argument, upstream_parent(call)),
             Some(keyword) => (Position::Keyword, upstream_parent(keyword)),
             None => (Position::Other, None),
         },
@@ -118,7 +119,7 @@ fn position_of<'tree>(node: Node<'tree>) -> (Position, Option<Node<'tree>>) {
         "right_assignment_list" => (Position::ImplicitArray, upstream_parent(parent)),
         // `rescue *ERRORS` lists its exceptions in an `array` whose parent is the `resbody`.
         "exceptions" => (Position::ImplicitArray, upstream_parent(parent)),
-        "pattern" if parent.parent().is_some_and(|when| when.kind() == "when") => (
+        "pattern" if parent.parent().is_some_and(|when| when.kind_str() == "when") => (
             Position::When,
             parent.parent().and_then(upstream_parent),
         ),
@@ -132,28 +133,28 @@ fn position_of<'tree>(node: Node<'tree>) -> (Position, Option<Node<'tree>>) {
 /// holding several is a `begin` around them, which `program` stands for.
 fn upstream_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
-    if parent.kind() == "program" && statements(parent).len() <= 1 {
+    if parent.kind_str() == "program" && statements(parent).len() <= 1 {
         return None;
     }
     Some(parent)
 }
 
 fn is_assignment(node: Node<'_>) -> bool {
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| ASSIGNMENT_TARGETS.contains(&left.kind()))
+            .field("left")
+            .is_some_and(|left| ASSIGNMENT_TARGETS.contains(&left.kind_str()))
 }
 
 /// `array_new?`: `Array.new(...)`, with or without a block.
 fn array_new(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "call"
+    node.kind_str() == "call"
         && is_plain_send(node, context)
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "new")
         && node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| top_level_constant(receiver, "Array", context))
 }
 
@@ -165,7 +166,7 @@ fn array_new_inside_array_literal(node: Node<'_>, position: &Position) -> bool {
     match position {
         Position::BracketedArray => elements(parent).len() > 1,
         Position::ImplicitArray => {
-            parent.kind() == "right_assignment_list" && elements(parent).len() > 1
+            parent.kind_str() == "right_assignment_list" && elements(parent).len() > 1
         }
         _ => false,
     }
@@ -174,7 +175,7 @@ fn array_new_inside_array_literal(node: Node<'_>, position: &Position) -> bool {
 fn elements<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     named_children(node)
         .into_iter()
-        .filter(|child| child.kind() != "comment")
+        .filter(|child| child.kind_str() != "comment")
         .collect()
 }
 
@@ -193,7 +194,7 @@ fn replacement(
         // only a bracketed literal widens the range.
         let range = match position {
             Position::BracketedArray => node
-                .parent()
+                .parent_of(context)
                 .map_or(node.byte_range(), |parent| parent.byte_range()),
             _ => node.byte_range(),
         };
@@ -239,7 +240,7 @@ fn redundant_brackets(position: &Position, grandparent: Option<Node<'_>>) -> boo
     matches!(
         position,
         Position::When | Position::Argument | Position::BracketedArray
-    ) || grandparent.is_some_and(|grandparent| grandparent.kind() == "rescue")
+    ) || grandparent.is_some_and(|grandparent| grandparent.kind_str() == "rescue")
 }
 
 /// `remove_brackets`: the elements as they were written, in the syntax the literal used.

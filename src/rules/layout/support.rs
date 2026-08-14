@@ -7,6 +7,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 pub(super) use crate::rules::support::final_pos;
 
 /// The run of spaces and tabs ending at `offset`.
@@ -37,7 +38,9 @@ pub(super) fn whitespace_after(source: &str, offset: usize) -> Range<usize> {
 /// written before them, while upstream's parser wraps the trailing run of `key: value` pairs and
 /// `**splat`s into a single `hash`. A cop written against `on_hash` has to see that run as one
 /// literal or it measures alignment against the wrong first pair.
-pub(super) fn hash_literals<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Vec<Node<'tree>>> {
+pub(super) fn hash_literals<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
+) -> Vec<Vec<Node<'tree>>> {
     let mut literals: Vec<(usize, Vec<Node<'tree>>)> = Vec::new();
     for node in context.nodes_of("hash") {
         let mut cursor = node.walk();
@@ -55,7 +58,7 @@ pub(super) fn hash_literals<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Ve
         // must not break the run it sits in.
         let children: Vec<Node<'tree>> = container
             .named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect();
         let mut index = 0;
         while index < children.len() {
@@ -78,7 +81,7 @@ pub(super) fn hash_literals<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Ve
 }
 
 fn is_hash_element(node: Node<'_>) -> bool {
-    matches!(node.kind(), "pair" | "hash_splat_argument")
+    matches!(node.kind_str(), "pair" | "hash_splat_argument")
 }
 
 /// The comments upstream's lexer produced.
@@ -87,12 +90,12 @@ fn is_hash_element(node: Node<'_>) -> bool {
 /// interpolation, which is literal text there and never a comment. A comment written inside an
 /// interpolation is a real one and sits below the `interpolation` node rather than directly under
 /// the body.
-pub(super) fn comments<'tree>(context: &'tree RuleContext<'tree>) -> Vec<Range<usize>> {
+pub(super) fn comments(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     context
         .nodes_of("comment")
         .filter(|node| {
-            node.parent()
-                .is_none_or(|parent| parent.kind() != "heredoc_body")
+            node.parent_of(context)
+                .is_none_or(|parent| parent.kind_str() != "heredoc_body")
         })
         .map(|node| node.byte_range())
         .collect()
@@ -189,21 +192,21 @@ pub(super) struct GroupedArgument<'tree> {
 /// call to `[]` there, so the nodes between its brackets are its arguments.
 pub(super) fn grouped_arguments<'tree>(call: Node<'tree>) -> Vec<GroupedArgument<'tree>> {
     let mut cursor = call.walk();
-    let children: Vec<Node<'tree>> = if call.kind() == "element_reference" {
+    let children: Vec<Node<'tree>> = if call.kind_str() == "element_reference" {
         call.named_children(&mut cursor)
             .skip(1)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect()
     } else {
         let Some(list) = call
             .children(&mut cursor)
-            .find(|child| child.kind() == "argument_list")
+            .find(|child| child.kind_str() == "argument_list")
         else {
             return Vec::new();
         };
         let mut inner = list.walk();
         list.named_children(&mut inner)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect()
     };
     let mut arguments = Vec::new();
@@ -310,13 +313,13 @@ impl AlignmentPass {
 /// there. Upstream has two `optarg`s, so the run has to be unfolded before a cop can say where each
 /// parameter begins.
 pub(super) fn definition_parameters(definition: Node<'_>) -> Vec<Range<usize>> {
-    let Some(list) = definition.child_by_field_name("parameters") else {
+    let Some(list) = definition.field("parameters") else {
         return Vec::new();
     };
     let mut cursor = list.walk();
     let mut found = Vec::new();
     for child in list.named_children(&mut cursor) {
-        if matches!(child.kind(), "comment" | "heredoc_body") {
+        if matches!(child.kind_str(), "comment" | "heredoc_body") {
             continue;
         }
         match unfolded_defaults(child) {
@@ -333,11 +336,11 @@ pub(super) fn definition_parameters(definition: Node<'_>) -> Vec<Range<usize>> {
 /// Each `left_assignment_list` in the folded chain holds the previous parameter's default followed
 /// by the name the fold swallowed, so unwinding it recovers the pairs the source spells out.
 fn unfolded_defaults(parameter: Node<'_>) -> Option<Vec<Range<usize>>> {
-    if parameter.kind() != "optional_parameter" {
+    if parameter.kind_str() != "optional_parameter" {
         return None;
     }
-    let name = parameter.child_by_field_name("name")?;
-    let mut current = parameter.child_by_field_name("value")?;
+    let name = parameter.field("name")?;
+    let mut current = parameter.field("value")?;
     folded_targets(current)?;
 
     let mut pending: VecDeque<Node<'_>> = VecDeque::from([name]);
@@ -356,7 +359,7 @@ fn unfolded_defaults(parameter: Node<'_>) -> Option<Vec<Range<usize>>> {
             found.push(name.start_byte()..default.end_byte());
         }
         pending.extend(names.iter().copied());
-        let Some(right) = current.child_by_field_name("right") else {
+        let Some(right) = current.field("right") else {
             return Some(found);
         };
         current = right;
@@ -366,11 +369,11 @@ fn unfolded_defaults(parameter: Node<'_>) -> Option<Vec<Range<usize>>> {
 /// The targets of the multiple assignment a folded run of defaults was read as. `def m(x = y = 1)`
 /// assigns for real and has a single target, which is what tells the two apart.
 fn folded_targets<'tree>(value: Node<'tree>) -> Option<Vec<Node<'tree>>> {
-    if value.kind() != "assignment" {
+    if value.kind_str() != "assignment" {
         return None;
     }
-    let left = value.child_by_field_name("left")?;
-    if left.kind() != "left_assignment_list" {
+    let left = value.field("left")?;
+    if left.kind_str() != "left_assignment_list" {
         return None;
     }
     let mut cursor = left.walk();
@@ -500,11 +503,11 @@ pub(super) fn argument_literals<'tree>(
     let mut cursor = call.walk();
     let Some(list) = call
         .children(&mut cursor)
-        .find(|child| child.kind() == "argument_list")
+        .find(|child| child.kind_str() == "argument_list")
     else {
         return Vec::new();
     };
-    let Some(parenthesis) = list.child(0).filter(|child| child.kind() == "(") else {
+    let Some(parenthesis) = list.child(0).filter(|child| child.kind_str() == "(") else {
         return Vec::new();
     };
     let parenthesis_line = context.source.line_column(parenthesis.start_byte()).0;
@@ -514,7 +517,7 @@ pub(super) fn argument_literals<'tree>(
         for part in argument.parts {
             let mut stack = vec![part];
             while let Some(node) = stack.pop() {
-                if kinds.contains(&node.kind()) {
+                if kinds.contains(&node.kind_str()) {
                     if let Some(open) = literal_opening(node) {
                         if context.source.line_column(open.start_byte()).0 == parenthesis_line {
                             found.push((node, parenthesis));
@@ -535,24 +538,22 @@ pub(super) fn argument_literals<'tree>(
 /// `loc.begin` of a literal: the brace, bracket or percent-literal opener it was written with.
 pub(super) fn literal_opening<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let first = node.child(0)?;
-    matches!(first.kind(), "{" | "[" | "%w(" | "%i(").then_some(first)
+    matches!(first.kind_str(), "{" | "[" | "%w(" | "%i(").then_some(first)
 }
 
 /// Whether upstream's parser calls the node a `send`, which is where `on_node`'s walk stops.
 pub(super) fn is_send_like(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" | "element_reference" | "method_call" => true,
-        "binary" => node
-            .child_by_field_name("operator")
-            .is_some_and(|operator| {
-                !matches!(
-                    &context.source.text()[operator.byte_range()],
-                    "&&" | "||" | "and" | "or"
-                )
-            }),
+        "binary" => node.field("operator").is_some_and(|operator| {
+            !matches!(
+                &context.source.text()[operator.byte_range()],
+                "&&" | "||" | "and" | "or"
+            )
+        }),
         "unary" => node
             .child(0)
-            .is_some_and(|operator| matches!(operator.kind(), "!" | "-" | "+" | "~" | "not")),
+            .is_some_and(|operator| matches!(operator.kind_str(), "!" | "-" | "+" | "~" | "not")),
         _ => false,
     }
 }
@@ -610,14 +611,13 @@ fn parent_pair<'tree>(open: Node<'_>, first: Option<Node<'tree>>) -> Option<Node
     if literal_opening(literal) != Some(open) {
         return None;
     }
-    literal.parent().filter(|parent| parent.kind() == "pair")
+    literal
+        .parent()
+        .filter(|parent| parent.kind_str() == "pair")
 }
 
 fn key_and_value_begin_on_same_line(pair: Node<'_>) -> bool {
-    let (Some(key), Some(value)) = (
-        pair.child_by_field_name("key"),
-        pair.child_by_field_name("value"),
-    ) else {
+    let (Some(key), Some(value)) = (pair.field("key"), pair.field("value")) else {
         return false;
     };
     key.start_position().row == value.start_position().row
@@ -625,7 +625,7 @@ fn key_and_value_begin_on_same_line(pair: Node<'_>) -> bool {
 
 fn right_sibling_begins_later(pair: Node<'_>) -> bool {
     let mut sibling = pair.next_named_sibling();
-    while sibling.is_some_and(|node| matches!(node.kind(), "comment" | "heredoc_body")) {
+    while sibling.is_some_and(|node| matches!(node.kind_str(), "comment" | "heredoc_body")) {
         sibling = sibling.and_then(|node| node.next_named_sibling());
     }
     sibling.is_some_and(|sibling| pair.end_position().row < sibling.start_position().row)
@@ -672,8 +672,8 @@ const STATEMENT_CONTAINERS: [&str; 6] = [
     "ensure",
 ];
 
-pub(super) fn statement_groups<'tree>(
-    context: &'tree RuleContext<'tree>,
+pub(super) fn statement_groups<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
 ) -> Vec<StatementGroup<'tree>> {
     let mut groups = Vec::new();
     let mut push = |container: Node<'tree>, always: bool| {
@@ -686,7 +686,7 @@ pub(super) fn statement_groups<'tree>(
         let parent_start = if has_clause(container) {
             Some(statements[0].start_byte())
         } else {
-            container.parent().map(parser_node_start)
+            container.parent_of(context).map(parser_node_start)
         };
         groups.push(StatementGroup {
             statements,
@@ -728,7 +728,7 @@ pub(super) fn statement_groups<'tree>(
         }
         groups.push(StatementGroup {
             statements,
-            parent_start: container.parent().map(parser_node_start),
+            parent_start: container.parent_of(context).map(parser_node_start),
         });
     }
     groups
@@ -741,7 +741,7 @@ pub(super) fn body_statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>>
         .named_children(&mut cursor)
         .filter(|child| {
             !matches!(
-                child.kind(),
+                child.kind_str(),
                 "rescue" | "ensure" | "else" | "heredoc_body" | "comment" | "empty_statement"
             )
         })
@@ -751,7 +751,7 @@ pub(super) fn body_statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>>
 /// Where the node upstream's parser builds for `node` starts. A block literal is a `block` node
 /// there that spans the call it hangs off, so it begins at the receiver rather than at `do`.
 pub(super) fn parser_node_start(node: Node<'_>) -> usize {
-    match node.kind() {
+    match node.kind_str() {
         "block" | "do_block" => node.parent().unwrap_or(node).start_byte(),
         _ => node.start_byte(),
     }
@@ -761,8 +761,8 @@ pub(super) fn parser_node_start(node: Node<'_>) -> usize {
 /// assignment's right-hand side really begins with.
 pub(super) fn first_part_of_call_chain(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node;
-    while current.kind() == "call" {
-        current = current.child_by_field_name("receiver")?;
+    while current.kind_str() == "call" {
+        current = current.field("receiver")?;
     }
     Some(current)
 }
@@ -772,10 +772,10 @@ pub(super) fn first_part_of_call_chain(node: Node<'_>) -> Option<Node<'_>> {
 /// else.
 pub(super) fn end_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let last = last_child(node)?;
-    if last.kind() == "end" {
+    if last.kind_str() == "end" {
         return Some(last);
     }
-    last_child(last).filter(|inner| last.kind() == "do" && inner.kind() == "end")
+    last_child(last).filter(|inner| last.kind_str() == "do" && inner.kind_str() == "end")
 }
 
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
@@ -864,7 +864,7 @@ pub(super) fn heredoc_terminators(context: &RuleContext<'_>) -> Vec<(usize, Rang
             let mut cursor = body.walk();
             let terminator = body
                 .named_children(&mut cursor)
-                .find(|child| child.kind() == "heredoc_end")?;
+                .find(|child| child.kind_str() == "heredoc_end")?;
             Some((opener, terminator.byte_range()))
         })
         .collect()
@@ -874,5 +874,5 @@ fn has_clause(container: Node<'_>) -> bool {
     let mut cursor = container.walk();
     container
         .named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "rescue" | "ensure" | "else"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "ensure" | "else"))
 }

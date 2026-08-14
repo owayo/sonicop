@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
@@ -20,7 +21,7 @@ fn check_predicate(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec
     if selector_of(context, node) != Some("zero?") || !arguments(node).is_empty() {
         return;
     }
-    let Some(receiver) = node.child_by_field_name("receiver") else {
+    let Some(receiver) = node.field("receiver") else {
         return;
     };
     let Some(length) = length_call(context, receiver) else {
@@ -29,7 +30,7 @@ fn check_predicate(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec
     if non_polymorphic_collection(context, length) {
         return;
     }
-    let Some(selector) = length.child_by_field_name("method") else {
+    let Some(selector) = length.field("method") else {
         return;
     };
     let range = selector.start_byte()..node.end_byte();
@@ -54,9 +55,9 @@ fn check_predicate(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec
 /// The four zero comparisons and the two non-zero ones.
 fn check_comparison(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<Offense>) {
     let (Some(operator), Some(left), Some(right)) = (
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("operator"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return;
     };
@@ -88,13 +89,13 @@ fn check_comparison(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Ve
         return;
     }
     let (Some(inner), Some(_)) = (
-        length.child_by_field_name("receiver"),
-        length.child_by_field_name("method"),
+        length.field("receiver"),
+        length.field("method"),
     ) else {
         return;
     };
     let dot = length
-        .child_by_field_name("operator")
+        .field("operator")
         .map_or(".", |operator| context.source.node_text(operator));
     // `replacement`: only the four zero-length shapes name the collection positively.
     let negated = !zero;
@@ -122,24 +123,24 @@ fn check_comparison(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Ve
 
 /// `(call (...) {:length :size})`: a receiver, one of the two names, and no arguments.
 fn length_call<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return None;
     }
     let name = selector_of(context, node)?;
     if !matches!(name, "length" | "size") || !arguments(node).is_empty() {
         return None;
     }
-    node.child_by_field_name("receiver")?;
+    node.field("receiver")?;
     Some(node)
 }
 
 fn selector_of<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    node.child_by_field_name("method")
+    node.field("method")
         .map(|method| context.source.node_text(method))
 }
 
 fn integer_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<i64> {
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return None;
     }
     context.source.node_text(node).parse().ok()
@@ -147,13 +148,13 @@ fn integer_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<i64> {
 
 /// `non_polymorphic_collection?`: a size taken from a file handle is a byte count, not a collection.
 fn non_polymorphic_collection(context: &RuleContext<'_>, length: Node<'_>) -> bool {
-    let Some(receiver) = length.child_by_field_name("receiver") else {
+    let Some(receiver) = length.field("receiver") else {
         return false;
     };
-    if receiver.kind() != "call" {
+    if receiver.kind_str() != "call" {
         return false;
     }
-    let Some(inner) = receiver.child_by_field_name("receiver") else {
+    let Some(inner) = receiver.field("receiver") else {
         return false;
     };
     let name = selector_of(context, receiver).unwrap_or_default();
@@ -166,10 +167,10 @@ fn non_polymorphic_collection(context: &RuleContext<'_>, length: Node<'_>) -> bo
     {
         return true;
     }
-    if name == "new" && inner.kind() == "scope_resolution" {
-        let scope = inner.child_by_field_name("scope");
+    if name == "new" && inner.kind_str() == "scope_resolution" {
+        let scope = inner.field("scope");
         let named = inner
-            .child_by_field_name("name")
+            .field("name")
             .map(|node| context.source.node_text(node));
         return named == Some("Stat")
             && scope.is_some_and(|scope| is_constant(context, scope, &["File"]));

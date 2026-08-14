@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 /// Every node kind that carries a condition upstream reads with `on_if` / `on_while` / `on_until`,
 /// including the ternary and the post-loop forms.
@@ -38,12 +39,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         return;
     }
     for node in context.nodes_of_any(CONDITIONALS) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let mut stack = vec![condition];
         while let Some(current) = stack.pop() {
-            if current.kind() == "binary" {
+            if current.kind_str() == "binary" {
                 report(context, &locals, current, &mut reported, offenses);
             }
             stack.extend(super::nodes::children(current));
@@ -53,12 +54,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn report(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     reported: &mut HashSet<Range<usize>>,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(operator) = node.child_by_field_name("operator") else {
+    let Some(operator) = node.field("operator") else {
         return;
     };
     // `logical_operator?`: `&&` and `||` are already what the cop asks for.
@@ -83,21 +84,21 @@ fn report(
 
 fn corrections(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     operator: Node<'_>,
     alternate: &str,
 ) -> Vec<Edit> {
     let mut edits = Vec::new();
     let operands = [
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ];
     for child in operands.into_iter().flatten() {
         if is_send(context, locals, child) {
             correct_send(context, locals, child, node, &mut edits);
-        } else if matches!(child.kind(), "return" | "next" | "break" | "yield")
-            || matches!(child.kind(), "assignment" | "operator_assignment")
+        } else if matches!(child.kind_str(), "return" | "next" | "break" | "yield")
+            || matches!(child.kind_str(), "assignment" | "operator_assignment")
         {
             correct_other(context, child, node, &mut edits);
         }
@@ -114,16 +115,16 @@ fn corrections(
 
 /// Whether upstream's parser would have built a `send` here. A setter call is one too, however much
 /// the grammar spells it as an assignment.
-fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+    match node.kind_str() {
         "call" | "element_reference" => true,
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(context.source.node_text(operator), "!" | "not")
                     || super::nodes::is_operator_method(context.source.node_text(operator))
@@ -140,24 +141,24 @@ fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_
 
 /// `setter_method?`: an assignment written as a call is a `send` whose selector ends in `=`.
 fn setter_target<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("left")
-        .filter(|left| matches!(left.kind(), "call" | "element_reference"))
+    node.field("left")
+        .filter(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }
 
 fn correct_send(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     parent: Node<'_>,
     edits: &mut Vec<Edit>,
 ) {
-    if node.kind() == "unary"
-        && let Some(operator) = node.child_by_field_name("operator")
+    if node.kind_str() == "unary"
+        && let Some(operator) = node.field("operator")
     {
         match context.source.node_text(operator) {
             // `!x` can be corrected by descending into what is negated.
             "!" => {
-                if let Some(operand) = node.child_by_field_name("operand")
+                if let Some(operand) = node.field("operand")
                     && is_send(context, locals, operand)
                 {
                     correct_send(context, locals, operand, node, edits);
@@ -172,7 +173,7 @@ fn correct_send(
         }
     }
     // A setter keeps its own parentheses around the whole assignment.
-    if node.kind() == "assignment"
+    if node.kind_str() == "assignment"
         && setter_target(node).is_some()
         && !super::nodes::is_match_assignment(node, context.source.text())
     {
@@ -213,13 +214,13 @@ fn unparenthesized_call<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
-            let selector = node.child_by_field_name("method")?;
+            let selector = node.field("method")?;
             if context.source.node_text(selector) == "[]" {
                 return None;
             }
-            let arguments = node.child_by_field_name("arguments")?;
+            let arguments = node.field("arguments")?;
             if context.source.node_text(arguments).starts_with('(') {
                 return None;
             }
@@ -228,16 +229,16 @@ fn unparenthesized_call<'tree>(
         }
         // An operator call is never written with parentheses around its one argument.
         "binary" => Some((
-            node.child_by_field_name("operator")?,
-            node.child_by_field_name("right")?,
+            node.field("operator")?,
+            node.field("right")?,
         )),
         // The `=~` the grammar split in two: the selector spans both characters, and the argument
         // is what the `~` was read as applying to.
         "assignment" if super::nodes::is_match_assignment(node, context.source.text()) => {
-            let right = node.child_by_field_name("right")?;
+            let right = node.field("right")?;
             Some((
-                right.child_by_field_name("operator")?,
-                right.child_by_field_name("operand")?,
+                right.field("operator")?,
+                right.field("operand")?,
             ))
         }
         _ => None,
@@ -245,9 +246,9 @@ fn unparenthesized_call<'tree>(
 }
 
 fn is_comparison(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let selector = match node.kind() {
-        "binary" => node.child_by_field_name("operator"),
-        "call" => node.child_by_field_name("method"),
+    let selector = match node.kind_str() {
+        "binary" => node.field("operator"),
+        "call" => node.field("method"),
         _ => None,
     };
     selector
@@ -260,9 +261,9 @@ fn correct_other(
     parent: Node<'_>,
     edits: &mut Vec<Edit>,
 ) {
-    if node.kind() == "call"
+    if node.kind_str() == "call"
         && node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
     {
         return;
@@ -271,7 +272,7 @@ fn correct_other(
     // returns.
     if super::nodes::children(node).is_empty()
         && parent
-            .child_by_field_name("right")
+            .field("right")
             .is_some_and(|right| right.id() == node.id())
     {
         return;
@@ -283,15 +284,15 @@ fn correct_other(
 /// `keep_operator_precedence`: `&&` binds tighter than `||`, which `and` and `or` do not.
 fn keep_operator_precedence(context: &RuleContext<'_>, node: Node<'_>, edits: &mut Vec<Edit>) {
     let kind = |node: Node<'_>| {
-        (node.kind() == "binary")
-            .then(|| node.child_by_field_name("operator"))
+        (node.kind_str() == "binary")
+            .then(|| node.field("operator"))
             .flatten()
             .map(|operator| context.source.node_text(operator))
     };
     let own = kind(node);
     if matches!(own, Some("or"))
         && node
-            .parent()
+            .parent_of(context)
             .and_then(kind)
             .is_some_and(|parent| matches!(parent, "and" | "&&"))
     {
@@ -300,7 +301,7 @@ fn keep_operator_precedence(context: &RuleContext<'_>, node: Node<'_>, edits: &m
         return;
     }
     if matches!(own, Some("and"))
-        && let Some(right) = node.child_by_field_name("right")
+        && let Some(right) = node.field("right")
         && matches!(kind(right), Some("or" | "||"))
     {
         edits.push(insert(right.start_byte(), "("));

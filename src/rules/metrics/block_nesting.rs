@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use super::locals::named_children;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(3);
@@ -38,11 +39,11 @@ impl Nesting {
     fn check(&mut self, node: Node<'_>, mut level: usize) {
         // `x rescue y` is a `rescue` holding a `resbody`, and only the handler is inside that
         // clause: the expression on the left of the keyword is guarded by it, not nested in it.
-        if node.kind() == "rescue_modifier" {
-            if let Some(body) = node.child_by_field_name("body") {
+        if node.kind_str() == "rescue_modifier" {
+            if let Some(body) = node.field("body") {
                 self.check(body, level);
             }
-            if let Some(handler) = node.child_by_field_name("handler") {
+            if let Some(handler) = node.field("handler") {
                 let inner = level + 1;
                 self.report(modifier_clause(node, handler), inner);
                 self.check(handler, inner);
@@ -70,7 +71,7 @@ impl Nesting {
 
     /// `BlockNesting::NESTING_BLOCKS`, plus every kind of block when `CountBlocks` asks for them.
     fn considered(&self, node: Node<'_>) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "case" | "case_match" | "if" | "elsif" | "unless" | "if_modifier"
             | "unless_modifier" | "conditional" | "while" | "while_modifier" | "until"
             | "until_modifier" | "for" | "rescue" => true,
@@ -84,7 +85,7 @@ impl Nesting {
     /// `count_if_block?`: an `elsif` continues the `if` above it rather than nesting inside it,
     /// and a modifier form only counts when asked for.
     fn counts(&self, node: Node<'_>) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "elsif" => false,
             "if_modifier" | "unless_modifier" => self.count_modifier_forms,
             _ => true,
@@ -104,20 +105,20 @@ impl Nesting {
 /// where its range begins, and a `rescue` clause stops at the last statement it guards rather than
 /// running on over the comments and separators that follow.
 fn clause_range(node: Node<'_>) -> Range<usize> {
-    if matches!(node.kind(), "block" | "do_block") {
+    if matches!(node.kind_str(), "block" | "do_block") {
         return super::support::block_location(node).byte_range();
     }
-    if node.kind() != "rescue" {
+    if node.kind_str() != "rescue" {
         return node.byte_range();
     }
     // A clause that guards nothing -- one whose body holds only a comment -- ends where its
     // exception list does, or at the keyword when it lists none.
     let listed = ["variable", "exceptions"]
         .iter()
-        .find_map(|field| node.child_by_field_name(field))
+        .find_map(|field| node.field(field))
         .map_or(node.start_byte() + "rescue".len(), |part| part.end_byte());
     let guarded = node
-        .child_by_field_name("body")
+        .field("body")
         .and_then(last_statement)
         .map_or(listed, |statement| statement.end_byte());
     node.start_byte()..guarded.max(listed)
@@ -128,7 +129,7 @@ fn modifier_clause(node: Node<'_>, handler: Node<'_>) -> Range<usize> {
     let mut cursor = node.walk();
     let keyword = node
         .children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == "rescue")
+        .find(|child| !child.is_named() && child.kind_str() == "rescue")
         .map_or(node.start_byte(), |child| child.start_byte());
     keyword..handler.end_byte()
 }
@@ -136,10 +137,10 @@ fn modifier_clause(node: Node<'_>, handler: Node<'_>) -> Range<usize> {
 fn last_statement<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
     named_children(body)
         .into_iter()
-        .rfind(|child| !matches!(child.kind(), "comment" | "empty_statement" | "heredoc_body"))
+        .rfind(|child| !matches!(child.kind_str(), "comment" | "empty_statement" | "heredoc_body"))
 }
 
 fn is_lambda_body(node: Node<'_>) -> bool {
     node.parent()
-        .is_some_and(|parent| parent.kind() == "lambda")
+        .is_some_and(|parent| parent.kind_str() == "lambda")
 }

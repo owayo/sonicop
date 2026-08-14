@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const PREDICATE_MSG: &str = "Prefer the use of the `nil?` predicate.";
 const EXPLICIT_MSG: &str = "Prefer the use of the `==` comparison.";
@@ -23,7 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     continue;
                 }
                 // `node.loc.dot.join(node.loc.selector.end)`.
-                let Some(dot) = node.child_by_field_name("operator") else {
+                let Some(dot) = node.field("operator") else {
                     continue;
                 };
                 Edit {
@@ -36,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // `(send _ {:== :===} nil)`.
             false => {
                 if !matches!(name, "==" | "===")
-                    || argument.is_none_or(|argument| argument.kind() != "nil")
+                    || argument.is_none_or(|argument| argument.kind_str() != "nil")
                 {
                     continue;
                 }
@@ -54,7 +55,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         let mut edits = vec![edit];
         // `corrector.wrap(node, '(', ')')`: the rewrite binds differently under a `!`.
-        if node.parent().is_some_and(|parent| is_negation(context, parent, node)) {
+        if node.parent_of(context).is_some_and(|parent| is_negation(context, parent, node)) {
             edits.push(Edit {
                 start: node.end_byte(),
                 end: node.end_byte(),
@@ -80,19 +81,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The receiver, selector and single argument of a call written either way round, with the shapes
 /// that have no receiver or more than one argument ruled out.
 fn parts<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>, Option<Node<'tree>>)> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => Some((
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("operator")?,
-            Some(node.child_by_field_name("right")?),
+            node.field("left")?,
+            node.field("operator")?,
+            Some(node.field("right")?),
         )),
         _ => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let selector = node.child_by_field_name("method")?;
-            let argument = match node.child_by_field_name("arguments") {
+            let receiver = node.field("receiver")?;
+            let selector = node.field("method")?;
+            let argument = match node.field("arguments") {
                 Some(arguments) => match super::nodes::children(arguments).as_slice() {
                     [only] => Some(*only),
                     _ => return None,
@@ -106,11 +107,11 @@ fn parts<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>, Option<N
 
 /// `parent.method?(:!)`, which is how the parser spells both `!x` and `not x`.
 fn is_negation(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) -> bool {
-    parent.kind() == "unary"
+    parent.kind_str() == "unary"
         && parent
-            .child_by_field_name("operand")
+            .field("operand")
             .is_some_and(|operand| operand.id() == node.id())
         && parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }

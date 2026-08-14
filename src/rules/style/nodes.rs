@@ -3,6 +3,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Node kinds tree-sitter parks in the tree that upstream's AST has no child for.
 ///
@@ -11,7 +12,7 @@ use crate::rules::RuleContext;
 const NOT_A_CHILD: &[&str] = &["comment", "heredoc_body"];
 
 pub(super) fn is_child(node: Node<'_>) -> bool {
-    !NOT_A_CHILD.contains(&node.kind())
+    !NOT_A_CHILD.contains(&node.kind_str())
 }
 
 /// Node kinds the grammar leaves as the left operand of a binary expression where upstream's
@@ -22,7 +23,7 @@ pub(super) fn is_child(node: Node<'_>) -> bool {
 const BARE_JUMP: &[&str] = &["return", "break", "next", "redo", "retry", "yield"];
 
 pub(super) fn is_bare_jump(node: Node<'_>) -> bool {
-    BARE_JUMP.contains(&node.kind())
+    BARE_JUMP.contains(&node.kind_str())
 }
 
 /// The operators a class may redefine, which are the ones upstream's parser spells as a `send`.
@@ -62,17 +63,17 @@ pub(super) fn contains_comment(range: &std::ops::Range<usize>, context: &RuleCon
 /// a sibling of the statement that opened it rather than inside the literal, and a comment is a
 /// child of the statement list it was written in.
 pub(super) fn same_tree(context: &RuleContext<'_>, left: Node<'_>, right: Node<'_>) -> bool {
-    if left.kind() != right.kind() {
+    if left.kind_str() != right.kind_str() {
         return false;
     }
     let operator = |node: Node<'_>| {
-        node.child_by_field_name("operator")
+        node.field("operator")
             .map(|operator| context.source.node_text(operator))
     };
     if operator(left) != operator(right) {
         return false;
     }
-    if left.kind() == "heredoc_beginning" {
+    if left.kind_str() == "heredoc_beginning" {
         return heredoc_text(context, left) == heredoc_text(context, right);
     }
     let (left_children, right_children) = (children(left), children(right));
@@ -99,7 +100,7 @@ fn heredoc_text<'a>(context: &'a RuleContext<'_>, beginning: Node<'_>) -> Option
 /// assignment target and the grammar prefers that reading. Ruby lexes `=~` as one operator, so a
 /// `=` written straight against a `~` is never an assignment.
 pub(super) fn is_match_assignment(node: Node<'_>, text: &str) -> bool {
-    let Some(left) = node.child_by_field_name("left") else {
+    let Some(left) = node.field("left") else {
         return false;
     };
     let Some(operator) = left.next_sibling() else {

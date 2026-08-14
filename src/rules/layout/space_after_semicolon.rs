@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -18,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .collect();
 
     for node in context.nodes() {
-        if node.kind() != ";" {
+        if node.kind_str() != ";" {
             continue;
         }
         let after = node.end_byte();

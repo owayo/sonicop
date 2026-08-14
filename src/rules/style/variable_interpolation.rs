@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds `variable?` and `reference?` cover, minus the local variable a short
 /// interpolation cannot name.
@@ -21,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(variable) = node.child(0).filter(|first| first.is_named()) else {
             continue;
         };
-        if !VARIABLE_KINDS.contains(&variable.kind()) {
+        if !VARIABLE_KINDS.contains(&variable.kind_str()) {
             continue;
         }
         let text = context.source.node_text(variable);

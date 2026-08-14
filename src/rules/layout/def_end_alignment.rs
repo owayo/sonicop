@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use super::support::{character_column, end_keyword, end_keyword_alignment};
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // A definition passed to `private` lines its `end` up with the modifier by default.
@@ -17,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut ignored: HashSet<usize> = HashSet::new();
     let mut stack = vec![context.root_node()];
     while let Some(node) = stack.pop() {
-        match node.kind() {
+        match node.kind_str() {
             "method" | "singleton_method" => {
                 if !ignored.contains(&node.id())
                     && let Some(offense) = check_definition(
@@ -75,15 +76,15 @@ fn check_definition(
 fn def_modifier<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = call;
     loop {
-        if current.child_by_field_name("receiver").is_some() {
+        if current.field("receiver").is_some() {
             return None;
         }
-        let arguments = current.child_by_field_name("arguments")?;
+        let arguments = current.field("arguments")?;
         let argument = arguments.named_child(0)?;
-        if matches!(argument.kind(), "method" | "singleton_method") {
+        if matches!(argument.kind_str(), "method" | "singleton_method") {
             return Some(argument);
         }
-        if argument.kind() != "call" {
+        if argument.kind_str() != "call" {
             return None;
         }
         current = argument;

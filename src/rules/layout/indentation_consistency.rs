@@ -10,6 +10,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGE: &str = "Inconsistent indentation detected.";
 
@@ -71,7 +72,7 @@ fn base_column_for_normal_style(
 /// A bare `public` / `protected` / `private` / `module_function`, which the grammar writes as a
 /// plain identifier.
 fn is_bare_access_modifier(text: &str, node: Node<'_>) -> bool {
-    node.kind() == "identifier"
+    node.kind_str() == "identifier"
         && matches!(
             &text[node.byte_range()],
             "public" | "protected" | "private" | "module_function"

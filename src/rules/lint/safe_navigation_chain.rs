@@ -8,6 +8,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, named_children};
 
 use super::nil_methods::nil_methods;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not chain ordinary method call after safe navigation operator.";
 
@@ -69,20 +70,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `bad_method?`: a plain send whose receiver safe-navigates, directly, through a block, or through
 /// a `(...)` the parser keeps as a `begin`.
 fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Chain<'tree>> {
-    let (receiver, method, dot, given) = match node.kind() {
+    let (receiver, method, dot, given) = match node.kind_str() {
         "call" => {
             if !is_plain_send(node, context) {
                 return None;
             }
             let method = context
                 .source
-                .node_text(node.child_by_field_name("method")?)
+                .node_text(node.field("method")?)
                 .to_owned();
             let dot = node
-                .child_by_field_name("operator")
+                .field("operator")
                 .map(|operator| operator.byte_range());
             (
-                node.child_by_field_name("receiver")?,
+                node.field("receiver")?,
                 method,
                 dot,
                 arguments(node)
@@ -92,22 +93,22 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
             )
         }
         "binary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             let method = context.source.node_text(operator).to_owned();
             // `a && b` and `a || b` are `and`/`or` upstream rather than calls.
             if matches!(method.as_str(), "&&" | "and" | "||" | "or") {
                 return None;
             }
-            let right = node.child_by_field_name("right")?;
+            let right = node.field("right")?;
             (
-                node.child_by_field_name("left")?,
+                node.field("left")?,
                 method,
                 None,
                 vec![right.byte_range()],
             )
         }
         "unary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             let text = context.source.node_text(operator);
             // `defined?` and `not` are keywords rather than method calls.
             if !matches!(text, "-" | "+" | "!" | "~" | "&") {
@@ -119,7 +120,7 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
                 other => other.to_owned(),
             };
             (
-                node.child_by_field_name("operand")?,
+                node.field("operand")?,
                 method,
                 None,
                 Vec::new(),
@@ -154,7 +155,7 @@ fn safe_navigation_of<'tree>(
         return Some(receiver);
     }
     // `(begin (csend ...))`: a parenthesized sequence of exactly one safe call.
-    if receiver.kind() == "parenthesized_statements" {
+    if receiver.kind_str() == "parenthesized_statements" {
         let inner = super::statements::statements(receiver);
         return match inner.as_slice() {
             [only] if is_safe_navigation(*only, context) => Some(receiver),
@@ -167,41 +168,41 @@ fn safe_navigation_of<'tree>(
 fn is_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     // `obj&.foo = 3` is one `csend` upstream, where the grammar writes the setter as an assignment
     // whose target is the safe call.
-    let call = if node.kind() == "assignment" {
-        match node.child_by_field_name("left") {
+    let call = if node.kind_str() == "assignment" {
+        match node.field("left") {
             Some(left) => left,
             None => return false,
         }
     } else {
         node
     };
-    call.kind() == "call"
+    call.kind_str() == "call"
         && call
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "&.")
 }
 
 /// `require_safe_navigation?`: `foo&.bar && foo.bar.baz` already guards the chain.
 fn requires_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return true;
     };
-    if parent.kind() != "binary"
+    if parent.kind_str() != "binary"
         || parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_none_or(|operator| !matches!(context.source.node_text(operator), "&&" | "and"))
     {
         return true;
     }
     if parent
-        .child_by_field_name("right")
+        .field("right")
         .is_none_or(|right| right.id() != node.id())
     {
         return true;
     }
-    let left = parent.child_by_field_name("left");
-    let left_receiver = left.and_then(|left| left.child_by_field_name("receiver"));
-    let right_receiver = node.child_by_field_name("receiver");
+    let left = parent.field("left");
+    let left_receiver = left.and_then(|left| left.field("receiver"));
+    let right_receiver = node.field("receiver");
     match (left_receiver, right_receiver) {
         (Some(left), Some(right)) => {
             context.source.node_text(left) != context.source.node_text(right)
@@ -223,23 +224,23 @@ fn ternary_branch(
     safe_navigation: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<Branch> {
-    let parent = node.parent()?;
-    if parent.kind() != "conditional" {
+    let parent = node.parent_of(context)?;
+    if parent.kind_str() != "conditional" {
         return None;
     }
-    let condition = parent.child_by_field_name("condition")?;
+    let condition = parent.field("condition")?;
     if condition.id() != safe_navigation.id() {
         return None;
     }
     let _ = context;
     if parent
-        .child_by_field_name("consequence")
+        .field("consequence")
         .is_some_and(|branch| branch.id() == node.id())
     {
         return Some(Branch::If);
     }
     parent
-        .child_by_field_name("alternative")
+        .field("alternative")
         .filter(|branch| branch.id() == node.id())
         .map(|_| Branch::Else)
 }
@@ -285,17 +286,17 @@ fn autocorrect(chain: &Chain<'_>, range: &Range<usize>, context: &RuleContext<'_
 /// `require_parentheses?`: an operator written inside a collection literal, or a comparison whose
 /// parent would bind the rewritten call the wrong way.
 fn requires_parentheses(chain: &Chain<'_>, context: &RuleContext<'_>) -> bool {
-    let parent = chain.node.parent();
-    if chain.dot.is_none() && parent.is_some_and(|parent| matches!(parent.kind(), "array" | "pair"))
+    let parent = chain.node.parent_of(context);
+    if chain.dot.is_none() && parent.is_some_and(|parent| matches!(parent.kind_str(), "array" | "pair"))
     {
         return true;
     }
     if !COMPARISON_METHODS.contains(&chain.method.as_str()) {
         return false;
     }
-    parent.is_some_and(|parent| match parent.kind() {
+    parent.is_some_and(|parent| match parent.kind_str() {
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 let text = context.source.node_text(operator);
                 matches!(text, "&&" | "and" | "||" | "or") || COMPARISON_METHODS.contains(&text)

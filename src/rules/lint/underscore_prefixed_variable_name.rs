@@ -1,6 +1,7 @@
-use super::variable_force::{Analysis, Argument, Declaration, Scope, Variable};
+use super::variable_force::{Argument, Declaration, Scope, Variable};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use prefix `_` for a variable that is used.";
 
@@ -8,7 +9,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_keyword_block_arguments: bool = context
         .setting("AllowKeywordBlockArguments")
         .unwrap_or(false);
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         for &index in &scope.variables {
             let variable = &analysis.variables[index];
@@ -27,5 +28,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn keyword_block_argument(variable: &Variable<'_>, scope: &Scope<'_>) -> bool {
     variable.kind == Declaration::Argument(Argument::Keyword)
-        && matches!(scope.node.kind(), "block" | "do_block" | "lambda")
+        && matches!(scope.node.kind_str(), "block" | "do_block" | "lambda")
 }

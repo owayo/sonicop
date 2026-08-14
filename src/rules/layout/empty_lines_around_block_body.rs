@@ -3,6 +3,7 @@
 use super::empty_lines_around_body::{Target, body_container, body_of, check as check_body};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -10,12 +11,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "no_empty_lines".to_owned());
     let mut targets = Vec::new();
     for node in context.nodes_of_any(&["block", "do_block"]) {
-        let Some(parent) = node.parent() else {
+        let Some(parent) = node.parent_of(context) else {
             continue;
         };
         // `node.send_node.last_line`: everything of the call but the block itself. A stabby lambda's
         // send is the `->` alone.
-        let first_line = match parent.kind() {
+        let first_line = match parent.kind_str() {
             "lambda" => parent.start_position().row + 1,
             _ => node
                 .prev_sibling()

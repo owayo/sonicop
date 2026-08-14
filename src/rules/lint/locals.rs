@@ -9,36 +9,26 @@
 //! a candidate to ask about -- most files hold none, and a cop that ran it eagerly would pay for
 //! the walk in every file it inspects.
 
-use std::cell::OnceCell;
 use std::ops::Range;
 
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
-use crate::source::SourceFile;
 
-use super::variable_force::Analysis;
-
-pub(in crate::rules) struct LocalVariables<'a> {
-    root: Node<'a>,
-    source: &'a SourceFile,
-    analysis: OnceCell<Analysis<'a>>,
+/// A handle on the file's one [`super::variable_force::Analysis`], which the context owns and runs
+/// at most once however many cops ask for it.
+pub(in crate::rules) struct LocalVariables<'ctx, 'tree> {
+    context: &'ctx RuleContext<'tree>,
 }
 
-impl<'a> LocalVariables<'a> {
-    pub(in crate::rules) fn new(context: &'a RuleContext<'_>) -> Self {
-        Self {
-            root: context.root_node(),
-            source: context.source,
-            analysis: OnceCell::new(),
-        }
+impl<'ctx, 'tree> LocalVariables<'ctx, 'tree> {
+    pub(in crate::rules) fn new(context: &'ctx RuleContext<'tree>) -> Self {
+        Self { context }
     }
 
     /// Whether upstream's parser would have built an `lvar` here rather than a receiverless call.
     pub(in crate::rules) fn is_lvar(&self, node: Node<'_>) -> bool {
-        self.analysis
-            .get_or_init(|| Analysis::run(self.root, self.source))
-            .is_variable_reference(node)
+        self.context.variable_analysis().is_variable_reference(node)
     }
 
     /// Where each variable in the file is written and where it is read.
@@ -47,8 +37,8 @@ impl<'a> LocalVariables<'a> {
     /// than one answer about one node: `Style/InfiniteLoop` asks whether a name a loop body
     /// introduces is still read below the loop, which no single node can say.
     pub(in crate::rules) fn variable_spans(&self) -> Vec<VariableSpans> {
-        self.analysis
-            .get_or_init(|| Analysis::run(self.root, self.source))
+        self.context
+            .variable_analysis()
             .variables
             .iter()
             .map(|variable| VariableSpans {

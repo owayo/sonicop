@@ -6,6 +6,7 @@ use crate::rules::send_node::{arguments, named_children, send_range};
 
 use super::locals::LocalVariables;
 use super::node_equality::identical;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Self-assignment detected.";
 
@@ -24,7 +25,7 @@ const VARIABLE_KINDS: [&str; 4] = [
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of_any(&["assignment", "operator_assignment", "call"]) {
-        let range = match node.kind() {
+        let range = match node.kind_str() {
             "call" => {
                 if !call_assignment(node, context, &locals) {
                     continue;
@@ -50,35 +51,35 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `on_lvasgn` and its aliases, `on_casgn`, `on_masgn`, and the two `on_send` branches for the
 /// assignments written with brackets or a dotted setter.
-fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     let (Some(left), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return false;
     };
-    match left.kind() {
+    match left.kind_str() {
         // The assignment itself declares the name, so the same name on its right always reads the
         // variable rather than calling a method.
         kind if VARIABLE_KINDS.contains(&kind) => {
-            right.kind() == kind
+            right.kind_str() == kind
                 && context.source.node_text(right) == context.source.node_text(left)
         }
         "constant" | "scope_resolution" => constant_self_assignment(left, right, context),
         "left_assignment_list" => multiple_self_assignment(left, right, context),
         "element_reference" => key_assignment(
-            left.child_by_field_name("object"),
+            left.field("object"),
             &index_arguments(left),
             right,
             context,
             locals,
         ),
         "call" => {
-            let Some(method) = left.child_by_field_name("method") else {
+            let Some(method) = left.field("method") else {
                 return false;
             };
             attribute_assignment(
-                left.child_by_field_name("receiver"),
+                left.field("receiver"),
                 context.source.node_text(method),
                 right,
                 context,
@@ -90,8 +91,8 @@ fn assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables
 
 /// The `on_send` half of the cop, for the setters written as an ordinary call: `obj.attr=(value)`
 /// and `hash.[]=(key, value)`.
-fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
-    let Some(method) = node.child_by_field_name("method") else {
+fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
+    let Some(method) = node.field("method") else {
         return false;
     };
     let name = context.source.node_text(method);
@@ -99,7 +100,7 @@ fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVari
         .iter()
         .map(|argument| argument.parts().to_vec())
         .collect();
-    let receiver = node.child_by_field_name("receiver");
+    let receiver = node.field("receiver");
     if name == "[]=" {
         let Some((value, keys)) = call_arguments.split_last() else {
             return false;
@@ -126,21 +127,21 @@ fn call_assignment(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVari
 fn operator_assignment(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     let (Some(left), Some(right), Some(operator)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
-        node.child_by_field_name("operator"),
+        node.field("left"),
+        node.field("right"),
+        node.field("operator"),
     ) else {
         return false;
     };
     if !matches!(context.source.node_text(operator), "||=" | "&&=") {
         return false;
     }
-    match left.kind() {
+    match left.kind_str() {
         kind if VARIABLE_KINDS.contains(&kind) => {
-            right.kind() == kind
+            right.kind_str() == kind
                 && context.source.node_text(right) == context.source.node_text(left)
         }
         "constant" | "scope_resolution" => constant_self_assignment(left, right, context),
@@ -152,13 +153,13 @@ fn operator_assignment(
             };
             let keys = index_arguments(left);
             reader.method == "[]"
-                && receivers_match(left.child_by_field_name("object"), reader.receiver, context)
+                && receivers_match(left.field("object"), reader.receiver, context)
                 && identical_arguments(&keys, &reader.arguments, context)
                 && keys.iter().all(|key| !is_call(key, locals, context))
         }
         "call" => {
             let (Some(method), Some(reader)) = (
-                left.child_by_field_name("method"),
+                left.field("method"),
                 reader_call(right, context),
             ) else {
                 return false;
@@ -171,7 +172,7 @@ fn operator_assignment(
             reader.safe_navigation == is_safe_navigation(left, context)
                 && reader.method == context.source.node_text(method)
                 && receivers_match(
-                    left.child_by_field_name("receiver"),
+                    left.field("receiver"),
                     reader.receiver,
                     context,
                 )
@@ -205,15 +206,15 @@ fn constant_self_assignment(left: Node<'_>, right: Node<'_>, context: &RuleConte
 fn multiple_self_assignment(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
     // `rhs.array_type?`. `a, b = c` hands over one value rather than a list, and `a, b = *c` builds
     // an array holding a `splat`, which is no variable read.
-    let values = match right.kind() {
+    let values = match right.kind_str() {
         "right_assignment_list" | "array" => named_children(right),
         _ => return false,
     };
     let targets = named_children(left);
     targets.len() == values.len()
         && targets.iter().zip(&values).all(|(target, value)| {
-            VARIABLE_KINDS.contains(&target.kind())
-                && value.kind() == target.kind()
+            VARIABLE_KINDS.contains(&target.kind_str())
+                && value.kind_str() == target.kind_str()
                 && context.source.node_text(*value) == context.source.node_text(*target)
         })
 }
@@ -225,7 +226,7 @@ fn key_assignment(
     keys: &[Vec<Node<'_>>],
     value: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> bool {
     let Some(reader) = reader_call(value, context) else {
         return false;
@@ -261,21 +262,21 @@ struct Reader<'tree> {
 }
 
 fn reader_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Reader<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "element_reference" => Some(Reader {
-            receiver: node.child_by_field_name("object"),
+            receiver: node.field("object"),
             method: "[]".to_owned(),
             arguments: index_arguments(node),
             safe_navigation: false,
         }),
         "call" => {
             // A call with a block is a `block` node upstream, which answers no method name at all.
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let method = node.child_by_field_name("method")?;
+            let method = node.field("method")?;
             Some(Reader {
-                receiver: node.child_by_field_name("receiver"),
+                receiver: node.field("receiver"),
                 method: context.source.node_text(method).to_owned(),
                 arguments: arguments(node)
                     .iter()
@@ -289,20 +290,20 @@ fn reader_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Re
 }
 
 fn is_safe_navigation(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    call.child_by_field_name("operator")
+    call.field("operator")
         .is_some_and(|operator| context.source.node_text(operator) == "&.")
 }
 
 /// The arguments between an `element_reference`'s brackets.
 fn index_arguments<'tree>(node: Node<'tree>) -> Vec<Vec<Node<'tree>>> {
-    let object = node.child_by_field_name("object");
+    let object = node.field("object");
     let mut keys: Vec<Vec<Node<'tree>>> = Vec::new();
     let mut hash: Vec<Node<'tree>> = Vec::new();
     for child in named_children(node) {
-        if object.is_some_and(|object| object.id() == child.id()) || child.kind() == "comment" {
+        if object.is_some_and(|object| object.id() == child.id()) || child.kind_str() == "comment" {
             continue;
         }
-        if matches!(child.kind(), "pair" | "hash_splat_argument") {
+        if matches!(child.kind_str(), "pair" | "hash_splat_argument") {
             hash.push(child);
             continue;
         }
@@ -346,17 +347,17 @@ fn identical_arguments(
 
 /// `call_type?`: whether upstream's parser would have built a `send` or a `csend` here. A key that
 /// calls a method may answer differently the second time, which is what the guard is for.
-fn is_call(argument: &[Node<'_>], locals: &LocalVariables<'_>, context: &RuleContext<'_>) -> bool {
+fn is_call(argument: &[Node<'_>], locals: &LocalVariables<'_, '_>, context: &RuleContext<'_>) -> bool {
     let [node] = argument else {
         // A brace-less hash is a `hash` upstream, never a call.
         return false;
     };
-    match node.kind() {
+    match node.kind_str() {
         "call" | "element_reference" => true,
         "identifier" => !locals.is_lvar(*node),
         // An operator is a method: `a + b` is `(send a :+ b)`. The logical operators are not.
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 !matches!(
                     context.source.node_text(operator),
@@ -367,11 +368,11 @@ fn is_call(argument: &[Node<'_>], locals: &LocalVariables<'_>, context: &RuleCon
         // call of the operator method.
         "unary" => {
             let operator = node
-                .child_by_field_name("operator")
+                .field("operator")
                 .map(|operator| context.source.node_text(operator));
             let numeric = node
-                .child_by_field_name("operand")
-                .is_some_and(|operand| matches!(operand.kind(), "integer" | "float"));
+                .field("operand")
+                .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"));
             match operator {
                 Some("-" | "+") => !numeric,
                 Some("defined?" | "not") => false,
@@ -395,15 +396,15 @@ fn constant_parts<'a, 'tree>(
     node: Node<'tree>,
     context: &'a RuleContext<'_>,
 ) -> Option<(Namespace<'tree>, &'a str)> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some((Namespace::None, context.source.node_text(node))),
         "scope_resolution" => {
-            let name = node.child_by_field_name("name")?;
-            if name.kind() != "constant" {
+            let name = node.field("name")?;
+            if name.kind_str() != "constant" {
                 return None;
             }
             let namespace = node
-                .child_by_field_name("scope")
+                .field("scope")
                 .map_or(Namespace::Base, Namespace::Node);
             Some((namespace, context.source.node_text(name)))
         }

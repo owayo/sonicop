@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::support::Interpolations;
 use crate::source::is_protected;
+use crate::rules::node_ext::NodeExt;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
 /// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
@@ -167,7 +168,7 @@ fn endless_method_lines<'tree>(context: &'tree RuleContext<'_>) -> HashMap<usize
 fn endless_method_edit(context: &RuleContext<'_>, node: Node<'_>) -> Edit {
     let indent = " ".repeat(context.source.line_column(node.start_byte()).1 - 1);
     let mut signature = String::from("def ");
-    if let Some(object) = node.child_by_field_name("object") {
+    if let Some(object) = node.field("object") {
         signature.push_str(context.source.node_text(object));
         // The separator is whatever sits between the receiver and the name: `.` or `::`.
         signature.push_str(
@@ -176,14 +177,14 @@ fn endless_method_edit(context: &RuleContext<'_>, node: Node<'_>) -> Edit {
                 .slice(object.end_byte()..name_start(node, object)),
         );
     }
-    if let Some(name) = node.child_by_field_name("name") {
+    if let Some(name) = node.field("name") {
         signature.push_str(context.source.node_text(name));
     }
-    if let Some(parameters) = node.child_by_field_name("parameters") {
+    if let Some(parameters) = node.field("parameters") {
         signature.push_str(context.source.node_text(parameters));
     }
     let body = node
-        .child_by_field_name("body")
+        .field("body")
         .map_or("", |body| context.source.node_text(body));
     Edit {
         start: node.start_byte(),
@@ -194,7 +195,7 @@ fn endless_method_edit(context: &RuleContext<'_>, node: Node<'_>) -> Edit {
 }
 
 fn name_start(node: Node<'_>, object: Node<'_>) -> usize {
-    node.child_by_field_name("name")
+    node.field("name")
         .map_or(object.end_byte(), |name| name.start_byte())
 }
 
@@ -202,7 +203,7 @@ fn is_endless_method(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     !node
         .children(&mut cursor)
-        .any(|child| child.kind() == "end")
+        .any(|child| child.kind_str() == "end")
 }
 
 fn marker_only(prefix: &str) -> bool {
@@ -400,14 +401,14 @@ fn upstream_order(root: Node<'_>) -> HashMap<usize, u32> {
     let mut index = 0;
     let mut children = Vec::new();
     while let Some(node) = stack.pop() {
-        if matches!(node.kind(), "lambda") || BREAKABLE_KINDS.contains(&node.kind()) {
+        if matches!(node.kind_str(), "lambda") || BREAKABLE_KINDS.contains(&node.kind_str()) {
             order.insert(node.id(), index);
         }
         index += 1;
         children.clear();
         let mut cursor = node.walk();
         children.extend(node.named_children(&mut cursor));
-        if MODIFIER_KINDS.contains(&node.kind()) {
+        if MODIFIER_KINDS.contains(&node.kind_str()) {
             children.reverse();
         }
         stack.extend(children.iter().rev().copied());
@@ -418,7 +419,7 @@ fn upstream_order(root: Node<'_>) -> HashMap<usize, u32> {
 /// Where a candidate sorts, with a block placed just ahead of the call it belongs to: upstream's
 /// block node stands where the grammar puts the call, and the call is its first child.
 fn visit_order(node: Node<'_>, order: &HashMap<usize, u32>) -> (u32, u8) {
-    if matches!(node.kind(), "block" | "do_block") {
+    if matches!(node.kind_str(), "block" | "do_block") {
         if let Some(parent) = node.parent() {
             if let Some(index) = order.get(&parent.id()) {
                 return (*index, 0);
@@ -464,11 +465,11 @@ fn line_break_edits(
     candidates.sort_by_key(|node| visit_order(*node, &order));
 
     for node in candidates {
-        if matches!(node.kind(), "block" | "do_block") {
+        if matches!(node.kind_str(), "block" | "do_block") {
             if let Some(offset) = breaker.block_break_position(node) {
                 // Upstream's block node starts at the receiver, not at the brace, so a call split
                 // over two lines files its break under the line the receiver is on.
-                let owner = node.parent().unwrap_or(node);
+                let owner = node.parent_of(context).unwrap_or(node);
                 positions.insert(owner.start_position().row + 1, offset..(offset + 1));
             }
         } else if let Some(element) = breaker.breakable_element(node) {
@@ -552,11 +553,11 @@ impl Breaker<'_, '_> {
         }
         // With block arguments the break goes after the closing `|`. A lambda is exempt -- both
         // `->` and a call to `lambda` count as one upstream -- and falls through to the brace.
-        let opener = if node.kind() == "block" { 1 } else { 2 };
+        let opener = if node.kind_str() == "block" { 1 } else { 2 };
         let parameters = if is_lambda_block(node, self.context) {
             None
         } else {
-            node.child_by_field_name("parameters")
+            node.field("parameters")
         };
         let position = match parameters {
             Some(parameters) => parameters.end_byte(),
@@ -567,10 +568,10 @@ impl Breaker<'_, '_> {
 
     /// `extract_breakable_node`: the element a break would be inserted before, if any.
     fn breakable_element<'t>(&self, node: Node<'t>) -> Option<Node<'t>> {
-        if node.kind() == "call" && self.chained_to_heredoc(node) {
+        if node.kind_str() == "call" && self.chained_to_heredoc(node) {
             return None;
         }
-        if matches!(node.kind(), "method" | "singleton_method") && is_endless_method(node) {
+        if matches!(node.kind_str(), "method" | "singleton_method") && is_endless_method(node) {
             return None;
         }
         let elements = self.elements(node)?;
@@ -593,12 +594,12 @@ impl Breaker<'_, '_> {
     /// A brace-less hash argument is already spelled as loose `pair`s by the grammar, which is what
     /// upstream's `process_args` reaches by unfolding the `hash` node its parser builds.
     fn elements<'t>(&self, node: Node<'t>) -> Option<Vec<Element<'t>>> {
-        let container = match node.kind() {
+        let container = match node.kind_str() {
             // `super(...)` is its own node type upstream rather than a `send`, so no cop callback
             // reaches it and it is never broken.
             "call" if is_super_call(node) => return None,
-            "call" => node.child_by_field_name("arguments")?,
-            "method" | "singleton_method" => node.child_by_field_name("parameters")?,
+            "call" => node.field("arguments")?,
+            "method" | "singleton_method" => node.field("parameters")?,
             // A `rescue` clause's exception list reaches RuboCop as an `array` too.
             "array" | "string_array" | "symbol_array" | "right_assignment_list" | "exceptions" => {
                 node
@@ -608,12 +609,12 @@ impl Breaker<'_, '_> {
             "element_reference" => return Some(group_pairs(index_arguments(node), true)),
             // `a[b] = c` is the `[]=` call whose arguments are the subscripts and the value.
             "assignment" => {
-                let left = node.child_by_field_name("left")?;
-                if left.kind() != "element_reference" {
+                let left = node.field("left")?;
+                if left.kind_str() != "element_reference" {
                     return None;
                 }
                 let mut children = index_arguments(left);
-                children.push(node.child_by_field_name("right")?);
+                children.push(node.field("right")?);
                 return Some(group_pairs(children, true));
             }
             _ => return None,
@@ -623,14 +624,14 @@ impl Breaker<'_, '_> {
         // the argument list it was opened in rather than off the opener, so neither is an element.
         let children: Vec<Node<'t>> = container
             .named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect();
         // A literal hash's own pairs are its elements; only an argument list and an array literal
         // carry a brace-less hash that upstream's parser folds into one node. `process_args` then
         // unfolds it again -- but for a call's last argument only, so a hash followed by a block
         // argument, or one inside an array, stays a single element.
         let inside_array = matches!(
-            container.kind(),
+            container.kind_str(),
             "array" | "string_array" | "symbol_array" | "right_assignment_list"
         );
         Some(group_pairs(children, !inside_array))
@@ -647,13 +648,13 @@ impl Breaker<'_, '_> {
     /// A method definition is measured by its parameter list rather than by the whole definition,
     /// and a call by its arguments: the block it may carry is a separate node upstream.
     fn already_on_multiple_lines(&self, node: Node<'_>, elements: &[Element<'_>]) -> bool {
-        let last_row = match node.kind() {
+        let last_row = match node.kind_str() {
             "method" | "singleton_method" => match elements.last() {
                 Some(last) => last.last_row,
                 None => return false,
             },
             "call" => node
-                .child_by_field_name("arguments")
+                .field("arguments")
                 .map_or(node.end_position().row, |arguments| {
                     arguments.end_position().row
                 }),
@@ -696,7 +697,7 @@ impl Breaker<'_, '_> {
     /// The elements of an enclosing node, which upstream only asks of a `hash`, an `array` or a
     /// `send` -- never of a method definition, whose parameters are not the caller's to break.
     fn ancestor_elements<'t>(&self, node: Node<'t>) -> Option<Vec<Element<'t>>> {
-        if matches!(node.kind(), "method" | "singleton_method") {
+        if matches!(node.kind_str(), "method" | "singleton_method") {
             return None;
         }
         self.elements(node)
@@ -742,7 +743,7 @@ impl Breaker<'_, '_> {
         index: usize,
     ) -> Option<usize> {
         if !matches!(
-            node.kind(),
+            node.kind_str(),
             "call"
                 | "array"
                 | "string_array"
@@ -769,7 +770,7 @@ impl Breaker<'_, '_> {
     }
 
     fn is_heredoc(&self, node: Node<'_>) -> bool {
-        node.kind() == "heredoc_beginning"
+        node.kind_str() == "heredoc_beginning"
     }
 
     /// Whether a heredoc opens anywhere inside `node`.
@@ -781,19 +782,19 @@ impl Breaker<'_, '_> {
     }
 
     fn receiver_contains_heredoc(&self, node: Node<'_>) -> bool {
-        node.parent()
-            .and_then(|parent| parent.child_by_field_name("receiver"))
+        node.parent_of(self.context)
+            .and_then(|parent| parent.field("receiver"))
             .is_some_and(|receiver| self.contains_heredoc(receiver))
     }
 
     /// A call whose receiver chain starts from a heredoc cannot take a break in its arguments.
     fn chained_to_heredoc(&self, node: Node<'_>) -> bool {
-        let mut receiver = node.child_by_field_name("receiver");
+        let mut receiver = node.field("receiver");
         while let Some(current) = receiver {
             if self.is_heredoc(current) {
                 return true;
             }
-            receiver = current.child_by_field_name("receiver");
+            receiver = current.field("receiver");
         }
         false
     }
@@ -821,9 +822,9 @@ impl<'t> Iterator for Ancestors<'t> {
     fn next(&mut self) -> Option<Node<'t>> {
         loop {
             let parent = self.current.parent()?;
-            let through_block = parent.kind() == "call"
+            let through_block = parent.kind_str() == "call"
                 && parent
-                    .child_by_field_name("block")
+                    .field("block")
                     .is_some_and(|block| block.id() == self.current.id());
             self.current = parent;
             if !through_block {
@@ -835,11 +836,11 @@ impl<'t> Iterator for Ancestors<'t> {
 
 /// The subscripts of `a[b, c]`, which are every child but the object being indexed.
 fn index_arguments<'t>(node: Node<'t>) -> Vec<Node<'t>> {
-    let object = node.child_by_field_name("object");
+    let object = node.field("object");
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .filter(|child| {
-            !matches!(child.kind(), "comment" | "heredoc_body")
+            !matches!(child.kind_str(), "comment" | "heredoc_body")
                 && Some(child.id()) != object.map(|object| object.id())
         })
         .collect()
@@ -880,7 +881,7 @@ struct Element<'t> {
 /// call -- but only there: an array literal, or a call whose hash is followed by a block argument,
 /// keeps the hash whole.
 fn group_pairs<'t>(children: Vec<Node<'t>>, expand: bool) -> Vec<Element<'t>> {
-    let is_entry = |node: &Node<'t>| matches!(node.kind(), "pair" | "hash_splat_argument");
+    let is_entry = |node: &Node<'t>| matches!(node.kind_str(), "pair" | "hash_splat_argument");
     let plain = |node: Node<'t>| Element {
         node,
         last_row: node.end_position().row,
@@ -906,10 +907,10 @@ fn group_pairs<'t>(children: Vec<Node<'t>>, expand: bool) -> Vec<Element<'t>> {
 
 /// Whether the block belongs to a lambda: `-> {}` and `lambda {}` are the same node upstream.
 fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.parent() {
-        Some(parent) if parent.kind() == "lambda" => true,
+    match node.parent_of(context) {
+        Some(parent) if parent.kind_str() == "lambda" => true,
         Some(parent) => parent
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "lambda"),
         None => false,
     }
@@ -918,12 +919,12 @@ fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// The node kinds that reach RuboCop as a `send`, where an unparenthesized first argument is
 /// pinned in place.
 fn is_call_like(node: Node<'_>) -> bool {
-    matches!(node.kind(), "call" | "element_reference" | "assignment")
+    matches!(node.kind_str(), "call" | "element_reference" | "assignment")
 }
 
 fn is_super_call(node: Node<'_>) -> bool {
-    node.child_by_field_name("method")
-        .is_some_and(|method| method.kind() == "super")
+    node.field("method")
+        .is_some_and(|method| method.kind_str() == "super")
 }
 
 fn line_char_count(context: &RuleContext<'_>, line: usize) -> usize {
@@ -932,7 +933,7 @@ fn line_char_count(context: &RuleContext<'_>, line: usize) -> usize {
 }
 
 fn call_parenthesized(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
 }
 

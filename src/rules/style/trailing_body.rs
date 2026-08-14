@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Reports `node`'s body when it starts on the line the definition opened on.
 pub(super) fn check(
@@ -14,7 +15,7 @@ pub(super) fn check(
     node: Node<'_>,
     message: &str,
 ) {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return;
     };
     let statements = super::nodes::children(body);
@@ -31,7 +32,7 @@ pub(super) fn check(
     // is one node upstream and reports whole.
     let clause = statements
         .iter()
-        .any(|child| matches!(child.kind(), "rescue" | "ensure" | "else"));
+        .any(|child| matches!(child.kind_str(), "rescue" | "ensure" | "else"));
     let range = match clause {
         true => first.start_byte()..last.end_byte(),
         false => first.byte_range(),

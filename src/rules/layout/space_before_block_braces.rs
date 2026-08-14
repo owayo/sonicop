@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::final_pos;
+use crate::rules::node_ext::NodeExt;
 
 const MISSING_MSG: &str = "Space missing to the left of {.";
 const DETECTED_MSG: &str = "Space detected to the left of {.";
@@ -81,5 +82,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }

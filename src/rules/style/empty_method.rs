@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::line_length_help::LineLengthHelp;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_COMPACT: &str = "Put empty method definitions on a single line.";
 const MSG_EXPANDED: &str = "Put the `end` of empty method definitions on the next line.";
@@ -12,12 +13,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let compact = context
         .setting::<String>("EnforcedStyle")
         .is_none_or(|style| style == "compact");
-    let mut line_length: Option<LineLengthHelp<'_>> = None;
+    let mut line_length: Option<LineLengthHelp<'_, '_>> = None;
 
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         // `node.body`: a definition with anything in it is not empty, and a comment inside the
         // range keeps the shape the author chose.
-        if node.child_by_field_name("body").is_some() || contains_comment(context, node) {
+        if node.field("body").is_some() || contains_comment(context, node) {
             continue;
         }
         let single_line = node.start_position().row == node.end_position().row;
@@ -66,11 +67,11 @@ fn contains_comment(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `corrected`: the definition written back with the `end` where the style wants it.
 fn corrected(context: &RuleContext<'_>, node: Node<'_>, compact: bool) -> String {
     let scope = node
-        .child_by_field_name("object")
+        .field("object")
         .map(|receiver| format!("{}.", context.source.node_text(receiver)))
         .unwrap_or_default();
     let name = node
-        .child_by_field_name("name")
+        .field("name")
         .map_or(String::new(), |name| {
             context.source.node_text(name).to_owned()
         });
@@ -85,7 +86,7 @@ fn corrected(context: &RuleContext<'_>, node: Node<'_>, compact: bool) -> String
 /// `node.arguments` written back: an empty parameter list is no list at all upstream, so the
 /// parentheses that held nothing are dropped.
 fn parameters(context: &RuleContext<'_>, node: Node<'_>) -> String {
-    let Some(list) = node.child_by_field_name("parameters") else {
+    let Some(list) = node.field("parameters") else {
         return String::new();
     };
     let sources: Vec<&str> = super::nodes::children(list)

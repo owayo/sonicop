@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const NESTED_MSG: &str = "Use nested module/class definitions instead of compact style.";
 const COMPACT_MSG: &str = "Use compact module/class definition instead of nested style.";
@@ -30,17 +31,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| style.clone());
 
     for node in context.nodes_of_any(&["class", "module"]) {
-        let is_class = node.kind() == "class";
+        let is_class = node.kind_str() == "class";
         let style = match is_class {
             true => for_classes.as_str(),
             false => for_modules.as_str(),
         };
         // A class with a superclass cannot be compacted, so only the nested style has anything to
         // say about it.
-        if is_class && node.child_by_field_name("superclass").is_some() && style != "nested" {
+        if is_class && node.field("superclass").is_some() && style != "nested" {
             continue;
         }
-        let Some(name) = node.child_by_field_name("name") else {
+        let Some(name) = node.field("name") else {
             continue;
         };
         // `::Foo` names no namespace of its own, and a namespace that is not a constant -- `self::`
@@ -60,7 +61,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
         if style == "nested" {
             check_nested(context, node, name, offenses);
-        } else if matches!(body_statements(node).as_slice(), [only] if matches!(only.kind(), "class" | "module"))
+        } else if matches!(body_statements(node).as_slice(), [only] if matches!(only.kind_str(), "class" | "module"))
         {
             // The compact correction rewrites the body's indentation as well, which is not
             // expressible as the single edit an offense carries here, so the offense is reported
@@ -83,12 +84,12 @@ enum Namespace<'tree> {
 }
 
 fn namespace(name: Node<'_>) -> Namespace<'_> {
-    if name.kind() != "scope_resolution" {
+    if name.kind_str() != "scope_resolution" {
         return Namespace::None;
     }
-    match name.child_by_field_name("scope") {
+    match name.field("scope") {
         None => Namespace::CBase,
-        Some(scope) if matches!(scope.kind(), "constant" | "scope_resolution") => {
+        Some(scope) if matches!(scope.kind_str(), "constant" | "scope_resolution") => {
             Namespace::Constant(scope)
         }
         Some(_) => Namespace::Other,
@@ -126,18 +127,18 @@ fn sole_statement_of_definition(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    if parent.kind() != "body_statement" {
+    if parent.kind_str() != "body_statement" {
         return false;
     }
     let statements = super::nodes::children(parent).len();
     statements == 1
         && parent
             .parent()
-            .is_some_and(|grandparent| matches!(grandparent.kind(), "class" | "module"))
+            .is_some_and(|grandparent| matches!(grandparent.kind_str(), "class" | "module"))
 }
 
 fn body_statements<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return Vec::new();
     };
     super::nodes::children(body)
@@ -154,13 +155,13 @@ fn nested_correction(
 ) -> Option<Vec<Edit>> {
     let keyword = node.child(0)?;
     let closing = node.child(node.child_count().saturating_sub(1) as u32)?;
-    if closing.kind() != "end" {
+    if closing.kind_str() != "end" {
         return None;
     }
     let mut cursor = name.walk();
     let separator = name
         .children(&mut cursor)
-        .find(|child| child.kind() == "::")?;
+        .find(|child| child.kind_str() == "::")?;
 
     let (_, column) = context.source.line_column(node.start_byte());
     let (_, end_column) = context.source.line_column(closing.start_byte());
@@ -215,7 +216,7 @@ fn drop_one_run(padding: &str, spaces: usize) -> String {
 /// `heuristic_namespace_keyword`: the statement written just before the definition decides whether
 /// the namespace it opens is a class or a module.
 fn namespace_keyword(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) -> &'static str {
-    let Some(scope) = name.child_by_field_name("scope") else {
+    let Some(scope) = name.field("scope") else {
         return "module";
     };
     let wanted = normalized(context.source.node_text(scope));
@@ -224,9 +225,9 @@ fn namespace_keyword(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
     };
     let mut stack = vec![sibling];
     while let Some(current) = stack.pop() {
-        if current.kind() == "class"
+        if current.kind_str() == "class"
             && current
-                .child_by_field_name("name")
+                .field("name")
                 .is_some_and(|other| normalized(context.source.node_text(other)) == wanted)
         {
             return "class";
@@ -241,7 +242,7 @@ fn namespace_keyword(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
 /// file it sits in.
 fn previous_statement<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
-    if !STATEMENT_SEQUENCE_KINDS.contains(&parent.kind()) {
+    if !STATEMENT_SEQUENCE_KINDS.contains(&parent.kind_str()) {
         return None;
     }
     let mut previous = None;

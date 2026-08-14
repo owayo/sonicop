@@ -10,6 +10,7 @@ use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::literals::{is_literal, literal_type};
 use super::locals::LocalVariables;
 use super::statements::{Branch, begin_containers, body_children, has_clause, statements};
+use crate::rules::node_ext::NodeExt;
 
 const SELF_MSG: &str = "`self` used in void context.";
 
@@ -75,7 +76,7 @@ const CONDITIONALS: &[&str] = &[
 
 struct Void<'a, 'tree> {
     context: &'a RuleContext<'tree>,
-    locals: LocalVariables<'a>,
+    locals: LocalVariables<'a, 'tree>,
     check_nonmutating: bool,
 }
 
@@ -124,7 +125,7 @@ impl Void<'_, '_> {
 
     /// `on_block`, for the block whose body is one expression.
     fn check_block(&self, block: Node<'_>, offenses: &mut Vec<Offense>) {
-        let Some(container) = block.child_by_field_name("body") else {
+        let Some(container) = block.field("body") else {
             return;
         };
         let body = body_children(container);
@@ -133,7 +134,7 @@ impl Void<'_, '_> {
         let [body] = body[..] else {
             return;
         };
-        if body.kind() == "parenthesized_statements"
+        if body.kind_str() == "parenthesized_statements"
             || !self.in_void_context(container)
             || self.block_method(block) == Some("each")
         {
@@ -149,7 +150,7 @@ impl Void<'_, '_> {
         let [body] = body[..] else {
             return;
         };
-        if body.kind() == "parenthesized_statements" {
+        if body.kind_str() == "parenthesized_statements" {
             return;
         }
         self.check_expression(body, offenses);
@@ -161,16 +162,16 @@ impl Void<'_, '_> {
     /// an `ensure`, which the parser puts between the two -- and there the sequence is no longer
     /// the last child, so nothing about it is void.
     fn in_void_context(&self, container: Node<'_>) -> bool {
-        if container.kind() == "ensure" {
+        if container.kind_str() == "ensure" {
             return true;
         }
         if has_clause(container) {
             return false;
         }
-        let Some(parent) = container.parent() else {
+        let Some(parent) = container.parent_of(self.context) else {
             return false;
         };
-        match parent.kind() {
+        match parent.kind_str() {
             "method" => self
                 .method_name(parent)
                 .is_some_and(|name| name == "initialize" || name.ends_with('=')),
@@ -187,11 +188,11 @@ impl Void<'_, '_> {
 
     /// `setter_method?`: the last expression of `def foo=(value)` is the argument Ruby returns.
     fn setter_method(&self, container: Node<'_>) -> bool {
-        if container.kind() == "ensure" || has_clause(container) {
+        if container.kind_str() == "ensure" || has_clause(container) {
             return false;
         }
-        container.parent().is_some_and(|parent| {
-            matches!(parent.kind(), "method" | "singleton_method")
+        container.parent_of(self.context).is_some_and(|parent| {
+            matches!(parent.kind_str(), "method" | "singleton_method")
                 && self
                     .method_name(parent)
                     .is_some_and(|name| name.ends_with('='))
@@ -199,29 +200,29 @@ impl Void<'_, '_> {
     }
 
     fn method_name<'a>(&'a self, node: Node<'_>) -> Option<&'a str> {
-        node.child_by_field_name("name").map(|name| self.text(name))
+        node.field("name").map(|name| self.text(name))
     }
 
     /// The method a block was passed to, which is the call it hangs off.
     fn block_method<'a>(&'a self, block: Node<'_>) -> Option<&'a str> {
-        if block.kind() == "lambda" {
+        if block.kind_str() == "lambda" {
             return Some("lambda");
         }
         block
             .parent()
-            .filter(|call| call.kind() == "call")
-            .and_then(|call| call.child_by_field_name("method"))
+            .filter(|call| call.kind_str() == "call")
+            .and_then(|call| call.field("method"))
             .map(|method| self.text(method))
     }
 
     /// `node.each_ancestor(:any_block).first&.method?(:each)`.
     fn inside_each_block(&self, node: Node<'_>) -> bool {
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
-            if BLOCK_KINDS.contains(&ancestor.kind()) || ancestor.kind() == "lambda" {
+            if BLOCK_KINDS.contains(&ancestor.kind_str()) || ancestor.kind_str() == "lambda" {
                 return self.block_method(ancestor) == Some("each");
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         false
     }
@@ -229,7 +230,7 @@ impl Void<'_, '_> {
     /// `check_void_op`: an operator whose result nothing reads.
     fn check_void_op(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         let mut current = node;
-        while current.kind() == "parenthesized_statements" {
+        while current.kind_str() == "parenthesized_statements" {
             match statements(current).first() {
                 Some(first) => current = *first,
                 None => return,
@@ -259,9 +260,9 @@ impl Void<'_, '_> {
 
     /// The call the node is, in upstream's terms, when its method is one of the operators.
     fn operator_call(&self, node: Node<'_>) -> Option<OperatorCall> {
-        match node.kind() {
+        match node.kind_str() {
             "binary" => {
-                let operator = node.child_by_field_name("operator")?;
+                let operator = node.field("operator")?;
                 let method = self.text(operator).to_owned();
                 BINARY_OPERATORS
                     .contains(&method.as_str())
@@ -269,14 +270,14 @@ impl Void<'_, '_> {
                         method,
                         selector: operator.byte_range(),
                         receiver: node
-                            .child_by_field_name("left")
+                            .field("left")
                             .map(|left| left.byte_range()),
                         argument_count: 1,
                         dot: None,
                     })
             }
             "unary" => {
-                let operator = node.child_by_field_name("operator")?;
+                let operator = node.field("operator")?;
                 let method = match self.text(operator) {
                     "-" => "-@",
                     "+" => "+@",
@@ -290,14 +291,14 @@ impl Void<'_, '_> {
                     method,
                     selector: operator.byte_range(),
                     receiver: node
-                        .child_by_field_name("operand")
+                        .field("operand")
                         .map(|operand| operand.byte_range()),
                     argument_count: 0,
                     dot: None,
                 })
             }
             "call" => {
-                let method = node.child_by_field_name("method")?;
+                let method = node.field("method")?;
                 let name = self.text(method).to_owned();
                 if !BINARY_OPERATORS.contains(&name.as_str())
                     && !UNARY_OPERATORS.contains(&name.as_str())
@@ -308,11 +309,11 @@ impl Void<'_, '_> {
                     method: name,
                     selector: method.byte_range(),
                     receiver: node
-                        .child_by_field_name("receiver")
+                        .field("receiver")
                         .map(|receiver| receiver.byte_range()),
                     argument_count: arguments(node).len(),
                     dot: node
-                        .child_by_field_name("operator")
+                        .field("operator")
                         .map(|operator| operator.byte_range()),
                 })
             }
@@ -322,22 +323,22 @@ impl Void<'_, '_> {
 
     /// `check_expression`, which follows a conditional into the branch that produces the value.
     fn check_expression(&self, expression: Node<'_>, offenses: &mut Vec<Offense>) {
-        if CONDITIONALS.contains(&expression.kind()) {
+        if CONDITIONALS.contains(&expression.kind_str()) {
             // `IfNode#body` is the branch the parser normalises to the truthy one.
             if let Branch::One(body) = Branch::of(
                 expression
-                    .child_by_field_name("consequence")
-                    .or_else(|| expression.child_by_field_name("body")),
+                    .field("consequence")
+                    .or_else(|| expression.field("body")),
             ) {
                 self.check_void_expression_nodes(body, offenses);
             }
             return;
         }
-        if matches!(expression.kind(), "case" | "case_match") {
+        if matches!(expression.kind_str(), "case" | "case_match") {
             for child in named_children(expression) {
-                match child.kind() {
+                match child.kind_str() {
                     "when" | "in_clause" => {
-                        if let Branch::One(body) = Branch::of(child.child_by_field_name("body")) {
+                        if let Branch::One(body) = Branch::of(child.field("body")) {
                             self.check_expression(body, offenses);
                         }
                     }
@@ -380,11 +381,11 @@ impl Void<'_, '_> {
     }
 
     fn check_var(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let constant = matches!(node.kind(), "constant" | "scope_resolution");
+        let constant = matches!(node.kind_str(), "constant" | "scope_resolution");
         let variable = matches!(
-            node.kind(),
+            node.kind_str(),
             "instance_variable" | "global_variable" | "class_variable"
-        ) || (node.kind() == "identifier"
+        ) || (node.kind_str() == "identifier"
             && (self.locals.is_lvar(node) || self.is_block_parameter(node)));
         if !constant && !variable {
             return;
@@ -400,9 +401,9 @@ impl Void<'_, '_> {
 
     /// Whether the name is one of the parameters the innermost block never spelled out.
     fn is_block_parameter(&self, node: Node<'_>) -> bool {
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
-            if BLOCK_KINDS.contains(&ancestor.kind()) {
+            if BLOCK_KINDS.contains(&ancestor.kind_str()) {
                 return match BlockArgs::of(ancestor, self.context, &self.locals) {
                     BlockArgs::Numbered(highest) => (1..=highest)
                         .any(|index| self.text(node) == format!("_{index}")),
@@ -410,13 +411,13 @@ impl Void<'_, '_> {
                     BlockArgs::Written(_) => false,
                 };
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         false
     }
 
     fn check_self(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        if node.kind() != "self" {
+        if node.kind_str() != "self" {
             return;
         }
         offenses.push(self.expression_offense(node, SELF_MSG.to_owned()));
@@ -433,15 +434,15 @@ impl Void<'_, '_> {
 
     /// `check_nonmutating`: a method whose result is the only thing it produces.
     fn check_nonmutating_send(&self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let call = match node.kind() {
+        let call = match node.kind_str() {
             "call" => node,
-            kind if BLOCK_KINDS.contains(&kind) => match node.parent() {
-                Some(parent) if parent.kind() == "call" => parent,
+            kind if BLOCK_KINDS.contains(&kind) => match node.parent_of(self.context) {
+                Some(parent) if parent.kind_str() == "call" => parent,
                 _ => return,
             },
             _ => return,
         };
-        let Some(method) = call.child_by_field_name("method") else {
+        let Some(method) = call.field("method") else {
             return;
         };
         let name = self.text(method);
@@ -482,23 +483,23 @@ impl Void<'_, '_> {
     /// `autocorrect_void_expression`.
     fn void_expression_correction(&self, node: Node<'_>) -> Option<Edit> {
         // Referencing a constant can trigger autoloading, so removing it may change behaviour.
-        if matches!(node.kind(), "constant" | "scope_resolution")
+        if matches!(node.kind_str(), "constant" | "scope_resolution")
             && self.text(node) != "__ENCODING__"
         {
             return None;
         }
         // `node.parent` upstream is the conditional itself: a branch holding one statement *is*
         // that statement there, where the grammar wraps it in a `then` or an `else`.
-        let mut parent = node.parent();
+        let mut parent = node.parent_of(self.context);
         while let Some(container) = parent
-            .filter(|container| matches!(container.kind(), "then" | "else"))
+            .filter(|container| matches!(container.kind_str(), "then" | "else"))
             .filter(|container| statements(*container).len() == 1)
         {
-            parent = container.parent();
+            parent = container.parent_of(self.context);
         }
         if parent.is_some_and(|parent| {
             matches!(
-                parent.kind(),
+                parent.kind_str(),
                 "if" | "elsif" | "unless"
                     | "if_modifier"
                     | "unless_modifier"
@@ -511,9 +512,9 @@ impl Void<'_, '_> {
         }) {
             return None;
         }
-        let mut current = node.parent();
+        let mut current = node.parent_of(self.context);
         while let Some(ancestor) = current {
-            if matches!(ancestor.kind(), "method" | "singleton_method") {
+            if matches!(ancestor.kind_str(), "method" | "singleton_method") {
                 if self
                     .method_name(ancestor)
                     .is_some_and(|name| name.ends_with('='))
@@ -522,7 +523,7 @@ impl Void<'_, '_> {
                 }
                 break;
             }
-            current = ancestor.parent();
+            current = ancestor.parent_of(self.context);
         }
         let start = self.expand_left(node.start_byte());
         Some(Edit {
@@ -545,24 +546,24 @@ impl Void<'_, '_> {
 
     /// `entirely_literal?`.
     fn entirely_literal(&self, node: Node<'_>) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "array" | "string_array" | "symbol_array" => named_children(node)
                 .into_iter()
                 .all(|child| self.entirely_literal(child)),
             "hash" => named_children(node)
                 .into_iter()
-                .filter(|child| child.kind() == "pair")
+                .filter(|child| child.kind_str() == "pair")
                 .all(|pair| {
                     ["key", "value"].iter().all(|field| {
-                        pair.child_by_field_name(field)
+                        pair.field(field)
                             .is_some_and(|part| self.entirely_literal(part))
                     })
                 }),
             "call" => {
-                node.child_by_field_name("method")
+                node.field("method")
                     .is_some_and(|method| self.text(method) == "freeze")
                     && node
-                        .child_by_field_name("receiver")
+                        .field("receiver")
                         .is_some_and(|receiver| self.entirely_literal(receiver))
             }
             _ => is_literal(node, self.context),
@@ -570,28 +571,28 @@ impl Void<'_, '_> {
     }
 
     fn is_defined(&self, node: Node<'_>) -> bool {
-        node.kind() == "unary"
+        node.kind_str() == "unary"
             && node
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| self.text(operator) == "defined?")
     }
 
     /// `lambda_or_proc?`.
     fn is_lambda_or_proc(&self, node: Node<'_>) -> bool {
-        if node.kind() == "lambda" {
+        if node.kind_str() == "lambda" {
             return true;
         }
-        if node.kind() != "call" {
+        if node.kind_str() != "call" {
             return false;
         }
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             return false;
         };
         let name = self.text(method);
         let block = node
-            .child_by_field_name("block")
-            .is_some_and(|block| BLOCK_KINDS.contains(&block.kind()));
-        let receiver = node.child_by_field_name("receiver");
+            .field("block")
+            .is_some_and(|block| BLOCK_KINDS.contains(&block.kind_str()));
+        let receiver = node.field("receiver");
         match (name, receiver) {
             ("lambda" | "proc", None) => block,
             ("new", Some(receiver)) => {

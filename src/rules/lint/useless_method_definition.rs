@@ -4,6 +4,7 @@ use super::access_modifier::{in_macro_scope, statements};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Useless method definition detected.";
 
@@ -11,10 +12,10 @@ const MSG: &str = "Useless method definition detected.";
 /// `kwoptarg`. A method taking any of them can be called in ways its parent cannot, so passing the
 /// call straight up is not the same as not defining it.
 fn takes_rest_or_optional_argument(parameter: Node<'_>) -> bool {
-    match parameter.kind() {
+    match parameter.kind_str() {
         "splat_parameter" | "optional_parameter" => true,
         // `x:` is a `kwarg` and `x: 1` a `kwoptarg`; only the one with a default is rejected.
-        "keyword_parameter" => parameter.child_by_field_name("value").is_some(),
+        "keyword_parameter" => parameter.field("value").is_some(),
         _ => false,
     }
 }
@@ -53,12 +54,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The parameters of the definition, as `DefNode#arguments` lists them.
 fn parameters<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(list) = node.child_by_field_name("parameters") else {
+    let Some(list) = node.field("parameters") else {
         return Vec::new();
     };
     let mut cursor = list.walk();
     list.named_children(&mut cursor)
-        .filter(|child| child.kind() != "comment")
+        .filter(|child| child.kind_str() != "comment")
         .collect()
 }
 
@@ -67,18 +68,18 @@ fn parameters<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 fn enclosing_send<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let list = node
         .parent()
-        .filter(|parent| parent.kind() == "argument_list")?;
-    list.parent().filter(|call| call.kind() == "call")
+        .filter(|parent| parent.kind_str() == "argument_list")?;
+    list.parent().filter(|call| call.kind_str() == "call")
 }
 
 /// `non_bare_access_modifier?`: an access modifier called with the definition as its argument. The
 /// scope half of `macro?` is already given -- the call holds a method definition, so it stands
 /// where a definition stands.
 fn non_bare_access_modifier(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if call.child_by_field_name("receiver").is_some() {
+    if call.field("receiver").is_some() {
         return false;
     }
-    call.child_by_field_name("method")
+    call.field("method")
         .map(|method| context.source.node_text(method))
         .is_some_and(|name| matches!(name, "public" | "protected" | "private" | "module_function"))
         && in_macro_scope(call, context)
@@ -92,16 +93,16 @@ fn delegating(node: Node<'_>, parameters: &[Node<'_>], context: &RuleContext<'_>
         return false;
     };
     // A bare `super` is a `zsuper`, which passes the arguments on whatever they are.
-    if body.kind() == "super" {
+    if body.kind_str() == "super" {
         return true;
     }
     // `super` with a block is a `block` node wrapping the call upstream, and a block body is not a
     // delegation.
-    if body.kind() != "call"
-        || body.child_by_field_name("block").is_some()
+    if body.kind_str() != "call"
+        || body.field("block").is_some()
         || body
-            .child_by_field_name("method")
-            .is_none_or(|method| method.kind() != "super")
+            .field("method")
+            .is_none_or(|method| method.kind_str() != "super")
     {
         return false;
     }
@@ -121,9 +122,9 @@ fn delegating(node: Node<'_>, parameters: &[Node<'_>], context: &RuleContext<'_>
 /// The body upstream reads for the definition: nothing when it is empty, the statement itself when
 /// there is one, and a `begin` -- which is never a `super` -- when there are more.
 fn body<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let body = node.child_by_field_name("body")?;
+    let body = node.field("body")?;
     // An endless method's body is the expression itself, with no statement list around it.
-    if body.kind() != "body_statement" {
+    if body.kind_str() != "body_statement" {
         return Some(body);
     }
     match statements(body)?.as_slice() {

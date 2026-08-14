@@ -9,6 +9,7 @@ use tree_sitter::Node;
 use crate::magic_comment::MagicComment;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
 
 /// `frozen_string_literals_enabled?`: whether the file's magic comments turn string literals
@@ -27,7 +28,7 @@ pub(super) fn literals_enabled(context: &RuleContext<'_>) -> bool {
 
 /// The lines above the first one holding code, which is where Ruby reads magic comments.
 pub(super) fn leading_comment_lines<'a>(
-    context: &'a RuleContext<'a>,
+    context: &'a RuleContext<'_>,
 ) -> impl Iterator<Item = &'a str> + 'a {
     let first_code = (1..=context.source.line_count()).find(|line_number| {
         let line = context.source.line(*line_number).trim();
@@ -42,8 +43,8 @@ pub(super) fn leading_comment_lines<'a>(
 /// `int`, but `_keyword_variable` is declared at a lower precedence than `identifier` here and
 /// never wins. None of the three can be a local variable: Ruby will not let one be assigned.
 pub(super) fn kind_of(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
-    if node.kind() != "identifier" {
-        return node.kind();
+    if node.kind_str() != "identifier" {
+        return node.kind_str();
     }
     match context.source.node_text(node) {
         "__FILE__" => "file",
@@ -75,12 +76,12 @@ pub(super) fn is_frozen(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// Whether anything is interpolated into a string literal, which is what upstream's
 /// `each_descendant(:begin, :ivar, :cvar, :gvar)` finds inside a `dstr`.
 pub(super) fn interpolated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let body = match node.kind() {
+    let body = match node.kind_str() {
         "heredoc_beginning" => match send_node::heredoc_body(node, context) {
             Some(body) => body,
             None => return false,
         },
         _ => node,
     };
-    send_node::any_descendant(body, &mut |child| child.kind() == "interpolation")
+    send_node::any_descendant(body, &mut |child| child.kind_str() == "interpolation")
 }

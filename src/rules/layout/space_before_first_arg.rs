@@ -9,6 +9,7 @@ use crate::rules::RuleContext;
 
 use super::alignment::Alignment;
 use super::support::{final_pos, grouped_arguments};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Put one space between the method name and the first argument.";
 
@@ -21,8 +22,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `regular_method_call_with_arguments?`: an operator or a setter is written the other way
         // round, and `super` is its own node upstream rather than a send.
         let Some(selector) = node
-            .child_by_field_name("method")
-            .filter(|method| method.kind() != "super")
+            .field("method")
+            .filter(|method| method.kind_str() != "super")
             .filter(|method| is_name(context.source.node_text(*method)))
         else {
             continue;
@@ -41,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if first.start == selector.end_byte()
             && argument.parts.first().is_some_and(|part| {
                 matches!(
-                    part.kind(),
+                    part.kind_str(),
                     "block_argument" | "splat_argument" | "hash_splat_argument"
                 )
             })

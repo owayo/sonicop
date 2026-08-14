@@ -20,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let text = context.source.slice(range.clone());
-        let Some(annotation) = Annotation::read(&pattern, text) else {
+        let Some(annotation) = Annotation::read(pattern, text) else {
             continue;
         };
         if !annotation.is_annotation() || annotation.is_correct(requires_colon) {
@@ -121,7 +121,7 @@ fn capitalize(word: &str) -> String {
 
 /// `/^(# ?)(\b#{keywords}\b)(\s*:)?(\s+)?(\S+)?/i`, with the keywords longest first so that a
 /// keyword that is also the start of a phrase does not win over the phrase.
-fn keyword_pattern(keywords: &[String]) -> Option<Regex> {
+fn keyword_pattern(keywords: &[String]) -> Option<&'static Regex> {
     if keywords.is_empty() {
         return None;
     }
@@ -131,9 +131,8 @@ fn keyword_pattern(keywords: &[String]) -> Option<Regex> {
         .iter()
         .map(|keyword| regex::escape(keyword))
         .collect();
-    Regex::new(&format!(
+    crate::rules::regex_cache::compiled(&format!(
         r"(?i)^(# ?)(\b(?:{})\b)([[:space:]]*:)?([[:space:]]+)?([^[:space:]]+)?",
         alternatives.join("|")
     ))
-    .ok()
 }

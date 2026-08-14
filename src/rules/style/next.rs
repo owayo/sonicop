@@ -8,6 +8,7 @@ use tree_sitter::Node;
 use super::conditional::{Body, body_of, descendants, first_line, last_line, token};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `next` to skip iteration.";
 
@@ -74,12 +75,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         "while_modifier",
         "until_modifier",
     ]) {
-        let loop_body = match node.kind() {
+        let loop_body = match node.kind_str() {
             "call" | "method_call" => match cop.iteration_block(node) {
-                Some(block) => block.child_by_field_name("body"),
+                Some(block) => block.field("body"),
                 None => continue,
             },
-            _ => node.child_by_field_name("body"),
+            _ => node.field("body"),
         };
         let Some(loop_body) = loop_body else {
             continue;
@@ -88,22 +89,22 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     skip_modifier_ifs: bool,
     min_body_length: usize,
     allow_consecutive_conditionals: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }
 
     /// `node.send_node.call_type? && node.send_node.enumerator_method?`.
     fn iteration_block<'t>(&self, node: Node<'t>) -> Option<Node<'t>> {
-        let block = node.child_by_field_name("block")?;
-        let method = node.child_by_field_name("method")?;
+        let block = node.field("block")?;
+        let method = node.field("method")?;
         let name = self.source(method);
         (ENUMERATOR_METHODS.contains(&name) || name.starts_with("each_")).then_some(block)
     }
@@ -124,7 +125,7 @@ impl Cop<'_> {
         if self.allow_consecutive_conditionals && consecutive_conditionals(&body, last) {
             return;
         }
-        let Some(condition) = last.child_by_field_name("condition") else {
+        let Some(condition) = last.field("condition") else {
             return;
         };
         let offense = self
@@ -135,11 +136,11 @@ impl Cop<'_> {
 
     /// `simple_if_without_break?`.
     fn simple_if_without_break(&self, node: Node<'_>) -> bool {
-        let modifier = matches!(node.kind(), "if_modifier" | "unless_modifier");
-        if !modifier && !matches!(node.kind(), "if" | "unless") {
+        let modifier = matches!(node.kind_str(), "if_modifier" | "unless_modifier");
+        if !modifier && !matches!(node.kind_str(), "if" | "unless") {
             return false;
         }
-        if node.child_by_field_name("alternative").is_some() {
+        if node.field("alternative").is_some() {
             return false;
         }
         if self.if_else_children(node) {
@@ -160,18 +161,18 @@ impl Cop<'_> {
     /// `if_else_children?`: one of the node's own children is a conditional carrying an `else`.
     fn if_else_children(&self, node: Node<'_>) -> bool {
         let body = node
-            .child_by_field_name("consequence")
+            .field("consequence")
             .map(body_of)
-            .or_else(|| node.child_by_field_name("body").map(Body::One));
+            .or_else(|| node.field("body").map(Body::One));
         [
-            node.child_by_field_name("condition"),
+            node.field("condition"),
             body.and_then(|body| body.single()),
         ]
         .into_iter()
         .flatten()
         .any(|child| {
-            matches!(child.kind(), "if" | "unless")
-                && child.child_by_field_name("alternative").is_some()
+            matches!(child.kind_str(), "if" | "unless")
+                && child.field("alternative").is_some()
         })
     }
 
@@ -184,11 +185,11 @@ impl Cop<'_> {
 
     /// `exit_body_type?`: the branch already leaves the iteration.
     fn exit_body(&self, node: Node<'_>) -> bool {
-        let branch = match node.child_by_field_name("consequence") {
+        let branch = match node.field("consequence") {
             Some(consequence) => body_of(consequence).single(),
-            None => node.child_by_field_name("body"),
+            None => node.field("body"),
         };
-        branch.is_some_and(|branch| EXIT_TYPES.contains(&branch.kind()))
+        branch.is_some_and(|branch| EXIT_TYPES.contains(&branch.kind_str()))
     }
 
     fn autocorrect(
@@ -199,8 +200,8 @@ impl Cop<'_> {
     ) -> Vec<Edit> {
         let inverse = inverse_keyword(node);
         let condition_source = self.source(condition);
-        if matches!(node.kind(), "if_modifier" | "unless_modifier") {
-            let Some(body) = node.child_by_field_name("body") else {
+        if matches!(node.kind_str(), "if_modifier" | "unless_modifier") {
+            let Some(body) = node.field("body") else {
                 return Vec::new();
             };
             let indent = " ".repeat(node.start_position().column);
@@ -234,7 +235,7 @@ impl Cop<'_> {
     /// `cond_range`: everything up to and including the `then`, or up to the condition when the
     /// keyword is not written.
     fn condition_end(&self, node: Node<'_>, condition: Node<'_>) -> usize {
-        node.child_by_field_name("consequence")
+        node.field("consequence")
             .and_then(|consequence| token(consequence, &["then"]))
             .map_or(condition.end_byte(), |then| then.end_byte())
     }
@@ -307,7 +308,7 @@ impl Cop<'_> {
     fn heredoc_lines(&self, node: Node<'_>) -> Vec<usize> {
         let beginnings: Vec<usize> = descendants(node)
             .into_iter()
-            .filter(|inner| inner.kind() == "heredoc_beginning")
+            .filter(|inner| inner.kind_str() == "heredoc_beginning")
             .map(|inner| inner.start_byte())
             .collect();
         if beginnings.is_empty() {
@@ -338,7 +339,7 @@ impl Cop<'_> {
 
 /// The body a loop or block holds, read through the wrapper the grammar puts around it.
 fn body_of_loop<'t>(body: Node<'t>) -> Body<'t> {
-    match BODY_CONTAINERS.contains(&body.kind()) {
+    match BODY_CONTAINERS.contains(&body.kind_str()) {
         true => body_of(body),
         false => Body::One(body),
     }
@@ -355,11 +356,11 @@ fn consecutive_conditionals(body: &Body<'_>, node: Node<'_>) -> bool {
     else {
         return false;
     };
-    index > 0 && CONDITIONAL_KINDS.contains(&statements[index - 1].kind())
+    index > 0 && CONDITIONAL_KINDS.contains(&statements[index - 1].kind_str())
 }
 
 fn inverse_keyword(node: Node<'_>) -> &'static str {
-    match node.kind() {
+    match node.kind_str() {
         "unless" | "unless_modifier" => "if",
         _ => "unless",
     }

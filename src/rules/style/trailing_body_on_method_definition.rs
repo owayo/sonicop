@@ -1,5 +1,6 @@
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Place the first line of a multi-line method definition's body on its own line.";
@@ -10,7 +11,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // construction.
         if !node
             .child(node.child_count().saturating_sub(1) as u32)
-            .is_some_and(|last| last.kind() == "end")
+            .is_some_and(|last| last.kind_str() == "end")
         {
             continue;
         }

@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, is_plain_send};
+use crate::rules::node_ext::NodeExt;
 
 /// Literal kinds a leading sign belongs to rather than turning into a `:-@` call.
 const NUMBER_KINDS: &[&str] = &["integer", "float", "rational", "complex"];
@@ -71,7 +72,7 @@ struct Formatter<'tree> {
 
 impl<'tree> Formatter<'tree> {
     fn of(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
-        match node.kind() {
+        match node.kind_str() {
             "chained_string" => Self::of_chained_string(context, node),
             "binary" => Self::of_binary(context, node),
             _ => Self::of_call(context, node),
@@ -81,14 +82,14 @@ impl<'tree> Formatter<'tree> {
     /// `(send {str dstr} $:% ...)` and `(send !nil? $:% {array hash})` written as an operator,
     /// which the grammar spells as a node of its own rather than a call.
     fn of_binary(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
-        let operator = node.child_by_field_name("operator")?;
+        let operator = node.field("operator")?;
         if context.source.node_text(operator) != "%" {
             return None;
         }
-        let left = node.child_by_field_name("left")?;
-        let right = node.child_by_field_name("right")?;
-        if !matches!(left.kind(), "string" | "chained_string")
-            && !matches!(right.kind(), "array" | "hash")
+        let left = node.field("left")?;
+        let right = node.field("right")?;
+        if !matches!(left.kind_str(), "string" | "chained_string")
+            && !matches!(right.kind_str(), "array" | "hash")
         {
             return None;
         }
@@ -128,16 +129,16 @@ impl<'tree> Formatter<'tree> {
     }
 
     fn of_call(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
-        let selector = node.child_by_field_name("method")?;
+        let selector = node.field("method")?;
         let name = context.source.node_text(selector);
         // `'%s'.%(x)`: the same two `%` alternatives, written as an ordinary call.
         if name == "%" {
-            let receiver = node.child_by_field_name("receiver")?;
+            let receiver = node.field("receiver")?;
             let written = arguments(node);
             let first = written.first().map(Argument::first);
-            let recognised = matches!(receiver.kind(), "string" | "chained_string")
+            let recognised = matches!(receiver.kind_str(), "string" | "chained_string")
                 || (written.len() == 1
-                    && first.is_some_and(|node| matches!(node.kind(), "array" | "hash")));
+                    && first.is_some_and(|node| matches!(node.kind_str(), "array" | "hash")));
             if !recognised {
                 return None;
             }
@@ -151,7 +152,7 @@ impl<'tree> Formatter<'tree> {
         }
         // `(send nil? ${:sprintf :format} _ _ ...)`: no receiver and at least two arguments.
         if !matches!(name, "sprintf" | "format")
-            || node.child_by_field_name("receiver").is_some()
+            || node.field("receiver").is_some()
             || !is_plain_send(node, context)
         {
             return None;
@@ -191,7 +192,7 @@ fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> 
     }
     let receiver = found.receiver.clone()?;
     let args = match argument {
-        Operand::Node(node) if matches!(node.kind(), "array" | "hash") => {
+        Operand::Node(node) if matches!(node.kind_str(), "array" | "hash") => {
             super::nodes::children(*node)
                 .iter()
                 .map(|child| context.source.node_text(*child))
@@ -258,9 +259,9 @@ fn is_variable_argument(
     let Operand::Node(node) = argument else {
         return false;
     };
-    match node.kind() {
+    match node.kind_str() {
         "identifier" => !AUTOCORRECTABLE_METHODS.contains(&context.source.node_text(*node)),
-        "call" => node.child_by_field_name("method").is_none_or(|method| {
+        "call" => node.field("method").is_none_or(|method| {
             !AUTOCORRECTABLE_METHODS.contains(&context.source.node_text(method))
         }),
         // Every other spelling of a `send`: an index, an operator, a unary minus. None of their
@@ -269,16 +270,16 @@ fn is_variable_argument(
         // A sign in front of a number is part of the literal upstream, not a call to `:-@`.
         "unary" => {
             let operator = node
-                .child_by_field_name("operator")
+                .field("operator")
                 .map_or("", |operator| context.source.node_text(operator));
             let signed_number = matches!(operator, "-" | "+")
                 && node
-                    .child_by_field_name("operand")
-                    .is_some_and(|operand| NUMBER_KINDS.contains(&operand.kind()));
+                    .field("operand")
+                    .is_some_and(|operand| NUMBER_KINDS.contains(&operand.kind_str()));
             !signed_number && matches!(operator, "-" | "+" | "!" | "~" | "not")
         }
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),

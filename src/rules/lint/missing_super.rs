@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const CONSTRUCTOR_MSG: &str = "Call `super` to initialize state of the parent class.";
 const CALLBACK_MSG: &str = "Call `super` to invoke callback defined in the parent class.";
@@ -30,10 +31,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     );
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         let name = node
-            .child_by_field_name("name")
+            .field("name")
             .map_or("", |name| context.source.node_text(name));
         let callback = CALLBACKS.contains(&name) && inside_a_class(node);
-        let constructor = node.kind() == "method" && name == "initialize";
+        let constructor = node.kind_str() == "method" && name == "initialize";
         if !(callback || constructor) || contains_super(node) {
             continue;
         }
@@ -58,7 +59,7 @@ fn contains_super(node: Node<'_>) -> bool {
     let mut stack: Vec<Node<'_>> = Vec::new();
     push_children(node, &mut stack);
     while let Some(current) = stack.pop() {
-        if current.kind() == "super" {
+        if current.kind_str() == "super" {
             return true;
         }
         push_children(current, &mut stack);
@@ -83,7 +84,7 @@ fn stateful_parent(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]
         return false;
     };
     class
-        .child_by_field_name("superclass")
+        .field("superclass")
         .and_then(|superclass| superclass.named_child(0))
         .is_some_and(|superclass| !allowed_class(superclass, context, allowed))
 }
@@ -93,23 +94,23 @@ fn class_new_superclass<'tree>(
     block: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<Node<'tree>> {
-    let call = block.parent().filter(|parent| parent.kind() == "call")?;
-    if context.source.node_text(call.child_by_field_name("method")?) != "new"
-        || !top_level_class(call.child_by_field_name("receiver")?, context)
+    let call = block.parent().filter(|parent| parent.kind_str() == "call")?;
+    if context.source.node_text(call.field("method")?) != "new"
+        || !top_level_class(call.field("receiver")?, context)
     {
         return None;
     }
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     (arguments.named_child_count() == 1).then(|| arguments.named_child(0))?
 }
 
 fn top_level_class(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => context.source.node_text(node) == "Class",
         "scope_resolution" => {
-            node.child_by_field_name("scope").is_none()
+            node.field("scope").is_none()
                 && node
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|name| context.source.node_text(name) == "Class")
         }
         _ => false,
@@ -123,12 +124,12 @@ fn allowed_class(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) 
 }
 
 fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    let name = match node.kind() {
+    let name = match node.kind_str() {
         "constant" => return Some(context.source.node_text(node).to_owned()),
-        "scope_resolution" => context.source.node_text(node.child_by_field_name("name")?),
+        "scope_resolution" => context.source.node_text(node.field("name")?),
         _ => return None,
     };
-    match node.child_by_field_name("scope") {
+    match node.field("scope") {
         Some(scope) => Some(format!(
             "{}::{name}",
             const_name(scope, context).unwrap_or_default()
@@ -140,7 +141,7 @@ fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
 fn ancestor<'tree>(node: Node<'tree>, kinds: &[&str]) -> Option<Node<'tree>> {
     let mut current = node.parent();
     while let Some(found) = current {
-        if kinds.contains(&found.kind()) {
+        if kinds.contains(&found.kind_str()) {
             return Some(found);
         }
         current = found.parent();

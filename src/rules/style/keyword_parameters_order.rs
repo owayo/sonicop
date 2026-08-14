@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Parameter lists, whichever of the three shapes the grammar writes one in.
 const PARAMETER_LISTS: &[&str] = &["method_parameters", "block_parameters", "lambda_parameters"];
@@ -10,7 +11,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for list in context.nodes_of_any(PARAMETER_LISTS) {
         let parameters = super::nodes::children(list);
         let keywords: Vec<usize> = (0..parameters.len())
-            .filter(|index| parameters[*index].kind() == "keyword_parameter")
+            .filter(|index| parameters[*index].kind_str() == "keyword_parameter")
             .collect();
         // The first optional keyword parameter is the only one whose offense corrects; the rest
         // report and leave the rewrite to the next pass.
@@ -26,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             let required: Vec<Node<'_>> = parameters[index + 1..]
                 .iter()
                 .copied()
-                .filter(|node| node.kind() == "keyword_parameter" && !is_optional(*node))
+                .filter(|node| node.kind_str() == "keyword_parameter" && !is_optional(*node))
                 .collect();
             if required.is_empty() {
                 continue;
@@ -46,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// Whether the keyword parameter carries a default, which is what upstream calls a `kwoptarg`.
 fn is_optional(node: Node<'_>) -> bool {
-    node.child_by_field_name("value").is_some()
+    node.field("value").is_some()
 }
 
 /// `autocorrect`: move the required keyword parameters in front of the first optional one.
@@ -79,14 +80,14 @@ fn correct(
     let mut anchor = None;
     if !context.source.node_text(list).starts_with('(')
         && list
-            .parent()
-            .is_some_and(|parent| matches!(parent.kind(), "method" | "singleton_method"))
-        && last.kind() == "keyword_parameter"
+            .parent_of(context)
+            .is_some_and(|parent| matches!(parent.kind_str(), "method" | "singleton_method"))
+        && last.kind_str() == "keyword_parameter"
         && !is_optional(*last)
         && let Some(final_optional) = parameters
             .iter()
             .rev()
-            .find(|parameter| parameter.kind() == "keyword_parameter" && is_optional(**parameter))
+            .find(|parameter| parameter.kind_str() == "keyword_parameter" && is_optional(**parameter))
     {
         if final_optional.id() != node.id() {
             anchor = Some(final_optional.byte_range());

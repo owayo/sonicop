@@ -17,14 +17,15 @@ use tree_sitter::Node;
 
 use super::fragments::Fragments;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
-pub(super) struct Locals {
+pub(in crate::rules) struct Locals {
     lvars: HashSet<usize>,
 }
 
 impl Locals {
-    pub(super) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
+    pub(in crate::rules) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
         let mut walker = Walker {
             source: context.source,
             fragments,
@@ -112,17 +113,17 @@ impl<'a> Walker<'a> {
     }
 
     fn visit_field(&mut self, node: Node<'_>, field: &str) {
-        if let Some(child) = node.child_by_field_name(field) {
+        if let Some(child) = node.field(field) {
             self.visit(child);
         }
     }
 
     fn visit(&mut self, node: Node<'_>) {
-        if scope_kind(node.kind()).is_some() && !inline_block(node) {
+        if scope_kind(node.kind_str()).is_some() && !inline_block(node) {
             self.visit_scope(node);
             return;
         }
-        match node.kind() {
+        match node.kind_str() {
             "assignment" => self.visit_assignment(node),
             "operator_assignment" => self.visit_operator_assignment(node),
             "identifier" => self.visit_identifier(node),
@@ -135,8 +136,8 @@ impl<'a> Walker<'a> {
             // a `%` applied to a string as one more string; both hold names that are read.
             "comment" | "chained_string" => self.visit_swallowed(node),
             // `{ name: }` is Ruby's shorthand for `{ name: name }`, so the key reads the variable.
-            "pair" if node.child_by_field_name("value").is_none() => {
-                if let Some(key) = node.child_by_field_name("key")
+            "pair" if node.field("value").is_none() => {
+                if let Some(key) = node.field("key")
                     && self.declared(self.text(key).trim_end_matches(':'))
                 {
                     self.lvars.insert(key.id());
@@ -144,7 +145,7 @@ impl<'a> Walker<'a> {
             }
             "for" => {
                 self.visit_field(node, "value");
-                if let Some(pattern) = node.child_by_field_name("pattern") {
+                if let Some(pattern) = node.field("pattern") {
                     self.declare_targets(pattern);
                 }
                 self.visit_field(node, "body");
@@ -152,7 +153,7 @@ impl<'a> Walker<'a> {
             "binary" => self.visit_binary(node),
             "in_clause" | "match_pattern" => {
                 self.visit_field(node, "value");
-                if let Some(pattern) = node.child_by_field_name("pattern") {
+                if let Some(pattern) = node.field("pattern") {
                     self.declare_pattern(pattern);
                 }
                 self.visit_field(node, "guard");
@@ -165,10 +166,10 @@ impl<'a> Walker<'a> {
     /// `->(x) { }` holds its parameters one node above its body, so the braces are not a scope of
     /// their own: the whole lambda is.
     fn visit_scope(&mut self, node: Node<'_>) {
-        let (block, outer_fields) = scope_kind(node.kind()).expect("checked by the caller");
+        let (block, outer_fields) = scope_kind(node.kind_str()).expect("checked by the caller");
         let mut outer = Vec::new();
         for field in outer_fields {
-            if let Some(child) = node.child_by_field_name(field) {
+            if let Some(child) = node.field(field) {
                 outer.push(child.id());
                 self.visit(child);
             }
@@ -176,7 +177,7 @@ impl<'a> Walker<'a> {
         self.stack.push(Frame::new(block));
         // A block written without parameters that reaches for `_1` gets them implicitly, and the
         // parser upstream reads every such name as a variable of that block.
-        if block && node.child_by_field_name("parameters").is_none() {
+        if block && node.field("parameters").is_none() {
             for name in NUMBERED_PARAMETERS {
                 self.declare(name);
             }
@@ -190,17 +191,17 @@ impl<'a> Walker<'a> {
     }
 
     fn visit_assignment(&mut self, node: Node<'_>) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             self.visit_children(node);
             return;
         };
-        if left.kind() == "left_assignment_list" && spurious_assignment_list(left) {
+        if left.kind_str() == "left_assignment_list" && spurious_assignment_list(left) {
             self.visit_swallowed_list(node, left);
             return;
         }
         // A `=~` the grammar split in two writes to nothing: its left-hand side is read.
         if let Some(right) = node
-            .child_by_field_name("right")
+            .field("right")
             .filter(|right| split_match_operator(self.source, node, *right))
         {
             self.reference_item(left);
@@ -210,7 +211,7 @@ impl<'a> Walker<'a> {
         // The target is declared before the value is read, which is what makes the `a` of `a = a`
         // a variable rather than a call.
         self.declare_targets(left);
-        if left.kind() != "identifier" {
+        if left.kind_str() != "identifier" {
             self.visit_target_expressions(left);
         }
         self.visit_field(node, "right");
@@ -227,13 +228,13 @@ impl<'a> Walker<'a> {
             self.reference_item(*item);
         }
         let matched = node
-            .child_by_field_name("right")
+            .field("right")
             .is_some_and(|right| split_match_operator(self.source, node, right));
         if matched {
             self.reference_item(target);
         } else {
             self.declare_targets(target);
-            if target.kind() != "identifier" {
+            if target.kind_str() != "identifier" {
                 self.visit_target_expressions(target);
             }
         }
@@ -242,7 +243,7 @@ impl<'a> Walker<'a> {
 
     /// One item of a swallowed list, which is an expression rather than a name being written.
     fn reference_item(&mut self, node: Node<'_>) {
-        if node.kind() == "identifier" {
+        if node.kind_str() == "identifier" {
             if self.declared(self.text(node)) {
                 self.lvars.insert(node.id());
             }
@@ -252,11 +253,11 @@ impl<'a> Walker<'a> {
     }
 
     fn visit_operator_assignment(&mut self, node: Node<'_>) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             self.visit_children(node);
             return;
         };
-        if left.kind() == "identifier" {
+        if left.kind_str() == "identifier" {
             self.declare(self.text(left));
         } else {
             self.visit(left);
@@ -267,7 +268,7 @@ impl<'a> Walker<'a> {
     /// The names an assignment target declares. Anything that is not a bare name -- a call, an
     /// index, an instance variable -- declares nothing.
     fn declare_targets(&mut self, node: Node<'_>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 self.declare(self.text(node));
             }
@@ -283,7 +284,7 @@ impl<'a> Walker<'a> {
     /// The parts of an assignment target that are ordinary expressions: the receiver of `a.b = 1`
     /// and the subscript of `a[i] = 1` are both evaluated where they stand.
     fn visit_target_expressions(&mut self, node: Node<'_>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {}
             "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
                 for child in named_children(node) {
@@ -298,15 +299,15 @@ impl<'a> Walker<'a> {
     /// call taking a block-pass argument until the name is known to be a variable, at which point
     /// the `&` is an operator and the name a read.
     fn visit_call(&mut self, node: Node<'_>) {
-        if node.child_by_field_name("receiver").is_none()
-            && let Some(method) = node.child_by_field_name("method")
-            && let Some(arguments) = node.child_by_field_name("arguments")
-            && method.kind() == "identifier"
+        if node.field("receiver").is_none()
+            && let Some(method) = node.field("method")
+            && let Some(arguments) = node.field("arguments")
+            && method.kind_str() == "identifier"
             && !self.text(arguments).starts_with('(')
             && arguments.named_child_count() == 1
-            && arguments
-                .named_child(0)
-                .is_some_and(|child| matches!(child.kind(), "block_argument" | "splat_argument"))
+            && arguments.named_child(0).is_some_and(|child| {
+                matches!(child.kind_str(), "block_argument" | "splat_argument")
+            })
             && self.declared(self.text(method))
         {
             self.lvars.insert(method.id());
@@ -347,7 +348,7 @@ impl<'a> Walker<'a> {
     }
 
     fn declare_parameter(&mut self, node: Node<'_>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 self.declare(self.text(node));
             }
@@ -361,10 +362,10 @@ impl<'a> Walker<'a> {
             | "splat_parameter"
             | "hash_splat_parameter"
             | "block_parameter" => {
-                if let Some(name) = node.child_by_field_name("name") {
+                if let Some(name) = node.field("name") {
                     self.declare(self.text(name));
                 }
-                if let Some(value) = node.child_by_field_name("value") {
+                if let Some(value) = node.field("value") {
                     self.visit_default(value);
                 }
             }
@@ -389,7 +390,7 @@ impl<'a> Walker<'a> {
         for parameter in swallowed {
             self.declare_parameter(*parameter);
         }
-        if let Some(right) = value.child_by_field_name("right") {
+        if let Some(right) = value.field("right") {
             self.visit_default(right);
         }
     }
@@ -398,7 +399,7 @@ impl<'a> Walker<'a> {
         let Some(target) = node.named_child(0) else {
             return;
         };
-        if target.kind() == "identifier" {
+        if target.kind_str() == "identifier" {
             self.declare(self.text(target));
         } else {
             self.visit(target);
@@ -408,18 +409,15 @@ impl<'a> Walker<'a> {
     /// `/(?<name>…)/ =~ text` declares one local per named capture. Only a regexp the parser can
     /// compile does so; one holding an interpolation stays an ordinary `=~` call.
     fn visit_binary(&mut self, node: Node<'_>) {
-        let (Some(left), Some(right)) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
-        ) else {
+        let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
             self.visit_children(node);
             return;
         };
         if operator(node) != Some("=~")
-            || left.kind() != "regex"
+            || left.kind_str() != "regex"
             || named_children(left)
                 .iter()
-                .any(|part| part.kind() == "interpolation")
+                .any(|part| part.kind_str() == "interpolation")
         {
             self.visit_children(node);
             return;
@@ -433,7 +431,7 @@ impl<'a> Walker<'a> {
 
     /// The names a pattern binds. They only ever make a later read resolve to a variable.
     fn declare_pattern(&mut self, node: Node<'_>) {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => {
                 self.declare(self.text(node));
             }
@@ -448,10 +446,10 @@ impl<'a> Walker<'a> {
                     self.declare_pattern(child);
                 }
             }
-            "keyword_pattern" => match node.child_by_field_name("value") {
+            "keyword_pattern" => match node.field("value") {
                 Some(value) => self.declare_pattern(value),
                 None => {
-                    if let Some(key) = node.child_by_field_name("key") {
+                    if let Some(key) = node.field("key") {
                         self.declare(self.text(key).trim_end_matches(':'));
                     }
                 }
@@ -465,10 +463,10 @@ impl<'a> Walker<'a> {
 
 /// Whether a `block` node is only the braces of a lambda literal.
 fn inline_block(node: Node<'_>) -> bool {
-    node.kind() == "block"
+    node.kind_str() == "block"
         && node
             .parent()
-            .is_some_and(|parent| parent.kind() == "lambda")
+            .is_some_and(|parent| parent.kind_str() == "lambda")
 }
 
 /// Whether the grammar split a `=~` into the `=` of an assignment and a unary `~` opening its
@@ -479,7 +477,7 @@ pub(super) fn split_match_operator(source: &SourceFile, node: Node<'_>, right: N
     }
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == "=")
+        .find(|child| !child.is_named() && child.kind_str() == "=")
         .is_some_and(|equals| equals.end_byte() == right.start_byte())
 }
 
@@ -509,12 +507,12 @@ pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
         let Some(parent) = node.parent() else {
             return false;
         };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind()) {
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
             return true;
         }
-        let continues = parent.kind() == "assignment"
+        let continues = parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("right")
+                .field("right")
                 .is_some_and(|right| right.id() == node.id());
         current = continues.then_some(parent);
     }
@@ -550,7 +548,7 @@ pub(super) fn operator(node: Node<'_>) -> Option<&'static str> {
     loop {
         let child = cursor.node();
         if !child.is_named() {
-            return Some(child.kind());
+            return Some(child.kind_str());
         }
         if !cursor.goto_next_sibling() {
             return None;
@@ -561,9 +559,9 @@ pub(super) fn operator(node: Node<'_>) -> Option<&'static str> {
 /// The swallowed parameter list of a folded default value, when there is one.
 pub(super) fn folded_parameter_list<'tree>(value: Node<'tree>) -> Option<Node<'tree>> {
     value
-        .child_by_field_name("left")
-        .filter(|_| value.kind() == "assignment")
-        .filter(|left| left.kind() == "left_assignment_list")
+        .field("left")
+        .filter(|_| value.kind_str() == "assignment")
+        .filter(|left| left.kind_str() == "left_assignment_list")
 }
 
 /// Whether an identifier stands where the parser upstream would have built an `lvar`, rather than
@@ -572,7 +570,7 @@ fn is_variable_read(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "call" => field_name(node, parent) != Some("method"),
         "method" | "singleton_method" => field_name(node, parent) != Some("name"),
         "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),

@@ -162,7 +162,7 @@ fn remove_comment(context: &RuleContext<'_>, comment: Range<usize>) -> Edit {
 /// The comment lines above the first line that holds code, paired with their line number. Blank
 /// lines between comments belong to the span, so this is a line range rather than a run of comments.
 fn leading_comments<'a>(
-    context: &'a RuleContext<'a>,
+    context: &'a RuleContext<'_>,
 ) -> impl Iterator<Item = (usize, &'a str)> + 'a {
     let first_code = (1..=context.source.line_count()).find(|line_number| {
         let line = context.source.line(*line_number).trim();

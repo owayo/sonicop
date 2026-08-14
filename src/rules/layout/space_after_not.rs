@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not leave space between `!` and its argument.";
 
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if &text[operator.byte_range()] != "!" || operator.start_byte() != node.start_byte() {
             continue;
         }
-        let Some(operand) = node.child_by_field_name("operand") else {
+        let Some(operand) = node.field("operand") else {
             continue;
         };
         // `whitespace_after_operator?`: the receiver starts more than one character in.

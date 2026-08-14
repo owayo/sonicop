@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The first Ruby version whose grammar accepts each construct.
 ///
@@ -77,7 +78,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn parse_errors(context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
     let mut ran_out_of_input = false;
     for node in context.nodes() {
-        let nested_error = node.parent().is_some_and(|parent| parent.is_error());
+        let nested_error = node.parent_of(context).is_some_and(|parent| parent.is_error());
         if (!node.is_error() && !node.is_missing()) || nested_error {
             continue;
         }
@@ -117,7 +118,7 @@ fn offending_token(error: Node<'_>) -> Option<Node<'_>> {
     let children = direct_children(error);
     children
         .iter()
-        .find(|child| CLOSING_TOKENS.contains(&child.kind()) && !child.is_named())
+        .find(|child| CLOSING_TOKENS.contains(&child.kind_str()) && !child.is_named())
         .or_else(|| children.last())
         .copied()
 }
@@ -130,9 +131,9 @@ fn opens_without_closing(error: Node<'_>) -> bool {
         if child.is_named() && child.child_count() > 0 {
             continue;
         }
-        if OPENING_TOKENS.contains(&child.kind()) {
+        if OPENING_TOKENS.contains(&child.kind_str()) {
             depth += 1;
-        } else if CLOSING_TOKENS.contains(&child.kind()) {
+        } else if CLOSING_TOKENS.contains(&child.kind_str()) {
             depth -= 1;
         }
     }
@@ -206,7 +207,7 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
 fn enclosing_statement(node: Node<'_>) -> Option<Node<'_>> {
     let mut statement = node;
     while let Some(parent) = statement.parent() {
-        if BODY_KINDS.contains(&parent.kind()) {
+        if BODY_KINDS.contains(&parent.kind_str()) {
             return Some(statement);
         }
         statement = parent;
@@ -222,7 +223,7 @@ fn statement_closing_its_body(node: Node<'_>) -> Option<Node<'_>> {
     let closed = body.parent().is_some_and(|owner| {
         direct_children(owner)
             .iter()
-            .any(|child| child.kind() == "end")
+            .any(|child| child.kind_str() == "end")
     });
     let last = significant_named_children(body)
         .last()
@@ -235,7 +236,7 @@ fn has_code_after(context: &RuleContext<'_>, offset: usize) -> bool {
     context.nodes().any(|node| {
         node.child_count() == 0
             && node.start_byte() >= offset
-            && !matches!(node.kind(), "comment" | "end")
+            && !matches!(node.kind_str(), "comment" | "end")
     })
 }
 
@@ -292,8 +293,8 @@ impl Gate {
 }
 
 fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
-    match node.kind() {
-        "range" if node.child_by_field_name("begin").is_none() => {
+    match node.kind_str() {
+        "range" if node.field("begin").is_none() => {
             let text = context.source.node_text(node);
             let (width, token) = if text.starts_with("...") {
                 (3, "tDOT3")
@@ -327,7 +328,7 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
         "method" | "singleton_method" => {
             let equals = direct_children(node)
                 .into_iter()
-                .find(|child| !child.is_named() && child.kind() == "=")?;
+                .find(|child| !child.is_named() && child.kind_str() == "=")?;
             Some(Gate::new(
                 ENDLESS_METHOD_SINCE,
                 "unexpected token tEQL".to_owned(),
@@ -338,7 +339,7 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
         "match_pattern" => {
             let arrow = direct_children(node)
                 .into_iter()
-                .find(|child| !child.is_named() && child.kind() == "=>")?;
+                .find(|child| !child.is_named() && child.kind_str() == "=>")?;
             Some(
                 Gate::new(
                     RIGHTWARD_ASSIGNMENT_SINCE,
@@ -353,7 +354,7 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
         "find_pattern" => {
             let splat = direct_children(node)
                 .into_iter()
-                .filter(|child| child.kind() == "splat_parameter")
+                .filter(|child| child.kind_str() == "splat_parameter")
                 .nth(1)?;
             let start = splat.start_byte();
             let gate = Gate::new(
@@ -367,11 +368,11 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
             // the next one up after.
             let in_case_expression = ancestor_matching(node, |ancestor| {
                 matches!(
-                    ancestor.kind(),
+                    ancestor.kind_str(),
                     "case_match" | "test_pattern" | "match_pattern"
                 )
             })
-            .is_some_and(|owner| owner.kind() == "case_match");
+            .is_some_and(|owner| owner.kind_str() == "case_match");
             Some(match in_case_expression {
                 true => gate.abandons_file(),
                 false => {
@@ -386,7 +387,7 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
             Some(Gate::new(COMMAND_ARGUMENT_STATEMENTS_SINCE, reason, range).in_method_body())
         }
         // The omitted value leaves the parser looking at whatever follows the label.
-        "pair" if node.child_by_field_name("value").is_none() => {
+        "pair" if node.field("value").is_none() => {
             let (reason, range) = unexpected_token_after(node, context);
             let discarded = recovery_region(node).end_byte();
             Some(Gate::new(HASH_VALUE_OMISSION_SINCE, reason, range).recovers_through(discarded))
@@ -409,7 +410,7 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
 fn recovery_region(node: Node<'_>) -> Node<'_> {
     let mut region = node;
     while let Some(parent) = region.parent() {
-        if !OMISSION_RECOVERY_KINDS.contains(&parent.kind()) {
+        if !OMISSION_RECOVERY_KINDS.contains(&parent.kind_str()) {
             break;
         }
         region = parent;
@@ -428,7 +429,7 @@ fn command_argument_parentheses(paren: Node<'_>, context: &RuleContext<'_>) -> b
     }
     let mut current = paren;
     loop {
-        let Some(parent) = current.parent() else {
+        let Some(parent) = current.parent_of(context) else {
             return false;
         };
         if opens_command_argument(parent, current) {
@@ -444,22 +445,22 @@ fn command_argument_parentheses(paren: Node<'_>, context: &RuleContext<'_>) -> b
 }
 
 fn opens_command_argument(parent: Node<'_>, child: Node<'_>) -> bool {
-    match parent.kind() {
+    match parent.kind_str() {
         // An argument list written without parentheses of its own belongs to a command call, and
         // only its first argument stands where the method name has just been read. `return`,
         // `break` and `next` leave the lexer expecting a fresh expression instead.
         "argument_list" => {
-            parent.child(0).is_some_and(|first| first.kind() != "(")
+            parent.child(0).is_some_and(|first| first.kind_str() != "(")
                 && parent
                     .named_child(0)
                     .is_some_and(|first| first.id() == child.id())
                 && parent.parent().is_some_and(|owner| {
-                    matches!(owner.kind(), "call" | "yield") && command_stands_here(owner)
+                    matches!(owner.kind_str(), "call" | "yield") && command_stands_here(owner)
                 })
         }
         "unary" => parent
-            .child_by_field_name("operator")
-            .is_some_and(|operator| matches!(operator.kind(), "defined?" | "not")),
+            .field("operator")
+            .is_some_and(|operator| matches!(operator.kind_str(), "defined?" | "not")),
         _ => false,
     }
 }
@@ -474,7 +475,7 @@ fn command_stands_here(call: Node<'_>) -> bool {
     let Some(parent) = call.parent() else {
         return true;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent
             .named_child(0)
             .is_some_and(|first| first.id() == call.id()),
@@ -550,13 +551,13 @@ fn paren_interior<'tree>(paren: Node<'tree>, context: &RuleContext<'_>) -> Vec<I
     let mut closing = paren.end_byte();
     for child in direct_children(paren) {
         if !child.is_named() {
-            if child.kind() == ")" {
+            if child.kind_str() == ")" {
                 closing = child.start_byte();
             }
             continue;
         }
         push_separators(&mut items, context, offset..child.start_byte());
-        match child.kind() {
+        match child.kind_str() {
             "comment" | "heredoc_body" => {}
             "empty_statement" => items.push(Interior::Semicolon(child.start_byte())),
             _ => items.push(Interior::Statement(child)),
@@ -600,14 +601,14 @@ fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec
     let resumed_at = statement.end_byte();
     for definition in context.nodes().filter(|candidate| {
         candidate.is_named()
-            && matches!(candidate.kind(), "class" | "module")
+            && matches!(candidate.kind_str(), "class" | "module")
             && candidate.start_byte() >= resumed_at
             && ancestor_matching(*candidate, |ancestor| {
-                matches!(ancestor.kind(), "class" | "module" | "singleton_class")
+                matches!(ancestor.kind_str(), "class" | "module" | "singleton_class")
             })
             .is_none_or(|ancestor| ancestor.start_byte() < resumed_at)
     }) {
-        let (keyword, reason) = match definition.kind() {
+        let (keyword, reason) = match definition.kind_str() {
             "module" => ("module", "module definition in method body"),
             _ => ("class", "class definition in method body"),
         };
@@ -617,7 +618,7 @@ fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec
         });
     }
     if last_statement_after(statement)
-        .is_some_and(|last| !matches!(last.kind(), "class" | "module"))
+        .is_some_and(|last| !matches!(last.kind_str(), "class" | "module"))
     {
         let (reason, range) = end_of_input(context);
         out.push(Diagnostic { reason, range });
@@ -629,11 +630,11 @@ fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec
 fn inside_method_body(node: Node<'_>) -> bool {
     ancestor_matching(node, |ancestor| {
         matches!(
-            ancestor.kind(),
+            ancestor.kind_str(),
             "method" | "singleton_method" | "class" | "module" | "singleton_class"
         )
     })
-    .is_some_and(|owner| matches!(owner.kind(), "method" | "singleton_method"))
+    .is_some_and(|owner| matches!(owner.kind_str(), "method" | "singleton_method"))
 }
 
 /// The last statement the parser reads after the one holding `statement`, at the outermost level
@@ -688,7 +689,7 @@ fn following_token(node: Node<'_>) -> Option<Node<'_>> {
         match current.next_sibling() {
             Some(sibling) => {
                 let token = leftmost_token(sibling);
-                if token.kind() == "comment" {
+                if token.kind_str() == "comment" {
                     current = token;
                     continue;
                 }
@@ -713,10 +714,10 @@ fn leftmost_token(node: Node<'_>) -> Node<'_> {
 /// -- delimiters, operators and keywords -- and falls back to `tIDENTIFIER` for the rest, which is
 /// what an unrecognized word lexes as.
 fn token_name(token: Node<'_>) -> &'static str {
-    if token.kind() == "hash_key_symbol" {
+    if token.kind_str() == "hash_key_symbol" {
         return "tLABEL";
     }
-    match token.kind() {
+    match token.kind_str() {
         "," => "tCOMMA",
         "(" => "tLPAREN",
         ")" => "tRPAREN",
@@ -775,16 +776,16 @@ fn legacy_forwarding_recovery(
     out: &mut Vec<Diagnostic>,
 ) {
     let Some(method) = ancestor_matching(parameter, |node| {
-        matches!(node.kind(), "method" | "singleton_method")
+        matches!(node.kind_str(), "method" | "singleton_method")
     }) else {
         return;
     };
     let Some(container) =
-        ancestor_matching(method, |node| matches!(node.kind(), "class" | "module"))
+        ancestor_matching(method, |node| matches!(node.kind_str(), "class" | "module"))
     else {
         return;
     };
-    let Some(body) = container.child_by_field_name("body") else {
+    let Some(body) = container.field("body") else {
         return;
     };
     let later_nodes = significant_named_children(body)
@@ -794,7 +795,7 @@ fn legacy_forwarding_recovery(
         return;
     }
 
-    let (keyword, reason) = if container.kind() == "class" {
+    let (keyword, reason) = if container.kind_str() == "class" {
         ("class", "class definition in method body")
     } else {
         ("module", "module definition in method body")
@@ -808,14 +809,14 @@ fn legacy_forwarding_recovery(
         std::iter::successors(container.prev_named_sibling(), |node| {
             node.prev_named_sibling()
         })
-        .any(|node| node.kind() != "comment");
+        .any(|node| node.kind_str() != "comment");
     let later_nonempty_method = later_nodes.iter().any(|node| {
-        matches!(node.kind(), "method" | "singleton_method")
+        matches!(node.kind_str(), "method" | "singleton_method")
             && node
-                .child_by_field_name("body")
+                .field("body")
                 .is_some_and(|body| significant_named_children(body).next().is_some())
     });
-    if container.kind() != "module" || !has_preceding_top_level_statement || !later_nonempty_method
+    if container.kind_str() != "module" || !has_preceding_top_level_statement || !later_nonempty_method
     {
         return;
     }
@@ -833,7 +834,7 @@ fn legacy_forwarding_recovery(
 fn significant_named_children(node: Node<'_>) -> impl Iterator<Item = Node<'_>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| child.kind() != "comment")
+        .filter(|child| child.kind_str() != "comment")
         .collect::<Vec<_>>()
         .into_iter()
 }

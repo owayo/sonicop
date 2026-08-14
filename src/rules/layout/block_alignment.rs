@@ -20,6 +20,7 @@ use super::support::{begins_its_line, body_statements, grouped_arguments};
 use super::tokens::{Token, tokens};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `EnforcedStyleAlignWith`.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -44,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // or, for `-> {}`, the lambda -- that stands in for it here.
         let Some(node) = braces
             .parent()
-            .filter(|parent| matches!(parent.kind(), "call" | "lambda"))
+            .filter(|parent| matches!(parent.kind_str(), "call" | "lambda"))
         else {
             continue;
         };
@@ -89,9 +90,9 @@ impl<'tree> Block<'_, 'tree> {
 
     /// `node.send_node.selector`: the method name, or the `->` of a lambda literal.
     fn selector(&self) -> Option<Node<'tree>> {
-        match self.node.kind() {
+        match self.node.kind_str() {
             "lambda" => self.node.child(0),
-            _ => self.node.child_by_field_name("method"),
+            _ => self.node.field("method"),
         }
     }
 
@@ -104,8 +105,8 @@ impl<'tree> Block<'_, 'tree> {
             .collect();
         if let Some(parameters) = self
             .braces
-            .child_by_field_name("parameters")
-            .or_else(|| self.node.child_by_field_name("parameters"))
+            .field("parameters")
+            .or_else(|| self.node.field("parameters"))
         {
             ranges.push(parameters.byte_range());
         }
@@ -348,9 +349,9 @@ fn start_for_line_node(block: &Block<'_, '_>) -> Range<usize> {
 fn find_lhs_node(context: &RuleContext<'_>, node: Node<'_>) -> Range<usize> {
     let mut current = node;
     while is_operator_assignment(context, current)
-        || (current.kind() == "assignment" && is_multiple_assignment(current))
+        || (current.kind_str() == "assignment" && is_multiple_assignment(current))
     {
-        let Some(left) = current.child_by_field_name("left") else {
+        let Some(left) = current.field("left") else {
             break;
         };
         current = left;
@@ -359,17 +360,17 @@ fn find_lhs_node(context: &RuleContext<'_>, node: Node<'_>) -> Range<usize> {
 }
 
 fn is_operator_assignment(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "operator_assignment"
+    node.kind_str() == "operator_assignment"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 !matches!(&context.source.text()[operator.byte_range()], "||=" | "&&=")
             })
 }
 
 fn is_multiple_assignment(node: Node<'_>) -> bool {
-    node.child_by_field_name("left")
-        .is_some_and(|left| left.kind() == "left_assignment_list")
+    node.field("left")
+        .is_some_and(|left| left.kind_str() == "left_assignment_list")
 }
 
 /// `block_end_align_target`: walk out of the block for as long as the enclosing expression owns
@@ -389,19 +390,19 @@ fn block_end_align_target<'tree>(block: &Block<'_, 'tree>) -> Node<'tree> {
 fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) -> bool {
     // `disqualified_parent?`: an expression opening on an earlier line is not what the `end` lines
     // up with -- except for a multiple assignment, whose targets may be spread over several lines.
-    let multiple = parent.kind() == "assignment" && is_multiple_assignment(parent);
+    let multiple = parent.kind_str() == "assignment" && is_multiple_assignment(parent);
     if !multiple
         && context.source.line_column(parent.start_byte()).0
             != context.source.line_column(node.start_byte()).0
     {
         return false;
     }
-    match parent.kind() {
+    match parent.kind_str() {
         // `assignment?`, which does not cover `foo.bar = x` and `foo[0] = x`: the parser reads
         // both as calls.
         "assignment" => parent
-            .child_by_field_name("left")
-            .is_some_and(|left| !matches!(left.kind(), "call" | "element_reference")),
+            .field("left")
+            .is_some_and(|left| !matches!(left.kind_str(), "call" | "element_reference")),
         "operator_assignment" => true,
         // `any_def`.
         "method" | "singleton_method" => true,
@@ -409,7 +410,7 @@ fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) 
         "splat_argument" | "splat_parameter" => true,
         // `and`, `or` and `(send _ :<< ...)`.
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(
                     &context.source.text()[operator.byte_range()],
@@ -418,7 +419,7 @@ fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) 
             }),
         // `(send equal?(%1) !:[] ...)`: a call written on the block, `foo.bar do end.baz`. An
         // index read is `:[]` and so excluded, which `element_reference` stands for.
-        "call" => parent.child_by_field_name("receiver") == Some(node),
+        "call" => parent.field("receiver") == Some(node),
         _ => false,
     }
 }
@@ -450,7 +451,7 @@ fn parser_ancestors<'tree>(node: Node<'tree>) -> Vec<Ancestor<'tree>> {
     let mut current = node;
     while let Some(parent) = current.parent() {
         current = parent;
-        match parent.kind() {
+        match parent.kind_str() {
             // The grammar's own bookkeeping, which the parser folds into its parent.
             "argument_list" | "block" | "do_block" => {}
             kind if STATEMENT_CONTAINERS.contains(&kind) => {

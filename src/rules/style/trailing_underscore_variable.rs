@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `DISALLOW`: the assignment targets that may be dropped, which are plain local variables and the
 /// splat that collects the rest.
@@ -16,10 +17,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("AllowNamedUnderscoreVariables")
         .unwrap_or(true);
     for node in context.nodes_of("assignment") {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             continue;
         };
-        if left.kind() != "left_assignment_list" {
+        if left.kind_str() != "left_assignment_list" {
             continue;
         }
         let cop = Cop {
@@ -52,12 +53,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     allow_named: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `unneeded_ranges`: what a nested destructuring group drops, then what this level drops.
     ///
     /// `assignment` is the whole parallel assignment while `mlhs` is the group being looked at; a
@@ -70,7 +71,7 @@ impl Cop<'_> {
     ) {
         let variables = super::nodes::children(mlhs);
         for variable in &variables {
-            if variable.kind() == "destructured_left_assignment" {
+            if variable.kind_str() == "destructured_left_assignment" {
                 self.unneeded_ranges(None, *variable, ranges);
             }
         }
@@ -89,14 +90,14 @@ impl Cop<'_> {
         // Every target was dropped, so the whole left-hand side goes.
         if first.byte_range() == variables[0].byte_range() {
             let end = match assignment {
-                Some(assignment) => assignment.child_by_field_name("right")?.start_byte(),
+                Some(assignment) => assignment.field("right")?.start_byte(),
                 None => mlhs.end_byte(),
             };
             return Some(mlhs.start_byte()..end);
         }
         // A parenthesized group keeps its closing parenthesis, so the comma before the first
         // dropped name goes instead of the space before the `=`.
-        if mlhs.kind() == "destructured_left_assignment" {
+        if mlhs.kind_str() == "destructured_left_assignment" {
             return Some(first.start_byte() - 1..mlhs.end_byte() - 1);
         }
         let operator = operator(assignment?)?;
@@ -107,7 +108,7 @@ impl Cop<'_> {
     fn first_offense<'t>(&self, variables: &[Node<'t>]) -> Option<Node<'t>> {
         let mut found: Option<Node<'t>> = None;
         for variable in variables.iter().rev() {
-            if !DISALLOW.contains(&variable.kind()) {
+            if !DISALLOW.contains(&variable.kind_str()) {
                 break;
             }
             let Some(name) = self.name(*variable) else {
@@ -126,13 +127,13 @@ impl Cop<'_> {
             .position(|variable| variable.byte_range() == found.byte_range())?;
         variables[..position]
             .iter()
-            .all(|variable| variable.kind() != "rest_assignment")
+            .all(|variable| variable.kind_str() != "rest_assignment")
             .then_some(found)
     }
 
     /// The name a target binds, unwrapping the splat that collects the rest.
     fn name(&self, variable: Node<'_>) -> Option<&str> {
-        let named = match variable.kind() {
+        let named = match variable.kind_str() {
             "rest_assignment" => super::nodes::children(variable).first().copied()?,
             _ => variable,
         };
@@ -145,6 +146,6 @@ fn operator(assignment: Node<'_>) -> Option<usize> {
     let mut cursor = assignment.walk();
     assignment
         .children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind() == "=")
+        .find(|child| !child.is_named() && child.kind_str() == "=")
         .map(|child| child.start_byte())
 }

@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "element_reference"]) {
         let Some((unpack, format)) = first_element_of_unpack(context, node) else {
             continue;
         };
-        let Some(selector) = unpack.child_by_field_name("method") else {
+        let Some(selector) = unpack.field("method") else {
             continue;
         };
         let range = selector.start_byte()..node.end_byte();
@@ -43,10 +44,10 @@ fn first_element_of_unpack<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    let (receiver, taken_first) = match node.kind() {
+    let (receiver, taken_first) = match node.kind_str() {
         // `x.unpack('h*')[0]` is a call to `:[]` upstream.
         "element_reference" => {
-            let object = node.child_by_field_name("object")?;
+            let object = node.field("object")?;
             let indices = super::nodes::children(node);
             let index = match indices.as_slice() {
                 [_, only] => *only,
@@ -55,13 +56,13 @@ fn first_element_of_unpack<'tree>(
             (object, context.source.node_text(index) == "0")
         }
         _ => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let method = node.child_by_field_name("method")?;
+            let receiver = node.field("receiver")?;
+            let method = node.field("method")?;
             let arguments = node
-                .child_by_field_name("arguments")
+                .field("arguments")
                 .map(super::nodes::children)
                 .unwrap_or_default();
             let taken = match (context.source.node_text(method), arguments.as_slice()) {
@@ -72,17 +73,17 @@ fn first_element_of_unpack<'tree>(
             (receiver, taken)
         }
     };
-    if !taken_first || receiver.kind() != "call" || receiver.child_by_field_name("block").is_some() {
+    if !taken_first || receiver.kind_str() != "call" || receiver.field("block").is_some() {
         return None;
     }
     // `(...)`: the receiver of `unpack` has to be a node with children, which every literal and
     // call written here is.
-    receiver.child_by_field_name("receiver")?;
-    let method = receiver.child_by_field_name("method")?;
+    receiver.field("receiver")?;
+    let method = receiver.field("method")?;
     if context.source.node_text(method) != "unpack" {
         return None;
     }
-    let arguments = receiver.child_by_field_name("arguments")?;
+    let arguments = receiver.field("arguments")?;
     match super::nodes::children(arguments).as_slice() {
         [only] => Some((receiver, *only)),
         _ => None,

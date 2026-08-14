@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Float out of range.";
 
@@ -25,12 +26,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn signed<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Node<'tree> {
     node.parent()
         .filter(|parent| {
-            parent.kind() == "unary"
+            parent.kind_str() == "unary"
                 && parent
-                    .child_by_field_name("operand")
+                    .field("operand")
                     .is_some_and(|operand| operand.id() == node.id())
                 && parent
-                    .child_by_field_name("operator")
+                    .field("operator")
                     .is_some_and(|operator| {
                         matches!(context.source.node_text(operator), "-" | "+")
                     })

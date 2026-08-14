@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// One lambda, however it was written, in the shape upstream's `BlockNode` presents.
 struct Lambda<'tree> {
@@ -68,21 +69,21 @@ fn modifier(style: &str, multiline: bool) -> &'static str {
 
 impl<'tree> Lambda<'tree> {
     fn of(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Self> {
-        match node.kind() {
+        match node.kind_str() {
             // `->(x) { ... }`, which the grammar spells as one node.
             "lambda" => {
                 let arrow = node.child(0)?;
                 Some(Self {
                     block: node,
                     selector: arrow.byte_range(),
-                    parameters: node.child_by_field_name("parameters"),
-                    body: node.child_by_field_name("body")?,
+                    parameters: node.field("parameters"),
+                    body: node.field("body")?,
                 })
             }
             // `lambda { ... }`, where the call and its block are one `block` node upstream.
             _ => {
-                let body = node.child_by_field_name("block")?;
-                let method = node.child_by_field_name("method")?;
+                let body = node.field("block")?;
+                let method = node.field("method")?;
                 // `lambda?`: the method the block hangs off has to be `lambda`.
                 if context.source.node_text(method) != "lambda" {
                     return None;
@@ -92,7 +93,7 @@ impl<'tree> Lambda<'tree> {
                 Some(Self {
                     block: node,
                     selector,
-                    parameters: body.child_by_field_name("parameters"),
+                    parameters: body.field("parameters"),
                     body,
                 })
             }
@@ -109,7 +110,7 @@ impl<'tree> Lambda<'tree> {
     }
 
     fn braces(&self) -> bool {
-        self.body.kind() == "block"
+        self.body.kind_str() == "block"
     }
 
     /// `arguments.children`, split the way `lambda_arg_string` needs them: a block-local goes
@@ -293,19 +294,19 @@ fn needs_separating_space(lambda: &Lambda<'_>, begin: Node<'_>, parenthesized: b
 
 /// `arg_to_unparenthesized_call?`.
 fn argument_of_unparenthesized_call(context: &RuleContext<'_>, block: Node<'_>) -> bool {
-    let Some(mut parent) = block.parent() else {
+    let Some(mut parent) = block.parent_of(context) else {
         return false;
     };
     // A lambda written as a hash value stands where the hash stands. The grammar leaves the pairs
     // of a trailing hash argument as siblings of the other arguments, so the hash is only there to
     // step over when the braces were written.
-    if parent.kind() == "pair" {
-        let Some(above) = parent.parent() else {
+    if parent.kind_str() == "pair" {
+        let Some(above) = parent.parent_of(context) else {
             return false;
         };
         parent = above;
-        if parent.kind() == "hash" {
-            let Some(above) = parent.parent() else {
+        if parent.kind_str() == "hash" {
+            let Some(above) = parent.parent_of(context) else {
                 return false;
             };
             parent = above;
@@ -313,34 +314,34 @@ fn argument_of_unparenthesized_call(context: &RuleContext<'_>, block: Node<'_>) 
     }
     // Only an argument counts: a lambda the call hangs off is its receiver, and a call written
     // with parentheses keeps its argument whatever delimiters the block uses.
-    match parent.kind() {
-        "argument_list" => !parent.child(0).is_some_and(|open| open.kind() == "("),
+    match parent.kind_str() {
+        "argument_list" => !parent.child(0).is_some_and(|open| open.kind_str() == "("),
         // An operator call is a send with no parentheses at all, so its right-hand operand is an
         // argument of an unparenthesized call.
         "binary" => {
             parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| {
                     super::nodes::is_operator_method(context.source.node_text(operator))
                 })
                 && parent
-                    .child_by_field_name("right")
+                    .field("right")
                     .is_some_and(|right| right.id() == block.id())
         }
         // `a[-> do end]` is a call to `:[]`, whose `loc.begin` is a bracket rather than a
         // parenthesis.
         "element_reference" => parent
-            .child_by_field_name("object")
+            .field("object")
             .is_some_and(|object| object.id() != block.id()),
         // `a.b = -> do end` and `a[b] = -> do end` are calls to `:b=` and `:[]=` upstream, so the
         // value is one of their arguments. A plain variable assignment is not a call at all.
         "assignment" => {
             parent
-                .child_by_field_name("right")
+                .field("right")
                 .is_some_and(|right| right.id() == block.id())
                 && parent
-                    .child_by_field_name("left")
-                    .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+                    .field("left")
+                    .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
         }
         _ => false,
     }

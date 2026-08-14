@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use super::variable_force::{Analysis, Argument, Declaration, Scope, Variable};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_unused_keywords: bool = context
@@ -15,9 +16,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let not_implemented_exceptions: Vec<String> = context
         .setting("NotImplementedExceptions")
         .unwrap_or_default();
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
-        if !matches!(scope.node.kind(), "method" | "singleton_method") {
+        if !matches!(scope.node.kind_str(), "method" | "singleton_method") {
             continue;
         }
         let body = method_body(scope.node);
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         if ignore_not_implemented
             && body.and_then(|body| body.single).is_some_and(|statement| {
-                not_implemented(statement, context, &analysis, &not_implemented_exceptions)
+                not_implemented(statement, context, analysis, &not_implemented_exceptions)
             })
         {
             continue;
@@ -44,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 continue;
             }
-            let message = message(context, &analysis, scope, variable);
+            let message = message(context, analysis, scope, variable);
             let offense = context.offense(message, variable.name_node.byte_range());
             offenses.push(match correction(context, variable) {
                 Some(edit) => offense.corrected_by(edit),
@@ -73,9 +74,9 @@ struct MethodBody<'tree> {
 const NOT_A_STATEMENT: &[&str] = &["empty_statement", "comment", "heredoc_body"];
 
 fn method_body(node: Node<'_>) -> Option<MethodBody<'_>> {
-    let body = node.child_by_field_name("body")?;
+    let body = node.field("body")?;
     // An endless method keeps its expression directly under `body`, with no statement list.
-    if body.kind() != "body_statement" {
+    if body.kind_str() != "body_statement" {
         return Some(MethodBody {
             region: body,
             single: Some(body),
@@ -84,7 +85,7 @@ fn method_body(node: Node<'_>) -> Option<MethodBody<'_>> {
     let mut cursor = body.walk();
     let statements: Vec<Node<'_>> = body
         .named_children(&mut cursor)
-        .filter(|child| !NOT_A_STATEMENT.contains(&child.kind()))
+        .filter(|child| !NOT_A_STATEMENT.contains(&child.kind_str()))
         .collect();
     match statements.len() {
         0 => None,
@@ -116,7 +117,7 @@ fn contains_yield(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     let mut depth = 0usize;
     loop {
-        if cursor.node().kind() == "yield" {
+        if cursor.node().kind_str() == "yield" {
             return true;
         }
         if cursor.goto_first_child() {
@@ -145,19 +146,19 @@ fn not_implemented(
 ) -> bool {
     // A receiverless call with no arguments reaches tree-sitter as a bare identifier, so `fail`
     // written on its own has no call node to inspect.
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return context.source.node_text(node) == "fail" && !analysis.is_variable_reference(node);
     }
-    if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+    if node.kind_str() != "call" || node.field("receiver").is_some() {
         return false;
     }
-    let Some(method) = node.child_by_field_name("method") else {
+    let Some(method) = node.field("method") else {
         return false;
     };
     match context.source.node_text(method) {
         "fail" => true,
         "raise" => node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .and_then(|arguments| arguments.named_child(0))
             .and_then(|argument| const_name(argument, context))
             .is_some_and(|name| exceptions.contains(&name)),
@@ -168,12 +169,12 @@ fn not_implemented(
 /// `Node#const_name`. A leading `::` names the same constant, so `::NotImplementedError` reads as
 /// `NotImplementedError`, while a namespace that is not itself a constant contributes nothing.
 fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    let name = match node.kind() {
+    let name = match node.kind_str() {
         "constant" => return Some(context.source.node_text(node).to_owned()),
-        "scope_resolution" => context.source.node_text(node.child_by_field_name("name")?),
+        "scope_resolution" => context.source.node_text(node.field("name")?),
         _ => return None,
     };
-    match node.child_by_field_name("scope") {
+    match node.field("scope") {
         Some(scope) => Some(format!(
             "{}::{name}",
             const_name(scope, context).unwrap_or_default()
@@ -205,7 +206,7 @@ fn message(
     if none_referenced {
         let method = scope
             .node
-            .child_by_field_name("name")
+            .field("name")
             .map_or("", |node| context.source.node_text(node));
         message.push_str(&format!(
             " You can also write as `{method}(*)` if you want the method to accept any arguments \

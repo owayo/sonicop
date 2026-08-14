@@ -1,6 +1,4 @@
 use super::complexity::{Allowed, CsendDiscount, Emit, Kind, Order, Walk, measured};
-use super::fragments::Fragments;
-use super::locals::Locals;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
@@ -11,9 +9,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if methods.is_empty() {
         return;
     }
-    let fragments = Fragments::new(context);
-    let locals = Locals::new(context, &fragments);
-    let walk = Walk::new(context, &locals, &fragments, Order::Pre);
+    let fragments = context.fragments();
+    let locals = context.metric_locals();
+    let walk = Walk::new(context, locals, fragments, Order::Pre);
     for method in methods {
         let mut score = 1i64;
         let mut discount = CsendDiscount::default();

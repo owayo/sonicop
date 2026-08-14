@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 /// The three conditionals whose branch can be written empty. A modifier form always has a body.
 const CONDITIONALS: &[&str] = &["if", "unless", "elsif"];
@@ -11,7 +12,7 @@ const CONDITIONALS: &[&str] = &["if", "unless", "elsif"];
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_comments: bool = context.setting("AllowComments").unwrap_or(true);
     for node in context.nodes_of_any(CONDITIONALS) {
-        let consequence = node.child_by_field_name("consequence");
+        let consequence = node.field("consequence");
         if consequence.is_some_and(|branch| !statements(branch).is_empty()) {
             continue;
         }
@@ -31,7 +32,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .filter(|child| !child.is_named())
                 .unwrap_or(node),
         );
-        let alternative = node.child_by_field_name("alternative");
+        let alternative = node.field("alternative");
         let range = match alternative {
             Some(clause) => node.start_byte()..clause.start_byte(),
             None => node.byte_range(),
@@ -41,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `can_simplify_conditional?`: only an `else` can be flipped into the condition, since an
         // `elsif` would still need a branch of its own.
         if let Some(clause) =
-            alternative.filter(|clause| clause.kind() == "else" && !statements(*clause).is_empty())
+            alternative.filter(|clause| clause.kind_str() == "else" && !statements(*clause).is_empty())
         {
             offense = offense.corrected_by_all(flip(node, clause, keyword, context));
         }
@@ -54,7 +55,7 @@ fn flip(node: Node<'_>, clause: Node<'_>, keyword: &str, context: &RuleContext<'
     let Some(else_keyword) = clause.child(0) else {
         return Vec::new();
     };
-    let Some(condition) = node.child_by_field_name("condition") else {
+    let Some(condition) = node.field("condition") else {
         return Vec::new();
     };
     let inverse = match keyword {
@@ -74,7 +75,7 @@ fn flip(node: Node<'_>, clause: Node<'_>, keyword: &str, context: &RuleContext<'
     let else_branch = !statements(clause).is_empty()
         && !statements(clause)
             .first()
-            .is_some_and(|first| matches!(first.kind(), "if" | "unless" | "elsif"));
+            .is_some_and(|first| matches!(first.kind_str(), "if" | "unless" | "elsif"));
     let range = if empty_if_branch && else_branch {
         node.start_byte()..else_keyword.start_byte()
     } else {
@@ -94,18 +95,18 @@ fn is_empty_if_branch(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    if !CONDITIONALS.contains(&parent.kind()) {
+    if !CONDITIONALS.contains(&parent.kind_str()) {
         return true;
     }
-    let Some(branch) = parent.child_by_field_name("consequence") else {
+    let Some(branch) = parent.field("consequence") else {
         return true;
     };
     let branch = statements(branch);
     match branch.first() {
         Some(first) => {
-            CONDITIONALS.contains(&first.kind())
+            CONDITIONALS.contains(&first.kind_str())
                 && first
-                    .child_by_field_name("consequence")
+                    .field("consequence")
                     .is_none_or(|body| statements(body).is_empty())
         }
         None => true,
@@ -128,7 +129,7 @@ fn deletion_range(
 /// empty one, which is where a reader would explain why the branch does nothing.
 fn contains_comments(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let start = context.source.line_column(node.start_byte()).0;
-    let end = match node.child_by_field_name("alternative") {
+    let end = match node.field("alternative") {
         // `find_end_line`: the `else` or `elsif` that follows ends the span.
         Some(clause) => context.source.line_column(clause.start_byte()).0,
         None => context.source.line_column(node.end_byte()).0,
@@ -144,13 +145,13 @@ fn contains_comments(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// is no node at all, which leaves the `;` as the only trace of it.
 fn then_keyword<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     if let Some(first) = node
-        .child_by_field_name("consequence")
+        .field("consequence")
         .and_then(|branch| branch.child(0))
         && matches!(context.source.node_text(first), "then" | ";")
     {
         return Some(first);
     }
-    let condition = node.child_by_field_name("condition")?;
+    let condition = node.field("condition")?;
     let mut cursor = node.walk();
     node.children(&mut cursor).find(|child| {
         child.start_byte() >= condition.end_byte()

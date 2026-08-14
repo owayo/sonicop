@@ -2,6 +2,7 @@ use regex::Regex;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use CamelCase for classes and modules.";
 
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let permitted = Regex::new(&allowed.join("|")).ok();
 
     for node in context.nodes_of_any(&["class", "module"]) {
-        let Some(name_node) = node.child_by_field_name("name") else {
+        let Some(name_node) = node.field("name") else {
             continue;
         };
         let name = context.source.node_text(name_node);

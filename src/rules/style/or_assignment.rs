@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use the double pipe equals operator `||=` instead.";
 
@@ -19,19 +20,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_lvasgn`: `name = name ? name : 'x'`.
     for node in context.nodes_of("assignment") {
         let (Some(left), Some(right)) = (
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
+            node.field("left"),
+            node.field("right"),
         ) else {
             continue;
         };
-        if !VARIABLES.contains(&left.kind()) || right.kind() != "conditional" {
+        if !VARIABLES.contains(&left.kind_str()) || right.kind_str() != "conditional" {
             continue;
         }
         let name = context.source.node_text(left);
         let (Some(condition), Some(consequence), Some(alternative)) = (
-            right.child_by_field_name("condition"),
-            right.child_by_field_name("consequence"),
-            right.child_by_field_name("alternative"),
+            right.field("condition"),
+            right.field("consequence"),
+            right.field("alternative"),
         ) else {
             continue;
         };
@@ -40,7 +41,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `return if else_branch.if_type?`.
         if matches!(
-            alternative.kind(),
+            alternative.kind_str(),
             "if" | "unless" | "conditional" | "if_modifier" | "unless_modifier"
         ) {
             continue;
@@ -60,20 +61,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_if`: `name = 'x' unless name`, in either form.
     let mut locals = None;
     for node in context.nodes_of_any(&["unless", "unless_modifier"]) {
-        if node.child_by_field_name("alternative").is_some() {
+        if node.field("alternative").is_some() {
             continue;
         }
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
-        if !VARIABLES.contains(&condition.kind()) {
+        if !VARIABLES.contains(&condition.kind_str()) {
             continue;
         }
         // `{lvar ivar cvar gvar}`: a bare name is only one of those once it has been assigned, and
         // a first mention is a receiverless call. The modifier form assigns before the condition is
         // even read, so only the keyword form has to ask.
-        if node.kind() == "unless"
-            && condition.kind() == "identifier"
+        if node.kind_str() == "unless"
+            && condition.kind_str() == "identifier"
             && !locals
                 .get_or_insert_with(|| LocalVariables::new(context))
                 .is_lvar(condition)
@@ -83,16 +84,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = body_statement(node) else {
             continue;
         };
-        if body.kind() != "assignment" {
+        if body.kind_str() != "assignment" {
             continue;
         }
         let (Some(left), Some(right)) = (
-            body.child_by_field_name("left"),
-            body.child_by_field_name("right"),
+            body.field("left"),
+            body.field("right"),
         ) else {
             continue;
         };
-        if left.kind() != condition.kind()
+        if left.kind_str() != condition.kind_str()
             || context.source.node_text(left) != context.source.node_text(condition)
         {
             continue;
@@ -116,16 +117,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `({lvar ivar cvar gvar} _var)`: a read of the very variable being assigned.
 fn reads(context: &RuleContext<'_>, node: Node<'_>, left: Node<'_>, name: &str) -> bool {
-    node.kind() == left.kind() && context.source.node_text(node) == name
+    node.kind_str() == left.kind_str() && context.source.node_text(node) == name
 }
 
 /// The one statement the `unless` guards.
 fn body_statement<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     // The keyword form spells its body as a `then` clause; the modifier form has it directly.
     let body = node
-        .child_by_field_name("body")
-        .or_else(|| node.child_by_field_name("consequence"))?;
-    match body.kind() {
+        .field("body")
+        .or_else(|| node.field("consequence"))?;
+    match body.kind_str() {
         "then" => match super::nodes::children(body).as_slice() {
             [only] => Some(*only),
             _ => None,

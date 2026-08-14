@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The neighbour of a brace, as the token stream presents it: where it begins, and what it is.
 struct Neighbour {
@@ -39,7 +40,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `tokens.first.left_brace? && tokens.last.right_curly_brace?`: a brace-less hash has no
         // delimiters to have anything inside of.
-        if open.kind() != "{" || close.kind() != "}" || open.end_byte() > close.start_byte() {
+        if open.kind_str() != "{" || close.kind_str() != "}" || open.end_byte() > close.start_byte() {
             continue;
         }
         let mut reported: Vec<(Range<usize>, String, Edit)> = Vec::new();
@@ -202,10 +203,10 @@ impl Brace for Node<'_> {
         false
     }
     fn is_right_curly(&self) -> bool {
-        self.kind() == "}"
+        self.kind_str() == "}"
     }
     fn is_left_brace(&self) -> bool {
-        self.kind() == "{"
+        self.kind_str() == "{"
     }
 }
 

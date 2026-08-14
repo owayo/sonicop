@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut tracker = Tracker {
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         self_aliased: HashSet::new(),
     };
     for node in context.nodes_of_any(&["method", "singleton_method", "alias", "call"]) {
-        match node.kind() {
+        match node.kind_str() {
             "method" => tracker.on_def(node, offenses),
             "singleton_method" => tracker.on_defs(node, offenses),
             "alias" => tracker.on_alias(node, offenses),
@@ -24,8 +25,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Tracker<'a> {
-    context: &'a RuleContext<'a>,
+struct Tracker<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     definitions: HashMap<String, usize>,
     /// Keys already redefined once inside a `rescue` or `ensure`. A body with such a clause is
     /// allowed one redefinition -- that is how a conditional fallback definition is written -- but
@@ -35,7 +36,7 @@ struct Tracker<'a> {
     self_aliased: HashSet<String>,
 }
 
-impl<'a> Tracker<'a> {
+impl<'a, 'tree> Tracker<'a, 'tree> {
     fn on_def(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         // A definition under an `if` is very likely a platform-specific alternative, so both
         // branches are left alone.
@@ -53,11 +54,11 @@ impl<'a> Tracker<'a> {
             return;
         }
         let (Some(name), Some(receiver)) =
-            (self.name_text(node), node.child_by_field_name("object"))
+            (self.name_text(node), node.field("object"))
         else {
             return;
         };
-        match receiver.kind() {
+        match receiver.kind_str() {
             "constant" | "scope_resolution" => {
                 let receiver_name = self.text(receiver);
                 if let Some(qualified) = self.lookup_constant(node, receiver_name) {
@@ -71,8 +72,8 @@ impl<'a> Tracker<'a> {
 
     fn on_alias(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         let (Some(name), Some(original)) = (
-            node.child_by_field_name("name"),
-            node.child_by_field_name("alias"),
+            node.field("name"),
+            node.field("alias"),
         ) else {
             return;
         };
@@ -95,10 +96,10 @@ impl<'a> Tracker<'a> {
     fn on_send(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         // A macro that defines methods never has a receiver, and `alias_method` aside, all of them
         // take plain symbol or string arguments.
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             return;
         }
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             return;
         };
         let arguments = literal_arguments(self.context, node);
@@ -208,13 +209,13 @@ impl<'a> Tracker<'a> {
         let Some(sclass) = singleton_class_ancestor(node) else {
             return;
         };
-        let Some(receiver) = sclass.child_by_field_name("value") else {
+        let Some(receiver) = sclass.field("value") else {
             return;
         };
-        if receiver.kind() != "call" {
+        if receiver.kind_str() != "call" {
             return;
         }
-        let Some(method) = receiver.child_by_field_name("method") else {
+        let Some(method) = receiver.field("method") else {
             return;
         };
         let method = self.text(method).to_owned();
@@ -267,7 +268,7 @@ impl<'a> Tracker<'a> {
     }
 
     fn name_text(&self, node: Node<'_>) -> Option<String> {
-        Some(self.text(node.child_by_field_name("name")?).to_owned())
+        Some(self.text(node.field("name")?).to_owned())
     }
 
     fn text(&self, node: Node<'_>) -> &'a str {
@@ -278,7 +279,7 @@ impl<'a> Tracker<'a> {
         // Deliberately imperfect, exactly as upstream: resolving a constant properly would need an
         // index of the whole project, so only the enclosing definitions are consulted.
         let mut current = node;
-        while let Some(parent) = current.parent() {
+        while let Some(parent) = current.parent_of(self.context) {
             if let Some(defined) = defined_module_name(self.context, parent) {
                 let bare = defined.rsplit("::").next().unwrap_or(&defined);
                 if bare == const_name.trim_start_matches("::") {
@@ -298,8 +299,8 @@ impl<'a> Tracker<'a> {
 /// Where the offense is drawn. A definition is pointed at from `def` through its name; everything
 /// else is reported over its whole expression.
 fn offense_range(node: Node<'_>) -> std::ops::Range<usize> {
-    if matches!(node.kind(), "method" | "singleton_method")
-        && let Some(name) = node.child_by_field_name("name")
+    if matches!(node.kind_str(), "method" | "singleton_method")
+        && let Some(name) = node.field("name")
     {
         return node.start_byte()..name.end_byte();
     }
@@ -309,7 +310,7 @@ fn offense_range(node: Node<'_>) -> std::ops::Range<usize> {
 fn has_if_ancestor(mut node: Node<'_>) -> bool {
     while let Some(parent) = node.parent() {
         if matches!(
-            parent.kind(),
+            parent.kind_str(),
             "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional" | "elsif"
         ) {
             return true;
@@ -321,7 +322,7 @@ fn has_if_ancestor(mut node: Node<'_>) -> bool {
 
 fn enclosing_def(mut node: Node<'_>) -> Option<Node<'_>> {
     while let Some(parent) = node.parent() {
-        if matches!(parent.kind(), "method" | "singleton_method") {
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
             return Some(parent);
         }
         node = parent;
@@ -331,7 +332,7 @@ fn enclosing_def(mut node: Node<'_>) -> Option<Node<'_>> {
 
 fn singleton_class_ancestor(mut node: Node<'_>) -> Option<Node<'_>> {
     while let Some(parent) = node.parent() {
-        if parent.kind() == "singleton_class" {
+        if parent.kind_str() == "singleton_class" {
             return Some(parent);
         }
         node = parent;
@@ -345,15 +346,15 @@ fn singleton_class_ancestor(mut node: Node<'_>) -> Option<Node<'_>> {
 fn rescue_scope(node: Node<'_>) -> Option<&'static str> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if matches!(parent.kind(), "body_statement" | "begin" | "block_body") {
+        if matches!(parent.kind_str(), "body_statement" | "begin" | "block_body") {
             let mut cursor = parent.walk();
             let mut has_rescue = false;
             let mut has_ensure = false;
             for child in parent.named_children(&mut cursor) {
-                has_rescue |= child.kind() == "rescue";
-                has_ensure |= child.kind() == "ensure";
+                has_rescue |= child.kind_str() == "rescue";
+                has_ensure |= child.kind_str() == "ensure";
             }
-            if current.kind() == "ensure" {
+            if current.kind_str() == "ensure" {
                 return Some("ensure");
             }
             if has_rescue {
@@ -373,8 +374,8 @@ fn rescue_scope(node: Node<'_>) -> Option<&'static str> {
 fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let mut parts: Vec<String> = Vec::new();
     let mut current = node;
-    while let Some(parent) = current.parent() {
-        match parent.kind() {
+    while let Some(parent) = current.parent_of(context) {
+        match parent.kind_str() {
             "class" | "module" | "assignment" => {
                 if let Some(name) = defined_module_name(context, parent) {
                     parts.push(name);
@@ -401,14 +402,14 @@ fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<Strin
 /// The constant a `class`, `module` or `CONST = Class.new` declaration defines. A constant
 /// assignment of anything else names no module, and simply contributes nothing.
 fn defined_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    match node.kind() {
-        "class" | "module" => Some(constant_name(context, node.child_by_field_name("name")?)),
+    match node.kind_str() {
+        "class" | "module" => Some(constant_name(context, node.field("name")?)),
         "assignment" => {
-            let left = node.child_by_field_name("left")?;
-            if !matches!(left.kind(), "constant" | "scope_resolution") {
+            let left = node.field("left")?;
+            if !matches!(left.kind_str(), "constant" | "scope_resolution") {
                 return None;
             }
-            let right = node.child_by_field_name("right")?;
+            let right = node.field("right")?;
             is_class_or_module_new(context, right, true).then(|| constant_name(context, left))
         }
         _ => None,
@@ -427,14 +428,14 @@ fn constant_name(context: &RuleContext<'_>, node: Node<'_>) -> String {
 /// constant, which is what `CONST = Class.new` requires; the anonymous-class lookup accepts a
 /// namespaced one as upstream does.
 fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: bool) -> bool {
-    let call = if node.kind() == "call" {
+    let call = if node.kind_str() == "call" {
         node
     } else {
         return false;
     };
     let (Some(receiver), Some(method)) = (
-        call.child_by_field_name("receiver"),
-        call.child_by_field_name("method"),
+        call.field("receiver"),
+        call.field("method"),
     ) else {
         return false;
     };
@@ -442,16 +443,16 @@ fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: boo
         return false;
     }
     let name = constant_name(context, receiver);
-    if global && (name.contains("::") || call.child_by_field_name("arguments").is_some()) {
+    if global && (name.contains("::") || call.field("arguments").is_some()) {
         return false;
     }
     let bare = name.rsplit("::").next().unwrap_or(&name);
-    matches!(receiver.kind(), "constant" | "scope_resolution") && matches!(bare, "Class" | "Module")
+    matches!(receiver.kind_str(), "constant" | "scope_resolution") && matches!(bare, "Class" | "Module")
 }
 
 fn singleton_class_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    let value = node.child_by_field_name("value")?;
-    match value.kind() {
+    let value = node.field("value")?;
+    match value.kind_str() {
         "constant" | "scope_resolution" => {
             Some(format!("#<Class:{}>", constant_name(context, value)))
         }
@@ -473,16 +474,16 @@ enum BlockScope {
 }
 
 fn block_module_name(context: &RuleContext<'_>, block: Node<'_>) -> BlockScope {
-    let Some(call) = block.parent().filter(|parent| parent.kind() == "call") else {
+    let Some(call) = block.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return BlockScope::Opaque;
     };
-    let Some(method) = call.child_by_field_name("method") else {
+    let Some(method) = call.field("method") else {
         return BlockScope::Opaque;
     };
     if context.source.node_text(method) == "class_eval" {
-        return match call.child_by_field_name("receiver") {
+        return match call.field("receiver") {
             None => BlockScope::Transparent,
-            Some(receiver) if matches!(receiver.kind(), "constant" | "scope_resolution") => {
+            Some(receiver) if matches!(receiver.kind_str(), "constant" | "scope_resolution") => {
                 BlockScope::Named(constant_name(context, receiver))
             }
             Some(_) => BlockScope::Opaque,
@@ -490,9 +491,9 @@ fn block_module_name(context: &RuleContext<'_>, block: Node<'_>) -> BlockScope {
     }
     let assigned_to_constant = call
         .parent()
-        .filter(|parent| parent.kind() == "assignment")
-        .and_then(|parent| parent.child_by_field_name("left"))
-        .is_some_and(|left| matches!(left.kind(), "constant" | "scope_resolution"));
+        .filter(|parent| parent.kind_str() == "assignment")
+        .and_then(|parent| parent.field("left"))
+        .is_some_and(|left| matches!(left.kind_str(), "constant" | "scope_resolution"));
     if assigned_to_constant && is_class_or_module_new(context, call, true) {
         BlockScope::Transparent
     } else {
@@ -551,8 +552,8 @@ fn anonymous_class_block<'tree>(
     let mut current = node;
     let block = loop {
         let parent = current.parent()?;
-        if matches!(parent.kind(), "block" | "do_block") {
-            break parent.parent().filter(|call| call.kind() == "call")?;
+        if matches!(parent.kind_str(), "block" | "do_block") {
+            break parent.parent().filter(|call| call.kind_str() == "call")?;
         }
         current = parent;
     };
@@ -562,9 +563,9 @@ fn anonymous_class_block<'tree>(
     // A class kept in a local variable is a value, not a namespace, so its methods are not pooled.
     if block
         .parent()
-        .filter(|parent| parent.kind() == "assignment")
-        .and_then(|parent| parent.child_by_field_name("left"))
-        .is_some_and(|left| left.kind() == "identifier")
+        .filter(|parent| parent.kind_str() == "assignment")
+        .and_then(|parent| parent.field("left"))
+        .is_some_and(|left| left.kind_str() == "identifier")
     {
         return None;
     }
@@ -574,10 +575,10 @@ fn anonymous_class_block<'tree>(
         if parent == block {
             break;
         }
-        if parent.kind() == "singleton_class"
+        if parent.kind_str() == "singleton_class"
             && parent
-                .child_by_field_name("value")
-                .is_none_or(|value| value.kind() != "self")
+                .field("value")
+                .is_none_or(|value| value.kind_str() != "self")
         {
             return None;
         }
@@ -643,7 +644,7 @@ fn anon_parent(block: Node<'_>) -> AnonParent<'_> {
     let Some(parent) = block.parent() else {
         return AnonParent::Rejected;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "body_statement" | "block_body" => {
             let (statements, clause) = statement_shape(parent);
             if statements > 1 {
@@ -651,7 +652,7 @@ fn anon_parent(block: Node<'_>) -> AnonParent<'_> {
                     under_block: !clause
                         && parent
                             .parent()
-                            .is_some_and(|owner| matches!(owner.kind(), "block" | "do_block")),
+                            .is_some_and(|owner| matches!(owner.kind_str(), "block" | "do_block")),
                 };
             }
             if clause {
@@ -669,20 +670,20 @@ fn anon_parent(block: Node<'_>) -> AnonParent<'_> {
 }
 
 fn owner_parent(owner: Node<'_>) -> AnonParent<'_> {
-    match owner.kind() {
+    match owner.kind_str() {
         "block" | "do_block" => AnonParent::Block {
-            call: owner.parent().filter(|call| call.kind() == "call"),
+            call: owner.parent().filter(|call| call.kind_str() == "call"),
         },
         "lambda" => AnonParent::Block { call: None },
         "method" | "singleton_method" => AnonParent::Plain,
-        "assignment" => match owner.child_by_field_name("left") {
-            Some(left) if matches!(left.kind(), "constant" | "scope_resolution") => {
+        "assignment" => match owner.field("left") {
+            Some(left) if matches!(left.kind_str(), "constant" | "scope_resolution") => {
                 AnonParent::Plain
             }
             _ => AnonParent::Rejected,
         },
         "argument_list" => match owner.parent() {
-            Some(call) if call.kind() == "call" => AnonParent::Send { call },
+            Some(call) if call.kind_str() == "call" => AnonParent::Send { call },
             _ => AnonParent::Rejected,
         },
         // `Class.new do ... end.new` -- the block is the receiver of a further call, which is a
@@ -698,7 +699,7 @@ fn statement_shape(body: Node<'_>) -> (usize, bool) {
     let mut statements = 0;
     let mut clause = false;
     for child in body.named_children(&mut cursor) {
-        if matches!(child.kind(), "rescue" | "ensure" | "else") {
+        if matches!(child.kind_str(), "rescue" | "ensure" | "else") {
             clause = true;
         } else {
             statements += 1;
@@ -710,8 +711,8 @@ fn statement_shape(body: Node<'_>) -> (usize, bool) {
 /// The receiver and method of a call, unless the receiver is itself a `Class.new`/`Module.new`
 /// block -- naming one anonymous class after another would say nothing about where it lands.
 fn named_receiver<'a>(context: &'a RuleContext<'_>, call: Node<'_>) -> Option<(&'a str, &'a str)> {
-    let receiver = call.child_by_field_name("receiver")?;
-    let method = call.child_by_field_name("method")?;
+    let receiver = call.field("receiver")?;
+    let method = call.field("method")?;
     if is_class_or_module_new(context, receiver, false) {
         return None;
     }
@@ -723,7 +724,7 @@ fn named_receiver<'a>(context: &'a RuleContext<'_>, call: Node<'_>) -> Option<(&
 
 fn is_class_new_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
     block
-        .child_by_field_name("receiver")
+        .field("receiver")
         .is_some_and(|receiver| {
             constant_name(context, receiver)
                 .rsplit("::")
@@ -748,13 +749,13 @@ fn in_macro_scope(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "program" => true,
         "class" | "module" | "singleton_class" => true,
         "body_statement" | "block_body" | "begin" | "then" | "else" => {
             parent.parent().is_none_or(|grandparent| {
                 matches!(
-                    grandparent.kind(),
+                    grandparent.kind_str(),
                     "class" | "module" | "singleton_class" | "block" | "do_block" | "program"
                 ) || in_macro_scope(parent)
             })
@@ -767,14 +768,14 @@ fn in_macro_scope(node: Node<'_>) -> bool {
 /// The symbol or string arguments of a macro call. A call with any other kind of argument defines
 /// no name the cop can track.
 fn literal_arguments(context: &RuleContext<'_>, node: Node<'_>) -> Vec<String> {
-    let Some(arguments) = node.child_by_field_name("arguments") else {
+    let Some(arguments) = node.field("arguments") else {
         return Vec::new();
     };
     let mut cursor = arguments.walk();
     let mut names = Vec::new();
     for argument in arguments.named_children(&mut cursor) {
         match symbol_name(context.source.node_text(argument)) {
-            Some(name) if matches!(argument.kind(), "simple_symbol" | "string") => {
+            Some(name) if matches!(argument.kind_str(), "simple_symbol" | "string") => {
                 names.push(name.to_owned());
             }
             _ => return Vec::new(),

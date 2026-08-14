@@ -9,6 +9,7 @@ use super::support::{
     alignment_corrections, begins_its_line, character_column, grouped_arguments,
     holds_block_comment, line_indentation, string_interiors,
 };
+use crate::rules::node_ext::NodeExt;
 
 const MSG_ALIGN: &str = "Align `)` with `(`.";
 
@@ -120,7 +121,7 @@ struct Delimited<'tree> {
 }
 
 fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
-    let (start, container, opener, closer) = match node.kind() {
+    let (start, container, opener, closer) = match node.kind_str() {
         "call" => (
             node.start_byte(),
             child_of_kind(node, "argument_list")?,
@@ -133,20 +134,20 @@ fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
         "interpolation" => (node.start_byte(), node, "#{", "}"),
         // `check(node.arguments, node.arguments)`: the parameter list stands in for the definition.
         _ => {
-            let parameters = node.child_by_field_name("parameters")?;
+            let parameters = node.field("parameters")?;
             (parameters.start_byte(), parameters, "(", ")")
         }
     };
     let open = child_of_kind(container, opener)?;
     let close = last_child_of_kind(container, closer)?;
 
-    let elements = match node.kind() {
+    let elements = match node.kind_str() {
         "call" => grouped(node),
         _ => {
             let mut cursor = container.walk();
             container
                 .named_children(&mut cursor)
-                .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+                .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
                 .map(|child| (child.start_byte(), hash_parts(child)))
                 .collect()
         }
@@ -184,13 +185,13 @@ fn grouped(node: Node<'_>) -> Vec<(usize, Option<Vec<usize>>)> {
 
 /// `elements.first.hash_type?`: the columns of a braced hash's own pairs.
 fn hash_parts(node: Node<'_>) -> Option<Vec<usize>> {
-    if node.kind() != "hash" {
+    if node.kind_str() != "hash" {
         return None;
     }
     let mut cursor = node.walk();
     Some(
         node.named_children(&mut cursor)
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .map(|child| child.start_byte())
             .collect(),
     )
@@ -199,12 +200,12 @@ fn hash_parts(node: Node<'_>) -> Option<Vec<usize>> {
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 fn last_child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .filter(|child| child.kind() == kind)
+        .filter(|child| child.kind_str() == kind)
         .last()
 }

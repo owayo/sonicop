@@ -3,6 +3,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let predicate_style = context
@@ -65,10 +66,10 @@ fn comparison<'tree>(
     let operator = ["==", ">", "<"]
         .into_iter()
         .find(|candidate| *candidate == operator)?;
-    if is_zero(context, right) && left.kind() != "global_variable" {
+    if is_zero(context, right) && left.kind_str() != "global_variable" {
         return Some((left, operator));
     }
-    if is_zero(context, left) && right.kind() != "global_variable" {
+    if is_zero(context, left) && right.kind_str() != "global_variable" {
         // `invert`: read from the other side, `>` and `<` swap.
         let inverted = match operator {
             ">" => "<",
@@ -85,11 +86,11 @@ fn predicate<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str)> {
-    if node.kind() != "call" || node.child_by_field_name("arguments").is_some() {
+    if node.kind_str() != "call" || node.field("arguments").is_some() {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let method = node.child_by_field_name("method")?;
+    let receiver = node.field("receiver")?;
+    let method = node.field("method")?;
     let operator = match context.source.node_text(method) {
         "zero?" => "==",
         "positive?" => ">",
@@ -112,25 +113,25 @@ fn operands<'a, 'tree>(
     context: &'a RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>, &'a str)> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => {
-            let left = node.child_by_field_name("left")?;
+            let left = node.field("left")?;
             if super::nodes::is_bare_jump(left) {
                 return None;
             }
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             Some((
                 left,
-                node.child_by_field_name("right")?,
+                node.field("right")?,
                 context.source.node_text(operator),
             ))
         }
         _ => {
-            let method = node.child_by_field_name("method")?;
-            let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+            let method = node.field("method")?;
+            let arguments = super::nodes::children(node.field("arguments")?);
             match arguments.as_slice() {
                 [only] => Some((
-                    node.child_by_field_name("receiver")?,
+                    node.field("receiver")?,
                     *only,
                     context.source.node_text(method),
                 )),
@@ -142,14 +143,14 @@ fn operands<'a, 'tree>(
 
 /// `(int 0)`: the literal zero, however it was written.
 fn is_zero(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let node = match node.kind() {
-        "unary" => match node.child_by_field_name("operand") {
-            Some(operand) if operand.kind() == "integer" => operand,
+    let node = match node.kind_str() {
+        "unary" => match node.field("operand") {
+            Some(operand) if operand.kind_str() == "integer" => operand,
             _ => return false,
         },
         _ => node,
     };
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return false;
     }
     let digits = context.source.node_text(node).replace('_', "");
@@ -171,22 +172,22 @@ fn parenthesized_source(context: &RuleContext<'_>, node: Node<'_>) -> String {
 }
 
 fn require_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `&&` and `||` are not sends upstream, so they are not binary operations either.
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),
         // `a[b]` is a call to `:[]`, and its `loc.begin` is a bracket rather than a parenthesis.
         "element_reference" => true,
         "call" => {
-            node.child_by_field_name("receiver").is_some()
-                && node.child_by_field_name("method").is_some_and(|method| {
+            node.field("receiver").is_some()
+                && node.field("method").is_some_and(|method| {
                     super::nodes::is_operator_method(context.source.node_text(method))
                 })
                 && !node
-                    .child_by_field_name("arguments")
+                    .field("arguments")
                     .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
         }
         _ => false,
@@ -195,18 +196,18 @@ fn require_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `negated?`: the comparison this cop is about to write sits under a `!`.
 fn negated(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
-        parent.kind() == "unary"
+    node.parent_of(context).is_some_and(|parent| {
+        parent.kind_str() == "unary"
             && parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "!")
     })
 }
 
 fn selector_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    let selector = match node.kind() {
-        "binary" => node.child_by_field_name("operator"),
-        _ => node.child_by_field_name("method"),
+    let selector = match node.kind_str() {
+        "binary" => node.field("operator"),
+        _ => node.field("method"),
     }?;
     Some(context.source.node_text(selector).to_owned())
 }
@@ -244,16 +245,16 @@ impl Allowed {
 
 /// `node.each_ancestor(:send, :any_block)`: a call or block written around this one.
 fn ancestor_is_allowed(context: &RuleContext<'_>, node: Node<'_>, allowed: &Allowed) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(parent) = current {
         if matches!(
-            parent.kind(),
+            parent.kind_str(),
             "binary" | "call" | "unary" | "element_reference"
         ) && allowed.matches(selector_name(context, parent).as_deref())
         {
             return true;
         }
-        current = parent.parent();
+        current = parent.parent_of(context);
     }
     false
 }

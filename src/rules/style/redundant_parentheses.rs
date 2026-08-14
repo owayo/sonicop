@@ -6,6 +6,7 @@ use crate::rules::lint::literals::{is_constant, literal_type};
 use crate::rules::lint::locals::LocalVariables;
 
 use super::conditional::{UpstreamParent, upstream_parent};
+use crate::rules::node_ext::NodeExt;
 
 /// `ALLOWED_NODE_TYPES`: the parents whose child keeps its parentheses around a logical operator.
 /// `send` covers every shape the grammar spells as a call.
@@ -108,11 +109,11 @@ fn record<'tree>(
 /// `defined?(x)` is the one place the grammar parks a parenthesized group where the parser has
 /// none: written without a space, the parentheses belong to the keyword itself.
 fn is_begin_node(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return true;
     };
-    if parent.kind() == "unary" {
-        let Some(operator) = parent.child_by_field_name("operator") else {
+    if parent.kind_str() == "unary" {
+        let Some(operator) = parent.field("operator") else {
             return true;
         };
         return context.source.node_text(operator) != "defined?"
@@ -121,7 +122,7 @@ fn is_begin_node(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     // An argument list spelled over exactly the group is the grammar folding the call's own
     // parentheses onto it, which it does after a `do ... end` block. `p (1)` reaches here with the
     // same two ranges but a blank before the parenthesis, and there the group is the parser's.
-    if parent.kind() == "argument_list" && parent.byte_range() == node.byte_range() {
+    if parent.kind_str() == "argument_list" && parent.byte_range() == node.byte_range() {
         return context
             .source
             .text()
@@ -164,7 +165,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
         return 0;
     };
     match parent {
-        UpstreamParent::Begin(parent) => match parent.kind() {
+        UpstreamParent::Begin(parent) => match parent.kind_str() {
             "parenthesized_statements" | "interpolation" | "begin" => {
                 super::nodes::children(parent).len()
             }
@@ -173,7 +174,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             // of it.
             _ => super::conditional::self_statements(parent).len(),
         },
-        UpstreamParent::Node(parent) => match parent.kind() {
+        UpstreamParent::Node(parent) => match parent.kind_str() {
             "array" | "string_array" | "symbol_array" | "exceptions" => {
                 super::nodes::children(parent).len()
             }
@@ -187,7 +188,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             kind if JUMPS.contains(&kind) => {
                 super::nodes::children(parent)
                     .first()
-                    .map_or(0, |list| match list.kind() {
+                    .map_or(0, |list| match list.kind_str() {
                         "argument_list" => super::nodes::children(*list).len(),
                         _ => 1,
                     })
@@ -195,7 +196,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             // `(defined? x)` holds its expression alone; every other unary is a `send` with a
             // receiver and a selector.
             "unary" => match parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| operator.byte_range().len() == "defined?".len())
             {
                 true => 1,
@@ -225,13 +226,13 @@ fn is_rescue(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = parent_node(context, node) else {
         return false;
     };
-    if parent.kind() == "rescue" {
+    if parent.kind_str() == "rescue" {
         return true;
     }
-    parent.kind() == "exceptions"
+    parent.kind_str() == "exceptions"
         && parent
-            .parent()
-            .is_some_and(|grandparent| grandparent.kind() == "rescue")
+            .parent_of(context)
+            .is_some_and(|grandparent| grandparent.kind_str() == "rescue")
 }
 
 /// `in_pattern_matching_in_method_argument?`: `foo(bar in Integer)` needs the parentheses.
@@ -251,19 +252,19 @@ fn in_pattern_matching_in_method_argument(
     };
     // `match_pattern_p_type?` above Ruby 2.7, where `in` builds that node rather than the `=>` one.
     match context.target_ruby_version() <= crate::ruby_version::RubyVersion::new(2, 7) {
-        true => first.kind() == "match_pattern",
-        false => first.kind() == "test_pattern",
+        true => first.kind_str() == "match_pattern",
+        false => first.kind_str() == "test_pattern",
     }
 }
 
 /// `allowed_pin_operator?`: `^(pin (begin !{lvar ivar cvar gvar}))`.
 fn allowed_pin_operator(node: Node<'_>, children: &[Node<'_>]) -> bool {
-    if !node.parent().is_some_and(|parent| parent.kind() == "pin") {
+    if !node.parent().is_some_and(|parent| parent.kind_str() == "pin") {
         return false;
     }
     !children.first().is_some_and(|first| {
         matches!(
-            first.kind(),
+            first.kind_str(),
             "identifier" | "instance_variable" | "class_variable" | "global_variable"
         )
     })
@@ -273,7 +274,7 @@ fn allowed_expression(context: &RuleContext<'_>, node: Node<'_>, children: &[Nod
     allowed_ancestor(context, node)
         || allowed_multiple_expression(context, node, children)
         || allowed_ternary(context, node)
-        || parent_node(context, node).is_some_and(|parent| parent.kind() == "range")
+        || parent_node(context, node).is_some_and(|parent| parent.kind_str() == "range")
 }
 
 /// `allowed_ancestor?`: `break(1)` reads as a call, so the parentheses are not the parser's.
@@ -301,26 +302,26 @@ fn is_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if is_special_keyword(context, node) || is_super(node) {
         return true;
     }
-    if node.kind() == "unary" {
+    if node.kind_str() == "unary" {
         let text = node
-            .child_by_field_name("operator")
+            .field("operator")
             .map(|operator| context.source.node_text(operator));
         // `defined?` is a keyword outright; `not` is the one `send` that counts as one.
         return matches!(text, Some("defined?") | Some("not"));
     }
     // `and` and `or` count only in their word spelling.
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         return node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "and" | "or"));
     }
-    KEYWORD_KINDS.contains(&node.kind())
+    KEYWORD_KINDS.contains(&node.kind_str())
 }
 
 /// `Node#special_keyword?`: the three the parser resolves into values before a cop sees them.
 fn is_special_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "identifier" | "constant" | "string" | "integer" | "simple_symbol"
     ) && matches!(
         context.source.node_text(node),
@@ -344,7 +345,7 @@ fn allowed_multiple_expression(
     match parent {
         UpstreamParent::Begin(_) => false,
         UpstreamParent::Node(parent) => !matches!(
-            parent.kind(),
+            parent.kind_str(),
             "method" | "singleton_method" | "block" | "do_block" | "lambda"
         ),
     }
@@ -353,8 +354,8 @@ fn allowed_multiple_expression(
 /// `allowed_ternary?`: the neighbouring cop asks for these parentheses.
 fn allowed_ternary(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if !node
-        .parent()
-        .is_some_and(|parent| parent.kind() == "conditional")
+        .parent_of(context)
+        .is_some_and(|parent| parent.kind_str() == "conditional")
     {
         return false;
     }
@@ -394,13 +395,13 @@ fn like_method_argument_parentheses(
     // parentheses, and is named after no operator -- `a[0] = (x)` is `:[]=`, which is one.
     if is_setter_assignment(parent) {
         return parent
-            .child_by_field_name("left")
-            .is_some_and(|left| left.kind() == "call")
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "call")
             && parent
-                .child_by_field_name("right")
+                .field("right")
                 .is_some_and(|right| right.id() == node.id());
     }
-    if !matches!(parent.kind(), "call" | "super" | "yield") {
+    if !matches!(parent.kind_str(), "call" | "super" | "yield") {
         return false;
     }
     let Some(arguments) = argument_list(parent) else {
@@ -415,7 +416,7 @@ fn like_method_argument_parentheses(
         return false;
     }
     !parent
-        .child_by_field_name("method")
+        .field("method")
         .is_some_and(|method| super::nodes::is_operator_method(context.source.node_text(method)))
 }
 
@@ -436,12 +437,12 @@ fn call_is_parenthesized(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn argument_list<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    if let Some(arguments) = node.child_by_field_name("arguments") {
+    if let Some(arguments) = node.field("arguments") {
         return Some(arguments);
     }
     super::nodes::children(node)
         .into_iter()
-        .find(|child| child.kind() == "argument_list")
+        .find(|child| child.kind_str() == "argument_list")
 }
 
 /// `multiline_control_flow_statements?`: a jump written over several lines keeps its parentheses.
@@ -451,7 +452,7 @@ fn multiline_control_flow_statements(
     parent: Node<'_>,
 ) -> bool {
     let _ = node;
-    if !matches!(parent.kind(), "return" | "next" | "break") {
+    if !matches!(parent.kind_str(), "return" | "next" | "break") {
         return false;
     }
     context.source.line_column(parent.start_byte()).0
@@ -461,7 +462,7 @@ fn multiline_control_flow_statements(
 /// `check`.
 fn check_group<'tree>(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'tree>,
     pending: &mut Vec<(Node<'tree>, &'static str)>,
 ) {
@@ -490,13 +491,13 @@ fn check_group<'tree>(
 }
 
 fn is_range(node: Node<'_>) -> bool {
-    node.kind() == "range"
+    node.kind_str() == "range"
 }
 
 /// `find_offense_message`.
 fn find_offense_message(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     inner: Node<'_>,
     children: &[Node<'_>],
@@ -552,7 +553,7 @@ fn find_offense_message(
         if parent_node(context, node).is_some_and(|parent| {
             is_call(context, parent)
                 || is_or(context, parent)
-                || ALLOWED_PARENT_KINDS.contains(&parent.kind())
+                || ALLOWED_PARENT_KINDS.contains(&parent.kind_str())
         }) {
             return None;
         }
@@ -562,8 +563,8 @@ fn find_offense_message(
             return None;
         }
         if node
-            .parent()
-            .is_some_and(|parent| parent.kind() == "conditional")
+            .parent_of(context)
+            .is_some_and(|parent| parent.kind_str() == "conditional")
         {
             return None;
         }
@@ -577,13 +578,13 @@ fn find_offense_message(
 }
 
 fn is_block(node: Node<'_>) -> bool {
-    matches!(node.kind(), "block" | "do_block" | "lambda")
+    matches!(node.kind_str(), "block" | "do_block" | "lambda")
 }
 
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
-fn is_variable(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+    match node.kind_str() {
         "instance_variable" | "class_variable" | "global_variable" => true,
         "identifier" => locals.is_lvar(node),
         _ => false,
@@ -591,29 +592,29 @@ fn is_variable(locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
 }
 
 fn is_assignment(node: Node<'_>) -> bool {
-    matches!(node.kind(), "assignment" | "operator_assignment")
+    matches!(node.kind_str(), "assignment" | "operator_assignment")
 }
 
 /// `node.lambda_or_proc? && (node.braces? || node.send_node.lambda_literal?)`.
 fn is_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() == "lambda" {
+    if node.kind_str() == "lambda" {
         // `-> {}` and `->() do end` are both `lambda_literal?`.
         return true;
     }
-    let Some(block) = node.child_by_field_name("block") else {
+    let Some(block) = node.field("block") else {
         return false;
     };
     let name = node
-        .child_by_field_name("method")
+        .field("method")
         .map(|method| context.source.node_text(method));
     if !matches!(name, Some("lambda") | Some("proc"))
-        || node.child_by_field_name("receiver").is_some()
+        || node.field("receiver").is_some()
     {
         return false;
     }
     // `node.braces?`: only the brace spelling is rewritten, since `do ... end` would bind
     // differently once the parentheses go.
-    block.kind() == "block"
+    block.kind_str() == "block"
 }
 
 /// `disallowed_one_line_pattern_matching?`.
@@ -623,9 +624,9 @@ fn disallowed_one_line_pattern_matching(
     inner: Node<'_>,
 ) -> bool {
     if let Some(parent) = parent_node(context, node) {
-        if matches!(parent.kind(), "method" | "singleton_method")
+        if matches!(parent.kind_str(), "method" | "singleton_method")
             // `parent.endless?`: a definition written with `=` and no `end`.
-            && parent.child_by_field_name("body").is_some_and(|body| {
+            && parent.field("body").is_some_and(|body| {
                 body.id() == node.id() && super::conditional::token(parent, &["end"]).is_none()
             })
         {
@@ -635,31 +636,31 @@ fn disallowed_one_line_pattern_matching(
             return false;
         }
     }
-    if !matches!(inner.kind(), "match_pattern" | "test_pattern") {
+    if !matches!(inner.kind_str(), "match_pattern" | "test_pattern") {
         return false;
     }
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         // `each_ancestor.none?(&:operator_keyword?)`: an `and` or an `or` above it makes the
         // pattern match one operand of a logical expression, which needs the parentheses.
         if is_operator_keyword(context, ancestor) {
             return false;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     true
 }
 
 /// `interpolation?`: `[^begin ^^dstr]`, a group written straight inside a `#{}` of a string.
 fn is_interpolation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    if parent.kind() != "interpolation" {
+    if parent.kind_str() != "interpolation" {
         return false;
     }
     parent
-        .parent()
+        .parent_of(context)
         .is_some_and(|grandparent| literal_type(grandparent, context) == Some("dstr"))
 }
 
@@ -670,7 +671,7 @@ fn argument_of_parenthesized_method_call(
     inner: Node<'_>,
 ) -> bool {
     if is_basic_conditional(inner)
-        || inner.kind() == "rescue_modifier"
+        || inner.kind_str() == "rescue_modifier"
         || method_call_parentheses_required(context, inner)
     {
         return false;
@@ -685,7 +686,7 @@ fn argument_of_parenthesized_method_call(
     // same way as the group counts as being it.
     call_is_parenthesized(context, parent)
         && !parent
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| {
                 crate::rules::lint::node_equality::identical(receiver, node, context)
             })
@@ -694,7 +695,7 @@ fn argument_of_parenthesized_method_call(
 /// `BASIC_CONDITIONALS`: `if`, `while` and `until`. A ternary is an `if` upstream, so it is one.
 fn is_basic_conditional(node: Node<'_>) -> bool {
     matches!(
-        node.kind(),
+        node.kind_str(),
         "conditional"
             | "if"
             | "unless"
@@ -715,14 +716,14 @@ fn method_call_parentheses_required(context: &RuleContext<'_>, node: Node<'_>) -
         return false;
     }
     let has_receiver = receiver_of(context, node).is_some();
-    let selector = match node.kind() {
-        "assignment" => node.child_by_field_name("left"),
+    let selector = match node.kind_str() {
+        "assignment" => node.field("left"),
         _ => Some(node),
     };
     let dot = selector.is_some_and(|selector| {
-        selector.kind() == "call"
+        selector.kind_str() == "call"
             && selector
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| matches!(context.source.node_text(operator), "." | "&."))
     });
     (!has_receiver || dot) && call_has_arguments(node)
@@ -735,36 +736,36 @@ fn oneline_rescue_parentheses_required(
     node: Node<'_>,
     inner: Node<'_>,
 ) -> bool {
-    if inner.kind() != "rescue_modifier" {
+    if inner.kind_str() != "rescue_modifier" {
         return false;
     }
     let Some(parent) = parent_node(context, node) else {
         return false;
     };
-    if parent.kind() == "conditional" {
+    if parent.kind_str() == "conditional" {
         return false;
     }
     if is_conditional(parent)
         && parent
-            .child_by_field_name("condition")
+            .field("condition")
             .is_some_and(|condition| condition.id() == node.id())
     {
         return false;
     }
     !(is_call(context, parent)
         || matches!(
-            parent.kind(),
+            parent.kind_str(),
             "array" | "string_array" | "symbol_array" | "pair"
         ))
 }
 
 fn is_conditional(node: Node<'_>) -> bool {
-    is_basic_conditional(node) || matches!(node.kind(), "case" | "case_match" | "conditional")
+    is_basic_conditional(node) || matches!(node.kind_str(), "case" | "case_match" | "conditional")
 }
 
 /// `node.chained?`: the group is the receiver a call hangs off.
 fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
     is_call(context, parent)
@@ -773,8 +774,8 @@ fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `node.call_type?` for a node that may be a bare name: the parser builds an `lvar` for one it
 /// has seen assigned, and only a name it has not is a receiverless call.
-fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
-    if node.kind() == "identifier" && locals.is_lvar(node) {
+fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+    if node.kind_str() == "identifier" && locals.is_lvar(node) {
         return false;
     }
     is_call(context, node)
@@ -783,32 +784,32 @@ fn is_send(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_
 /// Whether the node is a `super` call, which the grammar writes as a call whose selector is the
 /// keyword itself.
 fn is_super(node: Node<'_>) -> bool {
-    node.kind() == "super"
-        || (node.kind() == "call"
+    node.kind_str() == "super"
+        || (node.kind_str() == "call"
             && node
-                .child_by_field_name("method")
-                .is_some_and(|method| method.kind() == "super"))
+                .field("method")
+                .is_some_and(|method| method.kind_str() == "super"))
 }
 
 /// Whether an assignment is the setter call upstream builds a `send` for.
 fn is_setter_assignment(node: Node<'_>) -> bool {
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }
 
 /// `SendNode#receiver`: the operand the grammar names differently for each shape a call takes.
 fn receiver_of<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "call" => node.child_by_field_name("receiver"),
-        "element_reference" => node.child_by_field_name("object"),
+    match node.kind_str() {
+        "call" => node.field("receiver"),
+        "element_reference" => node.field("object"),
         "assignment" => node
-            .child_by_field_name("left")
+            .field("left")
             .and_then(|left| receiver_of(context, left)),
         // A binary operator is a call on its left operand, and a unary one a call on what follows.
-        "binary" if !is_operator_keyword(context, node) => node.child_by_field_name("left"),
-        "unary" => node.child_by_field_name("operand"),
+        "binary" if !is_operator_keyword(context, node) => node.field("left"),
+        "unary" => node.field("operand"),
         _ => None,
     }
 }
@@ -818,10 +819,10 @@ fn is_operator_keyword(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn binary_operator<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    if node.kind() != "binary" {
+    if node.kind_str() != "binary" {
         return None;
     }
-    node.child_by_field_name("operator")
+    node.field("operator")
         .map(|operator| context.source.node_text(operator))
 }
 
@@ -839,10 +840,10 @@ fn is_semantic_operator(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 fn is_comparison(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let comparison = |name: &str| matches!(name, "==" | "===" | "!=" | "<=" | ">=" | ">" | "<");
-    match node.kind() {
+    match node.kind_str() {
         "binary" => binary_operator(context, node).is_some_and(comparison),
         "call" => node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| comparison(context.source.node_text(method))),
         _ => false,
     }
@@ -874,16 +875,16 @@ fn body_range(context: &RuleContext<'_>, node: Node<'_>, inner: Node<'_>) -> boo
     let Some(UpstreamParent::Begin(parent)) = parent_of(context, node) else {
         return false;
     };
-    let statements = match parent.kind() {
+    let statements = match parent.kind_str() {
         "parenthesized_statements" | "interpolation" | "begin" => super::nodes::children(parent),
         _ => super::conditional::self_statements(parent),
     };
-    let beginless = inner.child_by_field_name("begin").is_none()
+    let beginless = inner.field("begin").is_none()
         && !context
             .source
             .node_text(inner)
             .starts_with(|c: char| c != '.');
-    let endless = inner.child_by_field_name("end").is_none();
+    let endless = inner.field("end").is_none();
     let first = statements.first().is_some_and(|statement| {
         statement.start_byte() <= node.start_byte() && statement.end_byte() >= node.end_byte()
     });
@@ -904,7 +905,7 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
     // `args = *node`: the node's own children, which for a keyword taking arguments is the list it
     // was given. `not x` is a `send`, whose selector counts as a second child there and so can
     // never be the single parenthesized argument below.
-    let arguments = match node.kind() {
+    let arguments = match node.kind_str() {
         kind if JUMPS.contains(&kind) || is_super(node) => argument_list(node)
             .map(super::nodes::children)
             .unwrap_or_default(),
@@ -913,11 +914,11 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
         // there and rules that branch out.
         "unary" => {
             let defined = node
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "defined?");
             let group = node
-                .child_by_field_name("operand")
-                .filter(|operand| defined && operand.kind() == "parenthesized_statements");
+                .field("operand")
+                .filter(|operand| defined && operand.kind_str() == "parenthesized_statements");
             return match group {
                 Some(group) => has_own_parentheses(context, group),
                 None => has_own_parentheses(context, node),
@@ -927,7 +928,7 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
     };
     // `only_begin_arg?`: the keyword's single argument is itself a parenthesized group.
     if let [only] = arguments.as_slice()
-        && only.kind() == "parenthesized_statements"
+        && only.kind_str() == "parenthesized_statements"
     {
         return has_own_parentheses(context, *only);
     }
@@ -937,14 +938,14 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
 /// `Util.parentheses?(node)`: `loc.end` is a `)` of the node's own, which is the closing
 /// parenthesis of an argument list rather than whatever character the node happens to end on.
 fn has_own_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" | "super" | "yield" | "return" | "break" | "next" => {
             call_is_parenthesized(context, node)
         }
         // `defined?(x)` and `not(x)` carry the parentheses themselves; written with a blank they
         // are a group of their own.
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(context.source.node_text(operator), "defined?" | "not")
                     && context.source.text().as_bytes().get(operator.end_byte()) == Some(&b'(')
@@ -957,7 +958,7 @@ fn has_own_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `SendNode#arguments.any?`: an operator call carries its other operand as its only argument, and
 /// an index its subscripts.
 fn call_has_arguments(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // A setter call takes the assigned value, and an indexing setter its subscripts too.
         "binary" | "assignment" => true,
         "element_reference" => !super::nodes::children(node).is_empty(),
@@ -966,12 +967,12 @@ fn call_has_arguments(node: Node<'_>) -> bool {
 }
 
 /// `call_node?`: a call, or a brace block that is not a lambda or a proc.
-fn is_call_node(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn is_call_node(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     if is_send(context, locals, node) {
         return true;
     }
-    node.child_by_field_name("block")
-        .is_some_and(|block| block.kind() == "block")
+    node.field("block")
+        .is_some_and(|block| block.kind_str() == "block")
         && !is_lambda_or_proc(context, node)
 }
 
@@ -986,18 +987,18 @@ fn is_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if is_super(node) {
         return false;
     }
-    matches!(node.kind(), "call" | "element_reference" | "identifier")
-        || (node.kind() == "binary" && !is_operator_keyword(context, node))
-        || (node.kind() == "unary"
+    matches!(node.kind_str(), "call" | "element_reference" | "identifier")
+        || (node.kind_str() == "binary" && !is_operator_keyword(context, node))
+        || (node.kind_str() == "unary"
             && node
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) != "defined?"))
 }
 
 /// `check_send`.
 fn check_send<'tree>(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'tree>,
     inner: Node<'tree>,
     pending: &mut Vec<(Node<'tree>, &'static str)>,
@@ -1008,7 +1009,7 @@ fn check_send<'tree>(
             return;
         }
         while is_suspect_unary(context, call) {
-            let Some(operand) = call.child_by_field_name("operand") else {
+            let Some(operand) = call.field("operand") else {
                 break;
             };
             call = operand;
@@ -1025,9 +1026,9 @@ fn check_send<'tree>(
 
 /// `unary_operation?`: an operator call whose selector opens the expression.
 fn is_unary_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 context.source.node_text(operator) != "defined?"
                     && operator.start_byte() == node.start_byte()
@@ -1035,9 +1036,9 @@ fn is_unary_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn is_prefix_not(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "not")
 }
 
@@ -1048,16 +1049,16 @@ fn is_suspect_unary(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `method_call_with_redundant_parentheses?`.
 fn method_call_with_redundant_parentheses(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
     call: Node<'_>,
 ) -> bool {
     let candidate = is_send(context, locals, call)
         || is_super(call)
-        || call.kind() == "yield"
-        || (call.kind() == "unary"
+        || call.kind_str() == "yield"
+        || (call.kind_str() == "unary"
             && call
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "defined?"));
     if !candidate || is_prefix_not(context, call) {
         return false;
@@ -1074,7 +1075,7 @@ fn singular_parenthesized_parent(context: &RuleContext<'_>, node: Node<'_>) -> b
         return true;
     };
     if let UpstreamParent::Node(parent) = parent
-        && matches!(parent.kind(), "splat_argument" | "hash_splat_argument")
+        && matches!(parent.kind_str(), "splat_argument" | "hash_splat_argument")
     {
         return false;
     }
@@ -1083,15 +1084,15 @@ fn singular_parenthesized_parent(context: &RuleContext<'_>, node: Node<'_>) -> b
 
 /// `square_brackets?`: an index written on something the parentheses cannot be part of.
 fn square_brackets(node: Node<'_>) -> bool {
-    if node.kind() != "element_reference" {
+    if node.kind_str() != "element_reference" {
         return false;
     }
-    let Some(object) = node.child_by_field_name("object") else {
+    let Some(object) = node.field("object") else {
         return false;
     };
     super::conditional::descendants(object)
         .into_iter()
-        .any(|descendant| match descendant.kind() {
+        .any(|descendant| match descendant.kind_str() {
             "string" | "array" | "string_array" | "symbol_array" | "hash" => true,
             "constant" | "scope_resolution" => true,
             "instance_variable" | "class_variable" | "global_variable" => true,

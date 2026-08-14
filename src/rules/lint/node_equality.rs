@@ -9,6 +9,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Whether the two operands are the same node. Upstream compares structurally rather than by
 /// source -- `Node#==` looks at the type and the children -- so a difference in spacing is no
@@ -23,7 +24,7 @@ pub(crate) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'
         (Some(_), None) | (None, Some(_)) => return false,
         (None, None) => {}
     }
-    if left.kind() != right.kind() {
+    if left.kind_str() != right.kind_str() {
         return false;
     }
     let left_children = named_children_with_fields(left);
@@ -101,7 +102,7 @@ pub(crate) fn numeric_value(node: Node<'_>, context: &RuleContext<'_>) -> Option
 
 fn literal(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
     let text = context.source.node_text(node);
-    match node.kind() {
+    match node.kind_str() {
         "integer" => integer_value(text).map(Literal::Integer),
         "float" => float_value(text).map(Literal::Float),
         "character" => decode(&text[1..], false).map(Literal::Text),
@@ -112,10 +113,8 @@ fn literal(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
         // The parser folds the sign of a numeric literal into the literal itself, which is how
         // `-0.0` and `0.0` end up equal: they are two floats, and `-0.0 == 0.0`.
         "unary" => {
-            let operator = context
-                .source
-                .node_text(node.child_by_field_name("operator")?);
-            let operand = node.child_by_field_name("operand")?;
+            let operator = context.source.node_text(node.field("operator")?);
+            let operand = node.field("operand")?;
             match (operator, literal(operand, context)?) {
                 ("-", Literal::Integer(value)) => Some(Literal::Integer(-value)),
                 ("-", Literal::Float(value)) => Some(Literal::Float(-value)),
@@ -134,7 +133,7 @@ fn quoted_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Vec<u8>> {
     let mut cursor = node.walk();
     if node
         .named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
     {
         return None;
     }

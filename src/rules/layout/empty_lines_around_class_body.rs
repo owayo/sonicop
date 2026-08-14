@@ -3,6 +3,7 @@
 use super::empty_lines_around_body::{Target, body_container, body_of, check as check_body};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `adjusted_first_line`: a superclass written over several lines pushes the body's opening
         // down with it.
         let first_line = node
-            .child_by_field_name("superclass")
+            .field("superclass")
             .and_then(|superclass| superclass.named_child(0))
             .map_or(node.start_position().row + 1, |parent_class| {
                 parent_class.end_position().row + 1

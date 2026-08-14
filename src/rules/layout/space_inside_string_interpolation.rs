@@ -4,6 +4,7 @@ use std::ops::Range;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let space_style = context.setting::<String>("EnforcedStyle").as_deref() == Some("space");
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ) else {
             continue;
         };
-        if open.kind() != "#{" || close.kind() != "}" {
+        if open.kind_str() != "#{" || close.kind_str() != "}" {
             continue;
         }
         // `begin_node.multiline?`, then `empty_brackets?`: `#{ }` holds no token between its

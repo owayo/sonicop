@@ -13,6 +13,7 @@ use super::percent_array::{
     Bracketed, Element, allowed_bracket_array, bracketed_replacement, elements,
     percent_array_offense, percent_replacement, percent_values,
 };
+use crate::rules::node_ext::NodeExt;
 
 const PERCENT_MSG: &str = "Use `%w` or `%W` for an array of words.";
 const ARRAY_MSG: &str = "Use %<prefer>s for an array of words.";
@@ -36,8 +37,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let values = values(context, &items);
-        if complex_content(&values, word.as_ref())
-            || within_matrix_of_complex_content(context, node, word.as_ref(), &mut matrix)
+        if complex_content(&values, word)
+            || within_matrix_of_complex_content(context, node, word, &mut matrix)
         {
             continue;
         }
@@ -98,7 +99,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// lines, both of which upstream's parser turns into a `dstr`. A `?a` character literal is a `str`
 /// there too.
 fn is_word(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "character" => true,
         "string" => !interpolated(node) && !context.source.node_text(node).contains('\n'),
         _ => false,
@@ -108,7 +109,7 @@ fn is_word(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn interpolated(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 /// The values upstream measures, with a `None` where `str_content` is nil -- anything that is not a
@@ -140,17 +141,17 @@ fn within_matrix_of_complex_content(
     word: Option<&Regex>,
     cache: &mut HashMap<usize, bool>,
 ) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    if parent.kind() != "array" {
+    if parent.kind_str() != "array" {
         return false;
     }
     if let Some(known) = cache.get(&parent.id()) {
         return *known;
     }
     let rows = nodes::children(parent);
-    let matrix = rows.iter().all(|row| row.kind() == "array")
+    let matrix = rows.iter().all(|row| row.kind_str() == "array")
         && rows
             .iter()
             .any(|row| complex_content(&values(context, &nodes::children(*row)), word));
@@ -169,9 +170,9 @@ fn word_source(source: &str, item: &Element, value: &str) -> String {
 }
 
 /// The configured `WordRegex`, or the bundled default when it cannot be read as a pattern.
-fn word_regex(context: &RuleContext<'_>) -> Option<Regex> {
+fn word_regex(context: &RuleContext<'_>) -> Option<&'static Regex> {
     let Some(configured) = context.setting::<String>("WordRegex") else {
-        return Some(DEFAULT_WORD.clone());
+        return Some(&DEFAULT_WORD);
     };
     let body = configured
         .strip_prefix('/')
@@ -183,5 +184,5 @@ fn word_regex(context: &RuleContext<'_>) -> Option<Regex> {
         .replace(r"\A", "^")
         .replace(r"\z", "$")
         .replace(r"\p{Word}", r"\w");
-    Regex::new(&translated).ok()
+    crate::rules::regex_cache::compiled(&translated)
 }

@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `AllowedMethods`' default: the RSpec matchers whose argument reads better without parentheses.
 const DEFAULT_ALLOWED: &[&str] = &[
@@ -29,35 +30,35 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("call") {
         // `node.parenthesized?`.
-        let Some(arguments) = node.child_by_field_name("arguments") else {
+        let Some(arguments) = node.field("arguments") else {
             continue;
         };
-        if !arguments.child(0).is_some_and(|open| open.kind() == "(") {
+        if !arguments.child(0).is_some_and(|open| open.kind_str() == "(") {
             continue;
         }
         let outer_arguments = super::nodes::children(arguments);
         // `each_child_node(:call)` walks the receiver too, since it is a child of the send.
         let children = node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .into_iter()
             .chain(outer_arguments.iter().copied());
         for nested in children {
-            if nested.kind() != "call" {
+            if nested.kind_str() != "call" {
                 continue;
             }
-            let Some(nested_arguments) = nested.child_by_field_name("arguments") else {
+            let Some(nested_arguments) = nested.field("arguments") else {
                 continue;
             };
             let inner = super::nodes::children(nested_arguments);
             if inner.is_empty()
                 || nested_arguments
                     .child(0)
-                    .is_some_and(|open| open.kind() == "(")
+                    .is_some_and(|open| open.kind_str() == "(")
                 || reads_as_binary_and(context, nested_arguments, &inner)
             {
                 continue;
             }
-            let Some(method) = nested.child_by_field_name("method") else {
+            let Some(method) = nested.field("method") else {
                 continue;
             };
             let name = context.source.node_text(method);
@@ -115,7 +116,7 @@ fn reads_as_binary_and(
     let [only] = inner else {
         return false;
     };
-    only.kind() == "block_argument"
+    only.kind_str() == "block_argument"
         && only.start_byte() == arguments.start_byte()
         && !context.source.text()[..only.start_byte()]
             .ends_with([' ', '\t', '\n'])

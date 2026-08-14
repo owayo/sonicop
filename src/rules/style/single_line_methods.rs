@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid single-line method definitions.";
 
@@ -62,10 +63,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(closing) = node.child(node.child_count().saturating_sub(1) as u32) else {
             continue;
         };
-        if closing.kind() != "end" {
+        if closing.kind_str() != "end" {
             continue;
         }
-        let body = node.child_by_field_name("body").and_then(body_expression);
+        let body = node.field("body").and_then(body_expression);
         if allow_empty && body.is_none() {
             continue;
         }
@@ -110,7 +111,7 @@ fn body_expression(body: Node<'_>) -> Option<Body> {
     let first = statements.first()?;
     if statements
         .iter()
-        .any(|child| BODY_CLAUSE_KINDS.contains(&child.kind()))
+        .any(|child| BODY_CLAUSE_KINDS.contains(&child.kind_str()))
     {
         // A protected body is a single `rescue` or `ensure` node reaching to the last clause.
         let end = statements.last().map_or(first.end_byte(), Node::end_byte);
@@ -122,7 +123,7 @@ fn body_expression(body: Node<'_>) -> Option<Body> {
     }
     match statements.as_slice() {
         [only] => Some(Body {
-            kind: only.kind(),
+            kind: only.kind_str(),
             range: only.byte_range(),
             node: Some(only.id()),
         }),
@@ -145,7 +146,7 @@ fn correct_to_endless(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
 
 /// `assignment_method?`: a name closing on `=` that is not one of the comparison operators.
 fn assignment_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.child_by_field_name("name").is_some_and(|name| {
+    node.field("name").is_some_and(|name| {
         let text = context.source.node_text(name);
         text.ends_with('=') && !COMPARISON_OPERATORS.contains(&text)
     })
@@ -155,13 +156,13 @@ fn assignment_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn endless_correction(context: &RuleContext<'_>, node: Node<'_>, body: &Body) -> Edit {
     let text = context.source.text();
     let receiver = node
-        .child_by_field_name("object")
+        .field("object")
         .map(|object| format!("{}.", context.source.node_text(object)))
         .unwrap_or_default();
     let name = node
-        .child_by_field_name("name")
+        .field("name")
         .map_or("", |name| context.source.node_text(name));
-    let arguments = node.child_by_field_name("parameters").map_or_else(
+    let arguments = node.field("parameters").map_or_else(
         || "()".to_owned(),
         |list| match super::nodes::children(list).is_empty() {
             true => "()".to_owned(),
@@ -187,33 +188,33 @@ fn endless_correction(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
 fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) -> Option<String> {
     let expression = body
         .node
-        .and_then(|id| find_child(node.child_by_field_name("body")?, id))?;
-    let (receiver, name, arguments) = match expression.kind() {
+        .and_then(|id| find_child(node.field("body")?, id))?;
+    let (receiver, name, arguments) = match expression.kind_str() {
         "call" => {
-            let list = expression.child_by_field_name("arguments")?;
+            let list = expression.field("arguments")?;
             let arguments = super::nodes::children(list);
             if arguments.is_empty() {
                 return None;
             }
             (
-                expression.child_by_field_name("receiver"),
+                expression.field("receiver"),
                 context
                     .source
-                    .node_text(expression.child_by_field_name("method")?)
+                    .node_text(expression.field("method")?)
                     .to_owned(),
                 arguments,
             )
         }
         "binary" => {
-            let operator = expression.child_by_field_name("operator")?;
+            let operator = expression.field("operator")?;
             let name = context.source.node_text(operator);
             if !BINARY_CALLS.contains(&name) {
                 return None;
             }
             (
-                expression.child_by_field_name("left"),
+                expression.field("left"),
                 name.to_owned(),
-                vec![expression.child_by_field_name("right")?],
+                vec![expression.field("right")?],
             )
         }
         "element_reference" => {
@@ -222,20 +223,20 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
                 return None;
             }
             (
-                expression.child_by_field_name("object"),
+                expression.field("object"),
                 "[]".to_owned(),
                 arguments,
             )
         }
         // A write through a receiver is a call to `name=` or to `[]=` upstream, not an assignment.
         "assignment" => {
-            let left = expression.child_by_field_name("left")?;
-            let right = expression.child_by_field_name("right")?;
-            match left.kind() {
+            let left = expression.field("left")?;
+            let right = expression.field("right")?;
+            match left.kind_str() {
                 "call" => {
-                    let method = left.child_by_field_name("method")?;
+                    let method = left.field("method")?;
                     (
-                        left.child_by_field_name("receiver"),
+                        left.field("receiver"),
                         format!("{}=", context.source.node_text(method)),
                         vec![right],
                     )
@@ -244,7 +245,7 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
                     let mut arguments = index_arguments(left);
                     arguments.push(right);
                     (
-                        left.child_by_field_name("object"),
+                        left.field("object"),
                         "[]=".to_owned(),
                         arguments,
                     )
@@ -271,7 +272,7 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
 /// The index arguments of `a[b, c]`, which upstream hands to `:[]` after the receiver.
 fn index_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut arguments = super::nodes::children(node);
-    if node.child_by_field_name("object").is_some() && !arguments.is_empty() {
+    if node.field("object").is_some() && !arguments.is_empty() {
         arguments.remove(0);
     }
     arguments
@@ -330,13 +331,13 @@ fn multiline_correction(
 
 /// Where each line break goes, which is the start of every statement upstream's `each_part` yields.
 fn statement_starts(node: Node<'_>) -> Vec<usize> {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return Vec::new();
     };
     let statements = super::nodes::children(body);
     let clause = statements
         .iter()
-        .any(|child| BODY_CLAUSE_KINDS.contains(&child.kind()));
+        .any(|child| BODY_CLAUSE_KINDS.contains(&child.kind_str()));
     match clause {
         // A protected body is one `rescue` node upstream, starting where its first statement does.
         true => statements

@@ -1,35 +1,36 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::is_plain_send;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "`BigDecimal.new()` is deprecated. Use `BigDecimal()` instead.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if context.source.node_text(method) != "new" || !is_plain_send(node, context) {
             continue;
         }
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
         // `(const ${nil? cbase} :BigDecimal)`: the capture is the `::` that `::BigDecimal` is
         // written with, which the correction removes along with the method call.
-        let cbase = match receiver.kind() {
+        let cbase = match receiver.kind_str() {
             "constant" if context.source.node_text(receiver) == "BigDecimal" => None,
             "scope_resolution"
-                if receiver.child_by_field_name("scope").is_none()
+                if receiver.field("scope").is_none()
                     && receiver
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|name| context.source.node_text(name) == "BigDecimal") =>
             {
                 receiver.child(0)
             }
             _ => continue,
         };
-        let Some(dot) = node.child_by_field_name("operator") else {
+        let Some(dot) = node.field("operator") else {
             continue;
         };
         // Three separate `remove` calls upstream, and three here: one replacement spanning them

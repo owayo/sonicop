@@ -2,25 +2,26 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `Integer#times` for a simple loop which iterates a fixed number of times.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(block) = node.child_by_field_name("block") else {
+        let Some(block) = node.field("block") else {
             continue;
         };
         // `node.arguments.empty?`, and not a `numblock` or an `itblock`: upstream handles only
         // `on_block`, so a body reading `_1` or `it` is a node type this cop never sees.
         if block
-            .child_by_field_name("parameters")
+            .field("parameters")
             .is_some_and(|parameters| !super::nodes::children(parameters).is_empty())
             || super::block_args::implicit(context, block)
         {
             continue;
         }
         if node
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "each")
         {
             continue;
@@ -29,14 +30,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let (Some(low), Some(high)) = (
-            integer_value(context, range.child_by_field_name("begin")),
-            integer_value(context, range.child_by_field_name("end")),
+            integer_value(context, range.field("begin")),
+            integer_value(context, range.field("end")),
         ) else {
             continue;
         };
         // `(a..b)` covers one more value than `(a...b)`.
         let inclusive = range
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "..");
         let Some(count) = high
             .checked_add(i64::from(inclusive))
@@ -61,13 +62,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(begin ($range (int $_) (int $_)))`: the receiver has to be a parenthesized range and nothing
 /// else.
 fn parenthesized_range<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    let receiver = node.child_by_field_name("receiver")?;
-    if receiver.kind() != "parenthesized_statements" {
+    let receiver = node.field("receiver")?;
+    if receiver.kind_str() != "parenthesized_statements" {
         return None;
     }
     let _ = context;
     match super::nodes::children(receiver).as_slice() {
-        [only] if only.kind() == "range" => Some(*only),
+        [only] if only.kind_str() == "range" => Some(*only),
         _ => None,
     }
 }
@@ -75,19 +76,19 @@ fn parenthesized_range<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> O
 /// `(int _)`: the parser folds a leading sign into the literal, so `-1` is one too.
 fn integer_value(context: &RuleContext<'_>, node: Option<Node<'_>>) -> Option<i64> {
     let node = node?;
-    let (node, negative) = match node.kind() {
+    let (node, negative) = match node.kind_str() {
         "unary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             if !matches!(operator, "-" | "+") {
                 return None;
             }
-            (node.child_by_field_name("operand")?, operator == "-")
+            (node.field("operand")?, operator == "-")
         }
         _ => (node, false),
     };
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return None;
     }
     let text: String = context

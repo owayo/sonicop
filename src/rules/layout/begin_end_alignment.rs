@@ -3,6 +3,7 @@
 use super::support::{character_column, end_keyword, end_keyword_alignment, start_line_range};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // Unlike `Layout/EndAlignment`, this cop measures from the start of the line by default:
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         == Some("begin");
     for node in context.nodes_of("begin") {
         let (Some(keyword), Some(end)) = (
-            node.child(0).filter(|child| child.kind() == "begin"),
+            node.child(0).filter(|child| child.kind_str() == "begin"),
             end_keyword(node),
         ) else {
             continue;

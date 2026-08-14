@@ -3,13 +3,14 @@ use super::variable_force::{
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ignore_empty: bool = context.setting("IgnoreEmptyBlocks").unwrap_or(true);
     let allow_unused_keywords: bool = context
         .setting("AllowUnusedKeywordArguments")
         .unwrap_or(false);
-    let analysis = Analysis::run(context.root_node(), context.source);
+    let analysis = context.variable_analysis();
     for scope in &analysis.scopes {
         for &index in &scope.variables {
             let variable = &analysis.variables[index];
@@ -22,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 continue;
             }
-            let message = message(context, &analysis, scope, variable);
+            let message = message(context, analysis, scope, variable);
             let offense = context.offense(message, variable.name_node.byte_range());
             offenses.push(match correction(context, variable) {
                 Some(edit) => offense.corrected_by(edit),
@@ -35,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `Variable#block_argument?`. A parameter of a method is another cop's business, and a variable
 /// that is merely assigned inside a block is nobody's.
 fn block_argument(variable: &Variable<'_>, scope: &Scope<'_>) -> bool {
-    variable.is_argument() && matches!(scope.node.kind(), "block" | "do_block" | "lambda")
+    variable.is_argument() && matches!(scope.node.kind_str(), "block" | "do_block" | "lambda")
 }
 
 fn keyword_argument(variable: &Variable<'_>) -> bool {

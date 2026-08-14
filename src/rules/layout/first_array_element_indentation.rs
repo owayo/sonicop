@@ -11,6 +11,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `%w[...]` and `%i[...]` are arrays upstream, so their opener counts as a left bracket.
 const ARRAY_KINDS: [&str; 3] = ["array", "string_array", "symbol_array"];
@@ -85,15 +86,15 @@ fn first_element<'tree>(array: Node<'tree>) -> Option<(Range<usize>, Option<Node
     let mut cursor = array.walk();
     let children: Vec<Node<'tree>> = array
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     let first = *children.first()?;
-    if !matches!(first.kind(), "pair" | "hash_splat_argument") {
+    if !matches!(first.kind_str(), "pair" | "hash_splat_argument") {
         return Some((first.byte_range(), Some(first)));
     }
     let end = children
         .iter()
-        .take_while(|child| matches!(child.kind(), "pair" | "hash_splat_argument"))
+        .take_while(|child| matches!(child.kind_str(), "pair" | "hash_splat_argument"))
         .last()?
         .end_byte();
     Some((first.start_byte()..end, None))
@@ -159,7 +160,7 @@ fn closing<'tree>(array: Node<'tree>) -> Option<Node<'tree>> {
     let count = array.child_count();
     array
         .child(u32::try_from(count).ok()?.checked_sub(1)?)
-        .filter(|child| matches!(child.kind(), "]" | ")"))
+        .filter(|child| matches!(child.kind_str(), "]" | ")"))
 }
 
 fn base_description(kind: IndentBase) -> &'static str {

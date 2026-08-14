@@ -3,12 +3,13 @@ use tree_sitter::Node;
 use super::support::{HeredocEnds, LengthTarget, constructor_call, report_length};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(100);
     let heredocs = HeredocEnds::new(context);
     for node in context.nodes_of_any(&["module", "assignment"]) {
-        let (measured, target) = if node.kind() == "module" {
+        let (measured, target) = if node.kind_str() == "module" {
             (node, LengthTarget::Classlike)
         } else {
             // `CONST = Module.new { ... }` defines a module, so `on_casgn` measures the block's
@@ -40,18 +41,18 @@ fn module_definition_block<'tree>(
     assignment: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     let name = assignment
-        .child_by_field_name("left")
-        .filter(|left| left.kind() == "constant")?;
+        .field("left")
+        .filter(|left| left.kind_str() == "constant")?;
     let call = assignment
-        .child_by_field_name("right")
-        .filter(|right| right.kind() == "call")?;
-    if call.child_by_field_name("arguments").is_some()
+        .field("right")
+        .filter(|right| right.kind_str() == "call")?;
+    if call.field("arguments").is_some()
         || constructor_call(context, call)? != ("Module", "new")
     {
         return None;
     }
     let block = call
-        .child_by_field_name("block")
-        .filter(|block| matches!(block.kind(), "block" | "do_block"))?;
+        .field("block")
+        .filter(|block| matches!(block.kind_str(), "block" | "do_block"))?;
     Some((block, name))
 }

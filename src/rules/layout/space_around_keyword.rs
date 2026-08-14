@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::is_send_like;
+use crate::rules::node_ext::NodeExt;
 
 /// `ACCEPT_LEFT_PAREN`: keywords a `(` may follow without a space.
 const ACCEPT_LEFT_PAREN: [&str; 7] = [
@@ -70,12 +71,12 @@ struct Reporter<'a, 'b> {
 
 impl Reporter<'_, '_> {
     fn inspect(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        match node.kind() {
+        match node.kind_str() {
             // `on_and` / `on_or`, which only fire for the word forms.
             "binary" => {
                 if let Some(operator) = node
-                    .child_by_field_name("operator")
-                    .filter(|operator| matches!(operator.kind(), "and" | "or"))
+                    .field("operator")
+                    .filter(|operator| matches!(operator.kind_str(), "and" | "or"))
                 {
                     self.keyword(node, operator, offenses);
                 }
@@ -83,14 +84,14 @@ impl Reporter<'_, '_> {
             // `on_send` for `prefix_not?`, and `on_defined?`.
             "unary" => {
                 if let Some(operator) = node
-                    .child_by_field_name("operator")
-                    .filter(|operator| matches!(operator.kind(), "not" | "defined?"))
+                    .field("operator")
+                    .filter(|operator| matches!(operator.kind_str(), "not" | "defined?"))
                 {
                     self.keyword(node, operator, offenses);
                 }
             }
             "block" | "do_block" => {
-                let Some(open) = token(node, &["{", "do"]).filter(|open| open.kind() == "do")
+                let Some(open) = token(node, &["{", "do"]).filter(|open| open.kind_str() == "do")
                 else {
                     return;
                 };
@@ -123,7 +124,7 @@ impl Reporter<'_, '_> {
             }
             // `on_for` looks at the delimiters only; `on_while` and `on_until` at the keyword too.
             "for" | "while" | "until" => {
-                let body = node.child_by_field_name("body");
+                let body = node.field("body");
                 // The grammar keeps both `do` and `end` inside the loop's body node.
                 if let Some(open) = body.and_then(|body| token(body, &["do"])) {
                     self.keyword(node, open, offenses);
@@ -131,7 +132,7 @@ impl Reporter<'_, '_> {
                         self.end_keyword(end, offenses);
                     }
                 }
-                if node.kind() != "for" {
+                if node.kind_str() != "for" {
                     if let Some(keyword) = node.child(0).filter(|child| !child.is_named()) {
                         self.keyword(node, keyword, offenses);
                     }
@@ -148,13 +149,13 @@ impl Reporter<'_, '_> {
                     self.keyword(node, keyword, offenses);
                 }
                 if let Some(other) = node
-                    .child_by_field_name("alternative")
+                    .field("alternative")
                     .and_then(|other| token(other, &["else", "elsif"]))
                 {
                     self.keyword(node, other, offenses);
                 }
                 if let Some(then) = node
-                    .child_by_field_name("consequence")
+                    .field("consequence")
                     .and_then(|consequence| token(consequence, &["then"]))
                 {
                     self.keyword(node, then, offenses);
@@ -260,14 +261,14 @@ impl Reporter<'_, '_> {
     /// front of it belongs to the operator cop.
     fn preceded_by_operator(&self, node: Node<'_>) -> bool {
         let mut current = node;
-        while let Some(parent) = current.parent() {
-            if parent.kind() == "range" {
+        while let Some(parent) = current.parent_of(self.context) {
+            if parent.kind_str() == "range" {
                 return true;
             }
-            if parent.kind() == "binary"
+            if parent.kind_str() == "binary"
                 && parent
-                    .child_by_field_name("operator")
-                    .is_some_and(|operator| matches!(operator.kind(), "and" | "or" | "&&" | "||"))
+                    .field("operator")
+                    .is_some_and(|operator| matches!(operator.kind_str(), "and" | "or" | "&&" | "||"))
             {
                 return true;
             }
@@ -285,9 +286,9 @@ impl Reporter<'_, '_> {
 
 /// `node.operator_method?`
 fn operator_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "binary" | "unary" | "element_reference" => true,
-        _ => node.child_by_field_name("method").is_some_and(|method| {
+        _ => node.field("method").is_some_and(|method| {
             !context
                 .source
                 .node_text(method)
@@ -300,9 +301,9 @@ fn operator_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// ordinary one.
 fn case_else<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
-    let branch = node.child_by_field_name("else").or_else(|| {
+    let branch = node.field("else").or_else(|| {
         node.named_children(&mut cursor)
-            .find(|child| child.kind() == "else")
+            .find(|child| child.kind_str() == "else")
     })?;
     token(branch, &["else"])
 }
@@ -311,7 +312,7 @@ fn case_else<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn rescue_else<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut sibling = node.next_named_sibling();
     while let Some(candidate) = sibling {
-        match candidate.kind() {
+        match candidate.kind_str() {
             "else" => return token(candidate, &["else"]),
             "rescue" => sibling = candidate.next_named_sibling(),
             _ => return None,
@@ -325,5 +326,5 @@ fn rescue_else<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 fn token<'tree>(node: Node<'tree>, kinds: &[&str]) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| !child.is_named() && kinds.contains(&child.kind()))
+        .find(|child| !child.is_named() && kinds.contains(&child.kind_str()))
 }

@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// Argument kinds the cop steps over: what upstream's node pattern rules out as `!splat`, plus the
 /// forwarding and keyword shapes `IGNORED_ARGUMENT_TYPES` names.
@@ -23,21 +24,21 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
         // `(send _ :dig $!splat)`: a safe navigation call is a `csend`, which the pattern excludes.
         if node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "&.")
         {
             continue;
         }
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
         let Some(argument) = single_dig_argument(context, node) else {
             continue;
         };
-        if IGNORED.contains(&argument.kind()) {
+        if IGNORED.contains(&argument.kind_str()) {
             continue;
         }
-        if chains && (is_dig(context, receiver) || node.parent().is_some_and(|parent| is_dig(context, parent)))
+        if chains && (is_dig(context, receiver) || node.parent_of(context).is_some_and(|parent| is_dig(context, parent)))
         {
             continue;
         }
@@ -49,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         );
         let offense = context.offense(message, node.byte_range());
         // `ignore_node`: only the outermost `dig` of a chain is rewritten.
-        let nested = std::iter::successors(node.parent(), |current| current.parent())
+        let nested = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
             .any(|ancestor| reported.contains(&ancestor.id()));
         reported.push(node.id());
         offenses.push(match nested {
@@ -68,14 +69,14 @@ fn single_dig_argument<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<Node<'tree>> {
-    if node.child_by_field_name("block").is_some() {
+    if node.field("block").is_some() {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
+    let method = node.field("method")?;
     if context.source.node_text(method) != "dig" {
         return None;
     }
-    let arguments = node.child_by_field_name("arguments")?;
+    let arguments = node.field("arguments")?;
     match super::nodes::children(arguments).as_slice() {
         [only] => Some(*only),
         _ => None,
@@ -84,21 +85,21 @@ fn single_dig_argument<'tree>(
 
 /// `(call _ :dig !{hash block_pass}+)`: a `dig` with at least one ordinary argument.
 fn is_dig(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
-    let Some(method) = node.child_by_field_name("method") else {
+    let Some(method) = node.field("method") else {
         return false;
     };
     if context.source.node_text(method) != "dig" {
         return false;
     }
-    let Some(arguments) = node.child_by_field_name("arguments") else {
+    let Some(arguments) = node.field("arguments") else {
         return false;
     };
     let arguments = super::nodes::children(arguments);
     !arguments.is_empty()
         && arguments
             .iter()
-            .all(|argument| !matches!(argument.kind(), "hash" | "pair" | "block_argument"))
+            .all(|argument| !matches!(argument.kind_str(), "hash" | "pair" | "block_argument"))
 }

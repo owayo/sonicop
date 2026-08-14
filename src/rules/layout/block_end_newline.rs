@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use super::support::{begins_its_line, heredoc_terminators};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -68,14 +69,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `node.loc.end`: the `}` or `end` the block closes with.
 fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
-    matches!(last.kind(), "}" | "end").then_some(last)
+    matches!(last.kind_str(), "}" | "end").then_some(last)
 }
 
 /// Where the node upstream builds for a body ends. The grammar's container reaches past the last
 /// statement to take in a trailing `;`, which the parser's `begin` node does not.
 fn parser_end(node: Node<'_>) -> usize {
     let mut current = node;
-    while matches!(current.kind(), "body_statement" | "block_body") {
+    while matches!(current.kind_str(), "body_statement" | "block_body") {
         let Some(last) = last_child(current) else {
             break;
         };
@@ -87,7 +88,7 @@ fn parser_end(node: Node<'_>) -> usize {
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body" | "empty_statement"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body" | "empty_statement"))
         .last()
 }
 
@@ -108,15 +109,15 @@ fn last_heredoc_argument(
             let mut cursor = list.walk();
             let found = list
                 .named_children(&mut cursor)
-                .filter(|child| child.kind() == "heredoc_beginning")
+                .filter(|child| child.kind_str() == "heredoc_beginning")
                 .filter_map(|child| single_line_heredoc(context, &bodies, &terminators, child))
                 .last();
             if found.is_some() {
                 return found;
             }
         }
-        node = node.child_by_field_name("receiver")?;
-        if node.kind() != "call" {
+        node = node.field("receiver")?;
+        if node.kind_str() != "call" {
             return None;
         }
     }
@@ -125,15 +126,15 @@ fn last_heredoc_argument(
 /// The single statement a block body consists of, when that statement is a call.
 fn body_call<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
     let body = last_child(block).filter(|child| {
-        matches!(child.kind(), "body_statement" | "block_body") && child.named_child_count() > 0
+        matches!(child.kind_str(), "body_statement" | "block_body") && child.named_child_count() > 0
     })?;
     let mut cursor = body.walk();
     let statements: Vec<Node<'tree>> = body
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     match statements.as_slice() {
-        [only] if only.kind() == "call" => Some(*only),
+        [only] if only.kind_str() == "call" => Some(*only),
         _ => None,
     }
 }
@@ -141,7 +142,7 @@ fn body_call<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
 fn argument_list<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = call.walk();
     call.children(&mut cursor)
-        .find(|child| child.kind() == "argument_list")
+        .find(|child| child.kind_str() == "argument_list")
 }
 
 fn single_line_heredoc(

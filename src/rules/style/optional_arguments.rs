@@ -4,13 +4,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Optional arguments should appear at the end of the argument list.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_def` and its `on_defs` alias: a block's parameters are never inspected.
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         let arguments = super::nodes::children(parameters);
@@ -35,7 +36,7 @@ fn positions(arguments: &[Node<'_>], kind: &str) -> Vec<usize> {
     arguments
         .iter()
         .enumerate()
-        .filter(|(_, argument)| argument.kind() == kind)
+        .filter(|(_, argument)| argument.kind_str() == kind)
         .map(|(index, _)| index)
         .collect()
 }

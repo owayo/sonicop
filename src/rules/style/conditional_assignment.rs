@@ -7,6 +7,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
 use crate::rules::support;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use the return of the conditional for variable assignment and comparison.";
 const ASSIGN_TO_CONDITION_MSG: &str = "Assign variables inside of conditionals.";
@@ -49,8 +50,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     assign_to_condition: bool,
     single_line_only: bool,
     include_ternary: bool,
@@ -70,7 +71,7 @@ struct Conditional<'t> {
     case_like: bool,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `on_if` / `on_case` / `on_case_match`: the `assign_to_condition` half of the cop.
     fn check_conditionals(&self, offenses: &mut Vec<Offense>) {
         for node in
@@ -106,17 +107,17 @@ impl Cop<'_> {
 
     /// The branches of a conditional that has an `else`, which is the only shape this cop reads.
     fn conditional<'t>(&self, node: Node<'t>) -> Option<Conditional<'t>> {
-        if matches!(node.kind(), "case" | "case_match") {
+        if matches!(node.kind_str(), "case" | "case_match") {
             let children = super::nodes::children(node);
-            let otherwise = children.iter().find(|child| child.kind() == "else")?;
+            let otherwise = children.iter().find(|child| child.kind_str() == "else")?;
             // `branches.all?`: a `when` with an empty body has nothing to compare, and drops the
             // conditional out of the check rather than out of the list.
             let mut branches: Vec<Node<'t>> = Vec::new();
             for clause in children
                 .iter()
-                .filter(|child| matches!(child.kind(), "when" | "in_clause"))
+                .filter(|child| matches!(child.kind_str(), "when" | "in_clause"))
             {
-                branches.push(branch(clause.child_by_field_name("body"))?);
+                branches.push(branch(clause.field("body"))?);
             }
             branches.push(branch(Some(*otherwise))?);
             return Some(Conditional {
@@ -127,23 +128,23 @@ impl Cop<'_> {
             });
         }
         // A ternary is an `if` upstream, with its two operands for branches.
-        if node.kind() == "conditional" {
+        if node.kind_str() == "conditional" {
             return Some(Conditional {
                 node,
                 branches: vec![
-                    node.child_by_field_name("consequence")?,
-                    node.child_by_field_name("alternative")?,
+                    node.field("consequence")?,
+                    node.field("alternative")?,
                 ],
                 ternary: true,
                 case_like: false,
             });
         }
-        let mut branches = vec![branch(node.child_by_field_name("consequence"))?];
+        let mut branches = vec![branch(node.field("consequence"))?];
         // `expand_elses`: an `elsif` is a nested conditional whose branches belong to this one.
-        let mut alternative = node.child_by_field_name("alternative")?;
-        while alternative.kind() == "elsif" {
-            branches.push(branch(alternative.child_by_field_name("consequence"))?);
-            alternative = alternative.child_by_field_name("alternative")?;
+        let mut alternative = node.field("alternative")?;
+        while alternative.kind_str() == "elsif" {
+            branches.push(branch(alternative.field("consequence"))?);
+            alternative = alternative.field("alternative")?;
         }
         branches.push(branch(Some(alternative))?);
         Some(Conditional {
@@ -241,15 +242,15 @@ enum Kind {
     Send,
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     /// `assignment_type?` together with `lhs`: what the statement assigns and how it says so.
     fn classify<'t>(&self, node: Node<'t>) -> Option<Assignment<'t>> {
         let text = |inner: Node<'_>| self.context.source.node_text(inner).to_owned();
-        match node.kind() {
+        match node.kind_str() {
             "assignment" => {
-                let left = node.child_by_field_name("left")?;
-                let value = node.child_by_field_name("right")?;
-                let (kind, lhs) = match left.kind() {
+                let left = node.field("left")?;
+                let value = node.field("right")?;
+                let (kind, lhs) = match left.kind_str() {
                     "identifier" => (Kind::Lvasgn, format!("{} = ", text(left))),
                     "instance_variable" => (Kind::Ivasgn, format!("{} = ", text(left))),
                     "class_variable" => (Kind::Cvasgn, format!("{} = ", text(left))),
@@ -258,7 +259,7 @@ impl Cop<'_> {
                     "left_assignment_list" => (Kind::Masgn, format!("{} = ", text(left))),
                     // `a[0] = 1` and `a.b = 1` are calls upstream, named after the setter.
                     "element_reference" => {
-                        let object = left.child_by_field_name("object")?;
+                        let object = left.field("object")?;
                         let mut indices = super::nodes::children(left);
                         indices.retain(|index| index.id() != object.id());
                         let written: Vec<String> =
@@ -269,9 +270,9 @@ impl Cop<'_> {
                         )
                     }
                     "call" => {
-                        let method = left.child_by_field_name("method")?;
+                        let method = left.field("method")?;
                         let receiver = left
-                            .child_by_field_name("receiver")
+                            .field("receiver")
                             .map_or_else(String::new, text);
                         (Kind::Send, format!("{receiver}.{} = ", text(method)))
                     }
@@ -282,13 +283,13 @@ impl Cop<'_> {
                     lhs,
                     value,
                     node,
-                    element_setter: left.kind() == "element_reference",
+                    element_setter: left.kind_str() == "element_reference",
                 })
             }
             "operator_assignment" => {
-                let left = node.child_by_field_name("left")?;
-                let value = node.child_by_field_name("right")?;
-                let operator = node.child_by_field_name("operator")?;
+                let left = node.field("left")?;
+                let value = node.field("right")?;
+                let operator = node.field("operator")?;
                 let written = self.context.source.node_text(operator);
                 let kind = match written {
                     "||=" => Kind::OrAsgn,
@@ -305,23 +306,23 @@ impl Cop<'_> {
             }
             // `a << b` and `a == b` are calls upstream, named after the operator.
             "binary" => {
-                let operator = node.child_by_field_name("operator")?;
+                let operator = node.field("operator")?;
                 let written = self.context.source.node_text(operator);
                 if !is_assignment_method(written) {
                     return None;
                 }
-                let left = node.child_by_field_name("left")?;
+                let left = node.field("left")?;
                 Some(Assignment {
                     kind: Kind::Send,
                     lhs: format!("{} {written} ", text(left)),
-                    value: node.child_by_field_name("right")?,
+                    value: node.field("right")?,
                     node,
                     element_setter: false,
                 })
             }
             // A call written with an argument list rather than as an assignment.
             "call" => {
-                let method = node.child_by_field_name("method")?;
+                let method = node.field("method")?;
                 let name = self.context.source.node_text(method);
                 if !is_assignment_method(name) {
                     return None;
@@ -329,7 +330,7 @@ impl Cop<'_> {
                 let arguments = send_node::arguments(node);
                 let value = arguments.last()?.first();
                 let receiver = node
-                    .child_by_field_name("receiver")
+                    .field("receiver")
                     .map_or_else(String::new, text);
                 // `lhs_for_send`: a setter is written with an `=`, and every other operator with
                 // the name it was called by.
@@ -388,7 +389,7 @@ impl Cop<'_> {
         for (position, statement) in statements.iter().enumerate() {
             let source = self.context.source.node_text(statement.value);
             let replacement = match bracketed.contains(&position)
-                && statement.value.kind() == "right_assignment_list"
+                && statement.value.kind_str() == "right_assignment_list"
             {
                 true => format!("[{source}]"),
                 false => source.to_owned(),
@@ -422,7 +423,7 @@ impl Cop<'_> {
     ) -> String {
         let condition = conditional
             .node
-            .child_by_field_name("condition")
+            .field("condition")
             .map_or_else(String::new, |condition| {
                 self.context.source.node_text(condition).to_owned()
             });
@@ -455,8 +456,8 @@ impl Cop<'_> {
             // `assignment_rhs_exist?`: a target of a multiple assignment or a `rescue => e` has no
             // right-hand side of its own.
             if node
-                .parent()
-                .is_some_and(|parent| matches!(parent.kind(), "left_assignment_list" | "rescue"))
+                .parent_of(self.context)
+                .is_some_and(|parent| matches!(parent.kind_str(), "left_assignment_list" | "rescue"))
             {
                 continue;
             }
@@ -544,14 +545,14 @@ fn branch<'t>(node: Option<Node<'t>>) -> Option<Node<'t>> {
 /// `_condition, *branches, else_branch = *assignment`: the conditional's children after its
 /// condition, which for a `case` are the `when` clauses rather than their bodies.
 fn raw_branches<'t>(node: Node<'t>) -> Vec<Node<'t>> {
-    match node.kind() {
+    match node.kind_str() {
         "case" | "case_match" => super::nodes::children(node)
             .into_iter()
-            .filter(|child| matches!(child.kind(), "when" | "in_clause" | "else"))
+            .filter(|child| matches!(child.kind_str(), "when" | "in_clause" | "else"))
             .collect(),
         _ => [
-            node.child_by_field_name("consequence"),
-            node.child_by_field_name("alternative"),
+            node.field("consequence"),
+            node.field("alternative"),
         ]
         .into_iter()
         .flatten()
@@ -562,12 +563,12 @@ fn raw_branches<'t>(node: Node<'t>) -> Vec<Node<'t>> {
 /// `begin_type?`: whether the branch upstream wraps more than one statement, which only a branch
 /// written between keywords can.
 fn holds_several(branch: Node<'_>) -> bool {
-    matches!(branch.kind(), "then" | "else") && super::nodes::children(branch).len() > 1
+    matches!(branch.kind_str(), "then" | "else") && super::nodes::children(branch).len() > 1
 }
 
 /// `tail`: the statement a branch ends with, which is the one that assigns.
 fn tail<'t>(branch: Node<'t>) -> Node<'t> {
-    match branch.kind() {
+    match branch.kind_str() {
         "then" | "else" => super::nodes::children(branch)
             .last()
             .copied()
@@ -578,7 +579,7 @@ fn tail<'t>(branch: Node<'t>) -> Node<'t> {
 
 /// A conditional written in parentheses, which upstream reads as a `begin` around it.
 fn strip_parentheses<'t>(node: Node<'t>) -> Node<'t> {
-    if node.kind() != "parenthesized_statements" {
+    if node.kind_str() != "parenthesized_statements" {
         return node;
     }
     let children = super::nodes::children(node);
@@ -594,5 +595,5 @@ fn end_keyword<'t>(node: Node<'t>) -> Option<Node<'t>> {
     children
         .into_iter()
         .rev()
-        .find(|child| !child.is_named() && child.kind() == "end")
+        .find(|child| !child.is_named() && child.kind_str() == "end")
 }

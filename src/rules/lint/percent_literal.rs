@@ -8,6 +8,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{has_interpolation, named_children};
 
 /// `type(node)`: the opening delimiter without its bracket, or `None` when the literal was not
@@ -22,7 +23,7 @@ pub(super) fn percent_type<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> 
 pub(super) fn values<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     named_children(node)
         .into_iter()
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }
 

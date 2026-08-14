@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let frozen = frozen_strings(context);
@@ -64,20 +65,20 @@ enum Literal {
 
 impl Literal {
     fn read(node: Node<'_>, context: &RuleContext<'_>) -> Option<Self> {
-        match node.kind() {
+        match node.kind_str() {
             // `Array[]` and `Hash[]`, which upstream reads as a call to `:[]` with no arguments.
             "element_reference" => {
                 if super::nodes::children(node).len() != 1 {
                     return None;
                 }
-                let object = node.child_by_field_name("object")?;
+                let object = node.field("object")?;
                 named_constant(object, context).filter(|literal| *literal != Self::String)
             }
             "call" => {
-                let method = node.child_by_field_name("method")?;
+                let method = node.field("method")?;
                 let name = context.source.node_text(method);
                 let list = arguments(node);
-                match node.child_by_field_name("receiver") {
+                match node.field("receiver") {
                     // `Array.new`, `Hash.new` and `String.new`.
                     Some(receiver) => {
                         if name != "new" {
@@ -101,7 +102,7 @@ impl Literal {
                             return None;
                         }
                         // A block makes the result something other than the bare literal.
-                        if literal != Self::String && node.child_by_field_name("block").is_some() {
+                        if literal != Self::String && node.field("block").is_some() {
                             return None;
                         }
                         Some(literal)
@@ -143,7 +144,7 @@ fn named_constant(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> 
 }
 
 fn is_empty_array(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "array"
+    node.kind_str() == "array"
         && super::nodes::children(node).is_empty()
         && context.source.node_text(node).starts_with('[')
 }
@@ -154,12 +155,12 @@ fn unparenthesized_first_argument(
     node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<(usize, usize, Vec<String>)> {
-    let parent = node.parent()?;
-    let list = match parent.kind() {
-        "call" | "super" => parent.child_by_field_name("arguments")?,
+    let parent = node.parent_of(context)?;
+    let list = match parent.kind_str() {
+        "call" | "super" => parent.field("arguments")?,
         "argument_list" => {
-            let call = parent.parent()?;
-            if !matches!(call.kind(), "call" | "super") {
+            let call = parent.parent_of(context)?;
+            if !matches!(call.kind_str(), "call" | "super") {
                 return None;
             }
             parent
@@ -170,7 +171,7 @@ fn unparenthesized_first_argument(
         return None;
     }
     let call = match list.id() == parent.id() {
-        true => parent.parent()?,
+        true => parent.parent_of(context)?,
         false => parent,
     };
     let all = arguments(call);

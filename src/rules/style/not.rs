@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `!` instead of `not`.";
 
@@ -20,14 +21,14 @@ fn opposite(method: &str) -> Option<&'static str> {
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("unary") {
-        let Some(selector) = node.child_by_field_name("operator") else {
+        let Some(selector) = node.field("operator") else {
             continue;
         };
         // `prefix_not?`: written as the keyword rather than as `!`.
         if context.source.node_text(selector) != "not" {
             continue;
         }
-        let Some(receiver) = node.child_by_field_name("operand") else {
+        let Some(receiver) = node.field("operand") else {
             continue;
         };
         // `range_with_surrounding_space(node.loc.selector, side: :right)`.
@@ -80,9 +81,9 @@ fn comparison_selector<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str)> {
-    let selector = match node.kind() {
-        "binary" => node.child_by_field_name("operator")?,
-        "call" => node.child_by_field_name("method")?,
+    let selector = match node.kind_str() {
+        "binary" => node.field("operator")?,
+        "call" => node.field("method")?,
         _ => return None,
     };
     opposite(context.source.node_text(selector)).map(|replacement| (selector, replacement))
@@ -91,12 +92,12 @@ fn comparison_selector<'tree>(
 /// `requires_parens?`: `not a && b` and `not a + b` both bind the whole expression, which `!` does
 /// not.
 fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `operator_keyword?`: an `and` or `or` node.
         "boolean" => true,
         // `binary_operation?`: an operator method written infix.
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 let text = context.source.node_text(operator);
                 super::nodes::is_operator_method(text) || matches!(text, "and" | "or" | "&&" | "||")

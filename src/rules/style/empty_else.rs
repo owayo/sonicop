@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant `else`-clause.";
 
@@ -41,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let body = super::nodes::children(clause);
         let reportable = match body.as_slice() {
             [] => empty_style,
-            [only] => nil_style && only.kind() == "nil",
+            [only] => nil_style && only.kind_str() == "nil",
             _ => false,
         };
         if !reportable {
@@ -52,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let offense = context.offense(MSG, keyword.byte_range());
         let forbidden = missing_else.as_deref().is_some_and(|configured| {
-            configured == "both" || configured == upstream_type(node.kind())
+            configured == "both" || configured == upstream_type(node.kind_str())
         });
         offenses.push(match forbidden || comment_in_else(context, node) {
             true => offense,
@@ -72,13 +73,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The `else` clause of a conditional, and only that: an `elsif` stands where the `else` would be
 /// but carries a branch of its own, which is never the empty one this cop reports.
 fn else_clause<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let clause = match node.kind() {
+    let clause = match node.kind_str() {
         "case" => super::nodes::children(node)
             .into_iter()
-            .find(|child| child.kind() == "else")?,
-        _ => node.child_by_field_name("alternative")?,
+            .find(|child| child.kind_str() == "else")?,
+        _ => node.field("alternative")?,
     };
-    (clause.kind() == "else").then_some(clause)
+    (clause.kind_str() == "else").then_some(clause)
 }
 
 fn upstream_type(kind: &str) -> &str {
@@ -92,25 +93,25 @@ fn upstream_type(kind: &str) -> &str {
 /// closing the conditional it belongs to.
 fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut current = node;
-    while current.kind() == "elsif" {
+    while current.kind_str() == "elsif" {
         current = current.parent()?;
     }
     let last = current.child(current.child_count().checked_sub(1)? as u32)?;
-    (last.kind() == "end").then_some(last)
+    (last.kind_str() == "end").then_some(last)
 }
 
 /// `comment_in_else?`: a comment anywhere from the `else` -- or from the first `elsif`, for a
 /// branch inside a chain -- to the end of the conditional keeps the clause as it is.
 fn comment_in_else(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut outermost = node;
-    while outermost.kind() == "elsif" {
-        let Some(parent) = outermost.parent() else {
+    while outermost.kind_str() == "elsif" {
+        let Some(parent) = outermost.parent_of(context) else {
             break;
         };
         outermost = parent;
     }
     let Some(clause) = outermost
-        .child_by_field_name("alternative")
+        .field("alternative")
         .or_else(|| else_clause(outermost))
     else {
         return false;

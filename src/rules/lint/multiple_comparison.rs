@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use the `&&` operator to compare multiple values.";
 
@@ -17,13 +18,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `(send (send _ {:< :> :<= :>=} $_) {:< :> :<= :>=} _)`: the left operand is itself a
         // comparison, whose right operand is the value compared twice.
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             continue;
         };
         if !is_comparison(left, context) {
             continue;
         }
-        let Some(center) = left.child_by_field_name("right") else {
+        let Some(center) = left.field("right") else {
             continue;
         };
         if is_set_operation(center, context) {
@@ -40,18 +41,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn is_comparison(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 COMPARISON_METHODS.contains(&context.source.node_text(operator))
             })
 }
 
 fn is_set_operation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 SET_OPERATION_OPERATORS.contains(&context.source.node_text(operator))
             })

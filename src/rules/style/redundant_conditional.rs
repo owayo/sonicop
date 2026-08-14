@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `RuboCop::AST::Node::COMPARISON_OPERATORS`.
 const COMPARISON_OPERATORS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["if", "unless", "elsif", "conditional"]) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         if !is_comparison(context, condition) {
@@ -21,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `unless` puts its branches the other way round in the parser's tree.
-        let (when_true, when_false) = match node.kind() {
+        let (when_true, when_false) = match node.kind_str() {
             "unless" => (alternative, consequence),
             _ => (consequence, alternative),
         };
@@ -38,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             expression = format!("!({expression})");
         }
         // `indented_else_node`: an `elsif` becomes the `else` of the conditional above it.
-        let replacement = match node.kind() {
+        let replacement = match node.kind_str() {
             "elsif" => {
                 let width: usize = context
                     .setting::<i64>("IndentationWidth")
@@ -54,7 +55,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         let message = format!(
             "This conditional expression can just be replaced by `{}`.",
-            match node.kind() {
+            match node.kind_str() {
                 "elsif" => format!("\n{replacement}"),
                 _ => replacement.clone(),
             }
@@ -74,9 +75,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(send _ {:== :=== :!= :<= :>= :< :>} _)`.
 fn is_comparison(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let selector = match node.kind() {
-        "binary" => node.child_by_field_name("operator"),
-        "call" => node.child_by_field_name("method"),
+    let selector = match node.kind_str() {
+        "binary" => node.field("operator"),
+        "call" => node.field("method"),
         _ => None,
     };
     selector
@@ -85,8 +86,8 @@ fn is_comparison(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// The one statement a branch holds, which is what `true` or `false` has to be on its own.
 fn single_statement<'tree>(node: Node<'tree>, field: &str) -> Option<Node<'tree>> {
-    let branch = node.child_by_field_name(field)?;
-    match branch.kind() {
+    let branch = node.field(field)?;
+    match branch.kind_str() {
         "then" | "else" => match super::nodes::children(branch).as_slice() {
             [only] => Some(*only),
             _ => None,

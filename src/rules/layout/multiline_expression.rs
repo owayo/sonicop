@@ -22,6 +22,7 @@ use tree_sitter::Node;
 use super::support::{begins_its_line, character_column, line_indentation};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 /// Which of the nodes upstream's parser builds for one piece of source this stands for.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -98,29 +99,29 @@ const TRANSPARENT: [&str; 12] = [
 const HASH_CONTAINERS: [&str; 3] = ["argument_list", "array", "element_reference"];
 
 fn is_hash_element(node: Node<'_>) -> bool {
-    matches!(node.kind(), "pair" | "hash_splat_argument")
+    matches!(node.kind_str(), "pair" | "hash_splat_argument")
 }
 
 /// The literal block written on a call, which upstream keeps in a `block` node of its own.
 fn block_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "lambda" => node
-            .child_by_field_name("body")
-            .filter(|body| matches!(body.kind(), "block" | "do_block")),
-        _ => node.child_by_field_name("block"),
+            .field("body")
+            .filter(|body| matches!(body.kind_str(), "block" | "do_block")),
+        _ => node.field("block"),
     }
 }
 
 /// Whether the call was fused into the setter `send` its assignment builds, which leaves it
 /// without a node of its own upstream.
 fn is_fused_setter_target(node: Node<'_>) -> bool {
-    if !matches!(node.kind(), "call" | "element_reference") {
+    if !matches!(node.kind_str(), "call" | "element_reference") {
         return false;
     }
     node.parent().is_some_and(|parent| {
-        parent.kind() == "assignment"
+        parent.kind_str() == "assignment"
             && parent
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| left.id() == node.id())
     })
 }
@@ -163,7 +164,7 @@ impl<'tree> UpNode<'tree> {
             Role::Block | Role::Array => self.node.byte_range(),
             Role::Hash => hash_run_range(self.node),
             Role::Plain => {
-                if self.node.kind() == "lambda" {
+                if self.node.kind_str() == "lambda" {
                     // `-> () {}` is `(block (send nil :lambda) ...)`: the send is the arrow alone.
                     return self
                         .node
@@ -224,13 +225,13 @@ impl<'tree> UpNode<'tree> {
         if !plain_kind(context, node).call_type() {
             return None;
         }
-        match node.kind() {
-            "call" | "method_call" => node.child_by_field_name("receiver").map(Self::of),
-            "element_reference" => node.child_by_field_name("object").map(Self::of),
-            "binary" => node.child_by_field_name("left").map(Self::of),
-            "unary" => node.child_by_field_name("operand").map(Self::of),
+        match node.kind_str() {
+            "call" | "method_call" => node.field("receiver").map(Self::of),
+            "element_reference" => node.field("object").map(Self::of),
+            "binary" => node.field("left").map(Self::of),
+            "unary" => node.field("operand").map(Self::of),
             "assignment" => {
-                let left = node.child_by_field_name("left")?;
+                let left = node.field("left")?;
                 Self::plain(left).receiver(context)
             }
             _ => None,
@@ -242,14 +243,14 @@ impl<'tree> UpNode<'tree> {
         if self.role != Role::Plain {
             return None;
         }
-        let node = match self.node.kind() {
-            "assignment" => self.node.child_by_field_name("left")?,
+        let node = match self.node.kind_str() {
+            "assignment" => self.node.field("left")?,
             _ => self.node,
         };
-        if !matches!(node.kind(), "call" | "method_call") {
+        if !matches!(node.kind_str(), "call" | "method_call") {
             return None;
         }
-        let operator = node.child_by_field_name("operator")?;
+        let operator = node.field("operator")?;
         matches!(context.source.node_text(operator), "." | "&." | "::")
             .then(|| operator.byte_range())
     }
@@ -259,22 +260,20 @@ impl<'tree> UpNode<'tree> {
         if self.role != Role::Plain {
             return None;
         }
-        let node = match self.node.kind() {
-            "assignment" => self.node.child_by_field_name("left")?,
+        let node = match self.node.kind_str() {
+            "assignment" => self.node.field("left")?,
             _ => self.node,
         };
-        match node.kind() {
-            "call" | "method_call" => node.child_by_field_name("method").map(|m| m.byte_range()),
-            "binary" | "unary" => node
-                .child_by_field_name("operator")
-                .map(|operator| operator.byte_range()),
+        match node.kind_str() {
+            "call" | "method_call" => node.field("method").map(|m| m.byte_range()),
+            "binary" | "unary" => node.field("operator").map(|operator| operator.byte_range()),
             _ => None,
         }
     }
 
     /// `node.loc.begin`: the `(` a call's arguments were written in, when there is one.
     pub(super) fn arguments_begin(self, context: &RuleContext<'_>) -> Option<Range<usize>> {
-        let list = self.node.child_by_field_name("arguments")?;
+        let list = self.node.field("arguments")?;
         let open = list.child(0)?;
         (context.source.node_text(open) == "(").then(|| open.byte_range())
     }
@@ -282,7 +281,7 @@ impl<'tree> UpNode<'tree> {
     /// `ParameterizedNode#parenthesized?`.
     pub(super) fn parenthesized(self, context: &RuleContext<'_>) -> bool {
         self.role == Role::Plain
-            && matches!(self.node.kind(), "call" | "method_call")
+            && matches!(self.node.kind_str(), "call" | "method_call")
             && self.arguments_begin(context).is_some()
     }
 
@@ -290,18 +289,18 @@ impl<'tree> UpNode<'tree> {
         if self.role != Role::Plain {
             return None;
         }
-        let (node, setter) = match self.node.kind() {
-            "assignment" => (self.node.child_by_field_name("left")?, true),
+        let (node, setter) = match self.node.kind_str() {
+            "assignment" => (self.node.field("left")?, true),
             _ => (self.node, false),
         };
-        let name = match node.kind() {
+        let name = match node.kind_str() {
             "call" | "method_call" => {
-                let method = node.child_by_field_name("method")?;
+                let method = node.field("method")?;
                 context.source.node_text(method).to_owned()
             }
             "element_reference" => "[]".to_owned(),
             "binary" | "unary" => {
-                let operator = node.child_by_field_name("operator")?;
+                let operator = node.field("operator")?;
                 context.source.node_text(operator).to_owned()
             }
             _ => return None,
@@ -329,11 +328,11 @@ impl<'tree> UpNode<'tree> {
     /// assignment builds carry one.
     fn setter_method(self) -> bool {
         self.role == Role::Plain
-            && self.node.kind() == "assignment"
+            && self.node.kind_str() == "assignment"
             && self
                 .node
-                .child_by_field_name("left")
-                .is_some_and(|left| matches!(left.kind(), "call" | "element_reference"))
+                .field("left")
+                .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
     }
 
     /// `SendNode#arguments`, with the brace-less hash folded back into one argument.
@@ -341,8 +340,8 @@ impl<'tree> UpNode<'tree> {
         if self.role != Role::Plain {
             return Vec::new();
         }
-        match self.node.kind() {
-            "call" | "method_call" => match self.node.child_by_field_name("arguments") {
+        match self.node.kind_str() {
+            "call" | "method_call" => match self.node.field("arguments") {
                 Some(list) => fold_arguments(list, &children_of(list)),
                 None => Vec::new(),
             },
@@ -353,18 +352,18 @@ impl<'tree> UpNode<'tree> {
             }
             "binary" if plain_kind(context, self.node) == UpKind::Send => self
                 .node
-                .child_by_field_name("right")
+                .field("right")
                 .map_or_else(Vec::new, |right| vec![Self::of(right)]),
             "assignment" => {
-                let Some(left) = self.node.child_by_field_name("left") else {
+                let Some(left) = self.node.field("left") else {
                     return Vec::new();
                 };
-                let mut arguments = if left.kind() == "element_reference" {
+                let mut arguments = if left.kind_str() == "element_reference" {
                     Self::plain(left).arguments(context)
                 } else {
                     Vec::new()
                 };
-                if let Some(right) = self.node.child_by_field_name("right") {
+                if let Some(right) = self.node.field("right") {
                     arguments.push(Self::of(right));
                 }
                 arguments
@@ -401,10 +400,10 @@ impl<'tree> UpNode<'tree> {
     /// node and the grammar keeps as a list.
     pub(super) fn body(self) -> Option<Range<usize>> {
         let block = block_of(self.node)?;
-        let body = block.child_by_field_name("body")?;
+        let body = block.field("body")?;
         let statements = children_of(body)
             .into_iter()
-            .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+            .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect::<Vec<_>>();
         let first = statements.first()?;
         let last = statements.last()?;
@@ -415,14 +414,14 @@ impl<'tree> UpNode<'tree> {
     pub(super) fn block_end(self) -> Option<Range<usize>> {
         let block = block_of(self.node)?;
         let last = block.child(block.child_count().checked_sub(1)? as u32)?;
-        matches!(last.kind(), "}" | "end").then(|| last.byte_range())
+        matches!(last.kind_str(), "}" | "end").then(|| last.byte_range())
     }
 
     /// `node.parent`, in the shape upstream's parser gives the tree.
     /// The grammar's own name for the node, which the ported code only asks for where upstream
     /// tests a type the model has no case for.
     pub(super) fn ts_kind(self) -> &'static str {
-        self.node.kind()
+        self.node.kind_str()
     }
 
     /// The grammar node itself, for the analyses that work on the tree rather than on the model.
@@ -438,9 +437,7 @@ impl<'tree> UpNode<'tree> {
     /// One of the node's own fields, for the few places the ported code reads a part the model
     /// does not otherwise name.
     pub(super) fn node_field(self, field: &str) -> Option<Range<usize>> {
-        self.node
-            .child_by_field_name(field)
-            .map(|child| child.byte_range())
+        self.node.field(field).map(|child| child.byte_range())
     }
 
     /// `node.each_descendant(:any_block).first`: the first literal block written inside the node,
@@ -466,7 +463,7 @@ impl<'tree> UpNode<'tree> {
         match self.role {
             Role::Block | Role::Array => raw_parent(self.node),
             Role::Hash => {
-                if self.node.kind() == "argument_list" {
+                if self.node.kind_str() == "argument_list" {
                     raw_parent(self.node)
                 } else {
                     Some(Self::plain(self.node))
@@ -521,7 +518,7 @@ const OPERATOR_METHODS: [&str; 27] = [
 fn children_of<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }
 
@@ -570,7 +567,7 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
     let mut current = node;
     loop {
         let parent = current.parent()?;
-        if parent.kind() == "block" || parent.kind() == "do_block" {
+        if parent.kind_str() == "block" || parent.kind_str() == "do_block" {
             // The body of a literal block hangs off the `block` node upstream, whose own parent is
             // the parent of the call the block was written on.
             return Some(UpNode {
@@ -578,13 +575,13 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
                 role: Role::Block,
             });
         }
-        if is_hash_element(current) && HASH_CONTAINERS.contains(&parent.kind()) {
+        if is_hash_element(current) && HASH_CONTAINERS.contains(&parent.kind_str()) {
             return Some(UpNode {
                 node: parent,
                 role: Role::Hash,
             });
         }
-        if TRANSPARENT.contains(&parent.kind())
+        if TRANSPARENT.contains(&parent.kind_str())
             || is_fused_setter_target(parent)
             || is_defined_parentheses(parent)
         {
@@ -596,15 +593,15 @@ fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
 }
 
 fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
-    match node.kind() {
+    match node.kind_str() {
         // `super args` and `super(args)` are one call node here and a `super` upstream, which is
         // no `send` at all: nothing that looks for an enclosing method call may stop at one.
-        "call" | "method_call" => match node.child_by_field_name("method") {
-            Some(method) if method.kind() == "super" => UpKind::Other,
+        "call" | "method_call" => match node.field("method") {
+            Some(method) if method.kind_str() == "super" => UpKind::Other,
             _ => call_kind(context, node),
         },
         "element_reference" => UpKind::Send,
-        "binary" => match node.child_by_field_name("operator") {
+        "binary" => match node.field("operator") {
             Some(operator) => match context.source.node_text(operator) {
                 "&&" | "and" => UpKind::And,
                 "||" | "or" => UpKind::Or,
@@ -613,13 +610,13 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
             None => UpKind::Send,
         },
         // `defined?` is a node of its own upstream rather than a call to `!`.
-        "unary" => match node.child_by_field_name("operator") {
+        "unary" => match node.field("operator") {
             Some(operator) if context.source.node_text(operator) == "defined?" => UpKind::Other,
             _ => UpKind::Send,
         },
-        "assignment" => match node.child_by_field_name("left") {
-            Some(left) if left.kind() == "call" => call_kind(context, left),
-            Some(left) if left.kind() == "element_reference" => UpKind::Send,
+        "assignment" => match node.field("left") {
+            Some(left) if left.kind_str() == "call" => call_kind(context, left),
+            Some(left) if left.kind_str() == "element_reference" => UpKind::Send,
             _ => UpKind::Assignment,
         },
         "operator_assignment" => UpKind::Assignment,
@@ -653,7 +650,7 @@ fn plain_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
 }
 
 fn call_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
-    match node.child_by_field_name("operator") {
+    match node.field("operator") {
         Some(operator) if context.source.node_text(operator) == "&." => UpKind::Csend,
         _ => UpKind::Send,
     }
@@ -662,11 +659,11 @@ fn call_kind(context: &RuleContext<'_>, node: Node<'_>) -> UpKind {
 /// Whether the splat is the whole right-hand side of an assignment, which upstream's parser wraps
 /// in an `array` -- one of the types that stops the walk looking for an assignment to align under.
 fn is_lone_assigned_splat(node: Node<'_>) -> bool {
-    node.kind() == "splat_argument"
+    node.kind_str() == "splat_argument"
         && node.parent().is_some_and(|parent| {
-            parent.kind() == "assignment"
+            parent.kind_str() == "assignment"
                 && parent
-                    .child_by_field_name("right")
+                    .field("right")
                     .is_some_and(|right| right.id() == node.id())
         })
 }
@@ -674,18 +671,18 @@ fn is_lone_assigned_splat(node: Node<'_>) -> bool {
 /// Whether the group is the argument list `defined?` was written with, which upstream keeps in the
 /// `defined?` node's own location rather than as a node.
 fn is_defined_parentheses(node: Node<'_>) -> bool {
-    node.kind() == "parenthesized_statements"
+    node.kind_str() == "parenthesized_statements"
         && node.parent().is_some_and(|parent| {
-            parent.kind() == "unary"
+            parent.kind_str() == "unary"
                 && parent
-                    .child_by_field_name("operator")
-                    .is_some_and(|operator| operator.kind() == "defined?")
+                    .field("operator")
+                    .is_some_and(|operator| operator.kind_str() == "defined?")
         })
 }
 
 fn post_loop(node: Node<'_>) -> bool {
-    node.child_by_field_name("body")
-        .is_some_and(|body| body.kind() == "begin")
+    node.field("body")
+        .is_some_and(|body| body.kind_str() == "begin")
 }
 
 /// `Util#within_node?`.
@@ -702,7 +699,7 @@ pub(super) struct Mixin<'a, 'tree> {
     pub(super) keyword_width: i64,
     /// Which bare identifiers upstream's parser reads as local variables rather than as calls
     /// without a receiver. The analysis is deferred until a chain actually asks.
-    locals: LocalVariables<'a>,
+    locals: LocalVariables<'a, 'tree>,
 }
 
 /// The tail `operation_description` appends to a message.
@@ -787,7 +784,7 @@ impl<'tree> Mixin<'_, 'tree> {
             ) {
                 return false;
             }
-            if ancestor.node.kind() == "conditional" {
+            if ancestor.node.kind_str() == "conditional" {
                 return false;
             }
             self.indented_keyword_expression(*ancestor)
@@ -798,29 +795,29 @@ impl<'tree> Mixin<'_, 'tree> {
     /// `MultilineExpressionIndentation#indented_keyword_expression`.
     pub(super) fn indented_keyword_expression(&self, node: UpNode<'tree>) -> Option<Range<usize>> {
         if node.kind(self.context) == UpKind::For {
-            let value = node.node.child_by_field_name("value")?;
+            let value = node.node.field("value")?;
             let collection = children_of(value).into_iter().next()?;
             return Some(collection.byte_range());
         }
-        match node.node.kind() {
+        match node.node.kind_str() {
             "return" => children_of(node.node)
                 .into_iter()
                 .next()
-                .and_then(|list| match list.kind() {
+                .and_then(|list| match list.kind_str() {
                     "argument_list" => children_of(list).into_iter().next(),
                     _ => Some(list),
                 })
                 .map(|first| first.byte_range()),
             _ => node
                 .node
-                .child_by_field_name("condition")
+                .field("condition")
                 .map(|condition| condition.byte_range()),
         }
     }
 
     /// `MultilineExpressionIndentation#postfix_conditional?`.
     fn postfix_conditional(&self, node: UpNode<'tree>) -> bool {
-        matches!(node.node.kind(), "if_modifier" | "unless_modifier")
+        matches!(node.node.kind_str(), "if_modifier" | "unless_modifier")
     }
 
     /// `MultilineExpressionIndentation#operation_description`.
@@ -856,10 +853,10 @@ impl<'tree> Mixin<'_, 'tree> {
         let keyword = node
             .node
             .children(&mut cursor)
-            .find(|child| !child.is_named() && !child.kind().is_empty());
+            .find(|child| !child.is_named() && !child.kind_str().is_empty());
         match keyword {
             Some(keyword) => self.context.source.node_text(keyword).to_owned(),
-            None => node.node.kind().to_owned(),
+            None => node.node.kind_str().to_owned(),
         }
     }
 
@@ -977,7 +974,7 @@ impl<'tree> Mixin<'_, 'tree> {
     pub(super) fn assignment_rhs(&self, node: UpNode<'tree>) -> Option<UpNode<'tree>> {
         match node.kind(self.context) {
             UpKind::Send | UpKind::Csend => node.last_argument(self.context),
-            _ => node.node.child_by_field_name("right").map(UpNode::of),
+            _ => node.node.field("right").map(UpNode::of),
         }
     }
 
@@ -1032,21 +1029,21 @@ fn is_numbered_block(context: &RuleContext<'_>, call: Node<'_>) -> bool {
     let Some(block) = block_of(call) else {
         return false;
     };
-    if block.child_by_field_name("parameters").is_some() {
+    if block.field("parameters").is_some() {
         return false;
     }
-    let Some(body) = block.child_by_field_name("body") else {
+    let Some(body) = block.field("body") else {
         return false;
     };
     let mut stack = vec![body];
     while let Some(node) = stack.pop() {
-        if node.kind() == "identifier" {
+        if node.kind_str() == "identifier" {
             let text = context.source.node_text(node).as_bytes();
             if text.len() == 2 && text[0] == b'_' && text[1].is_ascii_digit() && text[1] != b'0' {
                 return true;
             }
         }
-        if matches!(node.kind(), "block" | "do_block") {
+        if matches!(node.kind_str(), "block" | "do_block") {
             continue;
         }
         let mut cursor = node.walk();

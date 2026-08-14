@@ -6,6 +6,7 @@ use crate::rules::send_node::{arguments, named_children};
 
 use super::locals::LocalVariables;
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 /// The receiverless calls whose arguments coerce on their own.
 const PRINTERS: &[&str] = &["print", "puts", "warn"];
@@ -23,10 +24,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
     }
     for call in context.nodes_of("call") {
-        if call.child_by_field_name("receiver").is_some() {
+        if call.field("receiver").is_some() {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         let name = context.source.node_text(selector);
@@ -35,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let context_name = format!("`{name}`");
         // `each_child_node(:call)`: an argument that *is* the coercion, not one holding it.
-        let Some(list) = call.child_by_field_name("arguments") else {
+        let Some(list) = call.field("arguments") else {
             continue;
         };
         for argument in named_children(list) {
@@ -52,11 +53,11 @@ fn coercion(
     node: Node<'_>,
     place: &str,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
 ) -> Option<Offense> {
     // A bare `to_s` is a receiverless send upstream and an `identifier` here, which is the whole
     // call as well as its selector.
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         if context.source.node_text(node) != "to_s" || locals.is_lvar(node) {
             return None;
         }
@@ -74,18 +75,18 @@ fn coercion(
                 }),
         );
     }
-    if node.kind() != "call" || !arguments(node).is_empty() {
+    if node.kind_str() != "call" || !arguments(node).is_empty() {
         return None;
     }
-    let selector = node.child_by_field_name("method")?;
+    let selector = node.field("method")?;
     if context.source.node_text(selector) != "to_s" {
         return None;
     }
     // A block turns the call into a `block` node upstream, which the pattern never matches.
-    if node.child_by_field_name("block").is_some() {
+    if node.field("block").is_some() {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver");
+    let receiver = node.field("receiver");
     let message = match receiver {
         Some(_) => format!("Redundant use of `Object#to_s` in {place}."),
         None => format!("Use `self` instead of `Object#to_s` in {place}."),

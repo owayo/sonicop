@@ -9,6 +9,7 @@ use super::percent_array::{
     Bracketed, Element, allowed_bracket_array, bracketed_replacement, elements,
     percent_array_offense, percent_replacement, percent_values,
 };
+use crate::rules::node_ext::NodeExt;
 
 const PERCENT_MSG: &str = "Use `%i` or `%I` for an array of symbols.";
 const ARRAY_MSG: &str = "Use %<prefer>s for an array of symbols.";
@@ -79,7 +80,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `bracketed_array_of?(:sym, node)`: an element is a symbol unless an interpolation makes it a
 /// `dsym`.
 fn is_symbol(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    matches!(node.kind(), "simple_symbol" | "delimited_symbol")
+    matches!(node.kind_str(), "simple_symbol" | "delimited_symbol")
         && !interpolated(node)
         && !context.source.node_text(node).contains('\n')
 }
@@ -87,7 +88,7 @@ fn is_symbol(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn interpolated(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Option<Vec<String>> {

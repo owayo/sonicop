@@ -16,6 +16,7 @@ use super::alignment::{Aligned, Alignment};
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds carrying an operator RuboCop checks. `binary` stands in for `on_send`,
 /// `on_binary`, `on_and` and `on_or`, which all reduce to the same shape in tree-sitter.
@@ -102,7 +103,7 @@ fn collect(context: &RuleContext<'_>) -> Vec<OperatorSite> {
     let table_style = OnceCell::new();
     let mut sites = Vec::new();
     for node in context.nodes_of_any(OPERATOR_NODES) {
-        match node.kind() {
+        match node.kind_str() {
             "binary" => collect_binary(context, node, &mut sites),
             "argument_list" => collect_block_pass(context, node, &mut sites),
             "assignment" | "operator_assignment" => collect_assignment(context, node, &mut sites),
@@ -111,13 +112,13 @@ fn collect(context: &RuleContext<'_>) -> Vec<OperatorSite> {
                 push_operators(
                     node,
                     "?",
-                    node.child_by_field_name("consequence"),
+                    node.field("consequence"),
                     &mut sites,
                 );
                 push_operators(
                     node,
                     ":",
-                    node.child_by_field_name("alternative"),
+                    node.field("alternative"),
                     &mut sites,
                 );
             }
@@ -142,27 +143,27 @@ fn collect(context: &RuleContext<'_>) -> Vec<OperatorSite> {
 
 fn collect_binary(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec<OperatorSite>) {
     let (Some(operator), Some(left), Some(right)) = (
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("operator"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return;
     };
     let text = context.source.node_text(operator);
     // `return +1` and `next -1` are jumps carrying a signed literal; tree-sitter reads the
     // keyword as the left operand of a binary expression, where RuboCop sees no operator at all.
-    if matches!(text, "+" | "-") && matches!(left.kind(), "return" | "break" | "next") {
+    if matches!(text, "+" | "-") && matches!(left.kind_str(), "return" | "break" | "next") {
         return;
     }
     // `/re/ =~ str` is a `match_with_lvasgn`, not a send, because the match may bind the
     // pattern's named captures as local variables. The cop has no handler for it, so the
     // operator goes unchecked -- unlike `str =~ /re/` and `/re/ !~ str`, which stay sends.
-    if text == "=~" && left.kind() == "regex" {
+    if text == "=~" && left.kind_str() == "regex" {
         return;
     }
     // `rational_literal?`: `1/48r` is a single literal to RuboCop, which skips the send rather
     // than judging the spacing around its slash.
-    let right_is_rational = right.kind() == "rational";
+    let right_is_rational = right.kind_str() == "rational";
     if text == "/" && right_is_rational && is_integer_literal(left) {
         return;
     }
@@ -179,8 +180,8 @@ fn collect_assignment(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
         return;
     }
     let (Some(left), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return;
     };
@@ -205,10 +206,10 @@ fn collect_assignment(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
     }
     // `foo.bar = 1` and `x += 1` reach RuboCop as sends, reported as `:special_asgn`; only the
     // assignment node types take the equals-sign alignment path.
-    let assigns_a_variable = if node.kind() == "operator_assignment" {
+    let assigns_a_variable = if node.kind_str() == "operator_assignment" {
         matches!(context.source.node_text(operator), "||=" | "&&=")
     } else {
-        !matches!(left.kind(), "call" | "element_reference")
+        !matches!(left.kind_str(), "call" | "element_reference")
     };
     sites.push(OperatorSite {
         range: operator.byte_range(),
@@ -218,7 +219,7 @@ fn collect_assignment(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
             Site::Other
         },
         right: right.byte_range(),
-        right_is_rational: right.kind() == "rational",
+        right_is_rational: right.kind_str() == "rational",
     });
 }
 
@@ -228,8 +229,8 @@ fn collect_assignment(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
 fn leading_tilde_operand<'tree>(right: Node<'tree>, at: usize) -> Option<Node<'tree>> {
     let mut current = right;
     while current.start_byte() == at {
-        if current.kind() == "unary" && current.child(0).is_some_and(|op| op.kind() == "~") {
-            return current.child_by_field_name("operand");
+        if current.kind_str() == "unary" && current.child(0).is_some_and(|op| op.kind_str() == "~") {
+            return current.field("operand");
         }
         current = current.child(0)?;
     }
@@ -243,7 +244,7 @@ fn collect_block_pass(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
     let Some(first) = node.child(0) else {
         return;
     };
-    if first.kind() != "block_argument" || first.start_byte() != node.start_byte() {
+    if first.kind_str() != "block_argument" || first.start_byte() != node.start_byte() {
         return;
     }
     let bytes = context.source.text().as_bytes();
@@ -257,7 +258,7 @@ fn collect_block_pass(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
     let (Some(operator), Some(right)) = (first.child(0), first.named_child(0)) else {
         return;
     };
-    if operator.kind() != "&" {
+    if operator.kind_str() != "&" {
         return;
     }
     sites.push(OperatorSite {
@@ -303,7 +304,7 @@ fn push_operators(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == operator {
+        if child.kind_str() == operator {
             sites.push(OperatorSite {
                 range: child.byte_range(),
                 site: Site::Other,
@@ -317,7 +318,7 @@ fn push_operators(
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 fn first_named_child(node: Node<'_>) -> Option<Node<'_>> {
@@ -339,11 +340,11 @@ fn operator_between<'tree>(
 /// RuboCop folds a sign into a numeric literal, so `-1/3r` is as much a rational literal as
 /// `1/3r`.
 fn is_integer_literal(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "integer" => true,
         "unary" => node
-            .child_by_field_name("operand")
-            .is_some_and(|operand| operand.kind() == "integer"),
+            .field("operand")
+            .is_some_and(|operand| operand.kind_str() == "integer"),
         _ => false,
     }
 }
@@ -354,14 +355,14 @@ fn is_integer_literal(node: Node<'_>) -> bool {
 /// standing where a parameter default belongs carries no operator to check.
 fn is_parameter_default(node: Node<'_>) -> bool {
     if node
-        .child_by_field_name("left")
-        .is_none_or(|left| left.kind() != "left_assignment_list")
+        .field("left")
+        .is_none_or(|left| left.kind_str() != "left_assignment_list")
     {
         return false;
     }
     let mut current = node;
     while let Some(parent) = current.parent() {
-        match parent.kind() {
+        match parent.kind_str() {
             "optional_parameter" => return true,
             "assignment" => current = parent,
             _ => return false,
@@ -389,7 +390,7 @@ fn pairs_on_same_line(pair: Node<'_>) -> bool {
     let mut cursor = parent.walk();
     let lines: Vec<usize> = parent
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "pair")
+        .filter(|child| child.kind_str() == "pair")
         .map(|child| child.start_position().row)
         .collect();
     lines.windows(2).any(|window| window[0] == window[1])

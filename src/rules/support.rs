@@ -58,6 +58,7 @@ use tree_sitter::{Node, Parser};
 
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `ReparsedEquivalence#correction_parses?`: whether the exact correction a cop is about to offer
 /// leaves source that still parses.
@@ -122,15 +123,13 @@ fn parse(text: &str) -> Option<tree_sitter::Tree> {
 fn accepts_more_than_ruby(root: Node<'_>, text: &str) -> bool {
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
-        if matches!(node.kind(), "argument_list" | "array")
+        if matches!(node.kind_str(), "argument_list" | "array")
             && node.named_children(&mut node.walk()).any(|child| {
-                child.kind() == "unary"
-                    && child
-                        .child_by_field_name("operator")
-                        .is_some_and(|operator| {
-                            &text[operator.byte_range()] == "not"
-                                && text.as_bytes().get(operator.end_byte()) != Some(&b'(')
-                        })
+                child.kind_str() == "unary"
+                    && child.field("operator").is_some_and(|operator| {
+                        &text[operator.byte_range()] == "not"
+                            && text.as_bytes().get(operator.end_byte()) != Some(&b'(')
+                    })
             })
         {
             return true;
@@ -213,7 +212,7 @@ fn reparse_scope<'tree>(root: Node<'tree>, range: &Range<usize>) -> Option<Node<
     let mut node = root;
     let mut scope = None;
     loop {
-        if REPARSE_SCOPES.contains(&node.kind()) {
+        if REPARSE_SCOPES.contains(&node.kind_str()) {
             scope = Some(node);
         }
         // `Range#contains?`: strictly wider on at least one side, so a child that spans exactly the
@@ -289,19 +288,19 @@ fn normalized(node: Node<'_>, text: &str) -> Sexp {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         // Comments are invisible to the tree upstream compares.
-        if child.kind() == "comment" {
+        if child.kind_str() == "comment" {
             continue;
         }
         let normalized = normalized(child, text);
         // `splice_nested_sequences`: `x; (a; b)` and `x; a; b` are the same statement list.
-        match SEQUENCES.contains(&node.kind()) && normalized.label == BEGIN {
+        match SEQUENCES.contains(&node.kind_str()) && normalized.label == BEGIN {
             true => children.extend(normalized.children),
             false => children.push(normalized),
         }
     }
     // The parser has no node for the file itself: a source holding one statement parses to that
     // statement, which is what a fragment cut out of a scope has to compare against.
-    if matches!(node.kind(), "parenthesized_statements" | "program") {
+    if matches!(node.kind_str(), "parenthesized_statements" | "program") {
         // A `begin` holding one node is that node.
         if children.len() == 1 {
             return children.pop().expect("just measured as one");
@@ -318,8 +317,8 @@ fn normalized(node: Node<'_>, text: &str) -> Sexp {
 /// The name two trees are compared by: the node's kind, the operator it was written with, and for a
 /// leaf the text it spans. `&&` and `and` are one type upstream, as are `||` and `or`.
 fn label_of(node: Node<'_>, text: &str, leaf: bool) -> String {
-    let mut label = node.kind().to_owned();
-    if let Some(operator) = node.child_by_field_name("operator") {
+    let mut label = node.kind_str().to_owned();
+    if let Some(operator) = node.field("operator") {
         let spelling = match &text[operator.byte_range()] {
             "&&" | "and" => "and",
             "||" | "or" => "or",

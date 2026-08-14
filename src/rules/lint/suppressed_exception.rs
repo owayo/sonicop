@@ -2,6 +2,7 @@ use super::rescue_clause::{body, end};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use tree_sitter::Node;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not suppress exceptions.";
 
@@ -11,7 +12,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("rescue") {
         let statements = body(node);
         let empty = statements.is_empty();
-        let nil_body = statements.len() == 1 && statements[0].kind() == "nil";
+        let nil_body = statements.len() == 1 && statements[0].kind_str() == "nil";
         if !(empty || nil_body)
             || (allow_comments && commented(node, context))
             || (allow_nil && nil_body)
@@ -39,7 +40,7 @@ fn enclosing_body(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node.parent();
     while let Some(ancestor) = current {
         if matches!(
-            ancestor.kind(),
+            ancestor.kind_str(),
             "begin" | "method" | "singleton_method" | "block" | "do_block"
         ) {
             return Some(ancestor);

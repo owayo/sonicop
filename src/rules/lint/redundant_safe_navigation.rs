@@ -7,6 +7,7 @@ use crate::rules::send_node::{arguments, named_children, string_text, symbol_nam
 use super::blocks::BLOCK_KINDS;
 use super::literals::{is_literal, literal_type};
 use super::nil_methods::NIL_METHODS;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant safe navigation detected, use `.` instead.";
 const MSG_LITERAL: &str = "Redundant safe navigation with default literal detected.";
@@ -57,13 +58,13 @@ fn safe_navigation_dot(
     node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<std::ops::Range<usize>> {
-    let operator = node.child_by_field_name("operator")?;
+    let operator = node.field("operator")?;
     (context.source.node_text(operator) == "&.").then(|| operator.byte_range())
 }
 
 /// `guarded_by_nil_receiver?`.
 fn guarded_by_nil_receiver(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> bool {
-    let Some(receiver) = node.child_by_field_name("receiver") else {
+    let Some(receiver) = node.field("receiver") else {
         return true;
     };
     if assume_receiver_instance_exists(receiver, context) {
@@ -85,32 +86,32 @@ fn assume_receiver_instance_exists(receiver: Node<'_>, context: &RuleContext<'_>
     {
         return true;
     }
-    receiver.kind() == "self"
+    receiver.kind_str() == "self"
         || (is_literal(receiver, context) && literal_type(receiver, context) != Some("nil"))
 }
 
 /// `receiver.short_name` for a `const`, which is the last segment of a scoped name.
 fn constant_short_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
-        "scope_resolution" => Some(context.source.node_text(node.child_by_field_name("name")?)),
+        "scope_resolution" => Some(context.source.node_text(node.field("name")?)),
         _ => None,
     }
 }
 
 /// `guaranteed_instance?`: a plain send of a conversion method, possibly carrying a block.
 fn guaranteed_instance(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let receiver = if BLOCK_KINDS.contains(&node.kind()) {
+    let receiver = if BLOCK_KINDS.contains(&node.kind_str()) {
         return false;
     } else {
         node
     };
     // A block written after the call is part of the call here, and `send_node` upstream.
-    if receiver.kind() != "call" || safe_navigation_dot(receiver, context).is_some() {
+    if receiver.kind_str() != "call" || safe_navigation_dot(receiver, context).is_some() {
         return false;
     }
     receiver
-        .child_by_field_name("method")
+        .field("method")
         .is_some_and(|method| {
             GUARANTEED_INSTANCE_METHODS.contains(&context.source.node_text(method))
         })
@@ -118,7 +119,7 @@ fn guaranteed_instance(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `check?`: an allowed predicate written where its result decides a branch.
 fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> bool {
-    let Some(method) = node.child_by_field_name("method") else {
+    let Some(method) = node.field("method") else {
         return false;
     };
     if !allowed
@@ -127,19 +128,19 @@ fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> 
     {
         return false;
     }
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    if CONDITIONALS.contains(&parent.kind())
+    if CONDITIONALS.contains(&parent.kind_str())
         && parent
-            .child_by_field_name("condition")
+            .field("condition")
             .is_some_and(|condition| condition.id() == node.id())
     {
         return true;
     }
-    match parent.kind() {
+    match parent.kind_str() {
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 matches!(
                     context.source.node_text(operator),
@@ -147,7 +148,7 @@ fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> 
                 )
             }),
         "unary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "!"),
         _ => false,
     }
@@ -156,7 +157,7 @@ fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> 
 /// `(csend _ :respond_to? (sym %NIL_METHODS))`.
 fn responds_to_nil_method(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "respond_to?")
     {
         return false;
@@ -173,14 +174,14 @@ fn check_conversion_with_default(
     offenses: &mut Vec<Offense>,
 ) {
     if node
-        .child_by_field_name("operator")
+        .field("operator")
         .is_none_or(|operator| !matches!(context.source.node_text(operator), "||" | "or"))
     {
         return;
     }
     let (Some(left), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return;
     };
@@ -189,17 +190,17 @@ fn check_conversion_with_default(
     let Some(dot) = safe_navigation_dot(call, context) else {
         return;
     };
-    let Some(method) = call.child_by_field_name("method") else {
+    let Some(method) = call.field("method") else {
         return;
     };
     let has_block = call
-        .child_by_field_name("block")
-        .is_some_and(|block| BLOCK_KINDS.contains(&block.kind()));
+        .field("block")
+        .is_some_and(|block| BLOCK_KINDS.contains(&block.kind_str()));
     let matched = match context.source.node_text(method) {
-        "to_h" => right.kind() == "hash" && named_children(right).is_empty(),
-        "to_a" if !has_block => right.kind() == "array" && named_children(right).is_empty(),
-        "to_i" if !has_block => right.kind() == "integer" && context.source.node_text(right) == "0",
-        "to_f" if !has_block => right.kind() == "float" && context.source.node_text(right) == "0.0",
+        "to_h" => right.kind_str() == "hash" && named_children(right).is_empty(),
+        "to_a" if !has_block => right.kind_str() == "array" && named_children(right).is_empty(),
+        "to_i" if !has_block => right.kind_str() == "integer" && context.source.node_text(right) == "0",
+        "to_f" if !has_block => right.kind_str() == "float" && context.source.node_text(right) == "0.0",
         "to_s" if !has_block => {
             literal_type(right, context) == Some("str") && string_text(right, context).is_empty()
         }

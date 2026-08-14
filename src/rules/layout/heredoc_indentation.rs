@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `minimum_target_ruby_version 2.3`: `<<~` is what the cop asks for, and it did not exist
@@ -88,8 +89,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The grammar draws those two differently -- its body reaches from the opener's own line and stops
 /// at the terminator *word*, leaving the terminator's indentation on the body's side -- so both are
 /// redrawn to whole lines here.
-fn heredocs<'tree>(
-    context: &'tree RuleContext<'tree>,
+fn heredocs<'ctx, 'tree>(
+    context: &'ctx RuleContext<'tree>,
 ) -> Vec<(Node<'tree>, Range<usize>, Range<usize>)> {
     let openers: Vec<Node<'tree>> = context.nodes_of("heredoc_beginning").collect();
     if openers.is_empty() {
@@ -103,7 +104,7 @@ fn heredocs<'tree>(
             let mut cursor = node.walk();
             let end = node
                 .named_children(&mut cursor)
-                .find(|child| child.kind() == "heredoc_end")?;
+                .find(|child| child.kind_str() == "heredoc_end")?;
             let first_body_line = context.source.line_column(node.start_byte()).0 + 1;
             let terminator_line = context.source.line_column(end.start_byte()).0;
             let body = context.source.line_start(first_body_line)
@@ -219,11 +220,11 @@ fn heredoc_squish(context: &RuleContext<'_>, opener: Node<'_>) -> bool {
     {
         return false;
     }
-    opener.parent().is_some_and(|parent| {
-        parent.kind() == "call"
-            && parent.child_by_field_name("receiver") == Some(opener)
+    opener.parent_of(context).is_some_and(|parent| {
+        parent.kind_str() == "call"
+            && parent.field("receiver") == Some(opener)
             && parent
-                .child_by_field_name("method")
+                .field("method")
                 .map(|method| &context.source.text()[method.byte_range()])
                 .is_some_and(|name| name == "squish" || name == "squish!")
     })

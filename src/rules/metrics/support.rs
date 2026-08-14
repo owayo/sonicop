@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::{RuleContext, push_named_children, walk_named};
 
 /// What kind of construct a length cop measures. The variants differ in how the body is counted
@@ -73,7 +74,7 @@ pub(super) fn report_length(
     heredocs: &HeredocEnds,
 ) {
     let count_comments: bool = context.setting("CountComments").unwrap_or(false);
-    if node.child_by_field_name("body").is_none() {
+    if node.field("body").is_none() {
         return;
     }
     let location = match target {
@@ -110,7 +111,7 @@ pub(super) fn report_length(
 /// takes the block, or at the `->` of a lambda literal, never at the brace.
 pub(super) fn block_location<'tree>(node: Node<'tree>) -> Node<'tree> {
     node.parent()
-        .filter(|parent| matches!(parent.kind(), "call" | "lambda"))
+        .filter(|parent| matches!(parent.kind_str(), "call" | "lambda"))
         .unwrap_or(node)
 }
 
@@ -127,7 +128,7 @@ fn body_code_line_count(
     count_comments: bool,
     heredocs: &HeredocEnds,
 ) -> usize {
-    let Some(body) = node.child_by_field_name("body") else {
+    let Some(body) = node.field("body") else {
         return 0;
     };
     let statements = statements_of(body);
@@ -147,12 +148,12 @@ fn body_code_line_count(
 /// body really stops -- and makes a one-statement body look like several, which changes which
 /// nodes `heredoc_extended_end` treats as its own.
 fn statements_of(body: Node<'_>) -> Vec<Node<'_>> {
-    if !matches!(body.kind(), "body_statement" | "block_body") {
+    if !matches!(body.kind_str(), "body_statement" | "block_body") {
         return vec![body];
     }
     let mut cursor = body.walk();
     body.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "heredoc_body" | "comment"))
+        .filter(|child| !matches!(child.kind_str(), "heredoc_body" | "comment"))
         .collect()
 }
 
@@ -172,10 +173,10 @@ fn heredoc_extended_end(statements: &[Node<'_>], heredocs: &HeredocEnds) -> Opti
     let mut found = false;
     let mut last_row = 0;
     while let Some(current) = stack.pop() {
-        if current.kind() == "heredoc_beginning" {
+        if current.kind_str() == "heredoc_beginning" {
             found = true;
             last_row = last_row.max(heredocs.end_row(current));
-        } else if !outside_rubocop_ast(current.kind()) {
+        } else if !outside_rubocop_ast(current.kind_str()) {
             last_row = last_row.max(current.end_position().row);
         }
         push_named_children(current, &mut stack);
@@ -218,7 +219,7 @@ fn classlike_code_line_count(
     }
     let mut excluded_lines = HashSet::new();
     walk_named(node, &mut |descendant| {
-        if descendant == node || !matches!(descendant.kind(), "class" | "module") {
+        if descendant == node || !matches!(descendant.kind_str(), "class" | "module") {
             return;
         }
         let first = descendant.start_position().row + 1;
@@ -244,10 +245,10 @@ fn classlike_code_line_count(
 /// Whether the class or module exists only to namespace a single class or module, which RuboCop
 /// measures as zero lines however far apart the two `end`s are.
 fn is_namespace(node: Node<'_>) -> bool {
-    node.child_by_field_name("body")
+    node.field("body")
         .map(statements_of)
         .is_some_and(|statements| {
-            matches!(statements.as_slice(), [only] if matches!(only.kind(), "class" | "module"))
+            matches!(statements.as_slice(), [only] if matches!(only.kind_str(), "class" | "module"))
         })
 }
 
@@ -258,9 +259,9 @@ pub(super) fn constructor_call<'a>(
     context: &'a RuleContext<'_>,
     call: Node<'_>,
 ) -> Option<(&'a str, &'a str)> {
-    let receiver = call.child_by_field_name("receiver")?;
-    let method = call.child_by_field_name("method")?;
-    if !matches!(receiver.kind(), "constant" | "scope_resolution") {
+    let receiver = call.field("receiver")?;
+    let method = call.field("method")?;
+    if !matches!(receiver.kind_str(), "constant" | "scope_resolution") {
         return None;
     }
     let text = context.source.node_text(receiver);

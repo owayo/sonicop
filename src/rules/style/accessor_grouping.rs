@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// `attribute_accessor?`: the macros that declare an attribute.
 const ACCESSORS: &[&str] = &["attr_reader", "attr_writer", "attr_accessor", "attr"];
@@ -25,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
 
     for holder in context.nodes_of_any(&["class", "module", "singleton_class"]) {
-        let Some(body) = holder.child_by_field_name("body") else {
+        let Some(body) = holder.field("body") else {
             continue;
         };
         let body = Body {
@@ -60,9 +61,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The statements of one class, module or singleton class body, which is the scope every question
 /// this cop asks is answered in.
 struct Body<'a, 't> {
-    context: &'a RuleContext<'a>,
+    context: &'a RuleContext<'t>,
     statements: Vec<Node<'t>>,
-    locals: &'a LocalVariables<'a>,
+    locals: &'a LocalVariables<'a, 't>,
 }
 
 /// One `attr_reader :a, :b` macro.
@@ -84,10 +85,10 @@ impl<'t> Body<'_, 't> {
     /// `attribute_accessor?`: a receiverless `attr_*` with at least one name.
     fn accessor(&self, index: usize) -> Option<Accessor<'t>> {
         let node = self.statements[index];
-        if node.kind() != "call" || node.child_by_field_name("receiver").is_some() {
+        if node.kind_str() != "call" || node.field("receiver").is_some() {
             return None;
         }
-        let method = node.child_by_field_name("method")?;
+        let method = node.field("method")?;
         let name = self.context.source.node_text(method);
         if !ACCESSORS.contains(&name) {
             return None;
@@ -105,7 +106,7 @@ impl<'t> Body<'_, 't> {
     /// `each_child_node(:send)` after `block_type?` has been unwrapped: a bare `private` is a
     /// `send` upstream, which tree-sitter writes as a plain identifier.
     fn send(&self, node: Node<'t>) -> Option<Send<'t>> {
-        match node.kind() {
+        match node.kind_str() {
             "call" if send_node::is_plain_send(node, self.context) => Some(Send {
                 node,
                 end: send_node::send_range(node, self.context).end,
@@ -181,10 +182,10 @@ impl<'t> Body<'_, 't> {
 
     /// The name a receiverless call spells, which is what a `(send nil? :name)` pattern matches.
     fn receiverless_name(&self, node: Node<'_>) -> Option<&str> {
-        match node.kind() {
+        match node.kind_str() {
             "identifier" => Some(self.context.source.node_text(node)),
-            "call" if node.child_by_field_name("receiver").is_none() => node
-                .child_by_field_name("method")
+            "call" if node.field("receiver").is_none() => node
+                .field("method")
                 .map(|method| self.context.source.node_text(method)),
             _ => None,
         }
@@ -195,7 +196,7 @@ impl<'t> Body<'_, 't> {
         for statement in self.statements[..index].iter().rev() {
             // `visibility_block?` is `(send nil? SCOPE)`, so a modifier given a method name marks
             // that method alone and leaves the ones after it where they were.
-            if statement.kind() == "call" && !send_node::arguments(*statement).is_empty() {
+            if statement.kind_str() == "call" && !send_node::arguments(*statement).is_empty() {
                 continue;
             }
             let Some(name) = self.receiverless_name(*statement) else {
@@ -302,7 +303,7 @@ impl<'t> Body<'_, 't> {
         let indent = " ".repeat(column - 1);
         let mut lines: Vec<String> = Vec::new();
         let mut previous = node
-            .child_by_field_name("method")
+            .field("method")
             .map_or(node.start_byte(), |method| method.end_byte());
         for (position, argument) in accessor.arguments.iter().enumerate() {
             // `ast_with_comments[arg]`: a comment written before an attribute travels with it.
@@ -343,8 +344,8 @@ impl<'t> Body<'_, 't> {
 
 /// `casgn_type?`: `CONST = 1`, which the group is written below rather than above.
 fn is_constant_assignment(node: &Node<'_>) -> bool {
-    node.kind() == "assignment"
+    node.kind_str() == "assignment"
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| matches!(left.kind(), "constant" | "scope_resolution"))
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "constant" | "scope_resolution"))
 }

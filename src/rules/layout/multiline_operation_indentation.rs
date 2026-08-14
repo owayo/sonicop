@@ -6,6 +6,7 @@ use super::multiline_expression::{Mixin, UpKind, UpNode};
 use super::support::{alignment_corrections, holds_block_comment};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mixin = Mixin::new(context, context.setting::<i64>("IndentationWidth"));
@@ -19,8 +20,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // `on_and` / `on_or`.
             UpKind::And | UpKind::Or => {
                 let (Some(lhs), Some(rhs)) = (
-                    ts.child_by_field_name("left").map(UpNode::of),
-                    ts.child_by_field_name("right").map(UpNode::of),
+                    ts.field("left").map(UpNode::of),
+                    ts.field("right").map(UpNode::of),
                 ) else {
                     continue;
                 };

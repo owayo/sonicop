@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `LINE_OFFSET`: two lines apart is one blank line between, which is allowed.
 const LINE_OFFSET: usize = 2;
@@ -65,11 +66,11 @@ fn token_lines(context: &RuleContext<'_>) -> Vec<usize> {
         if node.child_count() > 0 || node.start_byte() == node.end_byte() {
             continue;
         }
-        if matches!(node.kind(), "uninterpreted" | "__END__") {
+        if matches!(node.kind_str(), "uninterpreted" | "__END__") {
             continue;
         }
         let first = node.start_position().row;
-        let last = if node.kind() == "comment" {
+        let last = if node.kind_str() == "comment" {
             first
         } else {
             node.end_position().row

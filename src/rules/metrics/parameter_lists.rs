@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use super::support::constructor_call;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(5);
@@ -29,12 +30,12 @@ fn report_optional_parameters(
     max: usize,
 ) {
     let count = node
-        .child_by_field_name("parameters")
+        .field("parameters")
         .map_or(0, |parameters| {
             let mut cursor = parameters.walk();
             parameters
                 .named_children(&mut cursor)
-                .filter(|parameter| parameter.kind() == "optional_parameter")
+                .filter(|parameter| parameter.kind_str() == "optional_parameter")
                 .map(folded_parameter_count)
                 .sum()
         });
@@ -64,8 +65,8 @@ fn report_parameter_count(
     // counting it would push authors toward a change the cop does not actually want.
     let count: usize = node
         .named_children(&mut cursor)
-        .filter(|parameter| parameter.kind() != "block_parameter")
-        .filter(|parameter| count_keywords || parameter.kind() != "keyword_parameter")
+        .filter(|parameter| parameter.kind_str() != "block_parameter")
+        .filter(|parameter| count_keywords || parameter.kind_str() != "keyword_parameter")
         .map(folded_parameter_count)
         .sum();
     if count <= max || argument_to_lambda_or_proc(context, node) {
@@ -87,16 +88,16 @@ fn report_parameter_count(
 /// the count the source actually spells out.
 fn folded_parameter_count(parameter: Node<'_>) -> usize {
     let mut count = 1;
-    let mut value = parameter.child_by_field_name("value");
-    while let Some(node) = value.filter(|node| node.kind() == "assignment") {
+    let mut value = parameter.field("value");
+    while let Some(node) = value.filter(|node| node.kind_str() == "assignment") {
         let Some(targets) = node
-            .child_by_field_name("left")
-            .filter(|left| left.kind() == "left_assignment_list")
+            .field("left")
+            .filter(|left| left.kind_str() == "left_assignment_list")
         else {
             break;
         };
         count += targets.named_child_count().saturating_sub(1);
-        value = node.child_by_field_name("right");
+        value = node.field("right");
     }
     count
 }
@@ -108,35 +109,35 @@ fn folded_parameter_count(parameter: Node<'_>) -> usize {
 /// as the block holds a second statement. tree-sitter always interposes a `body_statement`, which
 /// is why the def has to be the block's only statement here rather than merely one of them.
 fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(method) = node.parent().filter(|parent| parent.kind() == "method") else {
+    let Some(method) = node.parent_of(context).filter(|parent| parent.kind_str() == "method") else {
         return false;
     };
     if method
-        .child_by_field_name("name")
+        .field("name")
         .is_none_or(|name| context.source.node_text(name) != "initialize")
     {
         return false;
     }
     let Some(body) = method
-        .parent()
-        .filter(|parent| parent.kind() == "body_statement" && parent.named_child_count() == 1)
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "body_statement" && parent.named_child_count() == 1)
     else {
         return false;
     };
     let Some(block) = body
-        .parent()
-        .filter(|parent| matches!(parent.kind(), "block" | "do_block"))
+        .parent_of(context)
+        .filter(|parent| matches!(parent.kind_str(), "block" | "do_block"))
     else {
         return false;
     };
     // The pattern spells the block's parameter list as `(args)`, so a block that takes parameters
     // of its own does not qualify.
-    if block.child_by_field_name("parameters").is_some() {
+    if block.field("parameters").is_some() {
         return false;
     }
     block
-        .parent()
-        .filter(|parent| parent.kind() == "call")
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "call")
         .is_some_and(|call| {
             matches!(
                 constructor_call(context, call),
@@ -148,22 +149,22 @@ fn struct_or_data_initialize(context: &RuleContext<'_>, node: Node<'_>) -> bool 
 /// `lambda`, `proc` and `Proc.new` take whatever arity their body needs, so RuboCop leaves their
 /// parameter lists alone.
 fn argument_to_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    if parent.kind() == "lambda" {
+    if parent.kind_str() == "lambda" {
         return true;
     }
-    if !matches!(parent.kind(), "block" | "do_block") {
+    if !matches!(parent.kind_str(), "block" | "do_block") {
         return false;
     }
-    let Some(call) = parent.parent().filter(|node| node.kind() == "call") else {
+    let Some(call) = parent.parent_of(context).filter(|node| node.kind_str() == "call") else {
         return false;
     };
-    let Some(method) = call.child_by_field_name("method") else {
+    let Some(method) = call.field("method") else {
         return false;
     };
-    match call.child_by_field_name("receiver") {
+    match call.field("receiver") {
         None => matches!(context.source.node_text(method), "lambda" | "proc"),
         Some(_) => matches!(constructor_call(context, call), Some(("Proc", "new"))),
     }

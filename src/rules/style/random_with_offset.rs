@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Prefer ranges when generating random numbers instead of integers with offsets.";
 
@@ -22,17 +23,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The range the offset and the `rand` call stand for, for each of the three shapes the cop
 /// matches.
 fn corrected(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             if !matches!(operator, "+" | "-") {
                 return None;
             }
             let (left, right) = (
-                node.child_by_field_name("left")?,
-                node.child_by_field_name("right")?,
+                node.field("left")?,
+                node.field("right")?,
             );
             // `integer_op_rand?`, then `rand_op_integer?`.
             if let Some(random) = random_call(context, right)
@@ -56,13 +57,13 @@ fn corrected(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
         "call" => {
             let method = context
                 .source
-                .node_text(node.child_by_field_name("method")?);
+                .node_text(node.field("method")?);
             if !matches!(method, "succ" | "pred" | "next")
-                || node.child_by_field_name("arguments").is_some()
+                || node.field("arguments").is_some()
             {
                 return None;
             }
-            let random = random_call(context, node.child_by_field_name("receiver")?)?;
+            let random = random_call(context, node.field("receiver")?)?;
             let (low, high) = random.boundaries;
             let step = match method {
                 "pred" => -1,
@@ -90,37 +91,37 @@ impl Random {
 /// `(send {nil? (const {nil? cbase} :Random) (const {nil? cbase} :Kernel)} :rand {int (range int
 /// int)})`.
 fn random_call(context: &RuleContext<'_>, node: Node<'_>) -> Option<Random> {
-    if node.kind() != "call"
+    if node.kind_str() != "call"
         || context
             .source
-            .node_text(node.child_by_field_name("method")?)
+            .node_text(node.field("method")?)
             != "rand"
     {
         return None;
     }
-    let prefix = match node.child_by_field_name("receiver") {
+    let prefix = match node.field("receiver") {
         None => "rand".to_owned(),
         Some(receiver) => {
             let source = context.source.node_text(receiver);
             if !matches!(source.trim_start_matches("::"), "Random" | "Kernel")
-                || !matches!(receiver.kind(), "constant" | "scope_resolution")
+                || !matches!(receiver.kind_str(), "constant" | "scope_resolution")
             {
                 return None;
             }
             format!("{source}.rand")
         }
     };
-    let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+    let arguments = super::nodes::children(node.field("arguments")?);
     let [argument] = arguments.as_slice() else {
         return None;
     };
-    let boundaries = match argument.kind() {
+    let boundaries = match argument.kind_str() {
         "range" => {
-            let low = integer_value(context, argument.child_by_field_name("begin")?)?;
-            let high = integer_value(context, argument.child_by_field_name("end")?)?;
+            let low = integer_value(context, argument.field("begin")?)?;
+            let high = integer_value(context, argument.field("end")?)?;
             let inclusive = context
                 .source
-                .node_text(argument.child_by_field_name("operator")?)
+                .node_text(argument.field("operator")?)
                 == "..";
             (low, high - i64::from(!inclusive))
         }
@@ -131,19 +132,19 @@ fn random_call(context: &RuleContext<'_>, node: Node<'_>) -> Option<Random> {
 
 /// `(int $_)`: the parser folds a leading sign into the literal, so `-1` is one too.
 fn integer_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<i64> {
-    let (node, negative) = match node.kind() {
+    let (node, negative) = match node.kind_str() {
         "unary" => {
             let operator = context
                 .source
-                .node_text(node.child_by_field_name("operator")?);
+                .node_text(node.field("operator")?);
             if !matches!(operator, "-" | "+") {
                 return None;
             }
-            (node.child_by_field_name("operand")?, operator == "-")
+            (node.field("operand")?, operator == "-")
         }
         _ => (node, false),
     };
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return None;
     }
     let text: String = context

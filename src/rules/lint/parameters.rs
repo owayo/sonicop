@@ -8,6 +8,7 @@
 
 use std::collections::VecDeque;
 
+use crate::rules::node_ext::NodeExt;
 use tree_sitter::Node;
 
 /// One defaulted parameter: the name it declares and the expression it defaults to.
@@ -20,27 +21,24 @@ pub(super) struct Defaulted<'tree> {
 /// with nothing after it is a required keyword argument.
 pub(super) fn keyword<'tree>(parameter: Node<'tree>) -> Option<Defaulted<'tree>> {
     Some(Defaulted {
-        name: parameter.child_by_field_name("name")?,
-        value: parameter.child_by_field_name("value")?,
+        name: parameter.field("name")?,
+        value: parameter.field("value")?,
     })
 }
 
 /// The parameters one `optional_parameter` node really stands for.
 pub(super) fn defaulted<'tree>(parameter: Node<'tree>) -> Vec<Defaulted<'tree>> {
-    let (Some(name), Some(value)) = (
-        parameter.child_by_field_name("name"),
-        parameter.child_by_field_name("value"),
-    ) else {
+    let (Some(name), Some(value)) = (parameter.field("name"), parameter.field("value")) else {
         return Vec::new();
     };
     let mut pending: VecDeque<Node<'tree>> = VecDeque::from([name]);
     let mut parameters: Vec<Defaulted<'tree>> = Vec::new();
     let mut current = value;
     loop {
-        let folded = (current.kind() == "assignment")
-            .then(|| current.child_by_field_name("left"))
+        let folded = (current.kind_str() == "assignment")
+            .then(|| current.field("left"))
             .flatten()
-            .filter(|left| left.kind() == "left_assignment_list");
+            .filter(|left| left.kind_str() == "left_assignment_list");
         let Some(left) = folded else {
             if let Some(name) = pending.pop_front() {
                 parameters.push(Defaulted {
@@ -62,7 +60,7 @@ pub(super) fn defaulted<'tree>(parameter: Node<'tree>) -> Vec<Defaulted<'tree>> 
             });
         }
         pending.extend(names.iter().copied());
-        let Some(right) = current.child_by_field_name("right") else {
+        let Some(right) = current.field("right") else {
             return parameters;
         };
         current = right;

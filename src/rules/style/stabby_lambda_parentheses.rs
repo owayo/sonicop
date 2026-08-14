@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_REQUIRE: &str = "Wrap stabby lambda arguments with parentheses.";
 const MSG_NO_REQUIRE: &str = "Do not wrap stabby lambda arguments with parentheses.";
@@ -13,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("lambda") {
         // `stabby_lambda_with_args?`: only a literal that named arguments is in scope.
-        let Some(parameters) = node.child_by_field_name("parameters") else {
+        let Some(parameters) = node.field("parameters") else {
             continue;
         };
         if super::nodes::children(parameters).is_empty() {

@@ -8,6 +8,7 @@ use super::access_modifier::{
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `static_method_definition?`'s macro half. A call to any of these defines methods however many
 /// names it was given, including none at all.
@@ -42,21 +43,21 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The remaining handlers fire as the commissioner walks the tree, so the nodes have to be
     // visited in the order it enters them: the first message wins where two walks meet.
     for node in context.nodes() {
-        match node.kind() {
+        match node.kind_str() {
             "class" | "module" | "singleton_class" => {
-                if let Some(body) = node.child_by_field_name("body") {
+                if let Some(body) = node.field("body") {
                     cop.check_node(body);
                 }
             }
             // A `block` node upstream stands where tree-sitter puts the call it hangs off, so the
             // call is what carries `on_block`'s position in the walk.
-            "call" if node.child_by_field_name("block").is_some() => {
+            "call" if node.field("block").is_some() => {
                 if !(cop.eval_call(node) || cop.included_block(node)) {
                     continue;
                 }
                 if let Some(body) = node
-                    .child_by_field_name("block")
-                    .and_then(|block| block.child_by_field_name("body"))
+                    .field("block")
+                    .and_then(|block| block.field("body"))
                 {
                     cop.check_node(body);
                 }
@@ -131,7 +132,7 @@ impl<'tree> Cop<'_, 'tree> {
                 unused = None;
             } else if self.start_of_new_scope(child) {
                 self.check_scope(child);
-            } else if child.kind() != "singleton_method" {
+            } else if child.kind_str() != "singleton_method" {
                 // A `defs` is neither a method definition for visibility purposes nor something to
                 // walk into: `private` never reaches a singleton method.
                 (visibility, unused) = self.check_child_nodes(child, unused, visibility);
@@ -188,16 +189,16 @@ impl<'tree> Cop<'_, 'tree> {
     /// `included_block?`, which only ever holds where the ActiveSupport extensions are enabled.
     fn included_block(&self, node: Node<'_>) -> bool {
         self.active_support
-            && node.child_by_field_name("block").is_some()
+            && node.field("block").is_some()
             && node
-                .child_by_field_name("method")
+                .field("method")
                 .is_some_and(|method| self.context.source.node_text(method) == "included")
     }
 
     /// `method_definition?`: a `def`, an `attr` macro, a `define_method`, or one of the configured
     /// method-creating macros. A `defs` is none of them.
     fn method_definition(&self, node: Node<'_>) -> bool {
-        if node.kind() == "method" {
+        if node.kind_str() == "method" {
             return true;
         }
         let Some(name) = self.receiverless_name(node) else {
@@ -211,18 +212,18 @@ impl<'tree> Cop<'_, 'tree> {
 
     /// `start_of_new_scope?`
     fn start_of_new_scope(&self, node: Node<'_>) -> bool {
-        matches!(node.kind(), "module" | "class" | "singleton_class") || self.eval_call(node)
+        matches!(node.kind_str(), "module" | "class" | "singleton_class") || self.eval_call(node)
     }
 
     /// `eval_call?`: a block that reopens a class -- `class_eval`, `instance_eval`, a class
     /// constructor, or one of the configured context-creating macros.
     fn eval_call(&self, node: Node<'_>) -> bool {
-        if node.kind() != "call" {
+        if node.kind_str() != "call" {
             return false;
         }
-        let has_block = node.child_by_field_name("block").is_some();
+        let has_block = node.field("block").is_some();
         let name = node
-            .child_by_field_name("method")
+            .field("method")
             .map(|method| self.context.source.node_text(method));
         // `(any_block (send _ {:class_eval :instance_eval}) ...)` takes no arguments; a receiver
         // of any shape, including none, satisfies the `_`.
@@ -241,7 +242,7 @@ impl<'tree> Cop<'_, 'tree> {
     /// The name of a call written without a receiver, which is how the `(send nil? :name ...)`
     /// half of the method-definition patterns is spelled.
     fn receiverless_name<'a>(&'a self, node: Node<'_>) -> Option<&'a str> {
-        if node.kind() == "call" && node.child_by_field_name("receiver").is_some() {
+        if node.kind_str() == "call" && node.field("receiver").is_some() {
             return None;
         }
         send_name_allowing_block(node, self.context)
@@ -250,8 +251,8 @@ impl<'tree> Cop<'_, 'tree> {
     /// `{nil? const}`: the receiver a context-creating macro is allowed, which is either absent or
     /// a plain constant.
     fn receiverless_or_constant(&self, node: Node<'_>) -> bool {
-        node.child_by_field_name("receiver")
-            .is_none_or(|receiver| receiver.kind() == "constant")
+        node.field("receiver")
+            .is_none_or(|receiver| receiver.kind_str() == "constant")
     }
 
     fn report(&mut self, node: Node<'_>, visibility: &str) {
@@ -276,16 +277,16 @@ impl<'tree> Cop<'_, 'tree> {
 /// The name of a call that may carry a block, which the method-definition patterns reach through
 /// `any_block`.
 fn send_name_allowing_block<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => node
-            .child_by_field_name("method")
+            .field("method")
             .map(|method| context.source.node_text(method)),
         _ => send_name(node, context),
     }
 }
 
 fn has_arguments(node: Node<'_>) -> bool {
-    node.child_by_field_name("arguments")
+    node.field("arguments")
         .is_some_and(|arguments| arguments.named_child_count() > 0)
 }
 

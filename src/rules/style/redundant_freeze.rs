@@ -7,6 +7,7 @@ use crate::rules::lint::locals::LocalVariables;
 use crate::rules::send_node;
 
 use super::frozen_string::{is_frozen, literals_enabled};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not freeze immutable objects, as freezing them has no effect.";
 
@@ -45,16 +46,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !send_node::is_plain_send(node, context) {
             continue;
         }
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         if context.source.node_text(selector) != "freeze" {
             continue;
         }
-        let Some(dot) = node.child_by_field_name("operator") else {
+        let Some(dot) = node.field("operator") else {
             continue;
         };
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
         let frozen_strings =
@@ -87,30 +88,30 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn immutable_literal(context: &RuleContext<'_>, node: Node<'_>, frozen_strings: bool) -> bool {
     let node = strip_parenthesis(node);
-    if IMMUTABLE_LITERAL_KINDS.contains(&node.kind()) {
+    if IMMUTABLE_LITERAL_KINDS.contains(&node.kind_str()) {
         return true;
     }
-    if node.kind() == "unary" {
+    if node.kind_str() == "unary" {
         // `-1` is one `int` upstream: the parser folds a sign written against a numeric literal into
         // the literal itself.
         return node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "-" | "+"))
-            && node.child_by_field_name("operand").is_some_and(|operand| {
-                matches!(operand.kind(), "integer" | "float" | "rational" | "complex")
+            && node.field("operand").is_some_and(|operand| {
+                matches!(operand.kind_str(), "integer" | "float" | "rational" | "complex")
             });
     }
     if frozen_strings && is_frozen(context, node) {
         return true;
     }
     context.target_ruby_version() >= RubyVersion::new(3, 0)
-        && matches!(node.kind(), "regex" | "range")
+        && matches!(node.kind_str(), "regex" | "range")
 }
 
 /// `(begin $_ ...)`: what upstream reads out of a parenthesized expression before asking whether it
 /// is a literal. Only one level comes off, and only the first statement is taken.
 fn strip_parenthesis<'tree>(node: Node<'tree>) -> Node<'tree> {
-    if node.kind() != "parenthesized_statements" {
+    if node.kind_str() != "parenthesized_statements" {
         return node;
     }
     super::nodes::children(node)
@@ -121,14 +122,14 @@ fn strip_parenthesis<'tree>(node: Node<'tree>) -> Node<'tree> {
 
 fn operation_produces_immutable_object(
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     node: Node<'_>,
 ) -> bool {
     // `(send _ {:count :length :size} ...)` and its block form, neither of which is parenthesized.
     if size_call(context, locals, node) {
         return true;
     }
-    if node.kind() != "parenthesized_statements" {
+    if node.kind_str() != "parenthesized_statements" {
         return false;
     }
     let children = super::nodes::children(node);
@@ -148,28 +149,28 @@ fn operation_produces_immutable_object(
     NUMERIC_RIGHT_OPERATORS.contains(&operator)
         && numeric_literal(context, right)
         // `!{(str _) array}`: appending to either of those builds something mutable.
-        && !matches!(left.kind(), "string" | "array")
+        && !matches!(left.kind_str(), "string" | "array")
 }
 
 /// A binary operation's operands and operator, however it was written. `1 + 2` and `1.+(2)` are one
 /// `send` upstream.
 fn operation<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>)> {
-    match node.kind() {
+    match node.kind_str() {
         "binary" => Some((
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("operator")?,
-            node.child_by_field_name("right")?,
+            node.field("left")?,
+            node.field("operator")?,
+            node.field("right")?,
         )),
         "call" => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 return None;
             }
-            let receiver = node.child_by_field_name("receiver")?;
-            let selector = node.child_by_field_name("method")?;
-            if selector.kind() != "operator" {
+            let receiver = node.field("receiver")?;
+            let selector = node.field("method")?;
+            if selector.kind_str() != "operator" {
                 return None;
             }
-            let arguments = node.child_by_field_name("arguments")?;
+            let arguments = node.field("arguments")?;
             match super::nodes::children(arguments).as_slice() {
                 [only] => Some((receiver, selector, *only)),
                 _ => None,
@@ -181,29 +182,29 @@ fn operation<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Node<'tree>, Node
 
 /// `{float int}`: a numeric literal, sign and all.
 fn numeric_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "integer" | "float" => true,
         "unary" => {
-            node.child_by_field_name("operator")
+            node.field("operator")
                 .is_some_and(|operator| matches!(context.source.node_text(operator), "-" | "+"))
                 && node
-                    .child_by_field_name("operand")
-                    .is_some_and(|operand| matches!(operand.kind(), "integer" | "float"))
+                    .field("operand")
+                    .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"))
         }
         _ => false,
     }
 }
 
 /// `(send _ {:count :length :size} ...)`, with or without a block hung off it.
-fn size_call(context: &RuleContext<'_>, locals: &LocalVariables<'_>, node: Node<'_>) -> bool {
+fn size_call(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     // A receiverless call is a bare identifier here, and a local variable of the same name is an
     // `lvar` upstream that no `send` pattern matches.
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return SIZE_METHODS.contains(&context.source.node_text(node)) && !locals.is_lvar(node);
     }
-    node.kind() == "call"
+    node.kind_str() == "call"
         && send_node::is_plain_send(node, context)
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|selector| SIZE_METHODS.contains(&context.source.node_text(selector)))
 }

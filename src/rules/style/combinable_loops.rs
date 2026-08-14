@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Combine this loop with the previous loop.";
 
@@ -78,47 +79,47 @@ struct Loop<'t> {
 
 impl<'t> Loop<'t> {
     fn new(context: &RuleContext<'_>, node: Node<'t>) -> Option<Self> {
-        if node.kind() == "for" {
+        if node.kind_str() == "for" {
             // The grammar puts the closing `end` inside the loop body; upstream keeps the two
             // apart, and `node.body` there is the statements alone.
-            let body = node.child_by_field_name("body")?;
+            let body = node.field("body")?;
             return Some(Self {
                 node,
                 closing: closing(body)?,
                 body: statements(body)?,
                 block: false,
                 braces: false,
-                receiver: Some(node.child_by_field_name("value")?),
+                receiver: Some(node.field("value")?),
                 arguments: Vec::new(),
-                bindings: node.child_by_field_name("pattern"),
+                bindings: node.field("pattern"),
                 method: "for".to_owned(),
             });
         }
-        if node.kind() != "call" {
+        if node.kind_str() != "call" {
             return None;
         }
-        let block = node.child_by_field_name("block")?;
+        let block = node.field("block")?;
         let method = context
             .source
-            .node_text(node.child_by_field_name("method")?)
+            .node_text(node.field("method")?)
             .to_owned();
         // `collection_looping_method?`.
         if !(method.starts_with("each") || method.ends_with("_each")) {
             return None;
         }
         let arguments = node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .map(super::nodes::children)
             .unwrap_or_default();
         Some(Self {
             node,
             closing: closing(block)?,
-            body: block.child_by_field_name("body")?.byte_range(),
+            body: block.field("body")?.byte_range(),
             block: true,
-            braces: block.kind() == "block",
-            receiver: node.child_by_field_name("receiver"),
+            braces: block.kind_str() == "block",
+            receiver: node.field("receiver"),
             arguments,
-            bindings: block.child_by_field_name("parameters"),
+            bindings: block.field("parameters"),
             method,
         })
     }
@@ -182,8 +183,8 @@ fn combine(
 
 /// `right_sibling&.any_block_type?`: another block follows, and merging it needs this one open.
 fn is_block(node: Node<'_>) -> bool {
-    match node.kind() {
-        "call" => node.child_by_field_name("block").is_some(),
+    match node.kind_str() {
+        "call" => node.field("block").is_some(),
         "lambda" => true,
         _ => false,
     }
@@ -210,5 +211,5 @@ fn closing<'t>(block: Node<'t>) -> Option<Node<'t>> {
     children
         .into_iter()
         .rev()
-        .find(|child| !child.is_named() && matches!(child.kind(), "}" | "end"))
+        .find(|child| !child.is_named() && matches!(child.kind_str(), "}" | "end"))
 }

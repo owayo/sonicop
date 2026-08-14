@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, is_plain_send, send_range};
+use crate::rules::node_ext::NodeExt;
 
 /// Which of the five patterns a call matched, since each names a different range and a different
 /// replacement.
@@ -23,7 +24,7 @@ enum Deprecated {
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if !is_plain_send(node, context) {
@@ -70,7 +71,7 @@ fn matched(
     arguments: &[Argument<'_>],
     context: &RuleContext<'_>,
 ) -> Option<Deprecated> {
-    let Some(receiver) = node.child_by_field_name("receiver") else {
+    let Some(receiver) = node.field("receiver") else {
         return match name {
             // `(send nil? :attr _ boolean)`.
             "attr" if arguments.len() == 2 && boolean(arguments[1].first(), context) => {
@@ -91,10 +92,10 @@ fn matched(
 
 /// The name of a constant reached from the top level: `(const {cbase nil?} :Name)`.
 fn short_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
-        "scope_resolution" if node.child_by_field_name("scope").is_none() => node
-            .child_by_field_name("name")
+        "scope_resolution" if node.field("scope").is_none() => node
+            .field("name")
             .map(|name| context.source.node_text(name)),
         _ => None,
     }
@@ -102,7 +103,7 @@ fn short_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a st
 
 fn boolean(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(context.source.node_text(node), "true" | "false")
-        && matches!(node.kind(), "true" | "false")
+        && matches!(node.kind_str(), "true" | "false")
 }
 
 fn offense_range(
@@ -137,7 +138,7 @@ fn preferred(
         }
         Deprecated::Constant => {
             let receiver = node
-                .child_by_field_name("receiver")
+                .field("receiver")
                 .map_or("", |receiver| context.source.node_text(receiver));
             match name {
                 "clone" | "dup" => format!("{receiver}.to_h"),

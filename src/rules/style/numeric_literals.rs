@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Use underscores(_) as thousands separator and separate every 3 digits with them.";
@@ -18,8 +19,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // A rational or imaginary suffix makes a different literal upstream (`rational` / `complex`
         // nodes), and this cop only visits integers and floats.
         if node
-            .parent()
-            .is_some_and(|parent| matches!(parent.kind(), "rational" | "complex"))
+            .parent_of(context)
+            .is_some_and(|parent| matches!(parent.kind_str(), "rational" | "complex"))
         {
             continue;
         }
@@ -55,12 +56,12 @@ fn signed_range(node: Node<'_>) -> Range<usize> {
     let Some(parent) = node.parent() else {
         return node.byte_range();
     };
-    let signed = parent.kind() == "unary"
+    let signed = parent.kind_str() == "unary"
         && parent
-            .child_by_field_name("operator")
-            .is_some_and(|operator| matches!(operator.kind(), "-" | "+"))
+            .field("operator")
+            .is_some_and(|operator| matches!(operator.kind_str(), "-" | "+"))
         && parent
-            .child_by_field_name("operand")
+            .field("operand")
             .is_some_and(|operand| operand.id() == node.id());
     if signed {
         parent.byte_range()

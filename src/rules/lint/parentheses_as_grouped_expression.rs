@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 /// `OPERATOR_METHODS`, which are written with a space on either side by convention.
 const OPERATOR_METHODS: [&str; 29] = [
@@ -60,8 +61,8 @@ fn grouped_argument<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    let method = node.child_by_field_name("method")?;
-    let list = node.child_by_field_name("arguments")?;
+    let method = node.field("method")?;
+    let list = node.field("arguments")?;
     // `node.parenthesized?`.
     if list
         .child(0)
@@ -76,5 +77,5 @@ fn grouped_argument<'tree>(
     let [argument] = argument.parts() else {
         return None;
     };
-    (argument.kind() == "parenthesized_statements").then_some((method, *argument))
+    (argument.kind_str() == "parenthesized_statements").then_some((method, *argument))
 }

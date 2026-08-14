@@ -15,6 +15,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node;
 
 use super::frozen_string::{is_frozen, kind_of, literals_enabled};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Freeze mutable objects assigned to constants.";
 
@@ -87,7 +88,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         shareable: shareable_lines(context),
     };
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
-        let Some(left) = node.child_by_field_name("left") else {
+        let Some(left) = node.field("left") else {
             continue;
         };
         if !is_constant(left) {
@@ -95,14 +96,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // A `casgn` without an expression is only ever corrected through `CONST ||= ...`; every
         // other operator leaves the constant holding what it already held.
-        if node.kind() == "operator_assignment"
+        if node.kind_str() == "operator_assignment"
             && node
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_none_or(|operator| context.source.node_text(operator) != "||=")
         {
             continue;
         }
-        let Some(value) = node.child_by_field_name("right") else {
+        let Some(value) = node.field("right") else {
             continue;
         };
         cop.on_assignment(value, offenses);
@@ -174,10 +175,10 @@ impl<'tree> Cop<'_, 'tree> {
         // Before 3.0 a range was mutable, and one written in parentheses reaches the cop wrapped in
         // a `begin` that no literal test matches.
         self.context.target_ruby_version() <= RubyVersion::new(2, 7)
-            && value.kind() == "parenthesized_statements"
+            && value.kind_str() == "parenthesized_statements"
             && matches!(
                 send_node::named_children(value).as_slice(),
-                [only] if only.kind() == "range"
+                [only] if only.kind_str() == "range"
             )
     }
 
@@ -194,20 +195,20 @@ impl<'tree> Cop<'_, 'tree> {
             return true;
         }
         // A sign written against a numeric literal is folded into the literal upstream.
-        value.kind() == "unary"
+        value.kind_str() == "unary"
             && value
-                .child_by_field_name("operator")
+                .field("operator")
                 .is_some_and(|operator| {
                     matches!(self.context.source.node_text(operator), "-" | "+")
                 })
             && value
-                .child_by_field_name("operand")
-                .is_some_and(|operand| IMMUTABLE_LITERAL_KINDS.contains(&operand.kind()))
+                .field("operand")
+                .is_some_and(|operand| IMMUTABLE_LITERAL_KINDS.contains(&operand.kind_str()))
     }
 
     fn frozen_regexp_or_range_literal(&self, value: Node<'tree>) -> bool {
         self.context.target_ruby_version() >= RubyVersion::new(3, 0)
-            && matches!(value.kind(), "regex" | "range")
+            && matches!(value.kind_str(), "regex" | "range")
     }
 
     fn frozen_string_literal(&self, value: Node<'tree>) -> bool {
@@ -229,14 +230,14 @@ impl<'tree> Cop<'_, 'tree> {
 
     /// `explicitly_frozen_literal?`, answered with the literal the `.freeze` was sent to.
     fn explicitly_frozen_literal(&self, node: Node<'tree>) -> Option<Node<'tree>> {
-        if node.kind() != "call" || !send_node::is_plain_send(node, self.context) {
+        if node.kind_str() != "call" || !send_node::is_plain_send(node, self.context) {
             return None;
         }
-        let method = node.child_by_field_name("method")?;
+        let method = node.field("method")?;
         if self.context.source.node_text(method) != "freeze" {
             return None;
         }
-        let receiver = node.child_by_field_name("receiver")?;
+        let receiver = node.field("receiver")?;
         self.mutable_literal(receiver).then_some(receiver)
     }
 
@@ -255,12 +256,12 @@ impl<'tree> Cop<'_, 'tree> {
         if self.env_lookup(node) {
             return true;
         }
-        if node.kind() == "binary"
-            && node.child_by_field_name("operator").is_some_and(|operator| {
+        if node.kind_str() == "binary"
+            && node.field("operator").is_some_and(|operator| {
                 matches!(self.context.source.node_text(operator), "||" | "or")
             })
             && node
-                .child_by_field_name("left")
+                .field("left")
                 .is_some_and(|left| self.env_lookup(left))
         {
             return true;
@@ -307,25 +308,25 @@ impl<'tree> Cop<'_, 'tree> {
         &self,
         node: Node<'tree>,
     ) -> Option<(Option<Node<'tree>>, &'tree str, Vec<Node<'tree>>, bool)> {
-        match node.kind() {
+        match node.kind_str() {
             "binary" => Some((
-                Some(node.child_by_field_name("left")?),
+                Some(node.field("left")?),
                 self.context
                     .source
-                    .node_text(node.child_by_field_name("operator")?),
-                vec![node.child_by_field_name("right")?],
+                    .node_text(node.field("operator")?),
+                vec![node.field("right")?],
                 false,
             )),
             "call" if send_node::is_plain_send(node, self.context) => Some((
-                node.child_by_field_name("receiver"),
+                node.field("receiver"),
                 self.context
                     .source
-                    .node_text(node.child_by_field_name("method")?),
+                    .node_text(node.field("method")?),
                 send_node::arguments(node)
                     .into_iter()
                     .map(|argument| argument.first())
                     .collect(),
-                node.child_by_field_name("block").is_some(),
+                node.field("block").is_some(),
             )),
             _ => None,
         }
@@ -334,7 +335,7 @@ impl<'tree> Cop<'_, 'tree> {
     /// `(send (const {nil? cbase} :ENV) :[] _)`. This builder leaves an index read as a `send` of
     /// `:[]` rather than an `index` node.
     fn env_lookup(&self, node: Node<'tree>) -> bool {
-        if node.kind() != "element_reference" {
+        if node.kind_str() != "element_reference" {
             return false;
         }
         let children = send_node::named_children(node);
@@ -344,16 +345,16 @@ impl<'tree> Cop<'_, 'tree> {
 
     /// `{float int}`, sign and all.
     fn numeric_literal(&self, node: Node<'tree>) -> bool {
-        match node.kind() {
+        match node.kind_str() {
             "integer" | "float" => true,
             "unary" => {
-                node.child_by_field_name("operator")
+                node.field("operator")
                     .is_some_and(|operator| {
                         matches!(self.context.source.node_text(operator), "-" | "+")
                     })
                     && node
-                        .child_by_field_name("operand")
-                        .is_some_and(|operand| matches!(operand.kind(), "integer" | "float"))
+                        .field("operand")
+                        .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"))
             }
             _ => false,
         }
@@ -371,10 +372,10 @@ impl<'tree> Cop<'_, 'tree> {
             // `[*range]` already reads as a list; anything else needs parentheses of its own before
             // `to_a` can be sent to it.
             let source = self.context.source.node_text(splat);
-            let parenthesized = splat.kind() == "parenthesized_statements"
+            let parenthesized = splat.kind_str() == "parenthesized_statements"
                 && matches!(
                     send_node::named_children(splat).as_slice(),
-                    [only] if only.kind() == "range"
+                    [only] if only.kind_str() == "range"
                 );
             let replacement = match parenthesized {
                 true => format!("{source}.to_a"),
@@ -415,11 +416,11 @@ impl<'tree> Cop<'_, 'tree> {
     /// `(array (splat $_))`: an array holding nothing but one splat. Written without brackets, that
     /// array reaches tree-sitter as the splat itself.
     fn splat_value(&self, node: Node<'tree>) -> Option<Node<'tree>> {
-        let splat = match node.kind() {
+        let splat = match node.kind_str() {
             "splat_argument" => node,
             "array" | "right_assignment_list" => {
                 match send_node::named_children(node).as_slice() {
-                    [only] if only.kind() == "splat_argument" => *only,
+                    [only] if only.kind_str() == "splat_argument" => *only,
                     _ => return None,
                 }
             }
@@ -433,7 +434,7 @@ impl<'tree> Cop<'_, 'tree> {
     fn requires_parentheses(&self, node: Node<'tree>) -> bool {
         match kind_of(node, self.context) {
             "range" | "binary" | "identifier" | "unary" => true,
-            "call" => node.child_by_field_name("operator").is_none(),
+            "call" => node.field("operator").is_none(),
             _ => false,
         }
     }
@@ -453,19 +454,19 @@ fn edit(range: Range<usize>, replacement: String) -> Edit {
 /// `node.array_type? && !node.bracketed?`: `A = 1, 2` is an array with no brackets to freeze
 /// through.
 fn is_unbracketed_array(node: Node<'_>) -> bool {
-    node.kind() == "right_assignment_list"
+    node.kind_str() == "right_assignment_list"
 }
 
 /// `literal_children`: what an array or hash holds that may itself want freezing. A percent array
 /// is skipped -- `.freeze` cannot be written against one of its words.
 fn literal_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         // A percent array's words are not nodes `.freeze` can be written against.
         "string_array" | "symbol_array" => Vec::new(),
         "array" | "right_assignment_list" => send_node::named_children(node),
         "hash" => send_node::named_children(node)
             .into_iter()
-            .filter(|child| child.kind() == "pair")
+            .filter(|child| child.kind_str() == "pair")
             .flat_map(|pair| send_node::named_children(pair))
             .collect(),
         _ => Vec::new(),
@@ -474,11 +475,11 @@ fn literal_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 
 /// `(casgn ...)`: an assignment target that names a constant rather than a method or a variable.
 fn is_constant(left: Node<'_>) -> bool {
-    match left.kind() {
+    match left.kind_str() {
         "constant" => true,
         "scope_resolution" => left
-            .child_by_field_name("name")
-            .is_some_and(|name| name.kind() == "constant"),
+            .field("name")
+            .is_some_and(|name| name.kind_str() == "constant"),
         _ => false,
     }
 }

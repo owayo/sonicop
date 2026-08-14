@@ -121,6 +121,8 @@ pub(crate) struct RulePlan {
 
 struct PlannedRule {
     rule: &'static Rule,
+    /// The cop's position in the registry, which is the slot `crate::profile` tallies it under.
+    index: usize,
     /// `rule.severity` unless the configuration overrode it.
     severity: Severity,
     safe_autocorrect: bool,
@@ -129,7 +131,8 @@ struct PlannedRule {
 impl RulePlan {
     pub(crate) fn build(config: &Config, selection: &Selection) -> Self {
         let entries = rules()
-            .filter(|rule| {
+            .enumerate()
+            .filter(|(_, rule)| {
                 let enabled = config.rule_enabled_with_pending(
                     rule.name,
                     selection.enable_pending,
@@ -137,8 +140,9 @@ impl RulePlan {
                 );
                 selection.includes(rule.name, enabled, config.rule_safe(rule.name))
             })
-            .map(|rule| PlannedRule {
+            .map(|(index, rule)| PlannedRule {
                 rule,
+                index,
                 severity: config
                     .cop_value::<String>(rule.name, "Severity")
                     .and_then(|value| Severity::parse(&value))
@@ -218,12 +222,17 @@ fn inspect_planned(
     parser
         .set_language(&tree_sitter_ruby::LANGUAGE.into())
         .context("failed to initialize the Ruby parser")?;
-    let tree = parser
-        .parse(source.text(), None)
-        .context("Ruby parser returned no syntax tree")?;
-    let ast = AstIndex::new(tree.root_node());
-    let directives = (!selection.ignore_disable_comments)
-        .then(|| DirectiveState::parse(&source, ast.comment_ranges()));
+    let tree = crate::profile::phase(crate::profile::Phase::Parse, || {
+        parser.parse(source.text(), None)
+    })
+    .context("Ruby parser returned no syntax tree")?;
+    let ast = crate::profile::phase(crate::profile::Phase::Index, || {
+        AstIndex::new(tree.root_node())
+    });
+    let directives = crate::profile::phase(crate::profile::Phase::Directives, || {
+        (!selection.ignore_disable_comments)
+            .then(|| DirectiveState::parse(&source, ast.comment_ranges()))
+    });
     let mut offenses = Vec::new();
 
     // RuboCop's `Commissioner#investigate` walks the syntax tree only for a source that parses;
@@ -237,19 +246,32 @@ fn inspect_planned(
         .iter()
         .find(|planned| planned.rule.name == syntax_rule.name)
         .map_or(syntax_rule.severity, |planned| planned.severity);
-    (syntax_rule.check)(
-        &RuleContext::new(
-            &source,
-            &ast,
-            config,
-            syntax_rule,
-            syntax_severity,
-            selection.correcting,
-        ),
-        &mut syntax_offenses,
-    );
+    crate::profile::phase(crate::profile::Phase::Syntax, || {
+        (syntax_rule.check)(
+            &RuleContext::new(
+                &source,
+                &ast,
+                config,
+                syntax_rule,
+                syntax_severity,
+                selection.correcting,
+            ),
+            &mut syntax_offenses,
+        );
+    });
     let valid_syntax = syntax_offenses.is_empty();
 
+    // One context for every cop of the file. Beyond saving the construction, it is what lets the
+    // analyses a cop asks for -- `VariableForce` above all -- be computed once and reused by the
+    // cops that follow, the way upstream's commissioner runs one force for the whole team.
+    let mut context = RuleContext::new(
+        &source,
+        &ast,
+        config,
+        syntax_rule,
+        syntax_severity,
+        selection.correcting,
+    );
     for planned in &plan.entries {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
@@ -270,16 +292,9 @@ fn inspect_planned(
         if !valid_syntax {
             continue;
         }
-        let context = RuleContext::new(
-            &source,
-            &ast,
-            config,
-            rule,
-            planned.severity,
-            selection.correcting,
-        );
+        context.inspecting_with(rule, planned.severity);
         let start = offenses.len();
-        (rule.check)(&context, &mut offenses);
+        crate::profile::rule(planned.index, || (rule.check)(&context, &mut offenses));
         // The cop's name comes from the registry through `RuleContext`, so a mismatch here means
         // an offense was built outside `context.offense` and would be attributed to a cop that
         // never ran -- directives and severity overrides would both consult the wrong entry.
@@ -351,7 +366,9 @@ fn inspect_planned(
             selection.display_suppressed
         });
     }
-    sort_offenses(&mut offenses, &source);
+    crate::profile::phase(crate::profile::Phase::Sort, || {
+        sort_offenses(&mut offenses, &source)
+    });
 
     Ok(FileReport {
         path: source.path().to_path_buf(),
@@ -381,7 +398,9 @@ pub fn inspect_files_with_store(
     // to building its own, which costs no more than resolving the cops inline would have.
     let root_plan = RulePlan::build(configs.root(), selection);
     let inspect = |path: &PathBuf| -> Result<FileReport> {
-        let Some(text) = decoded_source(path)? else {
+        let Some(text) =
+            crate::profile::phase(crate::profile::Phase::Read, || decoded_source(path))?
+        else {
             return Ok(undecodable_report(path));
         };
         let config = configs.for_path(path)?;

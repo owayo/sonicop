@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_IF: &str = "Avoid multi-line ternary operators, use `if` or `unless` instead.";
 const MSG_SINGLE_LINE: &str = "Avoid multi-line ternary operators, use single-line instead.";
@@ -63,7 +64,7 @@ fn correct(
     }];
     // A comment written into the condition has nowhere to go in the rewrite, so it moves above the
     // statement the ternary stood in.
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return offense.corrected_by_all(edits);
     };
     let comments = comments_in_condition(context, node);
@@ -85,7 +86,7 @@ fn correct(
 /// branch begins on.
 fn comments_in_condition(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let first = context.source.line_column(node.start_byte()).0;
-    let Some(alternative) = node.child_by_field_name("alternative") else {
+    let Some(alternative) = node.field("alternative") else {
         return String::new();
     };
     let last = context.source.line_column(alternative.start_byte()).0;
@@ -100,13 +101,13 @@ fn comments_in_condition(context: &RuleContext<'_>, node: Node<'_>) -> String {
 fn replacement(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let condition = context
         .source
-        .node_text(node.child_by_field_name("condition")?);
+        .node_text(node.field("condition")?);
     let consequence = context
         .source
-        .node_text(node.child_by_field_name("consequence")?);
+        .node_text(node.field("consequence")?);
     let alternative = context
         .source
-        .node_text(node.child_by_field_name("alternative")?);
+        .node_text(node.field("alternative")?);
     Some(match single_line_wanted(context, node) {
         true => format!("{condition} ? {consequence} : {alternative}"),
         false => format!("if {condition}\n  {consequence}\nelse\n  {alternative}\nend"),
@@ -119,22 +120,22 @@ fn single_line_wanted(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = upstream_parent(node) else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "return" | "break" | "next" => true,
         // `a[i]` and `-a` are calls upstream, named after the operator.
         "element_reference" => true,
         "unary" => true,
         "binary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 !LOGICAL_OPERATORS.contains(&context.source.node_text(operator))
             }),
         "call" => {
-            let Some(method) = parent.child_by_field_name("method") else {
+            let Some(method) = parent.field("method") else {
                 return false;
             };
             // `super` is a node of its own upstream, not a `send`.
-            if method.kind() == "super" {
+            if method.kind_str() == "super" {
                 return false;
             }
             // `use_assignment_method?`: `foo.bar = x` assigns, and an `if` fits on its right.
@@ -149,7 +150,7 @@ fn single_line_wanted(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// hangs an argument off the call itself.
 fn upstream_parent<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let parent = node.parent()?;
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent(),
         _ => Some(parent),
     }

@@ -4,6 +4,7 @@ use std::ops::Range;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let tabs = context
@@ -80,7 +81,7 @@ fn string_literals(context: &RuleContext<'_>) -> Vec<Range<usize>> {
         // squiggly heredoc's terminator was written with is code as far as this cop is concerned.
         let end = body
             .named_children(&mut cursor)
-            .find(|child| child.kind() == "heredoc_end")
+            .find(|child| child.kind_str() == "heredoc_end")
             .map_or_else(
                 || body.end_byte(),
                 |child| {

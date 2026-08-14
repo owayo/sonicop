@@ -8,6 +8,7 @@ use tree_sitter::Node;
 use super::support::{Edits, begins_its_line, hash_literals};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const KEY_MESSAGE: &str = "Align the keys of a hash literal if they span more than one line.";
 const SEPARATOR_MESSAGE: &str =
@@ -132,11 +133,11 @@ struct Element {
 impl Element {
     fn new(context: &RuleContext<'_>, node: Node<'_>) -> Self {
         let text = context.source.text();
-        let kwsplat = node.kind() != "pair";
+        let kwsplat = node.kind_str() != "pair";
         let key = if kwsplat {
             node
         } else {
-            node.child_by_field_name("key").unwrap_or(node)
+            node.field("key").unwrap_or(node)
         };
         let operator = (!kwsplat).then(|| operator_of(node)).flatten();
         let hash_rocket = operator
@@ -145,7 +146,7 @@ impl Element {
         let value = if kwsplat {
             Some(node.byte_range())
         } else {
-            node.child_by_field_name("value")
+            node.field("value")
                 .map(|value| value.byte_range())
         };
         Self {
@@ -195,7 +196,7 @@ impl Hash {
         Self {
             first_line: context.source.line_column(first.start_byte()).0,
             last_line: context.source.line_column(last.end_byte()).0,
-            parent_kind: first.parent().map_or("", |parent| parent.kind()),
+            parent_kind: first.parent_of(context).map_or("", |parent| parent.kind_str()),
             starts_beside: starts_beside_its_call(context, first, &elements),
             elements,
         }
@@ -562,7 +563,7 @@ impl Deltas {
 fn operator_of(pair: Node<'_>) -> Option<Range<usize>> {
     let mut cursor = pair.walk();
     pair.children(&mut cursor)
-        .find(|child| matches!(child.kind(), ":" | "=>"))
+        .find(|child| matches!(child.kind_str(), ":" | "=>"))
         .map(|child| child.byte_range())
 }
 
@@ -576,15 +577,15 @@ fn starts_beside_its_call(
     let Some(pair) = elements.iter().find(|element| !element.kwsplat) else {
         return false;
     };
-    let Some(parent) = first.parent() else {
+    let Some(parent) = first.parent_of(context) else {
         return false;
     };
-    let Some(call) = parent.parent() else {
+    let Some(call) = parent.parent_of(context) else {
         return false;
     };
     let anchor = first
         .prev_named_sibling()
-        .or_else(|| call.child_by_field_name("method"))
+        .or_else(|| call.field("method"))
         .unwrap_or(call);
     let anchor_first = context.source.line_column(anchor.start_byte()).0;
     let anchor_last = context.source.line_column(anchor.end_byte()).0;

@@ -7,6 +7,7 @@ use crate::rules::send_node::{
 };
 
 use super::support::gem_declarations;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut groups: Vec<(String, Vec<(Node<'_>, Node<'_>)>)> = Vec::new();
@@ -42,7 +43,7 @@ fn conditional(nodes: &[Node<'_>]) -> bool {
     let Some(parent) = statement_parent(nodes[0]) else {
         return false;
     };
-    let root = match parent.kind() {
+    let root = match parent.kind_str() {
         "if" | "elsif" | "unless" | "if_modifier" | "unless_modifier" | "conditional" => parent,
         // `parent.parent` upstream: a `when` is a part of the `case` that owns every branch.
         "when" => match parent.parent() {
@@ -65,7 +66,7 @@ fn conditional(nodes: &[Node<'_>]) -> bool {
 /// writes the `then` or `else` around them, so exactly those two stand in for the `begin`.
 fn statement_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut parent = node.parent()?;
-    while matches!(parent.kind(), "then" | "else") {
+    while matches!(parent.kind_str(), "then" | "else") {
         parent = parent.parent()?;
     }
     Some(parent)
@@ -75,16 +76,16 @@ fn statement_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// about: a declaration belongs to a branch when it is the branch itself or a statement of it,
 /// which here is the same as being written directly inside one of these.
 fn branches<'tree>(root: Node<'tree>) -> Vec<Node<'tree>> {
-    match root.kind() {
+    match root.kind_str() {
         // The body of a modifier form and both arms of a ternary hang straight off the node.
         "if_modifier" | "unless_modifier" | "conditional" => vec![root],
         "if" | "elsif" | "unless" => {
             let mut branches = Vec::new();
-            branches.extend(root.child_by_field_name("consequence"));
+            branches.extend(root.field("consequence"));
             // `branches` flattens an `elsif` chain, so every arm of the whole chain counts as a
             // branch of the conditional it started.
-            match root.child_by_field_name("alternative") {
-                Some(alternative) if alternative.kind() == "elsif" => {
+            match root.field("alternative") {
+                Some(alternative) if alternative.kind_str() == "elsif" => {
                     branches.extend(self::branches(alternative));
                 }
                 Some(alternative) => branches.push(alternative),
@@ -94,8 +95,8 @@ fn branches<'tree>(root: Node<'tree>) -> Vec<Node<'tree>> {
         }
         "case" => named_children(root)
             .into_iter()
-            .filter_map(|child| match child.kind() {
-                "when" => child.child_by_field_name("body"),
+            .filter_map(|child| match child.kind_str() {
+                "when" => child.field("body"),
                 "else" => Some(child),
                 _ => None,
             })

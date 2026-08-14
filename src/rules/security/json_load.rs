@@ -3,10 +3,11 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{
     any_descendant, arguments, is_plain_send, pair_key_symbol, top_level_constant,
 };
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         let name = context.source.node_text(method);
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         if !node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| top_level_constant(receiver, "JSON", context))
         {
             continue;
@@ -50,5 +51,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn creates_additions(node: tree_sitter::Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "pair" && pair_key_symbol(node, context) == Some("create_additions")
+    node.kind_str() == "pair" && pair_key_symbol(node, context) == Some("create_additions")
 }

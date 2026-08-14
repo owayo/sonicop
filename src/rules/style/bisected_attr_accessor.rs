@@ -13,6 +13,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::access_modifier::{bare_send_name, send_name, statements};
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// One `attr_reader`, `attr_writer` or `attr` call, read as the attributes it names.
 struct AttrMacro<'tree> {
@@ -58,7 +59,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn check_class(context: &RuleContext<'_>, class: Node<'_>, offenses: &mut Vec<Offense>) {
+fn check_class<'tree>(context: &RuleContext<'tree>, class: Node<'tree>, offenses: &mut Vec<Offense>) {
     let macros = find_macros(context, class);
     // `group_by(&:visibility)`, whose groups come out in the order their visibility first appeared.
     let mut visibilities: Vec<&'static str> = Vec::new();
@@ -94,7 +95,7 @@ fn check_class(context: &RuleContext<'_>, class: Node<'_>, offenses: &mut Vec<Of
 /// `rescue` or `ensure` clause makes the body a node of its own whose children are the clauses,
 /// which likewise cannot hold two macros side by side.
 fn find_macros<'tree>(context: &RuleContext<'tree>, class: Node<'tree>) -> Vec<AttrMacro<'tree>> {
-    let Some(body) = class.child_by_field_name("body") else {
+    let Some(body) = class.field("body") else {
         return Vec::new();
     };
     let Some(body_statements) = statements(body) else {

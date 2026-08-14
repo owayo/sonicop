@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["array", "return", "right_assignment_list"]) {
-        let elements = match node.kind() {
+        let elements = match node.kind_str() {
             // A `return` holds its values in an argument list the parser has no node for.
             "return" => match super::nodes::children(node).as_slice() {
-                [list] if list.kind() == "argument_list" => super::nodes::children(*list),
+                [list] if list.kind_str() == "argument_list" => super::nodes::children(*list),
                 _ => continue,
             },
             _ => super::nodes::children(node),
@@ -28,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `offending_range`: the brackets belong to an array literal but a `return` has none.
-        let offender = match node.kind() {
+        let offender = match node.kind_str() {
             "return" => low.start_byte()..high.end_byte(),
             _ => node.byte_range(),
         };
@@ -55,12 +56,12 @@ fn call_receiver<'tree>(
     node: Node<'tree>,
     name: &str,
 ) -> Option<Node<'tree>> {
-    if node.kind() != "call" || node.child_by_field_name("block").is_some() {
+    if node.kind_str() != "call" || node.field("block").is_some() {
         return None;
     }
-    if node.child_by_field_name("arguments").is_some() {
+    if node.field("arguments").is_some() {
         return None;
     }
-    let method = node.child_by_field_name("method")?;
-    (context.source.node_text(method) == name).then(|| node.child_by_field_name("receiver"))?
+    let method = node.field("method")?;
+    (context.source.node_text(method) == name).then(|| node.field("receiver"))?
 }

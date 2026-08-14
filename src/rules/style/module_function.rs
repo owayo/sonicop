@@ -3,13 +3,14 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
         .setting::<String>("EnforcedStyle")
         .unwrap_or_else(|| "module_function".to_owned());
     for module in context.nodes_of("module") {
-        let Some(body) = module.child_by_field_name("body") else {
+        let Some(body) = module.field("body") else {
             continue;
         };
         let statements = super::conditional::self_statements(body);
@@ -54,16 +55,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(send nil? :name ...)`: the sources of the arguments of a receiverless call to `name`, or
 /// `None` when the node is not one.
 fn receiverless_call(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> Option<Vec<String>> {
-    let (kind, method) = match node.kind() {
+    let (kind, method) = match node.kind_str() {
         // `module_function` and `private` written bare are an identifier here rather than a call.
         "identifier" => ("identifier", node),
-        "call" => ("call", node.child_by_field_name("method")?),
+        "call" => ("call", node.field("method")?),
         _ => return None,
     };
     if context.source.node_text(method) != name {
         return None;
     }
-    if kind == "call" && node.child_by_field_name("receiver").is_some() {
+    if kind == "call" && node.field("receiver").is_some() {
         return None;
     }
     Some(

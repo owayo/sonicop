@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, first_line_range, named_children, send_range};
 
 use super::support::declarations;
+use crate::rules::node_ext::NodeExt;
 
 /// `SOURCE_BLOCK_NAMES`. A group declared under a different source, git remote, platform or path is
 /// a different group even when it goes by the same name.
@@ -40,10 +41,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// in, named by that block's method and its first argument.
 fn source_key(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut child = node;
-    while let Some(parent) = child.parent() {
-        if matches!(child.kind(), "do_block" | "block")
-            && parent.kind() == "call"
-            && let Some(method) = parent.child_by_field_name("method")
+    while let Some(parent) = child.parent_of(context) {
+        if matches!(child.kind_str(), "do_block" | "block")
+            && parent.kind_str() == "call"
+            && let Some(method) = parent.field("method")
         {
             let method = context.source.node_text(method);
             if SOURCE_BLOCK_NAMES.contains(&method) {
@@ -68,8 +69,8 @@ fn attributes(node: Node<'_>, context: &RuleContext<'_>) -> String {
             let parts = argument.parts();
             // A hash argument is keyed by its pairs rather than by its own source, so that
             // `group :a, foo: 1` and `group :a, foo: 1` agree however they were spaced.
-            if parts.len() > 1 || parts[0].kind() == "hash" {
-                let mut pairs: Vec<String> = match parts[0].kind() == "hash" {
+            if parts.len() > 1 || parts[0].kind_str() == "hash" {
+                let mut pairs: Vec<String> = match parts[0].kind_str() == "hash" {
                     true => named_children(parts[0]),
                     false => parts.to_vec(),
                 }
@@ -97,7 +98,7 @@ fn literal_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
     if is_string(node, context) {
         return string_text(node, context).to_owned();
     }
-    if matches!(node.kind(), "integer" | "float" | "rational" | "complex") {
+    if matches!(node.kind_str(), "integer" | "float" | "rational" | "complex") {
         return context.source.node_text(node).replace('_', "");
     }
     context.source.node_text(node).to_owned()

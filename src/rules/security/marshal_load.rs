@@ -3,10 +3,11 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, top_level_constant};
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         let name = context.source.node_text(method);
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         if !node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| top_level_constant(receiver, "Marshal", context))
         {
             continue;
@@ -36,12 +37,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The deep-copy hack `Marshal.load(Marshal.dump(x))`, which upstream exempts because the payload
 /// it loads is one it just wrote itself.
 fn marshal_dump(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "call"
+    node.kind_str() == "call"
         && is_plain_send(node, context)
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "dump")
         && node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| top_level_constant(receiver, "Marshal", context))
 }

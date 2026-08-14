@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use `%W` unless interpolation is needed. If not, use `%w`.";
 
@@ -42,5 +43,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 fn holds_interpolation(node: tree_sitter::Node<'_>) -> bool {
     let mut cursor = node.walk();
-    node.kind() == "interpolation" || node.named_children(&mut cursor).any(holds_interpolation)
+    node.kind_str() == "interpolation" || node.named_children(&mut cursor).any(holds_interpolation)
 }

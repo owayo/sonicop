@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const PATHNAME_MSG: &str =
     "Use `Pathname(__dir__).expand_path` instead of `Pathname(__FILE__).parent.expand_path`.";
@@ -10,7 +11,7 @@ const PATHNAME_NEW_MSG: &str = "Use `Pathname.new(__dir__).expand_path` instead 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
         if node
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "expand_path")
         {
             continue;
@@ -26,8 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 false => PATHNAME_MSG,
             };
             let (Some(dot), Some(selector)) = (
-                parent.child_by_field_name("operator"),
-                parent.child_by_field_name("method"),
+                parent.field("operator"),
+                parent.field("method"),
             ) else {
                 continue;
             };
@@ -68,11 +69,11 @@ fn report_file(
 ) {
     // `unrecommended_argument?` and `current_path.str_type?`.
     if context.source.node_text(default_dir) != "__FILE__"
-        || path.kind() != "string"
+        || path.kind_str() != "string"
         || path.start_position().row != path.end_position().row
         || super::nodes::children(path)
             .iter()
-            .any(|child| child.kind() == "interpolation")
+            .any(|child| child.kind_str() == "interpolation")
     {
         return;
     }
@@ -96,7 +97,7 @@ fn report_file(
     let message = format!(
         "Use `expand_path({new_path}{new_default_dir})` instead of `expand_path('{current}', __FILE__)`."
     );
-    let Some(selector) = node.child_by_field_name("method") else {
+    let Some(selector) = node.field("method") else {
         return;
     };
     let edits = match depth {
@@ -137,11 +138,11 @@ fn file_expand_path<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    let receiver = node.child_by_field_name("receiver")?;
+    let receiver = node.field("receiver")?;
     if !names_constant(context, receiver, "File") {
         return None;
     }
-    let arguments = node.child_by_field_name("arguments")?;
+    let arguments = node.field("arguments")?;
     match super::nodes::children(arguments).as_slice() {
         [path, default_dir] => Some((*path, *default_dir)),
         _ => None,
@@ -154,28 +155,28 @@ fn pathname_parent<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>, bool)> {
-    if node.child_by_field_name("arguments").is_some() {
+    if node.field("arguments").is_some() {
         return None;
     }
-    let parent = node.child_by_field_name("receiver")?;
-    if parent.kind() != "call"
-        || parent.child_by_field_name("arguments").is_some()
+    let parent = node.field("receiver")?;
+    if parent.kind_str() != "call"
+        || parent.field("arguments").is_some()
         || parent
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "parent")
     {
         return None;
     }
-    let call = parent.child_by_field_name("receiver")?;
-    if call.kind() != "call" {
+    let call = parent.field("receiver")?;
+    if call.kind_str() != "call" {
         return None;
     }
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     let [argument] = super::nodes::children(arguments)[..] else {
         return None;
     };
-    let method = call.child_by_field_name("method")?;
-    match call.child_by_field_name("receiver") {
+    let method = call.field("method")?;
+    match call.field("receiver") {
         // `Pathname.new(x)`.
         Some(receiver) => (context.source.node_text(method) == "new"
             && names_constant(context, receiver, "Pathname"))
@@ -189,10 +190,10 @@ fn pathname_parent<'tree>(
 
 /// `(const {nil? cbase} :Name)`: the constant, qualified by nothing or by the root.
 fn names_constant(context: &RuleContext<'_>, node: Node<'_>, name: &str) -> bool {
-    let named = match node.kind() {
+    let named = match node.kind_str() {
         "constant" => node,
-        "scope_resolution" if node.child_by_field_name("scope").is_none() => {
-            match node.child_by_field_name("name") {
+        "scope_resolution" if node.field("scope").is_none() => {
+            match node.field("name") {
                 Some(inner) => inner,
                 None => return false,
             }

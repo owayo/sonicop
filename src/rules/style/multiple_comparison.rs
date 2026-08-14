@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let threshold = context
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `root_of_or_node`: only the outermost `||` of a chain reports.
-        if node.parent().is_some_and(|parent| is_or(parent, context)) {
+        if node.parent_of(context).is_some_and(|parent| is_or(parent, context)) {
             continue;
         }
         if !is_nested_comparison(node, context, &locals, allow_method_comparison) {
@@ -87,13 +88,13 @@ impl<'tree> Search<'tree> {
         &mut self,
         node: Node<'tree>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
         allow_method_comparison: bool,
     ) {
         if is_or(node, context) {
             let (Some(left), Some(right)) = (
-                node.child_by_field_name("left"),
-                node.child_by_field_name("right"),
+                node.field("left"),
+                node.field("right"),
             ) else {
                 return;
             };
@@ -133,12 +134,12 @@ impl<'tree> Search<'tree> {
 fn is_nested_comparison(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allow_method_comparison: bool,
 ) -> bool {
     let (Some(left), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("right"),
     ) else {
         return false;
     };
@@ -153,20 +154,20 @@ fn is_nested_comparison(
 fn comparison<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     allow_method_comparison: bool,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    if node.kind() != "binary"
+    if node.kind_str() != "binary"
         || context
             .source
-            .node_text(node.child_by_field_name("operator")?)
+            .node_text(node.field("operator")?)
             != "=="
     {
         return None;
     }
     let (left, right) = (
-        node.child_by_field_name("left")?,
-        node.child_by_field_name("right")?,
+        node.field("left")?,
+        node.field("right")?,
     );
     let (variable, value) = match is_variable(left, context, locals) {
         true => (left, right),
@@ -180,24 +181,24 @@ fn comparison<'tree>(
 }
 
 /// `{lvar call}`: what may stand where the pattern names the variable being compared.
-fn is_variable(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
+fn is_variable(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
     is_lvar(node, locals) || is_call(node, context, locals)
 }
 
-fn is_lvar(node: Node<'_>, locals: &LocalVariables<'_>) -> bool {
-    node.kind() == "identifier" && locals.is_lvar(node)
+fn is_lvar(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
+    node.kind_str() == "identifier" && locals.is_lvar(node)
 }
 
 /// `call_type?`: the shapes the grammar writes what upstream's parser calls a `send` or `csend` in.
-fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_>) -> bool {
-    match node.kind() {
+fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>) -> bool {
+    match node.kind_str() {
         "call" | "element_reference" => true,
         "identifier" => !locals.is_lvar(node),
         // `-1` is folded into one `int` by upstream's parser, so only a sign applied to something
         // other than an adjacent numeric literal is a call.
         "unary" => !is_signed_literal(node, context),
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| {
                 super::nodes::is_operator_method(context.source.node_text(operator))
             }),
@@ -208,23 +209,23 @@ fn is_call(node: Node<'_>, context: &RuleContext<'_>, locals: &LocalVariables<'_
 /// Whether the node is a numeric literal upstream's parser folded a leading sign into.
 fn is_signed_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let (Some(operator), Some(operand)) = (
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("operand"),
+        node.field("operator"),
+        node.field("operand"),
     ) else {
         return false;
     };
     matches!(context.source.node_text(operator), "-" | "+")
         && operator.end_byte() == operand.start_byte()
         && matches!(
-            operand.kind(),
+            operand.kind_str(),
             "integer" | "float" | "rational" | "complex"
         )
 }
 
 /// Whether the node is what upstream's parser builds an `or` for.
 fn is_or(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "||" | "or"))
 }

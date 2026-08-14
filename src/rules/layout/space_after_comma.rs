@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let bytes = context.source.text().as_bytes();
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // RuboCop walks the lexer's tokens, where a comma inside a string literal or a heredoc
         // delimiter is part of that literal rather than a comma. The tree has the same
         // distinction: only a comma the parser recognised is a node of its own.
-        if node.kind() != "," {
+        if node.kind_str() != "," {
             continue;
         }
         let index = node.start_byte();

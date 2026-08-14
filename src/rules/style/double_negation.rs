@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid the use of double negation (`!!`).";
 
@@ -31,7 +32,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         == "allowed_in_returns";
 
     for node in context.nodes_of("unary") {
-        let Some(selector) = node.child_by_field_name("operator") else {
+        let Some(selector) = node.field("operator") else {
             continue;
         };
         // `node.prefix_bang?`: `not not x` is the same `(send (send _ :!) :!)` upstream, but its
@@ -40,7 +41,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         if !node
-            .child_by_field_name("operand")
+            .field("operand")
             .is_some_and(|operand| is_negation(context, operand))
         {
             continue;
@@ -74,12 +75,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(send _ :!)`, which `not x` and `x.!` are as much as `!x`.
 fn is_negation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "unary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not")),
         "call" => node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| context.source.node_text(method) == "!"),
         _ => false,
     }
@@ -87,7 +88,7 @@ fn is_negation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `allowed_in_returns?`: the value the enclosing method hands back may be spelled this way.
 fn allowed_in_returns_here(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if upstream_parent(node).is_some_and(|parent| parent.kind() == "return") {
+    if upstream_parent(node).is_some_and(|parent| parent.kind_str() == "return") {
         return true;
     }
     end_of_method_definition(context, node)
@@ -103,10 +104,10 @@ fn end_of_method_definition(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     match conditional_from_ascendant(node) {
         Some(conditional) => condition_return_value(node, last_child, conditional),
         None => {
-            if matches!(last_child.kind(), "pair" | "hash")
+            if matches!(last_child.kind_str(), "pair" | "hash")
                 || last_child
-                    .parent()
-                    .is_some_and(|parent| parent.kind() == "array")
+                    .parent_of(context)
+                    .is_some_and(|parent| parent.kind_str() == "array")
             {
                 return false;
             }
@@ -123,8 +124,8 @@ fn definition_from_ascendant<'t>(
 ) -> Option<Definition<'t>> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if matches!(parent.kind(), "method" | "singleton_method") {
-            return Some(Definition::Method(parent.child_by_field_name("body")?));
+        if matches!(parent.kind_str(), "method" | "singleton_method") {
+            return Some(Definition::Method(parent.field("body")?));
         }
         if let Some(call) = define_method_call(context, parent) {
             return Some(Definition::DefineMethod(call));
@@ -143,11 +144,11 @@ enum Definition<'t> {
 
 /// `define_method?`: a block whose call is `define_method` or `define_singleton_method`.
 fn define_method_call<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<Node<'t>> {
-    if !matches!(node.kind(), "block" | "do_block") {
+    if !matches!(node.kind_str(), "block" | "do_block") {
         return None;
     }
-    let call = node.parent().filter(|call| call.kind() == "call")?;
-    let method = call.child_by_field_name("method")?;
+    let call = node.parent().filter(|call| call.kind_str() == "call")?;
+    let method = call.field("method")?;
     matches!(
         context.source.node_text(method),
         "define_method" | "define_singleton_method"
@@ -161,21 +162,21 @@ fn definition_last_child<'t>(definition: Definition<'t>) -> Option<Node<'t>> {
         // The `define_method(...)` send stands alone upstream: the block hangs off it rather than
         // being part of it, so its last child is its last argument.
         Definition::DefineMethod(call) => call
-            .child_by_field_name("arguments")
+            .field("arguments")
             .map(super::nodes::children)
             .and_then(|arguments| arguments.last().copied())
-            .or_else(|| call.child_by_field_name("receiver")),
+            .or_else(|| call.field("receiver")),
         Definition::Method(body) => {
             // A body split by a `rescue` or an `ensure` is that node upstream, and
             // `find_last_child` walks straight through it to the statements it guards.
             let statements: Vec<Node<'t>> = super::nodes::children(body)
                 .into_iter()
-                .filter(|child| !matches!(child.kind(), "rescue" | "ensure" | "else"))
+                .filter(|child| !matches!(child.kind_str(), "rescue" | "ensure" | "else"))
                 .collect();
             match statements.as_slice() {
                 [] => None,
                 // A lone parenthesized statement is a `begin` holding it.
-                [only] if only.kind() == "parenthesized_statements" => {
+                [only] if only.kind_str() == "parenthesized_statements" => {
                     super::nodes::children(*only).last().copied()
                 }
                 [only] => child_nodes(*only).last().copied(),
@@ -187,21 +188,21 @@ fn definition_last_child<'t>(definition: Definition<'t>) -> Option<Node<'t>> {
 
 /// `node.child_nodes`, which the grammar's argument and statement lists have no counterpart for.
 fn child_nodes<'t>(node: Node<'t>) -> Vec<Node<'t>> {
-    if matches!(node.kind(), "call" | "method_call")
-        && let Some(block) = node.child_by_field_name("block")
+    if matches!(node.kind_str(), "call" | "method_call")
+        && let Some(block) = node.field("block")
     {
         // A call carrying a block is a `block` node upstream, whose last child is the block body.
         return super::nodes::children(block);
     }
     let method = node
-        .child_by_field_name("method")
-        .filter(|_| matches!(node.kind(), "call" | "method_call"));
+        .field("method")
+        .filter(|_| matches!(node.kind_str(), "call" | "method_call"));
     let mut children = Vec::new();
     for child in super::nodes::children(node) {
         if method.is_some_and(|method| method.id() == child.id()) {
             continue;
         }
-        match LISTS.contains(&child.kind()) {
+        match LISTS.contains(&child.kind_str()) {
             true => children.extend(super::nodes::children(child)),
             false => children.push(child),
         }
@@ -213,7 +214,7 @@ fn child_nodes<'t>(node: Node<'t>) -> Vec<Node<'t>> {
 fn conditional_from_ascendant<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if CONDITIONALS.contains(&parent.kind()) {
+        if CONDITIONALS.contains(&parent.kind_str()) {
             return Some(parent);
         }
         current = parent;
@@ -233,14 +234,14 @@ fn condition_return_value(node: Node<'_>, last_child: Node<'_>, conditional: Nod
 /// builds for more than one statement.
 fn parent_not_enumerable<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let mut current = node.parent()?;
-    while matches!(current.kind(), "pair" | "hash" | "array") {
+    while matches!(current.kind_str(), "pair" | "hash" | "array") {
         current = current.parent()?;
     }
     Some(current)
 }
 
 fn is_begin(node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "parenthesized_statements" => true,
         "then" | "else" | "body_statement" | "block_body" | "do" | "program" => {
             super::nodes::children(node).len() > 1
@@ -252,7 +253,7 @@ fn is_begin(node: Node<'_>) -> bool {
 /// The node upstream would call the parent: an argument list is no node of its own there.
 fn upstream_parent<'t>(node: Node<'t>) -> Option<Node<'t>> {
     let parent = node.parent()?;
-    match parent.kind() {
+    match parent.kind_str() {
         "argument_list" => parent.parent(),
         _ => Some(parent),
     }

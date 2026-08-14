@@ -6,6 +6,7 @@ use crate::rules::send_node::{is_plain_send, send_range};
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_EACH_WITH_INDEX: &str = "Use `each` instead of `each_with_index`.";
 const MSG_WITH_INDEX: &str = "Remove redundant `with_index`.";
@@ -13,13 +14,13 @@ const MSG_WITH_INDEX: &str = "Remove redundant `with_index`.";
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for call in context.nodes_of("call") {
-        let Some(block) = call.child_by_field_name("block") else {
+        let Some(block) = call.field("block") else {
             continue;
         };
-        if !BLOCK_KINDS.contains(&block.kind()) {
+        if !BLOCK_KINDS.contains(&block.kind_str()) {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         let name = context.source.node_text(selector);
@@ -29,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.receiver` is `{(send $_ ...) (any_block (call $_ ...) ...)}`, so the block's is the
         // receiver of the call it wraps -- and `with_index` is only redundant when the call it is
         // chained onto has a receiver of its own, since `each.with_index` may enumerate anything.
-        let Some(receiver) = call.child_by_field_name("receiver") else {
+        let Some(receiver) = call.field("receiver") else {
             continue;
         };
         if name == "with_index" && !is_send_with_receiver(receiver, context) {
@@ -57,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 })
         } else {
             let dot = call
-                .child_by_field_name("operator")
+                .field("operator")
                 .map(|dot| Edit {
                     start: dot.start_byte(),
                     end: dot.end_byte(),
@@ -87,7 +88,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// a variable all answer nothing. A `csend` answers nothing either unless a block was written
 /// after it, since `any_block` wraps a `call` while the first alternative names `send` alone.
 fn is_send_with_receiver(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "call"
-        && node.child_by_field_name("receiver").is_some()
-        && (is_plain_send(node, context) || node.child_by_field_name("block").is_some())
+    node.kind_str() == "call"
+        && node.field("receiver").is_some()
+        && (is_plain_send(node, context) || node.field("block").is_some())
 }

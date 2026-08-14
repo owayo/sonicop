@@ -13,6 +13,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::named_children;
 
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 /// The kinds tree-sitter writes a block as. A `lambda` is `-> { }`, which upstream also reaches
 /// through `on_block`.
@@ -38,17 +39,17 @@ impl<'tree> BlockArgs<'tree> {
     pub(super) fn of(
         block: Node<'tree>,
         context: &RuleContext<'_>,
-        locals: &LocalVariables<'_>,
+        locals: &LocalVariables<'_, '_>,
     ) -> Self {
-        if let Some(parameters) = block.child_by_field_name("parameters") {
+        if let Some(parameters) = block.field("parameters") {
             return Self::Written(
                 named_children(parameters)
                     .into_iter()
-                    .filter(|child| child.kind() != "comment")
+                    .filter(|child| child.kind_str() != "comment")
                     .collect(),
             );
         }
-        let Some(body) = block.child_by_field_name("body") else {
+        let Some(body) = block.field("body") else {
             return Self::Written(Vec::new());
         };
         // A numbered parameter and an `it` belong to the innermost block around them, so a nested
@@ -68,7 +69,7 @@ impl<'tree> BlockArgs<'tree> {
 
     /// `(args (arg _))`: exactly one plain required parameter.
     pub(super) fn single_plain_arg(&self) -> bool {
-        matches!(self, Self::Written(params) if params.len() == 1 && params[0].kind() == "identifier")
+        matches!(self, Self::Written(params) if params.len() == 1 && params[0].kind_str() == "identifier")
     }
 
     /// `(args)`: no parameters written at all.
@@ -82,15 +83,15 @@ impl<'tree> BlockArgs<'tree> {
 fn scan(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     highest: &mut usize,
     it: &mut bool,
 ) {
     for child in named_children(node) {
-        if BLOCK_KINDS.contains(&child.kind()) || child.kind() == "lambda" {
+        if BLOCK_KINDS.contains(&child.kind_str()) || child.kind_str() == "lambda" {
             continue;
         }
-        if child.kind() == "identifier" {
+        if child.kind_str() == "identifier" {
             let text = context.source.node_text(child);
             if let Some(number) = numbered_parameter(text) {
                 *highest = (*highest).max(number);

@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MESSAGE: &str = "Add empty line after guard clause.";
 
@@ -50,7 +51,7 @@ fn inspect<'tree>(
     let Some((next, begin_parent)) = next_statement(node) else {
         return;
     };
-    if CONDITIONALS.contains(&next.kind())
+    if CONDITIONALS.contains(&next.kind_str())
         && if_branch(next).is_some_and(|branch| is_guard_clause_branch(text, branch))
     {
         return;
@@ -59,7 +60,7 @@ fn inspect<'tree>(
         return;
     }
 
-    let modifier_form = matches!(node.kind(), "if_modifier" | "unless_modifier");
+    let modifier_form = matches!(node.kind_str(), "if_modifier" | "unless_modifier");
     let heredoc = modifier_form
         .then(|| last_heredoc_argument(context, node, true))
         .flatten();
@@ -184,11 +185,11 @@ fn is_simplecov_directive(comment: &str) -> bool {
 
 /// `IfNode#if_branch`, already normalized for `unless`.
 fn if_branch<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
-        "if_modifier" | "unless_modifier" => node.child_by_field_name("body"),
+    match node.kind_str() {
+        "if_modifier" | "unless_modifier" => node.field("body"),
         _ => {
-            let branch = node.child_by_field_name("consequence")?;
-            if branch.kind() != "then" {
+            let branch = node.field("consequence")?;
+            if branch.kind_str() != "then" {
                 return Some(branch);
             }
             // A `then` clause holding more than one statement is a `begin` upstream, which is
@@ -196,7 +197,7 @@ fn if_branch<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
             let mut cursor = branch.walk();
             let mut statements = branch
                 .named_children(&mut cursor)
-                .filter(|child| !matches!(child.kind(), "heredoc_body" | "comment"));
+                .filter(|child| !matches!(child.kind_str(), "heredoc_body" | "comment"));
             let first = statements.next()?;
             statements.next().is_none().then_some(first)
         }
@@ -215,13 +216,13 @@ fn is_guard_clause_branch(text: &str, branch: Node<'_>) -> bool {
 }
 
 fn is_guard_kind(text: &str, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "return" | "break" | "next" => true,
         "identifier" => matches!(&text[node.byte_range()], "raise" | "fail"),
         "call" => {
-            node.child_by_field_name("receiver").is_none()
+            node.field("receiver").is_none()
                 && node
-                    .child_by_field_name("method")
+                    .field("method")
                     .is_some_and(|method| matches!(&text[method.byte_range()], "raise" | "fail"))
         }
         _ => false,
@@ -229,19 +230,19 @@ fn is_guard_kind(text: &str, node: Node<'_>) -> bool {
 }
 
 fn operator_keyword_rhs<'tree>(text: &str, node: Node<'tree>) -> Option<Node<'tree>> {
-    if node.kind() != "binary" {
+    if node.kind_str() != "binary" {
         return None;
     }
-    let operator = node.child_by_field_name("operator")?;
+    let operator = node.field("operator")?;
     matches!(&text[operator.byte_range()], "&&" | "||" | "and" | "or")
-        .then(|| node.child_by_field_name("right"))
+        .then(|| node.field("right"))
         .flatten()
 }
 
 fn end_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == "end")
+        .find(|child| child.kind_str() == "end")
 }
 
 /// The statement written after `node` in the same list, which is what upstream reaches through
@@ -251,7 +252,7 @@ fn next_statement<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, bool)> {
     // A `begin ... end` block holds its statements directly, so its children have a `kwbegin`
     // parent that `begin_type?` says no to. Every other list becomes a `begin` past one statement,
     // and a parenthesized one becomes a `begin` even with a single statement in it.
-    let begin_parent = match parent.kind() {
+    let begin_parent = match parent.kind_str() {
         "begin" => false,
         "parenthesized_statements" => true,
         "body_statement" | "block_body" | "program" | "then" | "else" | "do" | "ensure" => true,
@@ -262,7 +263,7 @@ fn next_statement<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, bool)> {
         .named_children(&mut cursor)
         .filter(|child| {
             !matches!(
-                child.kind(),
+                child.kind_str(),
                 "rescue" | "ensure" | "else" | "heredoc_body" | "comment"
             )
         })
@@ -315,9 +316,9 @@ fn last_heredoc_argument<'tree>(
     let mut current = if conditional {
         let branch = if_branch(node)?;
         if is_and(text, branch) {
-            branch.child_by_field_name("left")?
+            branch.field("left")?
         } else if let Some(condition) = node
-            .child_by_field_name("condition")
+            .field("condition")
             .filter(|condition| holds_heredoc(*condition))
         {
             condition
@@ -327,10 +328,10 @@ fn last_heredoc_argument<'tree>(
     } else {
         node
     };
-    while matches!(current.kind(), "begin" | "parenthesized_statements") {
+    while matches!(current.kind_str(), "begin" | "parenthesized_statements") {
         current = current.named_child(0)?;
     }
-    if current.kind() == "heredoc_beginning" {
+    if current.kind_str() == "heredoc_beginning" {
         return Some(current);
     }
     for argument in call_arguments(current) {
@@ -338,7 +339,7 @@ fn last_heredoc_argument<'tree>(
             return Some(found);
         }
     }
-    let receiver = current.child_by_field_name("receiver")?;
+    let receiver = current.field("receiver")?;
     last_heredoc_argument(context, receiver, false)
 }
 
@@ -349,9 +350,9 @@ fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 fn is_and(text: &str, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(&text[operator.byte_range()], "&&" | "and"))
 }
 
@@ -359,7 +360,7 @@ fn call_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = node.walk();
     let Some(list) = node
         .children(&mut cursor)
-        .find(|child| child.kind() == "argument_list")
+        .find(|child| child.kind_str() == "argument_list")
     else {
         return Vec::new();
     };
@@ -370,7 +371,7 @@ fn call_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 fn holds_heredoc(node: Node<'_>) -> bool {
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
-        if current.kind() == "heredoc_beginning" {
+        if current.kind_str() == "heredoc_beginning" {
             return true;
         }
         let mut cursor = current.walk();

@@ -1,17 +1,18 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "`#to_json` requires an optional argument to be parsable via JSON.generate(obj).";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(name) = node.child_by_field_name("name") else {
+        let Some(name) = node.field("name") else {
             continue;
         };
         if context.source.node_text(name) != "to_json" {
             continue;
         }
-        let parameters = node.child_by_field_name("parameters");
+        let parameters = node.field("parameters");
         if parameters.is_some_and(|parameters| parameters.named_child_count() > 0) {
             continue;
         }
@@ -19,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // reported, which is the whole definition here.
         let (anchor, insertion) = match parameters.and_then(|parameters| parameters.child(0)) {
             // Explicit empty parentheses already stand where the argument goes.
-            Some(open) if open.kind() == "(" => (open.byte_range(), "*_args"),
+            Some(open) if open.kind_str() == "(" => (open.byte_range(), "*_args"),
             _ => (name.byte_range(), "(*_args)"),
         };
         offenses.push(

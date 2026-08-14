@@ -2,16 +2,17 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["while", "until", "while_modifier", "until_modifier"]) {
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
         let Some(negated) = single_negative(context, condition) else {
             continue;
         };
-        let Some(operand) = negated.child_by_field_name("operand") else {
+        let Some(operand) = negated.field("operand") else {
             continue;
         };
         let Some(keyword) = super::conditional::token(node, &["while", "until"]) else {
@@ -51,26 +52,26 @@ pub(super) fn single_negative<'tree>(
     mut condition: Node<'tree>,
 ) -> Option<Node<'tree>> {
     // `empty_condition?` is `(begin)`: `while ()` has nothing to negate.
-    if condition.kind() == "parenthesized_statements"
+    if condition.kind_str() == "parenthesized_statements"
         && super::nodes::children(condition).is_empty()
     {
         return None;
     }
-    while condition.kind() == "parenthesized_statements" {
+    while condition.kind_str() == "parenthesized_statements" {
         condition = *super::nodes::children(condition).last()?;
     }
     if !is_negation(context, condition) {
         return None;
     }
     // `!(send _ :!)`: a doubled negation is not the shape this rewrites.
-    let operand = condition.child_by_field_name("operand")?;
+    let operand = condition.field("operand")?;
     (!is_negation(context, operand)).then_some(condition)
 }
 
 /// `(send _ :!)`, which is how the parser spells both `!x` and `not x`.
 fn is_negation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }

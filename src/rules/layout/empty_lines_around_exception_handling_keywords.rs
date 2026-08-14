@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_def`, `on_defs`, `on_block`, `on_numblock` and `on_kwbegin`. A `class` or `module` body
@@ -14,10 +15,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let rescues: Vec<Node<'_>> = clauses
             .iter()
             .copied()
-            .filter(|clause| clause.kind() == "rescue")
+            .filter(|clause| clause.kind_str() == "rescue")
             .collect();
-        let ensure = clauses.iter().copied().find(|c| c.kind() == "ensure");
-        let else_clause = clauses.iter().copied().find(|c| c.kind() == "else");
+        let ensure = clauses.iter().copied().find(|c| c.kind_str() == "ensure");
+        let else_clause = clauses.iter().copied().find(|c| c.kind_str() == "else");
         // `keyword_locations` answers with nothing unless the body is a `rescue` or an `ensure`.
         if rescues.is_empty() && ensure.is_none() {
             continue;
@@ -89,17 +90,17 @@ fn report(
 /// The `rescue`, `else` and `ensure` clauses of a body. A `begin ... end` carries them directly,
 /// while everything else keeps its statements in a body node.
 fn body_clauses<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let container = match node.kind() {
+    let container = match node.kind_str() {
         "begin" => node,
-        _ => match node.child_by_field_name("body") {
-            Some(body) if body.kind() == "body_statement" => body,
+        _ => match node.field("body") {
+            Some(body) if body.kind_str() == "body_statement" => body,
             _ => return Vec::new(),
         },
     };
     let mut cursor = container.walk();
     container
         .named_children(&mut cursor)
-        .filter(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .filter(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
         .collect()
 }
 
@@ -125,5 +126,5 @@ fn last_body_and_end_on_same_line(
 /// `node.loc.end`: the `end` of a definition or a `begin`, or the `}` a brace block closes with.
 fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
-    matches!(last.kind(), "end" | "}").then_some(last)
+    matches!(last.kind_str(), "end" | "}").then_some(last)
 }

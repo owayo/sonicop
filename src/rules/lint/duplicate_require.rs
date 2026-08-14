@@ -6,6 +6,7 @@ use crate::rules::send_node::{arguments, is_plain_send};
 
 use super::node_equality::identical;
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 const METHODS: [&str; 2] = ["require", "require_relative"];
 
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // have hung them off the same node -- which is not the same as sharing a line of source.
     let mut seen: Vec<(Parent, Node<'_>, &str)> = Vec::new();
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         let name = context.source.node_text(method);
@@ -24,9 +25,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `{nil? (const _ :Kernel)}`: any scope may qualify `Kernel` here, unlike the cops that
         // insist on the top-level one.
         if node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| {
-                !matches!(receiver.kind(), "constant" | "scope_resolution")
+                !matches!(receiver.kind_str(), "constant" | "scope_resolution")
                     || short_name(receiver, context) != Some("Kernel")
             })
         {
@@ -53,10 +54,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn short_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => Some(context.source.node_text(node)),
         "scope_resolution" => node
-            .child_by_field_name("name")
+            .field("name")
             .map(|name| context.source.node_text(name)),
         _ => None,
     }
@@ -103,7 +104,7 @@ fn parent_of(node: Node<'_>) -> Parent {
         return Parent::Root;
     };
     let count = statements(container).len();
-    match container.kind() {
+    match container.kind_str() {
         // `kwbegin` holds its statements directly, so it is their parent however many there are --
         // unless a clause splits them off into a node of its own.
         "begin" if !split_body(container) => Parent::Node(container.id()),
@@ -121,7 +122,7 @@ fn parent_of(node: Node<'_>) -> Parent {
         "else"
             if container
                 .parent()
-                .is_some_and(|body| matches!(body.kind(), "begin" | "body_statement")) =>
+                .is_some_and(|body| matches!(body.kind_str(), "begin" | "body_statement")) =>
         {
             Parent::Rescue(container.parent().expect("checked").id())
         }
@@ -137,7 +138,7 @@ fn body_parent(container: Node<'_>) -> Parent {
     let mut cursor = container.walk();
     let mut rescue = false;
     for child in container.named_children(&mut cursor) {
-        match child.kind() {
+        match child.kind_str() {
             "ensure" => return Parent::Ensure(container.id()),
             "rescue" | "else" => rescue = true,
             _ => {}
@@ -157,5 +158,5 @@ fn split_body(container: Node<'_>) -> bool {
     let mut cursor = container.walk();
     container
         .named_children(&mut cursor)
-        .any(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
 }

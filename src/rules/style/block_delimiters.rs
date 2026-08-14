@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_MULTILINE: &str = "Avoid using `{...}` for multi-line blocks.";
 const MSG_SINGLE_LINE: &str = "Prefer `{...}` over `do...end` for single-line blocks.";
@@ -77,8 +78,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-struct Cop<'a> {
-    context: &'a RuleContext<'a>,
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
     style: String,
     braces_required_methods: Vec<String>,
     allowed_methods: Vec<String>,
@@ -98,13 +99,13 @@ struct Block<'t> {
 
 impl<'t> Block<'t> {
     fn new(context: &RuleContext<'_>, node: Node<'t>) -> Option<Self> {
-        let braces = node.kind() == "block";
+        let braces = node.kind_str() == "block";
         let call = node.parent()?;
         // `-> { }` is a block whose call is `lambda` upstream, however the arrow is written.
-        let method = match call.kind() {
+        let method = match call.kind_str() {
             "lambda" => "lambda".to_owned(),
             _ => call
-                .child_by_field_name("method")
+                .field("method")
                 .map(|method| context.source.node_text(method).to_owned())
                 .unwrap_or_default(),
         };
@@ -112,10 +113,10 @@ impl<'t> Block<'t> {
         let children: Vec<Node<'t>> = node.children(&mut cursor).collect();
         let begin = *children
             .iter()
-            .find(|child| !child.is_named() && matches!(child.kind(), "{" | "do"))?;
+            .find(|child| !child.is_named() && matches!(child.kind_str(), "{" | "do"))?;
         let end = *children
             .iter()
-            .rfind(|child| !child.is_named() && matches!(child.kind(), "}" | "end"))?;
+            .rfind(|child| !child.is_named() && matches!(child.kind_str(), "}" | "end"))?;
         Some(Self {
             node,
             call,
@@ -128,7 +129,7 @@ impl<'t> Block<'t> {
     }
 
     fn body(&self) -> Option<Node<'t>> {
-        self.node.child_by_field_name("body")
+        self.node.field("body")
     }
 
     /// The span upstream's `block` node covers, which reaches back to the start of its call.
@@ -137,22 +138,22 @@ impl<'t> Block<'t> {
     }
 }
 
-impl Cop<'_> {
+impl Cop<'_, '_> {
     fn source(&self, node: Node<'_>) -> &str {
         self.context.source.node_text(node)
     }
 
     /// `get_blocks` reached from `on_send`: the blocks an unparenthesized argument list binds.
     fn collect_bound_blocks(&self, node: Node<'_>, ignored: &mut Vec<Range<usize>>) {
-        let arguments = match node.kind() {
+        let arguments = match node.kind_str() {
             "binary" => {
-                let Some(operator) = node.child_by_field_name("operator") else {
+                let Some(operator) = node.field("operator") else {
                     return;
                 };
                 if LOGICAL_OPERATORS.contains(&self.source(operator)) {
                     return;
                 }
-                let Some(right) = node.child_by_field_name("right") else {
+                let Some(right) = node.field("right") else {
                     return;
                 };
                 // `single_argument_operator_method?`: an operator taking exactly one block still
@@ -164,7 +165,7 @@ impl Cop<'_> {
             }
             "element_reference" => {
                 let mut arguments = super::nodes::children(node);
-                if node.child_by_field_name("object").is_some() && !arguments.is_empty() {
+                if node.field("object").is_some() && !arguments.is_empty() {
                     arguments.remove(0);
                 }
                 // `single_argument_operator_method?`: `[]` is an operator method, so a lone block
@@ -175,16 +176,16 @@ impl Cop<'_> {
                 arguments
             }
             _ => {
-                let Some(list) = node.child_by_field_name("arguments") else {
+                let Some(list) = node.field("arguments") else {
                     return;
                 };
                 // `node.parenthesized?`: the parenthesis has to be the call's own, not one that
                 // happens to open its first argument (`foo (a).b`).
-                if list.child(0).is_some_and(|first| !first.is_named() && first.kind() == "(") {
+                if list.child(0).is_some_and(|first| !first.is_named() && first.kind_str() == "(") {
                     return;
                 }
                 // `node.assignment_method?`.
-                if node.child_by_field_name("method").is_some_and(|method| {
+                if node.field("method").is_some_and(|method| {
                     let name = self.source(method);
                     name.ends_with('=') && !COMPARISON_OPERATORS.contains(&name)
                 }) {
@@ -268,21 +269,21 @@ impl Cop<'_> {
             return false;
         };
         let clauses = super::nodes::children(body);
-        if clauses.iter().any(|child| child.kind() == "ensure") {
+        if clauses.iter().any(|child| child.kind_str() == "ensure") {
             return true;
         }
-        let Some(rescue) = clauses.iter().find(|child| child.kind() == "rescue") else {
+        let Some(rescue) = clauses.iter().find(|child| child.kind_str() == "rescue") else {
             return false;
         };
         // `modifier_rescue?`: only a bare `expr rescue expr` may keep its braces.
         let bare = clauses
             .iter()
-            .filter(|child| child.kind() == "rescue")
+            .filter(|child| child.kind_str() == "rescue")
             .count()
             == 1
-            && !clauses.iter().any(|child| child.kind() == "else")
-            && rescue.child_by_field_name("exceptions").is_none()
-            && rescue.child_by_field_name("variable").is_none();
+            && !clauses.iter().any(|child| child.kind_str() == "else")
+            && rescue.field("exceptions").is_none()
+            && rescue.field("variable").is_none();
         !bare
     }
 
@@ -294,11 +295,11 @@ impl Cop<'_> {
         }
         block
             .call
-            .child_by_field_name("arguments")
+            .field("arguments")
             .is_some_and(|list| {
                 !list
                     .child(0)
-                    .is_some_and(|first| !first.is_named() && first.kind() == "(")
+                    .is_some_and(|first| !first.is_named() && first.kind_str() == "(")
             })
     }
 
@@ -342,7 +343,7 @@ impl Cop<'_> {
             && let Some(body) = block.body()
             && super::nodes::children(body)
                 .iter()
-                .any(|child| matches!(child.kind(), "rescue" | "ensure"))
+                .any(|child| matches!(child.kind_str(), "rescue" | "ensure"))
         {
             edits.push(insert(body.start_byte(), "begin\n"));
             edits.push(insert(body.end_byte(), "\nend"));
@@ -394,19 +395,19 @@ impl Cop<'_> {
 /// `get_blocks`: the blocks that would change meaning, reached through the shapes an argument can
 /// take.
 fn get_blocks(node: Node<'_>, out: &mut Vec<Range<usize>>) {
-    match node.kind() {
+    match node.kind_str() {
         // A lambda literal is a `block` upstream, whose call is the implicit `lambda`.
         "lambda" => out.push(node.byte_range()),
         "call" | "method_call" => {
-            if node.child_by_field_name("block").is_some() {
+            if node.field("block").is_some() {
                 // The call and its block are one `block` node upstream, which is what gets ignored.
                 out.push(node.byte_range());
                 return;
             }
-            if let Some(receiver) = node.child_by_field_name("receiver") {
+            if let Some(receiver) = node.field("receiver") {
                 get_blocks(receiver, out);
             }
-            if let Some(list) = node.child_by_field_name("arguments") {
+            if let Some(list) = node.field("arguments") {
                 for argument in super::nodes::children(list) {
                     get_blocks(argument, out);
                 }
@@ -425,9 +426,9 @@ fn get_blocks(node: Node<'_>, out: &mut Vec<Range<usize>>) {
 /// Whether the call carrying the block is itself the receiver of another one.
 fn chained(call: Node<'_>) -> bool {
     call.parent().is_some_and(|parent| {
-        matches!(parent.kind(), "call" | "method_call")
+        matches!(parent.kind_str(), "call" | "method_call")
             && parent
-                .child_by_field_name("receiver")
+                .field("receiver")
                 .is_some_and(|receiver| receiver.id() == call.id())
     })
 }
@@ -444,9 +445,9 @@ fn end_of_chain(call: Node<'_>) -> Node<'_> {
 
 /// Whether the node is a call carrying a block, which is one `block` node upstream.
 fn is_block_bearing_call(node: Node<'_>) -> bool {
-    node.kind() == "lambda"
-        || (matches!(node.kind(), "call" | "method_call")
-            && node.child_by_field_name("block").is_some())
+    node.kind_str() == "lambda"
+        || (matches!(node.kind_str(), "call" | "method_call")
+            && node.field("block").is_some())
 }
 
 fn whitespace_at(text: &str, offset: usize) -> bool {

@@ -1,14 +1,15 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant `.rb` file extension detected.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        if node.child_by_field_name("receiver").is_some() {
+        if node.field("receiver").is_some() {
             continue;
         }
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         if !matches!(
@@ -17,18 +18,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ) {
             continue;
         }
-        let Some(arguments) = node.child_by_field_name("arguments") else {
+        let Some(arguments) = node.field("arguments") else {
             continue;
         };
         let [name] = super::nodes::children(arguments)[..] else {
             continue;
         };
         // `$str_type?`: an interpolated or multi-line literal is a `dstr` upstream.
-        if name.kind() != "string"
+        if name.kind_str() != "string"
             || name.start_position().row != name.end_position().row
             || super::nodes::children(name)
                 .iter()
-                .any(|child| child.kind() == "interpolation")
+                .any(|child| child.kind_str() == "interpolation")
         {
             continue;
         }

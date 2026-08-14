@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::support::Interpolations;
 use crate::source::is_protected;
+use crate::rules::node_ext::NodeExt;
 
 /// Node kinds whose named children are a sequence of statements.
 ///
@@ -203,16 +204,16 @@ fn expression_separator_lines(context: &RuleContext<'_>) -> HashSet<usize> {
         // `begin ... end` holds its statements directly upstream rather than wrapping them in the
         // `begin` node the cop looks for, so `begin a; b end` is not an offense. Add a `rescue` and
         // the protected body becomes such a node after all.
-        if node.kind() == "begin"
+        if node.kind_str() == "begin"
             && !children
                 .iter()
-                .any(|child| matches!(child.kind(), "rescue" | "else" | "ensure"))
+                .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
         {
             continue;
         }
         let mut ends: Vec<usize> = children
             .iter()
-            .filter(|child| !NON_STATEMENT_KINDS.contains(&child.kind()))
+            .filter(|child| !NON_STATEMENT_KINDS.contains(&child.kind_str()))
             .map(|child| child.end_position().row + 1)
             .collect();
         ends.sort_unstable();

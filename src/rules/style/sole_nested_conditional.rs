@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::support::correction_parses;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's `on_if` is called for. `elsif` is one there too -- it is an `if` node
 /// whose keyword happens to be `elsif` -- and the cop's first guard drops it.
@@ -49,11 +50,11 @@ fn keyword(node: Node<'_>) -> Option<Range<usize>> {
 }
 
 fn is_if(node: Node<'_>) -> bool {
-    matches!(node.kind(), "if" | "elsif" | "if_modifier")
+    matches!(node.kind_str(), "if" | "elsif" | "if_modifier")
 }
 
 fn condition_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("condition")
+    node.field("condition")
 }
 
 /// `offending_conditional?`, returning the branch it found rather than a flag.
@@ -63,7 +64,7 @@ fn offending_branch<'tree>(
     allow_modifier: bool,
 ) -> Option<Node<'tree>> {
     // `node.ternary?` is a node kind of its own here, so only `elsif?` and `else?` are left.
-    if node.kind() == "elsif" || has_else(node) {
+    if node.kind_str() == "elsif" || has_else(node) {
         return None;
     }
     let branch = if_branch(node)?;
@@ -71,7 +72,7 @@ fn offending_branch<'tree>(
         return None;
     }
     // `offending_branch?`.
-    if !CONDITIONALS.contains(&branch.kind()) || branch.kind() == "elsif" || has_else(branch) {
+    if !CONDITIONALS.contains(&branch.kind_str()) || branch.kind_str() == "elsif" || has_else(branch) {
         return None;
     }
     let modifier = is_modifier(node) || is_modifier(branch);
@@ -82,7 +83,7 @@ fn offending_branch<'tree>(
 }
 
 fn is_modifier(node: Node<'_>) -> bool {
-    MODIFIERS.contains(&node.kind())
+    MODIFIERS.contains(&node.kind_str())
 }
 
 /// `node.else?`: whether the conditional carries an `else` clause. An `elsif` counts, because the
@@ -90,17 +91,17 @@ fn is_modifier(node: Node<'_>) -> bool {
 fn has_else(node: Node<'_>) -> bool {
     super::nodes::children(node)
         .into_iter()
-        .any(|child| matches!(child.kind(), "else" | "elsif"))
+        .any(|child| matches!(child.kind_str(), "else" | "elsif"))
 }
 
 /// `node.if_branch`: the body the conditional runs when it is taken, which for an `unless` is the
 /// clause before its `else` all the same.
 fn if_branch<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     if is_modifier(node) {
-        return node.child_by_field_name("body");
+        return node.field("body");
     }
     // A `then` clause holding more than one statement is a `begin` upstream, which is no `if`.
-    super::conditional::body_of(node.child_by_field_name("consequence")?).single()
+    super::conditional::body_of(node.field("consequence")?).single()
 }
 
 /// `use_variable_assignment_in_condition?`: merging would move the inner condition ahead of the
@@ -119,14 +120,14 @@ fn use_variable_assignment_in_condition(
     let inner_source = context.source.node_text(inner);
     super::conditional::descendants(condition)
         .into_iter()
-        .filter(|descendant| descendant.kind() == "assignment")
-        .filter_map(|assignment| assignment.child_by_field_name("left"))
+        .filter(|descendant| descendant.kind_str() == "assignment")
+        .filter_map(|assignment| assignment.field("left"))
         // `children.first.to_s`: only a plain variable's name comes out as its own source. A
         // constant yields its namespace, which is empty for a bare one, and a multiple assignment
         // or a shorthand one yields the s-expression of a node, which no condition is written as.
         .filter(|left| {
             matches!(
-                left.kind(),
+                left.kind_str(),
                 "identifier" | "instance_variable" | "global_variable" | "class_variable"
             )
         })
@@ -351,16 +352,16 @@ fn chainable_condition(context: &RuleContext<'_>, node: Node<'_>) -> String {
 }
 
 fn is_and(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "&&" | "and"))
 }
 
 fn is_or(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.kind() == "binary"
+    node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "||" | "or"))
 }
 
@@ -383,7 +384,7 @@ fn add_parentheses_if_needed(context: &RuleContext<'_>, condition: Node<'_>) -> 
 fn add_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     // `node.assignment?`, which for a call means `setter_method?` -- and the grammar spells every
     // one of those, `a.b = 1` included, as an assignment.
-    if matches!(node.kind(), "assignment" | "operator_assignment") || is_or(context, node) {
+    if matches!(node.kind_str(), "assignment" | "operator_assignment") || is_or(context, node) {
         return true;
     }
     if assignment_in_and(context, node) {
@@ -401,15 +402,15 @@ fn assignment_in_and(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         && super::conditional::descendants(node)
             .into_iter()
             .skip(1)
-            .any(|descendant| matches!(descendant.kind(), "assignment" | "operator_assignment"))
+            .any(|descendant| matches!(descendant.kind_str(), "assignment" | "operator_assignment"))
 }
 
 /// Whether the node is a call, and if so whether it takes arguments, holds them in parentheses, and
 /// is the `not` spelling of `!`.
 fn call_shape(context: &RuleContext<'_>, node: Node<'_>) -> Option<(bool, bool, bool)> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
-            let arguments = node.child_by_field_name("arguments");
+            let arguments = node.field("arguments");
             let parenthesized =
                 arguments.is_some_and(|list| context.source.node_text(list).starts_with('('));
             let any = arguments.is_some_and(|list| !super::nodes::children(list).is_empty());
@@ -421,7 +422,7 @@ fn call_shape(context: &RuleContext<'_>, node: Node<'_>) -> Option<(bool, bool, 
         // one of the four the parser builds an `and` or an `or` from.
         "binary" if !is_and(context, node) && !is_or(context, node) => Some((true, false, false)),
         "unary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             let text = context.source.node_text(operator);
             // `defined?` is a keyword rather than a call, and the two unary sign operators and `!`
             // take no argument at all.
@@ -439,7 +440,7 @@ fn call_shape(context: &RuleContext<'_>, node: Node<'_>) -> Option<(bool, bool, 
 
 /// `parenthesize_method?`.
 fn parenthesize_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
     let Some((arguments, parenthesized, _)) = call_shape(context, node) else {
@@ -448,15 +449,15 @@ fn parenthesize_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if !arguments || parenthesized {
         return false;
     }
-    node.child_by_field_name("method")
+    node.field("method")
         .is_some_and(|method| !super::nodes::is_operator_method(context.source.node_text(method)))
 }
 
 /// `parenthesized_method_arguments`: `foo bar` becomes `foo(bar)`.
 fn parenthesized_method_arguments(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let (Some(selector), Some(arguments)) = (
-        node.child_by_field_name("method"),
-        node.child_by_field_name("arguments"),
+        node.field("method"),
+        node.field("arguments"),
     ) else {
         return context.source.node_text(node).to_owned();
     };
@@ -472,9 +473,9 @@ fn parenthesized_method_arguments(context: &RuleContext<'_>, node: Node<'_>) -> 
 /// clause reads the same once the conditions are chained.
 fn parenthesized_and(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let (Some(left), Some(operator), Some(right)) = (
-        node.child_by_field_name("left"),
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("right"),
+        node.field("left"),
+        node.field("operator"),
+        node.field("right"),
     ) else {
         return context.source.node_text(node).to_owned();
     };
@@ -495,7 +496,7 @@ fn parenthesized_and_clause(context: &RuleContext<'_>, node: Node<'_>) -> String
     if is_and(context, node) {
         return parenthesized_and(context, node);
     }
-    match matches!(node.kind(), "assignment" | "operator_assignment") {
+    match matches!(node.kind_str(), "assignment" | "operator_assignment") {
         true => format!("({})", context.source.node_text(node)),
         false => context.source.node_text(node).to_owned(),
     }

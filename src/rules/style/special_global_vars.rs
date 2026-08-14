@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node;
+use crate::rules::node_ext::NodeExt;
 
 /// `ENGLISH_VARS`: the Perl-style globals and the names the `English` library gives them.
 const ENGLISH_VARS: &[(&str, &[&str])] = &[
@@ -110,7 +111,7 @@ struct Require {
 }
 
 impl<'t> TopLevel<'t> {
-    fn new(context: &'t RuleContext<'t>) -> Self {
+    fn new(context: &RuleContext<'t>) -> Self {
         let statements = super::nodes::children(context.root_node());
         Self {
             begin_root: statements.len() > 1,
@@ -163,16 +164,16 @@ impl<'t> TopLevel<'t> {
 
 /// `require_library_name?`: a top-level `require 'English'`, however the receiver was spelled.
 fn requires_library(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
-    if let Some(receiver) = node.child_by_field_name("receiver") {
+    if let Some(receiver) = node.field("receiver") {
         if !send_node::top_level_constant(receiver, "Kernel", context) {
             return false;
         }
     }
     if node
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "require")
     {
         return false;
@@ -199,7 +200,7 @@ fn climb<'t>(context: &RuleContext<'_>, mut node: Node<'t>) -> Node<'t> {
 }
 
 fn is_lone_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `"#$!"` interpolates without a `begin`: upstream hangs the global off the `dstr` itself.
         "interpolation" => {
             context.source.node_text(node).starts_with("#{")
@@ -214,14 +215,14 @@ fn is_lone_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// rather than the interpolation tree-sitter writes around it.
 fn upstream_parent<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<Node<'t>> {
     let parent = node.parent()?;
-    match parent.kind() == "interpolation" && !context.source.node_text(parent).starts_with("#{") {
+    match parent.kind_str() == "interpolation" && !context.source.node_text(parent).starts_with("#{") {
         true => parent.parent(),
         false => Some(parent),
     }
 }
 
 fn replacement(context: &RuleContext<'_>, node: Node<'_>, preferred: &str, style: &str) -> String {
-    let parent = upstream_parent(context, node).map(|parent| parent.kind());
+    let parent = upstream_parent(context, node).map(|parent| parent.kind_str());
     let interpolating = parent
         .is_some_and(|kind| STRING_KINDS.contains(&kind) || matches!(kind, "regex" | "subshell"));
     if !interpolating {
@@ -231,7 +232,7 @@ fn replacement(context: &RuleContext<'_>, node: Node<'_>, preferred: &str, style
         return format!("#{preferred}");
     }
     // `english_name_replacement`: a name that is not one word cannot be interpolated bare.
-    match node.kind() == "interpolation" {
+    match node.kind_str() == "interpolation" {
         true => format!("#{{{preferred}}}"),
         false => format!("{{{preferred}}}"),
     }
@@ -318,9 +319,9 @@ fn is_assignment_target(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "assignment" | "operator_assignment" => parent
-            .child_by_field_name("left")
+            .field("left")
             .is_some_and(|left| left.id() == node.id()),
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => true,
         _ => false,

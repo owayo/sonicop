@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::directives::DirectiveState;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Avoid `when` branches without a body.";
 
@@ -14,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut cursor = case.walk();
         let children: Vec<Node<'_>> = case.named_children(&mut cursor).collect();
         for (index, &branch) in children.iter().enumerate() {
-            if branch.kind() != "when" || has_body(branch) {
+            if branch.kind_str() != "when" || has_body(branch) {
                 continue;
             }
             if allow_comments && allowed_by_comments(context, case, &children, index) {
@@ -31,7 +32,7 @@ fn reported_range(branch: Node<'_>) -> std::ops::Range<usize> {
     let mut cursor = branch.walk();
     let last = branch
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "pattern")
+        .filter(|child| child.kind_str() == "pattern")
         .last();
     branch.start_byte()..last.map_or_else(|| branch.end_byte(), |last| last.end_byte())
 }
@@ -40,7 +41,7 @@ fn reported_range(branch: Node<'_>) -> std::ops::Range<usize> {
 /// its own, so a branch written `when 1 then` still has one here while upstream's `body` is nil.
 fn has_body(branch: Node<'_>) -> bool {
     branch
-        .child_by_field_name("body")
+        .field("body")
         .is_some_and(|body| body.named_child_count() > 0)
 }
 
@@ -73,7 +74,7 @@ fn comment_search_lines(
     let (start, _) = context.source.line_column(branch.start_byte());
     let end = children[index + 1..]
         .iter()
-        .find(|sibling| sibling.kind() != "comment")
+        .find(|sibling| sibling.kind_str() != "comment")
         .map_or_else(
             || {
                 // `parent.loc.end.line`, the `end` keyword closing the `case`.

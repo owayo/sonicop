@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("global_variable") {
@@ -51,7 +52,7 @@ fn preferred_expression(name: &str) -> Option<String> {
 fn constant_prefix(node: Node<'_>) -> &'static str {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind(), "class" | "module") {
+        if matches!(parent.kind_str(), "class" | "module") {
             return "::";
         }
         current = parent.parent();
@@ -63,7 +64,7 @@ fn constant_prefix(node: Node<'_>) -> &'static str {
 /// `dstr` / `regexp` / `xstr` when it was written as `#$1`, so the correction has to supply the
 /// braces the source did without.
 fn derived_from_braceless_interpolation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
-        parent.kind() == "interpolation" && !context.source.node_text(parent).starts_with("#{")
+    node.parent_of(context).is_some_and(|parent| {
+        parent.kind_str() == "interpolation" && !context.source.node_text(parent).starts_with("#{")
     })
 }

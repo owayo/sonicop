@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
+use crate::rules::node_ext::NodeExt;
 
 /// `minimum_target_ruby_version 2.6`: endless ranges are what the cop asks for.
 const MINIMUM_VERSION: RubyVersion = RubyVersion::new(2, 6);
@@ -62,7 +63,7 @@ struct Slice<'tree> {
 
 impl<'tree> Slice<'tree> {
     fn read(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Self> {
-        match node.kind() {
+        match node.kind_str() {
             "element_reference" => {
                 // `ary[0..-1] = x` is a call to `:[]=`, which the cop does not restrict itself to.
                 // `ary[0..-1] += x` still calls `:[]` and is reported.
@@ -73,7 +74,7 @@ impl<'tree> Slice<'tree> {
                 let [_, argument] = children.as_slice() else {
                     return None;
                 };
-                if argument.kind() != "range" {
+                if argument.kind_str() != "range" {
                     return None;
                 }
                 let opening = super::conditional::token(node, &["["])?;
@@ -86,7 +87,7 @@ impl<'tree> Slice<'tree> {
                 })
             }
             "call" => {
-                let method = node.child_by_field_name("method")?;
+                let method = node.field("method")?;
                 if context.source.node_text(method) != "[]" {
                     return None;
                 }
@@ -97,17 +98,17 @@ impl<'tree> Slice<'tree> {
                 let [argument] = only.parts() else {
                     return None;
                 };
-                if argument.kind() != "range" {
+                if argument.kind_str() != "range" {
                     return None;
                 }
-                let dot = node.child_by_field_name("operator")?;
+                let dot = node.field("operator")?;
                 Some(Self {
                     node,
                     dot: Some(dot),
                     selector: method.byte_range(),
                     range: *argument,
                     parenthesized: node
-                        .child_by_field_name("arguments")
+                        .field("arguments")
                         .is_some_and(|list| context.source.node_text(list).starts_with('(')),
                 })
             }
@@ -128,16 +129,16 @@ impl<'tree> Slice<'tree> {
     }
 
     fn rewrite(&self, context: &RuleContext<'_>, offense_range: &Range<usize>) -> Option<Rewrite> {
-        let begin = self.range.child_by_field_name("begin");
-        let end = self.range.child_by_field_name("end");
+        let begin = self.range.field("begin");
+        let end = self.range.field("end");
         let exclusive = context
             .source
-            .node_text(self.range.child_by_field_name("operator")?)
+            .node_text(self.range.field("operator")?)
             == "...";
         // `{(int -1) nil}` for `..`, `nil` alone for `...`: `x...-1` stops one element earlier
         // than `x...` would, so only the `nil` literal is redundant there.
         let ends_the_slice = end.is_some_and(|node| {
-            node.kind() == "nil" || (!exclusive && is_minus_one(node, context))
+            node.kind_str() == "nil" || (!exclusive && is_minus_one(node, context))
         });
         // `range_from_zero_till_minus_one?`: `0..-1`, `0..nil` and `0...nil`.
         let from_zero = begin.is_some_and(|node| is_integer(node, 0, context));
@@ -157,7 +158,7 @@ impl<'tree> Slice<'tree> {
                 context.source.node_text(begin?),
                 context
                     .source
-                    .node_text(self.range.child_by_field_name("operator")?)
+                    .node_text(self.range.field("operator")?)
             );
             return Some(Rewrite {
                 message: self.partial_message(context, &prefer, offense_range),
@@ -167,14 +168,14 @@ impl<'tree> Slice<'tree> {
         // `range_from_zero?`: `nil..x`, which a beginless range says better.
         if context.target_ruby_version() >= BEGINLESS_VERSION
             && !exclusive
-            && begin.is_some_and(|node| node.kind() == "nil")
+            && begin.is_some_and(|node| node.kind_str() == "nil")
             && end.is_some()
         {
             let prefer = format!(
                 "{}{}",
                 context
                     .source
-                    .node_text(self.range.child_by_field_name("operator")?),
+                    .node_text(self.range.field("operator")?),
                 context.source.node_text(end?)
             );
             return Some(Rewrite {
@@ -212,13 +213,13 @@ fn is_assignment_target(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "assignment" => parent
-            .child_by_field_name("left")
+            .field("left")
             .is_some_and(|left| left.id() == node.id()),
         "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => true,
         "for" => parent
-            .child_by_field_name("pattern")
+            .field("pattern")
             .is_some_and(|pattern| pattern.id() == node.id()),
         _ => false,
     }
@@ -226,12 +227,12 @@ fn is_assignment_target(node: Node<'_>) -> bool {
 
 /// Whether the node is the literal `-1`, which upstream's parser folds into one `int` node.
 fn is_minus_one(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if node.kind() != "unary" {
+    if node.kind_str() != "unary" {
         return false;
     }
     let (Some(operator), Some(operand)) = (
-        node.child_by_field_name("operator"),
-        node.child_by_field_name("operand"),
+        node.field("operator"),
+        node.field("operand"),
     ) else {
         return false;
     };
@@ -241,7 +242,7 @@ fn is_minus_one(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn is_integer(node: Node<'_>, value: i64, context: &RuleContext<'_>) -> bool {
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return false;
     }
     let text: String = context

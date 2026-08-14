@@ -13,6 +13,7 @@
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds that hold a statement sequence.
 const CONTAINERS: &[&str] = &[
@@ -46,8 +47,10 @@ pub(super) fn statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>> {
     container
         .named_children(&mut cursor)
         .filter(|child| {
-            !matches!(child.kind(), "empty_statement" | "comment" | "heredoc_body")
-                && !CLAUSES.contains(&child.kind())
+            !matches!(
+                child.kind_str(),
+                "empty_statement" | "comment" | "heredoc_body"
+            ) && !CLAUSES.contains(&child.kind_str())
         })
         .collect()
 }
@@ -62,7 +65,7 @@ pub(super) fn body_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = node.walk();
     if let Some(clause) = node
         .named_children(&mut cursor)
-        .find(|child| CLAUSES.contains(&child.kind()))
+        .find(|child| CLAUSES.contains(&child.kind_str()))
     {
         return vec![clause];
     }
@@ -90,7 +93,7 @@ pub(super) fn begin_containers<'tree>(
         .nodes_of_any(CONTAINERS)
         .filter_map(|container| {
             let statements = statements(container);
-            let always = matches!(container.kind(), "begin" | "parenthesized_statements");
+            let always = matches!(container.kind_str(), "begin" | "parenthesized_statements");
             (always || statements.len() > 1).then_some((container, statements))
         })
         .collect()
@@ -102,7 +105,7 @@ pub(super) fn has_clause(container: Node<'_>) -> bool {
     let mut cursor = container.walk();
     container
         .named_children(&mut cursor)
-        .any(|child| CLAUSES.contains(&child.kind()))
+        .any(|child| CLAUSES.contains(&child.kind_str()))
 }
 
 /// A body as `if body.begin_type? then body.children else [body]` reads it: the statements of the
@@ -115,7 +118,7 @@ pub(super) fn body_statements<'tree>(body: Option<Node<'tree>>) -> Vec<Node<'tre
     let Some(body) = body else {
         return Vec::new();
     };
-    if body.kind() == "begin" || !CONTAINERS.contains(&body.kind()) {
+    if body.kind_str() == "begin" || !CONTAINERS.contains(&body.kind_str()) {
         return vec![body];
     }
     body_children(body)
@@ -139,7 +142,7 @@ impl<'tree> Branch<'tree> {
         };
         // `elsif` is a nested `if` upstream rather than a branch body, and `begin ... end` is one
         // expression rather than a sequence.
-        if !CONTAINERS.contains(&container.kind()) || container.kind() == "begin" {
+        if !CONTAINERS.contains(&container.kind_str()) || container.kind_str() == "begin" {
             return Self::One(container);
         }
         let mut statements = statements(container);

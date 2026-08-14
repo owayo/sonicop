@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{is_plain_send, named_children, string_text};
+use crate::rules::node_ext::NodeExt;
 
 const FOR_ARRAY: &str =
     " Or, if they were intended to be separate array elements, separate them with a comma.";
@@ -18,7 +19,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let suffix = suffix(node, context);
         for pair in parts.windows(2) {
             let (left, right) = (pair[0], pair[1]);
-            if left.kind() != "string" || right.kind() != "string" {
+            if left.kind_str() != "string" || right.kind_str() != "string" {
                 continue;
             }
             if context.source.line_column(left.end_byte()).0
@@ -95,15 +96,15 @@ fn ends_with_its_own_delimiter(text: &str) -> bool {
 
 /// The sentence upstream appends when the two literals stand where a comma was likely meant.
 fn suffix(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
-    let Some(parent) = node.parent() else {
+    let Some(parent) = node.parent_of(context) else {
         return "";
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "array" => FOR_ARRAY,
         // Every operator is a `send` upstream except the four that join conditions, which are
         // `and` and `or` nodes; an index is a `send` too, as is a call with the literal as its
         // receiver, and an argument list is no node of its own there.
-        "binary" => match parent.child_by_field_name("operator") {
+        "binary" => match parent.field("operator") {
             Some(operator)
                 if matches!(
                     context.source.node_text(operator),
@@ -117,8 +118,8 @@ fn suffix(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
         "unary" | "element_reference" => FOR_METHOD,
         "call" if is_plain_send(parent, context) => FOR_METHOD,
         "argument_list" => parent
-            .parent()
-            .filter(|call| call.kind() == "call" && is_plain_send(*call, context))
+            .parent_of(context)
+            .filter(|call| call.kind_str() == "call" && is_plain_send(*call, context))
             .map_or("", |_| FOR_METHOD),
         _ => "",
     }

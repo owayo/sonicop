@@ -4,6 +4,7 @@ use crate::rules::send_node::{arguments, send_range};
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_EACH_WITH_OBJECT: &str = "Use `each` instead of `each_with_object`.";
 const MSG_WITH_OBJECT: &str = "Remove redundant `with_object`.";
@@ -11,13 +12,13 @@ const MSG_WITH_OBJECT: &str = "Remove redundant `with_object`.";
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for call in context.nodes_of("call") {
-        let Some(block) = call.child_by_field_name("block") else {
+        let Some(block) = call.field("block") else {
             continue;
         };
-        if !BLOCK_KINDS.contains(&block.kind()) {
+        if !BLOCK_KINDS.contains(&block.kind_str()) {
             continue;
         }
-        let Some(selector) = call.child_by_field_name("method") else {
+        let Some(selector) = call.field("method") else {
             continue;
         };
         let name = context.source.node_text(selector);
@@ -52,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 })
         } else {
             let dot = call
-                .child_by_field_name("operator")
+                .field("operator")
                 .map(|dot| Edit {
                     start: dot.start_byte(),
                     end: dot.end_byte(),

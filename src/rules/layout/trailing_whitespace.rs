@@ -2,6 +2,7 @@ use std::ops::RangeInclusive;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_in_heredoc: bool = context.setting("AllowInHeredoc").unwrap_or(false);
@@ -98,7 +99,7 @@ fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
             // The body node runs through the terminator, which is a line of its own.
             let terminator = body
                 .named_children(&mut body.walk())
-                .find(|child| child.kind() == "heredoc_end")
+                .find(|child| child.kind_str() == "heredoc_end")
                 .map(|child| context.source.line_column(child.start_byte()).0)
                 .unwrap_or_else(|| context.source.line_column(body.end_byte()).0);
             if terminator <= first {

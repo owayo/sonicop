@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use super::support::{ParameterKind, Variables, parameters};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// `EXCLUDED`: operators whose sole parameter is not the other operand. Indexing takes a key,
 /// `<<` takes an element, and the unary forms take nothing meaningful at all.
@@ -15,14 +16,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut variables = None;
     // Only `def` is handled upstream; `def self.+(x)` has no `on_defs` alias to reach it.
     for node in context.nodes_of("method") {
-        let Some(name_node) = node.child_by_field_name("name") else {
+        let Some(name_node) = node.field("name") else {
             continue;
         };
         let name = context.source.node_text(name_node);
         if !operator_method(name) {
             continue;
         }
-        let Some(list) = node.child_by_field_name("parameters") else {
+        let Some(list) = node.field("parameters") else {
             continue;
         };
         let arguments = parameters(list);
@@ -38,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let variables = variables
-            .get_or_insert_with(|| Variables::resolve(context.root_node(), context.source));
+            .get_or_insert_with(|| context.variable_roles());
         offenses.push(
             context
                 .offense(

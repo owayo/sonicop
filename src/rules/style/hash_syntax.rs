@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The symbol names the new syntax can spell without quoting them, as
 /// `acceptable_19_syntax_symbol?` matches them. A trailing `?` or `!` is fine; a trailing `=` is
@@ -51,8 +52,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The span of the pair's `=>`, or `None` when the pair is already written with a colon.
 fn hash_rocket(node: Node<'_>, context: &RuleContext<'_>) -> Option<std::ops::Range<usize>> {
-    let key = node.child_by_field_name("key")?;
-    let value = node.child_by_field_name("value")?;
+    let key = node.field("key")?;
+    let value = node.field("value")?;
     let between = context.source.slice(key.end_byte()..value.start_byte());
     let offset = between.find("=>")?;
     Some(key.end_byte() + offset..key.end_byte() + offset + "=>".len())
@@ -61,7 +62,7 @@ fn hash_rocket(node: Node<'_>, context: &RuleContext<'_>) -> Option<std::ops::Ra
 /// The key without the leading `:`, which is what the new syntax puts in front of the colon.
 fn key_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
     let text = node
-        .child_by_field_name("key")
+        .field("key")
         .map_or("", |key| context.source.node_text(key));
     text.strip_prefix(':').unwrap_or(text)
 }
@@ -73,13 +74,13 @@ fn every_key_takes_the_new_syntax(
     context: &RuleContext<'_>,
     quoted_keys_allowed: bool,
 ) -> bool {
-    let Some(container) = node.parent() else {
+    let Some(container) = node.parent_of(context) else {
         return false;
     };
     let mut cursor = container.walk();
     let pairs: Vec<Node<'_>> = container
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "pair")
+        .filter(|child| child.kind_str() == "pair")
         .collect();
     !pairs.is_empty()
         && pairs
@@ -92,11 +93,11 @@ fn every_key_takes_the_new_syntax(
 /// A key written with a colon is already a symbol whatever it looks like -- `"a b": 1` reaches
 /// RuboCop as a `dsym` -- so only the rocket form has to have its node kind checked.
 fn word_symbol_pair(node: Node<'_>, context: &RuleContext<'_>, quoted_keys_allowed: bool) -> bool {
-    let Some(key) = node.child_by_field_name("key") else {
+    let Some(key) = node.field("key") else {
         return false;
     };
     let is_symbol = hash_rocket(node, context).is_none()
-        || matches!(key.kind(), "simple_symbol" | "delimited_symbol");
+        || matches!(key.kind_str(), "simple_symbol" | "delimited_symbol");
     is_symbol && acceptable_19_syntax_symbol(context.source.node_text(key), quoted_keys_allowed)
 }
 

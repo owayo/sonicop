@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Don't extend an instance initialized by `Struct.new`. \
                    Use a block to customize the struct.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("class") {
-        let Some(superclass) = node.child_by_field_name("superclass") else {
+        let Some(superclass) = node.field("superclass") else {
             continue;
         };
         let Some(parent) = super::nodes::children(superclass).into_iter().next() else {
@@ -46,23 +47,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `{(send (const {nil? cbase} :Struct) :new ...) (block (send ...) ...)}`. A block is spelled as
 /// part of the call it hangs off here, so both readings are the same node.
 fn is_struct_constructor(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if node.kind() != "call" {
+    if node.kind_str() != "call" {
         return false;
     }
     if node
-        .child_by_field_name("method")
+        .field("method")
         .is_none_or(|method| context.source.node_text(method) != "new")
     {
         return false;
     }
-    node.child_by_field_name("receiver")
-        .is_some_and(|receiver| match receiver.kind() {
+    node.field("receiver")
+        .is_some_and(|receiver| match receiver.kind_str() {
             "constant" => context.source.node_text(receiver) == "Struct",
             // `::Struct`, which is the `cbase` half of the pattern.
             "scope_resolution" => {
-                receiver.child_by_field_name("scope").is_none()
+                receiver.field("scope").is_none()
                     && receiver
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|name| context.source.node_text(name) == "Struct")
             }
             _ => false,
@@ -76,7 +77,7 @@ fn correct_parent(
     parent: Node<'_>,
     edits: &mut Vec<Edit>,
 ) {
-    if let Some(block) = parent.child_by_field_name("block") {
+    if let Some(block) = parent.field("block") {
         // The call already carries a block: its `end` closes the class instead.
         let Some(end) = block.child(block.child_count().saturating_sub(1) as u32) else {
             return;
@@ -91,14 +92,14 @@ fn correct_parent(
     }
     // `class_node.body.nil?`: a body holding nothing but comments is no body upstream.
     if class_node
-        .child_by_field_name("body")
+        .field("body")
         .is_none_or(|body| super::nodes::children(body).is_empty())
     {
         edits.push(empty_body_removal(context, class_node, parent));
         return;
     }
     if let Some(arguments) = unparenthesized_arguments(context, parent) {
-        let Some(selector) = parent.child_by_field_name("method") else {
+        let Some(selector) = parent.field("method") else {
             return;
         };
         edits.push(Edit {
@@ -144,8 +145,8 @@ fn empty_body_removal(context: &RuleContext<'_>, class_node: Node<'_>, parent: N
 
 /// `unparenthesized_struct_new?`: the arguments, written as the replacement will spell them.
 fn unparenthesized_arguments(context: &RuleContext<'_>, parent: Node<'_>) -> Option<String> {
-    let arguments = parent.child_by_field_name("arguments")?;
-    if arguments.child(0).is_some_and(|open| open.kind() == "(") {
+    let arguments = parent.field("arguments")?;
+    if arguments.child(0).is_some_and(|open| open.kind_str() == "(") {
         return None;
     }
     let joined = super::nodes::children(arguments)

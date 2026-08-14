@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, named_children, send_range};
+use crate::rules::node_ext::NodeExt;
 
 const MSG_EQUALITY: &str = "Avoid equality comparisons of floats as they are unreliable.";
 const MSG_INEQUALITY: &str = "Avoid inequality comparisons of floats as they are unreliable.";
@@ -27,7 +28,7 @@ const FLOAT_INSTANCE_METHODS: [&str; 7] = [
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["binary", "call", "case"]) {
-        if node.kind() == "case" {
+        if node.kind_str() == "case" {
             case_conditions(node, context, offenses);
             continue;
         }
@@ -52,11 +53,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `on_case`: every condition of every `when` branch, taken on its own.
 fn case_conditions(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for branch in named_children(node) {
-        if branch.kind() != "when" {
+        if branch.kind_str() != "when" {
             continue;
         }
         for pattern in named_children(branch) {
-            if pattern.kind() != "pattern" {
+            if pattern.kind_str() != "pattern" {
                 continue;
             }
             let Some(condition) = named_children(pattern).into_iter().next() else {
@@ -75,26 +76,26 @@ fn comparison<'a, 'tree>(
     node: Node<'tree>,
     context: &'a RuleContext<'_>,
 ) -> Option<(&'a str, Node<'tree>, Node<'tree>)> {
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         let operator = context
             .source
-            .node_text(node.child_by_field_name("operator")?);
+            .node_text(node.field("operator")?);
         if !matches!(operator, "==" | "!=") {
             return None;
         }
         return Some((
             operator,
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("right")?,
+            node.field("left")?,
+            node.field("right")?,
         ));
     }
     let method = context
         .source
-        .node_text(node.child_by_field_name("method")?);
+        .node_text(node.field("method")?);
     if !EQUALITY_METHODS.contains(&method) {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver")?;
+    let receiver = node.field("receiver")?;
     let argument_list = arguments(node);
     let [argument] = argument_list.as_slice() else {
         return None;
@@ -104,10 +105,10 @@ fn comparison<'a, 'tree>(
 
 /// `float?`: whether the expression is known to produce a float.
 fn is_float(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "float" => true,
         // The parser folds a sign into the numeric literal it stands before.
-        "unary" => signed_numeric(node, context).is_some_and(|operand| operand.kind() == "float"),
+        "unary" => signed_numeric(node, context).is_some_and(|operand| operand.kind_str() == "float"),
         "binary" | "call" => float_send(node, context),
         "parenthesized_statements" => named_children(node)
             .into_iter()
@@ -162,7 +163,7 @@ fn numeric_returning_method(
 
 /// `literal_safe?`: a zero or a `nil` compares exactly, whichever side it stands on.
 fn literal_safe(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "nil" => true,
         "integer" | "float" | "rational" | "complex" => is_zero(node, context),
         "unary" => signed_numeric(node, context).is_some_and(|operand| is_zero(operand, context)),
@@ -187,17 +188,17 @@ fn is_zero(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn signed_numeric<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     let operator = context
         .source
-        .node_text(node.child_by_field_name("operator")?);
+        .node_text(node.field("operator")?);
     if !matches!(operator, "-" | "+") {
         return None;
     }
-    let operand = node.child_by_field_name("operand")?;
-    matches!(operand.kind(), "integer" | "float" | "rational" | "complex").then_some(operand)
+    let operand = node.field("operand")?;
+    matches!(operand.kind_str(), "integer" | "float" | "rational" | "complex").then_some(operand)
 }
 
 /// The value of an integer literal, which `Integer(precision.source)` reads the same way.
 fn integer_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<i64> {
-    if node.kind() != "integer" {
+    if node.kind_str() != "integer" {
         return None;
     }
     let text: String = context
@@ -218,9 +219,9 @@ fn integer_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<i64> {
 }
 
 fn is_float_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "float"
-        || (node.kind() == "unary"
-            && signed_numeric(node, context).is_some_and(|operand| operand.kind() == "float"))
+    node.kind_str() == "float"
+        || (node.kind_str() == "unary"
+            && signed_numeric(node, context).is_some_and(|operand| operand.kind_str() == "float"))
 }
 
 /// The method name, receiver and first argument of a call written either as an operator or with a
@@ -229,21 +230,21 @@ fn call_parts<'a, 'tree>(
     node: Node<'tree>,
     context: &'a RuleContext<'_>,
 ) -> (Option<&'a str>, Option<Node<'tree>>, Option<Node<'tree>>) {
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         let method = node
-            .child_by_field_name("operator")
+            .field("operator")
             .map(|operator| context.source.node_text(operator));
         return (
             method,
-            node.child_by_field_name("left"),
-            node.child_by_field_name("right"),
+            node.field("left"),
+            node.field("right"),
         );
     }
     let method = node
-        .child_by_field_name("method")
+        .field("method")
         .map(|method| context.source.node_text(method));
     let first_argument = arguments(node)
         .first()
         .map(Argument::first);
-    (method, node.child_by_field_name("receiver"), first_argument)
+    (method, node.field("receiver"), first_argument)
 }

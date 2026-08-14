@@ -3,11 +3,12 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed = Allowed::new(context);
     for node in context.nodes_of("call") {
-        let Some(list) = node.child_by_field_name("arguments") else {
+        let Some(list) = node.field("arguments") else {
             continue;
         };
         // `!node.arguments? && node.parenthesized?`: an empty `()`, which is the only argument list
@@ -18,11 +19,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `implicit_call?`: `foo.()` has no selector to keep the parentheses off.
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         // `super()` is a node of its own upstream rather than a call, so `on_send` never sees it.
-        if method.kind() == "super" {
+        if method.kind_str() == "super" {
             continue;
         }
         let name = context.source.node_text(method);
@@ -35,12 +36,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `default_argument?`: `def m(a = foo())` needs them to stay a call.
         if node
-            .parent()
-            .is_some_and(|parent| parent.kind() == "optional_parameter")
+            .parent_of(context)
+            .is_some_and(|parent| parent.kind_str() == "optional_parameter")
         {
             continue;
         }
-        if node.child_by_field_name("receiver").is_none()
+        if node.field("receiver").is_none()
             && (same_name_assignment(node, name, context) || parenthesized_it_in_block(node, name))
         {
             continue;
@@ -69,20 +70,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// variable being assigned rather than calling the method.
 fn same_name_assignment(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = current.parent_of(context) {
         current = parent;
-        let shorthand = parent.kind() == "operator_assignment";
-        if !shorthand && parent.kind() != "assignment" {
+        let shorthand = parent.kind_str() == "operator_assignment";
+        if !shorthand && parent.kind_str() != "assignment" {
             continue;
         }
-        let Some(left) = parent.child_by_field_name("left") else {
+        let Some(left) = parent.field("left") else {
             continue;
         };
         // `next if asgn_node.shorthand_asgn? && asgn_node.lhs.call_type?`
-        if shorthand && matches!(left.kind(), "call" | "element_reference") {
+        if shorthand && matches!(left.kind_str(), "call" | "element_reference") {
             continue;
         }
-        let assigned = match left.kind() {
+        let assigned = match left.kind_str() {
             "left_assignment_list" => super::nodes::children(left)
                 .iter()
                 .any(|target| assignment_name(*target, context) == Some(name)),
@@ -97,11 +98,11 @@ fn same_name_assignment(node: Node<'_>, name: &str, context: &RuleContext<'_>) -
 
 /// `loc.name.source` of an assignment target, or `None` for a target upstream reports as a call.
 fn assignment_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "identifier" | "instance_variable" | "class_variable" | "global_variable" | "constant" => {
             Some(context.source.node_text(node))
         }
-        "scope_resolution" => Some(context.source.node_text(node.child_by_field_name("name")?)),
+        "scope_resolution" => Some(context.source.node_text(node.field("name")?)),
         _ => None,
     }
 }
@@ -115,14 +116,14 @@ fn parenthesized_it_in_block(node: Node<'_>, name: &str) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
         current = parent;
-        if !matches!(parent.kind(), "block" | "do_block") {
+        if !matches!(parent.kind_str(), "block" | "do_block") {
             continue;
         }
-        return match parent.child_by_field_name("parameters") {
+        return match parent.field("parameters") {
             // `!block_node.arguments.empty_and_without_delimiters?`: written `| |`, the block has
             // no `it` of its own.
             Some(_) => false,
-            None => node.child_by_field_name("block").is_none(),
+            None => node.field("block").is_none(),
         };
     }
     false

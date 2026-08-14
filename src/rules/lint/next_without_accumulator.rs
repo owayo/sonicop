@@ -5,15 +5,16 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::arguments;
 
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `next` with an accumulator argument in a `reduce`.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        let Some(block) = call.child_by_field_name("block") else {
+        let Some(block) = call.field("block") else {
             continue;
         };
-        let Some(method) = call.child_by_field_name("method") else {
+        let Some(method) = call.field("method") else {
             continue;
         };
         if !matches!(context.source.node_text(method), "reduce" | "inject") {
@@ -26,14 +27,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         if matches!(
-            seed.first().kind(),
+            seed.first().kind_str(),
             "simple_symbol" | "delimited_symbol" | "hash_key_symbol" | "bare_symbol"
         ) {
             continue;
         }
         // `$(begin ...)`: the body has to be a sequence, so a block holding one statement never
         // matches however that statement is written.
-        let body = block.child_by_field_name("body");
+        let body = block.field("body");
         if body.is_none_or(|body| statements(body).len() < 2) {
             continue;
         }
@@ -46,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The first bare `next` that belongs to this block rather than to one written inside it.
 fn void_next<'tree>(node: Node<'tree>, block: Node<'_>) -> Option<Node<'tree>> {
-    if node.kind() == "next" && node.named_child_count() == 0 && owning_block(node, block) {
+    if node.kind_str() == "next" && node.named_child_count() == 0 && owning_block(node, block) {
         return Some(node);
     }
     let mut cursor = node.walk();
@@ -60,7 +61,7 @@ fn void_next<'tree>(node: Node<'tree>, block: Node<'_>) -> Option<Node<'tree>> {
 fn owning_block(node: Node<'_>, block: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if matches!(ancestor.kind(), "block" | "do_block" | "lambda") {
+        if matches!(ancestor.kind_str(), "block" | "do_block" | "lambda") {
             return ancestor.id() == block.id();
         }
         current = ancestor.parent();

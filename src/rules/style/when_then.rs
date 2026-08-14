@@ -2,13 +2,14 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("when") {
         if node.start_position().row != node.end_position().row {
             continue;
         }
-        let Some(body) = node.child_by_field_name("body") else {
+        let Some(body) = node.field("body") else {
             continue;
         };
         // `node.then?`: the separator is already the keyword.
@@ -25,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut cursor = node.walk();
         let conditions: Vec<&str> = node
             .named_children(&mut cursor)
-            .filter(|child| child.kind() == "pattern")
+            .filter(|child| child.kind_str() == "pattern")
             .map(|pattern| context.source.node_text(pattern))
             .collect();
         let expression = conditions.join(", ");

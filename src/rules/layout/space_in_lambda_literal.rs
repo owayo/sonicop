@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let require_space = context
@@ -12,13 +13,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for lambda in context.nodes_of("lambda") {
         // `node.parent.arguments?`: an empty parameter list is no list at all upstream.
         let Some(parameters) = lambda
-            .child_by_field_name("parameters")
+            .field("parameters")
             .filter(|parameters| parameters.named_child_count() > 0)
         else {
             continue;
         };
         // `space_after_arrow`: everything between the end of `->` and the parameter list.
-        let Some(arrow) = lambda.child(0).filter(|arrow| arrow.kind() == "->") else {
+        let Some(arrow) = lambda.child(0).filter(|arrow| arrow.kind_str() == "->") else {
             continue;
         };
         let space = arrow.end_byte()..parameters.start_byte();

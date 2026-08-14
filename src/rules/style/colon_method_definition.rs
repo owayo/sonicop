@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not use `::` for defining class methods.";
 
@@ -9,11 +10,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // grammar leaves unnamed.
         let Some(operator) = node
             .children(&mut node.walk())
-            .find(|child| matches!(child.kind(), "::" | "."))
+            .find(|child| matches!(child.kind_str(), "::" | "."))
         else {
             continue;
         };
-        if operator.kind() != "::" {
+        if operator.kind_str() != "::" {
             continue;
         }
         offenses.push(

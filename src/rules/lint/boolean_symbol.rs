@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds a `sym` reaches tree-sitter as. A `%i[]` element is a `bare_symbol` instead,
 /// which is how the percent literal upstream exempts stays exempt.
@@ -31,15 +32,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The name of the symbol, when it is one of the two booleans written as one.
 fn boolean_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let text = context.source.node_text(node);
-    let name = match node.kind() {
+    let name = match node.kind_str() {
         "simple_symbol" => text.strip_prefix(':')?,
         "hash_key_symbol" => text,
         // A symbol whose quotes hold an interpolation is a `dsym`, which is a different node
         // upstream and no literal name at all.
         "delimited_symbol" => quoted_content(node, context)?,
         "string" => {
-            let pair = node.parent().filter(|parent| parent.kind() == "pair")?;
-            let key = pair.child_by_field_name("key")?;
+            let pair = node.parent_of(context).filter(|parent| parent.kind_str() == "pair")?;
+            let key = pair.field("key")?;
             if key.id() != node.id() || !colon_pair(pair) {
                 return None;
             }
@@ -55,21 +56,21 @@ fn quoted_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'
     let mut cursor = node.walk();
     let parts: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
     match parts.as_slice() {
-        [content] if content.kind() == "string_content" => Some(context.source.node_text(*content)),
+        [content] if content.kind_str() == "string_content" => Some(context.source.node_text(*content)),
         _ => None,
     }
 }
 
 /// `PairNode#colon?`: whether the pair was written `key: value` rather than with a hash rocket.
 fn colon_pair(pair: Node<'_>) -> bool {
-    separator(pair).is_some_and(|separator| separator.kind() == ":")
+    separator(pair).is_some_and(|separator| separator.kind_str() == ":")
 }
 
 fn separator(pair: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = pair.walk();
     let separator = pair
         .children(&mut cursor)
-        .find(|child| !child.is_named() && matches!(child.kind(), ":" | "=>"))?;
+        .find(|child| !child.is_named() && matches!(child.kind_str(), ":" | "=>"))?;
     Some(separator)
 }
 
@@ -79,11 +80,11 @@ fn separator(pair: Node<'_>) -> Option<Node<'_>> {
 fn corrections(node: Node<'_>, context: &RuleContext<'_>) -> Vec<Edit> {
     let source = context.source.node_text(node);
     let key_of = node
-        .parent()
-        .filter(|parent| parent.kind() == "pair" && colon_pair(*parent))
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "pair" && colon_pair(*parent))
         .filter(|parent| {
             parent
-                .child_by_field_name("key")
+                .field("key")
                 .is_some_and(|key| key.id() == node.id())
         });
     let Some(colon) = key_of.and_then(separator) else {

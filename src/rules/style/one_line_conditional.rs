@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's parser all builds an `if` node for, which is what decides whether a
 /// branch needs parentheses around it.
@@ -27,20 +28,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if context.source.line_column(range.start).0 != context.source.line_column(range.end).0 {
             continue;
         }
-        let Some(condition) = node.child_by_field_name("condition") else {
+        let Some(condition) = node.field("condition") else {
             continue;
         };
-        let Some(alternative) = node.child_by_field_name("alternative") else {
+        let Some(alternative) = node.field("alternative") else {
             continue;
         };
-        let consequence = node.child_by_field_name("consequence");
+        let consequence = node.field("consequence");
         // `node.if_branch&.begin_type?`: a then-branch upstream reads as a `begin` has no ternary
         // arm to become.
         if consequence.is_some_and(|clause| begin_children(clause).is_some()) {
             continue;
         }
         let multiline = always_multiline || cannot_become_a_ternary(alternative);
-        let keyword = node.kind();
+        let keyword = node.kind_str();
         let message = match multiline {
             true => format!(
                 "Favor multi-line `{keyword}` over single-line `{keyword}/then/else/end` constructs."
@@ -78,7 +79,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `cannot_replace_to_ternary?`: an `elsif` chain, or an else branch holding more than one
 /// statement.
 fn cannot_become_a_ternary(alternative: Node<'_>) -> bool {
-    alternative.kind() == "elsif"
+    alternative.kind_str() == "elsif"
         || begin_children(alternative).is_some_and(|count| count >= 2)
 }
 
@@ -87,7 +88,7 @@ fn cannot_become_a_ternary(alternative: Node<'_>) -> bool {
 fn begin_children(clause: Node<'_>) -> Option<usize> {
     let written = super::nodes::children(clause);
     match written.as_slice() {
-        [only] if only.kind() == "parenthesized_statements" => {
+        [only] if only.kind_str() == "parenthesized_statements" => {
             Some(super::nodes::children(*only).len())
         }
         _ if written.len() > 1 => Some(written.len()),
@@ -105,7 +106,7 @@ fn ternary(
 ) -> String {
     // The parser writes an `unless` with its branches the other way round, and the ternary is
     // built from the children as they are stored rather than from the normalized branches.
-    let (first, second) = match node.kind() {
+    let (first, second) = match node.kind_str() {
         "unless" => (Some(alternative), consequence),
         _ => (consequence, Some(alternative)),
     };
@@ -116,15 +117,15 @@ fn ternary(
         branch(context, second)
     );
     // An operator written around the conditional binds tighter than the ternary does.
-    let wrapped = node.parent().is_some_and(|parent| match parent.kind() {
+    let wrapped = node.parent_of(context).is_some_and(|parent| match parent.kind_str() {
         "binary" | "element_reference" => true,
         // `defined?` is a node of its own upstream rather than an operator call.
         "unary" => parent
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) != "defined?"),
         "call" => parent
-            .child_by_field_name("method")
-            .is_some_and(|selector| selector.kind() == "operator"),
+            .field("method")
+            .is_some_and(|selector| selector.kind_str() == "operator"),
         _ => false,
     });
     match wrapped {
@@ -139,7 +140,7 @@ fn branch(context: &RuleContext<'_>, node: Option<Node<'_>>) -> String {
     let Some(node) = node else {
         return "nil".to_owned();
     };
-    let (source, node) = match node.kind() {
+    let (source, node) = match node.kind_str() {
         "then" | "else" => match super::nodes::children(node).as_slice() {
             [only] => (context.source.node_text(*only).to_owned(), Some(*only)),
             [] => return "nil".to_owned(),
@@ -160,37 +161,37 @@ fn branch(context: &RuleContext<'_>, node: Option<Node<'_>>) -> String {
 }
 
 fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    if IF_KINDS.contains(&node.kind()) {
+    if IF_KINDS.contains(&node.kind_str()) {
         return true;
     }
-    if matches!(node.kind(), "assignment" | "operator_assignment") {
+    if matches!(node.kind_str(), "assignment" | "operator_assignment") {
         return true;
     }
-    if node.kind() == "binary"
+    if node.kind_str() == "binary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "and" | "or"))
     {
         return true;
     }
     // `method_call_with_changed_precedence?`: a call written without parentheses takes the `:` for
     // an argument.
-    if node.kind() == "call"
-        && let Some(arguments) = node.child_by_field_name("arguments")
+    if node.kind_str() == "call"
+        && let Some(arguments) = node.field("arguments")
         && !context.source.node_text(arguments).starts_with('(')
         && node
-            .child_by_field_name("method")
-            .is_some_and(|selector| selector.kind() != "operator")
+            .field("method")
+            .is_some_and(|selector| selector.kind_str() != "operator")
     {
         return true;
     }
     // `keyword_with_changed_precedence?`: `not x`, and a keyword written with arguments.
-    if node.kind() == "unary" {
+    if node.kind_str() == "unary" {
         return node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "not");
     }
-    matches!(node.kind(), "return" | "break" | "next" | "yield")
+    matches!(node.kind_str(), "return" | "break" | "next" | "yield")
         && !super::nodes::children(node).is_empty()
 }
 
@@ -198,29 +199,29 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn expanded(context: &RuleContext<'_>, node: Node<'_>, width: usize, column: usize) -> String {
     let indentation = " ".repeat(column);
     let body = " ".repeat(width);
-    let keyword = match node.kind() {
+    let keyword = match node.kind_str() {
         "unless" => "unless",
         "elsif" => "elsif",
         _ => "if",
     };
     let condition = node
-        .child_by_field_name("condition")
+        .field("condition")
         .map_or_else(String::new, |node| {
             context.source.node_text(node).to_owned()
         });
     let consequence = node
-        .child_by_field_name("consequence")
+        .field("consequence")
         .map_or_else(|| "nil".to_owned(), |clause| clause_source(context, clause));
     // An `elsif` is written at the indentation of the `if` it continues.
-    let head = match node.kind() {
+    let head = match node.kind_str() {
         "elsif" => {
             format!("{indentation}{keyword} {condition}\n{indentation}{body}{consequence}\n")
         }
         _ => format!("{keyword} {condition}\n{indentation}{body}{consequence}\n"),
     };
-    let tail = match node.child_by_field_name("alternative") {
+    let tail = match node.field("alternative") {
         None => "end".to_owned(),
-        Some(alternative) if alternative.kind() == "elsif" => {
+        Some(alternative) if alternative.kind_str() == "elsif" => {
             expanded(context, alternative, width, column)
         }
         Some(alternative) => format!(

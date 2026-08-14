@@ -4,6 +4,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
 use super::statements::statements;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not return from an `ensure` block.";
 
@@ -22,7 +23,7 @@ fn collect(
     context: &RuleContext<'_>,
     offenses: &mut Vec<Offense>,
 ) {
-    if node.kind() == "return" && !returns_from_inner_scope(node, ensure_node, context) {
+    if node.kind_str() == "return" && !returns_from_inner_scope(node, ensure_node, context) {
         offenses.push(context.offense(MSG, node.byte_range()));
     }
     let mut cursor = node.walk();
@@ -40,17 +41,17 @@ fn returns_from_inner_scope(
     ensure_node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if ancestor.id() == ensure_node.id() {
             return false;
         }
-        if matches!(ancestor.kind(), "method" | "singleton_method" | "lambda")
+        if matches!(ancestor.kind_str(), "method" | "singleton_method" | "lambda")
             || is_lambda_block(ancestor, context)
         {
             return true;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     false
 }
@@ -58,11 +59,11 @@ fn returns_from_inner_scope(
 /// `any_block_type? && lambda?`: a block written as `lambda { ... }`. `proc { ... }` is not one, and
 /// neither is any other method taking a block.
 fn is_lambda_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    matches!(node.kind(), "block" | "do_block")
-        && node.parent().is_some_and(|call| {
-            call.kind() == "call"
+    matches!(node.kind_str(), "block" | "do_block")
+        && node.parent_of(context).is_some_and(|call| {
+            call.kind_str() == "call"
                 && call
-                    .child_by_field_name("method")
+                    .field("method")
                     .is_some_and(|method| context.source.node_text(method) == "lambda")
         })
 }

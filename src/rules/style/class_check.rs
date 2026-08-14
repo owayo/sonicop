@@ -2,6 +2,7 @@
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -9,7 +10,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "is_a?".to_owned());
 
     for node in context.nodes_of("call") {
-        let Some(selector) = node.child_by_field_name("method") else {
+        let Some(selector) = node.field("method") else {
             continue;
         };
         let current = context.source.node_text(selector);

@@ -8,6 +8,7 @@ use crate::rules::send_node::{arguments, is_plain_send};
 
 use super::format_string::{is_valid, parse};
 use super::literals::literal_type;
+use crate::rules::node_ext::NodeExt;
 
 const MSG_INVALID: &str = "Format string is invalid because formatting sequence types \
      (numbered, named or unnumbered) are mixed.";
@@ -79,12 +80,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `RESTRICT_ON_SEND = %i[format sprintf %]`, in the two shapes tree-sitter writes them.
 fn read_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Call<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
             if !is_plain_send(node, context) {
                 return None;
             }
-            let method = node.child_by_field_name("method")?;
+            let method = node.field("method")?;
             let name = context.source.node_text(method).to_owned();
             if !matches!(name.as_str(), "format" | "sprintf" | "%") {
                 return None;
@@ -92,7 +93,7 @@ fn read_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Call
             Some(Call {
                 method: name,
                 selector: method.byte_range(),
-                receiver: node.child_by_field_name("receiver"),
+                receiver: node.field("receiver"),
                 given: arguments(node)
                     .iter()
                     .map(|argument| Arg {
@@ -103,16 +104,16 @@ fn read_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Call
             })
         }
         "binary" => {
-            let operator = node.child_by_field_name("operator")?;
+            let operator = node.field("operator")?;
             if context.source.node_text(operator) != "%" {
                 return None;
             }
             Some(Call {
                 method: "%".to_owned(),
                 selector: operator.byte_range(),
-                receiver: node.child_by_field_name("left"),
+                receiver: node.field("left"),
                 given: {
-                    let right = node.child_by_field_name("right")?;
+                    let right = node.field("right")?;
                     vec![Arg {
                         first: right,
                         range: right.byte_range(),
@@ -139,7 +140,7 @@ fn called_on_string(call: &Call<'_>, context: &RuleContext<'_>) -> bool {
     }
     let receiver_allows = call
         .receiver
-        .is_none_or(|receiver| matches!(receiver.kind(), "constant" | "scope_resolution"));
+        .is_none_or(|receiver| matches!(receiver.kind_str(), "constant" | "scope_resolution"));
     receiver_allows
         && call
             .given
@@ -161,7 +162,7 @@ fn is_format_method(call: &Call<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     }
     if let Some(receiver) = call.receiver
-        && matches!(receiver.kind(), "constant" | "scope_resolution")
+        && matches!(receiver.kind_str(), "constant" | "scope_resolution")
         && context.source.node_text(receiver) != "Kernel"
     {
         return false;
@@ -180,7 +181,7 @@ fn is_percent(call: &Call<'_>, context: &RuleContext<'_>) -> bool {
     let first_is_array = call
         .given
         .first()
-        .is_some_and(|first| first.first.kind() == "array");
+        .is_some_and(|first| first.first.kind_str() == "array");
     if !receiver_is_string && !first_is_array {
         return false;
     }
@@ -218,13 +219,13 @@ fn count_matches(call: &Call<'_>, context: &RuleContext<'_>) -> Count {
         && call
             .given
             .first()
-            .is_some_and(|first| first.first.kind() == "array")
+            .is_some_and(|first| first.first.kind_str() == "array")
     {
         let list = call.given[0].first;
         let mut cursor = list.walk();
         let passed = list
             .named_children(&mut cursor)
-            .filter(|child| child.kind() != "comment")
+            .filter(|child| child.kind_str() != "comment")
             .count();
         let Some(receiver) = call.receiver else {
             return Count::Unknown;
@@ -270,5 +271,5 @@ fn splat_arguments(call: &Call<'_>, context: &RuleContext<'_>) -> bool {
     call.given
         .iter()
         .skip(1)
-        .any(|argument| argument.first.kind() == "splat_argument")
+        .any(|argument| argument.first.kind_str() == "splat_argument")
 }

@@ -6,6 +6,7 @@ use crate::rules::RuleContext;
 use super::flow::{self, Flow};
 use super::locals::LocalVariables;
 use super::statements::begin_groups;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Unreachable code detected.";
 
@@ -34,13 +35,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn flow_expression(
     node: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     flow: &mut Flow,
 ) -> bool {
     if flow::is_command(node, context, locals) {
         return flow.reports_command(node, context);
     }
-    match node.kind() {
+    match node.kind_str() {
         "begin" => super::statements::body_children(node)
             .into_iter()
             .any(|child| flow_expression(child, context, locals, flow)),

@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's `if_type?` covers: both keywords, both modifier forms and the
 /// ternary.
@@ -14,12 +15,12 @@ const CONDITIONALS: &[&str] = &[
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["if_modifier", "unless_modifier"]) {
         let (Some(body), Some(condition)) = (
-            node.child_by_field_name("body"),
-            node.child_by_field_name("condition"),
+            node.field("body"),
+            node.field("condition"),
         ) else {
             continue;
         };
-        if !CONDITIONALS.contains(&body.kind()) {
+        if !CONDITIONALS.contains(&body.kind_str()) {
             continue;
         }
         let Some(keyword) = super::conditional::token(node, &["if", "unless"]) else {

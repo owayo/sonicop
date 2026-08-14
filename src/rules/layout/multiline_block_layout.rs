@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::{body_statements, character_column, final_pos, parser_node_start};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Block body expression is on the same line as the block start.";
 const ARG_MSG: &str = "Block argument expression is not on the same line as the block start.";
@@ -116,7 +117,7 @@ fn argument_string(context: &RuleContext<'_>, arguments: Node<'_>) -> String {
     let parts = parameter_nodes(arguments);
     let mut joined = parts
         .iter()
-        .map(|part| match part.kind() {
+        .map(|part| match part.kind_str() {
             "destructured_parameter" => format!("({})", argument_string(context, *part)),
             _ => context.source.node_text(*part).to_owned(),
         })
@@ -132,7 +133,7 @@ fn parameter_nodes<'tree>(arguments: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = arguments.walk();
     arguments
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }
 
@@ -141,7 +142,7 @@ fn parameter_nodes<'tree>(arguments: Node<'tree>) -> Vec<Node<'tree>> {
 fn positional_count(arguments: Node<'_>) -> usize {
     parameter_nodes(arguments)
         .into_iter()
-        .map(|part| match part.kind() {
+        .map(|part| match part.kind_str() {
             "identifier" => 1,
             "destructured_parameter" => positional_count(part),
             _ => 0,
@@ -152,25 +153,25 @@ fn positional_count(arguments: Node<'_>) -> usize {
 fn block_open<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| matches!(child.kind(), "{" | "do"))
+        .find(|child| matches!(child.kind_str(), "{" | "do"))
 }
 
 fn block_close<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .filter(|child| matches!(child.kind(), "}" | "end"))
+        .filter(|child| matches!(child.kind_str(), "}" | "end"))
         .last()
 }
 
 fn arguments<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("parameters")
-        .filter(|parameters| parameters.kind() == "block_parameters")
+    node.field("parameters")
+        .filter(|parameters| parameters.kind_str() == "block_parameters")
         .filter(|parameters| !parameter_nodes(*parameters).is_empty())
 }
 
 /// `node.body.source_range`: from the first statement of the block to the last, comments excluded.
 fn body_range(node: Node<'_>) -> Option<Range<usize>> {
-    let body = node.child_by_field_name("body")?;
+    let body = node.field("body")?;
     let statements = body_statements(body);
     let (first, last) = (statements.first()?, statements.last()?);
     Some(first.start_byte()..last.end_byte())

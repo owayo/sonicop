@@ -10,6 +10,7 @@ use super::support::{
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::send_range;
+use crate::rules::node_ext::NodeExt;
 
 /// `MethodIdentifierPredicates::OPERATOR_METHODS`.
 const OPERATOR_METHODS: &[&str] = &[
@@ -103,14 +104,14 @@ fn comment_lines(context: &RuleContext<'_>) -> Vec<usize> {
 
 /// `bare_operator?`: an operator written as an operator rather than dispatched through a dot.
 fn bare_operator(context: &RuleContext<'_>, call: Node<'_>) -> bool {
-    let Some(method) = call.child_by_field_name("method") else {
+    let Some(method) = call.field("method") else {
         return false;
     };
     if !OPERATOR_METHODS.contains(&context.source.node_text(method)) {
         return false;
     }
     // `dot?` holds for a literal `.` only; `&.` and `::` are something else there.
-    call.child_by_field_name("operator")
+    call.field("operator")
         .is_none_or(|operator| context.source.node_text(operator) != ".")
 }
 
@@ -137,7 +138,7 @@ fn base_indentation(
 fn base_range(call: Node<'_>, argument: usize) -> Range<usize> {
     let start = call
         .parent()
-        .filter(|parent| matches!(parent.kind(), "splat_argument" | "hash_splat_argument"))
+        .filter(|parent| matches!(parent.kind_str(), "splat_argument" | "hash_splat_argument"))
         .map_or_else(|| call.start_byte(), |parent| parent.start_byte());
     start..argument
 }
@@ -210,10 +211,10 @@ struct SendParent {
 }
 
 fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> {
-    let parent = node.parent()?;
-    match parent.kind() {
+    let parent = node.parent_of(context)?;
+    match parent.kind_str() {
         // An argument list is the grammar's own node; upstream hangs an argument off the call.
-        "argument_list" => dispatch(context, parent.parent()?),
+        "argument_list" => dispatch(context, parent.parent_of(context)?),
         // An index read is a call to `[]`, whose arguments sit directly under it.
         "element_reference" => Some(SendParent {
             method: "[]".to_owned(),
@@ -226,7 +227,7 @@ fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> 
         // logical ones are the exception: `and` and `or` are nodes of their own there.
         "binary" | "unary" => {
             let operator = parent
-                .child_by_field_name("operator")
+                .field("operator")
                 .or_else(|| parent.child(0))?;
             let name = context.source.node_text(operator);
             if matches!(name, "&&" | "||" | "and" | "or") {
@@ -240,13 +241,13 @@ fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> 
         }
         // Assigning through a reader is a `send` too; assigning to a variable is not.
         "assignment" => {
-            let left = parent.child_by_field_name("left")?;
-            let method = match left.kind() {
+            let left = parent.field("left")?;
+            let method = match left.kind_str() {
                 "call" => format!(
                     "{}=",
                     context
                         .source
-                        .node_text(left.child_by_field_name("method")?)
+                        .node_text(left.field("method")?)
                 ),
                 "element_reference" => "[]=".to_owned(),
                 _ => return None,
@@ -264,11 +265,11 @@ fn send_parent(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendParent> 
 /// The call as a `send`. `super(...)` and `yield(...)` are nodes of their own upstream, so neither
 /// is one.
 fn dispatch(context: &RuleContext<'_>, call: Node<'_>) -> Option<SendParent> {
-    if call.kind() != "call" {
+    if call.kind_str() != "call" {
         return None;
     }
-    let method = call.child_by_field_name("method");
-    if method.is_some_and(|method| method.kind() == "super") {
+    let method = call.field("method");
+    if method.is_some_and(|method| method.kind_str() == "super") {
         return None;
     }
     Some(SendParent {
@@ -284,9 +285,9 @@ fn dispatch(context: &RuleContext<'_>, call: Node<'_>) -> Option<SendParent> {
 
 /// `node.loc.end`: the parenthesis a call's argument list closes with.
 fn closing_parenthesis<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
-    let list = call.child_by_field_name("arguments")?;
+    let list = call.field("arguments")?;
     let last = list.child(u32::try_from(list.child_count()).ok()?.checked_sub(1)?)?;
-    (last.kind() == ")").then_some(last)
+    (last.kind_str() == ")").then_some(last)
 }
 
 /// `autocorrect`: the range `AlignmentCorrector` moves, which is the whole receiver chain when the
@@ -310,9 +311,9 @@ fn correction_range(
 fn top_level_send<'tree>(call: Node<'tree>) -> Node<'tree> {
     let mut top = call;
     while let Some(parent) = top.parent() {
-        if parent.kind() != "call"
-            || parent.child_by_field_name("receiver") != Some(top)
-            || parent.child_by_field_name("operator").is_none()
+        if parent.kind_str() != "call"
+            || parent.field("receiver") != Some(top)
+            || parent.field("operator").is_none()
         {
             break;
         }

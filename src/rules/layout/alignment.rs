@@ -14,6 +14,7 @@ use tree_sitter::Node;
 
 use super::support::comments;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 /// The comparisons of RuboCop's `ASSIGNMENT_OR_COMPARISON_TOKENS`, spelled as source rather than
@@ -113,20 +114,16 @@ impl<'src> Alignment<'src> {
 
     fn collect_equals_tokens(&mut self, context: &RuleContext<'_>) {
         for node in context.nodes() {
-            let (operator, kind, assigns) = match node.kind() {
+            let (operator, kind, assigns) = match node.kind_str() {
                 "assignment" => (
-                    node.child_by_field_name("left").and_then(|left| {
-                        node.child_by_field_name("right")
+                    node.field("left").and_then(|left| {
+                        node.field("right")
                             .and_then(|right| operator_between(node, left, right))
                     }),
                     TokenKind::EqualSign,
                     true,
                 ),
-                "operator_assignment" => (
-                    node.child_by_field_name("operator"),
-                    TokenKind::EqualSign,
-                    true,
-                ),
+                "operator_assignment" => (node.field("operator"), TokenKind::EqualSign, true),
                 // An optional parameter's `=` and an endless `def`'s are still tokens to align
                 // against, even though `assignment_lines` leaves them out.
                 "optional_parameter" | "method" => {
@@ -137,7 +134,7 @@ impl<'src> Alignment<'src> {
                 "singleton_method" => (child_of_kind(node, "="), TokenKind::EqualSign, true),
                 "singleton_class" => (child_of_kind(node, "<<"), TokenKind::Lshift, false),
                 "binary" => {
-                    let operator = node.child_by_field_name("operator");
+                    let operator = node.field("operator");
                     let text = operator.map(|operator| context.source.node_text(operator));
                     match text {
                         Some("<<") => (operator, TokenKind::Lshift, false),
@@ -397,7 +394,7 @@ enum Predicate {
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 fn operator_between<'tree>(

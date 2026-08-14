@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::support::{final_pos, grouped_arguments, is_send_like};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Empty line detected around arguments.";
 
@@ -73,7 +74,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
         close: None,
     };
 
-    match node.kind() {
+    match node.kind_str() {
         "call" => {
             // An attribute write is one `:name=` send spanning the assignment, so the call on its
             // own is not what upstream inspects.
@@ -89,7 +90,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
                         .collect(),
                 ),
                 close: list.and_then(closing_delimiter),
-                ..view(node, node.child_by_field_name("receiver"), selector(node))
+                ..view(node, node.field("receiver"), selector(node))
             })
         }
         "element_reference" => {
@@ -113,9 +114,9 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
         // `a[0] = 1` is a single `:[]=` send and `a.b = 1` a single `:b=` send, each holding the
         // right-hand side as one more argument.
         "assignment" => {
-            let left = node.child_by_field_name("left")?;
-            let right = node.child_by_field_name("right")?;
-            let (receiver, selector, mut arguments, close) = match left.kind() {
+            let left = node.field("left")?;
+            let right = node.field("right")?;
+            let (receiver, selector, mut arguments, close) = match left.kind_str() {
                 "element_reference" => (
                     left.child(0),
                     child_of_kind(left, "["),
@@ -128,7 +129,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
                     None,
                 ),
                 "call" => (
-                    left.child_by_field_name("receiver"),
+                    left.field("receiver"),
                     selector(left),
                     Vec::new(),
                     None,
@@ -143,11 +144,11 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
             })
         }
         "binary" if is_send_like(context, node) => {
-            let operator = node.child_by_field_name("operator")?;
-            let right = node.child_by_field_name("right")?;
+            let operator = node.field("operator")?;
+            let right = node.field("right")?;
             Some(SendView {
                 arguments: vec![right.start_byte()],
-                ..view(node, node.child_by_field_name("left"), Some(operator))
+                ..view(node, node.field("left"), Some(operator))
             })
         }
         _ => None,
@@ -155,28 +156,28 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
 }
 
 fn selector<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child_by_field_name("method")
+    node.field("method")
         .filter(|method| !method.byte_range().is_empty())
 }
 
 fn is_assignment_target(node: Node<'_>) -> bool {
     node.parent().is_some_and(|parent| {
-        parent.kind() == "assignment" && parent.child_by_field_name("left") == Some(node)
+        parent.kind_str() == "assignment" && parent.field("left") == Some(node)
     })
 }
 
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }
 
 /// The closing parenthesis of an argument list written with them.
 fn closing_delimiter(list: Node<'_>) -> Option<usize> {
     let first = list.child(0)?;
-    if first.kind() != "(" {
+    if first.kind_str() != "(" {
         return None;
     }
     let last = list.child(u32::try_from(list.child_count()).ok()?.checked_sub(1)?)?;
-    (last.kind() == ")").then(|| last.start_byte())
+    (last.kind_str() == ")").then(|| last.start_byte())
 }

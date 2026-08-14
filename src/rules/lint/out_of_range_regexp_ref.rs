@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, named_children};
 
 use super::regexp::{captures, interpolates, pattern};
+use crate::rules::node_ext::NodeExt;
 
 /// The methods that leave `$~` set, which is what makes a numbered reference after them valid.
 /// `RESTRICT_ON_SEND` is this list, so a call to anything else leaves the state alone.
@@ -63,7 +64,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The commissioner's traversal: `on_*` on the way in, `after_send` on the way out.
 fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    match node.kind() {
+    match node.kind_str() {
         "global_variable" => {
             if let Some(backref) = numbered_reference(context.source.node_text(node)) {
                 report(backref, node, walk, context, offenses);
@@ -72,15 +73,15 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
         "when" => {
             walk.valid_ref = named_children(node)
                 .into_iter()
-                .filter(|child| child.kind() == "pattern")
+                .filter(|child| child.kind_str() == "pattern")
                 .flat_map(named_children)
-                .filter(|condition| condition.kind() == "regex")
+                .filter(|condition| condition.kind_str() == "regex")
                 .filter_map(|condition| capture_count(condition, context))
                 .max();
         }
         "in_clause" => {
             walk.valid_ref = node
-                .child_by_field_name("pattern")
+                .field("pattern")
                 .into_iter()
                 .flat_map(|pattern| regexp_patterns(pattern))
                 .filter_map(|pattern| capture_count(pattern, context))
@@ -88,7 +89,7 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
         }
         // `/(?<a>x)/ =~ str` is a `match_with_lvasgn`, whose first child is the literal.
         "binary" if is_match_with_lvasgn(node, context) => {
-            if let Some(left) = node.child_by_field_name("left") {
+            if let Some(left) = node.field("left") {
                 walk.valid_ref = capture_count(left, context);
             }
         }
@@ -98,10 +99,10 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
     // call is left behind -- and its state reset -- before the block body is reached. A modifier
     // conditional puts its condition after its body here and before it upstream, for the same
     // reason: the walk has to see them in the order the parser's children are listed.
-    let block = node.child_by_field_name("block");
+    let block = node.field("block");
     let mut children = named_children(node);
     if matches!(
-        node.kind(),
+        node.kind_str(),
         "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier"
     ) {
         children.reverse();
@@ -150,7 +151,7 @@ fn report(
 
 /// `check_regexp`: named captures take priority, since numbering is off once any of them is named.
 fn capture_count(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
-    if node.kind() != "regex" || interpolates(node) {
+    if node.kind_str() != "regex" || interpolates(node) {
         return None;
     }
     let (source, extended) = pattern(node, context)?;
@@ -164,7 +165,7 @@ fn capture_count(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
 
 /// The `regexp` literals a `in` pattern holds, which is the pattern itself or the ones inside it.
 fn regexp_patterns<'tree>(pattern: Node<'tree>) -> Vec<Node<'tree>> {
-    if pattern.kind() == "regex" {
+    if pattern.kind_str() == "regex" {
         return vec![pattern];
     }
     let mut found = Vec::new();
@@ -174,7 +175,7 @@ fn regexp_patterns<'tree>(pattern: Node<'tree>) -> Vec<Node<'tree>> {
 
 fn collect_regexps<'tree>(node: Node<'tree>, found: &mut Vec<Node<'tree>>) {
     for child in named_children(node) {
-        if child.kind() == "regex" {
+        if child.kind_str() == "regex" {
             found.push(child);
         }
         collect_regexps(child, found);
@@ -183,13 +184,13 @@ fn collect_regexps<'tree>(node: Node<'tree>, found: &mut Vec<Node<'tree>>) {
 
 /// Whether the node is a call to one of the methods that reset `$~`.
 fn is_capture_call(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "call" => node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| CAPTURE_METHODS.contains(&context.source.node_text(method))),
         // Every binary operator is a `send`, and `=~` and `===` are two of the listed methods.
         "binary" => node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| CAPTURE_METHODS.contains(&context.source.node_text(operator))),
         "element_reference" => true,
         _ => false,
@@ -198,40 +199,40 @@ fn is_capture_call(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `regexp_first_argument?` and `regexp_receiver?`, which is what the state is taken from.
 fn regexp_operand<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    let (name, first, receiver) = match node.kind() {
+    let (name, first, receiver) = match node.kind_str() {
         "call" => (
             context
                 .source
-                .node_text(node.child_by_field_name("method")?),
+                .node_text(node.field("method")?),
             arguments(node).first().map(|argument| argument.first()),
-            node.child_by_field_name("receiver"),
+            node.field("receiver"),
         ),
         "binary" => (
             context
                 .source
-                .node_text(node.child_by_field_name("operator")?),
-            node.child_by_field_name("right"),
-            node.child_by_field_name("left"),
+                .node_text(node.field("operator")?),
+            node.field("right"),
+            node.field("left"),
         ),
         "element_reference" => ("[]", named_children(node).into_iter().nth(1), node.child(0)),
         _ => return None,
     };
     if let Some(first) = first
-        && first.kind() == "regex"
+        && first.kind_str() == "regex"
         && ARGUMENT_METHODS.contains(&name)
     {
         return Some(first);
     }
-    receiver.filter(|receiver| receiver.kind() == "regex")
+    receiver.filter(|receiver| receiver.kind_str() == "regex")
 }
 
 /// `(match_with_lvasgn (regexp ...) _)`: a literal with named captures written left of `=~`.
 fn is_match_with_lvasgn(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.child_by_field_name("operator")
+    node.field("operator")
         .is_some_and(|operator| context.source.node_text(operator) == "=~")
         && node
-            .child_by_field_name("left")
-            .is_some_and(|left| left.kind() == "regex")
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "regex")
 }
 
 /// `$1` through `$9`, the references the parser spells as `nth_ref`.

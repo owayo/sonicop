@@ -7,6 +7,7 @@ use crate::rules::send_node::{arguments, is_plain_send, named_children, send_ran
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Sort files before requiring them.";
 
@@ -20,8 +21,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of("call") {
         if let Some(block) = node
-            .child_by_field_name("block")
-            .filter(|block| BLOCK_KINDS.contains(&block.kind()))
+            .field("block")
+            .filter(|block| BLOCK_KINDS.contains(&block.kind_str()))
         {
             check_block(node, block, context, &locals, offenses);
             continue;
@@ -35,10 +36,10 @@ fn check_block(
     node: Node<'_>,
     block: Node<'_>,
     context: &RuleContext<'_>,
-    locals: &LocalVariables<'_>,
+    locals: &LocalVariables<'_, '_>,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(body) = block.child_by_field_name("body") else {
+    let Some(body) = block.field("body") else {
         return;
     };
     if !unsorted_dir_loop(node, context) {
@@ -104,7 +105,7 @@ fn check_block_pass(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Ve
         ]
     } else {
         let selector = node
-            .child_by_field_name("method")
+            .field("method")
             .map_or(range.clone(), |method| method.byte_range());
         vec![Edit {
             start: selector.start,
@@ -126,7 +127,7 @@ fn correct_block(
     let source = if unsorted_dir_block(node, context) {
         context.source.slice(range.clone()).to_owned()
     } else {
-        node.child_by_field_name("receiver")
+        node.field("receiver")
             .map_or_else(String::new, |receiver| {
                 context.source.node_text(receiver).to_owned()
             })
@@ -152,16 +153,16 @@ fn unsorted_dir_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn unsorted_dir_each(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if !is_plain_send(node, context)
         || node
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "each")
     {
         return false;
     }
-    let Some(receiver) = node.child_by_field_name("receiver") else {
+    let Some(receiver) = node.field("receiver") else {
         return false;
     };
     // `Dir['*']` is an `element_reference` here and a `send :[]` upstream.
-    if receiver.kind() == "element_reference" {
+    if receiver.kind_str() == "element_reference" {
         return receiver
             .child(0)
             .is_some_and(|target| is_top_level_dir(target, context));
@@ -170,13 +171,13 @@ fn unsorted_dir_each(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn is_dir_call(node: Node<'_>, methods: &[&str], context: &RuleContext<'_>) -> bool {
-    node.kind() == "call"
+    node.kind_str() == "call"
         && is_plain_send(node, context)
         && node
-            .child_by_field_name("method")
+            .field("method")
             .is_some_and(|method| methods.contains(&context.source.node_text(method)))
         && node
-            .child_by_field_name("receiver")
+            .field("receiver")
             .is_some_and(|receiver| is_top_level_dir(receiver, context))
 }
 
@@ -186,16 +187,16 @@ fn is_top_level_dir(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `(block-pass (send nil? :method (sym {:require :require_relative})))`.
 fn is_method_require(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if node.kind() != "block_argument" {
+    if node.kind_str() != "block_argument" {
         return false;
     }
     let Some(call) = named_children(node).into_iter().next() else {
         return false;
     };
-    if call.kind() != "call"
-        || call.child_by_field_name("receiver").is_some()
+    if call.kind_str() != "call"
+        || call.field("receiver").is_some()
         || call
-            .child_by_field_name("method")
+            .field("method")
             .is_none_or(|method| context.source.node_text(method) != "method")
     {
         return false;
@@ -208,9 +209,9 @@ fn is_method_require(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `(send nil? {:require :require_relative} (lvar %1))`, searched over the block body.
 fn requires_variable(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
-    if node.kind() == "call"
-        && node.child_by_field_name("receiver").is_none()
-        && node.child_by_field_name("method").is_some_and(|method| {
+    if node.kind_str() == "call"
+        && node.field("receiver").is_none()
+        && node.field("method").is_some_and(|method| {
             matches!(
                 context.source.node_text(method),
                 "require" | "require_relative"
@@ -219,7 +220,7 @@ fn requires_variable(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> b
     {
         let given = arguments(node);
         if given.len() == 1
-            && given[0].first().kind() == "identifier"
+            && given[0].first().kind_str() == "identifier"
             && context.source.node_text(given[0].first()) == name
         {
             return true;

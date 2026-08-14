@@ -12,6 +12,7 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// One argument of a call.
 ///
@@ -41,7 +42,7 @@ impl<'tree> Argument<'tree> {
 
 /// A call's arguments, grouped the way `SendNode#arguments` returns them.
 pub(crate) fn arguments<'tree>(call: Node<'tree>) -> Vec<Argument<'tree>> {
-    let Some(list) = call.child_by_field_name("arguments") else {
+    let Some(list) = call.field("arguments") else {
         return Vec::new();
     };
     let mut cursor = list.walk();
@@ -50,10 +51,10 @@ pub(crate) fn arguments<'tree>(call: Node<'tree>) -> Vec<Argument<'tree>> {
     for node in list.named_children(&mut cursor) {
         // A comment written between two arguments is a child of the argument list here and no part
         // of the call at all upstream, where comments never reach the syntax tree.
-        if node.kind() == "comment" {
+        if node.kind_str() == "comment" {
             continue;
         }
-        if matches!(node.kind(), "pair" | "hash_splat_argument") {
+        if matches!(node.kind_str(), "pair" | "hash_splat_argument") {
             hash.push(node);
             continue;
         }
@@ -74,7 +75,7 @@ pub(crate) fn arguments<'tree>(call: Node<'tree>) -> Vec<Argument<'tree>> {
 /// its arguments do -- the block belongs to the `block` node wrapped around it -- so a cop that
 /// reports "the call" has to stop there too.
 pub(crate) fn send_range(call: Node<'_>, context: &RuleContext<'_>) -> Range<usize> {
-    let Some(block) = call.child_by_field_name("block") else {
+    let Some(block) = call.field("block") else {
         return call.byte_range();
     };
     let text = context.source.text().as_bytes();
@@ -88,7 +89,7 @@ pub(crate) fn send_range(call: Node<'_>, context: &RuleContext<'_>) -> Range<usi
 /// Whether the call is a `send` rather than a `csend`. `foo&.bar` is a node type of its own
 /// upstream, so a pattern written for `send` never matches one.
 pub(crate) fn is_plain_send(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    call.child_by_field_name("operator")
+    call.field("operator")
         .is_none_or(|operator| context.source.node_text(operator) != "&.")
 }
 
@@ -96,13 +97,13 @@ pub(crate) fn is_plain_send(call: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// spells `(const {nil? cbase} :Name)`. A constant reached through any other scope -- `Foo::Marshal`
 /// -- is a different constant and never matches.
 pub(crate) fn top_level_constant(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         "constant" => context.source.node_text(node) == name,
         // `::Name`, but not a `Foo::Name` that merely ends in the name.
         "scope_resolution" => {
-            node.child_by_field_name("scope").is_none()
+            node.field("scope").is_none()
                 && node
-                    .child_by_field_name("name")
+                    .field("name")
                     .is_some_and(|inner| context.source.node_text(inner) == name)
         }
         _ => false,
@@ -113,7 +114,7 @@ pub(crate) fn top_level_constant(node: Node<'_>, name: &str, context: &RuleConte
 /// interpolated into it. A literal that interpolates is a `dstr` there, and so are the adjacent
 /// literals of `"a" "b"`, which tree-sitter keeps as a `chained_string`.
 pub(crate) fn is_string(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind() {
+    match node.kind_str() {
         // `?a` is a one-character string literal upstream, not a type of its own.
         "character" => true,
         "string" => !has_interpolation(node),
@@ -130,10 +131,10 @@ pub(crate) const FILE_KEYWORD: &str = "__FILE__";
 /// The text a string literal holds, without its delimiters. Escape sequences are left as written:
 /// nothing a cop asks of a gem name or a URL can tell `'a\tb'` from what it decodes to.
 pub(crate) fn string_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
-    if node.kind() == "character" {
+    if node.kind_str() == "character" {
         return &context.source.node_text(node)[1..];
     }
-    if node.kind() == "identifier" {
+    if node.kind_str() == "identifier" {
         return context.source.path().to_str().unwrap_or_default();
     }
     let text = context.source.node_text(node);
@@ -153,7 +154,7 @@ pub(crate) fn string_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &
 
 /// The name a symbol literal spells, or `None` when the node is not one.
 pub(crate) fn symbol_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    match node.kind() {
+    match node.kind_str() {
         "simple_symbol" => Some(&context.source.node_text(node)[1..]),
         "hash_key_symbol" => Some(context.source.node_text(node)),
         "delimited_symbol" if !has_interpolation(node) => Some(string_text(node, context)),
@@ -167,14 +168,14 @@ pub(crate) fn symbol_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> O
 /// two are told apart only by the separator: tree-sitter writes both keys as a `string` node where
 /// upstream's parser has already resolved one into a `sym`.
 pub(crate) fn pair_key_symbol<'a>(pair: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let key = pair.child_by_field_name("key")?;
+    let key = pair.field("key")?;
     if let Some(name) = symbol_name(key, context) {
         return Some(name);
     }
     let colon_separated = pair
         .child(1)
         .is_some_and(|separator| context.source.node_text(separator) == ":");
-    (key.kind() == "string" && !has_interpolation(key) && colon_separated)
+    (key.kind_str() == "string" && !has_interpolation(key) && colon_separated)
         .then(|| string_text(key, context))
 }
 
@@ -183,7 +184,7 @@ pub(crate) fn pair_key_symbol<'a>(pair: Node<'_>, context: &'a RuleContext<'_>) 
 pub(crate) fn has_interpolation(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| child.kind() == "interpolation")
+        .any(|child| child.kind_str() == "interpolation")
 }
 
 /// The `heredoc_body` opened by `beginning`. Bodies appear after the statement in the same order as
@@ -205,7 +206,7 @@ pub(crate) fn literal_key(node: Node<'_>, context: &RuleContext<'_>) -> String {
     if let Some(name) = symbol_name(node, context) {
         return format!("sym:{name}");
     }
-    match node.kind() {
+    match node.kind_str() {
         "string" | "bare_string" | "character" if !has_interpolation(node) => {
             format!("str:{}", string_text(node, context))
         }

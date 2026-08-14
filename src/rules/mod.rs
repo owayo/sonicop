@@ -1,13 +1,20 @@
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::ops::Range;
 
 use tree_sitter::Node;
+
+use crate::rules::lint::variable_force::Analysis;
+use crate::rules::metrics::fragments::Fragments;
+use crate::rules::metrics::locals::Locals;
+use crate::rules::naming::support::Variables;
 
 use crate::config::Config;
 use crate::diagnostic::{Offense, Severity};
 use crate::directives::{CommentConfig, CopRegistry};
 use crate::formatter::smart_path;
 use crate::ruby_version::RubyVersion;
+use crate::rules::node_ext::NodeExt;
 use crate::source::SourceFile;
 
 /// Registers one department's cops. Each entry names the module the cop lives in, the cop's own
@@ -40,7 +47,9 @@ mod lint;
 mod metrics;
 mod migration;
 mod naming;
+mod node_ext;
 mod ordered_gem;
+mod regex_cache;
 mod security;
 mod send_node;
 mod style;
@@ -110,6 +119,26 @@ pub(crate) struct RuleContext<'a> {
     correcting: bool,
     /// Set only for the cop that reads the file's directives rather than its syntax tree.
     directive_review: Option<&'a DirectiveReview<'a>>,
+    /// RuboCop's `VariableForce`, run at most once per file.
+    ///
+    /// Upstream shares the analysis through the commissioner: `VariableForce` is one force the
+    /// whole team is investigated with, and the six cops built on it are handed its result rather
+    /// than each running it. Thirty-odd cops here ask about it, so the run belongs to the file,
+    /// not to whichever cop asked first -- and since it reads nothing but the tree and the source,
+    /// one run answers all of them identically.
+    ///
+    /// The context is reused across every cop of a file for this reason; see
+    /// [`Self::inspecting_with`].
+    analysis: OnceCell<Analysis<'a>>,
+    /// The Naming department's own reading of which names are variables, run at most once per
+    /// file. Five cops ask for it, and like [`Self::variable_analysis`] it depends on nothing but
+    /// the tree and the source.
+    variables: OnceCell<Variables>,
+    /// The code the grammar swallowed, recovered once per file. The three complexity cops each
+    /// used to recover it for themselves.
+    fragments: OnceCell<Fragments>,
+    /// Which identifiers the Metrics cops read as local variables, replayed once per file.
+    metric_locals: OnceCell<Locals>,
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -142,7 +171,19 @@ impl<'a> RuleContext<'a> {
             severity,
             correcting,
             directive_review: None,
+            analysis: OnceCell::new(),
+            variables: OnceCell::new(),
+            fragments: OnceCell::new(),
+            metric_locals: OnceCell::new(),
         }
+    }
+
+    /// Points the context at the next cop of the same file, keeping everything the file's cops
+    /// share -- above all [`Self::variable_analysis`], which would otherwise be run once per cop
+    /// that asks for it.
+    pub(crate) fn inspecting_with(&mut self, rule: &'static Rule, severity: Severity) {
+        self.rule = rule;
+        self.severity = severity;
     }
 
     /// Hands the cop that reads directives what the rest of the run found. See [`DirectiveReview`].
@@ -150,9 +191,32 @@ impl<'a> RuleContext<'a> {
         self.directive_review = Some(review);
         self
     }
+
+    /// RuboCop's `VariableForce` result for this file, computed on the first cop that asks.
+    pub(in crate::rules) fn variable_analysis(&self) -> &Analysis<'a> {
+        self.analysis
+            .get_or_init(|| Analysis::run(self.ast.root, self.source))
+    }
+
+    /// Which names in the file are variables, as the Naming cops read them.
+    pub(in crate::rules) fn variable_roles(&self) -> &Variables {
+        self.variables
+            .get_or_init(|| Variables::resolve(self.ast.root, self.source))
+    }
+
+    /// The code the grammar read as something other than code, recovered once per file.
+    pub(in crate::rules) fn fragments(&self) -> &Fragments {
+        self.fragments.get_or_init(|| Fragments::new(self))
+    }
+
+    /// Which identifiers the Metrics cops read as local variables.
+    pub(in crate::rules) fn metric_locals(&self) -> &Locals {
+        self.metric_locals
+            .get_or_init(|| Locals::new(self, self.fragments()))
+    }
 }
 
-impl RuleContext<'_> {
+impl<'a> RuleContext<'a> {
     /// RuboCop's `autocorrect?`: whether this run was asked to rewrite the file. A cop only needs
     /// this to decide something it cannot decide from the source, which is rare -- normally a cop
     /// attaches its edits and lets the engine decide whether to apply them.
@@ -209,18 +273,23 @@ impl RuleContext<'_> {
         )
     }
 
-    pub fn root_node(&self) -> Node<'_> {
+    /// `Node::parent` for a node of this file's tree. See [`AstIndex::parent`].
+    pub fn parent<'node>(&'node self, node: Node<'node>) -> Option<Node<'node>> {
+        self.ast.parent(node)
+    }
+
+    pub fn root_node(&self) -> Node<'a> {
         self.ast.root
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes(&self) -> impl Iterator<Item = Node<'a>> + '_ {
         self.ast.nodes.iter().copied()
     }
 
     /// The named nodes of one kind, in source order. A cop that inspects a single kind should
     /// reach for this rather than filtering every node in the file: with hundreds of cops running
     /// per file, a full walk each is what turns inspection quadratic.
-    pub fn nodes_of(&self, kind: &str) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes_of(&self, kind: &str) -> impl Iterator<Item = Node<'a>> + '_ {
         self.ast
             .of_kind(kind)
             .map(|index| self.ast.named_node(index))
@@ -229,7 +298,7 @@ impl RuleContext<'_> {
     /// The named nodes of any of `kinds`, in source order. The kinds are indexed separately, so
     /// their positions have to be merged to put the nodes back in the order a cop that scans the
     /// whole file would have seen them in.
-    pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'_>> + '_ {
+    pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'a>> + '_ {
         let mut indices: Vec<u32> = kinds
             .iter()
             .flat_map(|kind| self.ast.of_kind(kind))
@@ -286,7 +355,21 @@ pub(crate) struct AstIndex<'tree> {
     protected_ranges: Vec<Range<usize>>,
     heredoc_ranges: Vec<Range<usize>>,
     comment_ranges: Vec<Range<usize>>,
+    /// Each node's parent, as its position in `nodes`, keyed by the node's own id. [`NO_PARENT`]
+    /// stands for the root, which has none.
+    ///
+    /// `Node::parent` walks down from the root of the tree comparing byte ranges, which costs a
+    /// pass over the children of every ancestor -- 43% of a run over RuboCop's own tree once the
+    /// cheaper accessors were dealt with. The walk that builds this index already knows every
+    /// node's parent, so recording it turns the question into one hash lookup.
+    ///
+    /// Deferred because a run narrowed to a handful of cops may never ask. The map holds no
+    /// borrows, so it does not make `AstIndex` invariant the way a cache of nodes would.
+    parents: OnceCell<HashMap<usize, u32>>,
 }
+
+/// The value [`AstIndex::parents`] carries for the root.
+const NO_PARENT: u32 = u32::MAX;
 
 impl<'tree> AstIndex<'tree> {
     pub fn new(root: Node<'tree>) -> Self {
@@ -298,6 +381,7 @@ impl<'tree> AstIndex<'tree> {
             protected_ranges: Vec::new(),
             heredoc_ranges: Vec::new(),
             comment_ranges: Vec::new(),
+            parents: OnceCell::new(),
         };
         index.collect(root);
         index.protected_ranges.sort_by_key(|range| range.start);
@@ -320,6 +404,54 @@ impl<'tree> AstIndex<'tree> {
 
     fn named_node(&self, index: u32) -> Node<'tree> {
         self.named_nodes[index as usize]
+    }
+
+    /// `Node::parent`, answered from [`Self::parents`].
+    ///
+    /// A node the index does not know -- one belonging to a tree parsed beside this one, which
+    /// `Metrics`' recovered fragments are -- is asked of the parser itself, so the answer is the
+    /// one `Node::parent` would have given whatever tree the node came from.
+    fn parent<'node>(&'node self, node: Node<'node>) -> Option<Node<'node>> {
+        match self
+            .parents
+            .get_or_init(|| self.index_parents())
+            .get(&node.id())
+        {
+            Some(&NO_PARENT) => None,
+            Some(&index) => Some(self.nodes[index as usize]),
+            None => node.parent(),
+        }
+    }
+
+    /// Walks the tree once more, recording where each node hangs. The walk that filled `nodes`
+    /// cannot do it: most runs never ask, and a file's nodes outnumber the parents any one cop
+    /// looks up.
+    fn index_parents(&self) -> HashMap<usize, u32> {
+        let mut parents = HashMap::with_capacity(self.nodes.len());
+        let mut cursor = self.root.walk();
+        let mut ancestors: Vec<u32> = Vec::new();
+        let mut position = 0u32;
+        loop {
+            parents.insert(
+                cursor.node().id(),
+                ancestors.last().copied().unwrap_or(NO_PARENT),
+            );
+            let here = position;
+            position += 1;
+            if cursor.goto_first_child() {
+                ancestors.push(here);
+                continue;
+            }
+            loop {
+                if cursor.goto_next_sibling() {
+                    break;
+                }
+                if !cursor.goto_parent() {
+                    return parents;
+                }
+                ancestors.pop();
+            }
+        }
     }
 
     /// Visits every node in depth-first pre-order. Iterative on purpose: rayon
@@ -350,15 +482,15 @@ impl<'tree> AstIndex<'tree> {
             // the cast cannot lose information for anything a parser will accept.
             let index = self.named_nodes.len() as u32;
             self.named_nodes.push(node);
-            self.by_kind.entry(node.kind()).or_default().push(index);
+            self.by_kind.entry(node.kind_str()).or_default().push(index);
         }
-        if PROTECTED_LITERAL_KINDS.contains(&node.kind()) {
+        if PROTECTED_LITERAL_KINDS.contains(&node.kind_str()) {
             self.protected_ranges.push(node.byte_range());
         }
-        if node.kind() == "heredoc_body" {
+        if node.kind_str() == "heredoc_body" {
             self.heredoc_ranges.push(node.byte_range());
         }
-        if node.kind() == "comment" {
+        if node.kind_str() == "comment" {
             self.comment_ranges.push(node.byte_range());
         }
     }

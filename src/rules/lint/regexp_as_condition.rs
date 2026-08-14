@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::conditions::{has_conditional_ancestor, in_condition};
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Do not use regexp literal as a condition. The regexp literal matches `$_` implicitly.";
@@ -16,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let source = context.source.node_text(regexp);
         // `!` binds tighter than `=~`, so the rewritten match has to be parenthesised when the
         // literal was the operand of one.
-        let negation = regexp.parent().filter(|parent| is_negation(*parent, context));
+        let negation = regexp.parent_of(context).filter(|parent| is_negation(*parent, context));
         let edit = match negation {
             Some(parent) => Edit {
                 start: parent.start_byte(),
@@ -37,8 +38,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `!x` and `not x`, the two forms the parser calls `check_condition` for outside a conditional.
 fn is_negation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind() == "unary"
+    node.kind_str() == "unary"
         && node
-            .child_by_field_name("operator")
+            .field("operator")
             .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }

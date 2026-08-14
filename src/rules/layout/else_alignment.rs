@@ -11,6 +11,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's parser calls an `if`.
 const IF_KINDS: [&str; 6] = [
@@ -53,7 +54,7 @@ struct Checker<'a, 'b> {
 
 impl Checker<'_, '_> {
     fn visit(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        match node.kind() {
+        match node.kind_str() {
             "if" | "unless" | "elsif" => self.on_if(node, None, offenses),
             "case" => self.on_case(node, "when", offenses),
             "case_match" => self.on_case(node, "in_clause", offenses),
@@ -73,7 +74,7 @@ impl Checker<'_, '_> {
         }
         let Some(branch) = node
             .named_children(&mut node.walk())
-            .find(|child| matches!(child.kind(), "else" | "elsif"))
+            .find(|child| matches!(child.kind_str(), "else" | "elsif"))
         else {
             return;
         };
@@ -89,7 +90,7 @@ impl Checker<'_, '_> {
         };
         self.check_alignment(base_range, keyword.byte_range(), offenses);
         // `elsif_conditional?`: the branch is another `if` upstream, checked against the same base.
-        if branch.kind() == "elsif" {
+        if branch.kind_str() == "elsif" {
             self.on_if(branch, base, offenses);
             self.ignored.insert(branch.id());
         }
@@ -100,14 +101,14 @@ impl Checker<'_, '_> {
     fn base_range_of_if(&self, node: Node<'_>) -> Range<usize> {
         let mut current = Some(node);
         while let Some(candidate) = current {
-            if matches!(candidate.kind(), "if" | "unless") {
+            if matches!(candidate.kind_str(), "if" | "unless") {
                 if let Some(keyword) = candidate.child(0) {
                     return keyword.byte_range();
                 }
             }
             current = candidate
-                .parent()
-                .filter(|parent| IF_KINDS.contains(&parent.kind()));
+                .parent_of(self.context)
+                .filter(|parent| IF_KINDS.contains(&parent.kind_str()));
         }
         node.byte_range()
     }
@@ -118,7 +119,7 @@ impl Checker<'_, '_> {
         };
         let Some(last) = node
             .named_children(&mut node.walk())
-            .filter(|child| child.kind() == branch)
+            .filter(|child| child.kind_str() == branch)
             .last()
             .and_then(|child| child.child(0))
         else {
@@ -141,14 +142,14 @@ impl Checker<'_, '_> {
     /// module reaches a branch upstream where the range it reads is `nil`, which raises rather than
     /// reports, so nothing is checked there.
     fn base_range_of_rescue(&self, container: Node<'_>) -> Option<Range<usize>> {
-        if container.kind() == "begin" {
+        if container.kind_str() == "begin" {
             return container.child(0).map(|keyword| keyword.byte_range());
         }
-        let owner = container.parent()?;
-        match owner.kind() {
+        let owner = container.parent_of(self.context)?;
+        match owner.kind_str() {
             "method" | "singleton_method" => Some(self.base_for_method_definition(owner)),
             "block" | "do_block" => {
-                let block = owner.parent()?;
+                let block = owner.parent_of(self.context)?;
                 Some(start_line_range(self.context, block.start_byte()))
             }
             _ => None,
@@ -161,28 +162,28 @@ impl Checker<'_, '_> {
             .child(0)
             .map_or_else(|| definition.byte_range(), |node| node.byte_range());
         let Some(call) = definition
-            .parent()
-            .filter(|parent| parent.kind() == "argument_list")
-            .and_then(|list| list.parent())
-            .filter(|call| call.kind() == "call")
+            .parent_of(self.context)
+            .filter(|parent| parent.kind_str() == "argument_list")
+            .and_then(|list| list.parent_of(self.context))
+            .filter(|call| call.kind_str() == "call")
         else {
             return keyword;
         };
-        call.child_by_field_name("method")
+        call.field("method")
             .map_or(keyword, |method| method.byte_range())
     }
 
     /// `check_assignment`: the right-hand side of an assignment is checked against the assignment
     /// rather than against its own keyword.
     fn check_assignment(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let right = match node.kind() {
+        let right = match node.kind_str() {
             "call" => last_argument(node),
-            _ => node.child_by_field_name("right"),
+            _ => node.field("right"),
         };
         let Some(right) = right.and_then(first_part_of_call_chain) else {
             return;
         };
-        if !IF_KINDS.contains(&right.kind()) {
+        if !IF_KINDS.contains(&right.kind_str()) {
             return;
         }
         let base = match self.align_with_variable
@@ -234,14 +235,14 @@ fn first_word(text: &str) -> &str {
 }
 
 fn last_argument<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     arguments
         .named_children(&mut arguments.walk())
-        .filter(|child| !matches!(child.kind(), "comment" | "heredoc_body"))
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .last()
 }
 
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
     node.named_children(&mut node.walk())
-        .find(|child| child.kind() == kind)
+        .find(|child| child.kind_str() == kind)
 }

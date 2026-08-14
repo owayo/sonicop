@@ -1,6 +1,7 @@
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{is_plain_send, send_range};
+use crate::rules::node_ext::NodeExt;
 
 /// `RESTRICT_ON_SEND`, and the two replacement lists keyed by which half of it the method is in.
 const ESCAPING: [&str; 2] = ["escape", "encode"];
@@ -13,7 +14,7 @@ const UNESCAPE_REPLACEMENTS: &str = "`CGI.unescape`, `URI.decode_www_form` or \
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         let name = context.source.node_text(method);
@@ -29,15 +30,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `(const ${nil? cbase} :URI)`: the capture is the `cbase` node, so it is truthy only for
         // `::URI`, which is the difference the message spells out.
-        let Some(receiver) = node.child_by_field_name("receiver") else {
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
-        let double_colon = match receiver.kind() {
+        let double_colon = match receiver.kind_str() {
             "constant" if context.source.node_text(receiver) == "URI" => "",
             "scope_resolution"
-                if receiver.child_by_field_name("scope").is_none()
+                if receiver.field("scope").is_none()
                     && receiver
-                        .child_by_field_name("name")
+                        .field("name")
                         .is_some_and(|inner| context.source.node_text(inner) == "URI") =>
             {
                 "::"

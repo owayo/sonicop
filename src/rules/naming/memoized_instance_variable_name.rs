@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use super::support::{last_named_child, quoted_content};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str =
     "Memoized variable `{var}` does not match method name `{method}`. Use `@{suggested}` instead.";
@@ -26,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let safe: bool = context.setting("Safe").unwrap_or(true);
 
     for node in context.nodes_of_any(&["operator_assignment", "unary"]) {
-        if node.kind() == "operator_assignment" {
+        if node.kind_str() == "operator_assignment" {
             on_or_asgn(context, offenses, node, &style, safe);
         } else {
             on_defined(context, offenses, node, &style, safe);
@@ -34,10 +35,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn on_or_asgn(
-    context: &RuleContext<'_>,
+fn on_or_asgn<'tree>(
+    context: &RuleContext<'tree>,
     offenses: &mut Vec<Offense>,
-    node: Node<'_>,
+    node: Node<'tree>,
     style: &str,
     safe: bool,
 ) {
@@ -45,8 +46,8 @@ fn on_or_asgn(
         return;
     }
     let Some(lhs) = node
-        .child_by_field_name("left")
-        .filter(|left| left.kind() == "instance_variable")
+        .field("left")
+        .filter(|left| left.kind_str() == "instance_variable")
     else {
         return;
     };
@@ -65,10 +66,10 @@ fn on_or_asgn(
 
 /// `on_defined?`: the three-line form of memoization, whose `defined?`, `return` and assignment are
 /// each reported and corrected on their own.
-fn on_defined(
-    context: &RuleContext<'_>,
+fn on_defined<'tree>(
+    context: &RuleContext<'tree>,
     offenses: &mut Vec<Offense>,
-    node: Node<'_>,
+    node: Node<'tree>,
     style: &str,
     safe: bool,
 ) {
@@ -138,9 +139,9 @@ fn find_definition<'tree>(
     let mut current = node;
     while let Some(parent) = current.parent() {
         current = parent;
-        match current.kind() {
+        match current.kind_str() {
             "method" | "singleton_method" => {
-                let name = current.child_by_field_name("name")?;
+                let name = current.field("name")?;
                 return Some((current, context.source.node_text(name).to_owned()));
             }
             "block" | "do_block" => {
@@ -157,18 +158,18 @@ fn find_definition<'tree>(
 /// The name a `define_method(:foo) { ... }` block defines. The receiver may be anything, but the
 /// call takes exactly one argument and it has to be a literal string or symbol.
 fn dynamic_definition_name(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
-    let call = block.parent().filter(|parent| parent.kind() == "call")?;
-    let method = call.child_by_field_name("method")?;
+    let call = block.parent_of(context).filter(|parent| parent.kind_str() == "call")?;
+    let method = call.field("method")?;
     if !DYNAMIC_DEFINE_METHODS.contains(&context.source.node_text(method)) {
         return None;
     }
-    let arguments = call.child_by_field_name("arguments")?;
+    let arguments = call.field("arguments")?;
     let mut cursor = arguments.walk();
     let list: Vec<Node<'_>> = arguments.named_children(&mut cursor).collect();
     let [argument] = list.as_slice() else {
         return None;
     };
-    match argument.kind() {
+    match argument.kind_str() {
         "simple_symbol" => Some(
             context
                 .source
@@ -200,12 +201,12 @@ fn is_body_tail(definition: Node<'_>, node: Node<'_>) -> bool {
 /// The statements of a method or block body, with the `rescue`, `else` and `ensure` clauses that
 /// wrap them upstream left out.
 fn body_statements<'tree>(definition: Node<'tree>) -> Vec<Node<'tree>> {
-    let Some(body) = definition.child_by_field_name("body") else {
+    let Some(body) = definition.field("body") else {
         return Vec::new();
     };
     let mut cursor = body.walk();
     body.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind(), "rescue" | "else" | "ensure"))
+        .filter(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
         .collect()
 }
 
@@ -213,19 +214,19 @@ fn body_statements<'tree>(definition: Node<'tree>) -> Vec<Node<'tree>> {
 /// have to be spelled out: their last child upstream is the `else` branch, which is `nil` when it
 /// was not written.
 fn parser_last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    match node.kind() {
+    match node.kind_str() {
         "if" | "unless" | "case" | "case_match" => else_statement(node),
         "if_modifier" => None,
-        "unless_modifier" | "while_modifier" | "until_modifier" => node.child_by_field_name("body"),
-        "while" | "until" => sole_statement(node.child_by_field_name("body")?),
-        "call" => match node.child_by_field_name("block") {
-            Some(block) => sole_statement(block.child_by_field_name("body")?),
-            None => last_named_child(node.child_by_field_name("arguments")?),
+        "unless_modifier" | "while_modifier" | "until_modifier" => node.field("body"),
+        "while" | "until" => sole_statement(node.field("body")?),
+        "call" => match node.field("block") {
+            Some(block) => sole_statement(block.field("body")?),
+            None => last_named_child(node.field("arguments")?),
         },
         "begin" | "body_statement" | "block_body" | "then" | "else" => {
             let mut cursor = node.walk();
             node.named_children(&mut cursor)
-                .filter(|child| !matches!(child.kind(), "rescue" | "else" | "ensure"))
+                .filter(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
                 .last()
         }
         _ => last_named_child(node),
@@ -239,7 +240,7 @@ fn else_statement<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
     let branch = node
         .named_children(&mut cursor)
-        .find(|child| child.kind() == "else")?;
+        .find(|child| child.kind_str() == "else")?;
     sole_statement(branch)
 }
 
@@ -256,17 +257,17 @@ fn sole_statement(container: Node<'_>) -> Option<Node<'_>> {
 
 /// The instance variable a `defined?` asks about, which is all this cop looks at.
 fn defined_argument<'tree>(context: &RuleContext<'tree>, node: Node<'tree>) -> Option<Node<'tree>> {
-    let operator = node.child_by_field_name("operator")?;
+    let operator = node.field("operator")?;
     if context.source.node_text(operator) != "defined?" {
         return None;
     }
-    let operand = node.child_by_field_name("operand")?;
-    let argument = if operand.kind() == "parenthesized_statements" {
+    let operand = node.field("operand")?;
+    let argument = if operand.kind_str() == "parenthesized_statements" {
         sole_statement(operand)?
     } else {
         operand
     };
-    (argument.kind() == "instance_variable").then_some(argument)
+    (argument.kind_str() == "instance_variable").then_some(argument)
 }
 
 /// `(if (defined (ivar %1)) (return (ivar %1)) nil?)`: the guard clause the pattern opens with,
@@ -276,33 +277,33 @@ fn guard_clause<'tree>(
     node: Node<'tree>,
     name: &str,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
-    let (condition, consequence) = match node.kind() {
+    let (condition, consequence) = match node.kind_str() {
         "if" => {
-            if node.child_by_field_name("alternative").is_some() {
+            if node.field("alternative").is_some() {
                 return None;
             }
             (
-                node.child_by_field_name("condition")?,
-                sole_statement(node.child_by_field_name("consequence")?)?,
+                node.field("condition")?,
+                sole_statement(node.field("consequence")?)?,
             )
         }
         "if_modifier" => (
-            node.child_by_field_name("condition")?,
-            node.child_by_field_name("body")?,
+            node.field("condition")?,
+            node.field("body")?,
         ),
         _ => return None,
     };
     let defined_ivar = defined_argument(context, condition)
         .filter(|ivar| context.source.node_text(*ivar) == name)?;
-    if consequence.kind() != "return" {
+    if consequence.kind_str() != "return" {
         return None;
     }
-    let arguments = consequence.child_by_field_name("arguments").or_else(|| {
+    let arguments = consequence.field("arguments").or_else(|| {
         let mut cursor = consequence.walk();
         consequence.named_children(&mut cursor).next()
     })?;
     let return_ivar = sole_statement(arguments)?;
-    (return_ivar.kind() == "instance_variable" && context.source.node_text(return_ivar) == name)
+    (return_ivar.kind_str() == "instance_variable" && context.source.node_text(return_ivar) == name)
         .then_some((defined_ivar, return_ivar))
 }
 
@@ -312,16 +313,16 @@ fn memoizing_assignment<'tree>(
     node: Node<'tree>,
     name: &str,
 ) -> Option<Node<'tree>> {
-    if node.kind() != "assignment" || node.child_by_field_name("right").is_none() {
+    if node.kind_str() != "assignment" || node.field("right").is_none() {
         return None;
     }
-    node.child_by_field_name("left").filter(|left| {
-        left.kind() == "instance_variable" && context.source.node_text(*left) == name
+    node.field("left").filter(|left| {
+        left.kind_str() == "instance_variable" && context.source.node_text(*left) == name
     })
 }
 
 fn operator(node: Node<'_>) -> Node<'_> {
-    node.child_by_field_name("operator").unwrap_or(node)
+    node.field("operator").unwrap_or(node)
 }
 
 fn nameable_method(name: &str) -> bool {

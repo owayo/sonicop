@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::literals::{is_constant, literal_type, recursive_basic_literal};
 use crate::rules::send_node::has_interpolation;
+use crate::rules::node_ext::NodeExt;
 
 /// `RESTRICT_ON_SEND = COMPARISON_OPERATORS`, minus the one `yoda_compatible_condition?` drops:
 /// `===` is not commutative, so reversing it would not mean the same thing.
@@ -82,25 +83,25 @@ fn operands<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>)> {
-    if node.kind() == "binary" {
+    if node.kind_str() == "binary" {
         return Some((
-            node.child_by_field_name("left")?,
-            node.child_by_field_name("operator")?,
-            node.child_by_field_name("right")?,
+            node.field("left")?,
+            node.field("operator")?,
+            node.field("right")?,
         ));
     }
-    if node.child_by_field_name("block").is_some() {
+    if node.field("block").is_some() {
         return None;
     }
-    let receiver = node.child_by_field_name("receiver")?;
-    let dot = node.child_by_field_name("operator")?;
+    let receiver = node.field("receiver")?;
+    let dot = node.field("operator")?;
     if context.source.node_text(dot) != "." {
         return None;
     }
-    let selector = node.child_by_field_name("method")?;
+    let selector = node.field("method")?;
     // `node.first_argument`: a further argument cannot reach a comparison operator, but the
     // grammar would let one through.
-    let arguments = super::nodes::children(node.child_by_field_name("arguments")?);
+    let arguments = super::nodes::children(node.field("arguments")?);
     let [only] = arguments.as_slice() else {
         return None;
     };
@@ -135,7 +136,7 @@ fn is_interpolation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if literal_type(node, context) == Some("dstr") {
         return true;
     }
-    node.kind() == "regex" && has_interpolation(node)
+    node.kind_str() == "regex" && has_interpolation(node)
 }
 
 /// `file_constant_equal_program_name?`: `__FILE__ == $0` is how a script tells that it was run
@@ -148,6 +149,6 @@ fn file_constant_equal_program_name(
 ) -> bool {
     EQUALITY_OPERATORS.contains(&operator)
         && context.source.node_text(lhs) == "__FILE__"
-        && rhs.kind() == "global_variable"
+        && rhs.kind_str() == "global_variable"
         && PROGRAM_NAMES.contains(&context.source.node_text(rhs))
 }

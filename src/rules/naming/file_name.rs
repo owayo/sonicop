@@ -21,13 +21,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let Some(basename) = path.file_name().and_then(|name| name.to_str()) else {
         return;
     };
-    let pattern: Option<Regex> = context
+    let pattern: Option<&Regex> = context
         .setting::<serde_yaml_ng::Value>("Regex")
         .as_ref()
         .and_then(ruby_regex);
     // `ExpectMatchingDefinition` is off by default, and the checks it turns on are the only ones
     // that inspect the file's contents; a name that is already snake_case is otherwise fine.
-    if filename_good(basename, pattern.as_ref().unwrap_or(&SNAKE_CASE)) {
+    if filename_good(basename, pattern.unwrap_or(&SNAKE_CASE)) {
         return;
     }
     let ignore_scripts: bool = context.setting("IgnoreExecutableScripts").unwrap_or(true);

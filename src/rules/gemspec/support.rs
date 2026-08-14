@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, top_level_constant};
 
 /// The block parameter of `Gem::Specification.new do |spec|`, or `None` when the call is not one.
@@ -16,29 +17,27 @@ pub(super) fn specification_variable<'a>(
     call: Node<'_>,
     context: &'a RuleContext<'_>,
 ) -> Option<&'a str> {
-    if call.kind() != "call" || !arguments(call).is_empty() {
+    if call.kind_str() != "call" || !arguments(call).is_empty() {
         return None;
     }
-    let method = call.child_by_field_name("method")?;
+    let method = call.field("method")?;
     if context.source.node_text(method) != "new" {
         return None;
     }
-    let receiver = call.child_by_field_name("receiver")?;
-    if receiver.kind() != "scope_resolution" {
+    let receiver = call.field("receiver")?;
+    if receiver.kind_str() != "scope_resolution" {
         return None;
     }
-    let name = receiver.child_by_field_name("name")?;
+    let name = receiver.field("name")?;
     if context.source.node_text(name) != "Specification" {
         return None;
     }
-    if !top_level_constant(receiver.child_by_field_name("scope")?, "Gem", context) {
+    if !top_level_constant(receiver.field("scope")?, "Gem", context) {
         return None;
     }
-    let parameters = call
-        .child_by_field_name("block")?
-        .child_by_field_name("parameters")?;
+    let parameters = call.field("block")?.field("parameters")?;
     match named_children(parameters).as_slice() {
-        [only] if only.kind() == "identifier" => Some(context.source.node_text(*only)),
+        [only] if only.kind_str() == "identifier" => Some(context.source.node_text(*only)),
         _ => None,
     }
 }
@@ -57,8 +56,8 @@ pub(super) fn first_specification_variable<'a>(context: &'a RuleContext<'_>) -> 
 /// upstream makes the enclosing block part of what it groups them by.
 pub(super) fn enclosing_specification(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     let mut child = node;
-    while let Some(parent) = child.parent() {
-        if matches!(child.kind(), "do_block" | "block")
+    while let Some(parent) = child.parent_of(context) {
+        if matches!(child.kind_str(), "do_block" | "block")
             && specification_variable(parent, context).is_some()
         {
             return Some(parent.start_byte());
@@ -86,7 +85,7 @@ fn binds_a_local(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind() {
+    match parent.kind_str() {
         "block_parameters"
         | "method_parameters"
         | "lambda_parameters"
@@ -98,9 +97,9 @@ fn binds_a_local(node: Node<'_>) -> bool {
         | "keyword_parameter"
         | "splat_parameter"
         | "hash_splat_parameter"
-        | "block_parameter" => parent.child_by_field_name("name") == Some(node),
-        "assignment" | "operator_assignment" => parent.child_by_field_name("left") == Some(node),
-        "for" => parent.child_by_field_name("pattern") == Some(node),
+        | "block_parameter" => parent.field("name") == Some(node),
+        "assignment" | "operator_assignment" => parent.field("left") == Some(node),
+        "for" => parent.field("pattern") == Some(node),
         _ => false,
     }
 }

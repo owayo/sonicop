@@ -7,7 +7,7 @@ use crate::rules::RuleContext;
 const MSG: &str = "Use meaningful heredoc delimiters.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let forbidden: Vec<Regex> = context
+    let forbidden: Vec<&'static Regex> = context
         .setting::<Vec<serde_yaml_ng::Value>>("ForbiddenDelimiters")
         .unwrap_or_default()
         .iter()

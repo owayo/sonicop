@@ -10,6 +10,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -82,14 +83,14 @@ fn inspect(
 fn first_pair<'tree>(hash: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = hash.walk();
     hash.named_children(&mut cursor)
-        .find(|child| child.kind() == "pair")
+        .find(|child| child.kind_str() == "pair")
 }
 
 fn separator_style(context: &RuleContext<'_>, first: Node<'_>) -> bool {
     let mut cursor = first.walk();
     let rocket = first
         .children(&mut cursor)
-        .any(|child| child.kind() == "=>");
+        .any(|child| child.kind_str() == "=>");
     let key = if rocket {
         "EnforcedHashRocketStyle"
     } else {
@@ -105,8 +106,8 @@ fn longest_key_overhang(context: &RuleContext<'_>, hash: Node<'_>) -> i64 {
     let mut cursor = hash.walk();
     let lengths: Vec<i64> = hash
         .named_children(&mut cursor)
-        .filter(|child| child.kind() == "pair")
-        .filter_map(|pair| pair.child_by_field_name("key"))
+        .filter(|child| child.kind_str() == "pair")
+        .filter_map(|pair| pair.field("key"))
         .map(|key| context.source.text()[key.byte_range()].chars().count() as i64)
         .collect();
     let Some(first) = lengths.first() else {
@@ -146,8 +147,8 @@ fn check_first(
     // A pair whose value opens on a later line is moved by its first line alone, so that the
     // value's own lines keep the indentation they were given.
     let span = match (
-        first.child_by_field_name("key"),
-        first.child_by_field_name("value"),
+        first.field("key"),
+        first.field("value"),
     ) {
         (Some(key), Some(value)) if value.start_position().row > key.start_position().row => {
             line_span(context, first.start_byte())
@@ -193,7 +194,7 @@ fn check_right_brace(
 fn closing<'tree>(hash: Node<'tree>) -> Option<Node<'tree>> {
     let count = hash.child_count();
     hash.child(u32::try_from(count).ok()?.checked_sub(1)?)
-        .filter(|child| child.kind() == "}")
+        .filter(|child| child.kind_str() == "}")
 }
 
 fn line_span(context: &RuleContext<'_>, offset: usize) -> std::ops::Range<usize> {

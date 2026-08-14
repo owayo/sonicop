@@ -2,6 +2,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 /// The node kinds a top-level statement may be wrapped in and still be top level: upstream's
 /// `{kwbegin begin if def}`, plus the grammar's own statement containers, which have no counterpart
@@ -23,12 +24,12 @@ const TRANSPARENT: &[&str] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        if node.child_by_field_name("receiver").is_some()
-            || node.child_by_field_name("block").is_some()
+        if node.field("receiver").is_some()
+            || node.field("block").is_some()
         {
             continue;
         }
-        let Some(method) = node.child_by_field_name("method") else {
+        let Some(method) = node.field("method") else {
             continue;
         };
         let statement = context.source.node_text(method);
@@ -37,13 +38,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `const+`: every argument has to be a constant, and there has to be one.
         let arguments = node
-            .child_by_field_name("arguments")
+            .field("arguments")
             .map(super::nodes::children)
             .unwrap_or_default();
         if arguments.is_empty()
             || !arguments
                 .iter()
-                .all(|argument| matches!(argument.kind(), "constant" | "scope_resolution"))
+                .all(|argument| matches!(argument.kind_str(), "constant" | "scope_resolution"))
         {
             continue;
         }
@@ -61,5 +62,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// between the call and the root.
 fn in_top_level_scope(node: Node<'_>) -> bool {
     std::iter::successors(node.parent(), |current| current.parent())
-        .all(|ancestor| TRANSPARENT.contains(&ancestor.kind()))
+        .all(|ancestor| TRANSPARENT.contains(&ancestor.kind_str()))
 }

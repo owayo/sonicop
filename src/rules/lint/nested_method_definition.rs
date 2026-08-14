@@ -6,6 +6,7 @@ use crate::rules::send_node::top_level_constant;
 
 use super::blocks::BLOCK_KINDS;
 use super::literals::is_constant;
+use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Method definitions must not be nested. Use `lambda` instead.";
 
@@ -33,9 +34,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         // `def obj.name` defines a method on something else, so it is only nested when the thing
         // it defines on cannot be named from outside -- which is what `self` alone is.
-        if node.kind() == "singleton_method"
+        if node.kind_str() == "singleton_method"
             && node
-                .child_by_field_name("object")
+                .field("object")
                 .is_some_and(|subject| is_allowed_subject(subject, context))
         {
             continue;
@@ -54,13 +55,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// enclosing method does not own. `self` is none of the three, which is what makes
 /// `def self.name` inside a method a nested definition.
 fn is_allowed_subject(subject: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if subject.kind() == "identifier" {
+    if subject.kind_str() == "identifier" {
         // The grammar spells the three keyword literals as identifiers here, and none of them is a
         // variable, a constant or a call; every other bare name is one of the three.
         return !matches!(context.source.node_text(subject), "nil" | "true" | "false");
     }
     matches!(
-        subject.kind(),
+        subject.kind_str(),
         "instance_variable" | "class_variable" | "global_variable" | "call"
     ) || is_constant(subject, context)
 }
@@ -68,7 +69,7 @@ fn is_allowed_subject(subject: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn has_enclosing_definition(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(ancestor) = current {
-        if matches!(ancestor.kind(), "method" | "singleton_method") {
+        if matches!(ancestor.kind_str(), "method" | "singleton_method") {
             return true;
         }
         current = ancestor.parent();
@@ -78,31 +79,31 @@ fn has_enclosing_definition(node: Node<'_>) -> bool {
 
 /// `each_ancestor(:any_block, :sclass).any? { |a| scoping_method_call?(a) }`.
 fn opens_its_own_scope(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
-    let mut current = node.parent();
+    let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
-        if ancestor.kind() == "singleton_class" {
+        if ancestor.kind_str() == "singleton_class" {
             return true;
         }
-        if BLOCK_KINDS.contains(&ancestor.kind()) && is_scoping_block(ancestor, context, allowed) {
+        if BLOCK_KINDS.contains(&ancestor.kind_str()) && is_scoping_block(ancestor, context, allowed) {
             return true;
         }
-        current = ancestor.parent();
+        current = ancestor.parent_of(context);
     }
     false
 }
 
 fn is_scoping_block(block: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
-    let Some(call) = block.parent().filter(|call| call.kind() == "call") else {
+    let Some(call) = block.parent_of(context).filter(|call| call.kind_str() == "call") else {
         return false;
     };
-    let Some(selector) = call.child_by_field_name("method") else {
+    let Some(selector) = call.field("method") else {
         return false;
     };
     let name = context.source.node_text(selector);
     if SCOPING_METHODS.contains(&name) || allowed.iter().any(|method| method == name) {
         return true;
     }
-    call.child_by_field_name("receiver")
+    call.field("receiver")
         .is_some_and(|receiver| {
             CONSTRUCTORS.iter().any(|(constant, method)| {
                 name == *method && top_level_constant(receiver, constant, context)
