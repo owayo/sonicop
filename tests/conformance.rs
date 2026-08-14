@@ -327,6 +327,30 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n  2]\n",
+        )
+        .id("layout_first_array_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementLineBreak",
+            "a = { b: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n  c: 2 }\n",
+        )
+        .id("layout_first_hash_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n  2)\n",
+        )
+        .id("layout_first_method_argument_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(x,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n  y); end\n",
+        )
+        .id("layout_first_method_parameter_line_break")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/FirstArgumentIndentation",
             r#"
             some_method(
@@ -707,6 +731,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_multiline_method_call_brace_layout")
         .locations(&[(3, 1, 3, 1)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineArrayLineBreaks",
+            "a = [1, 2,\n        ^ Each item in a multi-line array must start on a separate line.\n  3]\n",
+        )
+        .id("layout_multiline_array_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashKeyLineBreaks",
+            "a = { b: 1, c: 2,\n            ^^^^ Each key in a multi-line hash must start on a separate line.\n  d: 3 }\n",
+        )
+        .id("layout_multiline_hash_key_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "foo(1, 2,\n       ^ Each argument in a multi-line method call must start on a separate line.\n  3)\n",
+        )
+        .id("layout_multiline_method_argument_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(x, y,\n         ^ Each parameter in a multi-line method definition must start on a separate line.\n  z); end\n",
+        )
+        .id("layout_multiline_method_parameter_line_breaks")
         .correctable(true),
         CopCase::annotated(
             "Layout/MultilineArrayBraceLayout",

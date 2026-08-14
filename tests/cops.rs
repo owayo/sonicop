@@ -21964,3 +21964,233 @@ mod layout_empty_lines_after_module_inclusion {
         .run();
     }
 }
+
+/// 要素の改行を見る Layout 8 cop (すべて既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_element_line_breaks {
+    use super::*;
+
+    const FIRST_ARRAY: &str = "Layout/FirstArrayElementLineBreak";
+    const FIRST_HASH: &str = "Layout/FirstHashElementLineBreak";
+    const FIRST_ARG: &str = "Layout/FirstMethodArgumentLineBreak";
+    const FIRST_PARAM: &str = "Layout/FirstMethodParameterLineBreak";
+    const MULTI_ARRAY: &str = "Layout/MultilineArrayLineBreaks";
+    const MULTI_HASH: &str = "Layout/MultilineHashKeyLineBreaks";
+    const MULTI_ARG: &str = "Layout/MultilineMethodArgumentLineBreaks";
+    const MULTI_PARAM: &str = "Layout/MultilineMethodParameterLineBreaks";
+
+    /// 最初の要素がリテラルと同じ行に始まり、他の要素が別の行にあるときだけ報告する。
+    #[test]
+    fn the_first_element_must_start_on_its_own_line() {
+        CopCase::annotated(
+            FIRST_ARRAY,
+            r#"
+            a = [1, 2]
+            b = [
+              1,
+              2
+            ]
+            c = [1,
+                 ^ Add a line break before the first element of a multi-line array.
+              2]
+            "#,
+        )
+        .corrected("a = [1, 2]\nb = [\n  1,\n  2\n]\nc = [\n1,\n  2]\n")
+        .run();
+        CopCase::annotated(
+            FIRST_HASH,
+            r#"
+            i = { a: 1, b: 2 }
+            k = { a: 1,
+                  ^^^^ Add a line break before the first element of a multi-line hash.
+              b: 2 }
+            "#,
+        )
+        .corrected("i = { a: 1, b: 2 }\nk = { \na: 1,\n  b: 2 }\n")
+        .run();
+    }
+
+    /// 引数とパラメータは括弧で開いたリストだけが対象 (`method_uses_parens?`)。
+    #[test]
+    fn only_a_parenthesised_list_is_measured() {
+        CopCase::annotated(
+            FIRST_ARG,
+            r#"
+            foo(1,
+                ^ Add a line break before the first argument of a multi-line method argument list.
+              2)
+            bar 1,
+              2
+            "#,
+        )
+        .corrected("foo(\n1,\n  2)\nbar 1,\n  2\n")
+        .run();
+        CopCase::annotated(
+            FIRST_PARAM,
+            r#"
+            def m(x,
+                  ^ Add a line break before the first parameter of a multi-line method parameter list.
+              y); end
+            "#,
+        )
+        .corrected("def m(\nx,\n  y); end\n")
+        .run();
+    }
+
+    /// 複数行のリストでは、前の要素と同じ行に始まる要素をすべて報告する。
+    #[test]
+    fn every_element_sharing_a_line_is_reported() {
+        CopCase::annotated(
+            MULTI_ARRAY,
+            r#"
+            d = [1, 2,
+                    ^ Each item in a multi-line array must start on a separate line.
+              3]
+            e = [
+              1, 2
+            ]
+            "#,
+        )
+        .run();
+        CopCase::annotated(
+            MULTI_HASH,
+            r#"
+            l = { a: 1, b: 2,
+                        ^^^^ Each key in a multi-line hash must start on a separate line.
+              c: 3 }
+            "#,
+        )
+        .run();
+        CopCase::annotated(
+            MULTI_ARG,
+            r#"
+            foo(1, 2,
+                   ^ Each argument in a multi-line method call must start on a separate line.
+              3)
+            "#,
+        )
+        .run();
+        CopCase::annotated(
+            MULTI_PARAM,
+            r#"
+            def m(x, y,
+                     ^ Each parameter in a multi-line method definition must start on a separate line.
+              z); end
+            "#,
+        )
+        .run();
+    }
+
+    /// 括弧の無い `key: value` の並びは本家では 1 個の `hash` 引数。最後の引数のときだけ
+    /// pair へ展開されるので、`&block` が後ろに付くと hash のまま測られる。
+    #[test]
+    fn a_braceless_hash_is_one_argument_unless_it_is_last() {
+        CopCase::annotated(
+            MULTI_ARG,
+            r#"
+            super_call(a: 1,
+              b: 2)
+            "#,
+        )
+        .cops(&[MULTI_ARG])
+        .run();
+        CopCase::annotated(
+            MULTI_ARG,
+            r#"
+            def m(&block)
+              mail(to: 1, from: 2,
+                subject: 3, &block)
+                            ^^^^^^ Each argument in a multi-line method call must start on a separate line.
+            end
+            "#,
+        )
+        .run();
+        // 配列の中の並びも 1 個の hash に畳まれる。
+        CopCase::new(
+            MULTI_ARRAY,
+            "assert_called_with Redis, :new, [\n  url: 1,\n  connect_timeout: 1, read_timeout: 1\n]\n",
+            Vec::new(),
+        )
+        .run();
+    }
+
+    /// `super` は本家では独自のノードなので `MultilineMethodArgumentLineBreaks` は見ない
+    /// (`FirstMethodArgumentLineBreak` だけが `on_super` を持つ)。
+    #[test]
+    fn super_is_seen_by_the_first_argument_cop_only() {
+        CopCase::new(
+            MULTI_ARG,
+            "def m\n  super content_path: 1, key_path: 2,\n    env_key: 3\nend\n",
+            Vec::new(),
+        )
+        .run();
+        CopCase::annotated(
+            FIRST_ARG,
+            r#"
+            def m
+              super(1,
+                    ^ Add a line break before the first argument of a multi-line method argument list.
+                2)
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `rescue` の例外一覧は本家では `array` なので配列の cop が見る。
+    #[test]
+    fn a_rescue_exception_list_is_an_array() {
+        CopCase::annotated(
+            MULTI_ARRAY,
+            r#"
+            begin
+            rescue AError, BError,
+                           ^^^^^^ Each item in a multi-line array must start on a separate line.
+                   CError
+              nil
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `%w[]` の要素は空白で区切られる。文法は `\a` のような escape を含む並びを
+    /// 1 要素に潰すので、要素の範囲はソースから測り直している。
+    #[test]
+    fn a_percent_literal_is_split_on_blanks() {
+        CopCase::new(MULTI_ARRAY, "X = %w[\n  \\a \\c \\C \\e\n]\n", Vec::new()).run();
+        CopCase::annotated(
+            FIRST_ARRAY,
+            r#"
+            h = %w[a
+                   ^ Add a line break before the first element of a multi-line array.
+              b]
+            "#,
+        )
+        .run();
+    }
+
+    /// `AllowMultilineFinalElement` は最後の要素が複数行に跨るのを許す。
+    #[test]
+    fn the_final_element_may_span_lines_when_allowed() {
+        CopCase::annotated(
+            FIRST_ARRAY,
+            r#"
+            a = [1, [2,
+                     ^ Add a line break before the first element of a multi-line array.
+              3]]
+            "#,
+        )
+        .config("Layout/FirstArrayElementLineBreak:\n  AllowMultilineFinalElement: true\n")
+        .run();
+        CopCase::annotated(
+            FIRST_ARRAY,
+            r#"
+            a = [1, [2,
+                 ^ Add a line break before the first element of a multi-line array.
+                     ^ Add a line break before the first element of a multi-line array.
+              3]]
+            "#,
+        )
+        .run();
+    }
+}

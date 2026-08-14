@@ -46,6 +46,14 @@ department_rules! {
     initial_indentation => ("InitialIndentation", Convention),
     leading_comment_space => ("LeadingCommentSpace", Convention),
     leading_empty_lines => ("LeadingEmptyLines", Convention),
+    first_array_element_line_break => ("FirstArrayElementLineBreak", Convention),
+    first_hash_element_line_break => ("FirstHashElementLineBreak", Convention),
+    first_method_argument_line_break => ("FirstMethodArgumentLineBreak", Convention),
+    first_method_parameter_line_break => ("FirstMethodParameterLineBreak", Convention),
+    multiline_array_line_breaks => ("MultilineArrayLineBreaks", Convention),
+    multiline_hash_key_line_breaks => ("MultilineHashKeyLineBreaks", Convention),
+    multiline_method_argument_line_breaks => ("MultilineMethodArgumentLineBreaks", Convention),
+    multiline_method_parameter_line_breaks => ("MultilineMethodParameterLineBreaks", Convention),
     line_continuation_leading_space => ("LineContinuationLeadingSpace", Convention),
     line_continuation_spacing => ("LineContinuationSpacing", Convention),
     line_length => ("LineLength", Convention),
@@ -88,6 +96,7 @@ department_rules! {
 }
 
 mod alignment;
+mod element_line_breaks;
 mod empty_lines_around_body;
 mod multiline_brace;
 mod multiline_expression;
