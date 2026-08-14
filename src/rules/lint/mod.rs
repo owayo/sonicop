@@ -6,7 +6,9 @@
 /// questions for the Style cops that reason about where a `private` reaches.
 pub(crate) mod access_modifier;
 mod ambiguity;
-mod blocks;
+/// Reachable from `layout` too: `Layout/MultilineAssignmentLayout` has to tell a `block` from
+/// the `numblock` and `itblock` upstream builds for the same syntax.
+pub(in crate::rules) mod blocks;
 mod conditions;
 mod cop_directives;
 mod exception_hierarchy;

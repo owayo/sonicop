@@ -22194,3 +22194,130 @@ mod layout_element_line_breaks {
         .run();
     }
 }
+/// `Layout/SingleLineBlockChain` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_single_line_block_chain {
+    use super::*;
+
+    const COP: &str = "Layout/SingleLineBlockChain";
+    const MSG: &str = "Put method call on a separate line if chained to a single line block.";
+
+    /// 1 行のブロックに続けて書いた呼び出しは行を分ける。ブロックが複数行なら、
+    /// あるいは呼び出しが既に別の行にあるなら対象外。
+    #[test]
+    fn a_call_chained_onto_a_single_line_block_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            a = b.map { |x| x }.first
+                               ^^^^^^ %{msg}
+            c = d.map { |x| x }
+              .first
+            e = f.map do |x|
+              x
+            end.first
+            g = h.map { |x|
+              x
+            }.first
+            k = l.map { |x| x }&.first
+                               ^^^^^^^ %{msg}
+            m = -> { 1 }.call
+                        ^^^^^ %{msg}
+            p1 = q.map { |x| x }[0]
+            "#,
+            &[("msg", MSG)],
+        )
+        .corrected(
+            r#"
+            a = b.map { |x| x }
+            .first
+            c = d.map { |x| x }
+              .first
+            e = f.map do |x|
+              x
+            end.first
+            g = h.map { |x|
+              x
+            }.first
+            k = l.map { |x| x }
+            &.first
+            m = -> { 1 }
+            .call
+            p1 = q.map { |x| x }[0]
+            "#,
+        )
+        .run();
+    }
+}
+
+/// `Layout/MultilineAssignmentLayout` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_multiline_assignment_layout {
+    use super::*;
+
+    const COP: &str = "Layout/MultilineAssignmentLayout";
+    const NEW_LINE: &str = "Right hand side of multi-line assignment is on the same line as the \
+                            assignment operator `=`.";
+    const SAME_LINE: &str = "Right hand side of multi-line assignment is not on the same line as \
+                             the assignment operator `=`.";
+
+    /// 既定の `new_line` は複数行の右辺が `=` と同じ行に始まるのを報告する。
+    #[test]
+    fn the_new_line_style_wants_the_right_hand_side_below() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo = if bar
+            ^^^^^^^^^^^^ %{msg}
+                    1
+                  end
+            baz =
+              if bar
+                1
+              end
+            qux = 1
+            "#,
+            &[("msg", NEW_LINE)],
+        )
+        .corrected("foo =\n if bar\n        1\n      end\nbaz =\n  if bar\n    1\n  end\nqux = 1\n")
+        .run();
+    }
+
+    /// `same_line` は逆向き。
+    #[test]
+    fn the_same_line_style_wants_it_beside_the_operator() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            baz =
+            ^^^^^ %{msg}
+              if bar
+                1
+              end
+            "#,
+            &[("msg", SAME_LINE)],
+        )
+        .config("Layout/MultilineAssignmentLayout:\n  EnforcedStyle: same_line\n")
+        .corrected("baz = if bar\n    1\n  end\n")
+        .run();
+    }
+
+    /// `SupportedTypes` に無い右辺は対象外。ブロックは**自身の区切り文字**で 1 行かを
+    /// 測るので、`foo { 1 }` に続けた連鎖は 1 行扱いになる。`_1` を読むブロックは
+    /// `numblock` で `block_type?` が偽なので、1 行なら常に見送られる。
+    #[test]
+    fn a_block_is_measured_by_its_own_delimiters() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            a = foo { 1 }
+            ^^^^^^^^^^^^^ %{msg}
+              .bar { 2 }
+            b = foo(1) { 2 }
+            c = capture("x") { Book.first }
+              .find { _1.payload }
+            "#,
+            &[("msg", NEW_LINE)],
+        )
+        .correctable(true)
+        .run();
+    }
+}

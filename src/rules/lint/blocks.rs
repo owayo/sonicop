@@ -26,7 +26,7 @@ const NUMBERED_VERSION: RubyVersion = RubyVersion::new(2, 7);
 const IT_VERSION: RubyVersion = RubyVersion::new(3, 4);
 
 /// The parameters of a block, as the node type upstream builds for it.
-pub(super) enum BlockArgs<'tree> {
+pub(in crate::rules) enum BlockArgs<'tree> {
     /// `(block _ (args ...) _)`: what was written between the bars, which may be nothing.
     Written(Vec<Node<'tree>>),
     /// `(numblock _ n _)`: the highest `_n` the body reads.
@@ -36,7 +36,7 @@ pub(super) enum BlockArgs<'tree> {
 }
 
 impl<'tree> BlockArgs<'tree> {
-    pub(super) fn of(
+    pub(in crate::rules) fn of(
         block: Node<'tree>,
         context: &RuleContext<'_>,
         locals: &LocalVariables<'_, '_>,

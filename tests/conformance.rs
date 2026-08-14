@@ -757,6 +757,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_multiline_method_parameter_line_breaks")
         .correctable(true),
         CopCase::annotated(
+            "Layout/MultilineAssignmentLayout",
+            r#"
+            foo = if bar
+            ^^^^^^^^^^^^ Right hand side of multi-line assignment is on the same line as the assignment operator `=`.
+                    1
+                  end
+            "#,
+        )
+        .id("layout_multiline_assignment_layout")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/MultilineArrayBraceLayout",
             r#"
             [ :a,
@@ -1018,6 +1029,12 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_empty_lines_around_block_body")
         .locations(&[(2, 1, 3, 1)])
         .lengths(&[1])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SingleLineBlockChain",
+            "a = b.map { |x| x }.first\n                   ^^^^^^ Put method call on a separate line if chained to a single line block.\n",
+        )
+        .id("layout_single_line_block_chain")
         .correctable(true),
         CopCase::annotated(
             "Layout/SpaceAfterColon",
