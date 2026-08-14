@@ -2775,6 +2775,25 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_non_atomic_file_operation")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Lint/ConstantReassignment",
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        )
+        .id("lint_constant_reassignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // 本家は `AllCops: UseProjectIndex` を立てて `rubydex` を入れたときしか索引を
+        // 持たず、既定では何も報告しない。
+        CopCase::new(
+            "Lint/DeprecatedReference",
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            Vec::new(),
+        )
+        .id("lint_deprecated_reference"),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

@@ -27756,3 +27756,90 @@ mod lint_non_atomic_file_operation {
         }
     }
 }
+
+/// `Lint/ConstantReassignment`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ConstantReassignment` で走らせた実出力から取った
+/// (検出 12 件を確認済み)。
+mod lint_constant_reassignment {
+    use super::*;
+
+    const COP: &str = "Lint/ConstantReassignment";
+
+    /// 名前空間ごとに追跡する。`class` / `module` の定義も名前を埋めるので、後から
+    /// 同名の定数を代入すると衝突する。
+    #[test]
+    fn a_second_assignment_in_the_same_namespace_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        );
+        for source in [
+            "class C\n  BAR = 1\n  BAR = 2\nend\n",
+            "module M\n  BAZ = 1\nend\nmodule M\n  BAZ = 2\nend\n",
+            "class D\nend\nD = 1\n",
+            "A::B = 1\nA::B = 2\n",
+            "::E = 1\n::E = 2\n",
+            "G = [1].freeze\nG = 2\n",
+            "H, I = 1, 2\nH = 3\n",
+            "::O = 1\nO = 2\n",
+            "class P\n  self::Q = 1\n  self::Q = 2\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 条件付きの代入、`remove_const` を挟んだもの、別の名前空間、動的なスコープは
+    /// 対象外。`Object.send(:remove_const, ...)` はレシーバ付きなので本家も見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "QUX = 1\nQUX = 2 if x\n",
+            "class J\nend\nclass J\nend\n",
+            "module N\n  M1 = 1\n  remove_const :M1\n  M1 = 2\nend\n",
+            "module N2\n  M2 = 1\n  self.remove_const :M2\n  M2 = 3\nend\n",
+            "module Outer\n  module Inner\n    K = 1\n  end\nend\nclass Outer2\n  \
+             L = 1\n  class Inner2\n    L = 2\n  end\nend\n",
+            "foo::T = 1\nfoo::T = 2\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+        // `Object.send(:remove_const, :F)` は削除として数えないので、後の代入は衝突する。
+        let report = CopCase::new(
+            COP,
+            "F = 1\nObject.send(:remove_const, :F)\nF = 2\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
+}
+
+/// `Lint/DeprecatedReference`。
+///
+/// 本家のハンドラはどれも `return unless project_index` で始まる。索引は
+/// `AllCops: UseProjectIndex` を立てて `rubydex` gem を入れたときだけ作られるので、
+/// 既定では何も報告しない。sonicop は索引を持たないため常にその側に立つ。
+mod lint_deprecated_reference {
+    use super::*;
+
+    const COP: &str = "Lint/DeprecatedReference";
+
+    #[test]
+    fn nothing_is_reported_without_a_project_index() {
+        for source in [
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            "class C\n  # @deprecated\n  BAR = 1\nend\nC::BAR\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
