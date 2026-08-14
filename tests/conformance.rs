@@ -3477,6 +3477,17 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_env_home")
         .correctable(true),
+        // 位置は selector から呼び出しの末尾まで。レシーバは置き換えの外に残る。
+        CopCase::annotated(
+            "Style/NestedFileDirname",
+            "File.dirname(File.dirname(path))\n",
+        )
+        .id("style_nested_file_dirname")
+        .target_ruby("3.1")
+        .without_offense_check()
+        .locations(&[(1, 6, 1, 32)])
+        .lengths(&[27])
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

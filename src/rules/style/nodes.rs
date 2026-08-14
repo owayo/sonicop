@@ -15,6 +15,25 @@ pub(super) fn is_child(node: Node<'_>) -> bool {
     !NOT_A_CHILD.contains(&node.kind_str())
 }
 
+/// `(const {cbase nil?} :NAME)`: the bare constant and its `::NAME` spelling, but not
+/// `Other::NAME`.
+///
+/// Cops that key off a core class or object (`File`, `ENV`, `Dir`) all need exactly this shape,
+/// and `::NAME` parses as a `scope_resolution` whose scope is absent -- which is what separates it
+/// from a constant reached through a namespace.
+pub(super) fn is_top_level_constant(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
+    match node.kind_str() {
+        "constant" => context.source.node_text(node) == name,
+        "scope_resolution" => {
+            node.field("scope").is_none()
+                && node
+                    .field("name")
+                    .is_some_and(|inner| context.source.node_text(inner) == name)
+        }
+        _ => false,
+    }
+}
+
 /// Node kinds the grammar leaves as the left operand of a binary expression where upstream's
 /// parser reads a jump with an argument instead.
 ///

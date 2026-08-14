@@ -20137,6 +20137,74 @@ mod lint_redundant_cop_enable_directive_removal_range {
     }
 }
 
+/// `Style/NestedFileDirname`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NestedFileDirname` で走らせた実出力から取った
+/// (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_nested_file_dirname {
+    use super::*;
+
+    const COP: &str = "Style/NestedFileDirname";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 入れ子の段数がそのまま第 2 引数になる。**置き換えるのは selector から末尾まで**なので、
+    /// 書かれていたレシーバはそのまま残る。
+    #[test]
+    fn the_nesting_depth_becomes_the_level_argument() {
+        correction(
+            "File.dirname(File.dirname(path))\n",
+            "File.dirname(path, 2)\n",
+        );
+        correction(
+            "File.dirname(File.dirname(File.dirname(path)))\n",
+            "File.dirname(path, 3)\n",
+        );
+        correction(
+            "::File.dirname(File.dirname(path))\n",
+            "::File.dirname(path, 2)\n",
+        );
+    }
+
+    /// 本家が見るのは**引数**が `File.dirname` かどうかだけで、置き換える側のレシーバは
+    /// 問わない (`RESTRICT_ON_SEND` が名前だけを絞る)。名前空間付きでもレシーバ無しでも報告する。
+    #[test]
+    fn the_receiver_of_the_outer_call_is_not_checked() {
+        correction(
+            "Foo::File.dirname(File.dirname(path))\n",
+            "Foo::File.dirname(path, 2)\n",
+        );
+        correction("dirname(File.dirname(path))\n", "dirname(path, 2)\n");
+        // すでに段数が書かれていても、入れ子が残っているなら畳み直す。
+        correction(
+            "File.dirname(File.dirname(path), 2)\n",
+            "File.dirname(path, 2)\n",
+        );
+    }
+
+    /// 入れ子でない `File.dirname` と、3.1 未満の対象版では黙る
+    /// (`dirname` の第 2 引数が 3.1 で入ったため)。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "File.dirname(path)\n".to_owned(), Vec::new())
+            .target_ruby("3.1")
+            .run();
+        CopCase::new(
+            COP,
+            "File.dirname(File.dirname(path))\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.0")
+        .run();
+    }
+}
+
 /// `Style/EnvHome`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った

@@ -56,17 +56,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(const {cbase nil?} :ENV)`: the bare `ENV` and `::ENV`, but not `Foo::ENV`.
 fn is_env(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind_str() {
-        "constant" => context.source.node_text(node) == "ENV",
-        // `::ENV` parses as a `scope_resolution` with no scope; `Foo::ENV` has one.
-        "scope_resolution" => {
-            node.field("scope").is_none()
-                && node
-                    .field("name")
-                    .is_some_and(|name| context.source.node_text(name) == "ENV")
-        }
-        _ => false,
-    }
+    super::nodes::is_top_level_constant(node, "ENV", context)
 }
 
 /// `(str "HOME")`: a plain string holding exactly `HOME`, with no interpolation.

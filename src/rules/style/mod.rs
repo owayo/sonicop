@@ -108,6 +108,7 @@ department_rules! {
     negated_if => ("NegatedIf", Convention),
     negated_unless => ("NegatedUnless", Convention),
     negated_while => ("NegatedWhile", Convention),
+    nested_file_dirname => ("NestedFileDirname", Convention),
     nested_modifier => ("NestedModifier", Convention),
     nested_ternary_operator => ("NestedTernaryOperator", Convention),
     nested_parenthesized_calls => ("NestedParenthesizedCalls", Convention),
