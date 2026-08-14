@@ -361,11 +361,9 @@ fn find_lhs_node(context: &RuleContext<'_>, node: Node<'_>) -> Range<usize> {
 
 fn is_operator_assignment(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     node.kind_str() == "operator_assignment"
-        && node
-            .field("operator")
-            .is_some_and(|operator| {
-                !matches!(&context.source.text()[operator.byte_range()], "||=" | "&&=")
-            })
+        && node.field("operator").is_some_and(|operator| {
+            !matches!(&context.source.text()[operator.byte_range()], "||=" | "&&=")
+        })
 }
 
 fn is_multiple_assignment(node: Node<'_>) -> bool {
@@ -398,25 +396,22 @@ fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) 
         return false;
     }
     match parent.kind_str() {
-        // `assignment?`, which does not cover `foo.bar = x` and `foo[0] = x`: the parser reads
-        // both as calls.
-        "assignment" => parent
-            .field("left")
-            .is_some_and(|left| !matches!(left.kind_str(), "call" | "element_reference")),
+        // `assignment?` includes setter sends upstream. Tree-sitter keeps `foo.bar = x` and
+        // `foo[0] = x` as assignments whose left side is a call/element reference, but their
+        // outer assignment still owns a block nested in the value.
+        "assignment" => true,
         "operator_assignment" => true,
         // `any_def`.
         "method" | "singleton_method" => true,
         // `splat`.
         "splat_argument" | "splat_parameter" => true,
         // `and`, `or` and `(send _ :<< ...)`.
-        "binary" => parent
-            .field("operator")
-            .is_some_and(|operator| {
-                matches!(
-                    &context.source.text()[operator.byte_range()],
-                    "&&" | "||" | "and" | "or" | "<<"
-                )
-            }),
+        "binary" => parent.field("operator").is_some_and(|operator| {
+            matches!(
+                &context.source.text()[operator.byte_range()],
+                "&&" | "||" | "and" | "or" | "<<"
+            )
+        }),
         // `(send equal?(%1) !:[] ...)`: a call written on the block, `foo.bar do end.baz`. An
         // index read is `:[]` and so excluded, which `element_reference` stands for.
         "call" => parent.field("receiver") == Some(node),
