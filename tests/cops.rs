@@ -25711,3 +25711,67 @@ mod style_static_class {
         }
     }
 }
+
+/// `Style/RedundantArgument`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/RedundantArgument` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_redundant_argument {
+    use super::*;
+
+    const COP: &str = "Style/RedundantArgument";
+
+    /// 位置は括弧ごと。メッセージには書かれたままの引数が入る。
+    #[test]
+    fn an_argument_equal_to_the_default_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a.join('')
+                  ^^^^ Argument '' is redundant because it is implied by default.
+            ",
+        );
+        expect_correction(COP, "a.join('')\n", "a.join\n");
+        expect_correction(COP, "a.join(\"\")\n", "a.join\n");
+        expect_correction(COP, "a.sum(0)\n", "a.sum\n");
+        expect_correction(COP, "'x'.split(' ')\n", "'x'.split\n");
+        expect_correction(COP, "\"x\".chomp(\"\\n\")\n", "\"x\".chomp\n");
+        expect_correction(COP, "\"x\".chomp!(\"\\n\")\n", "\"x\".chomp!\n");
+    }
+
+    /// 比べるのは Ruby が `inspect` する値なので、基数が違っても同じ数なら当たる。
+    /// `true` / `false` は値を持たないノードで、ソースがそのまま比べられる。
+    #[test]
+    fn the_value_is_compared_the_way_ruby_inspects_it() {
+        expect_correction(COP, "'x'.to_i(10)\n", "'x'.to_i\n");
+        expect_correction(COP, "'x'.to_i(0xa)\n", "'x'.to_i\n");
+        expect_correction(COP, "exit(true)\n", "exit\n");
+        expect_correction(COP, "exit!(false)\n", "exit!\n");
+    }
+
+    /// 括弧なしなら前後の空白ごと落ちる。改行までは食わない。
+    #[test]
+    fn without_parentheses_the_spaces_go_too() {
+        expect_correction(COP, "a.join ''\n", "a.join\n");
+        expect_correction(COP, "a.chomp \"\\n\"\n", "a.chomp\n");
+    }
+
+    /// 既定と違う値、引数 2 個、レシーバの要る呼び出しをレシーバ無しで書いたもの、
+    /// 単一引用符の `'\n'` (中身はバックスラッシュと n) は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "a.join(', ')\n",
+            "a.sum(1)\n",
+            "exit(false)\n",
+            "'x'.to_i(16)\n",
+            "'x'.split(\"\\t\")\n",
+            "\"x\".chomp('\\n')\n",
+            "join('')\n",
+            "a.join\n",
+            "a.join('', 1)\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

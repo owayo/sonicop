@@ -4293,6 +4293,16 @@ fn catalogue() -> Vec<CopCase> {
             .locations(&[(1, 1, 3, 3)])
             .lengths(&[31])
             .correctable(true),
+        // 位置は括弧ごと。
+        CopCase::annotated(
+            "Style/RedundantArgument",
+            r"
+            a.join('')
+                  ^^^^ Argument '' is redundant because it is implied by default.
+            ",
+        )
+        .id("style_redundant_argument")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
