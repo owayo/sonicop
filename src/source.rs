@@ -105,9 +105,23 @@ impl SourceFile {
         start..end
     }
 
+    /// The line **including its terminator**, which is where this differs from upstream.
+    ///
+    /// RuboCop's `processed_source.lines` holds the line with the newline already stripped, so a
+    /// cop ported straight across measures one character too many and never matches a
+    /// `line.end_with?('\\')` test. Reach for [`Self::line_without_terminator`] whenever the length
+    /// or the last character is what the check is about; this one is right when the range is being
+    /// sliced or the leading whitespace counted.
     pub fn line(&self, one_based_line: usize) -> &str {
         let range = self.line_range(one_based_line);
         &self.text[range]
+    }
+
+    /// `processed_source.lines[n]`: the line without its `\n` or `\r\n`.
+    pub fn line_without_terminator(&self, one_based_line: usize) -> &str {
+        let line = self.line(one_based_line);
+        line.strip_suffix('\n')
+            .map_or(line, |line| line.strip_suffix('\r').unwrap_or(line))
     }
 
     /// An offset landing inside a multibyte character is rounded down to that character's start
