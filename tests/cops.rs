@@ -23554,6 +23554,22 @@ mod style_redundant_interpolation_unfreeze {
             .target_ruby("2.7")
             .run();
     }
+
+    /// 続けて書いた文字列は 1 つの `dstr` なので、そのどこかに埋め込みがあれば
+    /// `+` は余計。文法は連結を独立した節にするので、開始の文字列だけを見ると
+    /// 埋め込みを見落とす。
+    #[test]
+    fn an_interpolation_in_any_part_of_a_concatenation_counts() {
+        let report = CopCase::new(
+            COP,
+            "a = 1\nm = +\"x #{a}\" \\\n    \" y\"\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
 }
 
 /// `Style/NilLambda`。
@@ -32177,6 +32193,22 @@ mod lint_symbol_conversion {
             ":\"a-b\"\n",
         ] {
             expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Symbol#inspect` が裸で書く綴りは識別子だけではない。演算子・1 文字の
+    /// グローバル・引用符を含む名前で、引用の要否の判定が本家と分かれていた。
+    #[test]
+    fn what_ruby_writes_bare_decides_the_quoting() {
+        // `!~` は演算子なので `:"!~"` は余計な引用。
+        let report = CopCase::new(COP, "x = :\"!~\"\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(report.offenses[0].message.contains(":!~"));
+        // 1 文字のグローバルと、引用符を含む名前はそのままで正しい。
+        for source in ["x = :$'\n", "x = :\"I\\\"like\\\"quotes\"\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
         }
     }
 }
