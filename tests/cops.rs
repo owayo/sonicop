@@ -33564,3 +33564,165 @@ mod lint_require_range_parentheses {
         }
     }
 }
+
+/// `Style/RedundantFormat`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_format {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 書式指定の無い `format` は、その文字列そのもの。
+    #[test]
+    fn a_format_with_nothing_to_format_is_the_string_itself() {
+        correction("a = format('name')\n", "a = 'name'\n");
+        correction("a = sprintf(\"name\")\n", "a = \"name\"\n");
+        correction("a = Kernel.format('name')\n", "a = 'name'\n");
+        correction("a = format(CONST)\n", "a = CONST\n");
+    }
+
+    /// 引数が全部リテラルなら、書式を当てた結果まで畳める。
+    #[test]
+    fn literal_arguments_are_folded_into_the_result() {
+        correction("a = format('%s', 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%d', 1)\n", "a = '1'\n");
+        correction("a = format('%f', 1.5)\n", "a = '1.500000'\n");
+        correction("a = format('%05d', 42)\n", "a = '00042'\n");
+        correction("a = format('%-10s|', 'ab')\n", "a = 'ab        |'\n");
+        correction("a = format('%.2f', 1.234)\n", "a = '1.23'\n");
+        correction("a = format('%<x>s', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%{x}', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%2$s %1$s', 'x', 'y')\n", "a = 'y x'\n");
+        correction("a = format('%*d', 5, 42)\n", "a = '   42'\n");
+        correction("a = format('%s', nil)\n", "a = ''\n");
+        correction("a = format('%s', :sym)\n", "a = 'sym'\n");
+        // 式展開のある引数は結果も式展開できる形にする。
+        correction("a = format('%s', \"x#{b}y\")\n", "a = \"x#{b}y\"\n");
+    }
+
+    /// リテラルでない引数、型の合わない書式、`%%`、splat は黙る。
+    #[test]
+    fn what_the_format_cop_leaves_alone() {
+        for source in [
+            "a = format('%s', foo)\n",
+            "a = format('%x', 255)\n",
+            "a = format('%s%%', 'a')\n",
+            "a = format('%s', *args)\n",
+            "a = format('%s', **opts)\n",
+            "a = format('%s %d', 'a')\n",
+            "a = format('%d', true)\n",
+            "a = format('%5s', \"a#{b}c\")\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantLineContinuation`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_line_continuation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantLineContinuation";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 消しても構文が変わらない `\` は消える。消えるのは backslash 1 文字だけなので、
+    /// 手前にあった空白はそのまま残る。
+    #[test]
+    fn a_line_continuation_the_parser_did_not_need_is_removed() {
+        correction("foo = 1 + \\\n  2\n", "foo = 1 + \n  2\n");
+        correction("qux = foo \\\n  .bar\n", "qux = foo \n  .bar\n");
+        correction("quux(1, \\\n  2)\n", "quux(1, \n  2)\n");
+        correction("corge = [1, \\\n  2]\n", "corge = [1, \n  2]\n");
+        // 最終行の末尾に残った `\` も対象。
+        correction("fred = 1 + 2 \\\n", "fred = 1 + 2 \n");
+    }
+
+    /// 文字列の中、コメントの中、暗黙の文字列連結、消すと構文が変わるものは黙る。
+    #[test]
+    fn what_the_line_continuation_cop_leaves_alone() {
+        for source in [
+            "baz = \"a\" \\\n  \"b\"\n",
+            "waldo = \"a\\\nb\"\n",
+            "# comment \\\ngarply = 1\n",
+            "grault = <<~T\n  a \\\n  b\nT\n",
+            // 次の行が演算子で始まるので、`\` を消すと別の構文になる。
+            "s = 1 if foo \\\n  && bar\n",
+            // 空行を挟んだ leading dot は `\` が無いと繋がらない。
+            "r = foo \\\n\n  .bar\n",
+            // 次の行が新しい式を始めるなら、`\` はそれを引数として繋いでいる。
+            "assert_equal \\\n  \"a\",\n  b\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantStringEscape`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_string_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantStringEscape";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 何も escape していない backslash は消える。
+    #[test]
+    fn a_backslash_that_escapes_nothing_is_removed() {
+        correction("foo = \"\\.bar\"\n", "foo = \".bar\"\n");
+        correction("foo = \"\\!bar\"\n", "foo = \"!bar\"\n");
+        // 二重引用符の中の単引用符は区切り文字ではない。
+        correction("foo = \"\\'bar\"\n", "foo = \"'bar\"\n");
+        // `%W` は式展開が効くので escape も効く。`%w` は効かない。
+        correction("foo = %W[a\\.b]\n", "foo = %W[a.b]\n");
+        correction("foo = \"a\\ b\"\n", "foo = \"a b\"\n");
+        // ヒアドキュメントの中も見る。
+        correction("foo = <<~T\n  a\\.b\nT\n", "foo = <<~T\n  a.b\nT\n");
+    }
+
+    /// 区切り文字、英数字、`\\`、式展開を止める `\#{`、式展開の無い書き方は黙る。
+    #[test]
+    fn what_the_escape_cop_leaves_alone() {
+        for source in [
+            "foo = \"\\\"bar\"\n",
+            "foo = \"\\n\"\n",
+            "foo = \"\\\\\"\n",
+            "foo = 'a\\.b'\n",
+            "foo = 'a\\'b'\n",
+            "foo = %q(a\\.b)\n",
+            "foo = %w[a\\.b]\n",
+            "foo = \"a\\#{b}c\"\n",
+            "foo = /a\\.b/\n",
+            "foo = ?\\.\n",
+            "foo = <<~'T'\n  a\\.b\nT\n",
+            "foo = %(a\\(b\\)c)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}

@@ -5253,6 +5253,25 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_double_splat_hash_braces")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantStringEscape",
+            "foo = \"\\.bar\"\n       ^^ Redundant escape of . inside string literal.\n",
+        )
+        .id("style_redundant_string_escape")
+        .correctable(true),
+        // 位置は `\\` と改行の 2 文字ぶんで、次の行にまたがる。
+        CopCase::annotated("Style/RedundantLineContinuation", "foo = 1 + \\\n  2\n")
+            .id("style_redundant_line_continuation")
+            .without_offense_check()
+            .locations(&[(1, 11, 2, 1)])
+            .lengths(&[2])
+            .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFormat",
+            "a = format('name')\n    ^^^^^^^^^^^^^^ Use `'name'` directly instead of `format`.\n",
+        )
+        .id("style_redundant_format")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")
