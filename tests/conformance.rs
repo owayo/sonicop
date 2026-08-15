@@ -4810,6 +4810,24 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(4, 1, 4, 1)])
         .lengths(&[1])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/ClassStructure",
+            r#"
+            class A
+              def m
+                1
+              end
+
+              include M
+              ^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .id("layout_class_structure")
+        .config("Layout/ClassStructure:\n  Enabled: true\n")
+        .locations(&[(6, 3, 6, 11)])
+        .lengths(&[9])
+        .correctable(true),
         // 位置は条件式全体。複数行なので注記では表せない。
         CopCase::annotated(
             "Layout/EmptyLineAfterMultilineCondition",

@@ -28342,3 +28342,97 @@ mod layout_heredoc_argument_closing_parenthesis {
         }
     }
 }
+
+/// `Layout/ClassStructure` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。`SafeAutoCorrect: false` なので、並べ替えが起きるのは `-A` のときだけ。
+mod layout_class_structure {
+    use super::*;
+
+    const COP: &str = "Layout/ClassStructure";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(&format!("{COP}:\n  Enabled: true\n"))
+    }
+
+    fn correction(source: &str, corrected: &str) {
+        case(source)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 報告するのは順番を破っている要素そのもの。
+    #[test]
+    fn the_offense_is_the_element_written_out_of_order() {
+        CopCase::new(
+            COP,
+            "class A\n  def m\n    1\n  end\n\n  include M\nend\n".to_owned(),
+            vec![Annotation::new(
+                6,
+                3,
+                9,
+                "`module_inclusion` is supposed to appear before `public_methods`.",
+            )],
+        )
+        .config(&format!("{COP}:\n  Enabled: true\n"))
+        .locations(&[(6, 3, 6, 11)])
+        .lengths(&[9])
+        .run();
+    }
+
+    /// 並べ替えは直前の要素の前へ丸ごと差し込んで元を消すので、要素の間にあった空行は
+    /// 元の位置に取り残される。
+    #[test]
+    fn the_element_moves_above_the_one_it_belongs_in_front_of() {
+        correction(
+            "class A\n  def m\n    1\n  end\n\n  include M\nend\n",
+            "class A\n  include M\n  def m\n    1\n  end\n\nend\n",
+        );
+        // 直上に書かれた行コメントも一緒に動く。
+        correction(
+            "class A\n  def m\n    1\n  end\n\n  # a comment\n  CONST = 1\nend\n",
+            "class A\n  # a comment\n  CONST = 1\n  def m\n    1\n  end\n\nend\n",
+        );
+        // 可視性は直前に書かれた裸の `private` / `public` で決まる。
+        correction(
+            "class A\n  private\n\n  def a\n    1\n  end\n\n  public\n\n  def b\n    2\n  end\nend\n",
+            "class A\n  private\n\n  def b\n    2\n  end\n  def a\n    1\n  end\n\n  public\n\nend\n",
+        );
+    }
+
+    /// 値が計算で決まる定数は動かしようがないので、報告はするが correctable にはしない。
+    #[test]
+    fn a_dynamic_constant_is_reported_but_not_corrected() {
+        CopCase::new(
+            COP,
+            "class A\n  def m\n    1\n  end\n\n  FOO = compute\nend\n".to_owned(),
+            vec![Annotation::new(
+                6,
+                3,
+                13,
+                "`constants` is supposed to appear before `public_methods`.",
+            )],
+        )
+        .config(&format!("{COP}:\n  Enabled: true\n"))
+        .correctable(false)
+        .run();
+    }
+
+    /// `private_constant` された定数、順番の一覧に無い分類、`=` で終わる名前は数えない。
+    /// `module` の中は最初から見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "class A\n  def m\n    1\n  end\n\n  SECRET = 1\n  private_constant :SECRET\nend\n",
+            "class A\n  def m\n    1\n  end\n\n  attr_reader :x\nend\n",
+            "class A\n  def m\n    1\n  end\n\n  class << self\n    def y\n      1\n    end\n  end\nend\n",
+            "class A\n  def m\n    1\n  end\n\n  def foo=(v)\n    @foo = v\n  end\nend\n",
+            "module K\n  def m\n    1\n  end\n\n  include M\nend\n",
+        ] {
+            case(source).run();
+        }
+    }
+}
