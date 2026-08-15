@@ -438,7 +438,7 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
             }
             continue;
         }
-        if character.is_ascii_whitespace() {
+        if separates_words(character) {
             if !word.is_empty() {
                 words.push(word_leaf(std::mem::take(&mut word)));
             }
@@ -453,6 +453,15 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
         label: node.kind_str().to_owned(),
         children: words,
     })
+}
+
+/// Whether the character ends a word of a `%w` or `%i` literal.
+///
+/// Ruby's lexer asks `ISSPACE`, which is the six ASCII spacing characters and nothing else -- a
+/// no-break space is part of the word. `char::is_ascii_whitespace` is the same set minus the
+/// vertical tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
+fn separates_words(character: char) -> bool {
+    matches!(character, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
 }
 
 fn word_leaf(text: String) -> Sexp {
