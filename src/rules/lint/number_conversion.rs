@@ -1,10 +1,12 @@
+use std::ops::Range;
+
 use regex::Regex;
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, symbol_name};
+use crate::rules::send_node::{self, arguments, symbol_name};
 
 /// `CONVERSION_METHOD_CLASS_MAPPING`: the class parsing each conversion should have used.
 const CONVERSION_METHOD_CLASS_MAPPING: [(&str, &str, &str); 4] = [
@@ -38,10 +40,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .setting("AllowedClasses")
             .unwrap_or_else(|| vec!["Time".to_owned(), "DateTime".to_owned()]),
     };
-    for node in context.nodes_of("call") {
-        handle_conversion_method(context, offenses, node, &allowed);
+    // `ignore_node`: the calls a correction has already rewritten. A conversion written inside one
+    // is still reported, but rewriting it as well would work on text that no longer exists, so the
+    // offense goes out without a correction.
+    let mut ignored: Vec<Range<usize>> = Vec::new();
+    for node in context.nodes_of_any(&["call", "binary", "element_reference"]) {
+        if node.kind_str() == "call" {
+            handle_conversion_method(context, offenses, node, &allowed, &mut ignored);
+        }
         handle_as_symbol(context, offenses, node);
     }
+}
+
+/// `IgnoredNode#part_of_ignored_node?`, which compares offsets rather than identity.
+fn part_of_ignored_node(node: Node<'_>, ignored: &[Range<usize>]) -> bool {
+    let range = node.byte_range();
+    ignored
+        .iter()
+        .any(|outer| outer.start <= range.start && outer.end >= range.end)
 }
 
 /// `handle_conversion_method`: `x.to_i` and its three siblings.
@@ -50,6 +66,7 @@ fn handle_conversion_method(
     offenses: &mut Vec<Offense>,
     node: Node<'_>,
     allowed: &Allowed,
+    ignored: &mut Vec<Range<usize>>,
 ) {
     let (Some(method), Some(receiver)) = (node.field("method"), node.field("receiver")) else {
         return;
@@ -78,28 +95,26 @@ fn handle_conversion_method(
     let offense = context.offense(message, range.clone());
     // `safe_navigation?`: rewriting `x&.to_i` would call the parser on a `nil` the chain meant to
     // let through.
-    offenses.push(if uses_safe_navigation(node, context) {
-        offense
-    } else {
-        offense.corrected_by(Edit {
-            start: range.start,
-            end: range.end,
-            replacement: corrected,
-            safe: true,
-        })
-    });
+    offenses.push(
+        if uses_safe_navigation(node, context) || part_of_ignored_node(node, ignored) {
+            offense
+        } else {
+            ignored.push(range.clone());
+            offense.corrected_by(Edit {
+                start: range.start,
+                end: range.end,
+                replacement: corrected,
+                safe: true,
+            })
+        },
+    );
 }
 
 /// `handle_as_symbol`: `map(&:to_i)`, which becomes a block doing the parsing.
 fn handle_as_symbol(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node: Node<'_>) {
-    if node.field("receiver").is_none() {
-        return;
-    }
-    let call_arguments = arguments(node);
-    let [only] = call_arguments.as_slice() else {
+    let Some(argument) = single_argument(node) else {
         return;
     };
-    let argument = only.first();
     // `{(sym M) (block_pass (sym M))}`.
     let symbol = match argument.kind_str() {
         "block_argument" => argument.named_child(0),
@@ -149,6 +164,34 @@ fn handle_as_symbol(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node
             .offense(message, node.byte_range())
             .corrected_by_all(edits),
     );
+}
+
+/// The one argument `(call _ $_ ${...} ...)` asks for, and the receiver it asks to be there.
+///
+/// An operator and an index are calls upstream too, so `conversion == :to_f` and `hash[:to_i]` both
+/// match the pattern. The grammar writes their argument in a field of its own rather than in an
+/// argument list.
+fn single_argument<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    match node.kind_str() {
+        "call" => {
+            node.field("receiver")?;
+            let call_arguments = arguments(node);
+            let [only] = call_arguments.as_slice() else {
+                return None;
+            };
+            Some(only.first())
+        }
+        "binary" => node.field("right"),
+        "element_reference" => {
+            let object = node.field("object")?;
+            let mut indices = send_node::named_children(node)
+                .into_iter()
+                .filter(|child| child.id() != object.id());
+            let only = indices.next()?;
+            indices.next().is_none().then_some(only)
+        }
+        _ => None,
+    }
 }
 
 /// `safe_navigation?`: the call itself, or anything below it, written with `&.`.

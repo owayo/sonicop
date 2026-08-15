@@ -27,6 +27,12 @@ pub(crate) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'
     if left.kind_str() != right.kind_str() {
         return false;
     }
+    // A heredoc's text is written on the lines below the opener, and the grammar keeps it in a node
+    // of its own beside the statement rather than under the opener. Upstream's parser puts it *in*
+    // the literal, so comparing the openers alone makes every `<<~EOS` equal to every other one.
+    if left.kind_str() == "heredoc_beginning" {
+        return same_heredoc(left, right, context);
+    }
     let left_children = named_children_with_fields(left);
     let right_children = named_children_with_fields(right);
     if left_children.is_empty() && right_children.is_empty() {
@@ -66,6 +72,52 @@ fn named_children_with_fields<'tree>(
             return children;
         }
     }
+}
+
+/// Whether two heredocs hold the same text.
+///
+/// What the terminator was named is no part of the literal upstream, so only what lies between the
+/// opener's line and the terminator is compared: the runs of text verbatim, and anything the heredoc
+/// interpolates structurally. The text a run opens with reaches back to the opener itself, so the
+/// first line break is where the body actually starts.
+fn same_heredoc(left: Node<'_>, right: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let (Some(ours), Some(theirs)) = (
+        crate::rules::send_node::heredoc_body(left, context),
+        crate::rules::send_node::heredoc_body(right, context),
+    ) else {
+        return context.source.node_text(left) == context.source.node_text(right);
+    };
+    let (ours, theirs) = (heredoc_parts(ours), heredoc_parts(theirs));
+    ours.len() == theirs.len()
+        && ours
+            .iter()
+            .zip(&theirs)
+            .enumerate()
+            .all(|(index, (one, other))| {
+                if one.kind_str() != other.kind_str() {
+                    return false;
+                }
+                if one.kind_str() != "heredoc_content" {
+                    return identical(*one, *other, context);
+                }
+                let text = |node: &Node<'_>| {
+                    let text = context.source.node_text(*node);
+                    match index {
+                        0 => text.split_once('\n').map_or(text, |(_, rest)| rest),
+                        _ => text,
+                    }
+                };
+                text(one) == text(other)
+            })
+}
+
+/// The parts of a heredoc body that belong to the literal, which is everything but the terminator.
+fn heredoc_parts<'tree>(body: Node<'tree>) -> Vec<Node<'tree>> {
+    named_children_with_fields(body)
+        .into_iter()
+        .map(|(_, node)| node)
+        .filter(|node| node.kind_str() != "heredoc_end")
+        .collect()
 }
 
 fn operator_text(node: Node<'_>, context: &RuleContext<'_>) -> String {

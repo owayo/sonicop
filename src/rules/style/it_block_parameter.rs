@@ -28,7 +28,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = block.field("body") else {
             continue;
         };
-        match block.field("parameters") {
+        // `-> x { }` is one `block` upstream, where the grammar writes the parameters on the
+        // `lambda` and the braces on a block of their own.
+        let written = block.field("parameters").or_else(|| {
+            context
+                .parent(block)
+                .filter(|parent| parent.kind_str() == "lambda")
+                .and_then(|parent| parent.field("parameters"))
+        });
+        match written {
             // `on_block`: only the `always` style asks a named parameter to become `it`.
             Some(parameters) => {
                 if style != "always" {
@@ -126,13 +134,16 @@ fn implicit_parameter(
 ) -> Option<Implicit> {
     let mut highest = 0_u32;
     let mut has_it = false;
-    let mut stack = super::nodes::children(body);
+    let mut stack = readable_children(body);
     while let Some(node) = stack.pop() {
         // A nested block owns the implicit parameters written inside it.
-        if matches!(node.kind_str(), "block" | "do_block") && node.id() != block.id() {
+        if matches!(node.kind_str(), "block" | "do_block" | "lambda") && node.id() != block.id() {
             continue;
         }
-        if node.kind_str() == "identifier" && !locals.is_lvar(node) {
+        if node.kind_str() == "identifier"
+            && !locals.is_lvar(node)
+            && is_variable_read(node, context)
+        {
             match context.source.node_text(node) {
                 "it" => has_it = true,
                 name => {
@@ -146,7 +157,7 @@ fn implicit_parameter(
                 }
             }
         }
-        stack.extend(super::nodes::children(node));
+        stack.extend(readable_children(node));
     }
     match (highest, has_it) {
         // `node.children[1] == 1`: a block reaching `_2` is not one `it` could stand in for.
@@ -154,6 +165,41 @@ fn implicit_parameter(
         (0, true) => Some(Implicit::It),
         _ => None,
     }
+}
+
+/// The children a name can be *read* from: all of them but the one that names a call and the one
+/// an assignment writes to.
+///
+/// The parser only makes `it` the block's parameter where a bare `it` would otherwise be a
+/// receiverless call taking nothing, so the `it` of `it "example" do ... end` is a method name and
+/// no parameter at all. A name being assigned is an `lvasgn` rather than an `lvar` for the same
+/// reason, which is what tells `it = 1` (a variable from there on) from `it += 1` (a read of the
+/// parameter, and then a write).
+fn readable_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let skipped = match node.kind_str() {
+        "call" => node.field("method").map(|method| method.id()),
+        "assignment" | "operator_assignment" => node
+            .field("left")
+            .filter(|left| left.kind_str() == "identifier")
+            .map(|left| left.id()),
+        // What a nested block or definition declares is an `arg` there, not an `lvar`, however
+        // much the name looks like the one being read.
+        "block" | "do_block" | "lambda" | "method" | "singleton_method" => {
+            node.field("parameters").map(|parameters| parameters.id())
+        }
+        _ => None,
+    };
+    let names_a_target = node.kind_str() == "left_assignment_list";
+    // A heredoc's body is spelled after the statement that opened it and the grammar leaves it
+    // there, but upstream's parser holds it inside the literal -- so what it interpolates is part
+    // of the block and the names read there are the block's.
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind_str() != "comment")
+        .filter(|child| {
+            Some(child.id()) != skipped && !(names_a_target && child.kind_str() == "identifier")
+        })
+        .collect()
 }
 
 /// `find_block_variables`: every read of the name in the block's body.
@@ -164,17 +210,51 @@ fn implicit_parameter(
 /// children, and there the statements themselves are visited.
 fn references<'tree>(body: Node<'tree>, name: &str, context: &RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut found = Vec::new();
-    let statements = super::nodes::children(body);
+    // A heredoc's body is parked beside the statement that opened it rather than inside it, and
+    // upstream has no node for it at all, so the two together are the one statement there.
+    let children = readable_children(body);
+    let (heredocs, statements): (Vec<Node<'tree>>, Vec<Node<'tree>>) = children
+        .into_iter()
+        .partition(|child| child.kind_str() == "heredoc_body");
     let mut stack = match statements.as_slice() {
-        [only] => super::nodes::children(*only),
+        [only] => readable_children(*only),
         several => several.to_vec(),
     };
+    stack.extend(heredocs);
     while let Some(node) = stack.pop() {
-        if node.kind_str() == "identifier" && context.source.node_text(node) == name {
+        if node.kind_str() == "identifier"
+            && context.source.node_text(node) == name
+            && is_variable_read(node, context)
+        {
             found.push(node);
         }
-        stack.extend(super::nodes::children(node));
+        // `{ name: }` is `(pair (sym :name) (lvar :name))` there, and the value the parser filled
+        // in stands exactly where the key is written.
+        if node.kind_str() == "pair"
+            && node.field("value").is_none()
+            && let Some(key) = node.field("key")
+            && key.kind_str() == "hash_key_symbol"
+            && context.source.node_text(key) == name
+        {
+            found.push(key);
+        }
+        stack.extend(readable_children(node));
     }
     found.sort_by_key(|node| node.start_byte());
     found
+}
+
+/// Whether the name is read as a variable, which is what `each_descendant(:lvar)` asks.
+///
+/// The grammar writes a method's name with the same node it writes a variable with, so the `it` a
+/// specification names its examples with (`it 'works' do ... end`) reads as the implicit parameter
+/// unless the call is told apart. Only the name is the call -- an implicit parameter standing there
+/// as the receiver, as `it.round` does, is still a read.
+fn is_variable_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.parent_of(context).is_none_or(|parent| {
+        parent.kind_str() != "call"
+            || parent
+                .field("method")
+                .is_none_or(|method| method.id() != node.id())
+    })
 }

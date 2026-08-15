@@ -33,7 +33,7 @@ CI へ最小限の変更で導入できます。
 ## 主な機能
 
 Bundler、Gemspec、Layout、Lint、Metrics、Migration、Naming、Security、Style の各部門の Cop を実装しています。
-実装済みの Cop はリリースごとに増えるため、一覧はバイナリ自身が正本です。
+一覧はバイナリ自身が正本です。
 
 ```bash
 # 認識済み Cop と実装状況の一覧

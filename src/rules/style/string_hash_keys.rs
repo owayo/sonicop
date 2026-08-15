@@ -36,21 +36,29 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if key.kind_str() != "string" || send_node::has_interpolation(key) {
             continue;
         }
+        // A quoted key written with the `:` separator is a symbol already -- `'a': 1` is `:a`, not
+        // the string `'a'`. The grammar writes it with the same node either separator gets, so the
+        // separator itself is what tells them apart.
+        if is_symbol_key(node, context) {
+            continue;
+        }
         if receives_environment(node, context) {
             continue;
         }
         let symbol = ruby_literal::inspect_symbol(&ruby_literal::string_value(key, context));
-        offenses.push(
-            context
-                .offense(MSG, key.byte_range())
-                .corrected_by(Edit {
-                    start: key.start_byte(),
-                    end: key.end_byte(),
-                    replacement: symbol,
-                    safe: true,
-                }),
-        );
+        offenses.push(context.offense(MSG, key.byte_range()).corrected_by(Edit {
+            start: key.start_byte(),
+            end: key.end_byte(),
+            replacement: symbol,
+            safe: true,
+        }));
     }
+}
+
+/// Whether the pair was written with the `:` separator, which makes a quoted key a symbol.
+fn is_symbol_key(pair: Node<'_>, context: &RuleContext<'_>) -> bool {
+    pair.child(1)
+        .is_some_and(|separator| context.source.node_text(separator) == ":")
 }
 
 /// `receive_environments_method?`.

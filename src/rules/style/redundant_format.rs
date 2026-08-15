@@ -29,16 +29,22 @@ enum Value {
     Boolean(bool),
     Nil,
     Pairs(Vec<(String, Value)>),
+    /// A number upstream's parser keeps as the call it was written as -- `2 / 4r` and `1 + 2i`. Its
+    /// value is known, but `ACCEPTABLE_LITERAL_TYPES` asks about the node, so a `%s` will not take it.
+    Computed(Box<Value>),
 }
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        if !is_format_call(call, context) {
+        if !is_format_method(call, context) {
             continue;
         }
         let call_arguments = arguments(call);
-        // `format_without_additional_args?`: one argument, and it is already the answer.
-        if let [only] = call_arguments.as_slice()
+        // `format_without_additional_args?`: one argument, and it is already the answer. Only this
+        // form asks about the receiver -- `detect_unnecessary_fields` matches `(send _ ...)`, so
+        // `foo.format('%s', 'a')` is reported just as a receiverless one is.
+        if is_kernel_receiver(call, context)
+            && let [only] = call_arguments.as_slice()
             && let [value] = only.parts()
             && matches!(
                 value.kind_str(),
@@ -55,14 +61,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `(send {(const {nil? cbase} :Kernel) nil?} {:format :sprintf} ...)`.
-fn is_format_call(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if !call
-        .field("method")
+/// The methods `RESTRICT_ON_SEND` names, whatever they were called on.
+fn is_format_method(call: Node<'_>, context: &RuleContext<'_>) -> bool {
+    call.field("method")
         .is_some_and(|method| FORMAT_METHODS.contains(&context.source.node_text(method)))
-    {
-        return false;
-    }
+}
+
+/// `{(const {nil? cbase} :Kernel) nil?}`: the receiver the single-argument form asks for.
+fn is_kernel_receiver(call: Node<'_>, context: &RuleContext<'_>) -> bool {
     match call.field("receiver") {
         None => true,
         Some(receiver) => match receiver.kind_str() {
@@ -216,7 +222,42 @@ fn all_fields_literal(
         }
         count += 1;
     }
-    found.len() == count
+    found.len() == count && !mixes_numbered_and_unnumbered(&found)
+}
+
+/// `format` raises `ArgumentError` for a string that names one argument by position and leaves
+/// another to the order it was written in, and upstream reports nothing where it would have raised.
+/// A `*` width takes an argument of its own, so it has a mode of its own too.
+fn mixes_numbered_and_unnumbered(found: &[Sequence]) -> bool {
+    let (mut numbered, mut sequential) = (false, false);
+    for sequence in found {
+        if sequence.style == SequenceStyle::Percent {
+            continue;
+        }
+        if is_variable_width(sequence) {
+            match sequence.width.strip_prefix('*').is_some_and(has_argument_number) {
+                true => numbered = true,
+                false => sequential = true,
+            }
+        }
+        if matches!(
+            sequence.style,
+            SequenceStyle::Annotated | SequenceStyle::Template
+        ) {
+            continue;
+        }
+        match argument_number(sequence).is_some() {
+            true => numbered = true,
+            false => sequential = true,
+        }
+    }
+    numbered && sequential
+}
+
+/// Whether a `*` width names the argument it takes its number from.
+fn has_argument_number(rest: &str) -> bool {
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    !digits.is_empty() && rest[digits.len()..].starts_with('$')
 }
 
 /// `find_argument`, which consumes the positional arguments as it goes.
@@ -290,16 +331,19 @@ fn matching_argument(sequence: &Sequence, value: &Value) -> bool {
 
 /// `ACCEPTABLE_LITERAL_TYPES`.
 fn acceptable_literal(value: &Value) -> bool {
-    !matches!(value, Value::Pairs(_))
+    !matches!(value, Value::Pairs(_) | Value::Computed(_))
 }
 
 /// `numeric?` together with `Integer(value, exception: false)`.
 fn as_integer(value: &Value) -> Option<i128> {
     match value {
         Value::Integer(number) => Some(*number),
-        Value::Rational(numerator, 1) => Some(*numerator),
+        // `Integer(Rational(3, 4))` is 0: it truncates just as `Integer(0.75)` does.
+        Value::Rational(numerator, denominator) if *denominator != 0 => Some(numerator / denominator),
         Value::Float(number) => Some(number.trunc() as i128),
-        Value::Text(text) => text.trim().parse::<i128>().ok(),
+        // `Integer('0x10')` is 16: the prefixes count, which a plain parse would refuse.
+        Value::Text(text) => parse_integer(text.trim()),
+        Value::Computed(inner) => as_integer(inner),
         _ => None,
     }
 }
@@ -311,6 +355,7 @@ fn as_float(value: &Value) -> Option<f64> {
         Value::Rational(numerator, denominator) => Some(*numerator as f64 / *denominator as f64),
         Value::Float(number) => Some(*number),
         Value::Text(text) => text.trim().parse::<f64>().ok(),
+        Value::Computed(inner) => as_float(inner),
         _ => None,
     }
 }
@@ -443,6 +488,9 @@ fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
         // `?a`, which the parser resolves into the one-character string it stands for.
         "character" => Some(Value::Text(crate::rules::ruby_literal::character_value(text))),
         "rational" => rational_value(text).map(|(num, den)| Value::Rational(num, den)),
+        // `rational_number?` and `complex_number?`: the two shapes upstream reads as one number even
+        // though the parser keeps them as calls.
+        "binary" => computed_number(context, node),
         "complex" => complex_value(text).map(Value::Complex),
         "hash" => {
             let mut held = Vec::new();
@@ -450,6 +498,48 @@ fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
                 held.push(pair_value(context, pair)?);
             }
             Some(Value::Pairs(held))
+        }
+        _ => None,
+    }
+}
+
+/// `{rational (send int :/ rational)}` and `{complex (send int :+ complex)}`, for the halves written
+/// as a call.
+fn computed_number(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
+    let operator = node.field("operator")?;
+    let (left, right) = (node.field("left")?, node.field("right")?);
+    if left.kind_str() != "integer" {
+        return None;
+    }
+    let left_text = context.source.node_text(left);
+    let right_text = context.source.node_text(right);
+    match context.source.node_text(operator) {
+        "/" if right.kind_str() == "rational" => {
+            let numerator = parse_integer(left_text)?;
+            let (denominator, _) = rational_value(right_text)?;
+            if denominator == 0 {
+                return None;
+            }
+            let divisor = greatest_common_divisor(
+                numerator.unsigned_abs(),
+                denominator.unsigned_abs(),
+            );
+            let divisor = i128::try_from(divisor.max(1)).ok()?;
+            Some(Value::Computed(Box::new(Value::Rational(
+                numerator / divisor,
+                denominator / divisor,
+            ))))
+        }
+        "+" if right.kind_str() == "complex" => {
+            let imaginary = complex_value(right_text)?;
+            let sign = match imaginary.starts_with('-') {
+                true => "",
+                false => "+",
+            };
+            let imaginary = imaginary.trim_start_matches("0+").trim_start_matches("0");
+            Some(Value::Computed(Box::new(Value::Complex(format!(
+                "{left_text}{sign}{imaginary}"
+            )))))
         }
         _ => None,
     }
@@ -682,6 +772,7 @@ fn to_s(value: &Value) -> String {
         Value::Boolean(flag) => flag.to_string(),
         Value::Nil => String::new(),
         Value::Pairs(_) => String::new(),
+        Value::Computed(inner) => to_s(inner),
     }
 }
 

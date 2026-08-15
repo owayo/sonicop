@@ -6321,6 +6321,56 @@ mod naming_rest {
         );
     }
 
+    /// 行末コメントとヒアドキュメントの本体は、本家の木では文の一部か、そもそもノードが
+    /// 無い。tree-sitter はどちらも本体の子に置くので、1 文の本体が 2 文に見えて代入が
+    /// 最後でなくなり、cop が黙っていた。
+    #[test]
+    fn memoized_instance_variable_name_ignores_comments_and_heredoc_bodies() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def b
+              @w ||= 1 # a trailing comment
+              ^^ Memoized variable `@w` does not match method name `b`. Use `@b` instead.
+            end
+            "#,
+        );
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def c
+              @w ||= <<~X
+              ^^ Memoized variable `@w` does not match method name `c`. Use `@c` instead.
+                hi
+              X
+            end
+            "#,
+        );
+        // 引数リストの中でも同じで、`bar(...)` の最後の子は行末コメントではなく代入。
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def d
+              bar(
+                @w ||= 1 # a trailing comment
+                ^^ Memoized variable `@w` does not match method name `d`. Use `@d` instead.
+              )
+            end
+            "#,
+        );
+        expect_correction(
+            MEMOIZED,
+            "def b
+  @w ||= 1 # a trailing comment
+end
+",
+            "def b
+  @b ||= 1 # a trailing comment
+end
+",
+        );
+    }
+
     #[test]
     fn memoized_instance_variable_name_correction_renames_the_variable() {
         expect_correction(
@@ -7436,6 +7486,67 @@ mod layout_bracket_spacing {
                 Annotation::new(7, 17, 1, PERCENT_MSG),
             ],
         )
+        .run();
+    }
+
+    /// 本家の `BlockNode#single_line?` は式全体ではなく `loc.begin` と `loc.end`、
+    /// つまり中括弧同士の行を比べる。レシーバが複数行に跨っていても中括弧が同じ行なら
+    /// 1 行ブロックのままで、閉じ `}` も報告される。
+    #[test]
+    fn a_block_is_single_line_when_its_braces_share_a_line() {
+        const BLOCK: &str = "Layout/SpaceInsideBlockBraces";
+        const PIPE_MSG: &str = "Space between { and | missing.";
+        const CLOSE_MSG: &str = "Space missing inside }.";
+        CopCase::new(
+            BLOCK,
+            concat!(
+                "a = [\n",
+                "  1,\n",
+                "].map {|n| n}\n",
+                "\n",
+                "c = foo(\n",
+                "  1\n",
+                ").map {|n| n}\n",
+                "\n",
+                "d = [1].map {|n|\n",
+                "  n\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 2, PIPE_MSG),
+                Annotation::new(3, 13, 1, CLOSE_MSG),
+                Annotation::new(7, 7, 2, PIPE_MSG),
+                Annotation::new(7, 13, 1, CLOSE_MSG),
+                Annotation::new(9, 13, 2, PIPE_MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = [\n",
+            "  1,\n",
+            "].map { |n| n }\n",
+            "\n",
+            "c = foo(\n",
+            "  1\n",
+            ").map { |n| n }\n",
+            "\n",
+            "d = [1].map { |n|\n",
+            "  n\n",
+            "}\n",
+        ))
+        .run();
+        // 中括弧が別々の行にあれば複数行ブロックで、閉じ `}` の手前の改行は咎められない。
+        expect_no_offenses(BLOCK, "e = [\n  1,\n].map { |n|\n  n\n}\n");
+        // `;` は本家の木では文の区切りでしかなくノードにならない。中身がそれだけなら
+        // `body` は `nil` で、複数行の空ブロックとして丸ごと見送られる。
+        expect_no_offenses(BLOCK, "a = foo {|f|\n  ;\n}\n");
+        expect_no_offenses(BLOCK, "b = foo {|f|\n  # a comment\n}\n");
+        // 中身が本物の文なら、空ブロックではないので `{` の詰まりが報告される。
+        CopCase::new(
+            BLOCK,
+            "c = foo {|f|\n  f\n}\n",
+            vec![Annotation::new(1, 9, 2, PIPE_MSG)],
+        )
+        .corrected("c = foo { |f|\n  f\n}\n")
         .run();
     }
 
@@ -19202,6 +19313,332 @@ mod style_combinable_loops {
 }
 
 /// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
+mod style_arguments_forwarding_probes {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    /// 三つとも転送しているなら `...` 一つで言える。定義側と呼び出し側の両方を
+    /// 報告する。
+    #[test]
+    fn forwarding_everything_is_reported_as_the_shorthand() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, **kwargs, &block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, **kwargs, &block)
+                  ^^^^^^^^^^^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 一部だけの転送は 3.2 以降の無名転送で言う。`*` / `**` / `&` それぞれに
+    /// 別のメッセージがある。
+    #[test]
+    fn forwarding_some_of_it_is_reported_as_anonymous() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, &block)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+                           ^^^^^^ Use anonymous block arguments forwarding (`&`).
+              bar(*args, &block)
+                  ^^^^^ Use anonymous positional arguments forwarding (`*`).
+                         ^^^^^^ Use anonymous block arguments forwarding (`&`).
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(*, &)\n  bar(*, &)\nend\n")
+        .run();
+    }
+
+    /// 3.1 以前は無名転送が無いので `...` にできるものだけを見る。
+    #[test]
+    fn before_ruby_32_only_the_shorthand_is_offered() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("2.7")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 報告しないもの: 名前が `RedundantRestArgumentNames` に無い、本文が引数を
+    /// 転送以外で読んでいる、ブロックの中から転送している、転送する呼び出し自身が
+    /// ブロックを持っている。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "def foo(*rest)\n  bar(*rest)\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  args.first\n  bar(*args)\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  [1].each { bar(*args) }\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .run();
+        CopCase::new(COP, "def foo(*args)\n  bar(*args) { 1 }\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  bar(*args, &:to_s)\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+
+    /// 括弧の無い引数リストは補正で括弧を足す。`yield` と添字読みも `send` なので
+    /// 対象になる。
+    #[test]
+    fn parentheses_are_added_where_they_were_missing() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo *args, &block
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar *args, &block
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("2.7")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+              yield(*args)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(*)\n  yield(*)\nend\n")
+        .run();
+    }
+}
+
+mod style_disable_cops_within_source_code_directive_probes {
+    use super::*;
+
+    const COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
+    const MSG: &str = "RuboCop disable/enable directives are not permitted.";
+
+    /// 既定では disable / enable のディレクティブそのものを禁じる。補正はコメントを
+    /// 丸ごと消す。
+    #[test]
+    fn every_directive_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            x = 1
+            # rubocop:enable Style/Documentation
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            # a plain comment
+            "#,
+            &[("msg", MSG)],
+        )
+        // `dedent` drops one leading newline, so the emptied first line needs a second one to
+        // survive being written down here.
+        .corrected("\n\nx = 1\n\n# a plain comment\n")
+        .run();
+    }
+
+    /// `AllowedCops` に挙げた cop のディレクティブは通す。残った名前だけを挙げた
+    /// メッセージになり、補正はその名前を 1 つ落とす。
+    #[test]
+    fn the_allowed_cops_setting_narrows_what_is_objected_to() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            y = 2 # rubocop:disable Metrics/AbcSize, Style/Documentation
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Metrics/AbcSize` are not permitted.
+            "#,
+        )
+        .config(
+            "Style/DisableCopsWithinSourceCodeDirective:\n  AllowedCops:\n    - Style/Documentation\n",
+        )
+        .corrected("# rubocop:disable Style/Documentation\ny = 2 # rubocop:disable Style/Documentation\n")
+        .run();
+    }
+
+    /// `DisallowedCops` を挙げたときはそこに載っている名前だけを見る。`all` は
+    /// 何を覆うか絞れないので丸ごと objected される。
+    #[test]
+    fn the_disallowed_cops_setting_picks_what_to_object_to() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            "#,
+        )
+        .config(
+            "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  DisallowedCops:\n    - Metrics/AbcSize\n",
+        )
+        .corrected("# rubocop:disable Style/Documentation\n\n")
+        .run();
+    }
+
+    /// ディレクティブではないコメント、`push` / `pop`、cop 名の無いものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "# a plain comment\n", Vec::new()).run();
+        CopCase::new(COP, "# rubocop:push\n# rubocop:pop\n", Vec::new()).run();
+        CopCase::new(COP, "# rubocop:disable\n", Vec::new()).run();
+        CopCase::new(
+            COP,
+            "# not a directive: rubocop:disable Style/Documentation\n",
+            Vec::new(),
+        )
+        .run();
+    }
+}
+
+mod style_redundant_format_probes {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    /// 引数が 1 つだけの `format` は、その文字列そのものと同じ。書式指定が残って
+    /// いるものは等価でないので報告しない (`format('%s')` は実行時に例外、
+    /// `format('%%')` は `'%'` を返す)。
+    #[test]
+    fn a_format_with_nothing_to_fill_in_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('string')
+            ^^^^^^^^^^^^^^^^ Use `'string'` directly instead of `format`.
+            Kernel.sprintf(CONST)
+            ^^^^^^^^^^^^^^^^^^^^^ Use `CONST` directly instead of `sprintf`.
+            format('%s')
+            format('%%')
+            "#,
+        )
+        .corrected("'string'\nCONST\nformat('%s')\nformat('%%')\n")
+        .run();
+    }
+
+    /// 埋める値が全部リテラルなら、できる文字列はこの場で分かる。幅・精度・
+    /// 位置指定・注釈形もそのまま評価する。
+    #[test]
+    fn a_format_whose_fields_are_all_literal_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%05d', 42)
+            ^^^^^^^^^^^^^^^^^^ Use `'00042'` directly instead of `format`.
+            format('%s and %d', 'a', 1)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `'a and 1'` directly instead of `format`.
+            format('%.2f', 1.5)
+            ^^^^^^^^^^^^^^^^^^^ Use `'1.50'` directly instead of `format`.
+            format('%2$s %1$s', 'a', 'b')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `'b a'` directly instead of `format`.
+            format('%<a>s', a: 'x')
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `'x'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'00042'\n'a and 1'\n'1.50'\n'b a'\n'x'\n")
+        .run();
+    }
+
+    /// `nil` は空文字列に、記号は名前に、真偽値は綴りになる。
+    #[test]
+    fn what_each_literal_fills_a_field_with() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%s', nil)
+            ^^^^^^^^^^^^^^^^^ Use `''` directly instead of `format`.
+            format('%s', :sym)
+            ^^^^^^^^^^^^^^^^^^ Use `'sym'` directly instead of `format`.
+            format('%s', true)
+            ^^^^^^^^^^^^^^^^^^ Use `'true'` directly instead of `format`.
+            format('%f', 1)
+            ^^^^^^^^^^^^^^^ Use `'1.000000'` directly instead of `format`.
+            "#,
+        )
+        .corrected("''\n'sym'\n'true'\n'1.000000'\n")
+        .run();
+    }
+
+    /// 報告しないもの: 値がリテラルでない、型が合わない、`%%` が混ざっている、
+    /// splat で渡している、ヒアドキュメント、`%s` に渡せない型。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "format('%s', x)\n", Vec::new()).run();
+        CopCase::new(COP, "format('%d', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s%%', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s', *args)\n", Vec::new()).run();
+        CopCase::new(COP, "format(<<~X, 'a')\n  %s\nX\n", Vec::new()).run();
+        CopCase::new(COP, "format('%c', 65)\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s %s', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%{a}', b: 'x')\n", Vec::new()).run();
+    }
+
+    /// 引数 1 つの形はレシーバが無いか `Kernel` のときだけ。フィールドを埋める形は
+    /// レシーバを問わない。
+    #[test]
+    fn only_the_single_argument_form_asks_about_the_receiver() {
+        CopCase::new(COP, "foo.format('string')\n", Vec::new()).run();
+        CopCase::annotated(
+            COP,
+            r#"
+            foo.format('%s', 'a')
+            ^^^^^^^^^^^^^^^^^^^^^ Use `'a'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'a'\n")
+        .run();
+    }
+
+    /// 位置指定と書かれた順が混ざっているものは `format` 自身が例外を出すので
+    /// 報告しない。`*` の幅は引数を 1 つ取るので、そこにも順の話がある。
+    #[test]
+    fn a_mix_of_numbered_and_unnumbered_arguments_is_left_alone() {
+        CopCase::new(COP, "format('%*2$d', 42, 5)\n", Vec::new()).run();
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%-*d|', 5, 42)
+            ^^^^^^^^^^^^^^^^^^^^^^ Use `'42   |'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'42   |'\n")
+        .run();
+    }
+}
+
 mod style_redundant_interpolation {
     use super::*;
 
@@ -20677,6 +21114,36 @@ mod style_nested_file_dirname {
     }
 }
 
+/// `Style/ExponentialNotation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ExponentialNotation` で走らせた実出力から取った
+/// (位置・長さとも JSON で確認済み)。
+mod style_exponential_notation {
+    use super::*;
+
+    const COP: &str = "Style/ExponentialNotation";
+    const MSG: &str = "Use a mantissa >= 1 and < 10.";
+
+    /// 本家のパーサは先頭の `+` / `-` をリテラルに畳み込むので、仮数の判定には符号が入り、
+    /// 指摘も符号の位置から始まる。`+` は `/^-?[1-9].../` に当たらないので、仮数が 1 以上
+    /// 10 未満でも指摘になる。
+    #[test]
+    fn a_folded_sign_belongs_to_the_mantissa() {
+        expect_offense(COP, &format!("y = +2.5e20\n    ^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("z = -123.45e1\n    ^^^^^^^^^ {MSG}\n"));
+        // 符号との間の空白も畳み込まれる。
+        expect_offense(COP, &format!("v = - 2.5e20\n    ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 符号が無いもの、`-` 付きで仮数が範囲内のものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["w = 2.5e20\n", "u = -1.5e3\n", "t = 1.0e3\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
 /// `Style/EnvHome`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った
@@ -20710,9 +21177,27 @@ mod style_env_home {
             "ENV.fetch('HOME') { 'x' }\n",
             "Foo::ENV['HOME']\n",
             "ENV['PATH']\n",
+            // 代入先は本家では `indexasgn` (`:[]=`) で、パターンの `{:[] :fetch}` のどちらにも
+            // 当たらない。そもそも `Dir.home` は代入できないので、書き換えようがない。
+            "ENV['HOME'] = value\n",
         ] {
             expect_no_offenses(COP, source);
         }
+        // 自己代入は読みを読みのまま残すので、こちらは対象。
+        for source in ["ENV['HOME'] += x\n", "ENV['HOME'] ||= x\n"] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/EnvHome:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 演算子代入は別。`ENV['HOME'] ||= x` は読み出しを自分の中に持つので、本家も報告する。
+    /// 置換後が代入できない式になるのは本家も同じ (実出力で確認済み)。
+    #[test]
+    fn an_operator_assignment_still_holds_a_lookup() {
+        expect_correction(COP, "ENV['HOME'] ||= value\n", "Dir.home ||= value\n");
     }
 }
 
@@ -20950,6 +21435,16 @@ mod style_empty_heredoc {
     fn what_the_cop_leaves_alone() {
         expect_no_offenses(COP, "t = <<~EOS\n  a\nEOS\n");
         expect_no_offenses(COP, "u = <<~`SH`\nSH\n");
+    }
+
+    /// 埋め込みで始まる本文は空ではない。文法上、開始記号の直後の `heredoc_content` が
+    /// 改行と字下げだけになるので、そこだけを見ると空に見えてしまう。
+    #[test]
+    fn a_body_that_starts_with_an_interpolation_is_not_empty() {
+        expect_no_offenses(COP, "y = 1\nx = <<~EOS\n  #{y}\nEOS\n");
+        expect_no_offenses(COP, "y = 1\nwarn Rainbow(<<~EOS).red\n  #{y}\n  b\nEOS\n");
+        // 空行だけの本文も空ではない (本文の `source` が改行 1 つになる)。
+        expect_no_offenses(COP, "x = <<~EOS\n\nEOS\n");
     }
 }
 
@@ -23388,6 +23883,22 @@ mod style_implicit_runtime_error {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// ヒアドキュメントも `str` / `dstr` の綴りのひとつ。文法は開始記号を独立した節で
+    /// 書くので、文字列の節だけを見ると見落とす。
+    #[test]
+    fn a_heredoc_message_is_a_string_too() {
+        for source in [
+            "raise <<~MESSAGE\n  boom\nMESSAGE\n",
+            "fail <<-EOF\n  boom\nEOF\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/ImplicitRuntimeError:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
 }
 
 /// `Style/StringMethods` (既定無効)。
@@ -23564,10 +24075,52 @@ mod style_method_called_on_do_end_block {
         );
     }
 
-    /// 波括弧のブロックと、呼び出しを繋げていないブロックは触らない。
+    /// 演算子と添字も上流では呼び出しなので対象。位置は右側の末尾まで伸びる。
+    #[test]
+    fn an_operator_or_an_index_written_on_the_block_is_a_call_too() {
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end << 'y'
+            ^^^^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end[0]
+            ^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end == 1
+            ^^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+    }
+
+    /// 波括弧のブロックと、呼び出しを繋げていないブロックは触らない。繋げた呼び出しが
+    /// 自分のブロックを持つときは `Style/MultilineBlockChain` の担当なので、本家は
+    /// `ignore_node` で黙る。
     #[test]
     fn what_the_cop_leaves_alone() {
-        for source in ["foo { bar }.baz\n", "result = foo do\n  bar\nend\n"] {
+        for source in [
+            "foo { bar }.baz\n",
+            "result = foo do\n  bar\nend\n",
+            "foo do\n  bar\nend.each do |y|\n  y\nend\n",
+            "foo do\n  bar\nend.each { |y| y }\n",
+            // `&&` と `||` は上流では and / or ノードで、呼び出しではない。
+            "foo do\n  bar\nend || 1\n",
+            "foo do\n  bar\nend && 1\n",
+        ] {
             expect_no_offenses(COP, source);
         }
     }
@@ -25528,6 +26081,103 @@ mod style_it_block_parameter {
             .run();
     }
 
+    /// `it "..." do ... end` の `it` はメソッド名であって暗黙の引数ではない。
+    ///
+    /// 本家のパーサが `it` を引数にするのは、引数もブロックも取らない裸の `it` だけ。RSpec の
+    /// 例を抱えた `describe` を `it` ブロックと読むと、spec を持つコーパスが丸ごと誤検出になる
+    /// (mastodon で 5,276 件)。
+    #[test]
+    fn the_it_that_names_a_call_is_not_the_parameter() {
+        for source in [
+            "describe 'x' do\n  it 'y' do\n    expect(1).to eq 1\n  end\nend\n",
+            "foo do\n  it(1)\n  bar\nend\n",
+            "foo do\n  bar.it\n  baz\nend\n",
+        ] {
+            case(source).run();
+        }
+        // 裸の `it` とレシーバに置いた `it` は引数。
+        case("foo do\n  it.bar\n  baz(it)\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// 代入された名前は変数であって引数ではない。読みが先なら引数のまま。
+    #[test]
+    fn a_name_assigned_before_it_is_read_is_a_variable() {
+        case("foo do\n  it = 1\n  puts it\nend\n").run();
+        // 読みが先にあるものは、後で代入されても引数。
+        case("foo do\n  puts args[it]\n  it += 1\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// `-> x { }` は本家では 1 つの `block`。文法は引数を `lambda` に、波括弧を別のブロックに
+    /// 書くので、引数はそちらから取る。
+    #[test]
+    fn a_lambda_keeps_its_parameters_on_the_arrow() {
+        CopCase::new(
+            COP,
+            "-> message do\n  puts message\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("->  do\n  puts it\nend\n")
+        .run();
+    }
+
+    /// `{ name: }` の省略された値は、本家の木では鍵と同じ位置に置かれた `lvar`。
+    #[test]
+    fn a_hash_value_left_out_is_still_a_read() {
+        CopCase::new(
+            COP,
+            "foo do |name|\n  bar(tag: { name: })\n  baz(name)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  bar(tag: { it: })\n  baz(it)\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックが同じ名前を宣言していても、宣言そのものは読みではない。
+    #[test]
+    fn a_nested_declaration_of_the_same_name_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    \
+             save = transaction\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
+        .run();
+    }
+
+    /// ヒアドキュメントの本体は開いた文の隣に置かれるが、本家の木では文字列の中なので、
+    /// そこで補間された名前もブロックの引数の読み。
+    #[test]
+    fn a_name_read_inside_a_heredoc_counts() {
+        CopCase::new(
+            COP,
+            "foo do |x|\n  puts <<~T\n    #{x}\n  T\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  puts <<~T\n    #{it}\n  T\nend\n")
+        .run();
+    }
+
     /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
     /// 何も見つからない。
     #[test]
@@ -25535,6 +26185,20 @@ mod style_it_block_parameter {
         case("foo { bar { it } }\n")
             .config("Style/ItBlockParameter:\n  EnforcedStyle: disallow\n")
             .run();
+    }
+
+    /// `it` という名前のメソッド呼び出しは暗黙の引数ではない。本家では `send` になるので
+    /// ブロックはそもそも `itblock` にならず、仕様記述の `it 'works' do ... end` を
+    /// 囲むブロックが咎められることはない。
+    #[test]
+    fn a_method_named_it_is_not_the_implicit_parameter() {
+        case("describe Foo do\n  it 'works' do\n    expect(x).to be\n  end\nend\n").run();
+        case("RSpec.describe Foo do\n  it { is_expected.to be }\n  it('x') { y }\nend\n").run();
+        // レシーバに立っている `it` は暗黙の引数のまま。
+        let report = case("foo do\n  it.round\nend\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -25590,6 +26254,19 @@ mod style_fetch_env_var {
             "if cond\n  x = ENV['X']\nend\n",
             "if cond\n  x = ENV.fetch('X', nil)\nend\n",
         );
+    }
+
+    /// 条件が `&&` や `||` のときも、その両辺は「旗として使っている」ぶんに入る。
+    /// 上流の parser では `and` / `or` ノードで、呼び出しではない。
+    #[test]
+    fn both_sides_of_a_logical_condition_count_as_a_flag() {
+        for source in [
+            "if ENV['A'] && ENV['B']\n  x\nend\n",
+            "return if ENV['A'] && !force\n",
+            "x = 1 if ENV['A'] || ENV['B']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
     }
 
     /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
@@ -27703,6 +28380,33 @@ mod lint_constant_resolution {
         }
     }
 
+    /// 多重代入の代入先も、大文字始まりのメソッド定義の名前も定数の参照ではない。
+    #[test]
+    fn a_multiple_assignment_target_and_a_capitalised_method_name_are_not_reads() {
+        for source in ["A, B = 1, 2\n", "def O0(&block)\n  block\nend\n"] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+
+    /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は
+    /// メソッド名も定数と同じ節で書くので、名前の位置だけを外す。
+    #[test]
+    fn a_capitalised_method_call_is_not_a_constant() {
+        for source in [
+            "Rainbow('x')\n",
+            "Integer('1')\n",
+            "warn Rainbow('x').red\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+        // レシーバに立っている定数は参照のまま。
+        let report = CopCase::new(COP, "Baz.qux\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
+
     /// `Only` と `Ignore` は名前で絞る。
     #[test]
     fn the_two_name_lists_narrow_what_is_reported() {
@@ -28127,9 +28831,26 @@ mod lint_duplicate_branch {
             "if a\n  foo\nend\n",
             "if a\n  foo\nelse\n  bar\nend\n",
             "case x\nwhen 1\n  foo\nwhen 2\n  bar\nend\n",
+            // ヒアドキュメントの中身は開始記号の下に書かれる。開始記号だけを見ると
+            // どの `<<~EOS` も同じに見えてしまう。
+            "if a\n  <<~EOS\n    one\n  EOS\nelse\n  <<~EOS\n    two\n  EOS\nend\n",
+            "case x\nwhen 1\n  <<~A\n    one\n  A\nwhen 2\n  <<~B\n    two\n  B\nend\n",
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 中身が同じなら終端記号の名前が違っても同じ枝。上流では中身だけが literal になる。
+    #[test]
+    fn two_heredocs_holding_the_same_text_are_one_branch() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  <<~A\n    same\n  A\nelse\n  <<~B\n    same\n  B\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -30146,7 +30867,16 @@ mod style_string_hash_keys {
     /// シンボルの鍵と補間する文字列は触らない。名前空間の違う `popen` は除外されない。
     #[test]
     fn what_the_cop_leaves_alone() {
-        for source in ["{ a: 1 }\n", "{ :a => 1 }\n", "{ \"#{x}\" => 1 }\n"] {
+        for source in [
+            "{ a: 1 }\n",
+            "{ :a => 1 }\n",
+            "{ \"#{x}\" => 1 }\n",
+            // `:` 区切りで書いた引用符付きの鍵はすでにシンボル。文法は `=>` 区切りと同じ
+            // 節で書くので、区切り記号だけが違いになる。
+            "{ 'a': 1 }\n",
+            "{ \"a\": 1 }\n",
+            "{ 'file:///x.rb': [] }\n",
+        ] {
             expect_no_offenses(COP, source);
         }
         expect_correction(
@@ -30197,6 +30927,8 @@ mod style_array_first_last {
             "a[0] += 1\n",
             "a[0, 1]\n",
             "a['k']\n",
+            // `brace_method?` は親が何かだけを尋ねるので、別の添字の中に書いた添字も対象外。
+            "a[b[0]]\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -30905,6 +31637,27 @@ mod style_documentation_method {
             .config("Style/DocumentationMethod:\n  AllowedMethods:\n    - foo\n")
             .run();
     }
+
+    /// 見えかたは「最後に書かれた印」で決まる。`private` を閉じる裸の `public` の下は
+    /// また公開なので、そこの定義は咎められる。
+    #[test]
+    fn a_bare_public_puts_the_definitions_after_it_back_in_view() {
+        expect_offense(
+            COP,
+            r"
+            class C
+              private
+
+              def a; end
+
+              public
+
+              def b; end
+              ^^^^^^^^^^ Missing method documentation comment.
+            end
+            ",
+        );
+    }
 }
 
 /// `Lint/NonAtomicFileOperation`。
@@ -31165,6 +31918,31 @@ mod lint_number_conversion {
         ] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 演算子と添字も上流では呼び出しなので、シンボルの引数を見るほうの経路に入る。
+    #[test]
+    fn a_symbol_passed_to_an_operator_or_an_index_is_seen_too() {
+        for source in ["foo == :to_f\n", "h[:to_i]\n"] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 入れ子の変換は報告するが補正はしない。外側の補正が書き換えた文字列を
+    /// もう一度書き換えることになるので、本家は `ignore_node` で下りを外す。
+    #[test]
+    fn a_conversion_inside_a_corrected_one_is_reported_without_a_correction() {
+        let report = CopCase::new(COP, "Math.sqrt(a.to_f / b).round.to_i\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 2);
+        assert!(report.offenses[0].is_correctable());
+        assert!(!report.offenses[1].is_correctable());
     }
 }
 
@@ -32248,6 +33026,12 @@ mod style_invertible_unless_condition {
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// `&.` で書いた呼び出しは上流では `csend` で、`send` の枝に入らない。
+    #[test]
+    fn a_call_written_with_safe_navigation_is_left_alone() {
+        expect_no_offenses(COP, "return false unless arguments&.any?\n");
     }
 
     /// 引数付きの呼び出しは括弧の有無をそのまま保つ。
@@ -34029,6 +34813,93 @@ mod style_arguments_forwarding {
         )
         .target_ruby("2.6")
         .run();
+    }
+
+    /// 一覧に載っている名前と載っていない名前が混じっていたら、載っている方だけが
+    /// 匿名になる。
+    #[test]
+    fn only_the_redundant_half_of_a_mixed_pair_is_anonymised() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*rest, &blk)\n               ^^^^ {BLOCK}\n  \
+                 bar(*rest, &blk)\n             ^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*rest, &)\n  bar(*rest, &)\nend\n")
+        .run();
+    }
+
+    /// 多重代入の左辺も `lvasgn` なので、そこに現れた名前は転送ではなく参照。
+    #[test]
+    fn a_name_written_on_the_left_of_a_multiple_assignment_is_referenced() {
+        expect_no_offenses(
+            COP,
+            "def foo(*args, **options)\n  a, b, options = split(*args, **options)\n  \
+             bar(*args, **options)\nend\n",
+        );
+    }
+
+    /// `Naming/BlockForwarding` が `explicit` なら、ブロックだけは名前のまま残す。
+    #[test]
+    fn an_explicit_block_name_is_left_where_the_other_cop_wants_it() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Naming/BlockForwarding:\n  Enabled: true\n  EnforcedStyle: explicit\n")
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &block)\n  bar(*, &block)\nend\n")
+        .run();
+    }
+
+    /// 3.4 からはブロックの中でも匿名にできる。
+    #[test]
+    fn ruby_34_anonymises_inside_a_block_after_all() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &)\n  [1].each { bar(*, &) }\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックの引数が定義の引数と同じ名前でも、宣言は参照ではない。
+    /// 本家は `lvar` と `lvasgn` しか数えず、`restarg` などの宣言は数に入らない。
+    #[test]
+    fn a_nested_block_parameter_of_the_same_name_is_not_a_reference() {
+        CopCase::new(
+            COP,
+            "def foo(*args, **kwargs, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*args, **kwargs, &block)\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected(
+            "def foo(*, **, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*, **, &block)\nend\n",
+        )
+        .run();
+    }
+
+    /// 本体の無い定義と、何も転送していない呼び出しは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def foo(*args); end\n",
+            "def foo(*args)\n  bar(1)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
     }
 
     /// `yield` と `x[...]` も本家では送信なので同じように見る。

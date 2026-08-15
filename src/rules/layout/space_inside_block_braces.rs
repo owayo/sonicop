@@ -58,11 +58,14 @@ impl Cop<'_, '_> {
         };
         // The `block` node upstream spans the call it hangs off, so it begins at the receiver.
         let expr_start = parser_node_start(node);
-        let single_line = self.context.source.line_column(expr_start).0
+        // `BlockNode#single_line?` is overridden upstream to compare `loc.begin` with `loc.end`,
+        // which is the braces rather than the whole expression -- so a one-line block hanging off
+        // a receiver that took several lines is still a single-line block.
+        let single_line = self.context.source.line_column(left.start_byte()).0
             == self.context.source.line_column(right.start_byte()).0;
         // Empty braces spread over two lines are left alone: correcting them to a single line
         // would fight the correction this same cop makes to single-line empty braces.
-        if node.field("body").is_none() && !single_line {
+        if !holds_a_statement(node) && !single_line {
             return;
         }
         let braces = Braces {
@@ -300,6 +303,18 @@ struct Braces<'tree> {
 
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)
+}
+
+/// Whether `BlockNode#body` would be anything but `nil` upstream. A `;` only separates statements
+/// there and a comment is not part of the tree at all, so braces holding nothing else are empty
+/// even though the grammar here parks an `empty_statement` or a `comment` between them.
+fn holds_a_statement(node: Node<'_>) -> bool {
+    let Some(body) = node.field("body") else {
+        return false;
+    };
+    let mut cursor = body.walk();
+    body.named_children(&mut cursor)
+        .any(|child| !matches!(child.kind_str(), "empty_statement" | "comment"))
 }
 
 /// `inner.split("\n").last.count(' ')`: every space on the last line the braces hold, not only the
