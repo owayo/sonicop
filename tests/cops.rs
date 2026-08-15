@@ -31426,6 +31426,90 @@ mod layout_disabled_trio {
     }
 }
 
+/// `Style/NegatedIfElseCondition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NegatedIfElseCondition` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_negated_if_else_condition {
+    use super::*;
+
+    const COP: &str = "Style/NegatedIfElseCondition";
+
+    /// 位置は `if` 全体。条件を反転して枝を入れ替える。
+    #[test]
+    fn a_negated_condition_with_both_branches_is_reported() {
+        // 複数行のレンジは注記が 1 行目しか表せないので位置で指定する。
+        CopCase::annotated(COP, "if !x\n  a\nelse\n  b\nend\n")
+            .id("if_else")
+            .without_offense_check()
+            .locations(&[(1, 1, 5, 3)])
+            .lengths(&[22])
+            .corrected("if x\n  b\nelse\n  a\nend\n")
+            .run();
+        expect_correction(
+            COP,
+            "if x != y\n  a\nelse\n  b\nend\n",
+            "if x == y\n  b\nelse\n  a\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if x !~ y\n  a\nelse\n  b\nend\n",
+            "if x =~ y\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// 三項演算子と `unless` も同じ。括弧の中の否定はその場で置き換わる。
+    #[test]
+    fn the_other_spellings_are_handled_too() {
+        expect_correction(COP, "!x ? a : b\n", "x ? b : a\n");
+        expect_correction(
+            COP,
+            "unless !x\n  a\nelse\n  b\nend\n",
+            "unless x\n  b\nelse\n  a\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if (!x)\n  a\nelse\n  b\nend\n",
+            "if (x)\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// if 側が空なら `else` の行ごと落ちる。
+    #[test]
+    fn an_empty_if_branch_drops_the_else_line() {
+        expect_correction(COP, "if !x\nelse\n  b\nend\n", "if x\n  b\nend\n");
+    }
+
+    /// `!!x`、`elsif` を伴うもの、else の無いもの、否定でない条件は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if !!x\n  a\nelse\n  b\nend\n",
+            "if !x\n  a\nelsif y\n  b\nelse\n  c\nend\n",
+            "if x\n  a\nelse\n  b\nend\n",
+            "if !x\n  a\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 入れ子は外側と内側の両方が報告される。補正を持つのは外側だけだが、
+    /// `correctable` は 1 ケースにつき 1 つしか指定できないので、そこは
+    /// 本家との `-A` 比較 (内側は直らない) で確かめてある。
+    #[test]
+    fn a_nest_reports_both_levels() {
+        CopCase::annotated(
+            COP,
+            "if !x\n  if !y\n    a\n  else\n    b\n  end\nelse\n  c\nend\n",
+        )
+        .id("nested")
+        .without_offense_check()
+        .locations(&[(1, 1, 9, 3), (2, 3, 6, 5)])
+        .lengths(&[51, 30])
+        .run();
+    }
+}
+
 /// `Lint/UnmodifiedReduceAccumulator`。
 ///
 /// 期待値は本家 1.89.0 を `--only Lint/UnmodifiedReduceAccumulator` で走らせた実出力から
@@ -31951,5 +32035,178 @@ mod layout_class_structure {
         .correctable(true)
         .without_offense_check()
         .run();
+    }
+}
+
+/// `Style/InvertibleUnlessCondition` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/InvertibleUnlessCondition` で走らせた実出力から
+/// 取った (検出 20 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_invertible_unless_condition {
+    use super::*;
+
+    const COP: &str = "Style/InvertibleUnlessCondition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は `unless` 全体。メッセージには反転後と元の条件が入る。
+    #[test]
+    fn an_invertible_condition_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a unless x != y
+            ^^^^^^^^^^^^^^^ Prefer `if x == y` over `unless x != y`.
+            ",
+        );
+        correction("a unless x != y\n", "a if x == y\n");
+        correction("unless x.zero?\n  a\nend\n", "if x.nonzero?\n  a\nend\n");
+        correction("unless !x\n  a\nend\n", "if x\n  a\nend\n");
+        correction("unless x > y\n  a\nend\n", "if x <= y\n  a\nend\n");
+        correction("unless x.any?\n  a\nend\n", "if x.none?\n  a\nend\n");
+        correction("unless (x != y)\n  a\nend\n", "if (x == y)\n  a\nend\n");
+    }
+
+    /// 論理演算は演算子ごと反転し、`||` の中の `&&` は括弧が付く。
+    #[test]
+    fn a_logical_condition_inverts_both_sides() {
+        correction(
+            "unless x != y && z.zero?\n  a\nend\n",
+            "if x == y || z.nonzero?\n  a\nend\n",
+        );
+        correction(
+            "unless x != y || z.zero?\n  a\nend\n",
+            "if x == y && z.nonzero?\n  a\nend\n",
+        );
+        correction(
+            "unless (a != b && c != d) || e.zero?\n  a\nend\n",
+            "if (a == b || c == d) && e.nonzero?\n  a\nend\n",
+        );
+    }
+
+    /// `x < Bar` は継承の宣言に見えるので触らない。全部大文字の定数なら比較として扱う。
+    #[test]
+    fn an_inheritance_check_is_left_alone() {
+        expect_no_offenses(COP, "unless x < Foo\n  a\nend\n");
+        correction("unless x < CONST\n  a\nend\n", "if x >= CONST\n  a\nend\n");
+        correction(
+            "unless x < Foo::CONST\n  a\nend\n",
+            "if x >= Foo::CONST\n  a\nend\n",
+        );
+    }
+
+    /// ブロック付きの呼び出しは上流では `block` ノードで `send` ではない。
+    /// `InverseMethods` に無いメソッドも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "unless x.any? { |y| y }\n  a\nend\n",
+            "unless x.foo\n  a\nend\n",
+            "unless x.include?(y)\n  a\nend\n",
+            "unless x.eql? y\n  a\nend\n",
+            "unless a && b || c\n  a\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引数付きの呼び出しは括弧の有無をそのまま保つ。
+    #[test]
+    fn the_argument_spelling_is_kept() {
+        correction(
+            "unless x.any?(Integer)\n  a\nend\n",
+            "if x.none?(Integer)\n  a\nend\n",
+        );
+    }
+}
+
+/// `Style/MultilineMethodSignature` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MultilineMethodSignature` で走らせた実出力から
+/// 取った (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_multiline_method_signature {
+    use super::*;
+
+    const COP: &str = "Style/MultilineMethodSignature";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は定義全体。引数が 1 行に畳まれる。
+    #[test]
+    fn a_signature_spread_over_lines_is_folded() {
+        CopCase::annotated(COP, "def foo(a,\n        b)\nend\n")
+            .id("multiline")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[25])
+            .run();
+        correction("def foo(a,\n        b)\nend\n", "def foo(a, b)\nend\n");
+        correction(
+            "def self.baz(a,\n             b)\nend\n",
+            "def self.baz(a, b)\nend\n",
+        );
+        correction(
+            "class C\n  def m(a,\n        b)\n  end\nend\n",
+            "class C\n  def m(a, b)\n  end\nend\n",
+        );
+    }
+
+    /// 閉じ括弧だけの行は引数と一緒に運ばれ、その行ごと落ちる。
+    #[test]
+    fn a_closing_paren_on_its_own_line_travels_with_the_arguments() {
+        correction(
+            "def bar(a,\n        b\n       )\nend\n",
+            "def bar(a, b)\nend\n",
+        );
+        correction("def qux(\n  a,\n  b\n)\nend\n", "def qux(a, b)\nend\n");
+    }
+
+    /// 1 行の定義、引数の無い定義、括弧の無い定義は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def one(a, b)\nend\n",
+            "def noargs\nend\n",
+            "def noparens a,\n             b\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 畳むと `Layout/LineLength` の `Max` を超えるものは触らない。あの cop を切ると
+    /// 上限が無くなるので報告される。
+    #[test]
+    fn a_correction_that_would_be_too_long_is_skipped() {
+        let source = "def long_one(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,\n             bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n             ccccccccccccccccccccccccccccccc,\n             ddddddddddddddddddddddddddddddd)\nend\n";
+        expect_no_offenses(COP, source);
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config("Layout/LineLength:\n  Enabled: false\n")
+            .without_offense_check()
+            .corrected("def long_one(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, ccccccccccccccccccccccccccccccc, ddddddddddddddddddddddddddddddd)\nend\n")
+            .run();
+    }
+
+    /// キーワード引数・splat・既定値付きも同じ。
+    #[test]
+    fn every_parameter_kind_folds() {
+        correction("def kw(a:,\n       b: 1)\nend\n", "def kw(a:, b: 1)\nend\n");
+        correction(
+            "def splat(*a,\n          **b)\nend\n",
+            "def splat(*a, **b)\nend\n",
+        );
+        correction(
+            "def defaults(a = 1,\n             b = 2)\nend\n",
+            "def defaults(a = 1, b = 2)\nend\n",
+        );
     }
 }
