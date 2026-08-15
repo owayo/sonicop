@@ -6321,6 +6321,56 @@ mod naming_rest {
         );
     }
 
+    /// 行末コメントとヒアドキュメントの本体は、本家の木では文の一部か、そもそもノードが
+    /// 無い。tree-sitter はどちらも本体の子に置くので、1 文の本体が 2 文に見えて代入が
+    /// 最後でなくなり、cop が黙っていた。
+    #[test]
+    fn memoized_instance_variable_name_ignores_comments_and_heredoc_bodies() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def b
+              @w ||= 1 # a trailing comment
+              ^^ Memoized variable `@w` does not match method name `b`. Use `@b` instead.
+            end
+            "#,
+        );
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def c
+              @w ||= <<~X
+              ^^ Memoized variable `@w` does not match method name `c`. Use `@c` instead.
+                hi
+              X
+            end
+            "#,
+        );
+        // 引数リストの中でも同じで、`bar(...)` の最後の子は行末コメントではなく代入。
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def d
+              bar(
+                @w ||= 1 # a trailing comment
+                ^^ Memoized variable `@w` does not match method name `d`. Use `@d` instead.
+              )
+            end
+            "#,
+        );
+        expect_correction(
+            MEMOIZED,
+            "def b
+  @w ||= 1 # a trailing comment
+end
+",
+            "def b
+  @b ||= 1 # a trailing comment
+end
+",
+        );
+    }
+
     #[test]
     fn memoized_instance_variable_name_correction_renames_the_variable() {
         expect_correction(
@@ -7436,6 +7486,67 @@ mod layout_bracket_spacing {
                 Annotation::new(7, 17, 1, PERCENT_MSG),
             ],
         )
+        .run();
+    }
+
+    /// 本家の `BlockNode#single_line?` は式全体ではなく `loc.begin` と `loc.end`、
+    /// つまり中括弧同士の行を比べる。レシーバが複数行に跨っていても中括弧が同じ行なら
+    /// 1 行ブロックのままで、閉じ `}` も報告される。
+    #[test]
+    fn a_block_is_single_line_when_its_braces_share_a_line() {
+        const BLOCK: &str = "Layout/SpaceInsideBlockBraces";
+        const PIPE_MSG: &str = "Space between { and | missing.";
+        const CLOSE_MSG: &str = "Space missing inside }.";
+        CopCase::new(
+            BLOCK,
+            concat!(
+                "a = [\n",
+                "  1,\n",
+                "].map {|n| n}\n",
+                "\n",
+                "c = foo(\n",
+                "  1\n",
+                ").map {|n| n}\n",
+                "\n",
+                "d = [1].map {|n|\n",
+                "  n\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 2, PIPE_MSG),
+                Annotation::new(3, 13, 1, CLOSE_MSG),
+                Annotation::new(7, 7, 2, PIPE_MSG),
+                Annotation::new(7, 13, 1, CLOSE_MSG),
+                Annotation::new(9, 13, 2, PIPE_MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = [\n",
+            "  1,\n",
+            "].map { |n| n }\n",
+            "\n",
+            "c = foo(\n",
+            "  1\n",
+            ").map { |n| n }\n",
+            "\n",
+            "d = [1].map { |n|\n",
+            "  n\n",
+            "}\n",
+        ))
+        .run();
+        // 中括弧が別々の行にあれば複数行ブロックで、閉じ `}` の手前の改行は咎められない。
+        expect_no_offenses(BLOCK, "e = [\n  1,\n].map { |n|\n  n\n}\n");
+        // `;` は本家の木では文の区切りでしかなくノードにならない。中身がそれだけなら
+        // `body` は `nil` で、複数行の空ブロックとして丸ごと見送られる。
+        expect_no_offenses(BLOCK, "a = foo {|f|\n  ;\n}\n");
+        expect_no_offenses(BLOCK, "b = foo {|f|\n  # a comment\n}\n");
+        // 中身が本物の文なら、空ブロックではないので `{` の詰まりが報告される。
+        CopCase::new(
+            BLOCK,
+            "c = foo {|f|\n  f\n}\n",
+            vec![Annotation::new(1, 9, 2, PIPE_MSG)],
+        )
+        .corrected("c = foo { |f|\n  f\n}\n")
         .run();
     }
 
