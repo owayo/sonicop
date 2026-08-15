@@ -16,6 +16,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // The receiver and the subscript are the two named children. A multi-index read
         // (`ENV['A', 'B']`) does not match upstream's pattern either, so only the single
         // subscript form is considered.
+        // `ENV['HOME'] = x` is `:[]=` upstream, not `:[]`, so the pattern never sees it -- and it
+        // could not be rewritten anyway, since `Dir.home` is not assignable. An operator assignment
+        // is different: `ENV['HOME'] ||= y` still holds a `:[]` read of its own, which upstream
+        // does report.
+        if is_assignment_target(node) {
+            continue;
+        }
         let parts = super::nodes::children(node);
         let [object, index] = parts.as_slice() else {
             continue;
@@ -52,6 +59,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             offenses.push(offense(context, node));
         }
     }
+}
+
+/// Whether the node is what a plain `=` writes to, which upstream spells as a `:[]=` call rather
+/// than the `:[]` the pattern looks for.
+fn is_assignment_target(node: Node<'_>) -> bool {
+    node.parent().is_some_and(|parent| {
+        parent.kind_str() == "assignment"
+            && parent
+                .field("left")
+                .is_some_and(|left| left.id() == node.id())
+    })
 }
 
 /// `(const {cbase nil?} :ENV)`: the bare `ENV` and `::ENV`, but not `Foo::ENV`.
