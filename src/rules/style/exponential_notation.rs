@@ -1,5 +1,8 @@
+use tree_sitter::Node;
+
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -13,6 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     };
 
     for node in context.nodes_of("float") {
+        let node = with_folded_sign(node, context);
         let source = context.source.node_text(node);
         let Some((mantissa, exponent)) = source.split_once('e') else {
             continue;
@@ -29,11 +33,40 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
+/// The float as upstream's parser holds it, which is with a leading `+` or `-` folded in.
+///
+/// Every test here reads `node.source` and matches it against a pattern anchored at the start, so
+/// the sign decides the answer: `+2.5e20` fails `/^-?[1-9].../` where `2.5e20` passes it. The
+/// grammar keeps the sign as a `unary` around the float instead, so the node to read is the parent.
+/// A space between the two changes nothing upstream -- `- 2.5e20` is folded just as `-2.5e20` is,
+/// and the mantissa it tests carries the space -- so only the sign itself has to match.
+fn with_folded_sign<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Node<'tree> {
+    let Some(parent) = node.parent() else {
+        return node;
+    };
+    if parent.kind_str() != "unary"
+        || parent
+            .field("operand")
+            .is_none_or(|operand| operand.id() != node.id())
+    {
+        return node;
+    }
+    let sign = context.source.slice(parent.start_byte()..node.start_byte());
+    if matches!(sign.trim_end(), "+" | "-") {
+        parent
+    } else {
+        node
+    }
+}
+
 /// `/^-?[1-9](\.\d*[0-9])?$/`.
 fn scientific(mantissa: &str) -> bool {
     let body = mantissa.strip_prefix('-').unwrap_or(mantissa);
     let mut characters = body.chars();
-    if !characters.next().is_some_and(|first| ('1'..='9').contains(&first)) {
+    if !characters
+        .next()
+        .is_some_and(|first| ('1'..='9').contains(&first))
+    {
         return false;
     }
     let rest = characters.as_str();
@@ -50,7 +83,10 @@ fn scientific(mantissa: &str) -> bool {
 fn integral(mantissa: &str) -> bool {
     let body = mantissa.strip_prefix('-').unwrap_or(mantissa);
     let mut characters = body.chars();
-    if !characters.next().is_some_and(|first| ('1'..='9').contains(&first)) {
+    if !characters
+        .next()
+        .is_some_and(|first| ('1'..='9').contains(&first))
+    {
         return false;
     }
     let rest = characters.as_str();
@@ -72,7 +108,13 @@ fn engineering(mantissa: &str, exponent: &str) -> bool {
     }
     let digits = mantissa.strip_prefix('-').unwrap_or(mantissa);
     // `/^-?\d{4}/`, `/^-?0\d/` and `/^-?0.0/`: four digits, a leading zero, or a value below 0.1.
-    if digits.chars().take(4).filter(|c| c.is_ascii_digit()).count() == 4 {
+    if digits
+        .chars()
+        .take(4)
+        .filter(|c| c.is_ascii_digit())
+        .count()
+        == 4
+    {
         return false;
     }
     let bytes = digits.as_bytes();

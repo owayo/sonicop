@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use super::support::{last_named_child, quoted_content};
+use super::support::quoted_content;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
@@ -158,7 +158,9 @@ fn find_definition<'tree>(
 /// The name a `define_method(:foo) { ... }` block defines. The receiver may be anything, but the
 /// call takes exactly one argument and it has to be a literal string or symbol.
 fn dynamic_definition_name(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
-    let call = block.parent_of(context).filter(|parent| parent.kind_str() == "call")?;
+    let call = block
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "call")?;
     let method = call.field("method")?;
     if !DYNAMIC_DEFINE_METHODS.contains(&context.source.node_text(method)) {
         return None;
@@ -204,9 +206,22 @@ fn body_statements<'tree>(definition: Node<'tree>) -> Vec<Node<'tree>> {
     let Some(body) = definition.field("body") else {
         return Vec::new();
     };
-    let mut cursor = body.walk();
-    body.named_children(&mut cursor)
+    parser_children(body)
+        .into_iter()
         .filter(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
+        .collect()
+}
+
+/// The children upstream's parser builds a node for.
+///
+/// A comment is no node at all there, and a heredoc's body belongs to the literal that opened it
+/// rather than to the statement list the grammar parks it in -- so counting either makes a body of
+/// one statement look like a body of two, and the assignment stops being the last thing the method
+/// evaluates.
+fn parser_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }
 
@@ -221,15 +236,12 @@ fn parser_last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
         "while" | "until" => sole_statement(node.field("body")?),
         "call" => match node.field("block") {
             Some(block) => sole_statement(block.field("body")?),
-            None => last_named_child(node.field("arguments")?),
+            None => parser_children(node.field("arguments")?).pop(),
         },
-        "begin" | "body_statement" | "block_body" | "then" | "else" => {
-            let mut cursor = node.walk();
-            node.named_children(&mut cursor)
-                .filter(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
-                .last()
-        }
-        _ => last_named_child(node),
+        "begin" | "body_statement" | "block_body" | "then" | "else" => parser_children(node)
+            .into_iter()
+            .rfind(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure")),
+        _ => parser_children(node).pop(),
     }
 }
 
@@ -237,9 +249,8 @@ fn parser_last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// that was never written is `nil` there, and an `elsif` nests another conditional rather than
 /// ending the chain, so neither can be the assignment being looked for.
 fn else_statement<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    let branch = node
-        .named_children(&mut cursor)
+    let branch = parser_children(node)
+        .into_iter()
         .find(|child| child.kind_str() == "else")?;
     sole_statement(branch)
 }
@@ -247,8 +258,7 @@ fn else_statement<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// The single statement a container holds, or nothing when it holds none or several -- several
 /// become a `begin` node upstream, which is not the assignment being looked for.
 fn sole_statement(container: Node<'_>) -> Option<Node<'_>> {
-    let mut cursor = container.walk();
-    let statements: Vec<Node<'_>> = container.named_children(&mut cursor).collect();
+    let statements = parser_children(container);
     match statements.as_slice() {
         [only] => Some(*only),
         _ => None,
@@ -287,10 +297,7 @@ fn guard_clause<'tree>(
                 sole_statement(node.field("consequence")?)?,
             )
         }
-        "if_modifier" => (
-            node.field("condition")?,
-            node.field("body")?,
-        ),
+        "if_modifier" => (node.field("condition")?, node.field("body")?),
         _ => return None,
     };
     let defined_ivar = defined_argument(context, condition)

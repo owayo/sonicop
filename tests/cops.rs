@@ -6321,6 +6321,56 @@ mod naming_rest {
         );
     }
 
+    /// 行末コメントとヒアドキュメントの本体は、本家の木では文の一部か、そもそもノードが
+    /// 無い。tree-sitter はどちらも本体の子に置くので、1 文の本体が 2 文に見えて代入が
+    /// 最後でなくなり、cop が黙っていた。
+    #[test]
+    fn memoized_instance_variable_name_ignores_comments_and_heredoc_bodies() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def b
+              @w ||= 1 # a trailing comment
+              ^^ Memoized variable `@w` does not match method name `b`. Use `@b` instead.
+            end
+            "#,
+        );
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def c
+              @w ||= <<~X
+              ^^ Memoized variable `@w` does not match method name `c`. Use `@c` instead.
+                hi
+              X
+            end
+            "#,
+        );
+        // 引数リストの中でも同じで、`bar(...)` の最後の子は行末コメントではなく代入。
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def d
+              bar(
+                @w ||= 1 # a trailing comment
+                ^^ Memoized variable `@w` does not match method name `d`. Use `@d` instead.
+              )
+            end
+            "#,
+        );
+        expect_correction(
+            MEMOIZED,
+            "def b
+  @w ||= 1 # a trailing comment
+end
+",
+            "def b
+  @b ||= 1 # a trailing comment
+end
+",
+        );
+    }
+
     #[test]
     fn memoized_instance_variable_name_correction_renames_the_variable() {
         expect_correction(
@@ -7436,6 +7486,67 @@ mod layout_bracket_spacing {
                 Annotation::new(7, 17, 1, PERCENT_MSG),
             ],
         )
+        .run();
+    }
+
+    /// 本家の `BlockNode#single_line?` は式全体ではなく `loc.begin` と `loc.end`、
+    /// つまり中括弧同士の行を比べる。レシーバが複数行に跨っていても中括弧が同じ行なら
+    /// 1 行ブロックのままで、閉じ `}` も報告される。
+    #[test]
+    fn a_block_is_single_line_when_its_braces_share_a_line() {
+        const BLOCK: &str = "Layout/SpaceInsideBlockBraces";
+        const PIPE_MSG: &str = "Space between { and | missing.";
+        const CLOSE_MSG: &str = "Space missing inside }.";
+        CopCase::new(
+            BLOCK,
+            concat!(
+                "a = [\n",
+                "  1,\n",
+                "].map {|n| n}\n",
+                "\n",
+                "c = foo(\n",
+                "  1\n",
+                ").map {|n| n}\n",
+                "\n",
+                "d = [1].map {|n|\n",
+                "  n\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 2, PIPE_MSG),
+                Annotation::new(3, 13, 1, CLOSE_MSG),
+                Annotation::new(7, 7, 2, PIPE_MSG),
+                Annotation::new(7, 13, 1, CLOSE_MSG),
+                Annotation::new(9, 13, 2, PIPE_MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = [\n",
+            "  1,\n",
+            "].map { |n| n }\n",
+            "\n",
+            "c = foo(\n",
+            "  1\n",
+            ").map { |n| n }\n",
+            "\n",
+            "d = [1].map { |n|\n",
+            "  n\n",
+            "}\n",
+        ))
+        .run();
+        // 中括弧が別々の行にあれば複数行ブロックで、閉じ `}` の手前の改行は咎められない。
+        expect_no_offenses(BLOCK, "e = [\n  1,\n].map { |n|\n  n\n}\n");
+        // `;` は本家の木では文の区切りでしかなくノードにならない。中身がそれだけなら
+        // `body` は `nil` で、複数行の空ブロックとして丸ごと見送られる。
+        expect_no_offenses(BLOCK, "a = foo {|f|\n  ;\n}\n");
+        expect_no_offenses(BLOCK, "b = foo {|f|\n  # a comment\n}\n");
+        // 中身が本物の文なら、空ブロックではないので `{` の詰まりが報告される。
+        CopCase::new(
+            BLOCK,
+            "c = foo {|f|\n  f\n}\n",
+            vec![Annotation::new(1, 9, 2, PIPE_MSG)],
+        )
+        .corrected("c = foo { |f|\n  f\n}\n")
         .run();
     }
 
@@ -8879,6 +8990,25 @@ mod layout_indentation {
     const WIDTH: &str = "Layout/IndentationWidth";
     const CONSISTENCY: &str = "Layout/IndentationConsistency";
     const INCONSISTENT: &str = "Inconsistent indentation detected.";
+
+    /// `begin ... rescue ... end` の本体は、本家では `rescue` ノード 1 つで、その範囲は
+    /// 最後の節の最後の文で終わる。文法の `begin` ノードは `end` まで届いてしまうので、
+    /// そのまま範囲に使うと補正が `end` の行も動かす。`end` は字下げを測る基準そのものな
+    /// ので、本体と一緒に動くと相対字下げが変わらず、同じ offense を報告し続けて桁 1 まで
+    /// 寄ってしまう。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_body_of_a_rescue_moves_without_taking_the_end_with_it() {
+        CopCase::new(
+            WIDTH,
+            "def c\n  begin\n      d\n    rescue\n      nil\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def c\n  begin\n    d\n  rescue\n    nil\n  end\nend\n")
+        .run();
+    }
 
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
     /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
@@ -20984,6 +21114,36 @@ mod style_nested_file_dirname {
     }
 }
 
+/// `Style/ExponentialNotation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ExponentialNotation` で走らせた実出力から取った
+/// (位置・長さとも JSON で確認済み)。
+mod style_exponential_notation {
+    use super::*;
+
+    const COP: &str = "Style/ExponentialNotation";
+    const MSG: &str = "Use a mantissa >= 1 and < 10.";
+
+    /// 本家のパーサは先頭の `+` / `-` をリテラルに畳み込むので、仮数の判定には符号が入り、
+    /// 指摘も符号の位置から始まる。`+` は `/^-?[1-9].../` に当たらないので、仮数が 1 以上
+    /// 10 未満でも指摘になる。
+    #[test]
+    fn a_folded_sign_belongs_to_the_mantissa() {
+        expect_offense(COP, &format!("y = +2.5e20\n    ^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("z = -123.45e1\n    ^^^^^^^^^ {MSG}\n"));
+        // 符号との間の空白も畳み込まれる。
+        expect_offense(COP, &format!("v = - 2.5e20\n    ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 符号が無いもの、`-` 付きで仮数が範囲内のものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["w = 2.5e20\n", "u = -1.5e3\n", "t = 1.0e3\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
 /// `Style/EnvHome`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った
@@ -21017,8 +21177,9 @@ mod style_env_home {
             "ENV.fetch('HOME') { 'x' }\n",
             "Foo::ENV['HOME']\n",
             "ENV['PATH']\n",
-            // 代入先は上流では `indexasgn` で、`{:[] :fetch}` のどちらでもない。
-            "ENV['HOME'] = x\n",
+            // 代入先は本家では `indexasgn` (`:[]=`) で、パターンの `{:[] :fetch}` のどちらにも
+            // 当たらない。そもそも `Dir.home` は代入できないので、書き換えようがない。
+            "ENV['HOME'] = value\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -21030,6 +21191,13 @@ mod style_env_home {
                 .inspect();
             assert_eq!(report.offenses.len(), 1, "{source:?}");
         }
+    }
+
+    /// 演算子代入は別。`ENV['HOME'] ||= x` は読み出しを自分の中に持つので、本家も報告する。
+    /// 置換後が代入できない式になるのは本家も同じ (実出力で確認済み)。
+    #[test]
+    fn an_operator_assignment_still_holds_a_lookup() {
+        expect_correction(COP, "ENV['HOME'] ||= value\n", "Dir.home ||= value\n");
     }
 }
 
@@ -25911,6 +26079,103 @@ mod style_it_block_parameter {
         CopCase::new(COP, "foo { _1 * 2 }\n".to_owned(), Vec::new())
             .target_ruby("3.3")
             .run();
+    }
+
+    /// `it "..." do ... end` の `it` はメソッド名であって暗黙の引数ではない。
+    ///
+    /// 本家のパーサが `it` を引数にするのは、引数もブロックも取らない裸の `it` だけ。RSpec の
+    /// 例を抱えた `describe` を `it` ブロックと読むと、spec を持つコーパスが丸ごと誤検出になる
+    /// (mastodon で 5,276 件)。
+    #[test]
+    fn the_it_that_names_a_call_is_not_the_parameter() {
+        for source in [
+            "describe 'x' do\n  it 'y' do\n    expect(1).to eq 1\n  end\nend\n",
+            "foo do\n  it(1)\n  bar\nend\n",
+            "foo do\n  bar.it\n  baz\nend\n",
+        ] {
+            case(source).run();
+        }
+        // 裸の `it` とレシーバに置いた `it` は引数。
+        case("foo do\n  it.bar\n  baz(it)\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// 代入された名前は変数であって引数ではない。読みが先なら引数のまま。
+    #[test]
+    fn a_name_assigned_before_it_is_read_is_a_variable() {
+        case("foo do\n  it = 1\n  puts it\nend\n").run();
+        // 読みが先にあるものは、後で代入されても引数。
+        case("foo do\n  puts args[it]\n  it += 1\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// `-> x { }` は本家では 1 つの `block`。文法は引数を `lambda` に、波括弧を別のブロックに
+    /// 書くので、引数はそちらから取る。
+    #[test]
+    fn a_lambda_keeps_its_parameters_on_the_arrow() {
+        CopCase::new(
+            COP,
+            "-> message do\n  puts message\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("->  do\n  puts it\nend\n")
+        .run();
+    }
+
+    /// `{ name: }` の省略された値は、本家の木では鍵と同じ位置に置かれた `lvar`。
+    #[test]
+    fn a_hash_value_left_out_is_still_a_read() {
+        CopCase::new(
+            COP,
+            "foo do |name|\n  bar(tag: { name: })\n  baz(name)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  bar(tag: { it: })\n  baz(it)\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックが同じ名前を宣言していても、宣言そのものは読みではない。
+    #[test]
+    fn a_nested_declaration_of_the_same_name_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    \
+             save = transaction\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
+        .run();
+    }
+
+    /// ヒアドキュメントの本体は開いた文の隣に置かれるが、本家の木では文字列の中なので、
+    /// そこで補間された名前もブロックの引数の読み。
+    #[test]
+    fn a_name_read_inside_a_heredoc_counts() {
+        CopCase::new(
+            COP,
+            "foo do |x|\n  puts <<~T\n    #{x}\n  T\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  puts <<~T\n    #{it}\n  T\nend\n")
+        .run();
     }
 
     /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
@@ -34550,6 +34815,93 @@ mod style_arguments_forwarding {
         .run();
     }
 
+    /// 一覧に載っている名前と載っていない名前が混じっていたら、載っている方だけが
+    /// 匿名になる。
+    #[test]
+    fn only_the_redundant_half_of_a_mixed_pair_is_anonymised() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*rest, &blk)\n               ^^^^ {BLOCK}\n  \
+                 bar(*rest, &blk)\n             ^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*rest, &)\n  bar(*rest, &)\nend\n")
+        .run();
+    }
+
+    /// 多重代入の左辺も `lvasgn` なので、そこに現れた名前は転送ではなく参照。
+    #[test]
+    fn a_name_written_on_the_left_of_a_multiple_assignment_is_referenced() {
+        expect_no_offenses(
+            COP,
+            "def foo(*args, **options)\n  a, b, options = split(*args, **options)\n  \
+             bar(*args, **options)\nend\n",
+        );
+    }
+
+    /// `Naming/BlockForwarding` が `explicit` なら、ブロックだけは名前のまま残す。
+    #[test]
+    fn an_explicit_block_name_is_left_where_the_other_cop_wants_it() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Naming/BlockForwarding:\n  Enabled: true\n  EnforcedStyle: explicit\n")
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &block)\n  bar(*, &block)\nend\n")
+        .run();
+    }
+
+    /// 3.4 からはブロックの中でも匿名にできる。
+    #[test]
+    fn ruby_34_anonymises_inside_a_block_after_all() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &)\n  [1].each { bar(*, &) }\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックの引数が定義の引数と同じ名前でも、宣言は参照ではない。
+    /// 本家は `lvar` と `lvasgn` しか数えず、`restarg` などの宣言は数に入らない。
+    #[test]
+    fn a_nested_block_parameter_of_the_same_name_is_not_a_reference() {
+        CopCase::new(
+            COP,
+            "def foo(*args, **kwargs, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*args, **kwargs, &block)\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected(
+            "def foo(*, **, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*, **, &block)\nend\n",
+        )
+        .run();
+    }
+
+    /// 本体の無い定義と、何も転送していない呼び出しは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def foo(*args); end\n",
+            "def foo(*args)\n  bar(1)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
     /// `yield` と `x[...]` も本家では送信なので同じように見る。
     #[test]
     fn a_yield_and_an_index_are_sends_too() {
@@ -34731,6 +35083,64 @@ mod style_method_call_with_args_parentheses {
         .without_offense_check()
         .locations(&[(2, 8, 4, 1)])
         .lengths(&[7])
+        .run();
+    }
+}
+
+/// `Lint/LiteralAsCondition` の後置形。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/LiteralAsCondition -A` の実出力。
+mod lint_literal_as_condition_modifier {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralAsCondition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の `if` / `unless` は、条件が消えても**守っていた式は残る**。文法では
+    /// 後置形が式を `body` に持ち、`consequence` を持つのはブロック形だけなので、
+    /// `consequence` だけを見ると式ごと消えてしまう。
+    #[test]
+    fn a_modifier_keeps_what_it_guarded() {
+        correction("def m\n  a if true\nend\n", "def m\n  a\nend\n");
+        correction("def m\n  b unless false\nend\n", "def m\n  b\nend\n");
+        // 制御構造でも同じ。以前はここで `break` / `return` が消えていた。
+        correction(
+            "def m\n  foo do\n    break if true\n  end\nend\n",
+            "def m\n  foo do\n    break\n  end\nend\n",
+        );
+        correction("def m\n  return if true\nend\n", "def m\n  return\nend\n");
+        // 生き残らない側は消える。
+        correction("def m\n  c if false\nend\n", "def m\n  \nend\n");
+        correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
+    }
+}
+
+/// `Lint/UnusedBlockArgument` の補正の作り方。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/UnusedBlockArgument,Style/Lambda -A` の実出力。
+mod lint_unused_block_argument_correction {
+    use super::*;
+
+    /// 名前を丸ごと `_name` に置き換える (先頭に `_` を差し込むのではない)。同じ引数を
+    /// 同じパスで別の cop が書き換えているとき、範囲が一致する置換は clobber として
+    /// 次のパスへ回るが、範囲の端への挿入はすり抜けて隣の字面にくっついてしまう。
+    /// `-> env do` を `lambda do |env|` にする `Style/Lambda` と重なると、`lambda_` が
+    /// できていた。
+    #[test]
+    fn the_name_is_replaced_rather_than_prefixed() {
+        CopCase::new(
+            "Lint/UnusedBlockArgument",
+            "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  foo(bar: -> _env do\n    1\n  end)\nend\n")
         .run();
     }
 }

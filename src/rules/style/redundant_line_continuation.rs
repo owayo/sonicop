@@ -46,8 +46,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         |range| vec![remove_first(range)],
         Clone::clone,
         crate::rules::support::Verification {
-            // `oversized: :verify`: 畳めるかの判定そのものが再パース検証なので、
-            // 大きすぎるスコープでも検証を省けない。
+            // `oversized: :verify`: the reparse is the whole test, so a scope too large to
+            // reparse cannot be accepted unverified.
             verify_oversized: true,
             ..Default::default()
         },
@@ -300,8 +300,8 @@ fn inspect_end_of_ruby_code_line_continuation(
         |range| vec![remove_first(range)],
         Clone::clone,
         crate::rules::support::Verification {
-            // `oversized: :verify`: 畳めるかの判定そのものが再パース検証なので、
-            // 大きすぎるスコープでも検証を省けない。
+            // `oversized: :verify`: the reparse is the whole test, so a scope too large to
+            // reparse cannot be accepted unverified.
             verify_oversized: true,
             ..Default::default()
         },
