@@ -33726,3 +33726,172 @@ mod style_redundant_string_escape {
         }
     }
 }
+
+/// `Style/MissingElse` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_missing_else {
+    use super::*;
+
+    const COP: &str = "Style/MissingElse";
+    const EMPTY: &str = "Style/EmptyElse:\n  EnforcedStyle: empty\n";
+    const NIL: &str = "Style/EmptyElse:\n  EnforcedStyle: nil\n";
+
+    /// 位置は条件式の全体。既定では `Style/EmptyElse` が `else` の中身を決めないので
+    /// 補正は付かない。
+    #[test]
+    fn a_conditional_without_an_else_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an `else`-clause.
+              b
+            end
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            case v
+            ^^^^^^ `case` condition requires an `else`-clause.
+            when 1
+              b
+            end
+            ",
+        );
+        for source in [
+            "if a\n  b\nelse\n  c\nend\n",
+            "case v\nwhen 1\n  b\nelse\n  c\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `elsif` は本家の木では `if` そのものなので、それだけで報告される。`elsif` を
+    /// 持つ外側の `if` は `loc.else` を持つので報告されない。
+    #[test]
+    fn an_elsif_is_a_conditional_of_its_own() {
+        expect_offense(
+            COP,
+            r"
+            if a
+              b
+            elsif c
+            ^^^^^^^ `if` condition requires an `else`-clause.
+              d
+            end
+            ",
+        );
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nelse\n  e\nend\n");
+    }
+
+    /// ヒアドキュメントの本体も行末のコメントも本家の式の範囲には入らないので、
+    /// `elsif` はそれを開いた文までで終わる。
+    #[test]
+    fn the_range_stops_at_the_last_statement_of_the_branch() {
+        CopCase::annotated(
+            COP,
+            "if a\n  b\nelsif c\n  raise D, <<~MSG\n    text\n  MSG\nend\n",
+        )
+        .without_offense_check()
+        .locations(&[(3, 1, 4, 17)])
+        .lengths(&[25])
+        .run();
+    }
+
+    /// 三項演算子と後置修飾は `OnNormalIfUnless` が外す。`case ... in` は何も
+    /// 合わなければ例外を上げるので `else` を要らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x = a ? b : c\ny = b if a\nz = b unless a\n",
+            "case v\nin 1\n  b\nend\n",
+            // `Style/UnlessElse` が有効なら `unless` はあちらの持ち場。
+            "unless a\n  b\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Style/UnlessElse` を切ると `unless` もこちらが見る。
+    #[test]
+    fn an_unless_is_checked_once_the_other_cop_is_off() {
+        CopCase::annotated(
+            COP,
+            r"
+            unless a
+            ^^^^^^^^ `if` condition requires an `else`-clause.
+              b
+            end
+            ",
+        )
+        .config("Style/UnlessElse:\n  Enabled: false\n")
+        .run();
+    }
+
+    /// `EnforcedStyle` はどちらを見るかを決める。
+    #[test]
+    fn the_enforced_style_chooses_between_if_and_case() {
+        let both = "if a\n  b\nend\ncase v\nwhen 1\n  b\nend\n";
+        CopCase::new(COP, both.to_owned(), Vec::new())
+            .config("Style/MissingElse:\n  EnforcedStyle: if\n")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[12])
+            .run();
+        CopCase::new(COP, both.to_owned(), Vec::new())
+            .config("Style/MissingElse:\n  EnforcedStyle: case\n")
+            .without_offense_check()
+            .locations(&[(4, 1, 7, 3)])
+            .lengths(&[21])
+            .run();
+    }
+
+    /// `Style/EmptyElse` の style が `else` の中身を決めているときだけ補正が付く。
+    /// 空の `else` を報告する側なら `nil` を入れ、`nil` を報告する側なら空で足す。
+    #[test]
+    fn the_neighbouring_cop_decides_what_the_added_else_holds() {
+        CopCase::annotated(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an `else`-clause with `nil` in it.
+              b
+            end
+            ",
+        )
+        .config(EMPTY)
+        .run();
+        CopCase::new(COP, "if a\n  b\nend\n".to_owned(), Vec::new())
+            .config(EMPTY)
+            .without_offense_check()
+            .corrected("if a\n  b\nelse; nil; end\n")
+            .run();
+        CopCase::annotated(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an empty `else`-clause.
+              b
+            end
+            ",
+        )
+        .config(NIL)
+        .run();
+        CopCase::new(COP, "if a\n  b\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("if a\n  b\nelse; end\n")
+            .run();
+        // `elsif` を閉じるのは自分の `end` ではなく、属している `if` の `end`。
+        CopCase::new(COP, "if a\n  b\nelsif c\n  d\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("if a\n  b\nelsif c\n  d\nelse; end\n")
+            .run();
+        CopCase::new(COP, "case v\nwhen 1\n  b\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("case v\nwhen 1\n  b\nelse; end\n")
+            .run();
+    }
+}
