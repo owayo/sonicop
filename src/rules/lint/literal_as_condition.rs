@@ -424,7 +424,8 @@ fn check_if(
     let is_unless = matches!(node.kind_str(), "unless" | "unless_modifier");
     // `condition_evaluation?`: which branch the parser's normalisation makes the surviving one.
     let result = if is_unless { !truthy } else { truthy };
-    let if_branch = Branch::of(node.field("consequence"));
+    // A modifier keeps what it guards under `body`; only the block form has a `then` clause.
+    let if_branch = Branch::of(node.field("consequence").or_else(|| node.field("body")));
     let alternative = node.field("alternative");
     let else_branch = Branch::of(alternative);
     let (if_range, else_range) = (branch_range(&if_branch), branch_range(&else_branch));

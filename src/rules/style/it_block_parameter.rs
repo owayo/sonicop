@@ -140,7 +140,10 @@ fn implicit_parameter(
         if matches!(node.kind_str(), "block" | "do_block" | "lambda") && node.id() != block.id() {
             continue;
         }
-        if node.kind_str() == "identifier" && !locals.is_lvar(node) {
+        if node.kind_str() == "identifier"
+            && !locals.is_lvar(node)
+            && is_variable_read(node, context)
+        {
             match context.source.node_text(node) {
                 "it" => has_it = true,
                 name => {
@@ -219,7 +222,10 @@ fn references<'tree>(body: Node<'tree>, name: &str, context: &RuleContext<'_>) -
     };
     stack.extend(heredocs);
     while let Some(node) = stack.pop() {
-        if node.kind_str() == "identifier" && context.source.node_text(node) == name {
+        if node.kind_str() == "identifier"
+            && context.source.node_text(node) == name
+            && is_variable_read(node, context)
+        {
             found.push(node);
         }
         // `{ name: }` is `(pair (sym :name) (lvar :name))` there, and the value the parser filled
@@ -236,4 +242,19 @@ fn references<'tree>(body: Node<'tree>, name: &str, context: &RuleContext<'_>) -
     }
     found.sort_by_key(|node| node.start_byte());
     found
+}
+
+/// Whether the name is read as a variable, which is what `each_descendant(:lvar)` asks.
+///
+/// The grammar writes a method's name with the same node it writes a variable with, so the `it` a
+/// specification names its examples with (`it 'works' do ... end`) reads as the implicit parameter
+/// unless the call is told apart. Only the name is the call -- an implicit parameter standing there
+/// as the receiver, as `it.round` does, is still a read.
+fn is_variable_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.parent_of(context).is_none_or(|parent| {
+        parent.kind_str() != "call"
+            || parent
+                .field("method")
+                .is_none_or(|method| method.id() != node.id())
+    })
 }
