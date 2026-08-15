@@ -21865,6 +21865,14 @@ mod style_file_open {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// `begin ... rescue ... end` の値として書いた形は本家では咎められない。文法は
+    /// rescue 節を本体の文と並べて置くので、本体の最後の文の値が使われていないように
+    /// 見えてしまう。
+    #[test]
+    fn the_value_of_a_begin_rescue_is_used() {
+        expect_no_offenses(COP, "a = begin\n  File.open(p1)\nrescue X\n  nil\nend\n");
+    }
 }
 
 /// `Style/FileRead`。
