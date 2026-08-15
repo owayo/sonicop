@@ -21017,8 +21017,18 @@ mod style_env_home {
             "ENV.fetch('HOME') { 'x' }\n",
             "Foo::ENV['HOME']\n",
             "ENV['PATH']\n",
+            // 代入先は上流では `indexasgn` で、`{:[] :fetch}` のどちらでもない。
+            "ENV['HOME'] = x\n",
         ] {
             expect_no_offenses(COP, source);
+        }
+        // 自己代入は読みを読みのまま残すので、こちらは対象。
+        for source in ["ENV['HOME'] += x\n", "ENV['HOME'] ||= x\n"] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/EnvHome:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
         }
     }
 }
@@ -25962,6 +25972,19 @@ mod style_fetch_env_var {
         );
     }
 
+    /// 条件が `&&` や `||` のときも、その両辺は「旗として使っている」ぶんに入る。
+    /// 上流の parser では `and` / `or` ノードで、呼び出しではない。
+    #[test]
+    fn both_sides_of_a_logical_condition_count_as_a_flag() {
+        for source in [
+            "if ENV['A'] && ENV['B']\n  x\nend\n",
+            "return if ENV['A'] && !force\n",
+            "x = 1 if ENV['A'] || ENV['B']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
     /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
     #[test]
     fn the_default_can_be_left_out() {
@@ -28516,9 +28539,26 @@ mod lint_duplicate_branch {
             "if a\n  foo\nend\n",
             "if a\n  foo\nelse\n  bar\nend\n",
             "case x\nwhen 1\n  foo\nwhen 2\n  bar\nend\n",
+            // ヒアドキュメントの中身は開始記号の下に書かれる。開始記号だけを見ると
+            // どの `<<~EOS` も同じに見えてしまう。
+            "if a\n  <<~EOS\n    one\n  EOS\nelse\n  <<~EOS\n    two\n  EOS\nend\n",
+            "case x\nwhen 1\n  <<~A\n    one\n  A\nwhen 2\n  <<~B\n    two\n  B\nend\n",
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 中身が同じなら終端記号の名前が違っても同じ枝。上流では中身だけが literal になる。
+    #[test]
+    fn two_heredocs_holding_the_same_text_are_one_branch() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  <<~A\n    same\n  A\nelse\n  <<~B\n    same\n  B\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -31563,6 +31603,31 @@ mod lint_number_conversion {
         ] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 演算子と添字も上流では呼び出しなので、シンボルの引数を見るほうの経路に入る。
+    #[test]
+    fn a_symbol_passed_to_an_operator_or_an_index_is_seen_too() {
+        for source in ["foo == :to_f\n", "h[:to_i]\n"] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 入れ子の変換は報告するが補正はしない。外側の補正が書き換えた文字列を
+    /// もう一度書き換えることになるので、本家は `ignore_node` で下りを外す。
+    #[test]
+    fn a_conversion_inside_a_corrected_one_is_reported_without_a_correction() {
+        let report = CopCase::new(COP, "Math.sqrt(a.to_f / b).round.to_i\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 2);
+        assert!(report.offenses[0].is_correctable());
+        assert!(!report.offenses[1].is_correctable());
     }
 }
 

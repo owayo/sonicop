@@ -20,6 +20,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let [object, index] = parts.as_slice() else {
             continue;
         };
+        // Writing to the variable is an `indexasgn` upstream, which the pattern's `{:[] :fetch}`
+        // never matches. The grammar writes the target with the same node a read gets, so the
+        // assignment around it is what tells them apart.
+        if is_assignment_target(node, context) {
+            continue;
+        }
         if is_env(*object, context) && is_home(*index, context) {
             offenses.push(offense(context, node));
         }
@@ -52,6 +58,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             offenses.push(offense(context, node));
         }
     }
+}
+
+/// Whether the read stands where an assignment puts what it writes to.
+///
+/// Only a plain assignment counts. `ENV['HOME'] += x` keeps the read as a read upstream -- the
+/// operator assignment is written around it -- so that one still matches the pattern.
+fn is_assignment_target(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.parent_of(context).is_some_and(|parent| {
+        parent.kind_str() == "assignment"
+            && parent
+                .field("left")
+                .is_some_and(|left| left.id() == node.id())
+    })
 }
 
 /// `(const {cbase nil?} :ENV)`: the bare `ENV` and `::ENV`, but not `Foo::ENV`.
