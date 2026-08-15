@@ -157,6 +157,7 @@ department_rules! {
     map_to_set => ("MapToSet", Convention),
     min_max_comparison => ("MinMaxComparison", Convention),
     module_member_existence_check => ("ModuleMemberExistenceCheck", Convention),
+    method_call_with_args_parentheses => ("MethodCallWithArgsParentheses", Convention),
     method_call_without_args_parentheses => ("MethodCallWithoutArgsParentheses", Convention),
 
     missing_respond_to_missing => ("MissingRespondToMissing", Convention),
