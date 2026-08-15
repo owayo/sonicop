@@ -55,6 +55,7 @@ mod security;
 mod send_node;
 mod style;
 mod support;
+mod visibility;
 
 pub(crate) use support::{push_named_children, walk_named};
 

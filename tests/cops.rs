@@ -32978,3 +32978,510 @@ mod lint_redundant_regexp_quantifiers {
         }
     }
 }
+
+/// `Layout/ClassStructure` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_class_structure {
+    use super::*;
+
+    const COP: &str = "Layout/ClassStructure";
+    const ON: &str = "Layout/ClassStructure:\n  Enabled: true\n";
+
+    /// `ExpectedOrder` の並びに反した要素を報告する。既定は module_inclusion →
+    /// constants → public_class_methods → initializer → public_methods →
+    /// protected_methods → private_class_methods → private_methods。
+    #[test]
+    fn an_element_out_of_the_expected_order_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class A
+              include Bar
+              CONST = 1
+              def self.klass; end
+              def initialize; end
+              def pub; end
+              protected
+              def prot; end
+              private
+              def priv; end
+            end
+            class B
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            class C
+              CONST = 1
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `constants`.
+            end
+            class D
+              def initialize; end
+              CONST = 1
+              ^^^^^^^^^ `constants` is supposed to appear before `initializer`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 可視性は上に書いた裸の修飾子で決まる。`private def foo` も `private` 扱い。
+    /// `private :a, :b` のように名前を複数渡した修飾子は本家のパターンに合わないので
+    /// どのメソッドも private にしない。
+    #[test]
+    fn visibility_follows_the_modifier_above() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class E
+              private
+              def priv; end
+              public
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class F
+              private def priv; end
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class G
+              def a; end
+              def b; end
+              private :a, :b
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// `private_constant` で伏せた定数は並びから外れる。補正は 1 つ前の別分類の
+    /// 兄弟の上へ、コメントごと動かす。
+    #[test]
+    fn a_private_constant_is_left_out_of_the_order() {
+        CopCase::new(
+            COP,
+            "class H\n  PRIVATE_CONST = 1\n  private_constant :PRIVATE_CONST\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class I
+              extend Foo
+              # a comment
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .corrected(
+            r#"
+            class I
+              extend Foo
+              include Bar
+              # a comment
+              def pub; end
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `module` の本体は見ない (`on_class` と `on_sclass` だけ)。
+    #[test]
+    fn a_module_body_is_not_checked() {
+        CopCase::new(
+            COP,
+            "module M\n  def pub; end\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class << self
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 定数が呼び出しの結果なら (凍らせたリテラルを除いて) 動的なので動かせない。
+    /// リテラルの中のコメントやヒアドキュメントは本家の木には無いので数に入れない。
+    #[test]
+    fn a_dynamic_constant_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class J
+              def pub; end
+              INSTANCE = create
+              ^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class K
+              def pub; end
+              FROZEN = %i[a b].freeze
+              ^^^^^^^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(true)
+        .without_offense_check()
+        .run();
+    }
+}
+
+/// `Style/PartitionInsteadOfDoubleSelect` (既定 pending) — 期待値は本家 1.89.0 の実測。
+mod style_partition_instead_of_double_select {
+    use super::*;
+
+    const COP: &str = "Style/PartitionInsteadOfDoubleSelect";
+
+    /// 位置は 2 つ目の文の全体。メッセージには前の文・後の文の順で selector が入り、
+    /// 補正は 1 つ目の文を多重代入に書き換えて 2 つ目の行ごと落とす。
+    #[test]
+    fn a_select_beside_a_reject_is_reported_on_the_second_statement() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.select { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { |x| x.ok? }\n",
+            "good, bad = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// `reject` が先でも同じ。変数の並びは常に `select` 側が先。
+    #[test]
+    fn the_select_names_the_first_half_whichever_order_it_was_written_in() {
+        expect_offense(
+            COP,
+            r"
+            bad = xs.reject { |x| x.ok? }
+            good = xs.select { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `reject` and `select` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "bad = xs.reject { |x| x.ok? }\ngood = xs.select { |x| x.ok? }\n",
+            "good, bad = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// `filter` と `find_all` も `select` の綴り。メッセージには書かれた綴りが出る。
+    #[test]
+    fn filter_and_find_all_are_spellings_of_select() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.filter { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `filter` and `reject` calls.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            good = xs.find_all { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `find_all` and `reject` calls.
+            ",
+        );
+    }
+
+    /// `&:sym` は同じことを言うブロックと釣り合う。片方だけがブロックでも同じ。
+    #[test]
+    fn a_symbol_to_proc_matches_the_block_saying_the_same_thing() {
+        expect_correction(
+            COP,
+            "good = xs.select(&:ok?)\nbad = xs.reject(&:ok?)\n",
+            "good, bad = xs.partition(&:ok?)\n",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select(&:ok?)\nbad = xs.reject { |x| x.ok? }\n",
+            "good, bad = xs.partition(&:ok?)\n",
+        );
+    }
+
+    /// 同じ selector が 2 つでも、片方の本体がもう片方の否定なら同じ組。
+    /// `partition` は真の側を先に返すので、変数の並びは selector で決まる。
+    #[test]
+    fn the_same_selector_twice_pairs_when_one_body_negates_the_other() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.select { |x| x.ok? }
+            other = xs.select { |x| !x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `select` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select { |x| x.ok? }\nother = xs.select { |x| !x.ok? }\n",
+            "good, other = xs.partition { |x| x.ok? }\n",
+        );
+        expect_correction(
+            COP,
+            "other = xs.reject { |x| !x.ok? }\ngood = xs.reject { |x| x.ok? }\n",
+            "other, good = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// 番号付き引数のブロックも組になる。ブロックの種類が食い違えば組にならない。
+    #[test]
+    fn a_numbered_parameter_pairs_only_with_another_one() {
+        expect_correction(
+            COP,
+            "good = xs.select { _1.ok? }\nbad = xs.reject { _1.ok? }\n",
+            "good, bad = xs.partition { _1.ok? }\n",
+        );
+        expect_no_offenses(
+            COP,
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { _1.ok? }\n",
+        );
+    }
+
+    /// 両方が局所変数への代入でなければ報告だけで補正はしない。
+    #[test]
+    fn a_pair_that_does_not_name_both_halves_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r"
+            @good = xs.select { |x| x.ok? }
+            @bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r"
+            xs.select { |x| x.ok? }
+            xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// `begin ... end` に直接並んだ 2 文は本家の木では `kwbegin` の子で、`begin` の
+    /// 子ではないので組にならない。`rescue` が付くと中身が `begin` になり報告される。
+    #[test]
+    fn a_written_begin_end_holds_no_pair_unless_it_rescues() {
+        expect_no_offenses(
+            COP,
+            "begin\n  good = xs.select { |x| x.ok? }\n  bad = xs.reject { |x| x.ok? }\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  good = xs.select { |x| x.ok? }\n  bad = xs.reject { |x| x.ok? }\nrescue\n  nil\nend\n",
+            "begin\n  good, bad = xs.partition { |x| x.ok? }\nrescue\n  nil\nend\n",
+        );
+    }
+
+    /// 1 行に並べた 2 文は本家が補正で自分の書き換えを踏み潰して例外になり、
+    /// offense ごと落ちる。
+    #[test]
+    fn a_pair_written_on_one_line_is_not_reported() {
+        expect_no_offenses(
+            COP,
+            "good = xs.select { |x| x.ok? }; bad = xs.reject { |x| x.ok? }\n",
+        );
+    }
+
+    /// 組にならないもの。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            // レシーバが違う。
+            "good = xs.select { |x| x.ok? }\nbad = ys.reject { |x| x.ok? }\n",
+            // ブロック引数が違う。
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { |y| y.ok? }\n",
+            // selector が対象外。
+            "good = xs.map { |x| x.ok? }\nbad = xs.map { |x| !x.ok? }\n",
+            // 間に別の文がある。
+            "good = xs.select { |x| x.ok? }\nputs 1\nbad = xs.reject { |x| x.ok? }\n",
+            // ブロックもブロック渡しも無い。
+            "good = xs.select\nbad = xs.reject\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/ClassMethodsDefinitions` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_class_methods_definitions {
+    use super::*;
+
+    const COP: &str = "Style/ClassMethodsDefinitions";
+    const ON: &str = "Style/ClassMethodsDefinitions:\n  Enabled: true\n";
+    const SELF_CLASS: &str =
+        "Style/ClassMethodsDefinitions:\n  Enabled: true\n  EnforcedStyle: self_class\n";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(ON)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は `class << self` 全体。補正は公開メソッドを外へ出し、抜け殻は残す。
+    #[test]
+    fn a_public_method_in_a_singleton_class_is_reported_on_the_class() {
+        CopCase::new(
+            COP,
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n    def class_method\n      1\n    end\n  end\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .without_offense_check()
+        .locations(&[(2, 3, 8, 5)])
+        .lengths(&[91])
+        .cop_names(&[COP])
+        .run();
+        correction(
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n    def class_method\n      1\n    end\n  end\nend\n",
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n  end\n\n  def self.class_method\n    1\n  end\nend\n",
+        );
+    }
+
+    /// メソッドしか無い `class << self` は丸ごと消え、最初の定義がその場所に座る。
+    #[test]
+    fn a_singleton_class_holding_only_methods_goes_away_with_them() {
+        correction(
+            "class Other\n  class << self\n    def only_method\n      1\n    end\n  end\nend\n",
+            "class Other\n  def self.only_method\n    1\n  end\nend\n",
+        );
+        correction(
+            "class Fifth\n  class << self\n    def a; end\n    def b; end\n  end\nend\n",
+            "class Fifth\n  def self.a; end\n\n  def self.b; end\nend\n",
+        );
+    }
+
+    /// 定義の上に書かれたコメントは一緒に動く。間の空行はコメントを切り離さない。
+    #[test]
+    fn the_comments_written_over_a_definition_travel_with_it() {
+        correction(
+            "class Third\n  class << self\n    attr_accessor :acc\n\n    # a comment\n    def one\n      1\n    end\n\n    def two\n      2\n    end\n  end\nend\n",
+            "class Third\n  class << self\n    attr_accessor :acc\n\n\n  end\n\n  # a comment\n  def self.one\n    1\n  end\n\n  def self.two\n    2\n  end\nend\n",
+        );
+        correction(
+            "class X\n  class << self\n    # comment\n\n    def a; end\n  end\nend\n",
+            "class X\n  # comment\n\n  def self.a; end\nend\n",
+        );
+        // 行末のコメントは、その行のコードのものなので動かない。
+        correction(
+            "class Z\n  class << self\n    attr_accessor :q\n    foo # trailing\n    def a; end\n  end\nend\n",
+            "class Z\n  class << self\n    attr_accessor :q\n    foo # trailing\n  end\n\n  def self.a; end\nend\n",
+        );
+    }
+
+    /// `class << self` より深く書かれた定義は、その差の分だけ左へ寄る。
+    #[test]
+    fn a_definition_indented_further_is_moved_back_by_the_difference() {
+        correction(
+            "class Deep\n  class << self\n      def deep; end\n  end\nend\n",
+            "class Deep\n  def self.deep; end\nend\n",
+        );
+    }
+
+    /// 公開でない定義が 1 つでもあれば報告しない。
+    #[test]
+    fn a_singleton_class_with_a_hidden_method_is_left_alone() {
+        for source in [
+            "class Fourth\n  class << self\n    attr_accessor :acc\n\n    private\n\n    def priv; end\n  end\nend\n",
+            "class Ninth\n  class << self\n    def a; end\n\n    private :a\n  end\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ON)
+                .run();
+        }
+    }
+
+    /// 本家の木で `def` でないものは数に入らない。修飾子に渡した定義は `send` の子で、
+    /// `def self.` は `defs` なので、どちらも動かす対象にならない。
+    #[test]
+    fn only_a_plain_def_written_straight_in_the_body_counts() {
+        correction(
+            "class Tenth\n  class << self\n    private def a; end\n    def b; end\n  end\nend\n",
+            "class Tenth\n  class << self\n    private def a; end\n  end\n\n  def self.b; end\nend\n",
+        );
+        correction(
+            "class Eleventh\n  class << self\n    def self.weird; end\n    def normal; end\n  end\nend\n",
+            "class Eleventh\n  class << self\n    def self.weird; end\n  end\n\n  def self.normal; end\nend\n",
+        );
+    }
+
+    /// 触らないもの。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            // `class << obj` は自分の特異クラスではない。
+            "class Eighth\n  class << obj\n    def x; end\n  end\nend\n",
+            // 定義が無い。
+            "class Sixth\n  class << self\n  end\nend\n",
+            "class Seventh\n  class << self\n    attr_accessor :x\n  end\nend\n",
+            // 1 行に書いた `class << self` は、本家が補正で自分の書き換えを踏み潰して
+            // 例外になり、offense ごと落ちる。
+            "class A1\n  class << self; def a; end; end\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ON)
+                .run();
+        }
+    }
+
+    /// `self_class` では逆に `def self.` を報告する。補正は無い。`def Other.x` は
+    /// このクラスの特異クラスを開かないので対象外。
+    #[test]
+    fn the_other_enforced_style_asks_for_a_singleton_class() {
+        CopCase::annotated(
+            COP,
+            r"
+            def self.top; end
+            ^^^^^^^^^^^^^^^^^ Use `class << self` to define a class method.
+            ",
+        )
+        .config(SELF_CLASS)
+        .correctable(false)
+        .run();
+        CopCase::new(
+            COP,
+            "class SomeClass\n  def Other.x; end\n  def inst; end\n  class << self\n    def a; end\n  end\nend\n",
+            Vec::new(),
+        )
+        .config(SELF_CLASS)
+        .run();
+    }
+}
