@@ -54,6 +54,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("bundler_duplicated_group")
         .path("Gemfile")
         .severity(Severity::Warning),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemComment",
+            "gem 'a'\n^^^^^^^ Missing gem description comment.\n",
+        )
+        .id("bundler_gem_comment")
+        .path("Gemfile")
+        .correctable(false),
         // `add_global_offense` はファイル先頭の長さ 0 のレンジ。メッセージには本家が
         // 検査前に絶対化したパスがそのまま入る。
         CopCase::annotated(
@@ -64,6 +72,14 @@ fn catalogue() -> Vec<CopCase> {
         .path("/tmp/example/gems.rb")
         .locations(&[(1, 1, 1, 1)])
         .lengths(&[0])
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Bundler/GemVersion",
+            "gem 'rubocop'\n^^^^^^^^^^^^^ Gem version specification is required.\n",
+        )
+        .id("bundler_gem_version")
+        .path("Gemfile")
         .correctable(false),
         CopCase::annotated(
             "Bundler/InsecureProtocolSource",
@@ -88,6 +104,59 @@ fn catalogue() -> Vec<CopCase> {
         .path("Gemfile")
         .correctable(true),
         // ---- Gemspec ----
+        CopCase::annotated(
+            "Gemspec/AddRuntimeDependency",
+            "spec.add_runtime_dependency 'rake'\n     ^^^^^^^^^^^^^^^^^^^^^^ Use `add_dependency` instead of `add_runtime_dependency`.\n",
+        )
+        .id("gemspec_add_runtime_dependency")
+        .path("example.gemspec")
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/AttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.metadata = {}
+              spec.metadata['a'] = 'b'
+              ^^^^^^^^^^^^^^^^^^^^^^^^ Use consistent style for Gemspec attributes assignment.
+            end
+            "#,
+        )
+        .id("gemspec_attribute_assignment")
+        .path("example.gemspec")
+        .correctable(false),
+        // 既定無効なので `--only` で強制的に有効にして測る。
+        CopCase::annotated(
+            "Gemspec/DependencyVersion",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.add_dependency 'rubocop'
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Dependency version specification is required.
+            end
+            "#,
+        )
+        .id("gemspec_dependency_version")
+        .path("example.gemspec")
+        .correctable(false),
+        CopCase::annotated(
+            "Gemspec/DeprecatedAttributeAssignment",
+            r#"
+            Gem::Specification.new do |spec|
+              spec.date = Time.now
+              ^^^^^^^^^^^^^^^^^^^^ Do not set `date` in gemspec.
+            end
+            "#,
+        )
+        .id("gemspec_deprecated_attribute_assignment")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Gemspec/DevelopmentDependencies",
+            "spec.add_development_dependency 'rspec'\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Specify development dependencies in Gemfile.\n",
+        )
+        .id("gemspec_development_dependencies")
+        .path("example.gemspec")
+        .correctable(false),
         CopCase::annotated(
             "Gemspec/DuplicatedAssignment",
             r#"
@@ -115,6 +184,21 @@ fn catalogue() -> Vec<CopCase> {
         .id("gemspec_ordered_dependencies")
         .path("example.gemspec")
         .correctable(true),
+        // ブロック全体が報告され、`end` の直前に設定が書き足される。
+        CopCase::annotated(
+            "Gemspec/RequireMFA",
+            r#"
+            Gem::Specification.new do |spec|
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `metadata['rubygems_mfa_required']` must be set to `'true'`.
+              spec.name = 'x'
+            end
+            "#,
+        )
+        .id("gemspec_require_mfa")
+        .path("example.gemspec")
+        .severity(Severity::Warning)
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[54]),
         // `add_global_offense`。宣言が 1 つも無いこと自体が offense なので、指す構文が無い。
         CopCase::annotated(
             "Gemspec/RequiredRubyVersion",
@@ -178,6 +262,20 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 2, 3)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/EmptyLineAfterMultilineCondition",
+            r#"
+            if a &&
+               ^^^^ Use empty line after multiline condition.
+               b
+              do_x
+            end
+            "#,
+        )
+        .id("layout_empty_line_after_multiline_condition")
+        .locations(&[(1, 4, 2, 4)])
+        .lengths(&[9])
+        .correctable(true),
+        CopCase::annotated(
             "Layout/EmptyLineAfterGuardClause",
             r#"
             def foo
@@ -189,6 +287,18 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_empty_line_after_guard_clause")
         .locations(&[(2, 3, 2, 13)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/EmptyLinesAfterModuleInclusion",
+            r#"
+            class A
+              include Foo
+              ^^^^^^^^^^^ Add an empty line after module inclusion.
+              def bar; end
+            end
+            "#,
+        )
+        .id("layout_empty_lines_after_module_inclusion")
         .correctable(true),
         CopCase::annotated(
             "Layout/EmptyLinesAroundAccessModifier",
@@ -229,6 +339,30 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_first_hash_element_indentation")
         .locations(&[(2, 5, 2, 8), (3, 3, 3, 3)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstArrayElementLineBreak",
+            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n  2]\n",
+        )
+        .id("layout_first_array_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstHashElementLineBreak",
+            "a = { b: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n  c: 2 }\n",
+        )
+        .id("layout_first_hash_element_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodArgumentLineBreak",
+            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n  2)\n",
+        )
+        .id("layout_first_method_argument_line_break")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/FirstMethodParameterLineBreak",
+            "def m(x,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n  y); end\n",
+        )
+        .id("layout_first_method_parameter_line_break")
         .correctable(true),
         CopCase::annotated(
             "Layout/FirstArgumentIndentation",
@@ -315,6 +449,28 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_indentation_width")
         .locations(&[(2, 1, 2, 4)])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationLeadingSpace",
+            "x = 'foo' \\\n    ' bar'\n     ^ Move leading spaces to the end of the previous line.\n",
+        )
+        .id("layout_line_continuation_leading_space")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineContinuationSpacing",
+            "x = 1 +  \\\n       ^^^ Use one space in front of backslash.\n  2\n",
+        )
+        .id("layout_line_continuation_spacing")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/LineEndStringConcatenationIndentation",
+            r#"
+            text = 'offense' \
+              'here'
+              ^^^^^^ Align parts of a string concatenated with backslash.
+            "#,
+        )
+        .id("layout_line_end_string_concatenation_indentation")
         .correctable(true),
         CopCase::annotated(
             "Layout/LineLength",
@@ -601,6 +757,41 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(3, 1, 3, 1)])
         .correctable(true),
         CopCase::annotated(
+            "Layout/MultilineArrayLineBreaks",
+            "a = [1, 2,\n        ^ Each item in a multi-line array must start on a separate line.\n  3]\n",
+        )
+        .id("layout_multiline_array_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineHashKeyLineBreaks",
+            "a = { b: 1, c: 2,\n            ^^^^ Each key in a multi-line hash must start on a separate line.\n  d: 3 }\n",
+        )
+        .id("layout_multiline_hash_key_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodArgumentLineBreaks",
+            "foo(1, 2,\n       ^ Each argument in a multi-line method call must start on a separate line.\n  3)\n",
+        )
+        .id("layout_multiline_method_argument_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineMethodParameterLineBreaks",
+            "def m(x, y,\n         ^ Each parameter in a multi-line method definition must start on a separate line.\n  z); end\n",
+        )
+        .id("layout_multiline_method_parameter_line_breaks")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/MultilineAssignmentLayout",
+            r#"
+            foo = if bar
+            ^^^^^^^^^^^^ Right hand side of multi-line assignment is on the same line as the assignment operator `=`.
+                    1
+                  end
+            "#,
+        )
+        .id("layout_multiline_assignment_layout")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/MultilineArrayBraceLayout",
             r#"
             [ :a,
@@ -864,6 +1055,12 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[1])
         .correctable(true),
         CopCase::annotated(
+            "Layout/SingleLineBlockChain",
+            "a = b.map { |x| x }.first\n                   ^^^^^^ Put method call on a separate line if chained to a single line block.\n",
+        )
+        .id("layout_single_line_block_chain")
+        .correctable(true),
+        CopCase::annotated(
             "Layout/SpaceAfterColon",
             r#"
             h = {a:3}
@@ -889,6 +1086,12 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("layout_space_after_semicolon")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/SpaceBeforeBrackets",
+            "collection = [1, 2]\ncollection [0]\n          ^ Remove the space before the opening brackets.\n",
+        )
+        .id("layout_space_before_brackets")
         .correctable(true),
         CopCase::annotated(
             "Layout/SpaceBeforeComma",
@@ -2763,6 +2966,132 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_duplicate_branch")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/NonAtomicFileOperation",
+            r#"
+            unless File.exist?(path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^ Remove unnecessary existence check `File.exist?`.
+              FileUtils.mkdir_p(path)
+            end
+            "#,
+        )
+        .id("lint_non_atomic_file_operation")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ConstantReassignment",
+            r#"
+            FOO = 1
+            FOO = 2
+            ^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            "#,
+        )
+        .id("lint_constant_reassignment")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // 本家は `AllCops: UseProjectIndex` を立てて `rubydex` を入れたときしか索引を
+        // 持たず、既定では何も報告しない。
+        CopCase::new(
+            "Lint/DeprecatedReference",
+            "# @deprecated Use bar instead.\ndef foo; end\nfoo\n",
+            Vec::new(),
+        )
+        .id("lint_deprecated_reference"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/NumberConversion",
+            r#"
+            "10".to_i
+            ^^^^^^^^^ Replace unsafe number conversion with number class parsing, instead of using `"10".to_i`, use stricter `Integer("10", 10)`.
+            "#,
+        )
+        .id("lint_number_conversion")
+        .config("Lint/NumberConversion:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantTypeConversion",
+            r#"
+            "foo".to_s
+                  ^^^^ Redundant `to_s` detected.
+            "#,
+        )
+        .id("lint_redundant_type_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/SymbolConversion",
+            r#"
+            "foo".to_sym
+            ^^^^^^^^^^^^ Unnecessary symbol conversion; use `:foo` instead.
+            "#,
+        )
+        .id("lint_symbol_conversion")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/ToEnumArguments",
+            r#"
+            def bar(x)
+              return to_enum(:bar) unless block_given?
+                     ^^^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            "#,
+        )
+        .id("lint_to_enum_arguments")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnmodifiedReduceAccumulator",
+            r#"
+            values.reduce({}) do |acc, el|
+              el
+              ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+            end
+            "#,
+        )
+        .id("lint_unmodified_reduce_accumulator")
+        .severity(Severity::Warning)
+        .correctable(false),
+        // どちらも `AllCops: UseProjectIndex` + `rubydex` のときしか索引を持たず、既定では
+        // 何も報告しない。
+        CopCase::new(
+            "Lint/UnusedPrivateMethod",
+            "class C\n  private\n  def unused_one; end\nend\n",
+            Vec::new(),
+        )
+        .id("lint_unused_private_method"),
+        CopCase::new("Lint/NameTypo", "Foo::Barr\nFoo.barr\n", Vec::new()).id("lint_name_typo"),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/HeredocMethodCallPosition",
+            r#"
+            x = <<~SQL
+              bar
+            SQL
+              .strip
+            ^ Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.
+            "#,
+        )
+        .id("lint_heredoc_method_call_position")
+        .config("Lint/HeredocMethodCallPosition:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
+        CopCase::annotated(
+            "Lint/ShadowingOuterLocalVariable",
+            r#"
+            def m
+              x = 1
+              [1].each { |x| }
+                          ^ Shadowing outer local variable - `x`.
+            end
+            "#,
+        )
+        .id("lint_shadowing_outer_local_variable")
+        .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
@@ -2818,6 +3147,13 @@ fn catalogue() -> Vec<CopCase> {
         .id("metrics_class_length")
         .config("Metrics/ClassLength:\n  Max: 1\n")
         .locations(&[(1, 1, 4, 3)]),
+        CopCase::annotated(
+            "Metrics/CollectionLiteralLength",
+            "[1, 2, 3]\n^^^^^^^^^ Avoid hard coding large quantities of data in code. Prefer reading the data from an external source.\n",
+        )
+        .id("metrics_collection_literal_length")
+        .config("Metrics/CollectionLiteralLength:\n  Max: 3\n")
+        .correctable(false),
         CopCase::annotated(
             "Metrics/CyclomaticComplexity",
             r#"
@@ -2946,6 +3282,19 @@ fn catalogue() -> Vec<CopCase> {
         // `UncommunicativeName` のレンジは引数の先頭から名前の文字数ぶん。`*` は 1 文字
         // ぶん伸び、`&` は伸びないので名前の途中で切れる。
         CopCase::annotated(
+            "Naming/BlockForwarding",
+            r#"
+            def foo(&block)
+                    ^^^^^^ Use anonymous block forwarding.
+              bar(&block)
+                  ^^^^^^ Use anonymous block forwarding.
+            end
+            "#,
+        )
+        .id("naming_block_forwarding")
+        .target_ruby("3.1")
+        .correctable(true),
+        CopCase::annotated(
             "Naming/BlockParameterName",
             r#"
             bar { |xA, *yB, &zC| xA }
@@ -3020,6 +3369,14 @@ fn catalogue() -> Vec<CopCase> {
         .correctable(false),
         // メモ化は本体の末尾にあるときだけ見られ、`defined?` 形式は 3 か所すべてが
         // 報告される。
+        // 既定無効。`CheckFilepaths` はテスト用の一時ディレクトリを読むので切っておく。
+        CopCase::annotated(
+            "Naming/InclusiveLanguage",
+            "whitelist = 1\n^^^^^^^^^ Consider replacing 'whitelist' with 'allowlist' or 'permit'.\n",
+        )
+        .id("naming_inclusive_language")
+        .config("Naming/InclusiveLanguage:\n  CheckFilepaths: false\n")
+        .correctable(false),
         CopCase::annotated(
             "Naming/MemoizedInstanceVariableName",
             r#"
@@ -3056,6 +3413,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("naming_method_parameter_name")
         .correctable(false),
         // 接頭辞のあとが数字だったり、名前が `=` で終われば免れる。
+        CopCase::annotated(
+            "Naming/PredicateMethod",
+            r#"
+            def foo
+                ^^^ Predicate method names should end with `?`.
+              x == y
+            end
+            "#,
+        )
+        .id("naming_predicate_method")
+        .correctable(false),
         CopCase::annotated(
             "Naming/PredicatePrefix",
             r#"
@@ -3118,6 +3486,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("security_eval")
         .severity(Severity::Convention),
+        CopCase::annotated(
+            "Security/CompoundHash",
+            r#"
+            def hash
+              a.hash ^ b.hash
+              ^^^^^^^^^^^^^^^ Use `[...].hash` instead of combining hash values manually.
+            end
+            "#,
+        )
+        .id("security_compound_hash")
+        .correctable(false),
+        CopCase::annotated(
+            "Security/IoMethods",
+            "IO.read('x')\n^^^^^^^^^^^^ `File.read` is safer than `IO.read`.\n",
+        )
+        .id("security_io_methods")
+        .correctable(true),
         CopCase::annotated(
             "Security/JSONLoad",
             r#"
@@ -4705,149 +5090,110 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_map_into_array")
         .correctable(true),
-        // ---- Layout (pending) ----
-        // 位置は受け手と `[` のあいだの空白 1 文字。
+        // 位置は鍵の文字列だけ。
         CopCase::annotated(
-            "Layout/SpaceBeforeBrackets",
-            "collection = {}\ncollection [index] = value\n          ^ Remove the space before the opening brackets.\n",
+            "Style/StringHashKeys",
+            r"
+            { 'a' => 1 }
+              ^^^ Prefer symbols instead of strings as hash keys.
+            ",
         )
-        .id("layout_space_before_brackets")
+        .id("style_string_hash_keys")
         .correctable(true),
-        // 位置は空白とバックスラッシュをまとめた範囲。空白が無いときは `\` 1 文字だけ。
+        // 位置は `[...]` の部分。
         CopCase::annotated(
-            "Layout/LineContinuationSpacing",
-            "foo = 1 +\\\n         ^ Use one space in front of backslash.\n  2\n",
+            "Style/ArrayFirstLast",
+            r"
+            a[0]
+             ^^^ Use `first`.
+            ",
         )
-        .id("layout_line_continuation_spacing")
+        .id("style_array_first_last")
         .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/RedundantInitialize", "class A\n  def initialize\n  end\nend\n")
+            .id("style_redundant_initialize")
+            .without_offense_check()
+            .locations(&[(2, 3, 3, 5)])
+            .lengths(&[20])
+            .correctable(true),
+        // 位置は添字の式だけ。
         CopCase::annotated(
-            "Layout/LineContinuationLeadingSpace",
-            "a = 'this text is too' \\\n    ' long'\n     ^ Move leading spaces to the end of the previous line.\n",
+            "Style/NegativeArrayIndex",
+            r"
+            arr[arr.length - 1]
+                ^^^^^^^^^^^^^^ Use `arr[-1]` instead of `arr[arr.length - 1]`.
+            ",
         )
-        .id("layout_line_continuation_leading_space")
+        .id("style_negative_array_index")
         .correctable(true),
-        CopCase::annotated(
-            "Layout/EmptyLinesAfterModuleInclusion",
-            "class A\n  include Foo\n  ^^^^^^^^^^^ Add an empty line after module inclusion.\n  def bar; end\nend\n",
-        )
-        .id("layout_empty_lines_after_module_inclusion")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/LineEndStringConcatenationIndentation",
-            "text = 'offense' \\\n  'not aligned'\n  ^^^^^^^^^^^^^ Align parts of a string concatenated with backslash.\n",
-        )
-        .id("layout_line_end_string_concatenation_indentation")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/FirstArrayElementLineBreak",
-            "a = [1,\n     ^ Add a line break before the first element of a multi-line array.\n     2]\n",
-        )
-        .id("layout_first_array_element_line_break")
-        .config("Layout/FirstArrayElementLineBreak:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/FirstHashElementLineBreak",
-            "h = { a: 1,\n      ^^^^ Add a line break before the first element of a multi-line hash.\n      b: 2 }\n",
-        )
-        .id("layout_first_hash_element_line_break")
-        .config("Layout/FirstHashElementLineBreak:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/FirstMethodArgumentLineBreak",
-            "foo(1,\n    ^ Add a line break before the first argument of a multi-line method argument list.\n    2)\n",
-        )
-        .id("layout_first_method_argument_line_break")
-        .config("Layout/FirstMethodArgumentLineBreak:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/FirstMethodParameterLineBreak",
-            "def m(a,\n      ^ Add a line break before the first parameter of a multi-line method parameter list.\n      b)\nend\n",
-        )
-        .id("layout_first_method_parameter_line_break")
-        .config("Layout/FirstMethodParameterLineBreak:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/MultilineArrayLineBreaks",
-            "m = [\n  1, 2,\n     ^ Each item in a multi-line array must start on a separate line.\n  3\n]\n",
-        )
-        .id("layout_multiline_array_line_breaks")
-        .config("Layout/MultilineArrayLineBreaks:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/MultilineHashKeyLineBreaks",
-            "m = {\n  a: 1, b: 2,\n        ^^^^ Each key in a multi-line hash must start on a separate line.\n  c: 3\n}\n",
-        )
-        .id("layout_multiline_hash_key_line_breaks")
-        .config("Layout/MultilineHashKeyLineBreaks:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/MultilineMethodArgumentLineBreaks",
-            "m = foo(\n  1, 2,\n     ^ Each argument in a multi-line method call must start on a separate line.\n  3\n)\n",
-        )
-        .id("layout_multiline_method_argument_line_breaks")
-        .config("Layout/MultilineMethodArgumentLineBreaks:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/MultilineMethodParameterLineBreaks",
-            "def m(\n  a, b,\n     ^ Each parameter in a multi-line method definition must start on a separate line.\n  c\n)\nend\n",
-        )
-        .id("layout_multiline_method_parameter_line_breaks")
-        .config("Layout/MultilineMethodParameterLineBreaks:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/SingleLineBlockChain",
-            "foo { }.bar\n       ^^^^ Put method call on a separate line if chained to a single line block.\n",
-        )
-        .id("layout_single_line_block_chain")
-        .config("Layout/SingleLineBlockChain:\n  Enabled: true\n")
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/HeredocArgumentClosingParenthesis",
-            "foo(<<~SQL\n  text\nSQL\n)\n^ Put the closing parenthesis for a method call with a HEREDOC parameter on the same line as the HEREDOC opening.\n",
-        )
-        .id("layout_heredoc_argument_closing_parenthesis")
-        .config("Layout/HeredocArgumentClosingParenthesis:\n  Enabled: true\n")
-        .locations(&[(4, 1, 4, 1)])
-        .lengths(&[1])
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/ClassStructure",
-            r#"
-            class A
-              def m
-                1
-              end
-
-              include M
-              ^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
-            end
-            "#,
-        )
-        .id("layout_class_structure")
-        .config("Layout/ClassStructure:\n  Enabled: true\n")
-        .locations(&[(6, 3, 6, 11)])
-        .lengths(&[9])
-        .correctable(true),
-        // 位置は条件式全体。複数行なので注記では表せない。
-        CopCase::annotated(
-            "Layout/EmptyLineAfterMultilineCondition",
-            "if a &&\n   b\n  foo\nend\n",
-        )
-        .id("layout_empty_line_after_multiline_condition")
-        .config("Layout/EmptyLineAfterMultilineCondition:\n  Enabled: true\n")
-        .without_offense_check()
-        .locations(&[(1, 4, 2, 4)])
-        .lengths(&[9])
-        .correctable(true),
-        // 位置は代入全体。
-        CopCase::annotated("Layout/MultilineAssignmentLayout", "x = if a\n  1\nend\n")
-            .id("layout_multiline_assignment_layout")
-            .config("Layout/MultilineAssignmentLayout:\n  Enabled: true\n")
+        // 位置はクラス全体。
+        CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
+            .id("style_static_class")
             .without_offense_check()
             .locations(&[(1, 1, 3, 3)])
-            .lengths(&[16])
+            .lengths(&[31])
             .correctable(true),
+        // 位置は括弧ごと。
+        CopCase::annotated(
+            "Style/RedundantArgument",
+            r"
+            a.join('')
+                  ^^^^ Argument '' is redundant because it is implied by default.
+            ",
+        )
+        .id("style_redundant_argument")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/QuotedSymbols",
+            r#"
+            :"a"
+            ^^^^ Prefer single-quoted symbols when you don't need string interpolation or special symbols.
+            "#,
+        )
+        .id("style_quoted_symbols")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantRegexpArgument",
+            r"
+            'a'.split(/,/)
+                      ^^^ Use string `','` as argument instead of regexp `/,/`.
+            ",
+        )
+        .id("style_redundant_regexp_argument")
+        .correctable(true),
+        // 位置はドット 1 文字。
+        CopCase::annotated(
+            "Style/OperatorMethodCall",
+            r"
+            foo.+(bar)
+               ^ Redundant dot detected.
+            ",
+        )
+        .id("style_operator_method_call")
+        .correctable(true),
+        // 位置は selector。
+        CopCase::annotated(
+            "Style/ReduceToHash",
+            r"
+            xs.each_with_object({}) { |e, h| h[e] = e * 2 }
+               ^^^^^^^^^^^^^^^^ Use `to_h { ... }` instead of `each_with_object`.
+            ",
+        )
+        .id("style_reduce_to_hash")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/DocumentationMethod",
+            r"
+            def foo; end
+            ^^^^^^^^^^^^ Missing method documentation comment.
+            ",
+        )
+        .id("style_documentation_method")
+        .correctable(false),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        // ---- Layout (pending) ----
+        // 位置は受け手と `[` のあいだの空白 1 文字。
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",
@@ -5882,6 +6228,33 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_safe_navigation")
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/HeredocArgumentClosingParenthesis",
+            "foo(<<~SQL\n  text\nSQL\n)\n^ Put the closing parenthesis for a method call with a HEREDOC parameter on the same line as the HEREDOC opening.\n",
+        )
+        .id("layout_heredoc_argument_closing_parenthesis")
+        .config("Layout/HeredocArgumentClosingParenthesis:\n  Enabled: true\n")
+        .locations(&[(4, 1, 4, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/ClassStructure",
+            r#"
+            class A
+              def m
+                1
+              end
+
+              include M
+              ^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .id("layout_class_structure")
+        .config("Layout/ClassStructure:\n  Enabled: true\n")
+        .locations(&[(6, 3, 6, 11)])
+        .lengths(&[9])
         .correctable(true),
         CopCase::annotated(
             "Style/RedundantParentheses",

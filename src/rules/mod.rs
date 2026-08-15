@@ -50,6 +50,7 @@ mod naming;
 mod node_ext;
 mod ordered_gem;
 mod regex_cache;
+pub(crate) mod ruby_literal;
 mod security;
 mod send_node;
 mod style;

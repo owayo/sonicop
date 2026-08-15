@@ -43,11 +43,33 @@ pub(super) fn specification_variable<'a>(
 }
 
 /// The variable the file's first specification block names itself by, which is the only receiver
-/// `Gemspec/DuplicatedAssignment` treats as the specification.
+/// the `GemspecHelp` cops treat as the specification.
+///
+/// Upstream's `match_block_variable_name?` returns out of the search on its first match, so a file
+/// that opens two specifications is read against the first one's parameter alone.
 pub(super) fn first_specification_variable<'a>(context: &'a RuleContext<'_>) -> Option<&'a str> {
     context
         .nodes_of("call")
         .find_map(|call| specification_variable(call, context))
+}
+
+/// The names a specification can be reached by besides the block parameter it was opened with:
+/// upstream writes them into the pattern itself, so they match whether or not the file opens a
+/// specification at all.
+const NUMBERED_PARAMETERS: &[&str] = &["_1", "it"];
+
+/// Whether `receiver` is the specification, as `(lvar {#match_block_variable_name? :_1 :it})` reads
+/// it.
+pub(super) fn is_specification_receiver(
+    receiver: Node<'_>,
+    variable: Option<&str>,
+    context: &RuleContext<'_>,
+) -> bool {
+    if receiver.kind_str() != "identifier" {
+        return false;
+    }
+    let name = context.source.node_text(receiver);
+    Some(name) == variable || NUMBERED_PARAMETERS.contains(&name)
 }
 
 /// The `Gem::Specification.new` block `node` sits inside, identified by where that block starts.
@@ -102,4 +124,31 @@ fn binds_a_local(node: Node<'_>) -> bool {
         "for" => parent.field("pattern") == Some(node),
         _ => false,
     }
+}
+
+/// `node.literal?`: what a `literal?` in a node pattern accepts.
+pub(super) fn is_literal(node: Node<'_>) -> bool {
+    matches!(
+        node.kind_str(),
+        "string"
+            | "chained_string"
+            | "bare_string"
+            | "character"
+            | "simple_symbol"
+            | "delimited_symbol"
+            | "integer"
+            | "float"
+            | "rational"
+            | "complex"
+            | "true"
+            | "false"
+            | "nil"
+            | "array"
+            | "string_array"
+            | "symbol_array"
+            | "hash"
+            | "range"
+            | "regex"
+            | "subshell"
+    )
 }

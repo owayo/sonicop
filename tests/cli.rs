@@ -501,7 +501,8 @@ fn a_default_run_stays_silent_on_stderr() {
 /// 未実装 cop を名指しで有効にしたら、検査されなかったことを stderr で知らせる。
 ///
 /// 黙って 0 件を返すと「違反なし」と読めてしまうが、RuboCop なら報告する。
-/// `Style/StringHashKeys` を実装したら、まだ実装していない別の cop へ差し替えること。
+/// `Style/MethodCallWithArgsParentheses` を実装したら、まだ実装していない別の cop へ
+/// 差し替えること。
 #[test]
 fn naming_an_unimplemented_cop_warns_on_stderr() {
     let directory = project(&[("example.rb", "value = 1\n")]);
@@ -509,7 +510,7 @@ fn naming_an_unimplemented_cop_warns_on_stderr() {
         .args([
             "--force-default-config",
             "--only",
-            "Style/StringHashKeys",
+            "Style/MethodCallWithArgsParentheses",
             "--format",
             "json",
         ])
@@ -519,7 +520,7 @@ fn naming_an_unimplemented_cop_warns_on_stderr() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("Style/StringHashKeys"),
+        stderr.contains("Style/MethodCallWithArgsParentheses"),
         "警告に cop 名が出ていない: {stderr}"
     );
 

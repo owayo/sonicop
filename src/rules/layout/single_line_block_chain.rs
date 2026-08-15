@@ -1,4 +1,4 @@
-//! `Layout/SingleLineBlockChain`: a call chained onto a block that fits on one line.
+use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
@@ -6,28 +6,35 @@ use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Put method call on a separate line if chained to a single line block.";
 
+/// The connectors `Send#loc.dot` covers.
+const DOTS: &[&str] = &[".", "&.", "::"];
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
-        let (Some(receiver), Some(dot)) = (node.field("receiver"), node.field("operator")) else {
+        // `return unless receiver&.any_block_type?`: the call has to be chained onto a block.
+        let Some(receiver) = node.field("receiver") else {
             continue;
         };
-        // `receiver&.any_block_type?`: the call has to hang off a block.
-        let Some(block) = receiver.field("block") else {
+        let Some(block) = block_of(receiver) else {
             continue;
         };
-        // A block already spread over several lines reads fine.
-        let closing_line = block.end_position().row;
-        if block.start_position().row < closing_line {
+        // `return if receiver_location.begin.line < closing_block_delimiter_line_num`: a block
+        // spread over several lines is already broken up.
+        let closing_line = context.source.line_column(block.end_byte()).0;
+        if context.source.line_column(block.start_byte()).0 < closing_line {
             continue;
         }
-        // `selector_range`: a `.()` call has no selector, and the `(` stands in for it.
-        let Some(selector) = node.field("method").or_else(|| opening_paren(node)) else {
+        let Some(dot) = dot_of(node, receiver, context) else {
             continue;
         };
-        // `call_method_after_block?`: the dot is still on the block's closing line, and it comes
-        // before the selector.
-        if dot.start_position().row > closing_line
-            || dot.start_position().column >= selector.start_position().column
+        let Some(selector) = node.field("method") else {
+            continue;
+        };
+        let (dot_line, dot_column) = context.source.line_column(dot.start_byte());
+        // `call_method_after_block?`: the call was written on the block's own closing line, to the
+        // right of the dot.
+        if dot_line > closing_line
+            || dot_column >= context.source.line_column(selector.start_byte()).1
         {
             continue;
         }
@@ -41,9 +48,27 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// The `(` of a `.()` call, which upstream reads as `loc.begin`.
-fn opening_paren<'tree>(node: tree_sitter::Node<'tree>) -> Option<tree_sitter::Node<'tree>> {
-    let list = node.field("arguments")?;
-    let first = list.child(0)?;
-    (first.kind_str() == "(").then_some(first)
+/// The `{`/`do` .. `}`/`end` the receiver closes with, when the receiver is a block at all.
+///
+/// A call written with a block is two nodes upstream -- a `block` wrapped around the `send` -- and
+/// one here, so the block is found on the receiver rather than beside it.
+fn block_of<'tree>(receiver: Node<'tree>) -> Option<Node<'tree>> {
+    match receiver.kind_str() {
+        "call" => receiver.field("block"),
+        // `-> { }.call` is a `block` upstream too.
+        "lambda" => receiver.field("body"),
+        _ => None,
+    }
+}
+
+/// `node.loc.dot`: the connector written between the receiver and the method name.
+fn dot_of<'tree>(
+    node: Node<'tree>,
+    receiver: Node<'_>,
+    context: &RuleContext<'_>,
+) -> Option<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .filter(|child| !child.is_named() && child.start_byte() >= receiver.end_byte())
+        .find(|child| DOTS.contains(&context.source.node_text(*child)))
 }

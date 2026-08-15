@@ -1,48 +1,41 @@
-//! `Layout/FirstArrayElementLineBreak`.
-
-use super::element_line_breaks::{check_children_line_break, literal_elements};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+use super::element_line_breaks::{ARRAYS, children_line_break, elements, line_of};
+
 const MSG: &str = "Add a line break before the first element of a multi-line array.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let allow_implicit = context
-        .setting::<bool>("AllowImplicitArrayLiterals")
+    let allow_implicit: bool = context
+        .setting("AllowImplicitArrayLiterals")
         .unwrap_or(false);
-    let ignore_last = context
-        .setting::<bool>("AllowMultilineFinalElement")
-        .unwrap_or(false);
-    for node in context.nodes_of_any(&["array", "string_array", "symbol_array", "right_assignment_list"])
-    {
-        // `node.loc.begin`: an array written without brackets only counts when an assignment
-        // opened it on the same line.
-        let bracketed = node.kind_str() != "right_assignment_list";
-        if !bracketed && !assignment_on_same_line(context, node.start_byte()) {
+    let ignore_last: bool = context.setting("AllowMultilineFinalElement").unwrap_or(false);
+    for node in context.nodes_of_any(ARRAYS) {
+        // `node.loc.begin`: only the bracketless list has none, and then the array is checked only
+        // when it stands on the right of an assignment.
+        let delimited = !matches!(node.kind_str(), "right_assignment_list" | "exceptions");
+        if !delimited && !assignment_on_same_line(node, context) {
             continue;
         }
-        // `node.bracketed?` is `square_brackets? || percent_literal?`, so only an array written
-        // without any opening at all is the implicit one.
-        if allow_implicit && !bracketed {
+        // `node.bracketed?` is `square_brackets? || percent_literal?`: a `%w[]` is bracketed too.
+        if allow_implicit && !delimited {
             continue;
         }
-        let children = literal_elements(node);
-        check_children_line_break(
-            context,
-            MSG,
-            node.start_byte(),
-            &children,
-            ignore_last,
-            offenses,
-        );
+        let children = elements(node, context);
+        if children.is_empty() {
+            continue;
+        }
+        offenses.extend(children_line_break(
+            context, node, &children, ignore_last, MSG,
+        ));
     }
 }
 
-/// `assignment_on_same_line?`: what stands before the array on its line ends with `=`.
-fn assignment_on_same_line(context: &RuleContext<'_>, start: usize) -> bool {
-    let line = context.source.line_column(start).0;
-    let column = context.source.line_column(start).1 - 1;
-    let prefix: String = context.source.line(line).chars().take(column).collect();
+/// `assignment_on_same_line?`: the text in front of the list closes with the `=` that assigned it.
+fn assignment_on_same_line(node: tree_sitter::Node<'_>, context: &RuleContext<'_>) -> bool {
+    let line = context.source.line(line_of(node.start_byte(), context));
+    let column = context.source.line_column(node.start_byte()).1 - 1;
+    let prefix: String = line.chars().take(column).collect();
     prefix.trim_end().ends_with('=')
 }

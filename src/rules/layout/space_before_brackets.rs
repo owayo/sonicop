@@ -1,24 +1,23 @@
-//! `Layout/SpaceBeforeBrackets`: a blank between a receiver and the `[` that indexes it.
-
-use std::ops::Range;
-
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::arguments;
+use crate::rules::send_node::named_children;
 
 const MSG: &str = "Remove the space before the opening brackets.";
 
-/// Receiver kinds that are values whatever they are called, so `x [1]` indexes them.
-const ALWAYS_A_VALUE: &[&str] = &["instance_variable", "global_variable", "class_variable"];
-
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    // `RESTRICT_ON_SEND = %i[[] []=]` with `return if node.loc.dot`: a call written `a.[](1)` is
+    // passed over, which leaves the bracket form alone.
     for node in context.nodes_of_any(&["element_reference", "call"]) {
-        let Some(range) = gap(node, context) else {
+        let Some((receiver_end, bracket_start)) = index_gap(node, context) else {
             continue;
         };
+        if receiver_end >= bracket_start {
+            continue;
+        }
+        let range = receiver_end..bracket_start;
         offenses.push(context.offense(MSG, range.clone()).corrected_by(Edit {
             start: range.start,
             end: range.end,
@@ -28,70 +27,47 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// The `[` a subscript opens with.
-fn opening_bracket<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| !child.is_named() && child.kind_str() == "[")
-}
-
-/// The span between the end of the receiver and the `[`, when there is one.
-fn gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<Range<usize>> {
-    let (receiver_end, bracket_start) = match node.kind_str() {
+/// Where the receiver ends and the `[` begins, for the nodes upstream reads as an index.
+///
+/// The grammar cannot tell `collection [0]` -- an index read written with a space -- from
+/// `undefined_method [0]`, a call handed an array; Ruby settles it by whether the name is a local
+/// variable, and writes the first as `element_reference` only once an `=` follows. So the second
+/// shape has to be recovered from the variable analysis: a receiverless call whose name is a local
+/// variable and whose sole argument is a bracketed array is the index `(send (lvar _) :[] _)`.
+fn index_gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usize, usize)> {
+    match node.kind_str() {
         "element_reference" => {
             let object = node.field("object")?;
-            let bracket = opening_bracket(node)?;
-            (object.end_byte(), bracket.start_byte())
+            let bracket = opening_bracket(node, context)?;
+            Some((object.end_byte(), bracket.start_byte()))
         }
-        // `a [1]` is indexing to Ruby whenever `a` names a value, but the grammar reads the blank
-        // as separating a call from an array argument. Upstream's parser has already decided, so
-        // the shape has to be put back: a receiverless call of one array literal whose "name" is a
-        // local variable or a variable of another kind.
-        "call" => {
+        _ => {
             if node.field("receiver").is_some() || node.field("block").is_some() {
                 return None;
             }
-            let name = node.field("method")?;
-            let value = match name.kind_str() {
-                "identifier" => names_a_local_variable(name, context),
-                kind => ALWAYS_A_VALUE.contains(&kind),
-            };
-            if !value {
+            let method = node.field("method")?;
+            if !context.variable_roles().names_a_local(method) {
                 return None;
             }
-            let list = arguments(node);
-            let [only] = list.as_slice() else {
+            let arguments = node.field("arguments")?;
+            let children = named_children(arguments);
+            let [argument] = children.as_slice() else {
                 return None;
             };
-            let array = only.first();
-            if array.kind_str() != "array" {
-                return None;
-            }
-            (name.end_byte(), array.start_byte())
+            // The argument has to open with the `[` that upstream reads as the index. That is the
+            // array `collection [0]` was written with, and also the chain `collection [0][1]` or
+            // `collection [0].foo` the grammar hangs off it -- all three begin at the same bracket.
+            // `collection %w[a]` opens with a `%` and is no index.
+            context.source.text()[argument.start_byte()..]
+                .starts_with('[')
+                .then(|| (method.end_byte(), argument.start_byte()))
         }
-        _ => return None,
-    };
-    (receiver_end < bracket_start).then_some(receiver_end..bracket_start)
+    }
 }
 
-/// Whether the name is a local variable at this point, which is what makes Ruby read `a [1]` as
-/// indexing rather than as a call taking an array.
-///
-/// `LocalVariables::is_lvar` cannot answer it: the grammar wrote the name as the *selector* of a
-/// call, and `VariableForce` records reads, not selectors. What decides it is the same thing the
-/// parser uses -- whether the enclosing scope has already assigned the name here.
-fn names_a_local_variable(name: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let text = context.source.node_text(name);
-    let position = name.start_byte();
-    let analysis = context.variable_analysis();
-    analysis.variables.iter().any(|variable| {
-        variable.name == text
-            && variable.declaration.start_byte() < position
-            && analysis
-                .scopes
-                .get(variable.scope)
-                .is_some_and(|scope| {
-                    scope.node.start_byte() <= position && position <= scope.node.end_byte()
-                })
-    })
+/// `node.loc.selector`, which for an index read begins at the `[`.
+fn opening_bracket<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| !child.is_named() && context.source.node_text(*child) == "[")
 }
