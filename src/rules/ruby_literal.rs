@@ -92,7 +92,7 @@ pub(crate) fn character_value(text: &str) -> String {
     value
 }
 
-fn unescape(escape: &str, out: &mut String) {
+pub(crate) fn unescape(escape: &str, out: &mut String) {
     let body = &escape[1..];
     let mut characters = body.chars();
     let Some(first) = characters.next() else {
