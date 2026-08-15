@@ -5175,6 +5175,12 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_double_splat_hash_braces")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantStringEscape",
+            "foo = \"\\.bar\"\n       ^^ Redundant escape of . inside string literal.\n",
+        )
+        .id("style_redundant_string_escape")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")

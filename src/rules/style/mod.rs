@@ -257,6 +257,7 @@ department_rules! {
     require_order => ("RequireOrder", Convention),
     super_arguments => ("SuperArguments", Convention),
     redundant_double_splat_hash_braces => ("RedundantDoubleSplatHashBraces", Convention),
+    redundant_string_escape => ("RedundantStringEscape", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     send => ("Send", Convention),

@@ -32206,3 +32206,55 @@ mod style_super_and_double_splat {
         }
     }
 }
+
+/// `Style/RedundantStringEscape`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_string_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantStringEscape";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 何も escape していない backslash は消える。
+    #[test]
+    fn a_backslash_that_escapes_nothing_is_removed() {
+        correction("foo = \"\\.bar\"\n", "foo = \".bar\"\n");
+        correction("foo = \"\\!bar\"\n", "foo = \"!bar\"\n");
+        // 二重引用符の中の単引用符は区切り文字ではない。
+        correction("foo = \"\\'bar\"\n", "foo = \"'bar\"\n");
+        // `%W` は式展開が効くので escape も効く。`%w` は効かない。
+        correction("foo = %W[a\\.b]\n", "foo = %W[a.b]\n");
+        correction("foo = \"a\\ b\"\n", "foo = \"a b\"\n");
+        // ヒアドキュメントの中も見る。
+        correction("foo = <<~T\n  a\\.b\nT\n", "foo = <<~T\n  a.b\nT\n");
+    }
+
+    /// 区切り文字、英数字、`\\`、式展開を止める `\#{`、式展開の無い書き方は黙る。
+    #[test]
+    fn what_the_escape_cop_leaves_alone() {
+        for source in [
+            "foo = \"\\\"bar\"\n",
+            "foo = \"\\n\"\n",
+            "foo = \"\\\\\"\n",
+            "foo = 'a\\.b'\n",
+            "foo = 'a\\'b'\n",
+            "foo = %q(a\\.b)\n",
+            "foo = %w[a\\.b]\n",
+            "foo = \"a\\#{b}c\"\n",
+            "foo = /a\\.b/\n",
+            "foo = ?\\.\n",
+            "foo = <<~'T'\n  a\\.b\nT\n",
+            "foo = %(a\\(b\\)c)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
