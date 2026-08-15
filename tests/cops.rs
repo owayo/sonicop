@@ -8880,6 +8880,25 @@ mod layout_indentation {
     const CONSISTENCY: &str = "Layout/IndentationConsistency";
     const INCONSISTENT: &str = "Inconsistent indentation detected.";
 
+    /// `begin ... rescue ... end` の本体は、本家では `rescue` ノード 1 つで、その範囲は
+    /// 最後の節の最後の文で終わる。文法の `begin` ノードは `end` まで届いてしまうので、
+    /// そのまま範囲に使うと補正が `end` の行も動かす。`end` は字下げを測る基準そのものな
+    /// ので、本体と一緒に動くと相対字下げが変わらず、同じ offense を報告し続けて桁 1 まで
+    /// 寄ってしまう。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_body_of_a_rescue_moves_without_taking_the_end_with_it() {
+        CopCase::new(
+            WIDTH,
+            "def c\n  begin\n      d\n    rescue\n      nil\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def c\n  begin\n    d\n  rescue\n    nil\n  end\nend\n")
+        .run();
+    }
+
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
     /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
     /// ずれが効いた次のパスで入れ子でなくなってから直す
