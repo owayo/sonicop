@@ -48,6 +48,7 @@ department_rules! {
     class_check => ("ClassCheck", Convention),
     class_equality_comparison => ("ClassEqualityComparison", Convention),
     class_methods => ("ClassMethods", Convention),
+    class_methods_definitions => ("ClassMethodsDefinitions", Convention),
     class_vars => ("ClassVars", Convention),
     collection_compact => ("CollectionCompact", Convention),
     collection_querying => ("CollectionQuerying", Convention),

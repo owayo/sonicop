@@ -5232,6 +5232,16 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_partition_instead_of_double_select")
         .correctable(true),
+        // 位置は `class << self` 全体。
+        CopCase::annotated(
+            "Style/ClassMethodsDefinitions",
+            "class Other\n  class << self\n    def only_method\n      1\n    end\n  end\nend\n",
+        )
+        .id("style_class_methods_definitions")
+        .without_offense_check()
+        .locations(&[(2, 3, 6, 5)])
+        .lengths(&[55])
+        .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")

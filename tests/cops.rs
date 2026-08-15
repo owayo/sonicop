@@ -32397,3 +32397,150 @@ mod style_partition_instead_of_double_select {
         }
     }
 }
+
+/// `Style/ClassMethodsDefinitions` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_class_methods_definitions {
+    use super::*;
+
+    const COP: &str = "Style/ClassMethodsDefinitions";
+    const ON: &str = "Style/ClassMethodsDefinitions:\n  Enabled: true\n";
+    const SELF_CLASS: &str =
+        "Style/ClassMethodsDefinitions:\n  Enabled: true\n  EnforcedStyle: self_class\n";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(ON)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は `class << self` 全体。補正は公開メソッドを外へ出し、抜け殻は残す。
+    #[test]
+    fn a_public_method_in_a_singleton_class_is_reported_on_the_class() {
+        CopCase::new(
+            COP,
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n    def class_method\n      1\n    end\n  end\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .without_offense_check()
+        .locations(&[(2, 3, 8, 5)])
+        .lengths(&[91])
+        .cop_names(&[COP])
+        .run();
+        correction(
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n    def class_method\n      1\n    end\n  end\nend\n",
+            "class SomeClass\n  class << self\n    attr_accessor :class_accessor\n\n  end\n\n  def self.class_method\n    1\n  end\nend\n",
+        );
+    }
+
+    /// メソッドしか無い `class << self` は丸ごと消え、最初の定義がその場所に座る。
+    #[test]
+    fn a_singleton_class_holding_only_methods_goes_away_with_them() {
+        correction(
+            "class Other\n  class << self\n    def only_method\n      1\n    end\n  end\nend\n",
+            "class Other\n  def self.only_method\n    1\n  end\nend\n",
+        );
+        correction(
+            "class Fifth\n  class << self\n    def a; end\n    def b; end\n  end\nend\n",
+            "class Fifth\n  def self.a; end\n\n  def self.b; end\nend\n",
+        );
+    }
+
+    /// 定義の上に書かれたコメントは一緒に動く。間の空行はコメントを切り離さない。
+    #[test]
+    fn the_comments_written_over_a_definition_travel_with_it() {
+        correction(
+            "class Third\n  class << self\n    attr_accessor :acc\n\n    # a comment\n    def one\n      1\n    end\n\n    def two\n      2\n    end\n  end\nend\n",
+            "class Third\n  class << self\n    attr_accessor :acc\n\n\n  end\n\n  # a comment\n  def self.one\n    1\n  end\n\n  def self.two\n    2\n  end\nend\n",
+        );
+        correction(
+            "class X\n  class << self\n    # comment\n\n    def a; end\n  end\nend\n",
+            "class X\n  # comment\n\n  def self.a; end\nend\n",
+        );
+        // 行末のコメントは、その行のコードのものなので動かない。
+        correction(
+            "class Z\n  class << self\n    attr_accessor :q\n    foo # trailing\n    def a; end\n  end\nend\n",
+            "class Z\n  class << self\n    attr_accessor :q\n    foo # trailing\n  end\n\n  def self.a; end\nend\n",
+        );
+    }
+
+    /// `class << self` より深く書かれた定義は、その差の分だけ左へ寄る。
+    #[test]
+    fn a_definition_indented_further_is_moved_back_by_the_difference() {
+        correction(
+            "class Deep\n  class << self\n      def deep; end\n  end\nend\n",
+            "class Deep\n  def self.deep; end\nend\n",
+        );
+    }
+
+    /// 公開でない定義が 1 つでもあれば報告しない。
+    #[test]
+    fn a_singleton_class_with_a_hidden_method_is_left_alone() {
+        for source in [
+            "class Fourth\n  class << self\n    attr_accessor :acc\n\n    private\n\n    def priv; end\n  end\nend\n",
+            "class Ninth\n  class << self\n    def a; end\n\n    private :a\n  end\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ON)
+                .run();
+        }
+    }
+
+    /// 本家の木で `def` でないものは数に入らない。修飾子に渡した定義は `send` の子で、
+    /// `def self.` は `defs` なので、どちらも動かす対象にならない。
+    #[test]
+    fn only_a_plain_def_written_straight_in_the_body_counts() {
+        correction(
+            "class Tenth\n  class << self\n    private def a; end\n    def b; end\n  end\nend\n",
+            "class Tenth\n  class << self\n    private def a; end\n  end\n\n  def self.b; end\nend\n",
+        );
+        correction(
+            "class Eleventh\n  class << self\n    def self.weird; end\n    def normal; end\n  end\nend\n",
+            "class Eleventh\n  class << self\n    def self.weird; end\n  end\n\n  def self.normal; end\nend\n",
+        );
+    }
+
+    /// 触らないもの。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            // `class << obj` は自分の特異クラスではない。
+            "class Eighth\n  class << obj\n    def x; end\n  end\nend\n",
+            // 定義が無い。
+            "class Sixth\n  class << self\n  end\nend\n",
+            "class Seventh\n  class << self\n    attr_accessor :x\n  end\nend\n",
+            // 1 行に書いた `class << self` は、本家が補正で自分の書き換えを踏み潰して
+            // 例外になり、offense ごと落ちる。
+            "class A1\n  class << self; def a; end; end\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ON)
+                .run();
+        }
+    }
+
+    /// `self_class` では逆に `def self.` を報告する。補正は無い。`def Other.x` は
+    /// このクラスの特異クラスを開かないので対象外。
+    #[test]
+    fn the_other_enforced_style_asks_for_a_singleton_class() {
+        CopCase::annotated(
+            COP,
+            r"
+            def self.top; end
+            ^^^^^^^^^^^^^^^^^ Use `class << self` to define a class method.
+            ",
+        )
+        .config(SELF_CLASS)
+        .correctable(false)
+        .run();
+        CopCase::new(
+            COP,
+            "class SomeClass\n  def Other.x; end\n  def inst; end\n  class << self\n    def a; end\n  end\nend\n",
+            Vec::new(),
+        )
+        .config(SELF_CLASS)
+        .run();
+    }
+}
