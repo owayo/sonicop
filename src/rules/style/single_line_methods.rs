@@ -189,6 +189,12 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
     let expression = body
         .node
         .and_then(|id| find_child(node.field("body")?, id))?;
+    // `require_parentheses?` asks whether the body is a `send`. A call carrying a block is a
+    // `block` node upstream, so the answer is no and the body goes out as it was written --
+    // rebuilding it from the name and the arguments would drop the block entirely.
+    if expression.field("block").is_some() {
+        return None;
+    }
     let (receiver, name, arguments) = match expression.kind_str() {
         "call" => {
             let list = expression.field("arguments")?;

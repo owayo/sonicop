@@ -6806,6 +6806,21 @@ mod style_rest {
             .run();
     }
 
+    /// ブロック付きの呼び出しは上流では `block` ノードで `send` ではないので、括弧を足す
+    /// 書き直しに入らず本文がそのまま出る。名前と引数から組み立て直すとブロックが消える。
+    #[test]
+    fn an_endless_definition_keeps_the_block_of_its_body() {
+        CopCase::new(
+            "Style/SingleLineMethods",
+            "def save; run_callbacks(:save) { @events << :save }; end\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .target_ruby("3.2")
+        .corrected("def save() = run_callbacks(:save) { @events << :save }\n")
+        .run();
+    }
+
     /// 行末コメントは定義の上の行に持ち上げられる。
     #[test]
     fn a_trailing_comment_moves_above_the_definition() {
