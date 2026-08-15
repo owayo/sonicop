@@ -552,29 +552,30 @@ fn a_default_run_stays_silent_on_stderr() {
 
 /// 未実装 cop を名指しで有効にしたら、検査されなかったことを stderr で知らせる。
 ///
-/// 黙って 0 件を返すと「違反なし」と読めてしまうが、RuboCop なら報告する。
-/// `Style/ArgumentsForwarding` を実装したら、まだ実装していない別の cop へ差し替える
-/// こと。
+/// 黙って 0 件を返すと「違反なし」と読めてしまうが、RuboCop なら報告する。対象は
+/// `--show-cops` から拾うので、実装が進んでも書き換えなくてよい。全部実装し終えた
+/// ら見るものが無くなるので、そのときは何も確かめずに通す。
 #[test]
 fn naming_an_unimplemented_cop_warns_on_stderr() {
     let directory = project(&[("example.rb", "value = 1\n")]);
+    let listing = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let Some(cop) = first_unimplemented(&String::from_utf8_lossy(&listing)) else {
+        return;
+    };
     let output = command(directory.path())
-        .args([
-            "--force-default-config",
-            "--only",
-            "Style/ArgumentsForwarding",
-            "--format",
-            "json",
-        ])
+        .args(["--force-default-config", "--only", &cop, "--format", "json"])
         .assert()
         .get_output()
         .clone();
 
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("Style/ArgumentsForwarding"),
-        "警告に cop 名が出ていない: {stderr}"
-    );
+    assert!(stderr.contains(&cop), "警告に cop 名が出ていない: {stderr}");
 
     // 警告は stdout を汚さない。RuboCop は同種の注記を stdout に出して自分の JSON を壊す。
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -595,4 +596,20 @@ fn breakable_source() -> String {
         format!("it '{long}', :ruby do\n  verify\nend\n"),
     ]
     .concat()
+}
+
+/// `--show-cops` の並びから、まだ実装していない cop を 1 つ拾う。
+fn first_unimplemented(listing: &str) -> Option<String> {
+    let mut name = None;
+    for line in listing.lines() {
+        if !line.starts_with(' ')
+            && let Some(cop) = line.strip_suffix(':')
+        {
+            name = Some(cop.to_owned());
+        }
+        if line.trim() == "Implemented: false" {
+            return name;
+        }
+    }
+    None
 }

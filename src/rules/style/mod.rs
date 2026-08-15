@@ -27,6 +27,7 @@ department_rules! {
     accessor_grouping => ("AccessorGrouping", Convention),
     and_or => ("AndOr", Convention),
     ambiguous_endless_method_definition => ("AmbiguousEndlessMethodDefinition", Convention),
+    arguments_forwarding => ("ArgumentsForwarding", Convention),
     array_intersect => ("ArrayIntersect", Convention),
     array_intersect_with_single_element => ("ArrayIntersectWithSingleElement", Convention),
     array_first_last => ("ArrayFirstLast", Convention),

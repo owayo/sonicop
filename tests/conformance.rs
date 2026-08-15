@@ -5269,6 +5269,19 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_method_call_with_args_parentheses")
         .correctable(true),
+        // 位置は転送する引数の並び全体。
+        CopCase::annotated(
+            "Style/ArgumentsForwarding",
+            r"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            ",
+        )
+        .id("style_arguments_forwarding")
+        .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")

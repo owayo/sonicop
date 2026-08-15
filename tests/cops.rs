@@ -33068,3 +33068,168 @@ mod style_method_call_with_args_parentheses {
         .run();
     }
 }
+
+/// `Style/ArgumentsForwarding` (既定 pending) — 期待値は本家 1.89.0 の実測。
+mod style_arguments_forwarding {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    fn correction(target: &str, source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby(target)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 受け取ってそのまま渡すだけの引数は `...` 一つで済む。位置は定義側・呼び出し側
+    /// それぞれの、転送する引数の並び全体。
+    #[test]
+    fn arguments_that_are_only_passed_on_become_the_shorthand() {
+        expect_offense(
+            COP,
+            r"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            ",
+        );
+        correction(
+            "2.7",
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+        correction(
+            "2.7",
+            "def foo(*args, **kwargs, &block)\n  bar(*args, **kwargs, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+        // 括弧の無い呼び出しには括弧を足す。
+        correction(
+            "2.7",
+            "def foo(*args, &block)\n  bar *args, &block\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+    }
+
+    /// Ruby 3.2 からは `*` `**` `&` だけを無名にできる。`...` になるのは三つとも
+    /// 揃っているときだけ。
+    #[test]
+    fn ruby_32_forwards_each_kind_on_its_own() {
+        CopCase::annotated(
+            COP,
+            r"
+            def foo(*args, &block)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+              bar(*args, &block)
+                  ^^^^^ Use anonymous positional arguments forwarding (`*`).
+            end
+            ",
+        )
+        .target_ruby("3.2")
+        .without_offense_check()
+        .locations(&[(1, 9, 1, 13), (1, 16, 1, 21), (2, 7, 2, 11), (2, 14, 2, 19)])
+        .lengths(&[5, 6, 5, 6])
+        .run();
+        correction(
+            "3.2",
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n",
+            "def foo(*, &)\n  bar(*, &)\nend\n",
+        );
+        correction(
+            "3.2",
+            "def foo(*args)\n  bar(*args)\nend\n",
+            "def foo(*)\n  bar(*)\nend\n",
+        );
+        correction(
+            "3.2",
+            "def foo(**kwargs)\n  bar(**kwargs)\nend\n",
+            "def foo(**)\n  bar(**)\nend\n",
+        );
+        correction(
+            "3.2",
+            "def foo(&block)\n  bar(&block)\nend\n",
+            "def foo(&)\n  bar(&)\nend\n",
+        );
+        // 三つ揃えば `...` のまま。
+        correction(
+            "3.2",
+            "def foo(*args, **kwargs, &block)\n  bar(*args, **kwargs, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+    }
+
+    /// `RedundantRestArgumentNames` 等に無い名前は転送とみなさない。`*rest` は残り、
+    /// `&blk` だけが無名になる。
+    #[test]
+    fn only_the_names_the_configuration_calls_redundant_are_forwarded() {
+        correction(
+            "3.2",
+            "def foo(*rest, &blk)\n  bar(*rest, &blk)\nend\n",
+            "def foo(*rest, &)\n  bar(*rest, &)\nend\n",
+        );
+    }
+
+    /// 本体が引数を自分で読んでいるなら転送ではない。
+    #[test]
+    fn an_argument_the_body_reads_for_itself_is_not_forwarded() {
+        expect_no_offenses(COP, "def foo(*args)\n  args.first\n  bar(*args)\nend\n");
+        expect_no_offenses(
+            COP,
+            "def foo(*args, **options)\n  a, b, options = split(*args, **options)\n  bar(*args, **options)\nend\n",
+        );
+    }
+
+    /// Ruby 3.3 まではブロックの中で無名引数を読むと構文誤りなので、ブロックの中に
+    /// あるものは 3.4 になるまで報告しない。`...` の方は版に関わらず報告する。
+    #[test]
+    fn an_anonymous_forwarding_inside_a_block_waits_for_ruby_34() {
+        let source = "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n";
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .target_ruby("3.2")
+            .run();
+        correction(
+            "3.4",
+            source,
+            "def foo(*, &)\n  [1].each { bar(*, &) }\nend\n",
+        );
+        correction(
+            "2.7",
+            source,
+            "def foo(...)\n  [1].each { bar(...) }\nend\n",
+        );
+    }
+
+    /// `Naming/BlockForwarding` が `explicit` なら、ブロックだけは名前のまま残す。
+    #[test]
+    fn an_explicit_block_name_is_left_alone_when_the_other_cop_asks_for_one() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Naming/BlockForwarding:\n  Enabled: true\n  EnforcedStyle: explicit\n")
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &block)\n  bar(*, &block)\nend\n")
+        .run();
+    }
+
+    /// 触らないもの。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            // もう `...` になっている。
+            "def foo(...)\n  bar(...)\nend\n",
+            // 転送していない。
+            "def foo(*args)\n  bar(1)\nend\n",
+            // 本体が無い。
+            "def foo(*args); end\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
