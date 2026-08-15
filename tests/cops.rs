@@ -35144,3 +35144,44 @@ mod lint_unused_block_argument_correction {
         .run();
     }
 }
+
+/// `Layout/DefEndAlignment` の走査。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/DefEndAlignment -A` の実出力。
+mod layout_def_end_alignment_walk {
+    use super::*;
+
+    const COP: &str = "Layout/DefEndAlignment";
+
+    /// ブロックの中の定義も見る。`private def foo` を拾う枝が、それ以外の呼び出しで
+    /// 走査ごと打ち切っていたので、ブロックがぶら下がる呼び出しの下がまるごと
+    /// 見えなくなっていた。`class` の中なら通っていたぶん気づきにくい。
+    #[test]
+    fn a_definition_inside_a_block_is_still_measured() {
+        CopCase::new(
+            COP,
+            "Foo.bar do\n  def m\n    x\n      end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("Foo.bar do\n  def m\n    x\n  end\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "Foo.bar {\n  def m\n    x\n      end\n}\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("Foo.bar {\n  def m\n    x\n  end\n}\n")
+        .run();
+        // `private def foo` の枝は従来どおり。
+        CopCase::new(
+            COP,
+            "class C\n  private def m\n    x\n      end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("class C\n  private def m\n    x\n  end\nend\n")
+        .run();
+    }
+}
