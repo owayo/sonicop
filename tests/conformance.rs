@@ -3170,20 +3170,6 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[6])
         .severity(Severity::Warning)
         .correctable(false),
-        // 既定では無効な cop。設定で入れたうえで本家の出力と突き合わせる。
-        CopCase::annotated(
-            "Style/MethodCallWithArgsParentheses",
-            r"
-            def m
-              array.delete e
-              ^^^^^^^^^^^^^^ Use parentheses for method calls with arguments.
-            end
-            ",
-        )
-        .id("style_method_call_with_args_parentheses")
-        .config("Style/MethodCallWithArgsParentheses:\n  Enabled: true\n")
-        .severity(Severity::Convention)
-        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
