@@ -32655,6 +32655,17 @@ mod lint_unmodified_reduce_accumulator {
                 .run();
         }
     }
+
+    /// `break` が返す値は文法上では引数リストに包まれる。上流にはその節が無く、値は
+    /// キーワードの直接の子なので、包みを外さないと「累算器を返している」ことを
+    /// 見落とす。
+    #[test]
+    fn the_value_a_break_hands_back_counts_as_a_return_value() {
+        expect_no_offenses(
+            COP,
+            "v.reduce(nil) do |offense, variable|\n  break offense unless x\n  variable\nend\n",
+        );
+    }
 }
 
 /// `Lint/UnusedPrivateMethod` と `Lint/NameTypo`。
