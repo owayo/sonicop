@@ -3170,6 +3170,19 @@ fn catalogue() -> Vec<CopCase> {
         .lengths(&[6])
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Style/ArgumentsForwarding",
+            r"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            ",
+        )
+        .id("style_arguments_forwarding")
+        .severity(Severity::Convention)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
