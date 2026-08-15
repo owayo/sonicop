@@ -57,18 +57,19 @@ sonicop --force-default-config --format json
 | rails/rails | 0 | 0 | none |
 | mastodon/mastodon | 0 | 0 | none |
 | Homebrew/brew | 263 | 997 | none |
-| ruby/ruby | 156 | 617 | 5 |
+| ruby/ruby | 142 | 585 | 5 |
 
 Three of the five agree offense for offense — RuboCop's own tree, Rails and Mastodon — with no
 excess, no shortfall and no metadata differences anywhere.
 
 Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. Much of
-ruby/ruby's is too, with 117 of the 617 missing and 44 of the 156 excess being `Lint/Syntax` itself,
+ruby/ruby's is too, with 117 of the 585 missing and 44 of the 142 excess being `Lint/Syntax` itself,
 and the rest follows from it: a file the two disagree about is inspected by one tool and skipped by
 the other, so every offense in it lands on one side of the ledger. Counting that through, 635 of the
-773 differences sit in files one tool or the other calls a syntax error, and they are spread thinly
-across the Layout department rather than sitting in one cop. Both are explained under
-*Known divergences*.
+727 differences sit in files one tool or the other calls a syntax error, and they are spread thinly
+across the Layout department rather than sitting in one cop. Of the 92 that do not, 77 are the
+`Style/RedundantParentheses` case under *Differences that should not be closed*, which leaves 15 —
+ten of them in TRICK entries or encoding fixtures. Both are explained under *Known divergences*.
 
 ruby/ruby also carries five differences at positions both tools reported: two `correctable` flags and
 one `last_column`/`length` pair, all on indentation cops inside files the two parse differently, plus
@@ -173,6 +174,27 @@ to_str`, valid from Ruby 3.0, rejected by the default `TargetRubyVersion: 2.7`) 
 method context open, so the enclosing `class` emits `class definition in method body` when it is
 finally reduced. The diagnostic is reported at the `class` keyword, far above the line that actually
 failed, which puts it first in source order.
+
+### What is left on ruby/ruby
+
+ruby/ruby is the only corpus with a residue that is not one shape, so it is worth taking apart. Of
+its 727 differences:
+
+| | Count | |
+|---|---:|---|
+| in files one tool calls a syntax error | 635 | the recovery difference above |
+| `Style/RedundantParentheses` in one file | 77 | RuboCop's defect, see below |
+| everything else | 15 | |
+
+The last 15 are the honest remainder. Ten of them sit in TRICK entries or encoding fixtures —
+`Layout/SpaceInsideParens` five times in one obfuscated program, `Layout/TrailingWhitespace` and
+`Layout/LeadingCommentSpace` on a UTF-16 fixture that holds no BOM. Three are the `"…"%[…]` lexing
+gap described under *Grammar gaps*. That leaves two — `Lint/NestedMethodDefinition` on
+`def (obj.bar = Object.new).baz` and `Style/MixinUsage` on a top-level `include RbConfig` — which
+have not been investigated.
+
+Naming that number is the point. It was 138 before the cop fixes that landed with the 609th cop, and
+every step down came from taking one shape at a time rather than from a general improvement.
 
 ### Grammar gaps
 
