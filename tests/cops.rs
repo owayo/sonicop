@@ -23989,6 +23989,17 @@ mod style_inline_comment {
             ",
         );
     }
+
+    /// ヒアドキュメントの中に書いた `#` はコメントではない。文法の走査は埋め込みを閉じた
+    /// 直後の `#` から行末までをコメントとして切り出してしまうので、字面のなかで見つかった
+    /// コメントは数えない。
+    #[test]
+    fn a_hash_inside_a_heredoc_is_not_a_comment() {
+        expect_no_offenses(
+            COP,
+            "def m(a, b)\n  <<~MSG\n    Error in #{a}##{b}: done\n  MSG\nend\n",
+        );
+    }
 }
 
 /// `Style/AsciiComments` (既定無効)。
@@ -26254,6 +26265,17 @@ mod style_fetch_env_var {
             "if cond\n  x = ENV['X']\nend\n",
             "if cond\n  x = ENV.fetch('X', nil)\nend\n",
         );
+    }
+
+    /// 多重代入の代入先は上流では `:[]=` で、そもそも cop に尋ねられない。
+    #[test]
+    fn a_multiple_assignment_target_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "old, ENV['VERBOSE'] = ENV.fetch('VERBOSE', nil), 'false'\n".to_owned(),
+            Vec::new(),
+        )
+        .run();
     }
 
     /// 条件が `&&` や `||` のときも、その両辺は「旗として使っている」ぶんに入る。
@@ -30876,6 +30898,9 @@ mod style_string_hash_keys {
             "{ 'a': 1 }\n",
             "{ \"a\": 1 }\n",
             "{ 'file:///x.rb': [] }\n",
+            // `\xAD` は 1 バイトを書くので、鍵の中身は valid_encoding? を満たさない。
+            "{ \"\\xAD\" => 1 }\n",
+            "{ \"malformed \\251\" => 1 }\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -32228,6 +32253,13 @@ mod layout_line_end_string_concatenation_indentation {
         .without_offense_check()
         .corrected("text = 'offense' \\\n  'aligned'\n")
         .run();
+    }
+
+    /// `when` の枝に 1 文だけ書いた連結は、上流では親が `when` になるので「字下げ」側では
+    /// なく「揃える」側。本体が 1 文のときそれ自体が文であって `begin` ではない。
+    #[test]
+    fn a_concatenation_alone_in_a_when_branch_is_aligned() {
+        expect_no_offenses(COP, "case x\nwhen 1\n  'a' \\\n  'b'\nwhen 2\n  'c'\nend\n");
     }
 }
 
