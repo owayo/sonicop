@@ -32210,3 +32210,190 @@ mod layout_class_structure {
         .run();
     }
 }
+
+/// `Style/PartitionInsteadOfDoubleSelect` (既定 pending) — 期待値は本家 1.89.0 の実測。
+mod style_partition_instead_of_double_select {
+    use super::*;
+
+    const COP: &str = "Style/PartitionInsteadOfDoubleSelect";
+
+    /// 位置は 2 つ目の文の全体。メッセージには前の文・後の文の順で selector が入り、
+    /// 補正は 1 つ目の文を多重代入に書き換えて 2 つ目の行ごと落とす。
+    #[test]
+    fn a_select_beside_a_reject_is_reported_on_the_second_statement() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.select { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { |x| x.ok? }\n",
+            "good, bad = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// `reject` が先でも同じ。変数の並びは常に `select` 側が先。
+    #[test]
+    fn the_select_names_the_first_half_whichever_order_it_was_written_in() {
+        expect_offense(
+            COP,
+            r"
+            bad = xs.reject { |x| x.ok? }
+            good = xs.select { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `reject` and `select` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "bad = xs.reject { |x| x.ok? }\ngood = xs.select { |x| x.ok? }\n",
+            "good, bad = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// `filter` と `find_all` も `select` の綴り。メッセージには書かれた綴りが出る。
+    #[test]
+    fn filter_and_find_all_are_spellings_of_select() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.filter { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `filter` and `reject` calls.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            good = xs.find_all { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `find_all` and `reject` calls.
+            ",
+        );
+    }
+
+    /// `&:sym` は同じことを言うブロックと釣り合う。片方だけがブロックでも同じ。
+    #[test]
+    fn a_symbol_to_proc_matches_the_block_saying_the_same_thing() {
+        expect_correction(
+            COP,
+            "good = xs.select(&:ok?)\nbad = xs.reject(&:ok?)\n",
+            "good, bad = xs.partition(&:ok?)\n",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select(&:ok?)\nbad = xs.reject { |x| x.ok? }\n",
+            "good, bad = xs.partition(&:ok?)\n",
+        );
+    }
+
+    /// 同じ selector が 2 つでも、片方の本体がもう片方の否定なら同じ組。
+    /// `partition` は真の側を先に返すので、変数の並びは selector で決まる。
+    #[test]
+    fn the_same_selector_twice_pairs_when_one_body_negates_the_other() {
+        expect_offense(
+            COP,
+            r"
+            good = xs.select { |x| x.ok? }
+            other = xs.select { |x| !x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `select` calls.
+            ",
+        );
+        expect_correction(
+            COP,
+            "good = xs.select { |x| x.ok? }\nother = xs.select { |x| !x.ok? }\n",
+            "good, other = xs.partition { |x| x.ok? }\n",
+        );
+        expect_correction(
+            COP,
+            "other = xs.reject { |x| !x.ok? }\ngood = xs.reject { |x| x.ok? }\n",
+            "other, good = xs.partition { |x| x.ok? }\n",
+        );
+    }
+
+    /// 番号付き引数のブロックも組になる。ブロックの種類が食い違えば組にならない。
+    #[test]
+    fn a_numbered_parameter_pairs_only_with_another_one() {
+        expect_correction(
+            COP,
+            "good = xs.select { _1.ok? }\nbad = xs.reject { _1.ok? }\n",
+            "good, bad = xs.partition { _1.ok? }\n",
+        );
+        expect_no_offenses(
+            COP,
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { _1.ok? }\n",
+        );
+    }
+
+    /// 両方が局所変数への代入でなければ報告だけで補正はしない。
+    #[test]
+    fn a_pair_that_does_not_name_both_halves_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r"
+            @good = xs.select { |x| x.ok? }
+            @bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r"
+            xs.select { |x| x.ok? }
+            xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .correctable(false)
+        .run();
+    }
+
+    /// `begin ... end` に直接並んだ 2 文は本家の木では `kwbegin` の子で、`begin` の
+    /// 子ではないので組にならない。`rescue` が付くと中身が `begin` になり報告される。
+    #[test]
+    fn a_written_begin_end_holds_no_pair_unless_it_rescues() {
+        expect_no_offenses(
+            COP,
+            "begin\n  good = xs.select { |x| x.ok? }\n  bad = xs.reject { |x| x.ok? }\nend\n",
+        );
+        expect_correction(
+            COP,
+            "begin\n  good = xs.select { |x| x.ok? }\n  bad = xs.reject { |x| x.ok? }\nrescue\n  nil\nend\n",
+            "begin\n  good, bad = xs.partition { |x| x.ok? }\nrescue\n  nil\nend\n",
+        );
+    }
+
+    /// 1 行に並べた 2 文は本家が補正で自分の書き換えを踏み潰して例外になり、
+    /// offense ごと落ちる。
+    #[test]
+    fn a_pair_written_on_one_line_is_not_reported() {
+        expect_no_offenses(
+            COP,
+            "good = xs.select { |x| x.ok? }; bad = xs.reject { |x| x.ok? }\n",
+        );
+    }
+
+    /// 組にならないもの。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            // レシーバが違う。
+            "good = xs.select { |x| x.ok? }\nbad = ys.reject { |x| x.ok? }\n",
+            // ブロック引数が違う。
+            "good = xs.select { |x| x.ok? }\nbad = xs.reject { |y| y.ok? }\n",
+            // selector が対象外。
+            "good = xs.map { |x| x.ok? }\nbad = xs.map { |x| !x.ok? }\n",
+            // 間に別の文がある。
+            "good = xs.select { |x| x.ok? }\nputs 1\nbad = xs.reject { |x| x.ok? }\n",
+            // ブロックもブロック渡しも無い。
+            "good = xs.select\nbad = xs.reject\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}

@@ -200,6 +200,7 @@ department_rules! {
     or_assignment => ("OrAssignment", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
     parentheses_around_condition => ("ParenthesesAroundCondition", Convention),
+    partition_instead_of_double_select => ("PartitionInsteadOfDoubleSelect", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     percent_q_literals => ("PercentQLiterals", Convention),
     perl_backrefs => ("PerlBackrefs", Convention),

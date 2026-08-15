@@ -5221,6 +5221,17 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_invertible_unless_condition")
         .correctable(true),
+        // 位置は 2 つ目の文の全体。
+        CopCase::annotated(
+            "Style/PartitionInsteadOfDoubleSelect",
+            r"
+            good = xs.select { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .id("style_partition_instead_of_double_select")
+        .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")
