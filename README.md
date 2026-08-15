@@ -41,9 +41,10 @@ The implemented set grows with each release, so the binary itself is the authori
 sonicop --show-cops
 ```
 
-The bundled upstream configuration recognizes all 609 RuboCop 1.89 cops. Implemented cops run
-normally; recognized but not-yet-implemented cops remain configuration-compatible and are
-reported by `--debug`. Truly unknown cop names still fail validation unless
+**All 609 RuboCop 1.89 cops are implemented**, matched name for name against the upstream registry.
+That includes the 159 shipped as `Enabled: pending` and the 56 shipped as `Enabled: false`, which a
+default run does not reach on either side — name them with `--only` or switch them on in a
+configuration, exactly as with RuboCop. Unknown cop names still fail validation unless
 `--ignore-unrecognized-cops` is supplied.
 
 ## Installation
