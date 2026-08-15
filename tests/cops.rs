@@ -31780,3 +31780,323 @@ mod layout_heredoc_argument_closing_parenthesis {
         }
     }
 }
+
+mod lint_unescaped_bracket_in_regexp {
+    use super::*;
+
+    const COP: &str = "Lint/UnescapedBracketInRegexp";
+
+    /// 位置は本体の先頭から数えた文字数。`/.../` でも `%r{...}` でも同じ数え方になる。
+    #[test]
+    fn a_bare_bracket_in_a_regexp_literal_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "/abc]123/\n", "/abc\\]123/\n");
+        expect_offense(
+            COP,
+            r"
+            %r{abc]123}
+                  ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "%r{abc]123}\n", "%r{abc\\]123}\n");
+    }
+
+    /// 補間は同じ幅の空白に置き換えてから解析するので、後ろの位置がずれない。
+    #[test]
+    fn an_interpolation_does_not_shift_the_positions_after_it() {
+        expect_offense(
+            COP,
+            r#"
+            /x#{y}]z/
+                  ^ Regular expression has `]` without escape.
+            "#,
+        );
+        expect_correction(COP, "/x#{y}]z/\n", "/x#{y}\\]z/\n");
+    }
+
+    /// `Regexp.new` / `Regexp.compile` の文字列引数も見る。位置は引用符の次から数える。
+    #[test]
+    fn the_string_a_regexp_is_built_from_is_read_too() {
+        expect_offense(
+            COP,
+            r"
+            Regexp.new('abc]123')
+                           ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "Regexp.new('abc]123')\n", "Regexp.new('abc\\]123')\n");
+        expect_offense(
+            COP,
+            r"
+            ::Regexp.compile('x]y')
+                               ^ Regular expression has `]` without escape.
+            ",
+        );
+    }
+
+    /// `[]` と `[^]` は空の文字クラスで、その直後の `]` はクラスを閉じている。
+    /// 先頭の `]` も Ruby は警告しない。
+    #[test]
+    fn a_bracket_that_closes_something_is_left_alone() {
+        for source in [
+            "/[^]]/\n",
+            "/]abc/\n",
+            "/a\\]b/\n",
+            // 補間を含む `Regexp.new` は本家が丸ごと見送る。
+            "Regexp.new(\"abc]#{x}\")\n",
+            // 隣接する文字列リテラルは本家の `dstr`。
+            "Regexp.new(\"a\" \"b]c\")\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 補間の中身が多バイトでも、位置は文字数で数える。
+    #[test]
+    fn a_multibyte_interpolation_does_not_shift_the_position_after_it() {
+        expect_offense(
+            COP,
+            r#"
+            /あ#{い}]z/
+                  ^ Regular expression has `]` without escape.
+            "#,
+        );
+        expect_correction(COP, "/あ#{い}]z/\n", "/あ#{い}\\]z/\n");
+    }
+
+    /// 空クラスの次の `]` を 1 つ見送った後は、同じリテラルの中の次の `]` を報告する。
+    #[test]
+    fn only_the_first_bracket_after_an_empty_class_is_skipped() {
+        expect_offense(
+            COP,
+            r"
+            /[^]]]/
+                 ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "/[^]]]/\n", "/[^]]\\]/\n");
+    }
+}
+
+mod lint_duplicate_regexp_character_class_element {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateRegexpCharacterClassElement";
+
+    /// 同じ文字クラスに 2 度書かれた要素。2 つ目を消す。
+    #[test]
+    fn a_repeated_member_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /[xyx]/
+                ^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[xyx]/\n", "/[xy]/\n");
+        // 範囲もエスケープも POSIX ブラケットも要素 1 つとして数える。
+        expect_offense(
+            COP,
+            r"
+            /[0-9x0-9]/
+                  ^^^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[0-9x0-9]/\n", "/[0-9x]/\n");
+        expect_correction(COP, "/[\\d\\d]/\n", "/[\\d]/\n");
+        expect_correction(COP, "/[[:alpha:][:alpha:]]/\n", "/[[:alpha:]]/\n");
+    }
+
+    /// 補間は同じ幅の空白に置き換わるので、2 文字目以降が重複に見える。
+    /// その空白は補間の範囲と重なるので数えない。
+    #[test]
+    fn the_spaces_an_interpolation_was_blanked_to_are_not_members() {
+        expect_offense(
+            COP,
+            r#"
+            /[a-z#{x}a-z]/
+                     ^^^ Duplicate element inside regexp character class
+            "#,
+        );
+        expect_correction(COP, "/[a-z#{x}a-z]/\n", "/[a-z#{x}]/\n");
+    }
+
+    /// 補間の中身が多バイトでも、位置は文字数で数えるので後ろがずれない。
+    #[test]
+    fn a_multibyte_interpolation_does_not_shift_the_members_after_it() {
+        expect_offense(
+            COP,
+            r#"
+            /[x#{い}yy]/
+                    ^ Duplicate element inside regexp character class
+            "#,
+        );
+        expect_correction(COP, "/[x#{い}yy]/\n", "/[x#{い}y]/\n");
+    }
+
+    /// 拡張モードでも文字クラスの中の空白は文字のまま。
+    #[test]
+    fn a_blank_inside_a_class_counts_even_in_extended_mode() {
+        expect_offense(
+            COP,
+            r"
+            /[a a]/x
+                ^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[a a]/x\n", "/[a ]/x\n");
+    }
+
+    /// `&&` の左右は別の集合なので、またいだ重複は数えない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["/[xy]/\n", "/[0-9x]/\n", "/[a&&a]/\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+mod lint_mixed_case_range {
+    use super::*;
+
+    const COP: &str = "Lint/MixedCaseRange";
+
+    const MSG: &str = "Ranges from upper to lower case ASCII letters may include unintended \
+                       characters. Instead of `A-z` (which also includes several symbols) \
+                       specify each range individually: `A-Za-z` and individually specify any \
+                       symbols.";
+
+    /// 文字クラスの中の `A-z`。2 つの範囲に割る。
+    #[test]
+    fn a_mixed_case_range_in_a_character_class_is_reported() {
+        expect_offense(COP, &format!("/[A-z]/\n  ^^^ {MSG}\n"));
+        expect_correction(COP, "/[A-z]/\n", "/[A-Za-z]/\n");
+        expect_correction(COP, "/[^A-z]/\n", "/[^A-Za-z]/\n");
+        expect_correction(COP, "/[A-z0-9]/\n", "/[A-Za-z0-9]/\n");
+        // 片方だけが 1 文字の範囲になるときは、その 1 文字だけを書く。
+        expect_correction(COP, "/[Z-a]/\n", "/[Za]/\n");
+    }
+
+    /// `Range` オブジェクトも同じ質問をされるが、2 つには割れないので報告だけ。
+    #[test]
+    fn a_range_object_is_reported_without_a_correction() {
+        expect_offense(COP, &format!("('A'..'z')\n ^^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("('A'...'z')\n ^^^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("('Z'..'a')\n ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 大小が揃っている範囲、片方が英字でない範囲、端が 1 文字でないもの、
+    /// 端がエスケープのものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "/[A-Za-z]/\n",
+            "/[0-9]/\n",
+            "/[\\x41-z]/\n",
+            "('AA'..'zz')\n",
+            "(1..9)\n",
+            "('A'..)\n",
+            // `!` はどちらの範囲にも入らないので、書き換えようがない。
+            "/[!-z]/\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+mod lint_redundant_regexp_quantifiers {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantRegexpQuantifiers";
+
+    /// `(?:x+)+` の 2 つの量指定子。内側を書き換えて外側を消す。
+    #[test]
+    fn a_quantified_group_around_a_quantified_expression_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /(?:x+)+/
+                 ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:x+)+/\n", "/(?:x+)/\n");
+        expect_offense(
+            COP,
+            r"
+            /(?:x+)?/
+                 ^^^ Replace redundant quantifiers `+` and `?` with a single `*`.
+            ",
+        );
+        expect_correction(COP, "/(?:x+)?/\n", "/(?:x*)/\n");
+        // `{1,}` は `+` と同じ意味なので、短いほうに揃えて書き換える。
+        expect_offense(
+            COP,
+            r"
+            /(?:x{1,})+/
+                 ^^^^^^ Replace redundant quantifiers `{1,}` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:x{1,})+/\n", "/(?:x+)/\n");
+    }
+
+    /// 量指定子を 2 つ並べて書いた形も、暗黙のグループが 1 つ挟まっているだけで同じ。
+    #[test]
+    fn two_quantifiers_written_side_by_side_are_the_same_shape() {
+        expect_offense(
+            COP,
+            r"
+            /a+*/
+              ^^ Replace redundant quantifiers `+` and `*` with a single `*`.
+            ",
+        );
+        expect_correction(COP, "/a+*/\n", "/a*/\n");
+    }
+
+    /// 入れ子のグループは外側から数えて 1 回ずつ、内側は再訪しない。
+    #[test]
+    fn a_nested_group_is_paired_with_the_outermost_quantifier_only() {
+        expect_offense(
+            COP,
+            r"
+            /(?:(?:x+)+)+/
+                    ^^^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+                      ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:(?:x+)+)+/\n", "/(?:(?:x+))/\n");
+    }
+
+    /// 拡張モードの空白と `#` の注釈は、要素が 1 つかどうかの数に入らない。
+    #[test]
+    fn free_spacing_does_not_change_what_the_group_holds() {
+        expect_offense(
+            COP,
+            r"
+            /(?: x+ )+/x
+                  ^^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?: x+ )+/x\n", "/(?: x+ )/x\n");
+    }
+
+    /// 捕獲グループ、要素が 2 つ以上のグループ、怠惰な量指定子、補間のあるリテラルは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "/(?:x)+/\n",
+            "/(?:x+)/\n",
+            "/(x+)+/\n",
+            "/(?:x+y)+/\n",
+            "/(?:x+?)+/\n",
+            "/(?:a*#{x})?/x\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
