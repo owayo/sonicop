@@ -20691,9 +20691,22 @@ mod style_env_home {
             "ENV.fetch('HOME') { 'x' }\n",
             "Foo::ENV['HOME']\n",
             "ENV['PATH']\n",
+            // `ENV['HOME'] = x` は本家では `:[]=` で、パターンの `:[]` に当たらない。
+            // そもそも `Dir.home` は代入できないので、書き換えようがない。
+            "ENV['HOME'] = value\n",
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 演算子代入は別。`ENV['HOME'] ||= x` は読み出しを自分の中に持つので、本家も報告する。
+    #[test]
+    fn an_operator_assignment_still_holds_a_lookup() {
+        expect_offense(
+            COP,
+            "ENV['HOME'] ||= value\n",
+            &[(1, 1, "Use `Dir.home` instead.")],
+        );
     }
 }
 
