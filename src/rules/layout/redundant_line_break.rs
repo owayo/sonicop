@@ -190,14 +190,11 @@ fn other_cop_takes_precedence(
 /// `block_node.parent` where that parent is a call reached through a dot. The block belongs to the
 /// call it was written on here, so the call upstream calls its parent is that call's own.
 fn chained_onto<'tree>(block: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
+    // The block belongs to the call it was written on here, so the node upstream calls its parent is
+    // that call's own -- whether the block stands there as a receiver or as an argument.
     let call = block.parent_of(context)?;
-    let outer = call.parent_of(context)?;
-    let chained = outer.kind_str() == "call"
-        && outer
-            .field("receiver")
-            .is_some_and(|receiver| receiver.id() == call.id())
-        && outer.field("operator").is_some();
-    chained.then_some(outer)
+    let outer = upstream_parent(call, context)?;
+    (outer.kind_str() == "call" && outer.field("operator").is_some()).then_some(outer)
 }
 
 fn is_block(node: Node<'_>) -> bool {
