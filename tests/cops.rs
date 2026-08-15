@@ -34056,11 +34056,35 @@ mod style_arguments_forwarding {
     /// 3.4 からはブロックの中でも匿名にできる。
     #[test]
     fn ruby_34_anonymises_inside_a_block_after_all() {
-        expect_correction(
+        CopCase::new(
             COP,
-            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n",
-            "def foo(*, &)\n  [1].each { bar(*, &) }\nend\n",
-        );
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &)\n  [1].each { bar(*, &) }\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックの引数が定義の引数と同じ名前でも、宣言は参照ではない。
+    /// 本家は `lvar` と `lvasgn` しか数えず、`restarg` などの宣言は数に入らない。
+    #[test]
+    fn a_nested_block_parameter_of_the_same_name_is_not_a_reference() {
+        CopCase::new(
+            COP,
+            "def foo(*args, **kwargs, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*args, **kwargs, &block)\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected(
+            "def foo(*, **, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*, **, &block)\nend\n",
+        )
+        .run();
     }
 
     /// 本体の無い定義と、何も転送していない呼び出しは触らない。
