@@ -150,6 +150,7 @@ department_rules! {
     regexp_as_condition => ("RegexpAsCondition", Warning),
     require_parentheses => ("RequireParentheses", Warning),
     refinement_import_methods => ("RefinementImportMethods", Warning),
+    require_range_parentheses => ("RequireRangeParentheses", Warning),
     require_relative_self_path => ("RequireRelativeSelfPath", Warning),
     rescue_exception => ("RescueException", Warning),
     rescue_type => ("RescueType", Warning),

@@ -33498,3 +33498,69 @@ mod style_disable_cops_within_source_code_directive {
         .run();
     }
 }
+
+mod lint_require_range_parentheses {
+    use super::*;
+
+    const COP: &str = "Lint/RequireRangeParentheses";
+
+    const MSG: &str = "Wrap the range literal `1..` in parentheses to avoid confusion with an \
+                       endless range.";
+
+    /// 行末で終わるレンジは括弧で囲む。レンジ全体を報告し、補正はしない。
+    ///
+    /// 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+    /// `tests/conformance.rs` 側で `locations` / `lengths` に固定してある。
+    #[test]
+    fn a_range_whose_end_is_on_the_next_line_is_reported() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n42\n"));
+        // 文法はレンジを 2 つに割るが、Ruby は 1 つのレンジとして読む。
+        // 報告の範囲は組み直したレンジ全体。
+        expect_offense(COP, &format!("1..\n^^^ {MSG}\n42\n"));
+    }
+
+    /// 括弧の中では改行が区切りにならないので、文法もレンジを割らない。
+    /// それでも本家は演算子と終端の行が違えば報告する。
+    #[test]
+    fn a_range_the_grammar_kept_whole_is_reported_the_same_way() {
+        expect_offense(COP, &format!("a = [1..\n     ^^^ {MSG}\n42]\n"));
+        expect_offense(COP, &format!("foo(1..\n    ^^^ {MSG}\n42)\n"));
+    }
+
+    /// 終端の式は行頭の 1 語ではなく式全体。
+    #[test]
+    fn the_end_is_the_whole_expression_that_follows() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n8 + 9\n"));
+    }
+
+    /// 間にコメントしかなければ、Ruby は改行をまたいでレンジを続ける。
+    #[test]
+    fn a_comment_in_between_does_not_end_the_range() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n# note\n42\n"));
+    }
+
+    /// 括弧で囲めばそれが答え。式が続かない書き方、終端が同じ行にあるもの、
+    /// 始端の無いレンジ、複数の文を持つ本体の中にあるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "y = (1..\n42)\n",
+            "z = 1..42\n",
+            "x = (1..)\ny = 2\n",
+            "def m\n  1..\nend\n",
+            // `,` があるので Ruby は終端を取り込まない。
+            "c = [1.., 2]\n",
+            "d = [1..,\n3]\n",
+            "f = {a: 1..,\nb: 2}\n",
+            // `then` が挟まると endless range のまま。
+            "case x\nwhen 1..\nthen y\nend\n",
+            // 本体が 2 文以上あると、本家はレンジの親を `begin` にする。
+            "def n\n  q = 0\n  1..\n  42\nend\n",
+            "puts 0\n1..\n42\n",
+            // 補間は 1 文でも `begin`。
+            "s = \"#{3..\n44}\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
