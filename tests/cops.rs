@@ -34215,3 +34215,37 @@ mod style_method_call_with_args_parentheses {
         .run();
     }
 }
+
+/// `Lint/LiteralAsCondition` の後置形。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/LiteralAsCondition -A` の実出力。
+mod lint_literal_as_condition_modifier {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralAsCondition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の `if` / `unless` は、条件が消えても**守っていた式は残る**。文法では
+    /// 後置形が式を `body` に持ち、`consequence` を持つのはブロック形だけなので、
+    /// `consequence` だけを見ると式ごと消えてしまう。
+    #[test]
+    fn a_modifier_keeps_what_it_guarded() {
+        correction("def m\n  a if true\nend\n", "def m\n  a\nend\n");
+        correction("def m\n  b unless false\nend\n", "def m\n  b\nend\n");
+        // 制御構造でも同じ。以前はここで `break` / `return` が消えていた。
+        correction(
+            "def m\n  foo do\n    break if true\n  end\nend\n",
+            "def m\n  foo do\n    break\n  end\nend\n",
+        );
+        correction("def m\n  return if true\nend\n", "def m\n  return\nend\n");
+        // 生き残らない側は消える。
+        correction("def m\n  c if false\nend\n", "def m\n  \nend\n");
+        correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
+    }
+}
