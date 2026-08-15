@@ -3132,6 +3132,21 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_redundant_regexp_quantifiers")
         .severity(Severity::Warning)
         .correctable(true),
+        // 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+        // `locations` / `lengths` で押さえる。
+        CopCase::annotated(
+            "Lint/RequireRangeParentheses",
+            r"
+            x = 1..
+                ^^^ Wrap the range literal `1..` in parentheses to avoid confusion with an endless range.
+            42
+            ",
+        )
+        .id("lint_require_range_parentheses")
+        .locations(&[(1, 5, 2, 2)])
+        .lengths(&[6])
+        .severity(Severity::Warning)
+        .correctable(false),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
