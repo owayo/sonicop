@@ -31,12 +31,13 @@ worth stating separately because file discovery is where a port silently diverge
 never reads `.gitignore`, applies a shebang test only to extensionless files, descends through
 directory symlinks, and treats a hidden path by its *first* component rather than by any dot in it.
 
-Sonicop implements **394 of RuboCop's 609 cops**: every cop RuboCop enables by default, matched name
-for name, with nothing extra on either side. The other 215 are the ones RuboCop ships switched off —
-159 `Enabled: pending` and 56 `Enabled: false` — and are not implemented yet.
+Sonicop implements **all 609 of RuboCop's cops**, matched name for name, with nothing extra on either
+side. That includes the 159 RuboCop ships as `Enabled: pending` and the 56 it ships as
+`Enabled: false`, neither of which a default run reaches — checking those means naming them with
+`--only` or switching them on in a configuration, exactly as with RuboCop.
 
-Because the two enabled sets are identical, neither side is restricted with `--only`; the plain run
-is already like for like. RuboCop's extension plugins are not installed, so this measures the range
+Because the two cop sets are identical, neither side is restricted with `--only`; the plain run is
+already like for like. RuboCop's extension plugins are not installed, so this measures the range
 that can be checked without them.
 
 ```bash
@@ -183,11 +184,11 @@ current list of what these corpora never exercise; the main ones are non-default
 values, extension plugins, and Windows line endings. Cops that never fire contribute nothing to a
 match count, and their silence is indistinguishable from agreement.
 
-The 215 cops RuboCop ships switched off are a limit of a different kind. Sonicop recognizes them —
-they appear in `--show-cops` and a configuration naming them still loads — but it does not implement
-them, so enabling one through `.rubocop.yml` or `--only` checks nothing at all. Sonicop prints a
-warning to stderr in that case rather than letting an unchecked file look clean, but a project whose
-configuration leans on those cops is outside what this document measures.
+The 215 cops RuboCop ships switched off are a limit of a different kind. They are implemented, but a
+default run never reaches them, so the corpus numbers above say nothing about them. What stands
+behind those is the per-cop work: each was checked against RuboCop with `--only` over the same
+corpora, and the ones that correct were compared byte for byte. That is a narrower kind of evidence
+than the whole-tree agreement the tables report.
 
 Closing that gap properly means porting RuboCop's own spec suite, which exercises each cop against
 inputs written to break it. Until that lands, this document records what was measured.

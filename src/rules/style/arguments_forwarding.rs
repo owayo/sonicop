@@ -210,6 +210,19 @@ impl<'tree> Cop<'_, 'tree> {
             "call" => parent
                 .field("method")
                 .is_none_or(|method| method.id() != node.id()),
+            // A parameter a nested block or definition declares is an `arg` and its siblings
+            // upstream rather than an `lvar`, so a name it shadows is not a reference to the one
+            // this definition took. Only the name is the declaration: what an optional parameter
+            // defaults to is ordinary code.
+            "block_parameters" | "method_parameters" | "lambda_parameters"
+            | "destructured_parameter" => false,
+            "splat_parameter"
+            | "hash_splat_parameter"
+            | "block_parameter"
+            | "optional_parameter"
+            | "keyword_parameter" => parent
+                .field("name")
+                .is_none_or(|name| name.id() != node.id()),
             _ => true,
         }
     }
