@@ -169,6 +169,7 @@ department_rules! {
     multiline_ternary_operator => ("MultilineTernaryOperator", Convention),
     multiline_when_then => ("MultilineWhenThen", Convention),
     negated_if => ("NegatedIf", Convention),
+    negated_if_else_condition => ("NegatedIfElseCondition", Convention),
     negated_unless => ("NegatedUnless", Convention),
     negated_while => ("NegatedWhile", Convention),
     nested_file_dirname => ("NestedFileDirname", Convention),

@@ -31425,3 +31425,87 @@ mod layout_disabled_trio {
         .run();
     }
 }
+
+/// `Style/NegatedIfElseCondition`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/NegatedIfElseCondition` で走らせた実出力から取った
+/// (検出 13 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_negated_if_else_condition {
+    use super::*;
+
+    const COP: &str = "Style/NegatedIfElseCondition";
+
+    /// 位置は `if` 全体。条件を反転して枝を入れ替える。
+    #[test]
+    fn a_negated_condition_with_both_branches_is_reported() {
+        // 複数行のレンジは注記が 1 行目しか表せないので位置で指定する。
+        CopCase::annotated(COP, "if !x\n  a\nelse\n  b\nend\n")
+            .id("if_else")
+            .without_offense_check()
+            .locations(&[(1, 1, 5, 3)])
+            .lengths(&[22])
+            .corrected("if x\n  b\nelse\n  a\nend\n")
+            .run();
+        expect_correction(
+            COP,
+            "if x != y\n  a\nelse\n  b\nend\n",
+            "if x == y\n  b\nelse\n  a\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if x !~ y\n  a\nelse\n  b\nend\n",
+            "if x =~ y\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// 三項演算子と `unless` も同じ。括弧の中の否定はその場で置き換わる。
+    #[test]
+    fn the_other_spellings_are_handled_too() {
+        expect_correction(COP, "!x ? a : b\n", "x ? b : a\n");
+        expect_correction(
+            COP,
+            "unless !x\n  a\nelse\n  b\nend\n",
+            "unless x\n  b\nelse\n  a\nend\n",
+        );
+        expect_correction(
+            COP,
+            "if (!x)\n  a\nelse\n  b\nend\n",
+            "if (x)\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// if 側が空なら `else` の行ごと落ちる。
+    #[test]
+    fn an_empty_if_branch_drops_the_else_line() {
+        expect_correction(COP, "if !x\nelse\n  b\nend\n", "if x\n  b\nend\n");
+    }
+
+    /// `!!x`、`elsif` を伴うもの、else の無いもの、否定でない条件は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "if !!x\n  a\nelse\n  b\nend\n",
+            "if !x\n  a\nelsif y\n  b\nelse\n  c\nend\n",
+            "if x\n  a\nelse\n  b\nend\n",
+            "if !x\n  a\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 入れ子は外側と内側の両方が報告される。補正を持つのは外側だけだが、
+    /// `correctable` は 1 ケースにつき 1 つしか指定できないので、そこは
+    /// 本家との `-A` 比較 (内側は直らない) で確かめてある。
+    #[test]
+    fn a_nest_reports_both_levels() {
+        CopCase::annotated(
+            COP,
+            "if !x\n  if !y\n    a\n  else\n    b\n  end\nelse\n  c\nend\n",
+        )
+        .id("nested")
+        .without_offense_check()
+        .locations(&[(1, 1, 9, 3), (2, 3, 6, 5)])
+        .lengths(&[51, 30])
+        .run();
+    }
+}

@@ -5130,7 +5130,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_documentation_method")
         .correctable(false),
-        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
+        CopCase::annotated(
+            "Style/NegatedIfElseCondition",
+            r"
+            !x ? a : b
+            ^^^^^^^^^^ Invert the negated condition and swap the ternary branches.
+            ",
+        )
+        .id("style_negated_if_else_condition")
+        .correctable(true),
         // ---- Layout (pending) ----
         // 位置は受け手と `[` のあいだの空白 1 文字。
         CopCase::annotated(
@@ -5139,6 +5147,7 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("layout_line_end_string_concatenation_indentation")
         .correctable(true),
+        // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",
