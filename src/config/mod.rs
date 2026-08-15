@@ -18,7 +18,7 @@ use crate::ruby_version::{
 };
 
 use inheritance::{load_with_inheritance, merge_config};
-use loader::{find_config, find_project_root};
+use loader::{find_config, find_project_root, path_parameter_base_directory};
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
@@ -100,7 +100,7 @@ impl Config {
             bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
         }
 
-        let target_base = config_path.as_deref().and_then(Path::parent).unwrap_or(cwd);
+        let target_base = path_parameter_base_directory(config_path.as_deref(), cwd);
         let configured_target = configured_target_ruby(&raw)?;
         let target_ruby = resolve_target_ruby(configured_target, target_base)?;
         validate_supported(target_ruby.version)?;
