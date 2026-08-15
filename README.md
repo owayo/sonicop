@@ -142,6 +142,11 @@ Both tools run their full default set — **the same 394 cops**, matched name fo
 side is restricted and the comparison is like-for-like as it stands. Times are the fastest of two
 warmed runs.
 
+These timings were taken at v26.8.103, on corpora a few commits older than the ones
+[CONFORMANCE.md](CONFORMANCE.md) pins — which is why the file counts here are slightly lower. What
+has changed since is cop logic, not the engine: the parse, the rule dispatch and the correction loop
+are untouched. Treat the seconds as of that measurement rather than of this commit.
+
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
 | rubocop/rubocop | 1,765 | 10.64 s | **2.84 s** | 40.66 s | **13.60 s** |
