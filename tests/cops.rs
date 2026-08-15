@@ -32839,6 +32839,17 @@ mod lint_shadowing_outer_local_variable {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
     }
+
+    /// 多重代入の右側に書いたブロックは何も隠していない。上流は値を先に読むので、
+    /// そのときまだ左側の名前は存在しない。文法は代入先を独立したリストに集めるため、
+    /// 宣言のノードがブロックを含まなくなる。
+    #[test]
+    fn a_block_on_the_right_of_a_multiple_assignment_shadows_nothing() {
+        expect_no_offenses(
+            COP,
+            "def m\n  a, b = f do |a, b|\n    [a, b]\n  end\n  [a, b]\nend\n",
+        );
+    }
 }
 
 /// `Layout/HeredocArgumentClosingParenthesis` (既定では無効)。

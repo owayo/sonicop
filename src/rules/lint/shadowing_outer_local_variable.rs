@@ -118,14 +118,41 @@ fn used_in_declaration_of_outer(
     outer: &Variable<'_>,
     context: &RuleContext<'_>,
 ) -> bool {
+    let declaration = declaring_statement(outer.declaration, context);
     let mut current = scope_node.parent_of(context);
     while let Some(ancestor) = current {
-        if ancestor.id() == outer.declaration.id() {
+        if ancestor.id() == declaration.id() {
             return true;
         }
         current = ancestor.parent_of(context);
     }
     false
+}
+
+/// The statement that declares the name, which for one of several targets is the whole assignment.
+///
+/// Upstream reads the value before any of the targets exists, so a block written on the right of
+/// `a, b = foo { |a, b| ... }` shadows nothing -- the outer names are not there yet. The grammar
+/// collects the targets in a list of their own, which leaves the declaration node too small to
+/// contain the block.
+fn declaring_statement<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Node<'tree> {
+    let mut current = node;
+    while let Some(parent) = current.parent_of(context) {
+        match parent.kind_str() {
+            "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => {
+                current = parent;
+            }
+            "assignment" | "operator_assignment"
+                if parent
+                    .field("left")
+                    .is_some_and(|left| left.id() == current.id()) =>
+            {
+                return parent;
+            }
+            _ => return current,
+        }
+    }
+    current
 }
 
 /// `same_conditions_node_different_branch?`: the two names live in branches of one conditional and
