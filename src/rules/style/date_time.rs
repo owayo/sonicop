@@ -12,7 +12,7 @@ const COERCION_MSG: &str = "Do not use `#to_datetime`.";
 /// `(call !nil? :to_datetime)`.
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_coercion = context.setting::<bool>("AllowCoercion").unwrap_or(false);
-    for node in context.nodes_of("call") {
+    for node in context.nodes_of_any(&["call", "binary"]) {
         let coercion = is_coercion(node, context);
         if !is_date_time_class(node, context) && !(coercion && !allow_coercion) {
             continue;
@@ -31,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         offenses.push(if coercion {
             offense
         } else {
-            let name = constant_name(node.field("receiver").expect("checked"));
+            let name = constant_name(receiver_of(node).expect("checked"));
             offense.corrected_by(Edit {
                 start: name.start_byte(),
                 end: name.end_byte(),
@@ -44,8 +44,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `(call (const {nil? (cbase)} :DateTime) ...)`.
 fn is_date_time_class(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.field("receiver")
+    receiver_of(node)
         .is_some_and(|receiver| send_node::top_level_constant(receiver, "DateTime", context))
+}
+
+/// The node the call was made on. An operator is a call upstream too -- `::DateTime === x` is a
+/// `send` of `:===` there -- and the grammar writes what it was called on in a field of its own.
+fn receiver_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    match node.kind_str() {
+        "binary" => node.field("left"),
+        _ => node.field("receiver"),
+    }
 }
 
 /// `(call !nil? :to_datetime)`.

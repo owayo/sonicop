@@ -22799,6 +22799,12 @@ mod style_keyword_arguments_merging {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// `super` は上流では専用のノードで、`(send _ _ ...)` のどのパターンにも当たらない。
+    #[test]
+    fn a_super_call_is_not_a_send() {
+        expect_no_offenses(COP, "def m(o)\n  super(o, **o.merge(a: 1))\nend\n");
+    }
 }
 
 /// `Style/IfWithBooleanLiteralBranches`。
@@ -24250,6 +24256,16 @@ mod style_date_time {
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 演算子も上流では呼び出し。`::DateTime === x` は `:===` の send で、レシーバは
+    /// `DateTime` なので対象になる。
+    #[test]
+    fn an_operator_written_on_the_class_is_a_call_too() {
+        let report = CopCase::new(COP, "x = (::DateTime === y)\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -28182,6 +28198,17 @@ mod lint_it_without_arguments_in_block {
             .target_ruby("3.4")
             .run();
     }
+
+    /// 書き込まれる名前は上流では `lvasgn` で、`it += 1` は変数の読み書きであって
+    /// メソッド呼び出しではない。
+    #[test]
+    fn a_name_being_assigned_is_a_variable() {
+        for source in ["foo { it += 1 }\n", "foo { it = 1 }\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.3")
+                .run();
+        }
+    }
 }
 
 /// `Lint/UnexpectedBlockArity`。
@@ -28408,6 +28435,21 @@ mod lint_constant_resolution {
         for source in ["A, B = 1, 2\n", "def O0(&block)\n  block\nend\n"] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 引数の既定値に書いた定数は読み。文法は `def m(a = X, b = {})` を「並んだ代入先へ
+    /// の 1 つの代入」と読むが、上流では引数 2 つと `X` の素の参照になる。
+    #[test]
+    fn a_constant_written_as_a_parameter_default_is_a_read() {
+        let report = CopCase::new(
+            COP,
+            "def m(value = EMPTY, opts = {})\n  value\nend\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 
     /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は

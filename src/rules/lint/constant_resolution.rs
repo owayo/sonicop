@@ -34,6 +34,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
+/// Whether the list of targets is what the grammar makes of a parameter's default value.
+fn written_as_a_parameter_default(list: Node<'_>, context: &RuleContext<'_>) -> bool {
+    list.parent_of(context)
+        .and_then(|assignment| assignment.parent_of(context))
+        .is_some_and(|outer| {
+            matches!(outer.kind_str(), "optional_parameter" | "keyword_parameter")
+        })
+}
+
 fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = node.parent_of(context) else {
         return true;
@@ -48,8 +57,12 @@ fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
             .field("left")
             .is_none_or(|left| left.id() != node.id()),
         // Every name a multiple assignment writes to is a `casgn` upstream, the same as the single
-        // one. The grammar collects them in a list of their own instead.
-        "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => false,
+        // one. The grammar collects them in a list of their own instead -- except where it reads
+        // `def m(a = X, b = {})` as one assignment to a list, which upstream has as two parameters
+        // and a plain read of `X`. A list standing in a parameter's default is that misreading.
+        "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => {
+            written_as_a_parameter_default(parent, context)
+        }
         // The name of a method whose first letter is a capital is written with the node a constant
         // gets, but upstream keeps a method's name as a symbol and no `const` node exists for it.
         "method" | "singleton_method" => parent
