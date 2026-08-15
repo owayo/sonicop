@@ -5181,6 +5181,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_string_escape")
         .correctable(true),
+        // 位置は `\\` と改行の 2 文字ぶんで、次の行にまたがる。
+        CopCase::annotated("Style/RedundantLineContinuation", "foo = 1 + \\\n  2\n")
+            .id("style_redundant_line_continuation")
+            .without_offense_check()
+            .locations(&[(1, 11, 2, 1)])
+            .lengths(&[2])
+            .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")

@@ -32258,3 +32258,51 @@ mod style_redundant_string_escape {
         }
     }
 }
+
+/// `Style/RedundantLineContinuation`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_line_continuation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantLineContinuation";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 消しても構文が変わらない `\` は消える。消えるのは backslash 1 文字だけなので、
+    /// 手前にあった空白はそのまま残る。
+    #[test]
+    fn a_line_continuation_the_parser_did_not_need_is_removed() {
+        correction("foo = 1 + \\\n  2\n", "foo = 1 + \n  2\n");
+        correction("qux = foo \\\n  .bar\n", "qux = foo \n  .bar\n");
+        correction("quux(1, \\\n  2)\n", "quux(1, \n  2)\n");
+        correction("corge = [1, \\\n  2]\n", "corge = [1, \n  2]\n");
+        // 最終行の末尾に残った `\` も対象。
+        correction("fred = 1 + 2 \\\n", "fred = 1 + 2 \n");
+    }
+
+    /// 文字列の中、コメントの中、暗黙の文字列連結、消すと構文が変わるものは黙る。
+    #[test]
+    fn what_the_line_continuation_cop_leaves_alone() {
+        for source in [
+            "baz = \"a\" \\\n  \"b\"\n",
+            "waldo = \"a\\\nb\"\n",
+            "# comment \\\ngarply = 1\n",
+            "grault = <<~T\n  a \\\n  b\nT\n",
+            // 次の行が演算子で始まるので、`\` を消すと別の構文になる。
+            "s = 1 if foo \\\n  && bar\n",
+            // 空行を挟んだ leading dot は `\` が無いと繋がらない。
+            "r = foo \\\n\n  .bar\n",
+            // 次の行が新しい式を始めるなら、`\` はそれを引数として繋いでいる。
+            "assert_equal \\\n  \"a\",\n  b\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
