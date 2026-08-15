@@ -21003,6 +21003,36 @@ mod style_nested_file_dirname {
     }
 }
 
+/// `Style/ExponentialNotation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ExponentialNotation` で走らせた実出力から取った
+/// (位置・長さとも JSON で確認済み)。
+mod style_exponential_notation {
+    use super::*;
+
+    const COP: &str = "Style/ExponentialNotation";
+    const MSG: &str = "Use a mantissa >= 1 and < 10.";
+
+    /// 本家のパーサは先頭の `+` / `-` をリテラルに畳み込むので、仮数の判定には符号が入り、
+    /// 指摘も符号の位置から始まる。`+` は `/^-?[1-9].../` に当たらないので、仮数が 1 以上
+    /// 10 未満でも指摘になる。
+    #[test]
+    fn a_folded_sign_belongs_to_the_mantissa() {
+        expect_offense(COP, &format!("y = +2.5e20\n    ^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("z = -123.45e1\n    ^^^^^^^^^ {MSG}\n"));
+        // 符号との間の空白も畳み込まれる。
+        expect_offense(COP, &format!("v = - 2.5e20\n    ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 符号が無いもの、`-` 付きで仮数が範囲内のものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["w = 2.5e20\n", "u = -1.5e3\n", "t = 1.0e3\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
 /// `Style/EnvHome`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った
