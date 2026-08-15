@@ -17,6 +17,7 @@ mod parens;
 mod percent;
 mod percent_array;
 mod ranges;
+mod select_by;
 mod trailing_body;
 mod trailing_comma;
 
@@ -48,6 +49,7 @@ department_rules! {
     class_check => ("ClassCheck", Convention),
     class_equality_comparison => ("ClassEqualityComparison", Convention),
     class_methods => ("ClassMethods", Convention),
+    class_methods_definitions => ("ClassMethodsDefinitions", Convention),
     class_vars => ("ClassVars", Convention),
     collection_compact => ("CollectionCompact", Convention),
     collection_querying => ("CollectionQuerying", Convention),
@@ -200,6 +202,7 @@ department_rules! {
     or_assignment => ("OrAssignment", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
     parentheses_around_condition => ("ParenthesesAroundCondition", Convention),
+    partition_instead_of_double_select => ("PartitionInsteadOfDoubleSelect", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     percent_q_literals => ("PercentQLiterals", Convention),
     perl_backrefs => ("PerlBackrefs", Convention),
@@ -251,6 +254,14 @@ department_rules! {
     rescue_modifier => ("RescueModifier", Convention),
     safe_navigation_chain_length => ("SafeNavigationChainLength", Convention),
     safe_navigation => ("SafeNavigation", Convention),
+    select_by_regexp => ("SelectByRegexp", Convention),
+    select_by_kind => ("SelectByKind", Convention),
+    select_by_range => ("SelectByRange", Convention),
+    tally_method => ("TallyMethod", Convention),
+    single_line_do_end_block => ("SingleLineDoEndBlock", Convention),
+    require_order => ("RequireOrder", Convention),
+    super_arguments => ("SuperArguments", Convention),
+    redundant_double_splat_hash_braces => ("RedundantDoubleSplatHashBraces", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     send => ("Send", Convention),

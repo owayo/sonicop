@@ -138,7 +138,9 @@ fn requires_backslash(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(operator) = node.field("operator") else {
         return false;
     };
-    crate::rules::single_line::source_line(line(operator.start_byte(), context), context)
+    context
+        .source
+        .line_without_terminator(line(operator.start_byte(), context))
         .ends_with('\\')
 }
 

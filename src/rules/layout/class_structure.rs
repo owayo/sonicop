@@ -4,15 +4,10 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::lint::access_modifier::{bare_send_name, send_name};
+use crate::rules::lint::access_modifier::send_name;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, symbol_name};
-
-/// `VISIBILITY_SCOPES`.
-const VISIBILITY_SCOPES: &[&str] = &["private", "protected", "public"];
-
-/// The node kinds the grammar adds for statement lists.
-const CONTAINERS: &[&str] = &["body_statement", "block_body", "then", "else"];
+use crate::rules::visibility::{node_visibility, siblings, statements};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let expected: Vec<String> = context.setting("ExpectedOrder").unwrap_or_default();
@@ -103,13 +98,6 @@ fn flatten<'tree>(nodes: &[Node<'tree>]) -> Vec<Node<'tree>> {
             }
             false => vec![*node],
         })
-        .collect()
-}
-
-fn statements<'tree>(container: Node<'tree>) -> Vec<Node<'tree>> {
-    named_children(container)
-        .into_iter()
-        .filter(|child| child.kind_str() != "comment")
         .collect()
 }
 
@@ -263,95 +251,6 @@ fn is_def_modifier(node: Node<'_>) -> bool {
         "call" => is_def_modifier(argument),
         _ => false,
     }
-}
-
-/// `node_visibility`.
-fn node_visibility(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
-    if node.kind_str() == "method" {
-        if let Some(inline) = inline_visibility(node, context) {
-            return inline;
-        }
-    }
-    block_visibility(node, context).unwrap_or("public")
-}
-
-/// `node_visibility_from_visibility_inline`: `private def foo` and `private :foo`.
-fn inline_visibility(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    let parent = node.parent_of(context);
-    // `(send nil? VISIBILITY_SCOPES def)`
-    if let Some(parent) = enclosing_call(parent, node)
-        && let Some(scope) = named_scope(parent, context)
-        && arguments(parent).len() == 1
-    {
-        return Some(scope);
-    }
-    let name = context.source.node_text(node.field("name")?);
-    // `(send nil? VISIBILITY_SCOPES (sym %method_name))`, the last one written after the definition.
-    siblings(node, context)?
-        .into_iter()
-        .skip_while(|sibling| sibling.id() != node.id())
-        .skip(1)
-        .filter(|sibling| {
-            // `(send nil? VISIBILITY_SCOPES (sym %method_name))`: exactly one symbol. A modifier
-            // given several names -- `private :a, :b` -- matches no pattern and marks nothing.
-            match arguments(*sibling).as_slice() {
-                [only] => symbol_name(only.first(), context) == Some(name),
-                _ => false,
-            }
-        })
-        .filter_map(|sibling| named_scope(sibling, context))
-        .last()
-}
-
-/// `node_visibility_from_visibility_block`: the last bare modifier written above the node.
-fn block_visibility(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    siblings(node, context)?
-        .into_iter()
-        .take_while(|sibling| sibling.id() != node.id())
-        .filter_map(|sibling| bare_scope(sibling, context))
-        .last()
-}
-
-/// `visibility_block?`: the `private` / `protected` / `public` a bare receiverless call names. A bare
-/// one reaches the grammar as an identifier rather than as a call.
-fn bare_scope(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    let name = bare_send_name(node, context)?;
-    VISIBILITY_SCOPES
-        .iter()
-        .find(|scope| **scope == name)
-        .copied()
-}
-
-/// The scope a call names whether or not it was given an argument, which is what
-/// `visibility_inline_on_def?` and `visibility_inline_on_method_name?` read.
-fn named_scope(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    if node.field("receiver").is_some() {
-        return None;
-    }
-    let name = send_name(node, context)?;
-    VISIBILITY_SCOPES
-        .iter()
-        .find(|scope| **scope == name)
-        .copied()
-}
-
-/// The call a node was handed to as its only argument, which is how `private def foo` reads.
-fn enclosing_call<'tree>(parent: Option<Node<'tree>>, node: Node<'_>) -> Option<Node<'tree>> {
-    let parent = parent?;
-    let call = match parent.kind_str() {
-        "argument_list" => parent.parent()?,
-        "call" => parent,
-        _ => return None,
-    };
-    (call.kind_str() == "call" && call.end_byte() >= node.end_byte()).then_some(call)
-}
-
-/// The statements the node sits among, which is what `left_siblings` and `right_siblings` walk.
-fn siblings<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Vec<Node<'tree>>> {
-    let parent = node.parent_of(context)?;
-    CONTAINERS
-        .contains(&parent.kind_str())
-        .then(|| statements(parent))
 }
 
 /// The offense, whose correction moves the element above the last sibling of a different category.

@@ -66,7 +66,7 @@ fn is_too_long(range: &Range<usize>, maximum: Option<usize>, context: &RuleConte
         return false;
     };
     let lines: Vec<&str> = (line(range.start, context)..=line(last_byte(range), context))
-        .map(|number| source_line(number, context))
+        .map(|number| context.source.line_without_terminator(number))
         .collect();
     to_single_line(&lines.join("\n")).chars().count() > maximum
 }
@@ -206,16 +206,6 @@ pub(in crate::rules) fn to_single_line(source: &str) -> String {
     let source = SAME_SINGLE.replace_all(&source, "");
     let source = BEFORE_CHAIN.replace_all(&source, "$1");
     ANY_BREAK.replace_all(&source, " ").into_owned()
-}
-
-/// `processed_source.lines[n]`, which is the line without the break that ends it. The source keeps
-/// that break, and a line measured or matched with it on is one character longer than upstream's.
-pub(in crate::rules) fn source_line<'a>(number: usize, context: &'a RuleContext<'_>) -> &'a str {
-    context
-        .source
-        .line(number)
-        .trim_end_matches('\n')
-        .trim_end_matches('\r')
 }
 
 /// The nodes `each_descendant` reaches from `node`, with the subtree of `skip` left out.
