@@ -6230,6 +6230,15 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_safe_navigation")
         .correctable(true),
         CopCase::annotated(
+            "Layout/HeredocArgumentClosingParenthesis",
+            "foo(<<~SQL\n  text\nSQL\n)\n^ Put the closing parenthesis for a method call with a HEREDOC parameter on the same line as the HEREDOC opening.\n",
+        )
+        .id("layout_heredoc_argument_closing_parenthesis")
+        .config("Layout/HeredocArgumentClosingParenthesis:\n  Enabled: true\n")
+        .locations(&[(4, 1, 4, 1)])
+        .lengths(&[1])
+        .correctable(true),
+        CopCase::annotated(
             "Style/RedundantParentheses",
             r#"
             x = (1)

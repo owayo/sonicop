@@ -31662,3 +31662,121 @@ mod lint_shadowing_outer_local_variable {
         }
     }
 }
+
+/// `Layout/HeredocArgumentClosingParenthesis` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。`-A` は本家と同じく安定するまで繰り返すので、入れ子の呼び出しは 2 周かけて
+/// 内側から順に閉じ括弧が上がっていく。
+mod layout_heredoc_argument_closing_parenthesis {
+    use super::*;
+
+    const COP: &str = "Layout/HeredocArgumentClosingParenthesis";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(&format!("{COP}:\n  Enabled: true\n"))
+    }
+
+    fn correction(source: &str, corrected: &str) {
+        case(source)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 報告するのは閉じ括弧 1 文字。
+    #[test]
+    fn the_offense_is_the_closing_parenthesis_itself() {
+        CopCase::new(
+            COP,
+            "foo(<<~SQL\n  text\nSQL\n)\n".to_owned(),
+            vec![Annotation::new(
+                4,
+                1,
+                1,
+                "Put the closing parenthesis for a method call with a HEREDOC parameter on the \
+                 same line as the HEREDOC opening.",
+            )],
+        )
+        .config(&format!("{COP}:\n  Enabled: true\n"))
+        .locations(&[(4, 1, 4, 1)])
+        .lengths(&[1])
+        .run();
+    }
+
+    /// 閉じ括弧だけの行はまるごと消え、括弧はヒアドキュメントの開始の後ろに移る。
+    #[test]
+    fn the_parenthesis_moves_up_to_the_heredoc_opening() {
+        correction("foo(<<~SQL\n  text\nSQL\n)\n", "foo(<<~SQL)\n  text\nSQL\n");
+        // 引数の直後に書かれていた読点は括弧と一緒に消える。
+        correction(
+            "foo(<<~SQL,\n  text\nSQL\n)\n",
+            "foo(<<~SQL)\n  text\nSQL\n",
+        );
+        correction(
+            "foo(<<~SQL, 123\n  text\nSQL\n)\n",
+            "foo(<<~SQL, 123)\n  text\nSQL\n",
+        );
+        // `<<~SQL.strip` は send だが、レシーバのヒアドキュメントが行をまたぐので対象。
+        correction(
+            "foo(<<~SQL.strip\n  text\nSQL\n)\n",
+            "foo(<<~SQL.strip)\n  text\nSQL\n",
+        );
+        // 波括弧の無い hash の値にあるヒアドキュメントも見つける。
+        correction(
+            "foo(key: <<~SQL\n  text\nSQL\n)\n",
+            "foo(key: <<~SQL)\n  text\nSQL\n",
+        );
+    }
+
+    /// 入れ子は内側から 1 周ずつ上がる。閉じ括弧だけの行ではないので、消えるのは括弧 1 文字。
+    #[test]
+    fn nested_calls_close_one_round_at_a_time() {
+        correction(
+            "foo(bar(<<~SQL\n  text\nSQL\n))\n",
+            "foo(bar(<<~SQL))\n  text\nSQL\n",
+        );
+        correction(
+            "array = [foo(<<~SQL\n  text\nSQL\n)]\n",
+            "array = [foo(<<~SQL)\n  text\nSQL\n]\n",
+        );
+    }
+
+    /// 括弧の外にあった読点は、括弧と一緒に引数の後ろへ移る。
+    #[test]
+    fn a_trailing_comma_written_after_the_parenthesis_moves_with_it() {
+        correction(
+            "[foo(<<~SQL\n  text\nSQL\n), 1]\n",
+            "[foo(<<~SQL),\n  text\nSQL\n 1]\n",
+        );
+        correction(
+            "baz(foo(<<~SQL\n  text\nSQL\n), [1])\n",
+            "baz(foo(<<~SQL),\n  text\nSQL\n [1])\n",
+        );
+        // 外側も呼び出しで、その閉じ括弧が最後の引数の直後に来る形 (`baz(foo(...), 1)`) は、
+        // 本家でも 2 周目が `baz` の閉じ括弧を報告して何も変えないため
+        // `Infinite loop detected` で終わる。ここでも同じ結果になるので correction として
+        // 書けない。
+    }
+
+    /// `end` で閉じるものの中に書かれた呼び出し、括弧を書いていない呼び出し、
+    /// すでに開始行で閉じているものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def m\n  foo(<<~SQL\n    text\n  SQL\n  )\nend\n",
+            "class C\n  foo(<<~SQL\n    text\n  SQL\n  )\nend\n",
+            "foo(<<~SQL)\n  text\nSQL\n",
+            "foo <<~SQL\n  text\nSQL\n",
+            // ヒアドキュメントの終端と閉じ括弧の間に引数が残っている。
+            "foo(<<~SQL,\n  text\nSQL\n  bar)\n",
+            "foo(<<~SQL, bar(\n  text\nSQL\n  1\n))\n",
+            // 最後の引数が閉じた直後に並んでいる閉じ括弧。
+            "foo(bar(<<~X), [\n  t\nX\n  1\n])\n",
+            "foo(bar(<<~X), baz(\n  t\nX\n  1\n))\n",
+        ] {
+            case(source).run();
+        }
+    }
+}
