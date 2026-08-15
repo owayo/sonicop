@@ -70,6 +70,7 @@ department_rules! {
     copyright => ("Copyright", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
     dir => ("Dir", Convention),
+    disable_cops_within_source_code_directive => ("DisableCopsWithinSourceCodeDirective", Convention),
     dir_empty => ("DirEmpty", Convention),
     dig_chain => ("DigChain", Convention),
     data_inheritance => ("DataInheritance", Convention),

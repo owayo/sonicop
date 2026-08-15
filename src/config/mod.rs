@@ -215,6 +215,13 @@ impl Config {
         self.cop_value("AllCops", key)
     }
 
+    /// `prevent_directive_disabling?`: whether the configuration explicitly turns on the cop that
+    /// forbids directive comments, which is what puts that cop out of their reach.
+    pub fn prevents_directive_disabling(&self) -> bool {
+        self.cop_value::<bool>("Style/DisableCopsWithinSourceCodeDirective", "Enabled")
+            == Some(true)
+    }
+
     pub fn path_included(&self, path: &Path) -> bool {
         // RuboCop shortcuts a path whose *first* component is hidden: no `Include` pattern can reach
         // it unless one of them mentions a dot. Only the leading component counts, so a dot

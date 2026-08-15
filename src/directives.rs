@@ -20,10 +20,23 @@ struct Snapshot {
 #[derive(Debug, Default)]
 pub struct DirectiveState {
     line_states: Vec<Snapshot>,
+    /// `prevent_directive_disabling?`: the cop that forbids directives cannot itself be switched
+    /// off by one once the configuration has explicitly asked for it.
+    prevents_directive_disabling: bool,
 }
 
 impl DirectiveState {
     pub fn parse(source: &SourceFile, comment_ranges: &[Range<usize>]) -> Self {
+        Self::parse_for(source, comment_ranges, false)
+    }
+
+    /// The same, for the run that knows whether the configuration explicitly enables the cop that
+    /// forbids directives.
+    pub fn parse_for(
+        source: &SourceFile,
+        comment_ranges: &[Range<usize>],
+        prevents_directive_disabling: bool,
+    ) -> Self {
         let mut current = Snapshot::default();
         let mut stack = Vec::new();
         let mut line_states = Vec::with_capacity(source.line_count());
@@ -59,7 +72,13 @@ impl DirectiveState {
                     Action::Disable => {
                         apply_disable(&mut current, &directive.cops, directive.reason);
                     }
-                    Action::Enable => apply_enable(&mut current, &directive.cops),
+                    // The line an `enable` is written on is the last line of the range it
+                    // closes, so what it reports under is the state that was open above it.
+                    Action::Enable => {
+                        apply_enable(&mut current, &directive.cops);
+                        line_states.push(before);
+                        continue;
+                    }
                     Action::Push => {
                         stack.push(current.clone());
                         for (enable, cop) in directive.push_operations {
@@ -81,7 +100,10 @@ impl DirectiveState {
             line_states.push(current.clone());
         }
 
-        Self { line_states }
+        Self {
+            line_states,
+            prevents_directive_disabling,
+        }
     }
 
     /// The inclusive line ranges over which `cop` is disabled, which is what
@@ -112,6 +134,9 @@ impl DirectiveState {
         // by department and by `all` (`#parsed_cop_names`, `#exclude_lint_department_cops`) -- so
         // a file cannot turn off the report that it does not parse.
         if is_mandatory_cop(offense.cop_name) {
+            return None;
+        }
+        if self.prevents_directive_disabling && offense.cop_name == DISABLE_COPS_DIRECTIVE_COP {
             return None;
         }
         let (line, _) = source.line_column(offense.start);
@@ -174,11 +199,9 @@ struct Directive {
 
 fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
     let comment = line.get(comment_start..)?;
-    let marker_end = marker_end(comment)?;
-    let command = comment[marker_end..].trim_start();
-    let mode_end = command.find(char::is_whitespace).unwrap_or(command.len());
-    let mode = &command[..mode_end];
-    let remainder = command[mode_end..].trim();
+    let header = directive_header(comment)?;
+    let mode = header.mode;
+    let remainder = comment[header.mode_end..].trim();
     let (arguments, reason) =
         remainder
             .split_once("--")
@@ -196,7 +219,10 @@ fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
         "pop" => Action::Pop,
         _ => return None,
     };
-    let inline = !line[..comment_start].trim().is_empty();
+    // `!comment_only_line?(directive.line_number) || directive.single_line?`: a directive covers
+    // its own line alone when that line holds code as well, and also when it was written behind
+    // prose rather than opening its comment.
+    let inline = !line[..comment_start].trim().is_empty() || header.start != 0;
 
     if matches!(action, Action::Push) {
         let push_operations = arguments
@@ -283,34 +309,6 @@ fn cop_name_length(text: &str) -> Option<usize> {
             return Some(index);
         }
         index += 1;
-    }
-}
-
-fn marker_end(comment: &str) -> Option<usize> {
-    let bytes = comment.as_bytes();
-    let mut index = 0;
-    if bytes.get(index) != Some(&b'#') {
-        return None;
-    }
-    index += 1;
-    skip_ascii_whitespace(bytes, &mut index);
-    if !comment[index..].starts_with("rubocop") {
-        return None;
-    }
-    index += "rubocop".len();
-    skip_ascii_whitespace(bytes, &mut index);
-    if bytes.get(index) != Some(&b':') {
-        return None;
-    }
-    Some(index + 1)
-}
-
-fn skip_ascii_whitespace(bytes: &[u8], index: &mut usize) {
-    while bytes
-        .get(*index)
-        .is_some_and(|byte| byte.is_ascii_whitespace())
-    {
-        *index += 1;
     }
 }
 
@@ -424,6 +422,27 @@ pub(crate) fn directive_header(text: &str) -> Option<DirectiveHeader<'_>> {
         mode_end: mode.end(),
         mode: mode.as_str(),
     })
+}
+
+/// `DirectiveComment#directive_cops`: the names a directive comment lists, however it lists them.
+///
+/// A `push` names its cops with a sign in front of each and no commas between, and they come back
+/// here as one entry the same way they do upstream, where a single capture is split on commas
+/// whichever of the two argument lists it came from.
+pub(crate) fn directive_cop_names(text: &str) -> Vec<&str> {
+    let Some(captures) = directive_regex().captures(text) else {
+        return Vec::new();
+    };
+    let whole = captures.get(0).expect("group zero always participates");
+    if commented_out(&text[..whole.start()]) {
+        return Vec::new();
+    }
+    captures
+        .get(2)
+        .or_else(|| captures.get(3))
+        .map_or_else(Vec::new, |names| {
+            names.as_str().split(',').map(str::trim).collect()
+        })
 }
 
 /// `DirectiveComment#disabled? && #cop_names.include?(cop)` for one comment on its own.
@@ -755,9 +774,7 @@ impl CopRegistry {
             by_cop_name,
             config_disabled,
             disabled,
-            prevents_directive_disabling: config
-                .cop_value::<bool>(DISABLE_COPS_DIRECTIVE_COP, "Enabled")
-                == Some(true),
+            prevents_directive_disabling: config.prevents_directive_disabling(),
         }
     }
 

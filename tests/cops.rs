@@ -33312,3 +33312,189 @@ mod style_class_methods_definitions {
         .run();
     }
 }
+
+/// `Style/DisableCopsWithinSourceCodeDirective` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_disable_cops_within_source_code_directive {
+    use super::*;
+
+    const COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
+    const ON: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n";
+    const ALLOWED: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  AllowedCops:\n    - Metrics/AbcSize\n    - Style/For\n";
+    const DISALLOWED: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  DisallowedCops:\n    - Lint/Void\n    - Style/Next\n";
+
+    fn correction(config: &str, source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(config)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置はコメント全体。`disable` も `enable` も同じように報告され、補正は
+    /// コメントを消す。
+    #[test]
+    fn every_directive_comment_is_reported_and_taken_out() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            def foo
+            end
+            # rubocop:enable Metrics/AbcSize
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "x = 0\n# rubocop:disable Metrics/AbcSize\ndef foo\nend\n# rubocop:enable Metrics/AbcSize\n",
+            "x = 0\n\ndef foo\nend\n\n",
+        );
+    }
+
+    /// コードの後ろに書かれたものも同じ。位置はコメントだけで、コードは残る。
+    #[test]
+    fn a_directive_written_after_code_is_reported_on_the_comment_alone() {
+        CopCase::annotated(
+            COP,
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "y = 0\nx = 1 # rubocop:disable Style/For\n",
+            "y = 0\nx = 1 \n",
+        );
+    }
+
+    /// マーカーの前が `#` と空白だけのものは、コメントアウトされたディレクティブ
+    /// なので数に入らない。前にコードがあるものは数に入る。
+    #[test]
+    fn a_directive_that_has_itself_been_commented_out_is_not_one() {
+        CopCase::new(
+            COP,
+            "## rubocop:disable Style/For\n# a plain comment\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "x = 0\n#   def f # rubocop:disable Style/For\nx = 1\n",
+            "x = 0\n\nx = 1\n",
+        );
+    }
+
+    /// `push` の引数も名前として読まれる。`pop` は名前を持たないので報告されない。
+    #[test]
+    fn the_names_a_push_carries_are_read_as_its_cops() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:push +Style/For
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            x = 1
+            # rubocop:pop
+            ",
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// `AllowedCops` に挙げた名前は許される。残りが名前で挙がり、コメントからは
+    /// 許されない名前だけが落ちる。`all` は挙げても許されない。
+    #[test]
+    fn allowed_cops_keeps_the_names_it_lists() {
+        for source in [
+            "# rubocop:disable Metrics/AbcSize\ndef foo\nend\n# rubocop:enable Metrics/AbcSize\n",
+            "x = 1 # rubocop:disable Style/For\n",
+            "# rubocop:disable Style/For -- because\nx = 1\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ALLOWED)
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize, Style/Next
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Style/Next` are not permitted.
+            x = 1
+            ",
+        )
+        .config(ALLOWED)
+        .run();
+        correction(
+            ALLOWED,
+            "x = 0\n# rubocop:disable Metrics/AbcSize, Style/Next\nx = 1\n",
+            "x = 0\n# rubocop:disable Metrics/AbcSize\nx = 1\n",
+        );
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            x = 1
+            ",
+        )
+        .config(ALLOWED)
+        .run();
+    }
+
+    /// `DisallowedCops` を書いたときは、そこに挙げた名前と `all` だけが対象。
+    #[test]
+    fn disallowed_cops_reports_only_the_names_it_lists() {
+        for source in [
+            "x = 1 # rubocop:disable Style/For\n",
+            "# rubocop:push +Style/For\nx = 1\n# rubocop:pop\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(DISALLOWED)
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize, Style/Next
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Style/Next` are not permitted.
+            x = 1
+            ",
+        )
+        .config(DISALLOWED)
+        .run();
+        // `all` は挙げていない名前も道連れにする。
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            x = 1
+            ",
+        )
+        .config(DISALLOWED)
+        .run();
+    }
+
+    /// 設定が明示的に有効にしたこの cop は、ディレクティブでは黙らせられない。
+    #[test]
+    fn a_directive_cannot_switch_the_cop_off_once_the_configuration_asks_for_it() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            x = 1
+            # rubocop:enable all
+            ^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+    }
+}
