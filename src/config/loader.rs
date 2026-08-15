@@ -48,6 +48,48 @@ fn home_directory() -> Option<PathBuf> {
     resolve_home_directory(|key| std::env::var_os(key))
 }
 
+/// `base_dir_for_path_parameters`: where the paths a configuration file mentions are taken from.
+///
+/// A file whose name starts with `.rubocop` speaks about the directory holding it; any other file
+/// speaks about the directory the command ran in. The gem's own `default.yml` is the reason for the
+/// split -- its paths must not be read as relative to the gem. The dotfile in the home directory
+/// describes whatever is being inspected rather than the home directory, so it counts as an other.
+pub(super) fn path_parameter_base_directory<'a>(
+    config_path: Option<&'a Path>,
+    cwd: &'a Path,
+) -> &'a Path {
+    let home = home_directory();
+    base_directory_for(config_path, cwd, home.as_deref())
+}
+
+fn base_directory_for<'a>(
+    config_path: Option<&'a Path>,
+    cwd: &'a Path,
+    home: Option<&Path>,
+) -> &'a Path {
+    let Some(path) = config_path else {
+        return cwd;
+    };
+    let named_for_rubocop = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with(".rubocop"));
+    if !named_for_rubocop || is_home_dotfile(path, home) {
+        return cwd;
+    }
+    path.parent().unwrap_or(cwd)
+}
+
+/// The configuration path is stored canonicalized, so the dotfile is compared both as written and
+/// as the file system resolves it.
+fn is_home_dotfile(path: &Path, home: Option<&Path>) -> bool {
+    home.is_some_and(|home| {
+        let dotfile = home.join(".rubocop.yml");
+        path == dotfile
+            || fs::canonicalize(&dotfile).is_ok_and(|canonical| path == canonical.as_path())
+    })
+}
+
 /// RuboCop expands `~` through `Dir.home`, which on Windows falls back to
 /// `USERPROFILE` and then `HOMEDRIVE`+`HOMEPATH` because `HOME` is normally unset
 /// there. Reading `HOME` alone hides the user-global configuration on Windows.
@@ -74,8 +116,9 @@ pub(super) fn find_project_root(start: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsString;
+    use std::path::Path;
 
-    use super::resolve_home_directory;
+    use super::{base_directory_for, resolve_home_directory};
 
     fn environment<'a>(pairs: &'a [(&str, &str)]) -> impl Fn(&str) -> Option<OsString> + 'a {
         move |key| {
@@ -113,5 +156,37 @@ mod tests {
             None
         );
         assert_eq!(resolve_home_directory(environment(&[])), None);
+    }
+
+    #[test]
+    fn takes_path_parameters_from_the_directory_only_for_a_rubocop_dotfile() {
+        let cwd = Path::new("/work/project");
+        let home = Some(Path::new("/home/dev"));
+        // Nothing loaded: the command's own directory is all there is.
+        assert_eq!(base_directory_for(None, cwd, home), cwd);
+        // `.rubocop.yml` and its siblings speak about where they sit.
+        assert_eq!(
+            base_directory_for(Some(Path::new("/work/project/ci/.rubocop.yml")), cwd, home),
+            Path::new("/work/project/ci")
+        );
+        assert_eq!(
+            base_directory_for(
+                Some(Path::new("/work/project/.rubocop_todo.yml")),
+                cwd,
+                home
+            ),
+            Path::new("/work/project")
+        );
+        // Any other name is read against the directory the command ran in, so a configuration kept
+        // outside the project does not drag the target Ruby version out of its own neighbourhood.
+        assert_eq!(
+            base_directory_for(Some(Path::new("/tmp/checks/all609.yml")), cwd, home),
+            cwd
+        );
+        // The dotfile in the home directory describes the project, not the home directory.
+        assert_eq!(
+            base_directory_for(Some(Path::new("/home/dev/.rubocop.yml")), cwd, home),
+            cwd
+        );
     }
 }
