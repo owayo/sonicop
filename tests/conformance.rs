@@ -3115,6 +3115,46 @@ fn catalogue() -> Vec<CopCase> {
         .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UnescapedBracketInRegexp",
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        )
+        .id("lint_unescaped_bracket_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateRegexpCharacterClassElement",
+            r"
+            /[xyx]/
+                ^ Duplicate element inside regexp character class
+            ",
+        )
+        .id("lint_duplicate_regexp_character_class_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MixedCaseRange",
+            r"
+            /[A-z]/
+              ^^^ Ranges from upper to lower case ASCII letters may include unintended characters. Instead of `A-z` (which also includes several symbols) specify each range individually: `A-Za-z` and individually specify any symbols.
+            ",
+        )
+        .id("lint_mixed_case_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantRegexpQuantifiers",
+            r"
+            /(?:x+)+/
+                 ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        )
+        .id("lint_redundant_regexp_quantifiers")
+        .severity(Severity::Warning)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",

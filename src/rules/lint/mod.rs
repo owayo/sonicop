@@ -33,6 +33,10 @@ mod parameters;
 mod percent_literal;
 mod ranges;
 mod regexp;
+/// What the four regexp-reading cops get handed in place of a `RegexpNode`.
+mod regexp_source;
+/// The `Regexp::Parser` tree the four regexp-reading cops share.
+mod regexp_tree;
 mod rescue_clause;
 mod statements;
 /// Reachable from the shared `RuleContext` too: the analysis is the same for every cop that
@@ -72,6 +76,7 @@ department_rules! {
     duplicate_match_pattern => ("DuplicateMatchPattern", Warning),
     duplicate_magic_comment => ("DuplicateMagicComment", Warning),
     duplicate_methods => ("DuplicateMethods", Warning),
+    duplicate_regexp_character_class_element => ("DuplicateRegexpCharacterClassElement", Warning),
     duplicate_require => ("DuplicateRequire", Warning),
     duplicate_rescue_exception => ("DuplicateRescueException", Warning),
     duplicate_set_element => ("DuplicateSetElement", Warning),
@@ -109,6 +114,7 @@ department_rules! {
     r#loop => ("Loop", Warning),
     missing_cop_enable_directive => ("MissingCopEnableDirective", Warning),
     missing_super => ("MissingSuper", Warning),
+    mixed_case_range => ("MixedCaseRange", Warning),
     mixed_regexp_capture_types => ("MixedRegexpCaptureTypes", Warning),
     multiple_comparison => ("MultipleComparison", Warning),
     name_typo => ("NameTypo", Warning),
@@ -133,6 +139,7 @@ department_rules! {
     redundant_dir_glob_sort => ("RedundantDirGlobSort", Warning),
     redundant_cop_disable_directive => ("RedundantCopDisableDirective", Warning),
     redundant_cop_enable_directive => ("RedundantCopEnableDirective", Warning),
+    redundant_regexp_quantifiers => ("RedundantRegexpQuantifiers", Warning),
     redundant_require_statement => ("RedundantRequireStatement", Warning),
     redundant_safe_navigation => ("RedundantSafeNavigation", Warning),
     redundant_splat_expansion => ("RedundantSplatExpansion", Warning),
@@ -169,6 +176,7 @@ department_rules! {
     trailing_comma_in_attribute_declaration => ("TrailingCommaInAttributeDeclaration", Warning),
     underscore_prefixed_variable_name => ("UnderscorePrefixedVariableName", Warning),
     unified_integer => ("UnifiedInteger", Warning),
+    unescaped_bracket_in_regexp => ("UnescapedBracketInRegexp", Warning),
     unexpected_block_arity => ("UnexpectedBlockArity", Warning),
     unmodified_reduce_accumulator => ("UnmodifiedReduceAccumulator", Warning),
     unreachable_code => ("UnreachableCode", Warning),
