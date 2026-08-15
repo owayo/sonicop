@@ -20700,13 +20700,10 @@ mod style_env_home {
     }
 
     /// 演算子代入は別。`ENV['HOME'] ||= x` は読み出しを自分の中に持つので、本家も報告する。
+    /// 置換後が代入できない式になるのは本家も同じ (実出力で確認済み)。
     #[test]
     fn an_operator_assignment_still_holds_a_lookup() {
-        expect_offense(
-            COP,
-            "ENV['HOME'] ||= value\n",
-            &[(1, 1, "Use `Dir.home` instead.")],
-        );
+        expect_correction(COP, "ENV['HOME'] ||= value\n", "Dir.home ||= value\n");
     }
 }
 
