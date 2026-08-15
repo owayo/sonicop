@@ -5242,6 +5242,16 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(2, 3, 6, 5)])
         .lengths(&[55])
         .correctable(true),
+        // 位置はコメント全体。
+        CopCase::annotated(
+            "Style/DisableCopsWithinSourceCodeDirective",
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .id("style_disable_cops_within_source_code_directive")
+        .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")

@@ -230,8 +230,13 @@ fn inspect_planned(
         AstIndex::new(tree.root_node())
     });
     let directives = crate::profile::phase(crate::profile::Phase::Directives, || {
-        (!selection.ignore_disable_comments)
-            .then(|| DirectiveState::parse(&source, ast.comment_ranges()))
+        (!selection.ignore_disable_comments).then(|| {
+            DirectiveState::parse_for(
+                &source,
+                ast.comment_ranges(),
+                config.prevents_directive_disabling(),
+            )
+        })
     });
     let mut offenses = Vec::new();
 

@@ -267,6 +267,58 @@ fn disable_comment_suppresses_an_offense() {
     assert_offenses(&output, &[]);
 }
 
+/// 散文の後ろに書かれたディレクティブもディレクティブ。コメントを開いていない
+/// ので、効くのはその行だけ。
+#[test]
+fn a_directive_written_behind_prose_covers_its_own_line() {
+    let directory = project(&[]);
+    let output = lint_stdin(
+        directory.path(),
+        "Layout/TrailingWhitespace",
+        "# see: # rubocop:disable Layout/TrailingWhitespace  \ny = 1  \n",
+    )
+    .code(1)
+    .get_output()
+    .stdout
+    .clone();
+
+    assert_offenses(
+        &output,
+        &[(
+            "Layout/TrailingWhitespace",
+            2,
+            6,
+            "Trailing whitespace detected.",
+        )],
+    );
+}
+
+/// `# rubocop:enable` を書いた行は、それが閉じる範囲の最終行なので、まだ無効の
+/// まま。効き始めるのは次の行から。
+#[test]
+fn the_line_an_enable_directive_is_written_on_is_still_disabled() {
+    let directory = project(&[]);
+    let output = lint_stdin(
+        directory.path(),
+        "Layout/TrailingWhitespace",
+        "# rubocop:disable Layout/TrailingWhitespace\nx = 1  \n# rubocop:enable Layout/TrailingWhitespace  \ny = 2  \n",
+    )
+    .code(1)
+    .get_output()
+    .stdout
+    .clone();
+
+    assert_offenses(
+        &output,
+        &[(
+            "Layout/TrailingWhitespace",
+            4,
+            6,
+            "Trailing whitespace detected.",
+        )],
+    );
+}
+
 #[test]
 fn directive_text_inside_a_heredoc_does_not_suppress_later_offenses() {
     let directory = project(&[]);
