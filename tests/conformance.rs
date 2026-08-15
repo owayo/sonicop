@@ -5405,6 +5405,16 @@ fn catalogue() -> Vec<CopCase> {
             .locations(&[(1, 1, 3, 3)])
             .lengths(&[12])
             .correctable(false),
+        // 位置は呼び出し全体。
+        CopCase::annotated(
+            "Style/MethodCallWithArgsParentheses",
+            r"
+            obj.foo 1, 2
+            ^^^^^^^^^^^^ Use parentheses for method calls with arguments.
+            ",
+        )
+        .id("style_method_call_with_args_parentheses")
+        .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")
