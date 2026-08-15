@@ -25427,6 +25427,27 @@ mod style_option_hash {
             .config("Style/OptionHash:\n  Allowlist:\n    - m\n")
             .run();
     }
+
+    /// 本家の `on_args` はブロックの引数にも掛かる。名前は「ブロックを渡した
+    /// メソッド」で、`Allowlist` はそれと突き合わせる。
+    #[test]
+    fn a_block_parameter_counts_too() {
+        let report = CopCase::new(
+            COP,
+            "mock = lambda do |_, _, options = {}|\n  options\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        CopCase::new(
+            COP,
+            "mock = lambda do |_, options = {}|\n  options\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/OptionHash:\n  Allowlist:\n    - lambda\n")
+        .run();
+    }
 }
 
 /// `Style/OneClassPerFile`。
