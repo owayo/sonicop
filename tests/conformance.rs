@@ -1150,6 +1150,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_condition_position")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Layout/ClassStructure",
+            r#"
+            class A
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .id("layout_class_structure")
+        .correctable(true),
         CopCase::new(
             "Layout/ClosingHeredocIndentation",
             "def foo\n  <<~SQL\n    Hi\n      SQL\nend\n",
@@ -1213,6 +1225,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_multiline_block_layout")
         .locations(&[(1, 7, 2, 4)])
         .lengths(&[8])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/RedundantLineBreak",
+            r#"
+            foo(
+            ^^^^ Redundant line break detected.
+              a
+            )
+            "#,
+        )
+        .id("layout_redundant_line_break")
         .correctable(true),
         CopCase::new(
             "Layout/RescueEnsureAlignment",
@@ -3090,6 +3113,61 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("lint_shadowing_outer_local_variable")
         .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Lint/UnescapedBracketInRegexp",
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        )
+        .id("lint_unescaped_bracket_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateRegexpCharacterClassElement",
+            r"
+            /[xyx]/
+                ^ Duplicate element inside regexp character class
+            ",
+        )
+        .id("lint_duplicate_regexp_character_class_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MixedCaseRange",
+            r"
+            /[A-z]/
+              ^^^ Ranges from upper to lower case ASCII letters may include unintended characters. Instead of `A-z` (which also includes several symbols) specify each range individually: `A-Za-z` and individually specify any symbols.
+            ",
+        )
+        .id("lint_mixed_case_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantRegexpQuantifiers",
+            r"
+            /(?:x+)+/
+                 ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        )
+        .id("lint_redundant_regexp_quantifiers")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+        // `locations` / `lengths` で押さえる。
+        CopCase::annotated(
+            "Lint/RequireRangeParentheses",
+            r"
+            x = 1..
+                ^^^ Wrap the range literal `1..` in parentheses to avoid confusion with an endless range.
+            42
+            ",
+        )
+        .id("lint_require_range_parentheses")
+        .locations(&[(1, 5, 2, 2)])
+        .lengths(&[6])
         .severity(Severity::Warning)
         .correctable(false),
         // ---- Metrics ----
@@ -5258,9 +5336,63 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_documentation_method")
         .correctable(false),
+        CopCase::annotated(
+            "Style/NegatedIfElseCondition",
+            r"
+            !x ? a : b
+            ^^^^^^^^^^ Invert the negated condition and swap the ternary branches.
+            ",
+        )
+        .id("style_negated_if_else_condition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InvertibleUnlessCondition",
+            r"
+            a unless x != y
+            ^^^^^^^^^^^^^^^ Prefer `if x == y` over `unless x != y`.
+            ",
+        )
+        .id("style_invertible_unless_condition")
+        .correctable(true),
+        // 位置は 2 つ目の文の全体。
+        CopCase::annotated(
+            "Style/PartitionInsteadOfDoubleSelect",
+            r"
+            good = xs.select { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .id("style_partition_instead_of_double_select")
+        .correctable(true),
+        // 位置は `class << self` 全体。
+        CopCase::annotated(
+            "Style/ClassMethodsDefinitions",
+            "class Other\n  class << self\n    def only_method\n      1\n    end\n  end\nend\n",
+        )
+        .id("style_class_methods_definitions")
+        .without_offense_check()
+        .locations(&[(2, 3, 6, 5)])
+        .lengths(&[55])
+        .correctable(true),
+        // 位置はコメント全体。
+        CopCase::annotated(
+            "Style/DisableCopsWithinSourceCodeDirective",
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .id("style_disable_cops_within_source_code_directive")
+        .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
+            .id("style_multiline_method_signature")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[25])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
-        // ---- Layout (pending) ----
-        // 位置は受け手と `[` のあいだの空白 1 文字。
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",
@@ -6304,24 +6436,6 @@ fn catalogue() -> Vec<CopCase> {
         .config("Layout/HeredocArgumentClosingParenthesis:\n  Enabled: true\n")
         .locations(&[(4, 1, 4, 1)])
         .lengths(&[1])
-        .correctable(true),
-        CopCase::annotated(
-            "Layout/ClassStructure",
-            r#"
-            class A
-              def m
-                1
-              end
-
-              include M
-              ^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
-            end
-            "#,
-        )
-        .id("layout_class_structure")
-        .config("Layout/ClassStructure:\n  Enabled: true\n")
-        .locations(&[(6, 3, 6, 11)])
-        .lengths(&[9])
         .correctable(true),
         CopCase::annotated(
             "Style/RedundantParentheses",

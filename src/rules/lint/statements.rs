@@ -99,6 +99,11 @@ pub(super) fn begin_containers<'tree>(
         .collect()
 }
 
+/// Whether the node is one of the containers a statement sequence is written in.
+pub(super) fn holds_statements(node: Node<'_>) -> bool {
+    CONTAINERS.contains(&node.kind_str())
+}
+
 /// Whether the body was split by a `rescue` or an `ensure`, which puts that clause between the
 /// container and the sequence upstream.
 pub(super) fn has_clause(container: Node<'_>) -> bool {
