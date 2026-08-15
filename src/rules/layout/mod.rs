@@ -1,5 +1,6 @@
 department_rules! {
     "Layout";
+    class_structure => ("ClassStructure", Convention),
     empty_line_after_magic_comment => ("EmptyLineAfterMagicComment", Convention),
     access_modifier_indentation => ("AccessModifierIndentation", Convention),
     argument_alignment => ("ArgumentAlignment", Convention),
@@ -9,7 +10,6 @@ department_rules! {
     block_alignment => ("BlockAlignment", Convention),
     block_end_newline => ("BlockEndNewline", Convention),
     case_indentation => ("CaseIndentation", Convention),
-    class_structure => ("ClassStructure", Convention),
     closing_heredoc_indentation => ("ClosingHeredocIndentation", Convention),
     closing_parenthesis_indentation => ("ClosingParenthesisIndentation", Convention),
     comment_indentation => ("CommentIndentation", Convention),

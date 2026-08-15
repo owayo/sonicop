@@ -32326,3 +32326,335 @@ mod style_multiline_method_signature {
         );
     }
 }
+
+/// `Style/SelectByRegexp` / `Style/SelectByKind` / `Style/SelectByRange`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_select_by {
+    use super::*;
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// `select` は `grep`、`reject` は `grep_v`。否定が挟まると入れ替わる。
+    #[test]
+    fn a_regexp_match_becomes_grep() {
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| x.match?(/re/) }\n",
+            "array.grep(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.reject { |x| x =~ /re/ }\n",
+            "array.grep_v(/re/)\n",
+        );
+        // `/re/ =~ x` は名前付きキャプチャを束縛する別のノードだが、正規表現は左側にある。
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| /re/ =~ x }\n",
+            "array.grep(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| x !~ /re/ }\n",
+            "array.grep_v(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| !x.match?(/re/) }\n",
+            "array.grep_v(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { _1.match?(/re/) }\n",
+            "array.grep(/re/)\n",
+        );
+    }
+
+    /// `is_a?` は `grep`、`between?` と `cover?` も同じ形。
+    #[test]
+    fn a_kind_or_range_check_becomes_grep() {
+        correction(
+            "Style/SelectByKind",
+            "array.select { |x| x.is_a?(Foo) }\n",
+            "array.grep(Foo)\n",
+        );
+        correction(
+            "Style/SelectByKind",
+            "array.reject { |x| x.kind_of?(Foo) }\n",
+            "array.grep_v(Foo)\n",
+        );
+        correction(
+            "Style/SelectByRange",
+            "array.select { |x| x.between?(1, 10) }\n",
+            "array.grep(1..10)\n",
+        );
+        correction(
+            "Style/SelectByRange",
+            "array.select { |x| (1..10).cover?(x) }\n",
+            "array.grep(1..10)\n",
+        );
+        // `find` / `detect` は最初の 1 件なので `.first` が付く。
+        correction(
+            "Style/SelectByRange",
+            "array.find { |x| x.between?(1, 10) }\n",
+            "array.grep(1..10).first\n",
+        );
+    }
+
+    /// hash を返すレシーバ、要素を読まないブロック、文が 2 つ以上のブロックは黙る。
+    #[test]
+    fn what_the_select_by_cops_leave_alone() {
+        for (cop, source) in [
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| y.match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| x.match?(/re/) && x.size > 1 }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "ENV.select { |x| x.match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.to_h.select { |x| x.match?(/re/) }\n",
+            ),
+            ("Style/SelectByKind", "array.select { |x| y.is_a?(Foo) }\n"),
+            // 括弧で包んだ否定は `is_a?` 側のパターンには無い。
+            (
+                "Style/SelectByKind",
+                "array.select { |x| !(x.is_a?(Foo)) }\n",
+            ),
+            (
+                "Style/SelectByRange",
+                "array.select { |x| (1..10).cover?(y) }\n",
+            ),
+        ] {
+            CopCase::new(cop, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/TallyMethod` / `Style/SingleLineDoEndBlock` / `Style/RequireOrder`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_tally_and_layout_of_statements {
+    use super::*;
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 数え上げの 2 つの書き方はどちらも `tally`。
+    #[test]
+    fn counting_by_hand_becomes_tally() {
+        correction(
+            "Style/TallyMethod",
+            "array.each_with_object(Hash.new(0)) { |el, hash| hash[el] += 1 }\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.each_with_object(Hash.new(0)) { _2[_1] += 1 }\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.group_by(&:itself).transform_values(&:count)\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.group_by { |x| x }.transform_values { |v| v.size }\n",
+            "array.tally\n",
+        );
+        // 既定値が 0 でない hash、`itself` でない group_by、数えない transform_values。
+        for source in [
+            "array.each_with_object(Hash.new(1)) { |el, hash| hash[el] += 1 }\n",
+            "array.each_with_object({}) { |el, hash| hash[el] += 1 }\n",
+            "array.group_by(&:foo).transform_values(&:count)\n",
+            "array.group_by(&:itself).transform_values(&:to_a)\n",
+        ] {
+            CopCase::new("Style/TallyMethod", source.to_owned(), Vec::new()).run();
+        }
+    }
+
+    /// 1 行の `do ... end` は改行する。ヒアドキュメントがあると `end` はその後ろへ回る。
+    #[test]
+    fn a_one_line_do_end_block_is_broken_up() {
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar end\n",
+            "foo do\n bar \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do |x| bar(x) end\n",
+            "foo do |x|\n bar(x) \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "x = -> do bar end\n",
+            "x = -> do\n bar \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar(<<~TEXT) end\n  hello\nTEXT\n",
+            "foo do\n bar(<<~TEXT) \n  hello\nTEXT\nend\n",
+        );
+        CopCase::new(
+            "Style/SingleLineDoEndBlock",
+            "foo { bar }\n".to_owned(),
+            Vec::new(),
+        )
+        .run();
+    }
+
+    /// 連続した `require` は辞書順。直上の行コメントも一緒に動く。
+    #[test]
+    fn requires_are_sorted() {
+        correction(
+            "Style/RequireOrder",
+            "require 'b'\nrequire 'a'\n",
+            "require 'a'\nrequire 'b'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "require_relative 'b'\nrequire_relative 'a'\n",
+            "require_relative 'a'\nrequire_relative 'b'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "# comment for d\nrequire 'd'\nrequire 'a2'\n",
+            "require 'a2'\n# comment for d\nrequire 'd'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "require 'x' if cond\nrequire 'w' if cond\n",
+            "require 'w' if cond\nrequire 'x' if cond\n",
+        );
+        // 空行で区切られた別の塊、種類の違う require、間に挟まった別の文は数えない。
+        for source in [
+            "require 'b'\n\nrequire 'a'\n",
+            "require 'm'\nrequire_relative 'l'\nrequire 'k'\n",
+            "require 'q'\nfoo\nrequire 'p'\n",
+        ] {
+            CopCase::new("Style/RequireOrder", source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/SuperArguments` / `Style/RedundantDoubleSplatHashBraces`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_super_and_double_splat {
+    use super::*;
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 引数がそのまま渡っているだけの `super(...)` は裸の `super` にする。
+    #[test]
+    fn super_that_forwards_everything_loses_its_arguments() {
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, b)\n    super(a, b)\n  end\nend\n",
+            "class Foo\n  def m(a, b)\n    super\n  end\nend\n",
+        );
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(*args, **kw, &blk)\n    super(*args, **kw, &blk)\n  end\nend\n",
+            "class Foo\n  def m(*args, **kw, &blk)\n    super\n  end\nend\n",
+        );
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(x:, y: 2)\n    super(x: x, y: y)\n  end\nend\n",
+            "class Foo\n  def m(x:, y: 2)\n    super\n  end\nend\n",
+        );
+        // 既定値付きの引数が続くと文法が 1 つのノードへ畳むので、ほどいてから数える。
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a = nil, b = nil, c = nil)\n    super(a, b, c)\n  end\nend\n",
+            "class Foo\n  def m(a = nil, b = nil, c = nil)\n    super\n  end\nend\n",
+        );
+        // ブロックを `super` 自身に書いた形は、ブロック引数が渡っているのと同じ。
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, &blk)\n    super(a) { blk.call }\n  end\nend\n",
+            "class Foo\n  def m(a, &blk)\n    super { blk.call }\n  end\nend\n",
+        );
+    }
+
+    /// 並びが違う、数が違う、`=>` で書いた、他人のブロックの中、後から代入された、は黙る。
+    #[test]
+    fn what_the_super_cop_leaves_alone() {
+        for source in [
+            "class Foo\n  def m(a, b)\n    super(b, a)\n  end\nend\n",
+            "class Foo\n  def m(a)\n    super(a, 1)\n  end\nend\n",
+            "class Foo\n  def m(a, b: 1)\n    super(a, :b => b)\n  end\nend\n",
+            "class Foo\n  def m(a)\n    foo { super(a) }\n  end\nend\n",
+            "class Foo\n  def m(a, &blk)\n    blk = other\n    super(a, &blk)\n  end\nend\n",
+            // 引数を書かない `super` は別のノードで、この cop は見ない。
+            "class Foo\n  def m\n    super do |x|\n      x\n    end\n  end\nend\n",
+        ] {
+            CopCase::new("Style/SuperArguments", source.to_owned(), Vec::new()).run();
+        }
+    }
+
+    /// `**{ ... }` は波括弧ごと消える。後ろに続く `merge` も引数へ畳まれる。
+    #[test]
+    fn a_double_splatted_hash_literal_loses_its_braces() {
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar, baz: qux})\n",
+            "do_something(foo: bar, baz: qux)\n",
+        );
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar}.merge(baz: qux))\n",
+            "do_something(foo: bar, baz: qux)\n",
+        );
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar}.merge(baz: qux).merge(quux: corge))\n",
+            "do_something(foo: bar, baz: qux, quux: corge)\n",
+        );
+        // `=>` で書いた組、空の hash、hash でないもの、`merge` 以外の呼び出しは黙る。
+        for source in [
+            "do_something(**{'foo' => bar})\n",
+            "do_something(**{})\n",
+            "do_something(**kwargs)\n",
+            "do_something(**h.merge(foo: bar))\n",
+            "do_something(**{foo: bar}.compact)\n",
+        ] {
+            CopCase::new(
+                "Style/RedundantDoubleSplatHashBraces",
+                source.to_owned(),
+                Vec::new(),
+            )
+            .run();
+        }
+    }
+}
