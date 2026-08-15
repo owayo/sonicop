@@ -35066,27 +35066,39 @@ mod style_method_call_with_args_parentheses {
         .config(OMIT)
         .run();
         // 訂正は `(` を空白に置き換えて `)` を消すので、行末に空白が 1 つ残る。
-        correction(OMIT, "def a
+        correction(
+            OMIT,
+            "def a
   mail()
 end
-", "def a
+",
+            "def a
   mail 
 end
-");
-        correction(OMIT, "def b
+",
+        );
+        correction(
+            OMIT,
+            "def b
   Firm.new()
 end
-", "def b
+",
+            "def b
   Firm.new 
 end
-");
-        correction(OMIT, "def c
+",
+        );
+        correction(
+            OMIT,
+            "def c
   yield()
 end
-", "def c
+",
+            "def c
   yield 
 end
-");
+",
+        );
         correction(
             OMIT,
             "def d
