@@ -47,6 +47,14 @@ fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "assignment" | "operator_assignment" => parent
             .field("left")
             .is_none_or(|left| left.id() != node.id()),
+        // Every name a multiple assignment writes to is a `casgn` upstream, the same as the single
+        // one. The grammar collects them in a list of their own instead.
+        "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => false,
+        // The name of a method whose first letter is a capital is written with the node a constant
+        // gets, but upstream keeps a method's name as a symbol and no `const` node exists for it.
+        "method" | "singleton_method" => parent
+            .field("name")
+            .is_none_or(|name| name.id() != node.id()),
         // A method whose name starts with a capital, as `Rainbow('...')` or `Integer(x)` do, is a
         // `send` upstream and no constant at all. The grammar writes its name with the same node it
         // writes a constant with, so only the name is not a lookup -- a constant standing there as

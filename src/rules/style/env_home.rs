@@ -20,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // could not be rewritten anyway, since `Dir.home` is not assignable. An operator assignment
         // is different: `ENV['HOME'] ||= y` still holds a `:[]` read of its own, which upstream
         // does report.
-        if is_assignment_target(node) {
+        if is_assignment_target(node, context) {
             continue;
         }
         let parts = super::nodes::children(node);
@@ -61,10 +61,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// Whether the node is what a plain `=` writes to, which upstream spells as a `:[]=` call rather
-/// than the `:[]` the pattern looks for.
-fn is_assignment_target(node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
+/// Whether the read stands where an assignment puts what it writes to.
+///
+/// Upstream spells writing to it as a `:[]=` call, which the pattern's `{:[] :fetch}` never
+/// matches. Only a plain assignment counts: `ENV['HOME'] ||= x` keeps the read as a read upstream --
+/// the operator assignment is written around it -- so that one still matches the pattern.
+fn is_assignment_target(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.parent_of(context).is_some_and(|parent| {
         parent.kind_str() == "assignment"
             && parent
                 .field("left")
