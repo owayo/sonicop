@@ -31951,3 +31951,89 @@ mod style_invertible_unless_condition {
         );
     }
 }
+
+/// `Style/MultilineMethodSignature` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/MultilineMethodSignature` で走らせた実出力から
+/// 取った (検出 9 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_multiline_method_signature {
+    use super::*;
+
+    const COP: &str = "Style/MultilineMethodSignature";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は定義全体。引数が 1 行に畳まれる。
+    #[test]
+    fn a_signature_spread_over_lines_is_folded() {
+        CopCase::annotated(COP, "def foo(a,\n        b)\nend\n")
+            .id("multiline")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[25])
+            .run();
+        correction("def foo(a,\n        b)\nend\n", "def foo(a, b)\nend\n");
+        correction(
+            "def self.baz(a,\n             b)\nend\n",
+            "def self.baz(a, b)\nend\n",
+        );
+        correction(
+            "class C\n  def m(a,\n        b)\n  end\nend\n",
+            "class C\n  def m(a, b)\n  end\nend\n",
+        );
+    }
+
+    /// 閉じ括弧だけの行は引数と一緒に運ばれ、その行ごと落ちる。
+    #[test]
+    fn a_closing_paren_on_its_own_line_travels_with_the_arguments() {
+        correction(
+            "def bar(a,\n        b\n       )\nend\n",
+            "def bar(a, b)\nend\n",
+        );
+        correction("def qux(\n  a,\n  b\n)\nend\n", "def qux(a, b)\nend\n");
+    }
+
+    /// 1 行の定義、引数の無い定義、括弧の無い定義は触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def one(a, b)\nend\n",
+            "def noargs\nend\n",
+            "def noparens a,\n             b\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 畳むと `Layout/LineLength` の `Max` を超えるものは触らない。あの cop を切ると
+    /// 上限が無くなるので報告される。
+    #[test]
+    fn a_correction_that_would_be_too_long_is_skipped() {
+        let source = "def long_one(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,\n             bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n             ccccccccccccccccccccccccccccccc,\n             ddddddddddddddddddddddddddddddd)\nend\n";
+        expect_no_offenses(COP, source);
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config("Layout/LineLength:\n  Enabled: false\n")
+            .without_offense_check()
+            .corrected("def long_one(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, ccccccccccccccccccccccccccccccc, ddddddddddddddddddddddddddddddd)\nend\n")
+            .run();
+    }
+
+    /// キーワード引数・splat・既定値付きも同じ。
+    #[test]
+    fn every_parameter_kind_folds() {
+        correction("def kw(a:,\n       b: 1)\nend\n", "def kw(a:, b: 1)\nend\n");
+        correction(
+            "def splat(*a,\n          **b)\nend\n",
+            "def splat(*a, **b)\nend\n",
+        );
+        correction(
+            "def defaults(a = 1,\n             b = 2)\nend\n",
+            "def defaults(a = 1, b = 2)\nend\n",
+        );
+    }
+}

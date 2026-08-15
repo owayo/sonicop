@@ -5209,6 +5209,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_invertible_unless_condition")
         .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
+            .id("style_multiline_method_signature")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[25])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

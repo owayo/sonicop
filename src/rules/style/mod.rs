@@ -167,6 +167,7 @@ department_rules! {
     multiline_if_then => ("MultilineIfThen", Convention),
     multiline_in_pattern_then => ("MultilineInPatternThen", Convention),
     multiline_memoization => ("MultilineMemoization", Convention),
+    multiline_method_signature => ("MultilineMethodSignature", Convention),
     multiline_ternary_operator => ("MultilineTernaryOperator", Convention),
     multiline_when_then => ("MultilineWhenThen", Convention),
     negated_if => ("NegatedIf", Convention),
