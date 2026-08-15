@@ -53,6 +53,7 @@ mod regex_cache;
 pub(crate) mod ruby_literal;
 mod security;
 mod send_node;
+mod single_line;
 mod style;
 mod support;
 
