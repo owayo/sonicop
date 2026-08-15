@@ -9,6 +9,7 @@ department_rules! {
     block_alignment => ("BlockAlignment", Convention),
     block_end_newline => ("BlockEndNewline", Convention),
     case_indentation => ("CaseIndentation", Convention),
+    class_structure => ("ClassStructure", Convention),
     closing_heredoc_indentation => ("ClosingHeredocIndentation", Convention),
     closing_parenthesis_indentation => ("ClosingParenthesisIndentation", Convention),
     comment_indentation => ("CommentIndentation", Convention),

@@ -31780,3 +31780,176 @@ mod layout_heredoc_argument_closing_parenthesis {
         }
     }
 }
+
+/// `Layout/ClassStructure` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_class_structure {
+    use super::*;
+
+    const COP: &str = "Layout/ClassStructure";
+    const ON: &str = "Layout/ClassStructure:\n  Enabled: true\n";
+
+    /// `ExpectedOrder` の並びに反した要素を報告する。既定は module_inclusion →
+    /// constants → public_class_methods → initializer → public_methods →
+    /// protected_methods → private_class_methods → private_methods。
+    #[test]
+    fn an_element_out_of_the_expected_order_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class A
+              include Bar
+              CONST = 1
+              def self.klass; end
+              def initialize; end
+              def pub; end
+              protected
+              def prot; end
+              private
+              def priv; end
+            end
+            class B
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            class C
+              CONST = 1
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `constants`.
+            end
+            class D
+              def initialize; end
+              CONST = 1
+              ^^^^^^^^^ `constants` is supposed to appear before `initializer`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 可視性は上に書いた裸の修飾子で決まる。`private def foo` も `private` 扱い。
+    /// `private :a, :b` のように名前を複数渡した修飾子は本家のパターンに合わないので
+    /// どのメソッドも private にしない。
+    #[test]
+    fn visibility_follows_the_modifier_above() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class E
+              private
+              def priv; end
+              public
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class F
+              private def priv; end
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class G
+              def a; end
+              def b; end
+              private :a, :b
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// `private_constant` で伏せた定数は並びから外れる。補正は 1 つ前の別分類の
+    /// 兄弟の上へ、コメントごと動かす。
+    #[test]
+    fn a_private_constant_is_left_out_of_the_order() {
+        CopCase::new(
+            COP,
+            "class H\n  PRIVATE_CONST = 1\n  private_constant :PRIVATE_CONST\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class I
+              extend Foo
+              # a comment
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .corrected(
+            r#"
+            class I
+              extend Foo
+              include Bar
+              # a comment
+              def pub; end
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `module` の本体は見ない (`on_class` と `on_sclass` だけ)。
+    #[test]
+    fn a_module_body_is_not_checked() {
+        CopCase::new(
+            COP,
+            "module M\n  def pub; end\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class << self
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 定数が呼び出しの結果なら (凍らせたリテラルを除いて) 動的なので動かせない。
+    /// リテラルの中のコメントやヒアドキュメントは本家の木には無いので数に入れない。
+    #[test]
+    fn a_dynamic_constant_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class J
+              def pub; end
+              INSTANCE = create
+              ^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class K
+              def pub; end
+              FROZEN = %i[a b].freeze
+              ^^^^^^^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(true)
+        .without_offense_check()
+        .run();
+    }
+}
