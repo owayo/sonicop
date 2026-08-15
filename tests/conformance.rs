@@ -6063,6 +6063,24 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_sample")
         .correctable(true),
         CopCase::annotated(
+            "Style/DisableCopsWithinSourceCodeDirective",
+            r#"
+            # rubocop:disable Style/Documentation
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            "#,
+        )
+        .id("style_disable_cops_within_source_code_directive")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFormat",
+            r#"
+            format('string')
+            ^^^^^^^^^^^^^^^^ Use `'string'` directly instead of `format`.
+            "#,
+        )
+        .id("style_redundant_format")
+        .correctable(true),
+        CopCase::annotated(
             "Style/RedundantFreeze",
             r#"
             :sym.freeze

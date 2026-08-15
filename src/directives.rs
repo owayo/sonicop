@@ -20,6 +20,9 @@ struct Snapshot {
 #[derive(Debug, Default)]
 pub struct DirectiveState {
     line_states: Vec<Snapshot>,
+    /// `prevent_directive_disabling?`: whether the cop that objects to directives is beyond the reach
+    /// of one, which it is once the configuration turns it on by name.
+    prevents_directive_disabling: bool,
 }
 
 impl DirectiveState {
@@ -59,7 +62,15 @@ impl DirectiveState {
                     Action::Disable => {
                         apply_disable(&mut current, &directive.cops, directive.reason);
                     }
-                    Action::Enable => apply_enable(&mut current, &directive.cops),
+                    Action::Enable => {
+                        apply_enable(&mut current, &directive.cops);
+                        // `analyze_rest`: the range an `enable` closes runs *to* the line the
+                        // directive was written on, so that line is still covered by what it
+                        // switches back on. Only a cop that reports on a directive comment can tell
+                        // the difference.
+                        line_states.push(before);
+                        continue;
+                    }
                     Action::Push => {
                         stack.push(current.clone());
                         for (enable, cop) in directive.push_operations {
@@ -81,7 +92,19 @@ impl DirectiveState {
             line_states.push(current.clone());
         }
 
-        Self { line_states }
+        Self {
+            line_states,
+            prevents_directive_disabling: false,
+        }
+    }
+
+    /// Records whether `Style/DisableCopsWithinSourceCodeDirective` may be switched off by a
+    /// directive. `CommentConfig` keeps no range for that cop once the configuration enables it by
+    /// name, so a file cannot write its way out of the cop that reads its directives.
+    #[must_use]
+    pub fn preventing_directive_disabling(mut self, prevents: bool) -> Self {
+        self.prevents_directive_disabling = prevents;
+        self
     }
 
     /// The inclusive line ranges over which `cop` is disabled, which is what
@@ -111,7 +134,9 @@ impl DirectiveState {
         // `DirectiveComment` drops `Lint/Syntax` from the cop list of every directive -- named,
         // by department and by `all` (`#parsed_cop_names`, `#exclude_lint_department_cops`) -- so
         // a file cannot turn off the report that it does not parse.
-        if is_mandatory_cop(offense.cop_name) {
+        if is_mandatory_cop(offense.cop_name)
+            || (self.prevents_directive_disabling && offense.cop_name == DISABLE_COPS_DIRECTIVE_COP)
+        {
             return None;
         }
         let (line, _) = source.line_column(offense.start);
@@ -174,8 +199,15 @@ struct Directive {
 
 fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
     let comment = line.get(comment_start..)?;
-    let marker_end = marker_end(comment)?;
-    let command = comment[marker_end..].trim_start();
+    // `DIRECTIVE_COMMENT_REGEXP` is unanchored, so a directive written part-way through a comment
+    // still counts -- `# see \`# rubocop:disable Foo\`` switches `Foo` off. What does not count is a
+    // directive that was itself commented out, which is the one shape the pattern's `pre_match` test
+    // rules out.
+    let (offset, marker_end) = find_marker(comment)?;
+    if commented_out(&comment[..offset]) {
+        return None;
+    }
+    let command = comment[offset + marker_end..].trim_start();
     let mode_end = command.find(char::is_whitespace).unwrap_or(command.len());
     let mode = &command[..mode_end];
     let remainder = command[mode_end..].trim();
@@ -196,7 +228,9 @@ fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
         "pop" => Action::Pop,
         _ => return None,
     };
-    let inline = !line[..comment_start].trim().is_empty();
+    // `!comment_only_line?(line) || directive.single_line?`: a directive that shares its line with
+    // code, or that does not open its own comment, applies to that line alone.
+    let inline = !line[..comment_start].trim().is_empty() || offset != 0;
 
     if matches!(action, Action::Push) {
         let push_operations = arguments
@@ -286,6 +320,14 @@ fn cop_name_length(text: &str) -> Option<usize> {
     }
 }
 
+/// Where the `# rubocop:` marker begins in the comment and how far past it the mode starts.
+fn find_marker(comment: &str) -> Option<(usize, usize)> {
+    comment
+        .char_indices()
+        .filter(|(_, character)| *character == '#')
+        .find_map(|(offset, _)| marker_end(&comment[offset..]).map(|end| (offset, end)))
+}
+
 fn marker_end(comment: &str) -> Option<usize> {
     let bytes = comment.as_bytes();
     let mut index = 0;
@@ -323,7 +365,7 @@ const UNDISABLEABLE_COPS: [&str; 2] = ["Lint/RedundantCopDisableDirective", "Lin
 
 /// The cop `CommentConfig` refuses to record a directive for once it is explicitly enabled, so
 /// that a file cannot switch off the cop that objects to its directives.
-const DISABLE_COPS_DIRECTIVE_COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
+pub(crate) const DISABLE_COPS_DIRECTIVE_COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
 
 /// The line a range starts at when the configuration, rather than a comment, turned the cop off.
 ///
@@ -570,7 +612,10 @@ pub struct DirectiveComment {
 }
 
 impl DirectiveComment {
-    fn parse(source: &SourceFile, comment: Range<usize>, line: usize) -> Option<Self> {
+    /// The directive a comment spells, or nothing when it spells none. `Style/DisableCopsWithinSourceCodeDirective`
+    /// reads the comments of a file one at a time rather than the state they build up, so it needs the
+    /// same reading of one comment that the state does.
+    pub(crate) fn parse(source: &SourceFile, comment: Range<usize>, line: usize) -> Option<Self> {
         let text = source.slice(comment.clone());
         let captures = directive_regex().captures(text)?;
         let whole = captures.get(0).expect("group zero always participates");

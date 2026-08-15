@@ -19183,6 +19183,202 @@ mod style_combinable_loops {
 }
 
 /// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
+mod style_disable_cops_within_source_code_directive {
+    use super::*;
+
+    const COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
+    const MSG: &str = "RuboCop disable/enable directives are not permitted.";
+
+    /// 既定では disable / enable のディレクティブそのものを禁じる。補正はコメントを
+    /// 丸ごと消す。
+    #[test]
+    fn every_directive_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            x = 1
+            # rubocop:enable Style/Documentation
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %{msg}
+            # a plain comment
+            "#,
+            &[("msg", MSG)],
+        )
+        // `dedent` drops one leading newline, so the emptied first line needs a second one to
+        // survive being written down here.
+        .corrected("\n\nx = 1\n\n# a plain comment\n")
+        .run();
+    }
+
+    /// `AllowedCops` に挙げた cop のディレクティブは通す。残った名前だけを挙げた
+    /// メッセージになり、補正はその名前を 1 つ落とす。
+    #[test]
+    fn the_allowed_cops_setting_narrows_what_is_objected_to() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            y = 2 # rubocop:disable Metrics/AbcSize, Style/Documentation
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Metrics/AbcSize` are not permitted.
+            "#,
+        )
+        .config(
+            "Style/DisableCopsWithinSourceCodeDirective:\n  AllowedCops:\n    - Style/Documentation\n",
+        )
+        .corrected("# rubocop:disable Style/Documentation\ny = 2 # rubocop:disable Style/Documentation\n")
+        .run();
+    }
+
+    /// `DisallowedCops` を挙げたときはそこに載っている名前だけを見る。`all` は
+    /// 何を覆うか絞れないので丸ごと objected される。
+    #[test]
+    fn the_disallowed_cops_setting_picks_what_to_object_to() {
+        CopCase::annotated(
+            COP,
+            r#"
+            # rubocop:disable Style/Documentation
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            "#,
+        )
+        .config(
+            "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  DisallowedCops:\n    - Metrics/AbcSize\n",
+        )
+        .corrected("# rubocop:disable Style/Documentation\n\n")
+        .run();
+    }
+
+    /// ディレクティブではないコメント、`push` / `pop`、cop 名の無いものは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "# a plain comment\n", Vec::new()).run();
+        CopCase::new(COP, "# rubocop:push\n# rubocop:pop\n", Vec::new()).run();
+        CopCase::new(COP, "# rubocop:disable\n", Vec::new()).run();
+        CopCase::new(
+            COP,
+            "# not a directive: rubocop:disable Style/Documentation\n",
+            Vec::new(),
+        )
+        .run();
+    }
+}
+
+mod style_redundant_format {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    /// 引数が 1 つだけの `format` は、その文字列そのものと同じ。書式指定が残って
+    /// いるものは等価でないので報告しない (`format('%s')` は実行時に例外、
+    /// `format('%%')` は `'%'` を返す)。
+    #[test]
+    fn a_format_with_nothing_to_fill_in_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('string')
+            ^^^^^^^^^^^^^^^^ Use `'string'` directly instead of `format`.
+            Kernel.sprintf(CONST)
+            ^^^^^^^^^^^^^^^^^^^^^ Use `CONST` directly instead of `sprintf`.
+            format('%s')
+            format('%%')
+            "#,
+        )
+        .corrected("'string'\nCONST\nformat('%s')\nformat('%%')\n")
+        .run();
+    }
+
+    /// 埋める値が全部リテラルなら、できる文字列はこの場で分かる。幅・精度・
+    /// 位置指定・注釈形もそのまま評価する。
+    #[test]
+    fn a_format_whose_fields_are_all_literal_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%05d', 42)
+            ^^^^^^^^^^^^^^^^^^ Use `'00042'` directly instead of `format`.
+            format('%s and %d', 'a', 1)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `'a and 1'` directly instead of `format`.
+            format('%.2f', 1.5)
+            ^^^^^^^^^^^^^^^^^^^ Use `'1.50'` directly instead of `format`.
+            format('%2$s %1$s', 'a', 'b')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `'b a'` directly instead of `format`.
+            format('%<a>s', a: 'x')
+            ^^^^^^^^^^^^^^^^^^^^^^^ Use `'x'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'00042'\n'a and 1'\n'1.50'\n'b a'\n'x'\n")
+        .run();
+    }
+
+    /// `nil` は空文字列に、記号は名前に、真偽値は綴りになる。
+    #[test]
+    fn what_each_literal_fills_a_field_with() {
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%s', nil)
+            ^^^^^^^^^^^^^^^^^ Use `''` directly instead of `format`.
+            format('%s', :sym)
+            ^^^^^^^^^^^^^^^^^^ Use `'sym'` directly instead of `format`.
+            format('%s', true)
+            ^^^^^^^^^^^^^^^^^^ Use `'true'` directly instead of `format`.
+            format('%f', 1)
+            ^^^^^^^^^^^^^^^ Use `'1.000000'` directly instead of `format`.
+            "#,
+        )
+        .corrected("''\n'sym'\n'true'\n'1.000000'\n")
+        .run();
+    }
+
+    /// 報告しないもの: 値がリテラルでない、型が合わない、`%%` が混ざっている、
+    /// splat で渡している、ヒアドキュメント、`%s` に渡せない型。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "format('%s', x)\n", Vec::new()).run();
+        CopCase::new(COP, "format('%d', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s%%', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s', *args)\n", Vec::new()).run();
+        CopCase::new(COP, "format(<<~X, 'a')\n  %s\nX\n", Vec::new()).run();
+        CopCase::new(COP, "format('%c', 65)\n", Vec::new()).run();
+        CopCase::new(COP, "format('%s %s', 'a')\n", Vec::new()).run();
+        CopCase::new(COP, "format('%{a}', b: 'x')\n", Vec::new()).run();
+    }
+
+    /// 引数 1 つの形はレシーバが無いか `Kernel` のときだけ。フィールドを埋める形は
+    /// レシーバを問わない。
+    #[test]
+    fn only_the_single_argument_form_asks_about_the_receiver() {
+        CopCase::new(COP, "foo.format('string')\n", Vec::new()).run();
+        CopCase::annotated(
+            COP,
+            r#"
+            foo.format('%s', 'a')
+            ^^^^^^^^^^^^^^^^^^^^^ Use `'a'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'a'\n")
+        .run();
+    }
+
+    /// 位置指定と書かれた順が混ざっているものは `format` 自身が例外を出すので
+    /// 報告しない。`*` の幅は引数を 1 つ取るので、そこにも順の話がある。
+    #[test]
+    fn a_mix_of_numbered_and_unnumbered_arguments_is_left_alone() {
+        CopCase::new(COP, "format('%*2$d', 42, 5)\n", Vec::new()).run();
+        CopCase::annotated(
+            COP,
+            r#"
+            format('%-*d|', 5, 42)
+            ^^^^^^^^^^^^^^^^^^^^^^ Use `'42   |'` directly instead of `format`.
+            "#,
+        )
+        .corrected("'42   |'\n")
+        .run();
+    }
+}
+
 mod style_redundant_interpolation {
     use super::*;
 

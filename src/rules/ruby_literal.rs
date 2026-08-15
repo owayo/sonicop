@@ -68,6 +68,15 @@ pub(crate) fn string_value(node: Node<'_>, context: &RuleContext<'_>) -> String 
     value
 }
 
+/// One escape sequence, resolved. A caller that has to keep the parts of an interpolated string in
+/// the order they were written cannot go through [`string_value`], which gathers the literal parts and
+/// drops what sits between them.
+pub(crate) fn unescape_text(text: &str) -> String {
+    let mut value = String::new();
+    unescape(text, &mut value);
+    value
+}
+
 /// A single-quoted string resolves `\\` and `\'` and leaves every other backslash alone.
 fn push_verbatim(text: &str, out: &mut String) {
     let mut characters = text.chars().peekable();

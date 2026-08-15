@@ -4,6 +4,7 @@ mod conditional;
 mod endless;
 mod file_open_call;
 mod format_sequences;
+mod format_value;
 mod frozen_string;
 mod hash_subset;
 mod hash_transform;
@@ -69,6 +70,7 @@ department_rules! {
     date_time => ("DateTime", Convention),
     copyright => ("Copyright", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
+    disable_cops_within_source_code_directive => ("DisableCopsWithinSourceCodeDirective", Convention),
     dir => ("Dir", Convention),
     dir_empty => ("DirEmpty", Convention),
     dig_chain => ("DigChain", Convention),
@@ -225,6 +227,7 @@ department_rules! {
     redundant_exception => ("RedundantException", Convention),
     redundant_fetch_block => ("RedundantFetchBlock", Convention),
     redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
+    redundant_format => ("RedundantFormat", Convention),
     redundant_filter_chain => ("RedundantFilterChain", Convention),
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_initialize => ("RedundantInitialize", Convention),
