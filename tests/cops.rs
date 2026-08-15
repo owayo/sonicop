@@ -34012,6 +34012,93 @@ mod style_arguments_forwarding {
         .run();
     }
 
+    /// 一覧に載っている名前と載っていない名前が混じっていたら、載っている方だけが
+    /// 匿名になる。
+    #[test]
+    fn only_the_redundant_half_of_a_mixed_pair_is_anonymised() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*rest, &blk)\n               ^^^^ {BLOCK}\n  \
+                 bar(*rest, &blk)\n             ^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*rest, &)\n  bar(*rest, &)\nend\n")
+        .run();
+    }
+
+    /// 多重代入の左辺も `lvasgn` なので、そこに現れた名前は転送ではなく参照。
+    #[test]
+    fn a_name_written_on_the_left_of_a_multiple_assignment_is_referenced() {
+        expect_no_offenses(
+            COP,
+            "def foo(*args, **options)\n  a, b, options = split(*args, **options)\n  \
+             bar(*args, **options)\nend\n",
+        );
+    }
+
+    /// `Naming/BlockForwarding` が `explicit` なら、ブロックだけは名前のまま残す。
+    #[test]
+    fn an_explicit_block_name_is_left_where_the_other_cop_wants_it() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Naming/BlockForwarding:\n  Enabled: true\n  EnforcedStyle: explicit\n")
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &block)\n  bar(*, &block)\nend\n")
+        .run();
+    }
+
+    /// 3.4 からはブロックの中でも匿名にできる。
+    #[test]
+    fn ruby_34_anonymises_inside_a_block_after_all() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected("def foo(*, &)\n  [1].each { bar(*, &) }\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックの引数が定義の引数と同じ名前でも、宣言は参照ではない。
+    /// 本家は `lvar` と `lvasgn` しか数えず、`restarg` などの宣言は数に入らない。
+    #[test]
+    fn a_nested_block_parameter_of_the_same_name_is_not_a_reference() {
+        CopCase::new(
+            COP,
+            "def foo(*args, **kwargs, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*args, **kwargs, &block)\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .without_offense_check()
+        .corrected(
+            "def foo(*, **, &block)\n  block = proc { |*args, **kwargs| nil }\n  \
+             baz(*, **, &block)\nend\n",
+        )
+        .run();
+    }
+
+    /// 本体の無い定義と、何も転送していない呼び出しは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def foo(*args); end\n",
+            "def foo(*args)\n  bar(1)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
     /// `yield` と `x[...]` も本家では送信なので同じように見る。
     #[test]
     fn a_yield_and_an_index_are_sends_too() {
