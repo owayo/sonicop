@@ -5385,6 +5385,13 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_disable_cops_within_source_code_directive")
         .correctable(true),
+        // 位置は条件式の全体。
+        CopCase::annotated("Style/MissingElse", "if a\n  b\nend\n")
+            .id("style_missing_else")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[12])
+            .correctable(false),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")
