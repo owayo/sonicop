@@ -32292,6 +32292,21 @@ mod lint_to_enum_arguments {
                 .run();
         }
     }
+
+    /// 位置は呼び出しの引数までで、後ろに書いたブロックは含まない。上流ではブロックは
+    /// 呼び出しを包む別のノードで、`send` はそこで終わっている。
+    #[test]
+    fn the_range_stops_before_a_block() {
+        expect_offense(
+            COP,
+            r"
+            def m(a)
+              to_enum(:m) { 1 }
+              ^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            ",
+        );
+    }
 }
 
 /// `Layout/LineEndStringConcatenationIndentation`。
