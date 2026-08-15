@@ -23715,6 +23715,22 @@ mod style_implicit_runtime_error {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// ヒアドキュメントも `str` / `dstr` の綴りのひとつ。文法は開始記号を独立した節で
+    /// 書くので、文字列の節だけを見ると見落とす。
+    #[test]
+    fn a_heredoc_message_is_a_string_too() {
+        for source in [
+            "raise <<~MESSAGE\n  boom\nMESSAGE\n",
+            "fail <<-EOF\n  boom\nEOF\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/ImplicitRuntimeError:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
 }
 
 /// `Style/StringMethods` (既定無効)。
@@ -23933,6 +23949,9 @@ mod style_method_called_on_do_end_block {
             "result = foo do\n  bar\nend\n",
             "foo do\n  bar\nend.each do |y|\n  y\nend\n",
             "foo do\n  bar\nend.each { |y| y }\n",
+            // `&&` と `||` は上流では and / or ノードで、呼び出しではない。
+            "foo do\n  bar\nend || 1\n",
+            "foo do\n  bar\nend && 1\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -28096,6 +28115,14 @@ mod lint_constant_resolution {
         }
     }
 
+    /// 多重代入の代入先も、大文字始まりのメソッド定義の名前も定数の参照ではない。
+    #[test]
+    fn a_multiple_assignment_target_and_a_capitalised_method_name_are_not_reads() {
+        for source in ["A, B = 1, 2\n", "def O0(&block)\n  block\nend\n"] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+
     /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は
     /// メソッド名も定数と同じ節で書くので、名前の位置だけを外す。
     #[test]
@@ -30635,6 +30662,8 @@ mod style_array_first_last {
             "a[0] += 1\n",
             "a[0, 1]\n",
             "a['k']\n",
+            // `brace_method?` は親が何かだけを尋ねるので、別の添字の中に書いた添字も対象外。
+            "a[b[0]]\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -31342,6 +31371,27 @@ mod style_documentation_method {
         CopCase::new(COP, "def foo; end\n".to_owned(), Vec::new())
             .config("Style/DocumentationMethod:\n  AllowedMethods:\n    - foo\n")
             .run();
+    }
+
+    /// 見えかたは「最後に書かれた印」で決まる。`private` を閉じる裸の `public` の下は
+    /// また公開なので、そこの定義は咎められる。
+    #[test]
+    fn a_bare_public_puts_the_definitions_after_it_back_in_view() {
+        expect_offense(
+            COP,
+            r"
+            class C
+              private
+
+              def a; end
+
+              public
+
+              def b; end
+              ^^^^^^^^^^ Missing method documentation comment.
+            end
+            ",
+        );
     }
 }
 
@@ -32711,6 +32761,12 @@ mod style_invertible_unless_condition {
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// `&.` で書いた呼び出しは上流では `csend` で、`send` の枝に入らない。
+    #[test]
+    fn a_call_written_with_safe_navigation_is_left_alone() {
+        expect_no_offenses(COP, "return false unless arguments&.any?\n");
     }
 
     /// 引数付きの呼び出しは括弧の有無をそのまま保つ。

@@ -35,10 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `find_offense_range`: with a dot the selector runs to the end of the call, without one it
         // is the `[...]` itself -- and the replacement grows a dot to match.
         let (range, replacement) = match node.kind_str() {
-            "element_reference" => (
-                selector_start..node.end_byte(),
-                format!(".{preferred}"),
-            ),
+            "element_reference" => (selector_start..node.end_byte(), format!(".{preferred}")),
             _ => (
                 selector_start..send_node::send_range(node, context).end,
                 preferred.to_owned(),
@@ -93,12 +90,9 @@ fn enclosing_subscript(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    match parent.kind_str() {
-        "element_reference" => parent
-            .field("object")
-            .is_some_and(|object| object.id() == node.id()),
-        _ => false,
-    }
+    // `brace_method?` asks only what the parent is, so a subscript written as another one's index
+    // (`a[b[0]]`) is left alone just as one written as its receiver is.
+    parent.kind_str() == "element_reference"
 }
 
 /// Whether the subscript is what an assignment writes to, which upstream spells `[]=` or wraps in
