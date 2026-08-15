@@ -31509,3 +31509,358 @@ mod style_negated_if_else_condition {
         .run();
     }
 }
+
+/// `Lint/UnmodifiedReduceAccumulator`。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/UnmodifiedReduceAccumulator` で走らせた実出力から
+/// 取った (検出 12 件を確認済み)。
+mod lint_unmodified_reduce_accumulator {
+    use super::*;
+
+    const COP: &str = "Lint/UnmodifiedReduceAccumulator";
+
+    /// 蓄積器を返さない枝はメッセージ 1、蓄積器の要素を返す枝はメッセージ 2。
+    #[test]
+    fn a_branch_that_drops_the_accumulator_is_reported() {
+        expect_offense(
+            COP,
+            r#"
+            values.reduce({}) do |acc, el|
+              el
+              ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+            end
+            "#,
+        );
+        expect_offense(
+            COP,
+            r#"
+            values.reduce({}) do |acc, el|
+              acc[el] = el
+              ^^^^^^^^^^^^ Do not return an element of the accumulator in `reduce`.
+            end
+            "#,
+        );
+        for source in [
+            "values.reduce(0) do |acc, el|\n  el * 2\nend\n",
+            "values.reduce({}) do |acc, el|\n  acc[el[0]]\nend\n",
+            "values.reduce(0) { |acc, el| some_method(el) }\n",
+            "values.reduce(0) { |acc, el| \"#{el}\" }\n",
+            "values.inject(0) { |acc, el| el }\n",
+            "values.reduce([]) do |acc, (a, b)|\n  a\nend\n",
+            "values.reduce(0) { _2 }\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+        // `next` が返す値も枝のひとつ。
+        CopCase::annotated(
+            COP,
+            r#"
+            values.reduce(0) do |acc, el|
+              next el if el.nil?
+                   ^^ Ensure the accumulator `acc` will be modified by `reduce`.
+              acc + el
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// 蓄積器を返す枝がひとつでもあれば、要素に触っていれば、あるいは要素以外を
+    /// 読んでいれば対象外。ブロック引数が 2 つ未満のものも見ない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "values.reduce({}) do |acc, el|\n  acc[el] = el\n  acc\nend\n",
+            "values.reduce(0) do |acc, el|\n  acc + el\nend\n",
+            "values.reduce([]) do |acc, el|\n  acc << el\nend\n",
+            "values.reduce([]) do |acc, el|\n  acc.push(el)\n  acc\nend\n",
+            "values.reduce({}) do |acc, el|\n  acc[el]\nend\n",
+            "values.reduce(0) do |acc, el|\n  next acc if el.nil?\n  acc + el\nend\n",
+            "values.reduce(0) { |acc, el| some_method(acc, el) }\n",
+            "values.reduce(0) { |acc| acc }\n",
+            "values.each { |acc, el| el }\n",
+            "values.reduce(0) do |acc, el|\n  el.foo(acc)\n  el\nend\n",
+            "values.reduce(0) { _1 + _2 }\n",
+            "values.reduce(0) { _1 }\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.0")
+                .run();
+        }
+    }
+}
+
+/// `Lint/UnusedPrivateMethod` と `Lint/NameTypo`。
+///
+/// どちらもハンドラが `project_index` の有無で早期 return する。索引は
+/// `AllCops: UseProjectIndex` を立てて `rubydex` gem を入れたときだけ作られるので、
+/// 既定では何も報告しない。sonicop は索引を持たないため常にその側に立つ。
+mod lint_project_index_cops {
+    use super::*;
+
+    #[test]
+    fn nothing_is_reported_without_a_project_index() {
+        expect_no_offenses(
+            "Lint/UnusedPrivateMethod",
+            "class C\n  private\n  def unused_one; end\nend\n",
+        );
+        expect_no_offenses("Lint/NameTypo", "Foo::Barr\nFoo.barr\n");
+    }
+}
+
+/// `Lint/HeredocMethodCallPosition` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/HeredocMethodCallPosition` で走らせた実出力から
+/// 取った (検出 6 件・`-A` の結果ともバイト一致を確認済み)。
+mod lint_heredoc_method_call_position {
+    use super::*;
+
+    const COP: &str = "Lint/HeredocMethodCallPosition";
+
+    const ENABLED: &str = "Lint/HeredocMethodCallPosition:\n  Enabled: true\n";
+
+    /// レンジは終端行の次の行の 1 文字目。補正は呼び出しを開始行の末尾へ移す。
+    #[test]
+    fn the_call_moves_up_to_the_heredoc_opening() {
+        CopCase::annotated(
+            COP,
+            r#"
+            x = <<~SQL
+              bar
+            SQL
+              .strip
+            ^ Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.
+            "#,
+        )
+        .config(ENABLED)
+        .corrected("x = <<~SQL.strip\n  bar\nSQL\n")
+        .run();
+        // 直後のカンマは呼び出しと一緒に動く。
+        CopCase::new(
+            COP,
+            "w = [\n  <<~SQL\n    bar\n  SQL\n  .strip,\n]\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .corrected("w = [\n  <<~SQL.strip,\n    bar\n  SQL\n]\n")
+        .run();
+    }
+
+    /// 動かすと他のものまで連れて行く形は報告だけする。
+    #[test]
+    fn a_call_that_cannot_be_lifted_is_reported_only() {
+        for source in [
+            "foo(<<~SQL\n  bar\nSQL\n     .strip)\n",
+            "v = <<~SQL\n  bar\nSQL\n  .strip\n  .chomp\n",
+        ] {
+            CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .correctable(false)
+                .run();
+        }
+    }
+
+    /// 開始行に書かれた呼び出しと、呼び出しの無いヒアドキュメントは対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "foo(<<~SQL)\n  bar\nSQL\n",
+            "foo(<<~SQL.strip)\n  bar\nSQL\n",
+            "y = <<~SQL.strip\n  bar\nSQL\n",
+            "z = [\n  <<~SQL,\n    bar\n  SQL\n]\n",
+            "d = <<~SQL.strip.chomp\n  x\nSQL\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}
+
+/// `Lint/ShadowingOuterLocalVariable` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/ShadowingOuterLocalVariable` で走らせた実出力から
+/// 取った (検出 17 件を確認済み)。
+mod lint_shadowing_outer_local_variable {
+    use super::*;
+
+    const COP: &str = "Lint/ShadowingOuterLocalVariable";
+
+    const ENABLED: &str = "Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n";
+
+    /// 報告されるのはブロックの引数だけ。本家の `before_declaring_variable` は、表に
+    /// 無い名前の宣言でしか呼ばれないので、既にある名前への代入は宣言ではない。
+    #[test]
+    fn a_block_parameter_that_hides_an_outer_name_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def m
+              x = 1
+              [1].each { |x| }
+                          ^ Shadowing outer local variable - `x`.
+            end
+            "#,
+        )
+        .config(ENABLED)
+        .run();
+        for source in [
+            "x = 1\n[1].each { |x| }\n",
+            "def a\n  x = 1\n  [1].each { |y; x| }\nend\n",
+            "def d(x)\n  [1].each { |x| }\nend\n",
+            "def t\n  x = 1\n  [1].each do |y|\n    [2].each { |x| }\n  end\nend\n",
+            "def u\n  x = 1\n  ->(x) { }\nend\n",
+            "def f\n  x = 1\n  y = [1].each { |x| }\nend\n",
+            "def b\n  x = 1\n  case z\n  when 1\n    [1].each { |x| }\n  end\nend\n",
+            "def c\n  x = 1\n  while z\n    [1].each { |x| }\n  end\nend\n",
+            // 外側の宣言が条件式の外にあるので、`else` の中でも隠している。
+            "def c\n  x = 1\n  unless z\n    1\n  else\n    [1].each { |x| }\n  end\nend\n",
+        ] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// `_` 始まり、`Ractor.new`、外側の宣言そのものの中、そして同じ条件式の別の枝は
+    /// 対象外。`def` はスコープの探索を打ち切る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def n\n  [1].each { |x| }\n  x = 1\nend\n",
+            "def o\n  _x = 1\n  [1].each { |_x| }\nend\n",
+            "def p1\n  x = 1\n  Ractor.new { |x| }\nend\n",
+            "def q\n  x = [1].map { |x| x }\nend\n",
+            "def r\n  if a\n    x = 1\n  else\n    [1].each { |x| }\n  end\nend\n",
+            "def b\n  if z\n    x = 1\n  elsif w\n    [1].each { |x| }\n  end\nend\n",
+            "def s\n  x = 1\n  def inner\n    [1].each { |x| }\n  end\nend\n",
+            "class Foo\n  x = 1\n  def h\n    [1].each { |x| }\n  end\nend\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+}
+
+/// `Layout/HeredocArgumentClosingParenthesis` (既定では無効)。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。`-A` は本家と同じく安定するまで繰り返すので、入れ子の呼び出しは 2 周かけて
+/// 内側から順に閉じ括弧が上がっていく。
+mod layout_heredoc_argument_closing_parenthesis {
+    use super::*;
+
+    const COP: &str = "Layout/HeredocArgumentClosingParenthesis";
+
+    fn case(source: &str) -> CopCase {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(&format!("{COP}:\n  Enabled: true\n"))
+    }
+
+    fn correction(source: &str, corrected: &str) {
+        case(source)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 報告するのは閉じ括弧 1 文字。
+    #[test]
+    fn the_offense_is_the_closing_parenthesis_itself() {
+        CopCase::new(
+            COP,
+            "foo(<<~SQL\n  text\nSQL\n)\n".to_owned(),
+            vec![Annotation::new(
+                4,
+                1,
+                1,
+                "Put the closing parenthesis for a method call with a HEREDOC parameter on the \
+                 same line as the HEREDOC opening.",
+            )],
+        )
+        .config(&format!("{COP}:\n  Enabled: true\n"))
+        .locations(&[(4, 1, 4, 1)])
+        .lengths(&[1])
+        .run();
+    }
+
+    /// 閉じ括弧だけの行はまるごと消え、括弧はヒアドキュメントの開始の後ろに移る。
+    #[test]
+    fn the_parenthesis_moves_up_to_the_heredoc_opening() {
+        correction("foo(<<~SQL\n  text\nSQL\n)\n", "foo(<<~SQL)\n  text\nSQL\n");
+        // 引数の直後に書かれていた読点は括弧と一緒に消える。
+        correction(
+            "foo(<<~SQL,\n  text\nSQL\n)\n",
+            "foo(<<~SQL)\n  text\nSQL\n",
+        );
+        correction(
+            "foo(<<~SQL, 123\n  text\nSQL\n)\n",
+            "foo(<<~SQL, 123)\n  text\nSQL\n",
+        );
+        // `<<~SQL.strip` は send だが、レシーバのヒアドキュメントが行をまたぐので対象。
+        correction(
+            "foo(<<~SQL.strip\n  text\nSQL\n)\n",
+            "foo(<<~SQL.strip)\n  text\nSQL\n",
+        );
+        // 波括弧の無い hash の値にあるヒアドキュメントも見つける。
+        correction(
+            "foo(key: <<~SQL\n  text\nSQL\n)\n",
+            "foo(key: <<~SQL)\n  text\nSQL\n",
+        );
+    }
+
+    /// 入れ子は内側から 1 周ずつ上がる。閉じ括弧だけの行ではないので、消えるのは括弧 1 文字。
+    #[test]
+    fn nested_calls_close_one_round_at_a_time() {
+        correction(
+            "foo(bar(<<~SQL\n  text\nSQL\n))\n",
+            "foo(bar(<<~SQL))\n  text\nSQL\n",
+        );
+        correction(
+            "array = [foo(<<~SQL\n  text\nSQL\n)]\n",
+            "array = [foo(<<~SQL)\n  text\nSQL\n]\n",
+        );
+    }
+
+    /// 括弧の外にあった読点は、括弧と一緒に引数の後ろへ移る。
+    #[test]
+    fn a_trailing_comma_written_after_the_parenthesis_moves_with_it() {
+        correction(
+            "[foo(<<~SQL\n  text\nSQL\n), 1]\n",
+            "[foo(<<~SQL),\n  text\nSQL\n 1]\n",
+        );
+        correction(
+            "baz(foo(<<~SQL\n  text\nSQL\n), [1])\n",
+            "baz(foo(<<~SQL),\n  text\nSQL\n [1])\n",
+        );
+        // 外側も呼び出しで、その閉じ括弧が最後の引数の直後に来る形 (`baz(foo(...), 1)`) は、
+        // 本家でも 2 周目が `baz` の閉じ括弧を報告して何も変えないため
+        // `Infinite loop detected` で終わる。ここでも同じ結果になるので correction として
+        // 書けない。
+    }
+
+    /// `end` で閉じるものの中に書かれた呼び出し、括弧を書いていない呼び出し、
+    /// すでに開始行で閉じているものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "def m\n  foo(<<~SQL\n    text\n  SQL\n  )\nend\n",
+            "class C\n  foo(<<~SQL\n    text\n  SQL\n  )\nend\n",
+            "foo(<<~SQL)\n  text\nSQL\n",
+            "foo <<~SQL\n  text\nSQL\n",
+            // ヒアドキュメントの終端と閉じ括弧の間に引数が残っている。
+            "foo(<<~SQL,\n  text\nSQL\n  bar)\n",
+            "foo(<<~SQL, bar(\n  text\nSQL\n  1\n))\n",
+            // 最後の引数が閉じた直後に並んでいる閉じ括弧。
+            "foo(bar(<<~X), [\n  t\nX\n  1\n])\n",
+            "foo(bar(<<~X), baz(\n  t\nX\n  1\n))\n",
+        ] {
+            case(source).run();
+        }
+    }
+}
