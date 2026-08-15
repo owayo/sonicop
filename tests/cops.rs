@@ -6321,6 +6321,56 @@ mod naming_rest {
         );
     }
 
+    /// 行末コメントとヒアドキュメントの本体は、本家の木では文の一部か、そもそもノードが
+    /// 無い。tree-sitter はどちらも本体の子に置くので、1 文の本体が 2 文に見えて代入が
+    /// 最後でなくなり、cop が黙っていた。
+    #[test]
+    fn memoized_instance_variable_name_ignores_comments_and_heredoc_bodies() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def b
+              @w ||= 1 # a trailing comment
+              ^^ Memoized variable `@w` does not match method name `b`. Use `@b` instead.
+            end
+            "#,
+        );
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def c
+              @w ||= <<~X
+              ^^ Memoized variable `@w` does not match method name `c`. Use `@c` instead.
+                hi
+              X
+            end
+            "#,
+        );
+        // 引数リストの中でも同じで、`bar(...)` の最後の子は行末コメントではなく代入。
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def d
+              bar(
+                @w ||= 1 # a trailing comment
+                ^^ Memoized variable `@w` does not match method name `d`. Use `@d` instead.
+              )
+            end
+            "#,
+        );
+        expect_correction(
+            MEMOIZED,
+            "def b
+  @w ||= 1 # a trailing comment
+end
+",
+            "def b
+  @b ||= 1 # a trailing comment
+end
+",
+        );
+    }
+
     #[test]
     fn memoized_instance_variable_name_correction_renames_the_variable() {
         expect_correction(
@@ -7436,6 +7486,67 @@ mod layout_bracket_spacing {
                 Annotation::new(7, 17, 1, PERCENT_MSG),
             ],
         )
+        .run();
+    }
+
+    /// 本家の `BlockNode#single_line?` は式全体ではなく `loc.begin` と `loc.end`、
+    /// つまり中括弧同士の行を比べる。レシーバが複数行に跨っていても中括弧が同じ行なら
+    /// 1 行ブロックのままで、閉じ `}` も報告される。
+    #[test]
+    fn a_block_is_single_line_when_its_braces_share_a_line() {
+        const BLOCK: &str = "Layout/SpaceInsideBlockBraces";
+        const PIPE_MSG: &str = "Space between { and | missing.";
+        const CLOSE_MSG: &str = "Space missing inside }.";
+        CopCase::new(
+            BLOCK,
+            concat!(
+                "a = [\n",
+                "  1,\n",
+                "].map {|n| n}\n",
+                "\n",
+                "c = foo(\n",
+                "  1\n",
+                ").map {|n| n}\n",
+                "\n",
+                "d = [1].map {|n|\n",
+                "  n\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 2, PIPE_MSG),
+                Annotation::new(3, 13, 1, CLOSE_MSG),
+                Annotation::new(7, 7, 2, PIPE_MSG),
+                Annotation::new(7, 13, 1, CLOSE_MSG),
+                Annotation::new(9, 13, 2, PIPE_MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = [\n",
+            "  1,\n",
+            "].map { |n| n }\n",
+            "\n",
+            "c = foo(\n",
+            "  1\n",
+            ").map { |n| n }\n",
+            "\n",
+            "d = [1].map { |n|\n",
+            "  n\n",
+            "}\n",
+        ))
+        .run();
+        // 中括弧が別々の行にあれば複数行ブロックで、閉じ `}` の手前の改行は咎められない。
+        expect_no_offenses(BLOCK, "e = [\n  1,\n].map { |n|\n  n\n}\n");
+        // `;` は本家の木では文の区切りでしかなくノードにならない。中身がそれだけなら
+        // `body` は `nil` で、複数行の空ブロックとして丸ごと見送られる。
+        expect_no_offenses(BLOCK, "a = foo {|f|\n  ;\n}\n");
+        expect_no_offenses(BLOCK, "b = foo {|f|\n  # a comment\n}\n");
+        // 中身が本物の文なら、空ブロックではないので `{` の詰まりが報告される。
+        CopCase::new(
+            BLOCK,
+            "c = foo {|f|\n  f\n}\n",
+            vec![Annotation::new(1, 9, 2, PIPE_MSG)],
+        )
+        .corrected("c = foo { |f|\n  f\n}\n")
         .run();
     }
 
@@ -21003,6 +21114,36 @@ mod style_nested_file_dirname {
     }
 }
 
+/// `Style/ExponentialNotation`。
+///
+/// 期待値は本家 1.89.0 を `--only Style/ExponentialNotation` で走らせた実出力から取った
+/// (位置・長さとも JSON で確認済み)。
+mod style_exponential_notation {
+    use super::*;
+
+    const COP: &str = "Style/ExponentialNotation";
+    const MSG: &str = "Use a mantissa >= 1 and < 10.";
+
+    /// 本家のパーサは先頭の `+` / `-` をリテラルに畳み込むので、仮数の判定には符号が入り、
+    /// 指摘も符号の位置から始まる。`+` は `/^-?[1-9].../` に当たらないので、仮数が 1 以上
+    /// 10 未満でも指摘になる。
+    #[test]
+    fn a_folded_sign_belongs_to_the_mantissa() {
+        expect_offense(COP, &format!("y = +2.5e20\n    ^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("z = -123.45e1\n    ^^^^^^^^^ {MSG}\n"));
+        // 符号との間の空白も畳み込まれる。
+        expect_offense(COP, &format!("v = - 2.5e20\n    ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 符号が無いもの、`-` 付きで仮数が範囲内のものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["w = 2.5e20\n", "u = -1.5e3\n", "t = 1.0e3\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
 /// `Style/EnvHome`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/EnvHome` で走らせた実出力から取った
@@ -21036,11 +21177,19 @@ mod style_env_home {
             "ENV.fetch('HOME') { 'x' }\n",
             "Foo::ENV['HOME']\n",
             "ENV['PATH']\n",
-            // `ENV['HOME'] = x` は本家では `:[]=` で、パターンの `:[]` に当たらない。
-            // そもそも `Dir.home` は代入できないので、書き換えようがない。
+            // 代入先は本家では `indexasgn` (`:[]=`) で、パターンの `{:[] :fetch}` のどちらにも
+            // 当たらない。そもそも `Dir.home` は代入できないので、書き換えようがない。
             "ENV['HOME'] = value\n",
         ] {
             expect_no_offenses(COP, source);
+        }
+        // 自己代入は読みを読みのまま残すので、こちらは対象。
+        for source in ["ENV['HOME'] += x\n", "ENV['HOME'] ||= x\n"] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/EnvHome:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
         }
     }
 
@@ -23734,6 +23883,22 @@ mod style_implicit_runtime_error {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// ヒアドキュメントも `str` / `dstr` の綴りのひとつ。文法は開始記号を独立した節で
+    /// 書くので、文字列の節だけを見ると見落とす。
+    #[test]
+    fn a_heredoc_message_is_a_string_too() {
+        for source in [
+            "raise <<~MESSAGE\n  boom\nMESSAGE\n",
+            "fail <<-EOF\n  boom\nEOF\n",
+        ] {
+            let report = CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Style/ImplicitRuntimeError:\n  Enabled: true\n")
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
 }
 
 /// `Style/StringMethods` (既定無効)。
@@ -23952,6 +24117,9 @@ mod style_method_called_on_do_end_block {
             "result = foo do\n  bar\nend\n",
             "foo do\n  bar\nend.each do |y|\n  y\nend\n",
             "foo do\n  bar\nend.each { |y| y }\n",
+            // `&&` と `||` は上流では and / or ノードで、呼び出しではない。
+            "foo do\n  bar\nend || 1\n",
+            "foo do\n  bar\nend && 1\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -25913,6 +26081,103 @@ mod style_it_block_parameter {
             .run();
     }
 
+    /// `it "..." do ... end` の `it` はメソッド名であって暗黙の引数ではない。
+    ///
+    /// 本家のパーサが `it` を引数にするのは、引数もブロックも取らない裸の `it` だけ。RSpec の
+    /// 例を抱えた `describe` を `it` ブロックと読むと、spec を持つコーパスが丸ごと誤検出になる
+    /// (mastodon で 5,276 件)。
+    #[test]
+    fn the_it_that_names_a_call_is_not_the_parameter() {
+        for source in [
+            "describe 'x' do\n  it 'y' do\n    expect(1).to eq 1\n  end\nend\n",
+            "foo do\n  it(1)\n  bar\nend\n",
+            "foo do\n  bar.it\n  baz\nend\n",
+        ] {
+            case(source).run();
+        }
+        // 裸の `it` とレシーバに置いた `it` は引数。
+        case("foo do\n  it.bar\n  baz(it)\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// 代入された名前は変数であって引数ではない。読みが先なら引数のまま。
+    #[test]
+    fn a_name_assigned_before_it_is_read_is_a_variable() {
+        case("foo do\n  it = 1\n  puts it\nend\n").run();
+        // 読みが先にあるものは、後で代入されても引数。
+        case("foo do\n  puts args[it]\n  it += 1\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// `-> x { }` は本家では 1 つの `block`。文法は引数を `lambda` に、波括弧を別のブロックに
+    /// 書くので、引数はそちらから取る。
+    #[test]
+    fn a_lambda_keeps_its_parameters_on_the_arrow() {
+        CopCase::new(
+            COP,
+            "-> message do\n  puts message\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("->  do\n  puts it\nend\n")
+        .run();
+    }
+
+    /// `{ name: }` の省略された値は、本家の木では鍵と同じ位置に置かれた `lvar`。
+    #[test]
+    fn a_hash_value_left_out_is_still_a_read() {
+        CopCase::new(
+            COP,
+            "foo do |name|\n  bar(tag: { name: })\n  baz(name)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  bar(tag: { it: })\n  baz(it)\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックが同じ名前を宣言していても、宣言そのものは読みではない。
+    #[test]
+    fn a_nested_declaration_of_the_same_name_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    \
+             save = transaction\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
+        .run();
+    }
+
+    /// ヒアドキュメントの本体は開いた文の隣に置かれるが、本家の木では文字列の中なので、
+    /// そこで補間された名前もブロックの引数の読み。
+    #[test]
+    fn a_name_read_inside_a_heredoc_counts() {
+        CopCase::new(
+            COP,
+            "foo do |x|\n  puts <<~T\n    #{x}\n  T\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  puts <<~T\n    #{it}\n  T\nend\n")
+        .run();
+    }
+
     /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
     /// 何も見つからない。
     #[test]
@@ -25989,6 +26254,19 @@ mod style_fetch_env_var {
             "if cond\n  x = ENV['X']\nend\n",
             "if cond\n  x = ENV.fetch('X', nil)\nend\n",
         );
+    }
+
+    /// 条件が `&&` や `||` のときも、その両辺は「旗として使っている」ぶんに入る。
+    /// 上流の parser では `and` / `or` ノードで、呼び出しではない。
+    #[test]
+    fn both_sides_of_a_logical_condition_count_as_a_flag() {
+        for source in [
+            "if ENV['A'] && ENV['B']\n  x\nend\n",
+            "return if ENV['A'] && !force\n",
+            "x = 1 if ENV['A'] || ENV['B']\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
     }
 
     /// `DefaultToNil: false` では既定値を書かない `fetch` になる。
@@ -28102,6 +28380,14 @@ mod lint_constant_resolution {
         }
     }
 
+    /// 多重代入の代入先も、大文字始まりのメソッド定義の名前も定数の参照ではない。
+    #[test]
+    fn a_multiple_assignment_target_and_a_capitalised_method_name_are_not_reads() {
+        for source in ["A, B = 1, 2\n", "def O0(&block)\n  block\nend\n"] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+    }
+
     /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は
     /// メソッド名も定数と同じ節で書くので、名前の位置だけを外す。
     #[test]
@@ -28545,9 +28831,26 @@ mod lint_duplicate_branch {
             "if a\n  foo\nend\n",
             "if a\n  foo\nelse\n  bar\nend\n",
             "case x\nwhen 1\n  foo\nwhen 2\n  bar\nend\n",
+            // ヒアドキュメントの中身は開始記号の下に書かれる。開始記号だけを見ると
+            // どの `<<~EOS` も同じに見えてしまう。
+            "if a\n  <<~EOS\n    one\n  EOS\nelse\n  <<~EOS\n    two\n  EOS\nend\n",
+            "case x\nwhen 1\n  <<~A\n    one\n  A\nwhen 2\n  <<~B\n    two\n  B\nend\n",
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 中身が同じなら終端記号の名前が違っても同じ枝。上流では中身だけが literal になる。
+    #[test]
+    fn two_heredocs_holding_the_same_text_are_one_branch() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  <<~A\n    same\n  A\nelse\n  <<~B\n    same\n  B\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -30624,6 +30927,8 @@ mod style_array_first_last {
             "a[0] += 1\n",
             "a[0, 1]\n",
             "a['k']\n",
+            // `brace_method?` は親が何かだけを尋ねるので、別の添字の中に書いた添字も対象外。
+            "a[b[0]]\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -31332,6 +31637,27 @@ mod style_documentation_method {
             .config("Style/DocumentationMethod:\n  AllowedMethods:\n    - foo\n")
             .run();
     }
+
+    /// 見えかたは「最後に書かれた印」で決まる。`private` を閉じる裸の `public` の下は
+    /// また公開なので、そこの定義は咎められる。
+    #[test]
+    fn a_bare_public_puts_the_definitions_after_it_back_in_view() {
+        expect_offense(
+            COP,
+            r"
+            class C
+              private
+
+              def a; end
+
+              public
+
+              def b; end
+              ^^^^^^^^^^ Missing method documentation comment.
+            end
+            ",
+        );
+    }
 }
 
 /// `Lint/NonAtomicFileOperation`。
@@ -31592,6 +31918,31 @@ mod lint_number_conversion {
         ] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 演算子と添字も上流では呼び出しなので、シンボルの引数を見るほうの経路に入る。
+    #[test]
+    fn a_symbol_passed_to_an_operator_or_an_index_is_seen_too() {
+        for source in ["foo == :to_f\n", "h[:to_i]\n"] {
+            let report = CopCase::new(COP, source, Vec::new())
+                .config(ENABLED)
+                .without_offense_check()
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source:?}");
+        }
+    }
+
+    /// 入れ子の変換は報告するが補正はしない。外側の補正が書き換えた文字列を
+    /// もう一度書き換えることになるので、本家は `ignore_node` で下りを外す。
+    #[test]
+    fn a_conversion_inside_a_corrected_one_is_reported_without_a_correction() {
+        let report = CopCase::new(COP, "Math.sqrt(a.to_f / b).round.to_i\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 2);
+        assert!(report.offenses[0].is_correctable());
+        assert!(!report.offenses[1].is_correctable());
     }
 }
 
@@ -32675,6 +33026,12 @@ mod style_invertible_unless_condition {
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// `&.` で書いた呼び出しは上流では `csend` で、`send` の枝に入らない。
+    #[test]
+    fn a_call_written_with_safe_navigation_is_left_alone() {
+        expect_no_offenses(COP, "return false unless arguments&.any?\n");
     }
 
     /// 引数付きの呼び出しは括弧の有無をそのまま保つ。
@@ -34761,5 +35118,29 @@ mod lint_literal_as_condition_modifier {
         // 生き残らない側は消える。
         correction("def m\n  c if false\nend\n", "def m\n  \nend\n");
         correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
+    }
+}
+
+/// `Lint/UnusedBlockArgument` の補正の作り方。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/UnusedBlockArgument,Style/Lambda -A` の実出力。
+mod lint_unused_block_argument_correction {
+    use super::*;
+
+    /// 名前を丸ごと `_name` に置き換える (先頭に `_` を差し込むのではない)。同じ引数を
+    /// 同じパスで別の cop が書き換えているとき、範囲が一致する置換は clobber として
+    /// 次のパスへ回るが、範囲の端への挿入はすり抜けて隣の字面にくっついてしまう。
+    /// `-> env do` を `lambda do |env|` にする `Style/Lambda` と重なると、`lambda_` が
+    /// できていた。
+    #[test]
+    fn the_name_is_replaced_rather_than_prefixed() {
+        CopCase::new(
+            "Lint/UnusedBlockArgument",
+            "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  foo(bar: -> _env do\n    1\n  end)\nend\n")
+        .run();
     }
 }

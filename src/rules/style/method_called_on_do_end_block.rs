@@ -10,6 +10,9 @@ const MSG: &str = "Avoid chaining a method call on a do...end block.";
 /// `"end".len()`, which is what the `end` keyword of a `do` block always spans.
 const END_LENGTH: usize = 3;
 
+/// The operators upstream's parser gives `and` and `or` nodes to rather than calls.
+const LOGICAL_OPERATORS: &[&str] = &["&&", "||", "and", "or"];
+
 /// A call whose receiver is a `do`...`end` block.
 ///
 /// Upstream reaches the same shape through `receiver.any_block_type? && receiver.keywords?`, where
@@ -17,7 +20,7 @@ const END_LENGTH: usize = 3;
 /// call itself, so the test is whether the receiver carries a `do_block`.
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "binary", "element_reference"]) {
-        let Some(receiver) = receiver_of(node) else {
+        let Some(receiver) = receiver_of(node, context) else {
             continue;
         };
         let Some(block) = do_block_of(receiver) else {
@@ -37,10 +40,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The node the call was made on. An operator and an index are calls upstream too, and the grammar
 /// gives each of them a field of its own for what they were written on.
-fn receiver_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+///
+/// `&&` and `||` are the exception: the grammar writes them with the same node an operator call
+/// gets, but upstream's parser has `and` and `or` nodes of their own for them, and `on_send` never
+/// sees one.
+fn receiver_of<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     match node.kind_str() {
         "call" => node.field("receiver"),
-        "binary" => node.field("left"),
+        "binary" => {
+            let operator = node.field("operator")?;
+            match LOGICAL_OPERATORS.contains(&context.source.node_text(operator)) {
+                true => None,
+                false => node.field("left"),
+            }
+        }
         "element_reference" => node.field("object"),
         _ => None,
     }

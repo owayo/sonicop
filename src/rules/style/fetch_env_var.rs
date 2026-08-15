@@ -13,6 +13,9 @@ const COMPARISON_OPERATORS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<",
 /// The node kinds upstream's parser writes as a `send`.
 const SEND_KINDS: &[&str] = &["call", "binary", "unary", "element_reference"];
 
+/// The operators upstream's parser gives `and` and `or` nodes to rather than calls.
+const LOGICAL_OPERATORS: &[&str] = &["&&", "||", "and", "or"];
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let default_to_nil = context.setting::<bool>("DefaultToNil").unwrap_or(true);
     let allowed: Vec<String> = context.setting("AllowedVariables").unwrap_or_default();
@@ -107,15 +110,31 @@ fn used_if_condition_in_body(node: Node<'_>, context: &RuleContext<'_>) -> bool 
         current = context.parent(ancestor);
     };
     // `condition.child_nodes == node.child_nodes`: the condition reads the same two things.
-    if SEND_KINDS.contains(&condition.kind_str()) && same_children(condition, node, context) {
+    if is_send(condition, context) && same_children(condition, node, context) {
         return true;
     }
     used_in_condition(node, condition, context)
 }
 
+/// `send_type?`: a call, which `&&` and `||` are not.
+///
+/// The grammar writes a logical operator with the same node it writes an operator call with, but
+/// upstream's parser has `and` and `or` nodes of their own for them. Reading `ENV['X'] && y` as a
+/// call asks it for a method name, decides `&&` is neither a comparison nor a predicate, and stops
+/// before noticing that the read is one of the two things the condition tests.
+fn is_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if !SEND_KINDS.contains(&node.kind_str()) {
+        return false;
+    }
+    node.kind_str() != "binary"
+        || node
+            .field("operator")
+            .is_none_or(|operator| !LOGICAL_OPERATORS.contains(&context.source.node_text(operator)))
+}
+
 /// `used_in_condition?`.
 fn used_in_condition(node: Node<'_>, condition: Node<'_>, context: &RuleContext<'_>) -> bool {
-    if SEND_KINDS.contains(&condition.kind_str()) {
+    if is_send(condition, context) {
         let name = selector(condition, context);
         // `assignment_method?`: a setter, which is not one of the comparisons.
         let assignment = name.is_some_and(|name| {
