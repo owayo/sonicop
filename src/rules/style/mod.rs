@@ -33,6 +33,7 @@ department_rules! {
     array_first_last => ("ArrayFirstLast", Convention),
     array_join => ("ArrayJoin", Convention),
     array_coercion => ("ArrayCoercion", Convention),
+    arguments_forwarding => ("ArgumentsForwarding", Convention),
     ascii_comments => ("AsciiComments", Convention),
     attr => ("Attr", Convention),
     auto_resource_cleanup => ("AutoResourceCleanup", Convention),

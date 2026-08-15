@@ -33895,3 +33895,135 @@ mod style_missing_else {
             .run();
     }
 }
+
+mod style_arguments_forwarding {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    const FORWARDING: &str = "Use shorthand syntax `...` for arguments forwarding.";
+    const ARGS: &str = "Use anonymous positional arguments forwarding (`*`).";
+    const KWARGS: &str = "Use anonymous keyword arguments forwarding (`**`).";
+    const BLOCK: &str = "Use anonymous block arguments forwarding (`&`).";
+
+    /// 2.7 では `...` にまとめられる。定義と呼び出しの両方を報告する。
+    #[test]
+    fn everything_forwarded_together_becomes_the_shorthand() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, &block)\n      ^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// `AllowOnlyRestArgument` が既定で真なので、`*args` だけの転送は 2.7 では通る。
+    /// ブロックまで持っていってしまう `...` とは意味が違うため。
+    #[test]
+    fn only_a_rest_argument_is_allowed_before_3_2() {
+        expect_no_offenses(COP, "def foo(*args)\n  bar(*args)\nend\n");
+        expect_no_offenses(COP, "def foo(**kwargs)\n  bar(**kwargs)\nend\n");
+    }
+
+    /// 3.2 では `*` と `**` の両方が揃っていないと `...` にできない。片方だけなら
+    /// それぞれを匿名にする。
+    #[test]
+    fn from_3_2_each_one_is_anonymised_on_its_own() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^ {ARGS}\n               ^^^^^^ {BLOCK}\n  \
+                 bar(*args, &block)\n      ^^^^^ {ARGS}\n             ^^^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, &)\n  bar(*, &)\nend\n")
+        .run();
+        // 3 つ揃っていれば 3.2 でも `...`。
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs, &block)\n        ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, **kwargs, &block)\n      ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 括弧を書いていない定義や呼び出しには、書き換えのついでに括弧が付く。
+    #[test]
+    fn parentheses_are_added_where_they_were_missing() {
+        expect_correction(
+            COP,
+            "def foo(*args, &block)\n  bar *args, &block\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo *args, &block\n  bar(*args, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+    }
+
+    /// 名前が設定の一覧に無ければ、意味のある名前として残す。
+    #[test]
+    fn a_meaningful_name_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "def foo(*things, &callback)\n  bar(*things, &callback)\nend\n",
+        );
+        // 転送以外の場所で読まれている名前も残す。
+        expect_no_offenses(
+            COP,
+            "def foo(*args, &block)\n  args.first\n  bar(*args, &block)\nend\n",
+        );
+    }
+
+    /// ブロックの中では匿名の引数が 3.3 で構文エラーになるので、3.4 未満では提案しない。
+    /// 本家では `block` ノードが呼び出しを包むので、ブロックを持つ呼び出しの引数も
+    /// 「ブロックの中」に数える。
+    #[test]
+    fn nothing_is_anonymised_inside_a_block_before_3_4() {
+        for source in [
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n",
+            "def foo(*args)\n  bar(*args) { baz }\nend\n",
+            "def foo(*args)\n  bar(*args).tap { |x| x }\nend\n",
+        ] {
+            CopCase::new(COP, support::annotation::dedent(source), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+    }
+
+    /// 2.7 より前にはそもそも `...` が無い。
+    #[test]
+    fn the_cop_is_silent_before_2_7() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.6")
+        .run();
+    }
+
+    /// `yield` と `x[...]` も本家では送信なので同じように見る。
+    #[test]
+    fn a_yield_and_an_index_are_sends_too() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\n  \
+                 yield(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, **)\n  yield(*, **)\nend\n")
+        .run();
+    }
+}
