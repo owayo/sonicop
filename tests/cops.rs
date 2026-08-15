@@ -8880,6 +8880,25 @@ mod layout_indentation {
     const CONSISTENCY: &str = "Layout/IndentationConsistency";
     const INCONSISTENT: &str = "Inconsistent indentation detected.";
 
+    /// `begin ... rescue ... end` の本体は、本家では `rescue` ノード 1 つで、その範囲は
+    /// 最後の節の最後の文で終わる。文法の `begin` ノードは `end` まで届いてしまうので、
+    /// そのまま範囲に使うと補正が `end` の行も動かす。`end` は字下げを測る基準そのものな
+    /// ので、本体と一緒に動くと相対字下げが変わらず、同じ offense を報告し続けて桁 1 まで
+    /// 寄ってしまう。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_body_of_a_rescue_moves_without_taking_the_end_with_it() {
+        CopCase::new(
+            WIDTH,
+            "def c\n  begin\n      d\n    rescue\n      nil\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def c\n  begin\n    d\n  rescue\n    nil\n  end\nend\n")
+        .run();
+    }
+
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
     /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
     /// ずれが効いた次のパスで入れ子でなくなってから直す
@@ -34291,5 +34310,39 @@ mod style_method_call_with_args_parentheses {
         .locations(&[(2, 8, 4, 1)])
         .lengths(&[7])
         .run();
+    }
+}
+
+/// `Lint/LiteralAsCondition` の後置形。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/LiteralAsCondition -A` の実出力。
+mod lint_literal_as_condition_modifier {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralAsCondition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 後置の `if` / `unless` は、条件が消えても**守っていた式は残る**。文法では
+    /// 後置形が式を `body` に持ち、`consequence` を持つのはブロック形だけなので、
+    /// `consequence` だけを見ると式ごと消えてしまう。
+    #[test]
+    fn a_modifier_keeps_what_it_guarded() {
+        correction("def m\n  a if true\nend\n", "def m\n  a\nend\n");
+        correction("def m\n  b unless false\nend\n", "def m\n  b\nend\n");
+        // 制御構造でも同じ。以前はここで `break` / `return` が消えていた。
+        correction(
+            "def m\n  foo do\n    break if true\n  end\nend\n",
+            "def m\n  foo do\n    break\n  end\nend\n",
+        );
+        correction("def m\n  return if true\nend\n", "def m\n  return\nend\n");
+        // 生き残らない側は消える。
+        correction("def m\n  c if false\nend\n", "def m\n  \nend\n");
+        correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
     }
 }

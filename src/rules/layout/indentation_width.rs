@@ -480,9 +480,19 @@ impl Checker<'_, '_> {
                 || keyword.map(|node| node.start_byte()),
                 |first| Some(first.start_byte()),
             )?;
+            // Upstream's body here is the `rescue` node, which stops at the last statement of
+            // the last clause. The grammar's container reaches past it to the `end` keyword, and
+            // shifting that line moves the very thing the indentation is measured against -- the
+            // offence then never resolves and the body marches to column one.
+            let last = super::support::body_statements(container)
+                .last()
+                .map_or(container.end_byte(), |node| node.end_byte());
+            let last = child_of_kind(container, "rescue")
+                .or_else(|| child_of_kind(container, "ensure"))
+                .map_or(last, |clause| clause.end_byte().max(last));
             return Some(Body {
                 start,
-                range: start..container.end_byte(),
+                range: start..last,
                 is_begin: false,
                 parenthesized: false,
                 clause: if ensure {
