@@ -33565,7 +33565,6 @@ mod lint_require_range_parentheses {
     }
 }
 
-
 /// `Style/RedundantFormat`。
 ///
 /// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を

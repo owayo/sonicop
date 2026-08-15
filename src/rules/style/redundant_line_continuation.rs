@@ -45,6 +45,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         candidates,
         |range| vec![remove_first(range)],
         Clone::clone,
+        crate::rules::support::Verification {
+            // `oversized: :verify`: 畳めるかの判定そのものが再パース検証なので、
+            // 大きすぎるスコープでも検証を省けない。
+            verify_oversized: true,
+            ..Default::default()
+        },
     );
     for range in verified {
         offenses.push(
@@ -293,6 +299,12 @@ fn inspect_end_of_ruby_code_line_continuation(
         vec![range.clone()],
         |range| vec![remove_first(range)],
         Clone::clone,
+        crate::rules::support::Verification {
+            // `oversized: :verify`: 畳めるかの判定そのものが再パース検証なので、
+            // 大きすぎるスコープでも検証を省けない。
+            verify_oversized: true,
+            ..Default::default()
+        },
     );
     if verified.is_empty() {
         return;
