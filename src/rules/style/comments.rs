@@ -23,6 +23,13 @@ static ENCODING_LINE: LazyLock<Regex> =
 
 /// The file's comments, ordered, with the leading directives the parser's associator consumes
 /// before it starts walking already dropped.
+/// What may stand before a comment and still leave it to the node that follows.
+///
+/// The associator gives a comment to the node that *ends* on its line, and to the following node
+/// where nothing does. These keywords open or divide a body without being nodes of their own, so
+/// `else # note` decorates whatever comes after it while `x = 1 # note` decorates the assignment.
+const KEYWORD_ONLY_LINES: &[&str] = &["else", "begin", "ensure", "do", "then", "rescue", "in"];
+
 pub(super) struct PrecedingComments {
     ranges: Vec<Range<usize>>,
 }
@@ -77,7 +84,8 @@ impl PrecedingComments {
             }
             let (line, _) = context.source.line_column(range.start);
             let line_start = context.source.line_start(line);
-            if !text[line_start..range.start].trim().is_empty() {
+            let before = text[line_start..range.start].trim();
+            if !before.is_empty() && !KEYWORD_ONLY_LINES.contains(&before) {
                 break;
             }
             owned.push(range.clone());

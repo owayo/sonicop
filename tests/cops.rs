@@ -31770,6 +31770,26 @@ mod style_documentation_method {
             ",
         );
     }
+
+    /// `else` や `begin` の行末に書いたコメントは、その下の定義の説明になる。上流の
+    /// 関連付けは「その行で終わるノード」にコメントを渡し、何も終わっていなければ
+    /// 次のノードに渡すため、キーワードだけの行は素通しになる。
+    #[test]
+    fn a_comment_after_a_bare_keyword_documents_what_follows() {
+        expect_no_offenses(
+            COP,
+            "if x\n  1\nelse # note\n  def foo\n    2\n  end\nend\n",
+        );
+        // 行に文があるときはそちらのコメントなので、定義は説明されていない。
+        let report = CopCase::new(
+            COP,
+            "x = 1 # note\ndef foo\n  1\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
 }
 
 /// `Lint/NonAtomicFileOperation`。
