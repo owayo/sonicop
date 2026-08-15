@@ -1226,6 +1226,17 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 7, 2, 4)])
         .lengths(&[8])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/RedundantLineBreak",
+            r#"
+            foo(
+            ^^^^ Redundant line break detected.
+              a
+            )
+            "#,
+        )
+        .id("layout_redundant_line_break")
+        .correctable(true),
         CopCase::new(
             "Layout/RescueEnsureAlignment",
             "def foo\n  bar\n  rescue StandardError\n  baz\nend\n",

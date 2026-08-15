@@ -29694,6 +29694,122 @@ mod layout_element_line_breaks {
     }
 }
 /// `Layout/SingleLineBlockChain` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_redundant_line_break {
+    use super::*;
+
+    const COP: &str = "Layout/RedundantLineBreak";
+    const MSG: &str = "Redundant line break detected.";
+
+    /// 1 行に収まる式を複数行に割っているものを報告する。補正は行の切れ目を
+    /// 空白 1 つに置き換えるので、括弧の内側に空白が残る。
+    #[test]
+    fn an_expression_that_fits_on_one_line_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo(
+            ^^^^ %{msg}
+              a,
+              b
+            )
+            foo(a, b)
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[15])
+        .corrected("foo( a, b )\nfoo(a, b)\n")
+        .run();
+    }
+
+    /// 逆斜線で割った文字列は 1 つのリテラルに畳まれる。引用符が違う組は `+` の
+    /// 連結になり、どちらも同じ文字列を作るので木の比較は通る。
+    #[test]
+    fn a_split_string_literal_is_joined() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            puts 'a ' \
+            ^^^^^^^^^^^ %{msg}
+                 'b'
+            x = "c" \
+            ^^^^^^^^^ %{msg}
+                'd'
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 2, 8), (3, 1, 4, 7)])
+        .lengths(&[20, 17])
+        .corrected("puts 'a b'\nx = \"c\" + 'd'\n")
+        .run();
+    }
+
+    /// ブロックは `InspectBlocks` が真のときだけ見る。
+    #[test]
+    fn a_block_is_looked_at_only_where_asked_for() {
+        CopCase::new(COP, "foo(a) do |x|\n  puts x\nend\n", Vec::new()).run();
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo(a) do |x|
+            ^^^^^^^^^^^^^ %{msg}
+              puts x
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .config("Layout/RedundantLineBreak:\n  InspectBlocks: true\n")
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[26])
+        .corrected("foo(a) do |x| puts x end\n")
+        .run();
+    }
+
+    /// 畳んだ結果が読み直せないものは報告しない。逆斜線で割った連鎖呼び出しは
+    /// 畳むと `\` が呼び出しの前に残って構文が壊れ、修飾なしの `while` は区切り
+    /// なしで 1 行に書けない。
+    #[test]
+    fn a_join_that_would_not_parse_is_not_reported() {
+        CopCase::new(COP, "a = b \\\n  .c\n", Vec::new()).run();
+        CopCase::new(COP, "d = while e\n        f\n      end\n", Vec::new()).run();
+    }
+
+    /// 行の切れ目を残す理由が式の中にあるもの: 途中のコメント、ヒアドキュメント、
+    /// 改行を値に持つ文字列、複数行の `if`。
+    #[test]
+    fn what_keeps_the_break_is_left_alone() {
+        CopCase::new(COP, "u = foo(\n  # note\n  1\n)\n", Vec::new()).run();
+        CopCase::new(COP, "t = <<~X\n  y\nX\n", Vec::new()).run();
+        CopCase::new(COP, "s = \"a\\nb\" \\\n    \"c\"\n", Vec::new()).run();
+        CopCase::new(COP, "aa = bar(\n  if true\n    1\n  end\n)\n", Vec::new()).run();
+    }
+
+    /// 括弧なしの呼び出しに書かれたブロックは式の一部ではない。報告されるのは
+    /// 呼び出しだけで `do ... end` は残り、引数が 1 行に収まっている呼び出しは
+    /// そもそも複数行ではない。
+    #[test]
+    fn the_block_on_an_unparenthesized_call_is_no_part_of_the_expression() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            ll mm,
+            ^^^^^^ %{msg}
+               nn do
+              1
+            end
+            jj kk do
+              1
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 2, 5)])
+        .lengths(&[12])
+        .corrected("ll mm, nn do\n  1\nend\njj kk do\n  1\nend\n")
+        .run();
+    }
+}
+
 mod layout_single_line_block_chain {
     use super::*;
 
