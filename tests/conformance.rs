@@ -5127,6 +5127,54 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_negative_array_index")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRegexp",
+            "array.select { |x| x.match?(/re/) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a regexp match.\n",
+        )
+        .id("style_select_by_regexp")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByKind",
+            "array.select { |x| x.is_a?(Foo) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a kind check.\n",
+        )
+        .id("style_select_by_kind")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRange",
+            "array.select { |x| x.between?(1, 10) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a range check.\n",
+        )
+        .id("style_select_by_range")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TallyMethod",
+            "array.group_by(&:itself).transform_values(&:count)\n      ^^^^^^^^ Use `tally` instead of `group_by` and `transform_values`.\n",
+        )
+        .id("style_tally_method")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar end\n^^^^^^^^^^^^^^ Prefer multiline `do`...`end` block.\n",
+        )
+        .id("style_single_line_do_end_block")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RequireOrder",
+            "require 'b'\nrequire 'a'\n^^^^^^^^^^^ Sort `require` in alphabetical order.\n",
+        )
+        .id("style_require_order")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, b)\n    super(a, b)\n    ^^^^^^^^^^^ Call `super` without arguments and parentheses when the signature is identical.\n  end\nend\n",
+        )
+        .id("style_super_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar})\n             ^^^^^^^^^^^^ Remove the redundant double splat and braces, use keyword arguments directly.\n",
+        )
+        .id("style_redundant_double_splat_hash_braces")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")
