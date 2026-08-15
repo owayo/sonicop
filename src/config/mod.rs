@@ -18,7 +18,7 @@ use crate::ruby_version::{
 };
 
 use inheritance::{load_with_inheritance, merge_config};
-use loader::{find_config, find_project_root, path_parameter_base_directory};
+use loader::{find_config, path_parameter_base_directory};
 use paths::{PathPatterns, compile_excludes, compile_includes, cop_patterns, has_hidden_component};
 use plugin::{belongs_to_plugin, configured_plugin_departments};
 
@@ -30,7 +30,10 @@ const DEFAULT_CONFIG: &str = include_str!("../../config/default.yml");
 pub struct Config {
     raw: Value,
     user: Value,
-    project_root: PathBuf,
+    /// Where the paths a configuration file mentions are taken from: the directory holding a
+    /// `.rubocop*` file, or the one the run was launched from for any other name. RuboCop calls this
+    /// `base_dir_for_path_parameters`, and every `Include` and `Exclude` is resolved against it.
+    path_base: PathBuf,
     /// Where the run was launched from. RuboCop shortens paths it prints inside offense messages
     /// against `Dir.pwd`, not against the project root, so the two cannot be collapsed.
     cwd: PathBuf,
@@ -67,7 +70,7 @@ impl Config {
             }
         };
 
-        let (raw, user, project_root, unrecognized_cops) = if let Some(path) = &config_path {
+        let (raw, user, unrecognized_cops) = if let Some(path) = &config_path {
             let mut visited = HashSet::new();
             let user = load_with_inheritance(path, &mut visited)?;
             let configured_cops = cop_names(&user);
@@ -84,25 +87,18 @@ impl Config {
                 .collect::<Vec<_>>();
             unknown.sort();
             known_cops.extend(plugin_cops);
-            let root = find_project_root(path.parent().unwrap_or(cwd))
-                .unwrap_or_else(|| path.parent().unwrap_or(cwd).to_path_buf());
-            (merge_config(default, user.clone()), user, root, unknown)
+            (merge_config(default, user.clone()), user, unknown)
         } else {
-            (
-                default,
-                Value::Mapping(Mapping::new()),
-                cwd.to_path_buf(),
-                Vec::new(),
-            )
+            (default, Value::Mapping(Mapping::new()), Vec::new())
         };
 
         if all_cops_bool(&raw, "EnabledByDefault") && all_cops_bool(&raw, "DisabledByDefault") {
             bail!("AllCops/EnabledByDefault and AllCops/DisabledByDefault cannot both be true");
         }
 
-        let target_base = path_parameter_base_directory(config_path.as_deref(), cwd);
+        let path_base = path_parameter_base_directory(config_path.as_deref(), cwd);
         let configured_target = configured_target_ruby(&raw)?;
-        let target_ruby = resolve_target_ruby(configured_target, target_base)?;
+        let target_ruby = resolve_target_ruby(configured_target, path_base)?;
         validate_supported(target_ruby.version)?;
 
         let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
@@ -112,7 +108,7 @@ impl Config {
         Ok(Self {
             raw,
             user,
-            project_root,
+            path_base: path_base.to_path_buf(),
             cwd: cwd.to_path_buf(),
             config_path,
             target_ruby,
@@ -122,10 +118,6 @@ impl Config {
             excludes,
             cop_includes,
         })
-    }
-
-    pub fn project_root(&self) -> &Path {
-        &self.project_root
     }
 
     pub fn cwd(&self) -> &Path {
@@ -229,11 +221,11 @@ impl Config {
         if self.top_level_hidden(path) && !self.possibly_include_hidden() {
             return false;
         }
-        self.includes.is_empty() || self.includes.matches_includes(path, &self.project_root)
+        self.includes.is_empty() || self.includes.matches_includes(path, &self.path_base)
     }
 
     fn top_level_hidden(&self, path: &Path) -> bool {
-        paths::project_relative(path, &self.project_root).is_some_and(|relative| {
+        paths::project_relative(path, &self.path_base).is_some_and(|relative| {
             relative
                 .components()
                 .next()
@@ -247,7 +239,7 @@ impl Config {
     /// file at a time.
     pub fn directory_excluded(&self, path: &Path) -> bool {
         let patterns: Vec<String> = self.all_cops_value("Exclude").unwrap_or_default();
-        let Some(relative) = paths::project_relative(path, &self.project_root) else {
+        let Some(relative) = paths::project_relative(path, &self.path_base) else {
             return false;
         };
         patterns.iter().any(|pattern| {
@@ -270,7 +262,7 @@ impl Config {
 
     pub fn path_hidden(&self, path: &Path) -> bool {
         let relative =
-            paths::project_relative(path, &self.project_root).unwrap_or_else(|| path.to_path_buf());
+            paths::project_relative(path, &self.path_base).unwrap_or_else(|| path.to_path_buf());
         let relative = relative.as_path();
         has_hidden_component(relative)
     }
@@ -288,13 +280,13 @@ impl Config {
     pub fn rule_included(&self, name: &str, path: &Path) -> bool {
         self.cop_includes
             .get(name)
-            .is_none_or(|patterns| patterns.matches_includes(path, &self.project_root))
+            .is_none_or(|patterns| patterns.matches_includes(path, &self.path_base))
     }
 
     fn excluded_by(&self, name: &str, path: &Path) -> bool {
         self.excludes
             .get(name)
-            .is_some_and(|patterns| patterns.matches_any(path, &self.project_root))
+            .is_some_and(|patterns| patterns.matches_any(path, &self.path_base))
     }
 
     pub fn known_cop_names(&self) -> impl Iterator<Item = &str> {

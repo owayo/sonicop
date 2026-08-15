@@ -18,15 +18,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = heredoc_body(node, context) else {
             continue;
         };
-        if !is_empty(body, context) {
-            continue;
-        }
         let Some(terminator) = super::nodes::children(body)
             .into_iter()
             .find(|child| child.kind_str() == "heredoc_end")
         else {
             continue;
         };
+        if !is_empty(body, terminator, context) {
+            continue;
+        }
         // `range_by_whole_lines(heredoc_end, include_final_newline: true)`. Upstream removes the
         // body's own whole lines as well, but an empty body sits at the start of the terminator's
         // line, so the two ranges are the same one.
@@ -51,20 +51,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `node.loc.heredoc_body.source.empty?`.
 ///
-/// The grammar's `heredoc_content` starts where the opener was written rather than on the line
-/// below, and it runs up to the terminator's own text rather than to the start of its line. What
-/// upstream calls the body is therefore what lies between the first newline and the indentation a
-/// squiggly terminator was written with.
-fn is_empty(body: Node<'_>, context: &RuleContext<'_>) -> bool {
-    super::nodes::children(body)
-        .into_iter()
-        .find(|child| child.kind_str() == "heredoc_content")
-        .is_none_or(|content| {
-            let text = context.source.node_text(content);
-            text.split_once('\n').is_none_or(|(_, rest)| {
-                !rest.contains('\n') && rest.bytes().all(|byte| byte == b' ' || byte == b'\t')
-            })
-        })
+/// The grammar's body starts where the opener was written rather than on the line below, and it runs
+/// up to the terminator's own text rather than to the start of its line. What upstream calls the
+/// body is therefore what lies between the first newline and the indentation a squiggly terminator
+/// was written with -- everything the body holds, not just the run of text it opens with. A body
+/// that begins with an interpolation opens with a `heredoc_content` of nothing but the line break
+/// and the indentation, so reading that alone reports a heredoc that has something in it.
+fn is_empty(body: Node<'_>, terminator: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let text = context
+        .source
+        .slice(body.start_byte()..terminator.start_byte());
+    text.split_once('\n').is_some_and(|(_, rest)| {
+        !rest.contains('\n') && rest.bytes().all(|byte| byte == b' ' || byte == b'\t')
+    })
 }
 
 /// `StringLiteralsHelp#preferred_string_literal`, which reads `Style/StringLiterals`.

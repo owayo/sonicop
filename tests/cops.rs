@@ -21258,6 +21258,16 @@ mod style_empty_heredoc {
         expect_no_offenses(COP, "t = <<~EOS\n  a\nEOS\n");
         expect_no_offenses(COP, "u = <<~`SH`\nSH\n");
     }
+
+    /// 埋め込みで始まる本文は空ではない。文法上、開始記号の直後の `heredoc_content` が
+    /// 改行と字下げだけになるので、そこだけを見ると空に見えてしまう。
+    #[test]
+    fn a_body_that_starts_with_an_interpolation_is_not_empty() {
+        expect_no_offenses(COP, "y = 1\nx = <<~EOS\n  #{y}\nEOS\n");
+        expect_no_offenses(COP, "y = 1\nwarn Rainbow(<<~EOS).red\n  #{y}\n  b\nEOS\n");
+        // 空行だけの本文も空ではない (本文の `source` が改行 1 つになる)。
+        expect_no_offenses(COP, "x = <<~EOS\n\nEOS\n");
+    }
 }
 
 /// `Style/ModuleMemberExistenceCheck`。
@@ -23871,10 +23881,49 @@ mod style_method_called_on_do_end_block {
         );
     }
 
-    /// 波括弧のブロックと、呼び出しを繋げていないブロックは触らない。
+    /// 演算子と添字も上流では呼び出しなので対象。位置は右側の末尾まで伸びる。
+    #[test]
+    fn an_operator_or_an_index_written_on_the_block_is_a_call_too() {
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end << 'y'
+            ^^^^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end[0]
+            ^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            foo do
+              bar
+            end == 1
+            ^^^^^^^^ Avoid chaining a method call on a do...end block.
+            ",
+        );
+    }
+
+    /// 波括弧のブロックと、呼び出しを繋げていないブロックは触らない。繋げた呼び出しが
+    /// 自分のブロックを持つときは `Style/MultilineBlockChain` の担当なので、本家は
+    /// `ignore_node` で黙る。
     #[test]
     fn what_the_cop_leaves_alone() {
-        for source in ["foo { bar }.baz\n", "result = foo do\n  bar\nend\n"] {
+        for source in [
+            "foo { bar }.baz\n",
+            "result = foo do\n  bar\nend\n",
+            "foo do\n  bar\nend.each do |y|\n  y\nend\n",
+            "foo do\n  bar\nend.each { |y| y }\n",
+        ] {
             expect_no_offenses(COP, source);
         }
     }
@@ -25842,6 +25891,20 @@ mod style_it_block_parameter {
         case("foo { bar { it } }\n")
             .config("Style/ItBlockParameter:\n  EnforcedStyle: disallow\n")
             .run();
+    }
+
+    /// `it` という名前のメソッド呼び出しは暗黙の引数ではない。本家では `send` になるので
+    /// ブロックはそもそも `itblock` にならず、仕様記述の `it 'works' do ... end` を
+    /// 囲むブロックが咎められることはない。
+    #[test]
+    fn a_method_named_it_is_not_the_implicit_parameter() {
+        case("describe Foo do\n  it 'works' do\n    expect(x).to be\n  end\nend\n").run();
+        case("RSpec.describe Foo do\n  it { is_expected.to be }\n  it('x') { y }\nend\n").run();
+        // レシーバに立っている `it` は暗黙の引数のまま。
+        let report = case("foo do\n  it.round\nend\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -28008,6 +28071,25 @@ mod lint_constant_resolution {
         ] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は
+    /// メソッド名も定数と同じ節で書くので、名前の位置だけを外す。
+    #[test]
+    fn a_capitalised_method_call_is_not_a_constant() {
+        for source in [
+            "Rainbow('x')\n",
+            "Integer('1')\n",
+            "warn Rainbow('x').red\n",
+        ] {
+            CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
+        }
+        // レシーバに立っている定数は参照のまま。
+        let report = CopCase::new(COP, "Baz.qux\n", Vec::new())
+            .config(ENABLED)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 
     /// `Only` と `Ignore` は名前で絞る。
@@ -30453,7 +30535,16 @@ mod style_string_hash_keys {
     /// シンボルの鍵と補間する文字列は触らない。名前空間の違う `popen` は除外されない。
     #[test]
     fn what_the_cop_leaves_alone() {
-        for source in ["{ a: 1 }\n", "{ :a => 1 }\n", "{ \"#{x}\" => 1 }\n"] {
+        for source in [
+            "{ a: 1 }\n",
+            "{ :a => 1 }\n",
+            "{ \"#{x}\" => 1 }\n",
+            // `:` 区切りで書いた引用符付きの鍵はすでにシンボル。文法は `=>` 区切りと同じ
+            // 節で書くので、区切り記号だけが違いになる。
+            "{ 'a': 1 }\n",
+            "{ \"a\": 1 }\n",
+            "{ 'file:///x.rb': [] }\n",
+        ] {
             expect_no_offenses(COP, source);
         }
         expect_correction(

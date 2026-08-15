@@ -47,6 +47,13 @@ fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "assignment" | "operator_assignment" => parent
             .field("left")
             .is_none_or(|left| left.id() != node.id()),
+        // A method whose name starts with a capital, as `Rainbow('...')` or `Integer(x)` do, is a
+        // `send` upstream and no constant at all. The grammar writes its name with the same node it
+        // writes a constant with, so only the name is not a lookup -- a constant standing there as
+        // the receiver still is one.
+        "call" => parent
+            .field("method")
+            .is_none_or(|method| method.id() != node.id()),
         _ => true,
     }
 }
