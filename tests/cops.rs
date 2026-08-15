@@ -35064,3 +35064,27 @@ mod lint_literal_as_condition_modifier {
         correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
     }
 }
+
+/// `Lint/UnusedBlockArgument` の補正の作り方。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/UnusedBlockArgument,Style/Lambda -A` の実出力。
+mod lint_unused_block_argument_correction {
+    use super::*;
+
+    /// 名前を丸ごと `_name` に置き換える (先頭に `_` を差し込むのではない)。同じ引数を
+    /// 同じパスで別の cop が書き換えているとき、範囲が一致する置換は clobber として
+    /// 次のパスへ回るが、範囲の端への挿入はすり抜けて隣の字面にくっついてしまう。
+    /// `-> env do` を `lambda do |env|` にする `Style/Lambda` と重なると、`lambda_` が
+    /// できていた。
+    #[test]
+    fn the_name_is_replaced_rather_than_prefixed() {
+        CopCase::new(
+            "Lint/UnusedBlockArgument",
+            "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  foo(bar: -> _env do\n    1\n  end)\nend\n")
+        .run();
+    }
+}
