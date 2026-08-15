@@ -1,5 +1,6 @@
 department_rules! {
     "Layout";
+    class_structure => ("ClassStructure", Convention),
     empty_line_after_magic_comment => ("EmptyLineAfterMagicComment", Convention),
     access_modifier_indentation => ("AccessModifierIndentation", Convention),
     argument_alignment => ("ArgumentAlignment", Convention),
@@ -19,6 +20,7 @@ department_rules! {
     empty_comment => ("EmptyComment", Convention),
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
     heredoc_argument_closing_parenthesis => ("HeredocArgumentClosingParenthesis", Convention),
+    redundant_line_break => ("RedundantLineBreak", Convention),
     rescue_ensure_alignment => ("RescueEnsureAlignment", Convention),
     end_alignment => ("EndAlignment", Warning),
     empty_line_between_defs => ("EmptyLineBetweenDefs", Convention),

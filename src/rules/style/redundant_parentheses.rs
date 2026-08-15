@@ -80,6 +80,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         pending,
         |(node, _)| super::parens::correct(context, *node),
         |(node, _)| node.byte_range(),
+        crate::rules::support::Verification::default(),
     );
     for (node, message) in verified {
         offenses.push(

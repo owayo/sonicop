@@ -17,6 +17,7 @@ mod parens;
 mod percent;
 mod percent_array;
 mod ranges;
+mod select_by;
 mod trailing_body;
 mod trailing_comma;
 
@@ -48,6 +49,7 @@ department_rules! {
     class_check => ("ClassCheck", Convention),
     class_equality_comparison => ("ClassEqualityComparison", Convention),
     class_methods => ("ClassMethods", Convention),
+    class_methods_definitions => ("ClassMethodsDefinitions", Convention),
     class_vars => ("ClassVars", Convention),
     collection_compact => ("CollectionCompact", Convention),
     collection_querying => ("CollectionQuerying", Convention),
@@ -68,6 +70,7 @@ department_rules! {
     copyright => ("Copyright", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
     dir => ("Dir", Convention),
+    disable_cops_within_source_code_directive => ("DisableCopsWithinSourceCodeDirective", Convention),
     dir_empty => ("DirEmpty", Convention),
     dig_chain => ("DigChain", Convention),
     data_inheritance => ("DataInheritance", Convention),
@@ -139,6 +142,7 @@ department_rules! {
     line_end_concatenation => ("LineEndConcatenation", Convention),
     lambda_call => ("LambdaCall", Convention),
     inverse_methods => ("InverseMethods", Convention),
+    invertible_unless_condition => ("InvertibleUnlessCondition", Convention),
     ip_addresses => ("IpAddresses", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     keyword_arguments_merging => ("KeywordArgumentsMerging", Convention),
@@ -166,9 +170,11 @@ department_rules! {
     multiline_if_then => ("MultilineIfThen", Convention),
     multiline_in_pattern_then => ("MultilineInPatternThen", Convention),
     multiline_memoization => ("MultilineMemoization", Convention),
+    multiline_method_signature => ("MultilineMethodSignature", Convention),
     multiline_ternary_operator => ("MultilineTernaryOperator", Convention),
     multiline_when_then => ("MultilineWhenThen", Convention),
     negated_if => ("NegatedIf", Convention),
+    negated_if_else_condition => ("NegatedIfElseCondition", Convention),
     negated_unless => ("NegatedUnless", Convention),
     negated_while => ("NegatedWhile", Convention),
     nested_file_dirname => ("NestedFileDirname", Convention),
@@ -197,6 +203,7 @@ department_rules! {
     or_assignment => ("OrAssignment", Convention),
     parallel_assignment => ("ParallelAssignment", Convention),
     parentheses_around_condition => ("ParenthesesAroundCondition", Convention),
+    partition_instead_of_double_select => ("PartitionInsteadOfDoubleSelect", Convention),
     percent_literal_delimiters => ("PercentLiteralDelimiters", Convention),
     percent_q_literals => ("PercentQLiterals", Convention),
     perl_backrefs => ("PerlBackrefs", Convention),
@@ -248,6 +255,14 @@ department_rules! {
     rescue_modifier => ("RescueModifier", Convention),
     safe_navigation_chain_length => ("SafeNavigationChainLength", Convention),
     safe_navigation => ("SafeNavigation", Convention),
+    select_by_regexp => ("SelectByRegexp", Convention),
+    select_by_kind => ("SelectByKind", Convention),
+    select_by_range => ("SelectByRange", Convention),
+    tally_method => ("TallyMethod", Convention),
+    single_line_do_end_block => ("SingleLineDoEndBlock", Convention),
+    require_order => ("RequireOrder", Convention),
+    super_arguments => ("SuperArguments", Convention),
+    redundant_double_splat_hash_braces => ("RedundantDoubleSplatHashBraces", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     send => ("Send", Convention),

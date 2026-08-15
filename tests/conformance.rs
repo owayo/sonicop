@@ -1150,6 +1150,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_condition_position")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Layout/ClassStructure",
+            r#"
+            class A
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .id("layout_class_structure")
+        .correctable(true),
         CopCase::new(
             "Layout/ClosingHeredocIndentation",
             "def foo\n  <<~SQL\n    Hi\n      SQL\nend\n",
@@ -1213,6 +1225,17 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_multiline_block_layout")
         .locations(&[(1, 7, 2, 4)])
         .lengths(&[8])
+        .correctable(true),
+        CopCase::annotated(
+            "Layout/RedundantLineBreak",
+            r#"
+            foo(
+            ^^^^ Redundant line break detected.
+              a
+            )
+            "#,
+        )
+        .id("layout_redundant_line_break")
         .correctable(true),
         CopCase::new(
             "Layout/RescueEnsureAlignment",
@@ -5182,6 +5205,54 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_negative_array_index")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRegexp",
+            "array.select { |x| x.match?(/re/) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a regexp match.\n",
+        )
+        .id("style_select_by_regexp")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByKind",
+            "array.select { |x| x.is_a?(Foo) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a kind check.\n",
+        )
+        .id("style_select_by_kind")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRange",
+            "array.select { |x| x.between?(1, 10) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a range check.\n",
+        )
+        .id("style_select_by_range")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TallyMethod",
+            "array.group_by(&:itself).transform_values(&:count)\n      ^^^^^^^^ Use `tally` instead of `group_by` and `transform_values`.\n",
+        )
+        .id("style_tally_method")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar end\n^^^^^^^^^^^^^^ Prefer multiline `do`...`end` block.\n",
+        )
+        .id("style_single_line_do_end_block")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RequireOrder",
+            "require 'b'\nrequire 'a'\n^^^^^^^^^^^ Sort `require` in alphabetical order.\n",
+        )
+        .id("style_require_order")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, b)\n    super(a, b)\n    ^^^^^^^^^^^ Call `super` without arguments and parentheses when the signature is identical.\n  end\nend\n",
+        )
+        .id("style_super_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar})\n             ^^^^^^^^^^^^ Remove the redundant double splat and braces, use keyword arguments directly.\n",
+        )
+        .id("style_redundant_double_splat_hash_braces")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")
@@ -5246,9 +5317,63 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_documentation_method")
         .correctable(false),
+        CopCase::annotated(
+            "Style/NegatedIfElseCondition",
+            r"
+            !x ? a : b
+            ^^^^^^^^^^ Invert the negated condition and swap the ternary branches.
+            ",
+        )
+        .id("style_negated_if_else_condition")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/InvertibleUnlessCondition",
+            r"
+            a unless x != y
+            ^^^^^^^^^^^^^^^ Prefer `if x == y` over `unless x != y`.
+            ",
+        )
+        .id("style_invertible_unless_condition")
+        .correctable(true),
+        // 位置は 2 つ目の文の全体。
+        CopCase::annotated(
+            "Style/PartitionInsteadOfDoubleSelect",
+            r"
+            good = xs.select { |x| x.ok? }
+            bad = xs.reject { |x| x.ok? }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `partition` instead of consecutive `select` and `reject` calls.
+            ",
+        )
+        .id("style_partition_instead_of_double_select")
+        .correctable(true),
+        // 位置は `class << self` 全体。
+        CopCase::annotated(
+            "Style/ClassMethodsDefinitions",
+            "class Other\n  class << self\n    def only_method\n      1\n    end\n  end\nend\n",
+        )
+        .id("style_class_methods_definitions")
+        .without_offense_check()
+        .locations(&[(2, 3, 6, 5)])
+        .lengths(&[55])
+        .correctable(true),
+        // 位置はコメント全体。
+        CopCase::annotated(
+            "Style/DisableCopsWithinSourceCodeDirective",
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .id("style_disable_cops_within_source_code_directive")
+        .correctable(true),
+        // 位置は定義全体。
+        CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
+            .id("style_multiline_method_signature")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[25])
+            .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
-        // ---- Layout (pending) ----
-        // 位置は受け手と `[` のあいだの空白 1 文字。
         CopCase::annotated(
             "Style/BlockComments",
             "=begin\nMultiple lines\n=end\nx = 1\n",
