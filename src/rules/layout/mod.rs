@@ -20,6 +20,7 @@ department_rules! {
     empty_comment => ("EmptyComment", Convention),
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
     heredoc_argument_closing_parenthesis => ("HeredocArgumentClosingParenthesis", Convention),
+    redundant_line_break => ("RedundantLineBreak", Convention),
     rescue_ensure_alignment => ("RescueEnsureAlignment", Convention),
     end_alignment => ("EndAlignment", Warning),
     empty_line_between_defs => ("EmptyLineBetweenDefs", Convention),
