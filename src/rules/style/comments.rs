@@ -223,3 +223,19 @@ impl CommentIndex {
         lines.into_iter().any(|line| self.on_line(line))
     }
 }
+
+/// The range upstream's `Parser::Source::Comment` covers.
+///
+/// For a `#` comment the grammar and the parser agree. For a `=begin` block the parser runs to the
+/// end of the line `=end` sits on, newline included, while the grammar stops at the last character
+/// of that line -- so a cop that reports "the comment" has to add the rest of the line back.
+pub(super) fn parser_range(range: &Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
+    let text = context.source.text();
+    if !text[range.clone()].starts_with("=begin") {
+        return range.clone();
+    }
+    let end = text[range.end..]
+        .find('\n')
+        .map_or(text.len(), |offset| range.end + offset + 1);
+    range.start..end
+}

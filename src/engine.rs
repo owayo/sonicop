@@ -367,7 +367,8 @@ fn inspect_planned(
         });
     }
     crate::profile::phase(crate::profile::Phase::Sort, || {
-        sort_offenses(&mut offenses, &source)
+        sort_offenses(&mut offenses, &source);
+        dedupe_offenses(&mut offenses, &source);
     });
 
     Ok(FileReport {
@@ -1302,6 +1303,19 @@ fn offense_key(offense: &Offense, source: &SourceFile) -> OffenseKey {
     )
 }
 
+/// `Runner#inspect_file`'s `offenses_by_iteration.flatten.uniq`.
+///
+/// `Offense#eql?` compares `COMPARISON_ATTRIBUTES` -- the line, the column, the cop, the message and
+/// the severity -- rather than the range, so two offenses a cop reported over different spans of the
+/// same starting point are one offense in the report. `Style/CombinableDefined` is where this shows:
+/// it reports on every `and` of a chain, and the nested ones all begin where the outermost does.
+///
+/// The list is sorted on exactly those attributes, so duplicates are already adjacent, and the sort
+/// is stable, so the one kept is the one the cop reported first -- which is the one upstream keeps.
+fn dedupe_offenses(offenses: &mut Vec<Offense>, source: &SourceFile) {
+    offenses.dedup_by(|later, earlier| offense_key(later, source) == offense_key(earlier, source));
+}
+
 fn sort_offenses(offenses: &mut [Offense], source: &SourceFile) {
     offenses.sort_by(|left, right| {
         let (left_line, left_column) = left.start_position(source);
@@ -1388,6 +1402,7 @@ impl CorrectionLog {
                 .filter(|offense| !keys.contains(&offense_key(offense, source))),
         );
         sort_offenses(&mut offenses, source);
+        dedupe_offenses(&mut offenses, source);
         let corrected_count = offenses.iter().filter(|offense| offense.corrected).count();
         report.offenses = offenses;
         (report, corrected_count)

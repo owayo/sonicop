@@ -1,207 +1,152 @@
+//! `Layout/LineEndStringConcatenationIndentation`: how the parts of a backslash-joined string line
+//! up.
+
 use tree_sitter::Node;
 
-use crate::diagnostic::{Edit, Offense};
+use super::support::{alignment_corrections, character_column, line_indentation, string_interiors};
+use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
 
 const MSG_ALIGN: &str = "Align parts of a string concatenated with backslash.";
 const MSG_INDENT: &str = "Indent the first part of a string concatenated with backslash.";
 
-/// `PARENT_TYPES_FOR_INDENTED`: the places a concatenation is indented under whatever the style says,
-/// because there is nothing on the line above to align to.
-const PARENT_TYPES_FOR_INDENTED: &[&str] = &["begin", "block", "def", "defs", "if"];
-
-/// The node kinds the grammar adds for statement lists, which upstream's parser has no node for
-/// other than its `begin`.
-const CONTAINERS: &[&str] = &[
+/// `PARENT_TYPES_FOR_INDENTED`: the places a concatenation stands as a statement of its own, where
+/// the parts are indented rather than aligned.
+const INDENTED_PARENTS: &[&str] = &[
     "program",
     "body_statement",
+    "block_body",
     "then",
     "else",
     "do",
-    "block_body",
-    "parenthesized_statements",
+    "begin",
+    "block",
+    "do_block",
+    "method",
+    "singleton_method",
+    "if",
+    "unless",
+    "elsif",
+    "conditional",
 ];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let width: usize = context
-        .setting("IndentationWidth")
-        .or_else(|| context.setting_of("Layout/IndentationWidth", "Width"))
-        .unwrap_or(2);
-    let indented = context
+    let indented_style = context
         .setting::<String>("EnforcedStyle")
-        .unwrap_or_else(|| "aligned".to_owned())
-        == "indented";
+        .is_some_and(|style| style == "indented");
+    let width = indentation_width(context);
     for node in context.nodes_of("chained_string") {
-        let children = named_children(node);
-        // `strings_concatenated_with_backslash?`: the whole literal runs over more than one line
-        // while no single part of it does.
-        if line(node.start_byte(), context) == line(node.end_byte(), context) {
+        let parts = named_children(node);
+        if !concatenated_with_backslash(node, &parts) || parts.is_empty() {
             continue;
         }
-        if children.iter().any(|child| {
-            child.kind_str() != "string"
-                || line(child.start_byte(), context) != line(child.end_byte(), context)
-        }) {
-            continue;
-        }
-        if children.is_empty() {
-            continue;
-        }
-        match indented || is_always_indented(node, context) {
-            false => offenses.extend(check_aligned(&children, 1, context)),
-            true => {
-                offenses.extend(check_indented(node, &children, width, context));
-                offenses.extend(check_aligned(&children, 2, context));
-            }
+        if !indented_style && !always_indented(node, context) {
+            check_aligned(context, &parts, 1, offenses);
+        } else {
+            check_indented(context, node, &parts, width, offenses);
+            check_aligned(context, &parts, 2, offenses);
         }
     }
 }
 
-/// `check_aligned`: each part opens where the one before it did.
-fn check_aligned(children: &[Node<'_>], start: usize, context: &RuleContext<'_>) -> Vec<Offense> {
-    let Some(first) = children.get(start.saturating_sub(1)) else {
-        return Vec::new();
-    };
-    let mut base = column(*first, context);
-    let mut offenses = Vec::new();
-    for child in children.iter().skip(start) {
-        let delta = base as i64 - column(*child, context) as i64;
-        if delta != 0 {
-            offenses.push(offense(*child, delta, MSG_ALIGN, context));
-        }
-        base = column(*child, context);
-    }
-    offenses
+/// `strings_concatenated_with_backslash?`.
+fn concatenated_with_backslash(node: Node<'_>, parts: &[Node<'_>]) -> bool {
+    node.start_position().row != node.end_position().row
+        && parts
+            .iter()
+            .all(|part| matches!(part.kind_str(), "string" | "chained_string"))
+        && parts
+            .iter()
+            .all(|part| part.start_position().row == part.end_position().row)
 }
 
-/// `check_indented`: the second part sits one indentation width in from what the first part's line
-/// opens with.
-fn check_indented(
-    node: Node<'_>,
-    children: &[Node<'_>],
-    width: usize,
-    context: &RuleContext<'_>,
-) -> Option<Offense> {
-    let second = children.get(1)?;
-    let delta = base_column(node, *children.first()?, context) as i64 + width as i64
-        - column(*second, context) as i64;
-    (delta != 0).then(|| offense(*second, delta, MSG_INDENT, context))
-}
-
-/// `base_column`: the column a hash pair opens at, or the first non-blank of the first part's line.
-fn base_column(node: Node<'_>, first: Node<'_>, context: &RuleContext<'_>) -> usize {
-    if node
-        .parent()
-        .is_some_and(|parent| parent.kind_str() == "pair")
-    {
-        return column(node.parent().expect("just checked"), context);
-    }
-    let text = context.source.line(line(first.start_byte(), context));
-    text.chars()
-        .take_while(|character| character.is_whitespace())
-        .count()
-}
-
-/// `always_indented?`.
-fn is_always_indented(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match upstream_parent(node, context) {
-        // A parent of `nil` is in the list: a lone statement has nothing above it to align to.
+/// `always_indented?`: the concatenation is a statement rather than a value handed to something.
+fn always_indented(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    match context.parent(node) {
         None => true,
-        Some(kind) => PARENT_TYPES_FOR_INDENTED.contains(&kind),
+        Some(parent) => INDENTED_PARENTS.contains(&parent.kind_str()),
     }
 }
 
-/// The type upstream's parser gives the node's parent, or `None` when the node is the whole file.
-fn upstream_parent(node: Node<'_>, context: &RuleContext<'_>) -> Option<&'static str> {
-    let mut current = node;
-    loop {
-        let parent = current.parent_of(context)?;
-        if CONTAINERS.contains(&parent.kind_str()) {
-            // A list of more than one statement is a `begin`; one statement is that statement, so
-            // the parent to read is the container's own.
-            if parent.kind_str() == "parenthesized_statements" || statements(parent) > 1 {
-                return Some("begin");
-            }
-            current = parent;
-            continue;
-        }
-        return Some(match parent.kind_str() {
-            // The `do ... end` and `{ ... }` the grammar writes as nodes of their own are the
-            // `block` upstream wraps around the call. Reaching the call itself instead means the
-            // literal was written on its receiver or argument side, where the parent is the `send`.
-            "do_block" | "block" | "lambda" => "block",
-            "call" | "argument_list" => "send",
-            "method" => "def",
-            "singleton_method" => "defs",
-            "unless" | "elsif" | "conditional" | "if_modifier" | "unless_modifier" => "if",
-            other => other,
-        });
-    }
-}
-
-fn statements(container: Node<'_>) -> usize {
-    named_children(container)
-        .into_iter()
-        .filter(|child| child.kind_str() != "comment")
-        .count()
-}
-
-/// The offense, whose correction shifts the part's line by `delta` columns.
-fn offense(
-    child: Node<'_>,
-    delta: i64,
-    message: &'static str,
+/// `check_aligned`: every part after the first lines up with the one before it.
+fn check_aligned(
     context: &RuleContext<'_>,
-) -> Offense {
-    let offense = context.offense(message, child.byte_range());
-    match shift(child, delta, context) {
-        Some(edit) => offense.corrected_by(edit),
-        None => offense,
+    parts: &[Node<'_>],
+    start: usize,
+    offenses: &mut Vec<Offense>,
+) {
+    if start == 0 || parts.len() < start + 1 {
+        return;
+    }
+    let mut base = character_column(context, parts[start - 1].start_byte());
+    for part in &parts[start..] {
+        let column = character_column(context, part.start_byte());
+        let delta = base - column;
+        if delta != 0 {
+            report(context, *part, MSG_ALIGN, delta, offenses);
+        }
+        // The next comparison runs against where the part actually is, not where it was asked to
+        // be, so one misplaced part does not make every part after it an offense.
+        base = column;
     }
 }
 
-/// `AlignmentCorrector.correct` for a part written on one line: the blanks in front of it grow or
-/// shrink by `delta`.
-fn shift(child: Node<'_>, delta: i64, context: &RuleContext<'_>) -> Option<Edit> {
-    let start = child.start_byte();
-    let text = context.source.text();
-    if delta > 0 {
-        // `insert_before(range, ' ' * column_delta) unless range.resize(1).source == "\n"`.
-        if text[start..].starts_with('\n') {
-            return None;
-        }
-        return Some(Edit {
-            start,
-            end: start,
-            replacement: " ".repeat(usize::try_from(delta).ok()?),
-            safe: true,
-        });
+/// `check_indented`: the second part sits one level in from where the first part's line begins.
+fn check_indented(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    parts: &[Node<'_>],
+    width: i64,
+    offenses: &mut Vec<Offense>,
+) {
+    if parts.len() < 2 {
+        return;
     }
-    let width = usize::try_from(-delta).ok()?;
-    // `calculate_range`: the blanks removed are the ones the part opens with when it opens with one,
-    // and otherwise the ones written in front of it.
-    let range = match text[start..].starts_with(' ') {
-        true => start..start + width,
-        false => start.checked_sub(width)?..start,
-    };
-    let removed = text.get(range.clone())?;
-    (!removed.is_empty() && removed.bytes().all(|byte| matches!(byte, b' ' | b'\t'))).then(|| {
-        Edit {
-            start: range.start,
-            end: range.end,
-            replacement: String::new(),
-            safe: true,
+    let delta = base_column(context, node, parts[0]) + width
+        - character_column(context, parts[1].start_byte());
+    if delta != 0 {
+        report(context, parts[1], MSG_INDENT, delta, offenses);
+    }
+}
+
+/// `base_column`: the column a pair's key opens at, or where the part's own line begins.
+fn base_column(context: &RuleContext<'_>, node: Node<'_>, part: Node<'_>) -> i64 {
+    match context.parent(node) {
+        Some(grandparent) if grandparent.kind_str() == "pair" => {
+            character_column(context, grandparent.start_byte())
         }
-    })
+        _ => line_indentation(context, part.start_byte()),
+    }
 }
 
-/// `node.loc.column`, which is zero-based.
-fn column(node: Node<'_>, context: &RuleContext<'_>) -> usize {
-    context.source.line_column(node.start_byte()).1 - 1
+fn report(
+    context: &RuleContext<'_>,
+    part: Node<'_>,
+    message: &str,
+    delta: i64,
+    offenses: &mut Vec<Offense>,
+) {
+    let expr = part.byte_range();
+    let taboo = string_interiors(context, &expr);
+    offenses.push(
+        context
+            .offense(message, expr.clone())
+            .corrected_by_all(alignment_corrections(context, expr, delta, &taboo)),
+    );
 }
 
-fn line(offset: usize, context: &RuleContext<'_>) -> usize {
-    context.source.line_column(offset).0
+/// `configured_indentation_width`.
+fn indentation_width(context: &RuleContext<'_>) -> i64 {
+    context
+        .setting::<i64>("IndentationWidth")
+        .or_else(|| context.setting_of::<i64>("Layout/IndentationWidth", "Width"))
+        .unwrap_or(2)
+}
+
+fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind_str() != "comment")
+        .collect()
 }
