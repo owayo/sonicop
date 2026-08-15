@@ -25509,6 +25509,103 @@ mod style_it_block_parameter {
             .run();
     }
 
+    /// `it "..." do ... end` の `it` はメソッド名であって暗黙の引数ではない。
+    ///
+    /// 本家のパーサが `it` を引数にするのは、引数もブロックも取らない裸の `it` だけ。RSpec の
+    /// 例を抱えた `describe` を `it` ブロックと読むと、spec を持つコーパスが丸ごと誤検出になる
+    /// (mastodon で 5,276 件)。
+    #[test]
+    fn the_it_that_names_a_call_is_not_the_parameter() {
+        for source in [
+            "describe 'x' do\n  it 'y' do\n    expect(1).to eq 1\n  end\nend\n",
+            "foo do\n  it(1)\n  bar\nend\n",
+            "foo do\n  bar.it\n  baz\nend\n",
+        ] {
+            case(source).run();
+        }
+        // 裸の `it` とレシーバに置いた `it` は引数。
+        case("foo do\n  it.bar\n  baz(it)\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// 代入された名前は変数であって引数ではない。読みが先なら引数のまま。
+    #[test]
+    fn a_name_assigned_before_it_is_read_is_a_variable() {
+        case("foo do\n  it = 1\n  puts it\nend\n").run();
+        // 読みが先にあるものは、後で代入されても引数。
+        case("foo do\n  puts args[it]\n  it += 1\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// `-> x { }` は本家では 1 つの `block`。文法は引数を `lambda` に、波括弧を別のブロックに
+    /// 書くので、引数はそちらから取る。
+    #[test]
+    fn a_lambda_keeps_its_parameters_on_the_arrow() {
+        CopCase::new(
+            COP,
+            "-> message do\n  puts message\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("->  do\n  puts it\nend\n")
+        .run();
+    }
+
+    /// `{ name: }` の省略された値は、本家の木では鍵と同じ位置に置かれた `lvar`。
+    #[test]
+    fn a_hash_value_left_out_is_still_a_read() {
+        CopCase::new(
+            COP,
+            "foo do |name|\n  bar(tag: { name: })\n  baz(name)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  bar(tag: { it: })\n  baz(it)\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックが同じ名前を宣言していても、宣言そのものは読みではない。
+    #[test]
+    fn a_nested_declaration_of_the_same_name_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    \
+             save = transaction\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
+        .run();
+    }
+
+    /// ヒアドキュメントの本体は開いた文の隣に置かれるが、本家の木では文字列の中なので、
+    /// そこで補間された名前もブロックの引数の読み。
+    #[test]
+    fn a_name_read_inside_a_heredoc_counts() {
+        CopCase::new(
+            COP,
+            "foo do |x|\n  puts <<~T\n    #{x}\n  T\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  puts <<~T\n    #{it}\n  T\nend\n")
+        .run();
+    }
+
     /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
     /// 何も見つからない。
     #[test]
