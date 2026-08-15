@@ -118,11 +118,11 @@ reuse, custom Ruby cops, or cops outside the implemented set.
 ### Conformance
 
 The implemented cops are verified against RuboCop 1.89.0 over five Ruby projects — RuboCop itself,
-Rails, Ruby, Homebrew and Mastodon — totalling 18,246 files, with the upstream default
+Rails, Ruby, Homebrew and Mastodon — totalling 18,251 files, with the upstream default
 configuration on both sides. Every offense is compared by cop, path, line, column, last line, last
 column, length, message, severity and correctability.
 
-Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,535) and
+Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,760) and
 Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
 match exactly on all five. What remains is concentrated in `Lint/Syntax`, where RuboCop's LALR
 parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct.
@@ -141,6 +141,11 @@ corpus the two resolve **the same file list**.
 Both tools run their full default set — **the same 394 cops**, matched name for name — so neither
 side is restricted and the comparison is like-for-like as it stands. Times are the fastest of two
 warmed runs.
+
+These timings were taken at v26.8.103, on corpora a few commits older than the ones
+[CONFORMANCE.md](CONFORMANCE.md) pins — which is why the file counts here are slightly lower. What
+has changed since is cop logic, not the engine: the parse, the rule dispatch and the correction loop
+are untouched. Treat the seconds as of that measurement rather than of this commit.
 
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
