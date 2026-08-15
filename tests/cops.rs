@@ -19183,6 +19183,136 @@ mod style_combinable_loops {
 }
 
 /// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
+mod style_arguments_forwarding {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    /// 三つとも転送しているなら `...` 一つで言える。定義側と呼び出し側の両方を
+    /// 報告する。
+    #[test]
+    fn forwarding_everything_is_reported_as_the_shorthand() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, **kwargs, &block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, **kwargs, &block)
+                  ^^^^^^^^^^^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 一部だけの転送は 3.2 以降の無名転送で言う。`*` / `**` / `&` それぞれに
+    /// 別のメッセージがある。
+    #[test]
+    fn forwarding_some_of_it_is_reported_as_anonymous() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, &block)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+                           ^^^^^^ Use anonymous block arguments forwarding (`&`).
+              bar(*args, &block)
+                  ^^^^^ Use anonymous positional arguments forwarding (`*`).
+                         ^^^^^^ Use anonymous block arguments forwarding (`&`).
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(*, &)\n  bar(*, &)\nend\n")
+        .run();
+    }
+
+    /// 3.1 以前は無名転送が無いので `...` にできるものだけを見る。
+    #[test]
+    fn before_ruby_32_only_the_shorthand_is_offered() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("2.7")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 報告しないもの: 名前が `RedundantRestArgumentNames` に無い、本文が引数を
+    /// 転送以外で読んでいる、ブロックの中から転送している、転送する呼び出し自身が
+    /// ブロックを持っている。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(COP, "def foo(*rest)\n  bar(*rest)\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  args.first\n  bar(*args)\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  [1].each { bar(*args) }\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .run();
+        CopCase::new(COP, "def foo(*args)\n  bar(*args) { 1 }\nend\n", Vec::new())
+            .target_ruby("3.3")
+            .run();
+        CopCase::new(
+            COP,
+            "def foo(*args)\n  bar(*args, &:to_s)\nend\n",
+            Vec::new(),
+        )
+        .target_ruby("2.7")
+        .run();
+    }
+
+    /// 括弧の無い引数リストは補正で括弧を足す。`yield` と添字読みも `send` なので
+    /// 対象になる。
+    #[test]
+    fn parentheses_are_added_where_they_were_missing() {
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo *args, &block
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar *args, &block
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .target_ruby("2.7")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            def foo(*args)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+              yield(*args)
+                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
+            end
+            "#,
+        )
+        .target_ruby("3.3")
+        .corrected("def foo(*)\n  yield(*)\nend\n")
+        .run();
+    }
+}
+
 mod style_disable_cops_within_source_code_directive {
     use super::*;
 

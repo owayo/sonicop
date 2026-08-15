@@ -6063,6 +6063,19 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_sample")
         .correctable(true),
         CopCase::annotated(
+            "Style/ArgumentsForwarding",
+            r#"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            "#,
+        )
+        .id("style_arguments_forwarding")
+        .target_ruby("2.7")
+        .correctable(true),
+        CopCase::annotated(
             "Style/DisableCopsWithinSourceCodeDirective",
             r#"
             # rubocop:disable Style/Documentation
