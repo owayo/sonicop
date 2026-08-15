@@ -194,6 +194,8 @@ fn omit_parentheses(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         reparsed,
         |node| omission_edits(*node, context),
         |node| omission_range(*node),
+        // 本家の `verified_by_reparse(@pending_omit_offenses)` は追加のオプションを渡さない。
+        crate::rules::support::Verification::default(),
     );
     verified.extend(with_heredoc);
     verified.sort_by_key(tree_sitter::Node::start_byte);

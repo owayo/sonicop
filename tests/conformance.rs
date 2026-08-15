@@ -1226,6 +1226,17 @@ fn catalogue() -> Vec<CopCase> {
         .locations(&[(1, 7, 2, 4)])
         .lengths(&[8])
         .correctable(true),
+        CopCase::annotated(
+            "Layout/RedundantLineBreak",
+            r#"
+            foo(
+            ^^^^ Redundant line break detected.
+              a
+            )
+            "#,
+        )
+        .id("layout_redundant_line_break")
+        .correctable(true),
         CopCase::new(
             "Layout/RescueEnsureAlignment",
             "def foo\n  bar\n  rescue StandardError\n  baz\nend\n",
@@ -3104,6 +3115,74 @@ fn catalogue() -> Vec<CopCase> {
         .config("Lint/ShadowingOuterLocalVariable:\n  Enabled: true\n")
         .severity(Severity::Warning)
         .correctable(false),
+        CopCase::annotated(
+            "Lint/UnescapedBracketInRegexp",
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        )
+        .id("lint_unescaped_bracket_in_regexp")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/DuplicateRegexpCharacterClassElement",
+            r"
+            /[xyx]/
+                ^ Duplicate element inside regexp character class
+            ",
+        )
+        .id("lint_duplicate_regexp_character_class_element")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/MixedCaseRange",
+            r"
+            /[A-z]/
+              ^^^ Ranges from upper to lower case ASCII letters may include unintended characters. Instead of `A-z` (which also includes several symbols) specify each range individually: `A-Za-z` and individually specify any symbols.
+            ",
+        )
+        .id("lint_mixed_case_range")
+        .severity(Severity::Warning)
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/RedundantRegexpQuantifiers",
+            r"
+            /(?:x+)+/
+                 ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        )
+        .id("lint_redundant_regexp_quantifiers")
+        .severity(Severity::Warning)
+        .correctable(true),
+        // 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+        // `locations` / `lengths` で押さえる。
+        CopCase::annotated(
+            "Lint/RequireRangeParentheses",
+            r"
+            x = 1..
+                ^^^ Wrap the range literal `1..` in parentheses to avoid confusion with an endless range.
+            42
+            ",
+        )
+        .id("lint_require_range_parentheses")
+        .locations(&[(1, 5, 2, 2)])
+        .lengths(&[6])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ArgumentsForwarding",
+            r"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            ",
+        )
+        .id("style_arguments_forwarding")
+        .severity(Severity::Convention)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
@@ -5139,6 +5218,73 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_negative_array_index")
         .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRegexp",
+            "array.select { |x| x.match?(/re/) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a regexp match.\n",
+        )
+        .id("style_select_by_regexp")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByKind",
+            "array.select { |x| x.is_a?(Foo) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a kind check.\n",
+        )
+        .id("style_select_by_kind")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SelectByRange",
+            "array.select { |x| x.between?(1, 10) }\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Prefer `grep` to `select` with a range check.\n",
+        )
+        .id("style_select_by_range")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/TallyMethod",
+            "array.group_by(&:itself).transform_values(&:count)\n      ^^^^^^^^ Use `tally` instead of `group_by` and `transform_values`.\n",
+        )
+        .id("style_tally_method")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar end\n^^^^^^^^^^^^^^ Prefer multiline `do`...`end` block.\n",
+        )
+        .id("style_single_line_do_end_block")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RequireOrder",
+            "require 'b'\nrequire 'a'\n^^^^^^^^^^^ Sort `require` in alphabetical order.\n",
+        )
+        .id("style_require_order")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, b)\n    super(a, b)\n    ^^^^^^^^^^^ Call `super` without arguments and parentheses when the signature is identical.\n  end\nend\n",
+        )
+        .id("style_super_arguments")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar})\n             ^^^^^^^^^^^^ Remove the redundant double splat and braces, use keyword arguments directly.\n",
+        )
+        .id("style_redundant_double_splat_hash_braces")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantStringEscape",
+            "foo = \"\\.bar\"\n       ^^ Redundant escape of . inside string literal.\n",
+        )
+        .id("style_redundant_string_escape")
+        .correctable(true),
+        // 位置は `\\` と改行の 2 文字ぶんで、次の行にまたがる。
+        CopCase::annotated("Style/RedundantLineContinuation", "foo = 1 + \\\n  2\n")
+            .id("style_redundant_line_continuation")
+            .without_offense_check()
+            .locations(&[(1, 11, 2, 1)])
+            .lengths(&[2])
+            .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFormat",
+            "a = format('name')\n    ^^^^^^^^^^^^^^ Use `'name'` directly instead of `format`.\n",
+        )
+        .id("style_redundant_format")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")
@@ -5268,19 +5414,6 @@ fn catalogue() -> Vec<CopCase> {
             ",
         )
         .id("style_method_call_with_args_parentheses")
-        .correctable(true),
-        // 位置は転送する引数の並び全体。
-        CopCase::annotated(
-            "Style/ArgumentsForwarding",
-            r"
-            def foo(*args, &block)
-                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-              bar(*args, &block)
-                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-            end
-            ",
-        )
-        .id("style_arguments_forwarding")
         .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")

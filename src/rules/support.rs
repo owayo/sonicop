@@ -157,6 +157,24 @@ const REPARSE_SCOPES: &[&str] = &[
     "singleton_class",
 ];
 
+/// The two hooks `ReparsedEquivalence` lets a cop reach into the comparison with, and the answer it
+/// wants for a scope too large to reparse.
+///
+/// The defaults are what a cop whose offense logic stands on its own asks for: the tree is compared
+/// as it parses, and a scope past the size limit is accepted unverified. A cop for which the
+/// verification *is* the offense logic turns both around.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct Verification {
+    /// `oversized: :verify`: reparse a scope past `MAX_VERIFICATION_FRAGMENT_SIZE` regardless, since
+    /// accepting it unverified would report an offense nothing stands behind.
+    pub(crate) verify_oversized: bool,
+    /// `normalize_reparsed_ast` = `fold_string_concatenation`: joining lines merges split string
+    /// literals and turns a mixed-quote pair into a `+` concatenation, which changes the tree
+    /// without changing the string it builds. Folding every concatenation to a canonical form is
+    /// what lets the two compare equal.
+    pub(crate) fold_string_concatenation: bool,
+}
+
 /// `ReparsedEquivalence#verified_by_reparse`: the items whose corrections leave a tree equal to the
 /// one they started from.
 ///
@@ -169,6 +187,7 @@ pub(crate) fn verified_by_reparse<T>(
     items: Vec<T>,
     edits_of: impl Fn(&T) -> Vec<Edit>,
     range_of: impl Fn(&T) -> Range<usize>,
+    verification: Verification,
 ) -> Vec<T> {
     let text = context.source.text();
     let root = context.root_node();
@@ -189,12 +208,14 @@ pub(crate) fn verified_by_reparse<T>(
     let mut verified = Vec::new();
     for (scope, group) in groups {
         let span = scope.map_or(text.len(), |node| node.byte_range().len());
-        if span > MAX_VERIFICATION_FRAGMENT_SIZE {
+        if span > MAX_VERIFICATION_FRAGMENT_SIZE && !verification.verify_oversized {
             verified.extend(group);
             continue;
         }
-        let original = normalized(scope.unwrap_or(root), text);
-        if group.len() > 1 && corrections_verify(text, scope, &original, &group, &edits_of) {
+        let original = normalized(scope.unwrap_or(root), text, verification);
+        if group.len() > 1
+            && corrections_verify(text, scope, &original, &group, &edits_of, verification)
+        {
             verified.extend(group);
             continue;
         }
@@ -205,6 +226,7 @@ pub(crate) fn verified_by_reparse<T>(
                 &original,
                 std::slice::from_ref(item),
                 &edits_of,
+                verification,
             )
         }));
     }
@@ -242,6 +264,7 @@ fn corrections_verify<T>(
     original: &Sexp,
     items: &[T],
     edits_of: &impl Fn(&T) -> Vec<Edit>,
+    verification: Verification,
 ) -> bool {
     let edits: Vec<Edit> = items.iter().flat_map(edits_of).collect();
     let Some(corrected) = apply_edits(text, &edits) else {
@@ -259,7 +282,8 @@ fn corrections_verify<T>(
         }
         None => corrected.as_str(),
     };
-    parse(fragment).is_some_and(|tree| &normalized(tree.root_node(), fragment) == original)
+    parse(fragment)
+        .is_some_and(|tree| &normalized(tree.root_node(), fragment, verification) == original)
 }
 
 /// The label a statement list carries, which is upstream's `begin` node.
@@ -287,7 +311,15 @@ const SEQUENCES: &[&str] = &[
 ];
 
 /// `normalize_reparsed_ast`.
-fn normalized(node: Node<'_>, text: &str) -> Sexp {
+fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
+    if let Some(words) = word_array(node, text) {
+        return words;
+    }
+    if verification.fold_string_concatenation
+        && let Some(literal) = string_literal(node, text, verification)
+    {
+        return literal;
+    }
     let mut children: Vec<Sexp> = Vec::new();
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
@@ -295,7 +327,7 @@ fn normalized(node: Node<'_>, text: &str) -> Sexp {
         if child.kind_str() == "comment" {
             continue;
         }
-        let normalized = normalized(child, text);
+        let normalized = normalized(child, text, verification);
         // `splice_nested_sequences`: `x; (a; b)` and `x; a; b` are the same statement list.
         match SEQUENCES.contains(&node.kind_str()) && normalized.label == BEGIN {
             true => children.extend(normalized.children),
@@ -314,8 +346,182 @@ fn normalized(node: Node<'_>, text: &str) -> Sexp {
             children,
         };
     }
-    let label = label_of(node, text, children.is_empty());
-    rotate_same_operator(Sexp { label, children })
+    if !verification.fold_string_concatenation {
+        let label = label_of(node, text, children.is_empty());
+        return rotate_same_operator(Sexp { label, children });
+    }
+    // The literals written side by side that upstream's parser gathers into one `dstr`.
+    let label = match node.kind_str() {
+        "chained_string" => DSTR.to_owned(),
+        _ => label_of(node, text, children.is_empty()),
+    };
+    fold_string_concatenation(rotate_same_operator(Sexp { label, children }))
+}
+
+/// The kinds whose contents upstream's parser reads as whitespace-separated words, one node each.
+const WORD_ARRAYS: &[&str] = &["string_array", "symbol_array"];
+
+/// The words a `%w` or `%i` literal holds.
+///
+/// The grammar does not always lex them one node per word: a `%w[` written at the end of a line makes
+/// the break part of the first word, so the same literal joined onto one line parses to a different
+/// tree even though it holds the same words. Reading the words out of the source is what upstream's
+/// parser does, and it is what lets the two compare equal. A backslash escapes whatever follows it,
+/// so an escaped space or line break joins two words rather than separating them.
+fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
+    if !WORD_ARRAYS.contains(&node.kind_str()) {
+        return None;
+    }
+    // `%w[`, `%i(`, ...: two characters of prefix, an opening delimiter, and the closing one.
+    let source = &text[node.byte_range()];
+    let body = source.get(3..source.len().checked_sub(1)?)?;
+    let mut words: Vec<Sexp> = Vec::new();
+    let mut word = String::new();
+    let mut characters = body.chars();
+    while let Some(character) = characters.next() {
+        if character == '\\' {
+            word.push(character);
+            if let Some(escaped) = characters.next() {
+                word.push(escaped);
+            }
+            continue;
+        }
+        if character.is_ascii_whitespace() {
+            if !word.is_empty() {
+                words.push(word_leaf(std::mem::take(&mut word)));
+            }
+            continue;
+        }
+        word.push(character);
+    }
+    if !word.is_empty() {
+        words.push(word_leaf(word));
+    }
+    Some(Sexp {
+        label: node.kind_str().to_owned(),
+        children: words,
+    })
+}
+
+fn word_leaf(text: String) -> Sexp {
+    Sexp {
+        label: format!("word {text}"),
+        children: Vec::new(),
+    }
+}
+
+/// The label a merged string literal carries, which is upstream's `str` node.
+const STR: &str = "str ";
+
+/// The label a string built from several parts carries, which is upstream's `dstr` node.
+const DSTR: &str = "dstr";
+
+/// The label a `+` carries, which is the one concatenation upstream reads as a string.
+const PLUS: &str = "binary +";
+
+/// The `str` or `dstr` upstream's parser builds for a string literal: the value it holds, or the
+/// parts an interpolation splits it into. The quotes are no part of either, which is what makes
+/// `'a'` and `"a"` the same literal and lets a merged concatenation reach the same shape.
+fn string_literal(node: Node<'_>, text: &str, verification: Verification) -> Option<Sexp> {
+    if node.kind_str() != "string" {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let parts: Vec<Node<'_>> = node
+        .named_children(&mut cursor)
+        .filter(|child| child.kind_str() != "comment")
+        .collect();
+    if !parts.iter().any(|part| part.kind_str() == "interpolation") {
+        return Some(str_leaf(
+            parts
+                .iter()
+                .map(|part| &text[part.byte_range()])
+                .collect::<String>(),
+        ));
+    }
+    let mut children: Vec<Sexp> = Vec::new();
+    let mut run = String::new();
+    for part in parts {
+        if part.kind_str() != "interpolation" {
+            run.push_str(&text[part.byte_range()]);
+            continue;
+        }
+        if !run.is_empty() {
+            children.push(str_leaf(std::mem::take(&mut run)));
+        }
+        children.push(normalized(part, text, verification));
+    }
+    if !run.is_empty() {
+        children.push(str_leaf(run));
+    }
+    Some(Sexp {
+        label: DSTR.to_owned(),
+        children,
+    })
+}
+
+fn str_leaf(text: String) -> Sexp {
+    Sexp {
+        label: format!("{STR}{text}"),
+        children: Vec::new(),
+    }
+}
+
+/// `plain_string?`: a literal holding its value and nothing else, which is what two of them being
+/// adjacent lets merge.
+fn is_str(node: &Sexp) -> bool {
+    node.label.starts_with(STR)
+}
+
+/// `stringish?`.
+fn is_stringish(node: &Sexp) -> bool {
+    is_str(node) || node.label == DSTR
+}
+
+/// `fold_string_concatenation`: every string concatenation in one canonical shape, so that a literal
+/// split across lines and the same literal written whole compare equal.
+fn fold_string_concatenation(node: Sexp) -> Sexp {
+    let parts = match concatenation_parts(node) {
+        Ok(parts) => parts,
+        Err(node) => return node,
+    };
+    let mut merged = merge_string_parts(parts);
+    match merged.as_slice() {
+        [single] if is_str(single) => merged.pop().expect("just matched one"),
+        _ => Sexp {
+            label: DSTR.to_owned(),
+            children: merged,
+        },
+    }
+}
+
+/// `string_concatenation_parts`, handing the node back when it is no concatenation of strings.
+fn concatenation_parts(node: Sexp) -> Result<Vec<Sexp>, Sexp> {
+    if node.label == DSTR || (node.label == PLUS && node.children.iter().all(is_stringish)) {
+        return Ok(node.children);
+    }
+    Err(node)
+}
+
+/// `merge_string_parts`: a nested concatenation contributes its own parts, and a run of plain
+/// literals becomes the one literal their values spell.
+fn merge_string_parts(parts: Vec<Sexp>) -> Vec<Sexp> {
+    let mut merged: Vec<Sexp> = Vec::new();
+    for part in parts {
+        let flattened = match part.label == DSTR {
+            true => part.children,
+            false => vec![part],
+        };
+        for part in flattened {
+            match merged.last_mut() {
+                Some(last) if is_str(last) && is_str(&part) => {
+                    last.label.push_str(&part.label[STR.len()..]);
+                }
+                _ => merged.push(part),
+            }
+        }
+    }
+    merged
 }
 
 /// The name two trees are compared by: the node's kind, the operator it was written with, and for a

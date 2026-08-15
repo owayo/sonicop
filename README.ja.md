@@ -33,16 +33,17 @@ CI へ最小限の変更で導入できます。
 ## 主な機能
 
 Bundler、Gemspec、Layout、Lint、Metrics、Migration、Naming、Security、Style の各部門の Cop を実装しています。
-実装済みの Cop はリリースごとに増えるため、一覧はバイナリ自身が正本です。
+一覧はバイナリ自身が正本です。
 
 ```bash
 # 認識済み Cop と実装状況の一覧
 sonicop --show-cops
 ```
 
-RuboCop 1.89 の全 609 Cop を同梱設定として認識します。実装済み Cop は検査を実行し、
-認識済みで未実装の Cop は既存設定を壊さず `--debug` で一覧表示します。本家にも存在しない
-Cop 名だけをエラーにし、必要なら `--ignore-unrecognized-cops` で続行できます。
+**RuboCop 1.89 の全 609 Cop を実装しています。** 本家のレジストリと名前まで一致しており、
+`Enabled: pending` の 159 個と `Enabled: false` の 56 個も含みます。この 215 個は本家でも
+既定の実行では走らないので、`--only` で名指しするか設定で有効にしてください。本家にも
+存在しない Cop 名だけをエラーにし、必要なら `--ignore-unrecognized-cops` で続行できます。
 
 ## インストール
 

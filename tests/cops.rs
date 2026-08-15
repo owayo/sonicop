@@ -29694,6 +29694,122 @@ mod layout_element_line_breaks {
     }
 }
 /// `Layout/SingleLineBlockChain` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_redundant_line_break {
+    use super::*;
+
+    const COP: &str = "Layout/RedundantLineBreak";
+    const MSG: &str = "Redundant line break detected.";
+
+    /// 1 行に収まる式を複数行に割っているものを報告する。補正は行の切れ目を
+    /// 空白 1 つに置き換えるので、括弧の内側に空白が残る。
+    #[test]
+    fn an_expression_that_fits_on_one_line_is_reported() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo(
+            ^^^^ %{msg}
+              a,
+              b
+            )
+            foo(a, b)
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 4, 1)])
+        .lengths(&[15])
+        .corrected("foo( a, b )\nfoo(a, b)\n")
+        .run();
+    }
+
+    /// 逆斜線で割った文字列は 1 つのリテラルに畳まれる。引用符が違う組は `+` の
+    /// 連結になり、どちらも同じ文字列を作るので木の比較は通る。
+    #[test]
+    fn a_split_string_literal_is_joined() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            puts 'a ' \
+            ^^^^^^^^^^^ %{msg}
+                 'b'
+            x = "c" \
+            ^^^^^^^^^ %{msg}
+                'd'
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 2, 8), (3, 1, 4, 7)])
+        .lengths(&[20, 17])
+        .corrected("puts 'a b'\nx = \"c\" + 'd'\n")
+        .run();
+    }
+
+    /// ブロックは `InspectBlocks` が真のときだけ見る。
+    #[test]
+    fn a_block_is_looked_at_only_where_asked_for() {
+        CopCase::new(COP, "foo(a) do |x|\n  puts x\nend\n", Vec::new()).run();
+        CopCase::annotated_with(
+            COP,
+            r#"
+            foo(a) do |x|
+            ^^^^^^^^^^^^^ %{msg}
+              puts x
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .config("Layout/RedundantLineBreak:\n  InspectBlocks: true\n")
+        .locations(&[(1, 1, 3, 3)])
+        .lengths(&[26])
+        .corrected("foo(a) do |x| puts x end\n")
+        .run();
+    }
+
+    /// 畳んだ結果が読み直せないものは報告しない。逆斜線で割った連鎖呼び出しは
+    /// 畳むと `\` が呼び出しの前に残って構文が壊れ、修飾なしの `while` は区切り
+    /// なしで 1 行に書けない。
+    #[test]
+    fn a_join_that_would_not_parse_is_not_reported() {
+        CopCase::new(COP, "a = b \\\n  .c\n", Vec::new()).run();
+        CopCase::new(COP, "d = while e\n        f\n      end\n", Vec::new()).run();
+    }
+
+    /// 行の切れ目を残す理由が式の中にあるもの: 途中のコメント、ヒアドキュメント、
+    /// 改行を値に持つ文字列、複数行の `if`。
+    #[test]
+    fn what_keeps_the_break_is_left_alone() {
+        CopCase::new(COP, "u = foo(\n  # note\n  1\n)\n", Vec::new()).run();
+        CopCase::new(COP, "t = <<~X\n  y\nX\n", Vec::new()).run();
+        CopCase::new(COP, "s = \"a\\nb\" \\\n    \"c\"\n", Vec::new()).run();
+        CopCase::new(COP, "aa = bar(\n  if true\n    1\n  end\n)\n", Vec::new()).run();
+    }
+
+    /// 括弧なしの呼び出しに書かれたブロックは式の一部ではない。報告されるのは
+    /// 呼び出しだけで `do ... end` は残り、引数が 1 行に収まっている呼び出しは
+    /// そもそも複数行ではない。
+    #[test]
+    fn the_block_on_an_unparenthesized_call_is_no_part_of_the_expression() {
+        CopCase::annotated_with(
+            COP,
+            r#"
+            ll mm,
+            ^^^^^^ %{msg}
+               nn do
+              1
+            end
+            jj kk do
+              1
+            end
+            "#,
+            &[("msg", MSG)],
+        )
+        .locations(&[(1, 1, 2, 5)])
+        .lengths(&[12])
+        .corrected("ll mm, nn do\n  1\nend\njj kk do\n  1\nend\n")
+        .run();
+    }
+}
+
 mod layout_single_line_block_chain {
     use super::*;
 
@@ -31865,6 +31981,179 @@ mod layout_heredoc_argument_closing_parenthesis {
     }
 }
 
+/// `Layout/ClassStructure` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod layout_class_structure {
+    use super::*;
+
+    const COP: &str = "Layout/ClassStructure";
+    const ON: &str = "Layout/ClassStructure:\n  Enabled: true\n";
+
+    /// `ExpectedOrder` の並びに反した要素を報告する。既定は module_inclusion →
+    /// constants → public_class_methods → initializer → public_methods →
+    /// protected_methods → private_class_methods → private_methods。
+    #[test]
+    fn an_element_out_of_the_expected_order_is_reported() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class A
+              include Bar
+              CONST = 1
+              def self.klass; end
+              def initialize; end
+              def pub; end
+              protected
+              def prot; end
+              private
+              def priv; end
+            end
+            class B
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            class C
+              CONST = 1
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `constants`.
+            end
+            class D
+              def initialize; end
+              CONST = 1
+              ^^^^^^^^^ `constants` is supposed to appear before `initializer`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 可視性は上に書いた裸の修飾子で決まる。`private def foo` も `private` 扱い。
+    /// `private :a, :b` のように名前を複数渡した修飾子は本家のパターンに合わないので
+    /// どのメソッドも private にしない。
+    #[test]
+    fn visibility_follows_the_modifier_above() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class E
+              private
+              def priv; end
+              public
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class F
+              private def priv; end
+              def pub; end
+              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
+            end
+            class G
+              def a; end
+              def b; end
+              private :a, :b
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// `private_constant` で伏せた定数は並びから外れる。補正は 1 つ前の別分類の
+    /// 兄弟の上へ、コメントごと動かす。
+    #[test]
+    fn a_private_constant_is_left_out_of_the_order() {
+        CopCase::new(
+            COP,
+            "class H\n  PRIVATE_CONST = 1\n  private_constant :PRIVATE_CONST\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class I
+              extend Foo
+              # a comment
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .corrected(
+            r#"
+            class I
+              extend Foo
+              include Bar
+              # a comment
+              def pub; end
+            end
+            "#,
+        )
+        .run();
+    }
+
+    /// `module` の本体は見ない (`on_class` と `on_sclass` だけ)。
+    #[test]
+    fn a_module_body_is_not_checked() {
+        CopCase::new(
+            COP,
+            "module M\n  def pub; end\n  include Bar\nend\n",
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class << self
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// 定数が呼び出しの結果なら (凍らせたリテラルを除いて) 動的なので動かせない。
+    /// リテラルの中のコメントやヒアドキュメントは本家の木には無いので数に入れない。
+    #[test]
+    fn a_dynamic_constant_is_reported_without_a_correction() {
+        CopCase::annotated(
+            COP,
+            r#"
+            class J
+              def pub; end
+              INSTANCE = create
+              ^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(false)
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            class K
+              def pub; end
+              FROZEN = %i[a b].freeze
+              ^^^^^^^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .config(ON)
+        .correctable(true)
+        .without_offense_check()
+        .run();
+    }
+}
+
 /// `Style/InvertibleUnlessCondition` (既定無効)。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/InvertibleUnlessCondition` で走らせた実出力から
@@ -32038,176 +32327,655 @@ mod style_multiline_method_signature {
     }
 }
 
-/// `Layout/ClassStructure` (既定無効) — 期待値は本家 1.89.0 の実測。
-mod layout_class_structure {
+/// `Style/SelectByRegexp` / `Style/SelectByKind` / `Style/SelectByRange`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_select_by {
     use super::*;
 
-    const COP: &str = "Layout/ClassStructure";
-    const ON: &str = "Layout/ClassStructure:\n  Enabled: true\n";
-
-    /// `ExpectedOrder` の並びに反した要素を報告する。既定は module_inclusion →
-    /// constants → public_class_methods → initializer → public_methods →
-    /// protected_methods → private_class_methods → private_methods。
-    #[test]
-    fn an_element_out_of_the_expected_order_is_reported() {
-        CopCase::annotated(
-            COP,
-            r#"
-            class A
-              include Bar
-              CONST = 1
-              def self.klass; end
-              def initialize; end
-              def pub; end
-              protected
-              def prot; end
-              private
-              def priv; end
-            end
-            class B
-              def pub; end
-              include Bar
-              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
-            end
-            class C
-              CONST = 1
-              include Bar
-              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `constants`.
-            end
-            class D
-              def initialize; end
-              CONST = 1
-              ^^^^^^^^^ `constants` is supposed to appear before `initializer`.
-            end
-            "#,
-        )
-        .config(ON)
-        .run();
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
     }
 
-    /// 可視性は上に書いた裸の修飾子で決まる。`private def foo` も `private` 扱い。
-    /// `private :a, :b` のように名前を複数渡した修飾子は本家のパターンに合わないので
-    /// どのメソッドも private にしない。
+    /// `select` は `grep`、`reject` は `grep_v`。否定が挟まると入れ替わる。
     #[test]
-    fn visibility_follows_the_modifier_above() {
-        CopCase::annotated(
-            COP,
-            r#"
-            class E
-              private
-              def priv; end
-              public
-              def pub; end
-              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
-            end
-            class F
-              private def priv; end
-              def pub; end
-              ^^^^^^^^^^^^ `public_methods` is supposed to appear before `private_methods`.
-            end
-            class G
-              def a; end
-              def b; end
-              private :a, :b
-            end
-            "#,
-        )
-        .config(ON)
-        .run();
+    fn a_regexp_match_becomes_grep() {
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| x.match?(/re/) }\n",
+            "array.grep(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.reject { |x| x =~ /re/ }\n",
+            "array.grep_v(/re/)\n",
+        );
+        // `/re/ =~ x` は名前付きキャプチャを束縛する別のノードだが、正規表現は左側にある。
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| /re/ =~ x }\n",
+            "array.grep(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| x !~ /re/ }\n",
+            "array.grep_v(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { |x| !x.match?(/re/) }\n",
+            "array.grep_v(/re/)\n",
+        );
+        correction(
+            "Style/SelectByRegexp",
+            "array.select { _1.match?(/re/) }\n",
+            "array.grep(/re/)\n",
+        );
     }
 
-    /// `private_constant` で伏せた定数は並びから外れる。補正は 1 つ前の別分類の
-    /// 兄弟の上へ、コメントごと動かす。
+    /// `is_a?` は `grep`、`between?` と `cover?` も同じ形。
     #[test]
-    fn a_private_constant_is_left_out_of_the_order() {
+    fn a_kind_or_range_check_becomes_grep() {
+        correction(
+            "Style/SelectByKind",
+            "array.select { |x| x.is_a?(Foo) }\n",
+            "array.grep(Foo)\n",
+        );
+        correction(
+            "Style/SelectByKind",
+            "array.reject { |x| x.kind_of?(Foo) }\n",
+            "array.grep_v(Foo)\n",
+        );
+        correction(
+            "Style/SelectByRange",
+            "array.select { |x| x.between?(1, 10) }\n",
+            "array.grep(1..10)\n",
+        );
+        correction(
+            "Style/SelectByRange",
+            "array.select { |x| (1..10).cover?(x) }\n",
+            "array.grep(1..10)\n",
+        );
+        // `find` / `detect` は最初の 1 件なので `.first` が付く。
+        correction(
+            "Style/SelectByRange",
+            "array.find { |x| x.between?(1, 10) }\n",
+            "array.grep(1..10).first\n",
+        );
+    }
+
+    /// hash を返すレシーバ、要素を読まないブロック、文が 2 つ以上のブロックは黙る。
+    #[test]
+    fn what_the_select_by_cops_leave_alone() {
+        for (cop, source) in [
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| y.match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.select { |x| x.match?(/re/) && x.size > 1 }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "ENV.select { |x| x.match?(/re/) }\n",
+            ),
+            (
+                "Style/SelectByRegexp",
+                "array.to_h.select { |x| x.match?(/re/) }\n",
+            ),
+            ("Style/SelectByKind", "array.select { |x| y.is_a?(Foo) }\n"),
+            // 括弧で包んだ否定は `is_a?` 側のパターンには無い。
+            (
+                "Style/SelectByKind",
+                "array.select { |x| !(x.is_a?(Foo)) }\n",
+            ),
+            (
+                "Style/SelectByRange",
+                "array.select { |x| (1..10).cover?(y) }\n",
+            ),
+        ] {
+            CopCase::new(cop, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/TallyMethod` / `Style/SingleLineDoEndBlock` / `Style/RequireOrder`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_tally_and_layout_of_statements {
+    use super::*;
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 数え上げの 2 つの書き方はどちらも `tally`。
+    #[test]
+    fn counting_by_hand_becomes_tally() {
+        correction(
+            "Style/TallyMethod",
+            "array.each_with_object(Hash.new(0)) { |el, hash| hash[el] += 1 }\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.each_with_object(Hash.new(0)) { _2[_1] += 1 }\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.group_by(&:itself).transform_values(&:count)\n",
+            "array.tally\n",
+        );
+        correction(
+            "Style/TallyMethod",
+            "array.group_by { |x| x }.transform_values { |v| v.size }\n",
+            "array.tally\n",
+        );
+        // 既定値が 0 でない hash、`itself` でない group_by、数えない transform_values。
+        for source in [
+            "array.each_with_object(Hash.new(1)) { |el, hash| hash[el] += 1 }\n",
+            "array.each_with_object({}) { |el, hash| hash[el] += 1 }\n",
+            "array.group_by(&:foo).transform_values(&:count)\n",
+            "array.group_by(&:itself).transform_values(&:to_a)\n",
+        ] {
+            CopCase::new("Style/TallyMethod", source.to_owned(), Vec::new()).run();
+        }
+    }
+
+    /// 1 行の `do ... end` は改行する。ヒアドキュメントがあると `end` はその後ろへ回る。
+    #[test]
+    fn a_one_line_do_end_block_is_broken_up() {
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar end\n",
+            "foo do\n bar \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do |x| bar(x) end\n",
+            "foo do |x|\n bar(x) \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "x = -> do bar end\n",
+            "x = -> do\n bar \nend\n",
+        );
+        correction(
+            "Style/SingleLineDoEndBlock",
+            "foo do bar(<<~TEXT) end\n  hello\nTEXT\n",
+            "foo do\n bar(<<~TEXT) \n  hello\nTEXT\nend\n",
+        );
         CopCase::new(
-            COP,
-            "class H\n  PRIVATE_CONST = 1\n  private_constant :PRIVATE_CONST\n  include Bar\nend\n",
+            "Style/SingleLineDoEndBlock",
+            "foo { bar }\n".to_owned(),
             Vec::new(),
         )
-        .config(ON)
-        .run();
-        CopCase::annotated(
-            COP,
-            r#"
-            class I
-              extend Foo
-              # a comment
-              def pub; end
-              include Bar
-              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
-            end
-            "#,
-        )
-        .config(ON)
-        .corrected(
-            r#"
-            class I
-              extend Foo
-              include Bar
-              # a comment
-              def pub; end
-            end
-            "#,
-        )
         .run();
     }
 
-    /// `module` の本体は見ない (`on_class` と `on_sclass` だけ)。
+    /// 連続した `require` は辞書順。直上の行コメントも一緒に動く。
     #[test]
-    fn a_module_body_is_not_checked() {
-        CopCase::new(
-            COP,
-            "module M\n  def pub; end\n  include Bar\nend\n",
-            Vec::new(),
-        )
-        .config(ON)
-        .run();
-        CopCase::annotated(
-            COP,
-            r#"
-            class << self
-              def pub; end
-              include Bar
-              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
-            end
-            "#,
-        )
-        .config(ON)
-        .run();
+    fn requires_are_sorted() {
+        correction(
+            "Style/RequireOrder",
+            "require 'b'\nrequire 'a'\n",
+            "require 'a'\nrequire 'b'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "require_relative 'b'\nrequire_relative 'a'\n",
+            "require_relative 'a'\nrequire_relative 'b'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "# comment for d\nrequire 'd'\nrequire 'a2'\n",
+            "require 'a2'\n# comment for d\nrequire 'd'\n",
+        );
+        correction(
+            "Style/RequireOrder",
+            "require 'x' if cond\nrequire 'w' if cond\n",
+            "require 'w' if cond\nrequire 'x' if cond\n",
+        );
+        // 空行で区切られた別の塊、種類の違う require、間に挟まった別の文は数えない。
+        for source in [
+            "require 'b'\n\nrequire 'a'\n",
+            "require 'm'\nrequire_relative 'l'\nrequire 'k'\n",
+            "require 'q'\nfoo\nrequire 'p'\n",
+        ] {
+            CopCase::new("Style/RequireOrder", source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/SuperArguments` / `Style/RedundantDoubleSplatHashBraces`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_super_and_double_splat {
+    use super::*;
+
+    fn correction(cop: &str, source: &str, corrected: &str) {
+        CopCase::new(cop, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
     }
 
-    /// 定数が呼び出しの結果なら (凍らせたリテラルを除いて) 動的なので動かせない。
-    /// リテラルの中のコメントやヒアドキュメントは本家の木には無いので数に入れない。
+    /// 引数がそのまま渡っているだけの `super(...)` は裸の `super` にする。
     #[test]
-    fn a_dynamic_constant_is_reported_without_a_correction() {
-        CopCase::annotated(
+    fn super_that_forwards_everything_loses_its_arguments() {
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, b)\n    super(a, b)\n  end\nend\n",
+            "class Foo\n  def m(a, b)\n    super\n  end\nend\n",
+        );
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(*args, **kw, &blk)\n    super(*args, **kw, &blk)\n  end\nend\n",
+            "class Foo\n  def m(*args, **kw, &blk)\n    super\n  end\nend\n",
+        );
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(x:, y: 2)\n    super(x: x, y: y)\n  end\nend\n",
+            "class Foo\n  def m(x:, y: 2)\n    super\n  end\nend\n",
+        );
+        // 既定値付きの引数が続くと文法が 1 つのノードへ畳むので、ほどいてから数える。
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a = nil, b = nil, c = nil)\n    super(a, b, c)\n  end\nend\n",
+            "class Foo\n  def m(a = nil, b = nil, c = nil)\n    super\n  end\nend\n",
+        );
+        // ブロックを `super` 自身に書いた形は、ブロック引数が渡っているのと同じ。
+        correction(
+            "Style/SuperArguments",
+            "class Foo\n  def m(a, &blk)\n    super(a) { blk.call }\n  end\nend\n",
+            "class Foo\n  def m(a, &blk)\n    super { blk.call }\n  end\nend\n",
+        );
+    }
+
+    /// 並びが違う、数が違う、`=>` で書いた、他人のブロックの中、後から代入された、は黙る。
+    #[test]
+    fn what_the_super_cop_leaves_alone() {
+        for source in [
+            "class Foo\n  def m(a, b)\n    super(b, a)\n  end\nend\n",
+            "class Foo\n  def m(a)\n    super(a, 1)\n  end\nend\n",
+            "class Foo\n  def m(a, b: 1)\n    super(a, :b => b)\n  end\nend\n",
+            "class Foo\n  def m(a)\n    foo { super(a) }\n  end\nend\n",
+            "class Foo\n  def m(a, &blk)\n    blk = other\n    super(a, &blk)\n  end\nend\n",
+            // 引数を書かない `super` は別のノードで、この cop は見ない。
+            "class Foo\n  def m\n    super do |x|\n      x\n    end\n  end\nend\n",
+        ] {
+            CopCase::new("Style/SuperArguments", source.to_owned(), Vec::new()).run();
+        }
+    }
+
+    /// `**{ ... }` は波括弧ごと消える。後ろに続く `merge` も引数へ畳まれる。
+    #[test]
+    fn a_double_splatted_hash_literal_loses_its_braces() {
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar, baz: qux})\n",
+            "do_something(foo: bar, baz: qux)\n",
+        );
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar}.merge(baz: qux))\n",
+            "do_something(foo: bar, baz: qux)\n",
+        );
+        correction(
+            "Style/RedundantDoubleSplatHashBraces",
+            "do_something(**{foo: bar}.merge(baz: qux).merge(quux: corge))\n",
+            "do_something(foo: bar, baz: qux, quux: corge)\n",
+        );
+        // `=>` で書いた組、空の hash、hash でないもの、`merge` 以外の呼び出しは黙る。
+        for source in [
+            "do_something(**{'foo' => bar})\n",
+            "do_something(**{})\n",
+            "do_something(**kwargs)\n",
+            "do_something(**h.merge(foo: bar))\n",
+            "do_something(**{foo: bar}.compact)\n",
+        ] {
+            CopCase::new(
+                "Style/RedundantDoubleSplatHashBraces",
+                source.to_owned(),
+                Vec::new(),
+            )
+            .run();
+        }
+    }
+}
+
+mod lint_unescaped_bracket_in_regexp {
+    use super::*;
+
+    const COP: &str = "Lint/UnescapedBracketInRegexp";
+
+    /// 位置は本体の先頭から数えた文字数。`/.../` でも `%r{...}` でも同じ数え方になる。
+    #[test]
+    fn a_bare_bracket_in_a_regexp_literal_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "/abc]123/\n", "/abc\\]123/\n");
+        expect_offense(
+            COP,
+            r"
+            %r{abc]123}
+                  ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "%r{abc]123}\n", "%r{abc\\]123}\n");
+    }
+
+    /// 補間は同じ幅の空白に置き換えてから解析するので、後ろの位置がずれない。
+    #[test]
+    fn an_interpolation_does_not_shift_the_positions_after_it() {
+        expect_offense(
             COP,
             r#"
-            class J
-              def pub; end
-              INSTANCE = create
-              ^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
-            end
+            /x#{y}]z/
+                  ^ Regular expression has `]` without escape.
             "#,
-        )
-        .config(ON)
-        .correctable(false)
-        .run();
-        CopCase::annotated(
+        );
+        expect_correction(COP, "/x#{y}]z/\n", "/x#{y}\\]z/\n");
+    }
+
+    /// `Regexp.new` / `Regexp.compile` の文字列引数も見る。位置は引用符の次から数える。
+    #[test]
+    fn the_string_a_regexp_is_built_from_is_read_too() {
+        expect_offense(
+            COP,
+            r"
+            Regexp.new('abc]123')
+                           ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "Regexp.new('abc]123')\n", "Regexp.new('abc\\]123')\n");
+        expect_offense(
+            COP,
+            r"
+            ::Regexp.compile('x]y')
+                               ^ Regular expression has `]` without escape.
+            ",
+        );
+    }
+
+    /// `[]` と `[^]` は空の文字クラスで、その直後の `]` はクラスを閉じている。
+    /// 先頭の `]` も Ruby は警告しない。
+    #[test]
+    fn a_bracket_that_closes_something_is_left_alone() {
+        for source in [
+            "/[^]]/\n",
+            "/]abc/\n",
+            "/a\\]b/\n",
+            // 補間を含む `Regexp.new` は本家が丸ごと見送る。
+            "Regexp.new(\"abc]#{x}\")\n",
+            // 隣接する文字列リテラルは本家の `dstr`。
+            "Regexp.new(\"a\" \"b]c\")\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 補間の中身が多バイトでも、位置は文字数で数える。
+    #[test]
+    fn a_multibyte_interpolation_does_not_shift_the_position_after_it() {
+        expect_offense(
             COP,
             r#"
-            class K
-              def pub; end
-              FROZEN = %i[a b].freeze
-              ^^^^^^^^^^^^^^^^^^^^^^^ `constants` is supposed to appear before `public_methods`.
-            end
+            /あ#{い}]z/
+                  ^ Regular expression has `]` without escape.
             "#,
-        )
-        .config(ON)
-        .correctable(true)
-        .without_offense_check()
-        .run();
+        );
+        expect_correction(COP, "/あ#{い}]z/\n", "/あ#{い}\\]z/\n");
+    }
+
+    /// 空クラスの次の `]` を 1 つ見送った後は、同じリテラルの中の次の `]` を報告する。
+    #[test]
+    fn only_the_first_bracket_after_an_empty_class_is_skipped() {
+        expect_offense(
+            COP,
+            r"
+            /[^]]]/
+                 ^ Regular expression has `]` without escape.
+            ",
+        );
+        expect_correction(COP, "/[^]]]/\n", "/[^]]\\]/\n");
+    }
+}
+
+mod lint_duplicate_regexp_character_class_element {
+    use super::*;
+
+    const COP: &str = "Lint/DuplicateRegexpCharacterClassElement";
+
+    /// 同じ文字クラスに 2 度書かれた要素。2 つ目を消す。
+    #[test]
+    fn a_repeated_member_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /[xyx]/
+                ^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[xyx]/\n", "/[xy]/\n");
+        // 範囲もエスケープも POSIX ブラケットも要素 1 つとして数える。
+        expect_offense(
+            COP,
+            r"
+            /[0-9x0-9]/
+                  ^^^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[0-9x0-9]/\n", "/[0-9x]/\n");
+        expect_correction(COP, "/[\\d\\d]/\n", "/[\\d]/\n");
+        expect_correction(COP, "/[[:alpha:][:alpha:]]/\n", "/[[:alpha:]]/\n");
+    }
+
+    /// 補間は同じ幅の空白に置き換わるので、2 文字目以降が重複に見える。
+    /// その空白は補間の範囲と重なるので数えない。
+    #[test]
+    fn the_spaces_an_interpolation_was_blanked_to_are_not_members() {
+        expect_offense(
+            COP,
+            r#"
+            /[a-z#{x}a-z]/
+                     ^^^ Duplicate element inside regexp character class
+            "#,
+        );
+        expect_correction(COP, "/[a-z#{x}a-z]/\n", "/[a-z#{x}]/\n");
+    }
+
+    /// 補間の中身が多バイトでも、位置は文字数で数えるので後ろがずれない。
+    #[test]
+    fn a_multibyte_interpolation_does_not_shift_the_members_after_it() {
+        expect_offense(
+            COP,
+            r#"
+            /[x#{い}yy]/
+                    ^ Duplicate element inside regexp character class
+            "#,
+        );
+        expect_correction(COP, "/[x#{い}yy]/\n", "/[x#{い}y]/\n");
+    }
+
+    /// 拡張モードでも文字クラスの中の空白は文字のまま。
+    #[test]
+    fn a_blank_inside_a_class_counts_even_in_extended_mode() {
+        expect_offense(
+            COP,
+            r"
+            /[a a]/x
+                ^ Duplicate element inside regexp character class
+            ",
+        );
+        expect_correction(COP, "/[a a]/x\n", "/[a ]/x\n");
+    }
+
+    /// `&&` の左右は別の集合なので、またいだ重複は数えない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in ["/[xy]/\n", "/[0-9x]/\n", "/[a&&a]/\n"] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+mod lint_mixed_case_range {
+    use super::*;
+
+    const COP: &str = "Lint/MixedCaseRange";
+
+    const MSG: &str = "Ranges from upper to lower case ASCII letters may include unintended \
+                       characters. Instead of `A-z` (which also includes several symbols) \
+                       specify each range individually: `A-Za-z` and individually specify any \
+                       symbols.";
+
+    /// 文字クラスの中の `A-z`。2 つの範囲に割る。
+    #[test]
+    fn a_mixed_case_range_in_a_character_class_is_reported() {
+        expect_offense(COP, &format!("/[A-z]/\n  ^^^ {MSG}\n"));
+        expect_correction(COP, "/[A-z]/\n", "/[A-Za-z]/\n");
+        expect_correction(COP, "/[^A-z]/\n", "/[^A-Za-z]/\n");
+        expect_correction(COP, "/[A-z0-9]/\n", "/[A-Za-z0-9]/\n");
+        // 片方だけが 1 文字の範囲になるときは、その 1 文字だけを書く。
+        expect_correction(COP, "/[Z-a]/\n", "/[Za]/\n");
+    }
+
+    /// `Range` オブジェクトも同じ質問をされるが、2 つには割れないので報告だけ。
+    #[test]
+    fn a_range_object_is_reported_without_a_correction() {
+        expect_offense(COP, &format!("('A'..'z')\n ^^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("('A'...'z')\n ^^^^^^^^^ {MSG}\n"));
+        expect_offense(COP, &format!("('Z'..'a')\n ^^^^^^^^ {MSG}\n"));
+    }
+
+    /// 大小が揃っている範囲、片方が英字でない範囲、端が 1 文字でないもの、
+    /// 端がエスケープのものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "/[A-Za-z]/\n",
+            "/[0-9]/\n",
+            "/[\\x41-z]/\n",
+            "('AA'..'zz')\n",
+            "(1..9)\n",
+            "('A'..)\n",
+            // `!` はどちらの範囲にも入らないので、書き換えようがない。
+            "/[!-z]/\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+mod lint_redundant_regexp_quantifiers {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantRegexpQuantifiers";
+
+    /// `(?:x+)+` の 2 つの量指定子。内側を書き換えて外側を消す。
+    #[test]
+    fn a_quantified_group_around_a_quantified_expression_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            /(?:x+)+/
+                 ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:x+)+/\n", "/(?:x+)/\n");
+        expect_offense(
+            COP,
+            r"
+            /(?:x+)?/
+                 ^^^ Replace redundant quantifiers `+` and `?` with a single `*`.
+            ",
+        );
+        expect_correction(COP, "/(?:x+)?/\n", "/(?:x*)/\n");
+        // `{1,}` は `+` と同じ意味なので、短いほうに揃えて書き換える。
+        expect_offense(
+            COP,
+            r"
+            /(?:x{1,})+/
+                 ^^^^^^ Replace redundant quantifiers `{1,}` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:x{1,})+/\n", "/(?:x+)/\n");
+    }
+
+    /// 量指定子を 2 つ並べて書いた形も、暗黙のグループが 1 つ挟まっているだけで同じ。
+    #[test]
+    fn two_quantifiers_written_side_by_side_are_the_same_shape() {
+        expect_offense(
+            COP,
+            r"
+            /a+*/
+              ^^ Replace redundant quantifiers `+` and `*` with a single `*`.
+            ",
+        );
+        expect_correction(COP, "/a+*/\n", "/a*/\n");
+    }
+
+    /// 入れ子のグループは外側から数えて 1 回ずつ、内側は再訪しない。
+    #[test]
+    fn a_nested_group_is_paired_with_the_outermost_quantifier_only() {
+        expect_offense(
+            COP,
+            r"
+            /(?:(?:x+)+)+/
+                    ^^^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+                      ^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?:(?:x+)+)+/\n", "/(?:(?:x+))/\n");
+    }
+
+    /// 拡張モードの空白と `#` の注釈は、要素が 1 つかどうかの数に入らない。
+    #[test]
+    fn free_spacing_does_not_change_what_the_group_holds() {
+        expect_offense(
+            COP,
+            r"
+            /(?: x+ )+/x
+                  ^^^^ Replace redundant quantifiers `+` and `+` with a single `+`.
+            ",
+        );
+        expect_correction(COP, "/(?: x+ )+/x\n", "/(?: x+ )/x\n");
+    }
+
+    /// 捕獲グループ、要素が 2 つ以上のグループ、怠惰な量指定子、補間のあるリテラルは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "/(?:x)+/\n",
+            "/(?:x+)/\n",
+            "/(x+)+/\n",
+            "/(?:x+y)+/\n",
+            "/(?:x+?)+/\n",
+            "/(?:a*#{x})?/x\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
     }
 }
 
@@ -32731,6 +33499,234 @@ mod style_disable_cops_within_source_code_directive {
     }
 }
 
+mod lint_require_range_parentheses {
+    use super::*;
+
+    const COP: &str = "Lint/RequireRangeParentheses";
+
+    const MSG: &str = "Wrap the range literal `1..` in parentheses to avoid confusion with an \
+                       endless range.";
+
+    /// 行末で終わるレンジは括弧で囲む。レンジ全体を報告し、補正はしない。
+    ///
+    /// 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+    /// `tests/conformance.rs` 側で `locations` / `lengths` に固定してある。
+    #[test]
+    fn a_range_whose_end_is_on_the_next_line_is_reported() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n42\n"));
+        // 文法はレンジを 2 つに割るが、Ruby は 1 つのレンジとして読む。
+        // 報告の範囲は組み直したレンジ全体。
+        expect_offense(COP, &format!("1..\n^^^ {MSG}\n42\n"));
+    }
+
+    /// 括弧の中では改行が区切りにならないので、文法もレンジを割らない。
+    /// それでも本家は演算子と終端の行が違えば報告する。
+    #[test]
+    fn a_range_the_grammar_kept_whole_is_reported_the_same_way() {
+        expect_offense(COP, &format!("a = [1..\n     ^^^ {MSG}\n42]\n"));
+        expect_offense(COP, &format!("foo(1..\n    ^^^ {MSG}\n42)\n"));
+    }
+
+    /// 終端の式は行頭の 1 語ではなく式全体。
+    #[test]
+    fn the_end_is_the_whole_expression_that_follows() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n8 + 9\n"));
+    }
+
+    /// 間にコメントしかなければ、Ruby は改行をまたいでレンジを続ける。
+    #[test]
+    fn a_comment_in_between_does_not_end_the_range() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n# note\n42\n"));
+    }
+
+    /// 括弧で囲めばそれが答え。式が続かない書き方、終端が同じ行にあるもの、
+    /// 始端の無いレンジ、複数の文を持つ本体の中にあるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "y = (1..\n42)\n",
+            "z = 1..42\n",
+            "x = (1..)\ny = 2\n",
+            "def m\n  1..\nend\n",
+            // `,` があるので Ruby は終端を取り込まない。
+            "c = [1.., 2]\n",
+            "d = [1..,\n3]\n",
+            "f = {a: 1..,\nb: 2}\n",
+            // `then` が挟まると endless range のまま。
+            "case x\nwhen 1..\nthen y\nend\n",
+            // 本体が 2 文以上あると、本家はレンジの親を `begin` にする。
+            "def n\n  q = 0\n  1..\n  42\nend\n",
+            "puts 0\n1..\n42\n",
+            // 補間は 1 文でも `begin`。
+            "s = \"#{3..\n44}\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantFormat`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_format {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 書式指定の無い `format` は、その文字列そのもの。
+    #[test]
+    fn a_format_with_nothing_to_format_is_the_string_itself() {
+        correction("a = format('name')\n", "a = 'name'\n");
+        correction("a = sprintf(\"name\")\n", "a = \"name\"\n");
+        correction("a = Kernel.format('name')\n", "a = 'name'\n");
+        correction("a = format(CONST)\n", "a = CONST\n");
+    }
+
+    /// 引数が全部リテラルなら、書式を当てた結果まで畳める。
+    #[test]
+    fn literal_arguments_are_folded_into_the_result() {
+        correction("a = format('%s', 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%d', 1)\n", "a = '1'\n");
+        correction("a = format('%f', 1.5)\n", "a = '1.500000'\n");
+        correction("a = format('%05d', 42)\n", "a = '00042'\n");
+        correction("a = format('%-10s|', 'ab')\n", "a = 'ab        |'\n");
+        correction("a = format('%.2f', 1.234)\n", "a = '1.23'\n");
+        correction("a = format('%<x>s', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%{x}', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%2$s %1$s', 'x', 'y')\n", "a = 'y x'\n");
+        correction("a = format('%*d', 5, 42)\n", "a = '   42'\n");
+        correction("a = format('%s', nil)\n", "a = ''\n");
+        correction("a = format('%s', :sym)\n", "a = 'sym'\n");
+        // 式展開のある引数は結果も式展開できる形にする。
+        correction("a = format('%s', \"x#{b}y\")\n", "a = \"x#{b}y\"\n");
+    }
+
+    /// リテラルでない引数、型の合わない書式、`%%`、splat は黙る。
+    #[test]
+    fn what_the_format_cop_leaves_alone() {
+        for source in [
+            "a = format('%s', foo)\n",
+            "a = format('%x', 255)\n",
+            "a = format('%s%%', 'a')\n",
+            "a = format('%s', *args)\n",
+            "a = format('%s', **opts)\n",
+            "a = format('%s %d', 'a')\n",
+            "a = format('%d', true)\n",
+            "a = format('%5s', \"a#{b}c\")\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantLineContinuation`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_line_continuation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantLineContinuation";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 消しても構文が変わらない `\` は消える。消えるのは backslash 1 文字だけなので、
+    /// 手前にあった空白はそのまま残る。
+    #[test]
+    fn a_line_continuation_the_parser_did_not_need_is_removed() {
+        correction("foo = 1 + \\\n  2\n", "foo = 1 + \n  2\n");
+        correction("qux = foo \\\n  .bar\n", "qux = foo \n  .bar\n");
+        correction("quux(1, \\\n  2)\n", "quux(1, \n  2)\n");
+        correction("corge = [1, \\\n  2]\n", "corge = [1, \n  2]\n");
+        // 最終行の末尾に残った `\` も対象。
+        correction("fred = 1 + 2 \\\n", "fred = 1 + 2 \n");
+    }
+
+    /// 文字列の中、コメントの中、暗黙の文字列連結、消すと構文が変わるものは黙る。
+    #[test]
+    fn what_the_line_continuation_cop_leaves_alone() {
+        for source in [
+            "baz = \"a\" \\\n  \"b\"\n",
+            "waldo = \"a\\\nb\"\n",
+            "# comment \\\ngarply = 1\n",
+            "grault = <<~T\n  a \\\n  b\nT\n",
+            // 次の行が演算子で始まるので、`\` を消すと別の構文になる。
+            "s = 1 if foo \\\n  && bar\n",
+            // 空行を挟んだ leading dot は `\` が無いと繋がらない。
+            "r = foo \\\n\n  .bar\n",
+            // 次の行が新しい式を始めるなら、`\` はそれを引数として繋いでいる。
+            "assert_equal \\\n  \"a\",\n  b\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantStringEscape`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_string_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantStringEscape";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 何も escape していない backslash は消える。
+    #[test]
+    fn a_backslash_that_escapes_nothing_is_removed() {
+        correction("foo = \"\\.bar\"\n", "foo = \".bar\"\n");
+        correction("foo = \"\\!bar\"\n", "foo = \"!bar\"\n");
+        // 二重引用符の中の単引用符は区切り文字ではない。
+        correction("foo = \"\\'bar\"\n", "foo = \"'bar\"\n");
+        // `%W` は式展開が効くので escape も効く。`%w` は効かない。
+        correction("foo = %W[a\\.b]\n", "foo = %W[a.b]\n");
+        correction("foo = \"a\\ b\"\n", "foo = \"a b\"\n");
+        // ヒアドキュメントの中も見る。
+        correction("foo = <<~T\n  a\\.b\nT\n", "foo = <<~T\n  a.b\nT\n");
+    }
+
+    /// 区切り文字、英数字、`\\`、式展開を止める `\#{`、式展開の無い書き方は黙る。
+    #[test]
+    fn what_the_escape_cop_leaves_alone() {
+        for source in [
+            "foo = \"\\\"bar\"\n",
+            "foo = \"\\n\"\n",
+            "foo = \"\\\\\"\n",
+            "foo = 'a\\.b'\n",
+            "foo = 'a\\'b'\n",
+            "foo = %q(a\\.b)\n",
+            "foo = %w[a\\.b]\n",
+            "foo = \"a\\#{b}c\"\n",
+            "foo = /a\\.b/\n",
+            "foo = ?\\.\n",
+            "foo = <<~'T'\n  a\\.b\nT\n",
+            "foo = %(a\\(b\\)c)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
 /// `Style/MissingElse` (既定無効) — 期待値は本家 1.89.0 の実測。
 mod style_missing_else {
     use super::*;
@@ -32900,6 +33896,138 @@ mod style_missing_else {
     }
 }
 
+mod style_arguments_forwarding {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    const FORWARDING: &str = "Use shorthand syntax `...` for arguments forwarding.";
+    const ARGS: &str = "Use anonymous positional arguments forwarding (`*`).";
+    const KWARGS: &str = "Use anonymous keyword arguments forwarding (`**`).";
+    const BLOCK: &str = "Use anonymous block arguments forwarding (`&`).";
+
+    /// 2.7 では `...` にまとめられる。定義と呼び出しの両方を報告する。
+    #[test]
+    fn everything_forwarded_together_becomes_the_shorthand() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, &block)\n      ^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// `AllowOnlyRestArgument` が既定で真なので、`*args` だけの転送は 2.7 では通る。
+    /// ブロックまで持っていってしまう `...` とは意味が違うため。
+    #[test]
+    fn only_a_rest_argument_is_allowed_before_3_2() {
+        expect_no_offenses(COP, "def foo(*args)\n  bar(*args)\nend\n");
+        expect_no_offenses(COP, "def foo(**kwargs)\n  bar(**kwargs)\nend\n");
+    }
+
+    /// 3.2 では `*` と `**` の両方が揃っていないと `...` にできない。片方だけなら
+    /// それぞれを匿名にする。
+    #[test]
+    fn from_3_2_each_one_is_anonymised_on_its_own() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^ {ARGS}\n               ^^^^^^ {BLOCK}\n  \
+                 bar(*args, &block)\n      ^^^^^ {ARGS}\n             ^^^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, &)\n  bar(*, &)\nend\n")
+        .run();
+        // 3 つ揃っていれば 3.2 でも `...`。
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs, &block)\n        ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, **kwargs, &block)\n      ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 括弧を書いていない定義や呼び出しには、書き換えのついでに括弧が付く。
+    #[test]
+    fn parentheses_are_added_where_they_were_missing() {
+        expect_correction(
+            COP,
+            "def foo(*args, &block)\n  bar *args, &block\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo *args, &block\n  bar(*args, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+    }
+
+    /// 名前が設定の一覧に無ければ、意味のある名前として残す。
+    #[test]
+    fn a_meaningful_name_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "def foo(*things, &callback)\n  bar(*things, &callback)\nend\n",
+        );
+        // 転送以外の場所で読まれている名前も残す。
+        expect_no_offenses(
+            COP,
+            "def foo(*args, &block)\n  args.first\n  bar(*args, &block)\nend\n",
+        );
+    }
+
+    /// ブロックの中では匿名の引数が 3.3 で構文エラーになるので、3.4 未満では提案しない。
+    /// 本家では `block` ノードが呼び出しを包むので、ブロックを持つ呼び出しの引数も
+    /// 「ブロックの中」に数える。
+    #[test]
+    fn nothing_is_anonymised_inside_a_block_before_3_4() {
+        for source in [
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n",
+            "def foo(*args)\n  bar(*args) { baz }\nend\n",
+            "def foo(*args)\n  bar(*args).tap { |x| x }\nend\n",
+        ] {
+            CopCase::new(COP, support::annotation::dedent(source), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+    }
+
+    /// 2.7 より前にはそもそも `...` が無い。
+    #[test]
+    fn the_cop_is_silent_before_2_7() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.6")
+        .run();
+    }
+
+    /// `yield` と `x[...]` も本家では送信なので同じように見る。
+    #[test]
+    fn a_yield_and_an_index_are_sends_too() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\n  \
+                 yield(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, **)\n  yield(*, **)\nend\n")
+        .run();
+    }
+}
+
 /// `Style/MethodCallWithArgsParentheses` (既定無効) — 期待値は本家 1.89.0 の実測。
 mod style_method_call_with_args_parentheses {
     use super::*;
@@ -33066,170 +34194,5 @@ mod style_method_call_with_args_parentheses {
         .locations(&[(2, 8, 4, 1)])
         .lengths(&[7])
         .run();
-    }
-}
-
-/// `Style/ArgumentsForwarding` (既定 pending) — 期待値は本家 1.89.0 の実測。
-mod style_arguments_forwarding {
-    use super::*;
-
-    const COP: &str = "Style/ArgumentsForwarding";
-
-    fn correction(target: &str, source: &str, corrected: &str) {
-        CopCase::new(COP, source.to_owned(), Vec::new())
-            .target_ruby(target)
-            .without_offense_check()
-            .corrected(corrected)
-            .run();
-    }
-
-    /// 受け取ってそのまま渡すだけの引数は `...` 一つで済む。位置は定義側・呼び出し側
-    /// それぞれの、転送する引数の並び全体。
-    #[test]
-    fn arguments_that_are_only_passed_on_become_the_shorthand() {
-        expect_offense(
-            COP,
-            r"
-            def foo(*args, &block)
-                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-              bar(*args, &block)
-                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-            end
-            ",
-        );
-        correction(
-            "2.7",
-            "def foo(*args, &block)\n  bar(*args, &block)\nend\n",
-            "def foo(...)\n  bar(...)\nend\n",
-        );
-        correction(
-            "2.7",
-            "def foo(*args, **kwargs, &block)\n  bar(*args, **kwargs, &block)\nend\n",
-            "def foo(...)\n  bar(...)\nend\n",
-        );
-        // 括弧の無い呼び出しには括弧を足す。
-        correction(
-            "2.7",
-            "def foo(*args, &block)\n  bar *args, &block\nend\n",
-            "def foo(...)\n  bar(...)\nend\n",
-        );
-    }
-
-    /// Ruby 3.2 からは `*` `**` `&` だけを無名にできる。`...` になるのは三つとも
-    /// 揃っているときだけ。
-    #[test]
-    fn ruby_32_forwards_each_kind_on_its_own() {
-        CopCase::annotated(
-            COP,
-            r"
-            def foo(*args, &block)
-                    ^^^^^ Use anonymous positional arguments forwarding (`*`).
-              bar(*args, &block)
-                  ^^^^^ Use anonymous positional arguments forwarding (`*`).
-            end
-            ",
-        )
-        .target_ruby("3.2")
-        .without_offense_check()
-        .locations(&[(1, 9, 1, 13), (1, 16, 1, 21), (2, 7, 2, 11), (2, 14, 2, 19)])
-        .lengths(&[5, 6, 5, 6])
-        .run();
-        correction(
-            "3.2",
-            "def foo(*args, &block)\n  bar(*args, &block)\nend\n",
-            "def foo(*, &)\n  bar(*, &)\nend\n",
-        );
-        correction(
-            "3.2",
-            "def foo(*args)\n  bar(*args)\nend\n",
-            "def foo(*)\n  bar(*)\nend\n",
-        );
-        correction(
-            "3.2",
-            "def foo(**kwargs)\n  bar(**kwargs)\nend\n",
-            "def foo(**)\n  bar(**)\nend\n",
-        );
-        correction(
-            "3.2",
-            "def foo(&block)\n  bar(&block)\nend\n",
-            "def foo(&)\n  bar(&)\nend\n",
-        );
-        // 三つ揃えば `...` のまま。
-        correction(
-            "3.2",
-            "def foo(*args, **kwargs, &block)\n  bar(*args, **kwargs, &block)\nend\n",
-            "def foo(...)\n  bar(...)\nend\n",
-        );
-    }
-
-    /// `RedundantRestArgumentNames` 等に無い名前は転送とみなさない。`*rest` は残り、
-    /// `&blk` だけが無名になる。
-    #[test]
-    fn only_the_names_the_configuration_calls_redundant_are_forwarded() {
-        correction(
-            "3.2",
-            "def foo(*rest, &blk)\n  bar(*rest, &blk)\nend\n",
-            "def foo(*rest, &)\n  bar(*rest, &)\nend\n",
-        );
-    }
-
-    /// 本体が引数を自分で読んでいるなら転送ではない。
-    #[test]
-    fn an_argument_the_body_reads_for_itself_is_not_forwarded() {
-        expect_no_offenses(COP, "def foo(*args)\n  args.first\n  bar(*args)\nend\n");
-        expect_no_offenses(
-            COP,
-            "def foo(*args, **options)\n  a, b, options = split(*args, **options)\n  bar(*args, **options)\nend\n",
-        );
-    }
-
-    /// Ruby 3.3 まではブロックの中で無名引数を読むと構文誤りなので、ブロックの中に
-    /// あるものは 3.4 になるまで報告しない。`...` の方は版に関わらず報告する。
-    #[test]
-    fn an_anonymous_forwarding_inside_a_block_waits_for_ruby_34() {
-        let source = "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n";
-        CopCase::new(COP, source.to_owned(), Vec::new())
-            .target_ruby("3.2")
-            .run();
-        correction(
-            "3.4",
-            source,
-            "def foo(*, &)\n  [1].each { bar(*, &) }\nend\n",
-        );
-        correction(
-            "2.7",
-            source,
-            "def foo(...)\n  [1].each { bar(...) }\nend\n",
-        );
-    }
-
-    /// `Naming/BlockForwarding` が `explicit` なら、ブロックだけは名前のまま残す。
-    #[test]
-    fn an_explicit_block_name_is_left_alone_when_the_other_cop_asks_for_one() {
-        CopCase::new(
-            COP,
-            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
-            Vec::new(),
-        )
-        .config("Naming/BlockForwarding:\n  Enabled: true\n  EnforcedStyle: explicit\n")
-        .target_ruby("3.4")
-        .without_offense_check()
-        .corrected("def foo(*, &block)\n  bar(*, &block)\nend\n")
-        .run();
-    }
-
-    /// 触らないもの。
-    #[test]
-    fn what_the_cop_leaves_alone() {
-        for source in [
-            // もう `...` になっている。
-            "def foo(...)\n  bar(...)\nend\n",
-            // 転送していない。
-            "def foo(*args)\n  bar(1)\nend\n",
-            // 本体が無い。
-            "def foo(*args); end\n",
-        ] {
-            expect_no_offenses(COP, source);
-        }
     }
 }

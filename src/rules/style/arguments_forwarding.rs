@@ -1,87 +1,83 @@
+//! `def foo(*args, &block); bar(*args, &block); end` written as `def foo(...); bar(...); end`.
+//!
+//! What can be forwarded depends on the target version: `...` arrived in 2.7, taking arguments
+//! before it in 3.0, and the anonymous `&` and `*` / `**` in 3.1 and 3.2. The cop therefore has
+//! two paths -- one that folds everything into `...`, one that anonymises each of the three on its
+//! own -- and picks between them by what every call in the body forwards.
+
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
-use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children;
 
-/// `minimum_target_ruby_version 2.7`.
+/// `minimum_target_ruby_version 2.7`: `...` arrived in 2.7.
 const MINIMUM: RubyVersion = RubyVersion::new(2, 7);
-/// `def foo(a = 41, ...)` is a syntax error up to here, and a `...` may not follow a `*` either.
-const RUBY_30: RubyVersion = RubyVersion::new(3, 0);
-/// The version that gave `*` and `**` a meaning of their own.
-const RUBY_32: RubyVersion = RubyVersion::new(3, 2);
-/// The version that let an anonymous argument be forwarded from inside a block.
-const RUBY_34: RubyVersion = RubyVersion::new(3, 4);
+const RUBY_3_0: RubyVersion = RubyVersion::new(3, 0);
+const RUBY_3_2: RubyVersion = RubyVersion::new(3, 2);
+const RUBY_3_4: RubyVersion = RubyVersion::new(3, 4);
 
 const FORWARDING_MSG: &str = "Use shorthand syntax `...` for arguments forwarding.";
 const ARGS_MSG: &str = "Use anonymous positional arguments forwarding (`*`).";
 const KWARGS_MSG: &str = "Use anonymous keyword arguments forwarding (`**`).";
 const BLOCK_MSG: &str = "Use anonymous block arguments forwarding (`&`).";
 
-/// A definition that takes arguments only to hand them straight on, which `...` says in one.
+/// The three parameters that can be forwarded, each kept only when its name is one the
+/// configuration calls meaningless -- a name worth reading is a reason to leave the call alone.
+#[derive(Clone, Copy, Default)]
+struct Forwardable<'tree> {
+    rest: Option<Node<'tree>>,
+    kwrest: Option<Node<'tree>>,
+    block: Option<Node<'tree>>,
+}
+
+/// `classification`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Classification {
+    All,
+    AllAnonymous,
+    RestOrKwrest,
+}
+
+/// One call of the body, with what it turned out to forward.
+struct Classified<'tree> {
+    send: Node<'tree>,
+    classification: Classification,
+    rest: Option<Node<'tree>>,
+    kwrest: Option<Node<'tree>>,
+    block: Option<Node<'tree>>,
+}
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM {
         return;
     }
-    let settings = Settings::new(context);
-    let locals = LocalVariables::new(context);
-    for def_node in context.nodes_of_any(&["method", "singleton_method"]) {
-        let Some(body) = def_node.field("body") else {
-            continue;
-        };
-        let parameters = def_node.field("parameters");
-        let written = parameters.map(super::nodes::children).unwrap_or_default();
-        let forwardable = Forwardable::of(&written, &settings, context);
-        let referenced = referenced_names(body, context, &locals);
-        let classifications: Vec<Classification<'_>> = sends(def_node)
-            .into_iter()
-            .filter_map(|send| {
-                Classification::of(
-                    def_node,
-                    &written,
-                    send,
-                    &referenced,
-                    &forwardable,
-                    &settings,
-                    context,
-                )
-            })
-            .collect();
-        if classifications.is_empty() {
-            continue;
-        }
-        if classifications
-            .iter()
-            .all(|found| matches!(found.kind, Kind::All | Kind::AllAnonymous))
-        {
-            forward_all_offenses(
-                def_node,
-                parameters,
-                &written,
-                &classifications,
-                &forwardable,
-                &settings,
-                context,
-                offenses,
-            );
-        } else if settings.target >= RUBY_32 {
-            anonymous_offenses(
-                parameters,
-                &classifications,
-                &forwardable,
-                &settings,
-                context,
-                offenses,
-            );
-        }
+    let cop = Cop {
+        context,
+        version: context.target_ruby_version(),
+        allow_only_rest_arguments: context.setting("AllowOnlyRestArgument").unwrap_or(true),
+        use_anonymous_forwarding: context.setting("UseAnonymousForwarding").unwrap_or(false),
+        rest_names: names(context, "RedundantRestArgumentNames"),
+        kwrest_names: names(context, "RedundantKeywordRestArgumentNames"),
+        block_names: names(context, "RedundantBlockArgumentNames"),
+        explicit_block_name: context
+            .setting_of::<String>("Naming/BlockForwarding", "EnforcedStyle")
+            .is_some_and(|style| style == "explicit"),
+    };
+    for node in context.nodes_of_any(&["method", "singleton_method"]) {
+        cop.on_def(node, offenses);
     }
 }
 
-/// What the configuration says, gathered once.
-struct Settings {
-    target: RubyVersion,
+fn names(context: &RuleContext<'_>, key: &str) -> Vec<String> {
+    context.setting::<Vec<String>>(key).unwrap_or_default()
+}
+
+struct Cop<'a, 'tree> {
+    context: &'a RuleContext<'tree>,
+    version: RubyVersion,
     allow_only_rest_arguments: bool,
     use_anonymous_forwarding: bool,
     rest_names: Vec<String>,
@@ -90,764 +86,791 @@ struct Settings {
     explicit_block_name: bool,
 }
 
-impl Settings {
-    fn new(context: &RuleContext<'_>) -> Self {
-        Self {
-            target: context.target_ruby_version(),
-            allow_only_rest_arguments: context.setting("AllowOnlyRestArgument").unwrap_or(true),
-            use_anonymous_forwarding: context.setting("UseAnonymousForwarding").unwrap_or(false),
-            rest_names: context
-                .setting("RedundantRestArgumentNames")
-                .unwrap_or_default(),
-            kwrest_names: context
-                .setting("RedundantKeywordRestArgumentNames")
-                .unwrap_or_default(),
-            block_names: context
-                .setting("RedundantBlockArgumentNames")
-                .unwrap_or_default(),
-            // `config.for_enabled_cop('Naming/BlockForwarding')['EnforcedStyle']`.
-            explicit_block_name: context.cop_enabled("Naming/BlockForwarding")
-                && context
-                    .setting_of::<String>("Naming/BlockForwarding", "EnforcedStyle")
-                    .as_deref()
-                    == Some("explicit"),
+impl<'tree> Cop<'_, 'tree> {
+    fn on_def(&self, node: Node<'tree>, offenses: &mut Vec<Offense>) {
+        let Some(body) = node.field("body") else {
+            return;
+        };
+        let parameters = self.parameters(node);
+        let forwardable = self.redundant_forwardable_named_args(&parameters);
+        let referenced = self.referenced_names(body, &forwardable);
+        let classifications: Vec<Classified<'tree>> = self
+            .send_nodes(body)
+            .into_iter()
+            .filter_map(|send| self.classify(node, send, &parameters, forwardable, &referenced))
+            .collect();
+        if classifications.is_empty() {
+            return;
+        }
+        // `only_forwards_all?`: every call takes the whole lot, so `...` says it for all of them.
+        if classifications.iter().all(|classified| {
+            matches!(
+                classified.classification,
+                Classification::All | Classification::AllAnonymous
+            )
+        }) {
+            self.add_forward_all_offenses(node, &classifications, forwardable, offenses);
+        } else if self.version >= RUBY_3_2 {
+            self.add_post_ruby_32_offenses(node, &classifications, forwardable, offenses);
         }
     }
 
-    /// `allow_anonymous_forwarding_in_block?`.
+    /// `node.arguments` for a definition: the parameters it was written with.
+    fn parameters(&self, node: Node<'tree>) -> Vec<Node<'tree>> {
+        node.field("parameters")
+            .map(|list| {
+                named_children(list)
+                    .into_iter()
+                    .filter(|child| child.kind_str() != "comment")
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// `redundant_forwardable_named_args`: each of the three, kept only when its name is one the
+    /// configuration lists -- or when it was already written anonymously.
+    fn redundant_forwardable_named_args(&self, parameters: &[Node<'tree>]) -> Forwardable<'tree> {
+        let find = |kind: &str| parameters.iter().copied().find(|p| p.kind_str() == kind);
+        Forwardable {
+            rest: self.redundant(find("splat_parameter"), &self.rest_names, "*"),
+            kwrest: self.redundant(find("hash_splat_parameter"), &self.kwrest_names, "**"),
+            block: self.redundant(find("block_parameter"), &self.block_names, "&"),
+        }
+    }
+
+    /// `redundant_named_arg`.
+    fn redundant(
+        &self,
+        parameter: Option<Node<'tree>>,
+        allowed: &[String],
+        keyword: &str,
+    ) -> Option<Node<'tree>> {
+        let parameter = parameter?;
+        let source = self.context.source.node_text(parameter);
+        let redundant = source == keyword
+            || allowed
+                .iter()
+                .any(|name| source == format!("{keyword}{name}"));
+        redundant.then_some(parameter)
+    }
+
+    /// `node.each_descendant(:call, :super, :yield)`.
     ///
-    /// Ruby 3.3 made reading an anonymous argument inside a block a syntax error, so a forwarding
-    /// written there is left alone for every version before the one that allowed it again.
-    fn anonymous_in_block(&self, node: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
-        let Some(node) = node else {
-            return false;
-        };
-        self.target >= RUBY_34 || !inside_block(node, context)
+    /// A bare `super` is a `zsuper` upstream and no part of that set; here it is a node of its own
+    /// and drops out by kind. `super(…)` and `x[…]` are both sends there, and both are a kind of
+    /// their own here.
+    fn send_nodes(&self, body: Node<'tree>) -> Vec<Node<'tree>> {
+        let mut found = Vec::new();
+        let mut stack = vec![body];
+        while let Some(node) = stack.pop() {
+            if matches!(node.kind_str(), "call" | "yield" | "element_reference") {
+                found.push(node);
+            }
+            crate::rules::push_named_children(node, &mut stack);
+        }
+        found.sort_by_key(Node::start_byte);
+        found
     }
-}
 
-/// `redundant_forwardable_named_args`: the three parameters whose names say nothing the shorthand
-/// does not.
-struct Forwardable<'tree> {
-    rest: Option<Node<'tree>>,
-    kwrest: Option<Node<'tree>>,
-    block: Option<Node<'tree>>,
-}
+    /// `non_splat_or_block_pass_lvar_references`: the names the body reads or writes somewhere
+    /// other than as the `*x`, `**x` or `&x` of a call, which is what forwarding would take away.
+    fn referenced_names(&self, body: Node<'tree>, forwardable: &Forwardable<'tree>) -> Vec<String> {
+        let watched: Vec<String> = [forwardable.rest, forwardable.kwrest, forwardable.block]
+            .into_iter()
+            .flatten()
+            .filter_map(|parameter| self.parameter_name(parameter))
+            .collect();
+        let mut referenced = Vec::new();
+        let mut stack = vec![body];
+        while let Some(node) = stack.pop() {
+            if node.kind_str() == "identifier" {
+                let text = self.context.source.node_text(node);
+                if watched.iter().any(|name| name == text)
+                    && !referenced.iter().any(|name| name == text)
+                    && self.is_bare_reference(node)
+                {
+                    referenced.push(text.to_owned());
+                }
+            }
+            crate::rules::push_named_children(node, &mut stack);
+        }
+        referenced
+    }
 
-impl<'tree> Forwardable<'tree> {
-    fn of(written: &[Node<'tree>], settings: &Settings, context: &RuleContext<'_>) -> Self {
-        let find = |kind: &str| written.iter().find(|node| node.kind_str() == kind).copied();
-        Self {
-            rest: redundant(find("splat_parameter"), &settings.rest_names, "*", context),
-            kwrest: redundant(
-                find("hash_splat_parameter"),
-                &settings.kwrest_names,
-                "**",
-                context,
-            ),
-            block: redundant(find("block_parameter"), &settings.block_names, "&", context),
+    /// Whether the name stands where upstream would have built an `lvar` or an `lvasgn` rather
+    /// than the forwarding argument the cop is about to take away.
+    fn is_bare_reference(&self, node: Node<'tree>) -> bool {
+        let Some(parent) = node.parent_of(self.context) else {
+            return true;
+        };
+        match parent.kind_str() {
+            // `*x`, `**x` and `&x` in an argument list are the forwarding itself.
+            "splat_argument" | "hash_splat_argument" | "block_argument" => false,
+            // The name of a call is a symbol upstream, not a variable.
+            "call" => parent
+                .field("method")
+                .is_none_or(|method| method.id() != node.id()),
+            _ => true,
         }
     }
 
-    fn count(&self) -> usize {
-        usize::from(self.rest.is_some())
-            + usize::from(self.kwrest.is_some())
-            + usize::from(self.block.is_some())
+    fn parameter_name(&self, parameter: Node<'tree>) -> Option<String> {
+        parameter
+            .field("name")
+            .map(|name| self.context.source.node_text(name).to_owned())
     }
-}
 
-/// `redundant_named_arg`: the parameter, but only when it is written as the keyword alone or with
-/// one of the names the configuration calls redundant.
-fn redundant<'tree>(
-    parameter: Option<Node<'tree>>,
-    names: &[String],
-    keyword: &str,
-    context: &RuleContext<'_>,
-) -> Option<Node<'tree>> {
-    let parameter = parameter?;
-    let source = context.source.node_text(parameter);
-    (source == keyword
-        || names
-            .iter()
-            .any(|name| format!("{keyword}{name}") == source))
-    .then_some(parameter)
-}
-
-/// `classification`.
-#[derive(Clone, Copy, PartialEq)]
-enum Kind {
-    All,
-    AllAnonymous,
-    RestOrKwrest,
-}
-
-/// One call inside the definition, with what it forwards.
-struct Classification<'tree> {
-    send: Node<'tree>,
-    kind: Kind,
-    rest: Option<Node<'tree>>,
-    kwrest: Option<Node<'tree>>,
-    block: Option<Node<'tree>>,
-}
-
-impl<'tree> Classification<'tree> {
-    fn of(
-        def_node: Node<'tree>,
-        written: &[Node<'tree>],
+    /// `SendNodeClassifier`.
+    fn classify(
+        &self,
+        def: Node<'tree>,
         send: Node<'tree>,
+        parameters: &[Node<'tree>],
+        forwardable: Forwardable<'tree>,
         referenced: &[String],
-        forwardable: &Forwardable<'tree>,
-        settings: &Settings,
-        context: &'tree RuleContext<'_>,
-    ) -> Option<Self> {
-        let name = |node: Option<Node<'_>>| {
-            node.and_then(|node| node.field("name"))
-                .map(|name| context.source.node_text(name).to_owned())
-        };
+    ) -> Option<Classified<'tree>> {
+        let list = send_arguments(send);
+        let name = |parameter: Option<Node<'tree>>| parameter.and_then(|p| self.parameter_name(p));
         let (rest_name, kwrest_name, block_name) = (
             name(forwardable.rest),
             name(forwardable.kwrest),
             name(forwardable.block),
         );
-        let is_referenced =
-            |name: &Option<String>| name.as_ref().is_some_and(|name| referenced.contains(name));
-        let arguments = upstream_arguments(send);
-        // `forwarded_rest_arg` / `forwarded_kwrest_arg` / `forwarded_block_arg`.
-        let rest = (!is_referenced(&rest_name))
-            .then(|| {
-                forwarded(
-                    &arguments,
-                    "splat_argument",
-                    rest_name.as_deref(),
-                    false,
-                    context,
-                )
-            })
+        let referenced_rest = self.is_referenced(&rest_name, referenced);
+        let referenced_kwrest = self.is_referenced(&kwrest_name, referenced);
+        let referenced_block = self.is_referenced(&block_name, referenced);
+
+        let rest = (!referenced_rest)
+            .then(|| self.forwarded_rest(&list, rest_name.as_deref()))
             .flatten();
-        let kwrest = (!is_referenced(&kwrest_name))
-            .then(|| {
-                forwarded(
-                    &arguments,
-                    "hash_splat_argument",
-                    kwrest_name.as_deref(),
-                    false,
-                    context,
-                )
-            })
+        let kwrest = (!referenced_kwrest)
+            .then(|| self.forwarded_kwrest(&list, kwrest_name.as_deref()))
             .flatten();
-        let block = (!is_referenced(&block_name))
-            .then(|| {
-                forwarded(
-                    &arguments,
-                    "block_argument",
-                    block_name.as_deref(),
-                    true,
-                    context,
-                )
-            })
+        let block = (!referenced_block)
+            .then(|| self.forwarded_block(&list, block_name.as_deref()))
             .flatten();
         if rest.is_none() && kwrest.is_none() && block.is_none() {
             return None;
         }
-        let referenced_any =
-            is_referenced(&rest_name) || is_referenced(&kwrest_name) || is_referenced(&block_name);
-        let kind = if only_anonymous(def_node, written, send, &arguments, context) {
-            Kind::AllAnonymous
-        } else if can_forward_all(
-            def_node,
-            written,
-            send,
-            &arguments,
-            referenced_any,
-            (rest, kwrest, block),
+
+        let any_referenced = referenced_rest || referenced_kwrest || referenced_block;
+        let classification = if self.ruby_32_only_anonymous_forwarding(def, send, parameters, &list)
+        {
+            Classification::AllAnonymous
+        } else if self.can_forward_all(
+            def,
+            parameters,
+            &list,
             forwardable,
-            settings,
-            context,
+            (rest, kwrest, block),
+            (rest_name.is_some(), kwrest_name.is_some()),
+            any_referenced,
         ) {
-            Kind::All
+            Classification::All
         } else {
-            Kind::RestOrKwrest
+            Classification::RestOrKwrest
         };
-        Some(Self {
+        Some(Classified {
             send,
-            kind,
+            classification,
             rest,
             kwrest,
             block,
         })
     }
-}
 
-/// `forwarded_rest_arg?` and its siblings: the argument that hands the named parameter straight on.
-///
-/// An anonymous `&` matches whatever the block parameter was called, which is what `{(lvar %1)
-/// nil?}` allows for and the other two patterns do not.
-fn forwarded<'tree>(
-    arguments: &[Argument<'tree>],
-    kind: &str,
-    name: Option<&str>,
-    anonymous_matches: bool,
-    context: &RuleContext<'_>,
-) -> Option<Node<'tree>> {
-    arguments.iter().find_map(|argument| {
-        argument.parts.iter().copied().find(|part| {
-            if part.kind_str() != kind {
-                return false;
-            }
-            match super::nodes::children(*part).first() {
-                Some(inner) => {
-                    inner.kind_str() == "identifier"
-                        && Some(context.source.node_text(*inner)) == name
-                }
-                None => anonymous_matches,
-            }
-        })
-    })
-}
+    fn is_referenced(&self, name: &Option<String>, referenced: &[String]) -> bool {
+        name.as_ref()
+            .is_some_and(|name| referenced.iter().any(|other| other == name))
+    }
 
-/// An argument as upstream's parser counts one: the trailing keyword arguments are one `hash` there
-/// however many were written.
-struct Argument<'tree> {
-    /// `:hash` for the folded run, and the node's own kind otherwise.
-    kind: &'static str,
-    parts: Vec<Node<'tree>>,
-}
+    /// `forwarded_rest_arg?`: `(splat (lvar %1))`.
+    fn forwarded_rest(&self, list: &[Arg<'tree>], name: Option<&str>) -> Option<Node<'tree>> {
+        let name = name?;
+        list.iter()
+            .map(Arg::first)
+            .filter(|argument| argument.kind_str() == "splat_argument")
+            .find(|argument| self.only_child_named(*argument, name))
+    }
 
-fn upstream_arguments<'tree>(send: Node<'tree>) -> Vec<Argument<'tree>> {
-    // An index takes its arguments in brackets rather than in a list of its own, and upstream's
-    // parser reads them as the arguments of a `:[]` send all the same.
-    let written = match send.kind_str() {
-        "element_reference" => {
-            let object = send.field("object").map(|object| object.id());
-            super::nodes::children(send)
-                .into_iter()
-                .filter(|child| Some(child.id()) != object)
-                .collect()
+    /// `extract_forwarded_kwrest_arg`: `(hash <$(kwsplat (lvar %1)) ...>)`, whose match is the
+    /// `**name` itself rather than the hash holding it.
+    fn forwarded_kwrest(
+        &self,
+        list: &[Arg<'tree>],
+        name: Option<&str>,
+    ) -> Option<Node<'tree>> {
+        let name = name?;
+        list.iter()
+            .flat_map(hash_members)
+            .filter(|member| member.kind_str() == "hash_splat_argument")
+            .find(|member| self.only_child_named(*member, name))
+    }
+
+    /// `forwarded_block_arg?`: `(block_pass {(lvar %1) nil?})`.
+    ///
+    /// The `nil?` half asks nothing of the name, so a bare `&` is forwarding whatever the block
+    /// parameter was called -- including a `&` that was written anonymously to begin with.
+    fn forwarded_block(&self, list: &[Arg<'tree>], name: Option<&str>) -> Option<Node<'tree>> {
+        list.iter()
+            .map(Arg::first)
+            .filter(|argument| argument.kind_str() == "block_argument")
+            .find(|argument| {
+                named_children(*argument).is_empty()
+                    || name.is_some_and(|name| self.only_child_named(*argument, name))
+            })
+    }
+
+    fn only_child_named(&self, node: Node<'tree>, name: &str) -> bool {
+        matches!(named_children(node).as_slice(),
+            [only] if only.kind_str() == "identifier"
+                && self.context.source.node_text(*only) == name)
+    }
+
+    /// `ruby_32_only_anonymous_forwarding?`: everything was written anonymously on both sides
+    /// already, which `...` can still shorten.
+    fn ruby_32_only_anonymous_forwarding(
+        &self,
+        def: Node<'tree>,
+        send: Node<'tree>,
+        parameters: &[Node<'tree>],
+        list: &[Arg<'tree>],
+    ) -> bool {
+        // An anonymous block argument and a named one are never passed together.
+        if self.inside_block(send) {
+            return false;
         }
-        _ => match argument_list(send) {
-            Some(list) => super::nodes::children(list),
-            None => return Vec::new(),
-        },
-    };
-    let mut arguments: Vec<Argument<'tree>> = Vec::new();
-    for node in written {
-        let keyword = matches!(node.kind_str(), "pair" | "hash_splat_argument");
-        match arguments.last_mut() {
-            Some(last) if keyword && last.kind == "hash" => last.parts.push(node),
-            _ => arguments.push(Argument {
-                kind: if keyword { "hash" } else { node.kind_str() },
-                parts: match node.kind_str() {
-                    // A braced hash holds its own pairs, which is where a `**` written inside one
-                    // is looked for.
-                    "hash" => super::nodes::children(node),
-                    _ => vec![node],
-                },
-            }),
+        let _ = def;
+        // `(args ... (restarg) (kwrestarg) (blockarg nil?))`.
+        let anonymous_def = matches!(parameters,
+            [.., rest, kwrest, block]
+                if rest.kind_str() == "splat_parameter" && rest.field("name").is_none()
+                && kwrest.kind_str() == "hash_splat_parameter" && kwrest.field("name").is_none()
+                && block.kind_str() == "block_parameter" && block.field("name").is_none());
+        // `(send _ _ ... (forwarded_restarg) (hash (forwarded_kwrestarg)) (block_pass nil?))`.
+        let anonymous_send = send.kind_str() == "call"
+            && matches!(list,
+                [.., rest, kwrest, block]
+                    if rest.first().kind_str() == "splat_argument"
+                        && named_children(rest.first()).is_empty()
+                    && matches!(hash_members(kwrest).as_slice(),
+                        [only] if only.kind_str() == "hash_splat_argument"
+                            && named_children(*only).is_empty())
+                    && block.first().kind_str() == "block_argument"
+                        && named_children(block.first()).is_empty());
+        anonymous_def && anonymous_send
+    }
+
+    /// `can_forward_all?`.
+    #[allow(clippy::too_many_arguments)]
+    fn can_forward_all(
+        &self,
+        def: Node<'tree>,
+        parameters: &[Node<'tree>],
+        list: &[Arg<'tree>],
+        forwardable: Forwardable<'tree>,
+        forwarded: (
+            Option<Node<'tree>>,
+            Option<Node<'tree>>,
+            Option<Node<'tree>>,
+        ),
+        named: (bool, bool),
+        any_referenced: bool,
+    ) -> bool {
+        let (rest, kwrest, block) = forwarded;
+        let _ = def;
+        if any_referenced {
+            return false;
         }
-    }
-    arguments
-}
-
-/// `ruby_32_only_anonymous_forwarding?`.
-fn only_anonymous<'tree>(
-    def_node: Node<'tree>,
-    written: &[Node<'tree>],
-    send: Node<'tree>,
-    arguments: &[Argument<'tree>],
-    context: &'tree RuleContext<'_>,
-) -> bool {
-    if inside_block(send, context) {
-        return false;
-    }
-    let _ = def_node;
-    // `(args ... (restarg) (kwrestarg) (blockarg nil?))`.
-    let anonymous = |node: Option<&Node<'_>>, kind: &str| {
-        node.is_some_and(|node| node.kind_str() == kind && node.field("name").is_none())
-    };
-    let tail = written.len().checked_sub(3);
-    let def_anonymous = tail.is_some_and(|start| {
-        anonymous(written.get(start), "splat_parameter")
-            && anonymous(written.get(start + 1), "hash_splat_parameter")
-            && anonymous(written.get(start + 2), "block_parameter")
-    });
-    if !def_anonymous {
-        return false;
-    }
-    // `... (forwarded_restarg) (hash (forwarded_kwrestarg)) (block_pass nil?)`.
-    let Some(start) = arguments.len().checked_sub(3) else {
-        return false;
-    };
-    let bare = |argument: Option<&Argument<'_>>, kind: &str| {
-        argument.is_some_and(|argument| {
-            matches!(argument.parts.as_slice(), [only]
-                if only.kind_str() == kind && only.named_child_count() == 0)
-        })
-    };
-    bare(arguments.get(start), "splat_argument")
-        && arguments.get(start + 1).is_some_and(|argument| {
-            argument.kind == "hash"
-                && matches!(argument.parts.as_slice(), [only]
-                    if only.kind_str() == "hash_splat_argument" && only.named_child_count() == 0)
-        })
-        && bare(arguments.get(start + 2), "block_argument")
-}
-
-/// `can_forward_all?`.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "upstream reads the same eight things"
-)]
-fn can_forward_all<'tree>(
-    def_node: Node<'tree>,
-    written: &[Node<'tree>],
-    send: Node<'tree>,
-    arguments: &[Argument<'tree>],
-    referenced_any: bool,
-    forwarded: (
-        Option<Node<'tree>>,
-        Option<Node<'tree>>,
-        Option<Node<'tree>>,
-    ),
-    forwardable: &Forwardable<'tree>,
-    settings: &Settings,
-    context: &'tree RuleContext<'_>,
-) -> bool {
-    let (rest, kwrest, block) = forwarded;
-    let _ = (def_node, send, context);
-    if referenced_any {
-        return false;
-    }
-    // `ruby_30_or_lower_optarg?`.
-    if settings.target <= RUBY_30
-        && written
-            .iter()
-            .any(|node| node.kind_str() == "optional_parameter")
-    {
-        return false;
-    }
-    // `ruby_32_or_higher_missing_rest_or_kwest?`.
-    if settings.target >= RUBY_32 && !(rest.is_some() && kwrest.is_some()) {
-        return false;
-    }
-    // `offensive_block_forwarding?`.
-    let offensive_block = match forwardable.block {
-        Some(_) => block.is_some(),
-        None => !settings.allow_only_rest_arguments,
-    };
-    if !offensive_block {
-        return false;
-    }
-    // `additional_kwargs_or_forwarded_kwargs?`.
-    if written
-        .iter()
-        .any(|node| node.kind_str() == "keyword_parameter")
-    {
-        return false;
-    }
-    if kwrest.is_some_and(|kwrest| {
-        arguments
-            .iter()
-            .any(|argument| argument.parts.iter().any(|part| part.id() == kwrest.id()))
-            && arguments
+        // `def foo(a = 41, ...)` is a syntax error in 3.0.
+        if self.version <= RUBY_3_0
+            && parameters
                 .iter()
-                .find(|argument| argument.parts.iter().any(|part| part.id() == kwrest.id()))
-                .is_some_and(|argument| argument.parts.len() != 1)
-    }) {
-        return false;
+                .any(|parameter| parameter.kind_str() == "optional_parameter")
+        {
+            return false;
+        }
+        if self.version >= RUBY_3_2 && !(rest.is_some() && kwrest.is_some()) {
+            return false;
+        }
+        // `offensive_block_forwarding?`.
+        let offensive_block = match forwardable.block {
+            Some(_) => block.is_some(),
+            None => !self.allow_only_rest_arguments,
+        };
+        if !offensive_block {
+            return false;
+        }
+        // `additional_kwargs_or_forwarded_kwargs?`.
+        let additional_kwargs = parameters.iter().any(|parameter| {
+            matches!(
+                parameter.kind_str(),
+                "keyword_parameter" | "hash_key_symbol"
+            )
+        });
+        let forward_additional_kwargs = kwrest.is_some_and(|kwrest| {
+            list.iter()
+                .any(|argument| hash_members(argument).len() > 1 && holds(argument, kwrest))
+        });
+        if additional_kwargs || forward_additional_kwargs {
+            return false;
+        }
+        self.no_additional_args(parameters, list, forwardable, forwarded, named)
+            || (self.version >= RUBY_3_0 && no_post_splat_args(list, rest))
     }
-    // `no_additional_args?`.
-    let missing = (forwardable.rest.is_some() && rest.is_none())
-        || (forwardable.kwrest.is_some() && kwrest.is_none());
-    let count = forwardable.count();
-    let no_additional = !missing && written.len() == count && arguments.len() == count;
-    if no_additional {
-        return true;
-    }
-    // `no_post_splat_args?`.
-    settings.target >= RUBY_30 && no_post_splat_args(arguments, rest)
-}
 
-fn no_post_splat_args<'tree>(arguments: &[Argument<'tree>], rest: Option<Node<'tree>>) -> bool {
-    let Some(rest) = rest else {
-        return true;
-    };
-    let Some(index) = arguments
-        .iter()
-        .position(|argument| argument.parts.iter().any(|part| part.id() == rest.id()))
-    else {
-        return true;
-    };
-    match arguments.get(index + 1) {
-        None => true,
-        Some(argument) => matches!(argument.kind, "hash" | "block_argument"),
+    /// `no_additional_args?`.
+    fn no_additional_args(
+        &self,
+        parameters: &[Node<'tree>],
+        list: &[Arg<'tree>],
+        forwardable: Forwardable<'tree>,
+        forwarded: (
+            Option<Node<'tree>>,
+            Option<Node<'tree>>,
+            Option<Node<'tree>>,
+        ),
+        named: (bool, bool),
+    ) -> bool {
+        let count = [forwardable.rest, forwardable.kwrest, forwardable.block]
+            .into_iter()
+            .flatten()
+            .count();
+        // `missing_rest_arg_or_kwrest_arg?`.
+        if (named.0 && forwarded.0.is_none()) || (named.1 && forwarded.1.is_none()) {
+            return false;
+        }
+        parameters.len() == count && list.len() == count
     }
-}
 
-/// `add_forward_all_offenses`.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "upstream reads the same eight things"
-)]
-fn forward_all_offenses<'tree>(
-    def_node: Node<'tree>,
-    parameters: Option<Node<'tree>>,
-    written: &[Node<'tree>],
-    classifications: &[Classification<'tree>],
-    forwardable: &Forwardable<'tree>,
-    settings: &Settings,
-    context: &'tree RuleContext<'_>,
-    offenses: &mut Vec<Offense>,
-) {
-    let _ = def_node;
-    for found in classifications {
-        if found.rest.is_none() && found.kwrest.is_none() && found.kind != Kind::AllAnonymous {
-            if settings.anonymous_in_block(found.block, context) {
-                block_offense(
-                    parameters,
-                    forwardable.block,
-                    true,
-                    settings,
-                    context,
-                    offenses,
-                );
-                block_offense(
-                    argument_list(found.send),
-                    found.block,
-                    true,
-                    settings,
-                    context,
-                    offenses,
-                );
+    /// `node.each_ancestor(:any_block).any?`.
+    ///
+    /// Upstream wraps the whole call in a `block` node, so everything the call was written with --
+    /// its receiver and its arguments included -- sits inside that block. Here the block hangs off
+    /// the call instead, so a call carrying one has to be read as the block it stands for.
+    fn inside_block(&self, node: Node<'tree>) -> bool {
+        let mut current = Some(node);
+        while let Some(ancestor) = current {
+            if matches!(ancestor.kind_str(), "block" | "do_block" | "lambda")
+                || (ancestor.kind_str() == "call" && ancestor.field("block").is_some())
+            {
+                return true;
             }
+            current = ancestor.parent_of(self.context);
+        }
+        false
+    }
+
+    /// `allow_anonymous_forwarding_in_block?`: Ruby 3.3 made an anonymous argument inside a block
+    /// a syntax error, so nothing is proposed there until 3.4.
+    fn allow_anonymous_forwarding_in_block(&self, node: Option<Node<'tree>>) -> bool {
+        let Some(node) = node else {
+            return false;
+        };
+        self.version >= RUBY_3_4 || !self.inside_block(node)
+    }
+
+    /// `add_forward_all_offenses`.
+    fn add_forward_all_offenses(
+        &self,
+        def: Node<'tree>,
+        classifications: &[Classified<'tree>],
+        forwardable: Forwardable<'tree>,
+        offenses: &mut Vec<Offense>,
+    ) {
+        let mut registered_block_arg_offense = false;
+        for classified in classifications {
+            if classified.rest.is_none()
+                && classified.kwrest.is_none()
+                && classified.classification != Classification::AllAnonymous
+            {
+                if self.allow_anonymous_forwarding_in_block(classified.block) {
+                    let parens = classified.rest.is_none();
+                    self.register_block(
+                        parens,
+                        def.field("parameters"),
+                        forwardable.block,
+                        offenses,
+                    );
+                    self.register_block(parens, Some(classified.send), classified.block, offenses);
+                }
+                registered_block_arg_offense = true;
+                break;
+            }
+            let first = classified
+                .rest
+                .or(classified.kwrest)
+                .or_else(|| forward_all_first_argument(classified.send));
+            self.register_forward_all(classified.send, Some(classified.send), first, offenses);
+        }
+        if registered_block_arg_offense {
             return;
         }
-        let first = found
-            .rest
-            .or(found.kwrest)
-            .or_else(|| last_forwarded_restarg(found.send));
-        all_offense(
-            argument_list(found.send),
-            upstream_arguments(found.send).last().map(Argument::end),
-            first,
-            context,
+        self.register_forward_all(
+            def,
+            def.field("parameters"),
+            forwardable.rest.or(forwardable.kwrest),
             offenses,
         );
     }
-    all_offense(
-        parameters,
-        written.last().map(|node| node.end_byte()),
-        forwardable.rest.or(forwardable.kwrest),
-        context,
-        offenses,
-    );
-}
 
-/// `forward_all_first_argument`: the last `*` written among the arguments.
-fn last_forwarded_restarg<'tree>(send: Node<'tree>) -> Option<Node<'tree>> {
-    upstream_arguments(send).iter().rev().find_map(|argument| {
-        argument
-            .parts
-            .iter()
-            .rev()
-            .find(|part| part.kind_str() == "splat_argument" && part.named_child_count() == 0)
-            .copied()
-    })
-}
-
-/// `add_post_ruby_32_offenses`.
-fn anonymous_offenses<'tree>(
-    parameters: Option<Node<'tree>>,
-    classifications: &[Classification<'tree>],
-    forwardable: &Forwardable<'tree>,
-    settings: &Settings,
-    context: &'tree RuleContext<'_>,
-    offenses: &mut Vec<Offense>,
-) {
-    if !settings.use_anonymous_forwarding {
-        return;
-    }
-    // `all_forwarding_offenses_correctable?`.
-    if settings.target < RUBY_34
-        && classifications
-            .iter()
-            .any(|found| inside_block(found.send, context))
-    {
-        return;
-    }
-    for found in classifications {
-        let list = argument_list(found.send);
-        if settings.anonymous_in_block(found.rest, context) {
-            anonymous_offense(
-                parameters,
-                forwardable.rest,
-                ARGS_MSG,
-                "*",
-                true,
-                context,
-                offenses,
-            );
-            anonymous_offense(list, found.rest, ARGS_MSG, "*", true, context, offenses);
+    /// `add_post_ruby_32_offenses`.
+    fn add_post_ruby_32_offenses(
+        &self,
+        def: Node<'tree>,
+        classifications: &[Classified<'tree>],
+        forwardable: Forwardable<'tree>,
+        offenses: &mut Vec<Offense>,
+    ) {
+        if !self.use_anonymous_forwarding {
+            return;
         }
-        let add_parens = found.rest.is_none();
-        if settings.anonymous_in_block(found.kwrest, context) {
-            anonymous_offense(
-                parameters,
-                forwardable.kwrest,
-                KWARGS_MSG,
-                "**",
-                add_parens,
-                context,
-                offenses,
-            );
-            anonymous_offense(
-                list,
-                found.kwrest,
-                KWARGS_MSG,
-                "**",
-                add_parens,
-                context,
-                offenses,
-            );
+        // `all_forwarding_offenses_correctable?`.
+        if self.version < RUBY_3_4
+            && classifications
+                .iter()
+                .any(|classified| self.inside_block(classified.send))
+        {
+            return;
         }
-        if settings.anonymous_in_block(found.block, context) {
-            block_offense(
-                parameters,
-                forwardable.block,
-                add_parens,
-                settings,
-                context,
-                offenses,
-            );
-            block_offense(list, found.block, add_parens, settings, context, offenses);
-        }
-    }
-}
-
-/// `register_forward_args_offense` and `register_forward_kwargs_offense`.
-fn anonymous_offense<'tree>(
-    list: Option<Node<'tree>>,
-    node: Option<Node<'tree>>,
-    message: &str,
-    replacement: &str,
-    add_parens: bool,
-    context: &'tree RuleContext<'_>,
-    offenses: &mut Vec<Offense>,
-) {
-    let Some(node) = node else {
-        return;
-    };
-    let mut edits = vec![Edit {
-        start: node.start_byte(),
-        end: node.end_byte(),
-        replacement: replacement.to_owned(),
-        safe: true,
-    }];
-    if add_parens {
-        edits.extend(parentheses_if_missing(list, context));
-    }
-    offenses.push(
-        context
-            .offense(message, node.byte_range())
-            .corrected_by_all(edits),
-    );
-}
-
-/// `register_forward_block_arg_offense`.
-fn block_offense<'tree>(
-    list: Option<Node<'tree>>,
-    node: Option<Node<'tree>>,
-    add_parens: bool,
-    settings: &Settings,
-    context: &'tree RuleContext<'_>,
-    offenses: &mut Vec<Offense>,
-) {
-    if settings.target <= RUBY_30 || settings.explicit_block_name {
-        return;
-    }
-    let Some(node) = node.filter(|node| context.source.node_text(*node) != "&") else {
-        return;
-    };
-    anonymous_offense(
-        list,
-        Some(node),
-        BLOCK_MSG,
-        "&",
-        add_parens,
-        context,
-        offenses,
-    );
-}
-
-/// `register_forward_all_offense`: the run from the first forwarded argument to the last one.
-fn all_offense<'tree>(
-    list: Option<Node<'tree>>,
-    last: Option<usize>,
-    first: Option<Node<'tree>>,
-    context: &'tree RuleContext<'_>,
-    offenses: &mut Vec<Offense>,
-) {
-    let (Some(first), Some(last)) = (first, last) else {
-        return;
-    };
-    let range = first.start_byte()..last;
-    if range.end < range.start {
-        return;
-    }
-    let mut edits = vec![Edit {
-        start: range.start,
-        end: range.end,
-        replacement: "...".to_owned(),
-        safe: true,
-    }];
-    edits.extend(parentheses_if_missing(list, context));
-    offenses.push(
-        context
-            .offense(FORWARDING_MSG, range)
-            .corrected_by_all(edits),
-    );
-}
-
-/// `add_parens_if_missing`.
-fn parentheses_if_missing<'tree>(
-    list: Option<Node<'tree>>,
-    context: &'tree RuleContext<'_>,
-) -> Vec<Edit> {
-    let Some(list) = list else {
-        return Vec::new();
-    };
-    if context.source.node_text(list).starts_with('(') {
-        return Vec::new();
-    }
-    // `node.method?(:[])`: an index takes its arguments in brackets already.
-    if list
-        .parent_of(context)
-        .is_some_and(|parent| parent.kind_str() == "element_reference")
-    {
-        return Vec::new();
-    }
-    let text = context.source.text().as_bytes();
-    let mut start = list.start_byte();
-    while start > 0 && matches!(text[start - 1], b' ' | b'\t') {
-        start -= 1;
-    }
-    vec![
-        Edit {
-            start,
-            end: list.start_byte(),
-            replacement: "(".to_owned(),
-            safe: true,
-        },
-        Edit {
-            start: list.end_byte(),
-            end: list.end_byte(),
-            replacement: ")".to_owned(),
-            safe: true,
-        },
-    ]
-}
-
-impl Argument<'_> {
-    fn end(&self) -> usize {
-        self.parts.last().map_or(0, |part| part.end_byte())
-    }
-}
-
-/// `non_splat_or_block_pass_lvar_references`: every local variable the body reads for itself rather
-/// than to forward.
-fn referenced_names(
-    body: Node<'_>,
-    context: &RuleContext<'_>,
-    locals: &LocalVariables<'_, '_>,
-) -> Vec<String> {
-    let mut names = Vec::new();
-    collect_references(body, context, locals, &mut names);
-    names.sort_unstable();
-    names.dedup();
-    names
-}
-
-fn collect_references(
-    node: Node<'_>,
-    context: &RuleContext<'_>,
-    locals: &LocalVariables<'_, '_>,
-    names: &mut Vec<String>,
-) {
-    // Every name written on the left of an assignment is an `lvasgn` there, however many were
-    // written and whatever the value turns out to be.
-    if matches!(node.kind_str(), "assignment" | "operator_assignment")
-        && let Some(left) = node.field("left")
-    {
-        collect_targets(left, context, names);
-    }
-    for child in super::nodes::children(node) {
-        let forwarding = matches!(
-            node.kind_str(),
-            "splat_argument" | "hash_splat_argument" | "block_argument"
-        );
-        if child.kind_str() == "identifier" && !forwarding && locals.is_lvar(child) {
-            names.push(context.source.node_text(child).to_owned());
-        }
-        collect_references(child, context, locals, names);
-    }
-}
-
-/// The names an assignment writes to, reaching into the list a multiple assignment spreads over.
-fn collect_targets(node: Node<'_>, context: &RuleContext<'_>, names: &mut Vec<String>) {
-    match node.kind_str() {
-        "identifier" => names.push(context.source.node_text(node).to_owned()),
-        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
-            for child in super::nodes::children(node) {
-                collect_targets(child, context, names);
+        let parameters = def.field("parameters");
+        for classified in classifications {
+            if self.allow_anonymous_forwarding_in_block(classified.rest) {
+                self.register_anonymous(
+                    true,
+                    parameters,
+                    forwardable.rest,
+                    ARGS_MSG,
+                    "*",
+                    offenses,
+                );
+                self.register_anonymous(
+                    true,
+                    Some(classified.send),
+                    classified.rest,
+                    ARGS_MSG,
+                    "*",
+                    offenses,
+                );
+            }
+            let parens = classified.rest.is_none();
+            if self.allow_anonymous_forwarding_in_block(classified.kwrest) {
+                self.register_anonymous(
+                    parens,
+                    parameters,
+                    forwardable.kwrest,
+                    KWARGS_MSG,
+                    "**",
+                    offenses,
+                );
+                self.register_anonymous(
+                    parens,
+                    Some(classified.send),
+                    classified.kwrest,
+                    KWARGS_MSG,
+                    "**",
+                    offenses,
+                );
+            }
+            if self.allow_anonymous_forwarding_in_block(classified.block) {
+                self.register_block(parens, parameters, forwardable.block, offenses);
+                self.register_block(parens, Some(classified.send), classified.block, offenses);
             }
         }
-        _ => {}
     }
-}
 
-/// `node.each_descendant(:call, :super, :yield)`.
-fn sends<'tree>(def_node: Node<'tree>) -> Vec<Node<'tree>> {
-    let mut found = Vec::new();
-    collect_sends(def_node, &mut found);
-    found
-}
-
-fn collect_sends<'tree>(node: Node<'tree>, found: &mut Vec<Node<'tree>>) {
-    for child in super::nodes::children(node) {
-        if matches!(
-            child.kind_str(),
-            "call" | "super" | "yield" | "element_reference"
-        ) {
-            found.push(child);
+    /// `register_forward_args_offense` and `register_forward_kwargs_offense`, which differ only in
+    /// what they write and whether they add the parentheses.
+    fn register_anonymous(
+        &self,
+        parens: bool,
+        holder: Option<Node<'tree>>,
+        target: Option<Node<'tree>>,
+        message: &str,
+        replacement: &str,
+        offenses: &mut Vec<Offense>,
+    ) {
+        let Some(target) = target else {
+            return;
+        };
+        let mut edits = vec![Edit {
+            start: target.start_byte(),
+            end: target.end_byte(),
+            replacement: replacement.to_owned(),
+            safe: true,
+        }];
+        if parens && let Some(holder) = holder {
+            edits.extend(self.add_parentheses(holder));
         }
-        collect_sends(child, found);
+        offenses.push(
+            self.context
+                .offense(message, target.byte_range())
+                .corrected_by_all(edits),
+        );
+    }
+
+    /// `register_forward_block_arg_offense`.
+    fn register_block(
+        &self,
+        parens: bool,
+        holder: Option<Node<'tree>>,
+        target: Option<Node<'tree>>,
+        offenses: &mut Vec<Offense>,
+    ) {
+        let Some(block) = target else {
+            return;
+        };
+        if self.version <= RUBY_3_0
+            || self.context.source.node_text(block) == "&"
+            || self.explicit_block_name
+        {
+            return;
+        }
+        self.register_anonymous(parens, holder, Some(block), BLOCK_MSG, "&", offenses);
+    }
+
+    /// `register_forward_all_offense`.
+    fn register_forward_all(
+        &self,
+        holder: Node<'tree>,
+        parens_target: Option<Node<'tree>>,
+        first: Option<Node<'tree>>,
+        offenses: &mut Vec<Offense>,
+    ) {
+        let (Some(first), Some(last)) = (first, self.last_argument(holder)) else {
+            return;
+        };
+        let range = first.start_byte()..last.end_byte();
+        let mut edits = vec![Edit {
+            start: range.start,
+            end: range.end,
+            replacement: "...".to_owned(),
+            safe: true,
+        }];
+        if let Some(target) = parens_target {
+            edits.extend(self.add_parentheses(target));
+        }
+        offenses.push(
+            self.context
+                .offense(FORWARDING_MSG, range)
+                .corrected_by_all(edits),
+        );
+    }
+
+    /// `node.last_argument`, of a definition or of a call.
+    fn last_argument(&self, node: Node<'tree>) -> Option<Node<'tree>> {
+        match node.kind_str() {
+            "method" | "singleton_method" => self.parameters(node).last().copied(),
+            _ => send_arguments(node)
+                .last()
+                .map(|argument| argument.last()),
+        }
+    }
+
+    /// `add_parentheses_if_missing`, as the edits it would have asked for.
+    fn add_parentheses(&self, node: Node<'tree>) -> Vec<Edit> {
+        if self.parenthesized(node) {
+            return Vec::new();
+        }
+        // `x[1]` is a send whose "parentheses" are its brackets.
+        if node.kind_str() == "element_reference" {
+            return Vec::new();
+        }
+        // An `args` node: the space before the parameters becomes the `(`.
+        if node.kind_str() == "method_parameters" {
+            let range = node.byte_range();
+            let leading =
+                super::ranges::extended_left(self.context.source.text(), range.start, true);
+            return vec![
+                Edit {
+                    start: leading,
+                    end: range.start,
+                    replacement: "(".to_owned(),
+                    safe: true,
+                },
+                Edit {
+                    start: range.end,
+                    end: range.end,
+                    replacement: ")".to_owned(),
+                    safe: true,
+                },
+            ];
+        }
+        let Some(selector) = self.selector(node) else {
+            return Vec::new();
+        };
+        let list = send_arguments(node);
+        let Some(last) = self.last_argument(node) else {
+            return Vec::new();
+        };
+        let _ = list;
+        let text = self.context.source.text();
+        let begin = text[selector.end_byte()..]
+            .char_indices()
+            .nth(1)
+            .map_or(text.len(), |(offset, _)| selector.end_byte() + offset);
+        vec![
+            Edit {
+                start: selector.end_byte(),
+                end: begin,
+                replacement: "(".to_owned(),
+                safe: true,
+            },
+            Edit {
+                start: last.end_byte(),
+                end: last.end_byte(),
+                replacement: ")".to_owned(),
+                safe: true,
+            },
+        ]
+    }
+
+    /// `parentheses?`: the node ends with a `)`.
+    fn parenthesized(&self, node: Node<'tree>) -> bool {
+        let range = match node.kind_str() {
+            "method_parameters" => node.byte_range(),
+            _ => match node.field("arguments") {
+                Some(list) => list.byte_range(),
+                None => match named_children(node)
+                    .into_iter()
+                    .find(|child| child.kind_str() == "argument_list")
+                {
+                    Some(list) => list.byte_range(),
+                    None => return false,
+                },
+            },
+        };
+        self.context.source.slice(range).ends_with(')')
+    }
+
+    /// `loc.selector`, or `loc.keyword` for a `yield`.
+    fn selector(&self, node: Node<'tree>) -> Option<Node<'tree>> {
+        match node.kind_str() {
+            "call" => node.field("method"),
+            "yield" => node.child(0),
+            _ => None,
+        }
     }
 }
 
-/// The list the arguments were written in, which a `yield` and a `super` hold without naming.
+/// `forward_all_first_argument`: the last `*` written anonymously.
+fn forward_all_first_argument<'tree>(send: Node<'tree>) -> Option<Node<'tree>> {
+    send_arguments(send)
+        .into_iter()
+        .map(|argument| argument.first())
+        .rfind(|argument| {
+            argument.kind_str() == "splat_argument" && named_children(*argument).is_empty()
+        })
+}
+
+/// The members of an argument that upstream would have built a `hash` for, and nothing for any
+/// other argument.
+fn hash_members<'tree>(argument: &Arg<'tree>) -> Vec<Node<'tree>> {
+    let parts = argument.parts();
+    if parts.len() > 1 || matches!(parts[0].kind_str(), "pair" | "hash_splat_argument") {
+        return parts.to_vec();
+    }
+    match parts[0].kind_str() {
+        "hash" => named_children(parts[0]),
+        _ => Vec::new(),
+    }
+}
+
+/// Whether the argument is the one holding that node.
+fn holds(argument: &Arg<'_>, node: Node<'_>) -> bool {
+    hash_members(argument)
+        .into_iter()
+        .any(|member| member.id() == node.id())
+}
+
+/// `no_post_splat_args?`: nothing but a hash or a block pass was written after the `*`.
+fn no_post_splat_args(list: &[Arg<'_>], rest: Option<Node<'_>>) -> bool {
+    let Some(rest) = rest else {
+        return true;
+    };
+    let Some(index) = list
+        .iter()
+        .position(|argument| argument.first().id() == rest.id())
+    else {
+        return true;
+    };
+    match list.get(index + 1) {
+        None => true,
+        Some(next) => {
+            let first = next.first();
+            matches!(first.kind_str(), "block_argument" | "hash") || !hash_members(next).is_empty()
+        }
+    }
+}
+
+/// One argument as upstream's parser groups them: a trailing run of `key: value` pairs and
+/// `**splat`s is the one `hash` node it builds, not several arguments.
+struct Arg<'tree> {
+    parts: Vec<Node<'tree>>,
+}
+
+impl<'tree> Arg<'tree> {
+    fn first(&self) -> Node<'tree> {
+        self.parts[0]
+    }
+
+    fn last(&self) -> Node<'tree> {
+        self.parts[self.parts.len() - 1]
+    }
+
+    fn parts(&self) -> &[Node<'tree>] {
+        &self.parts
+    }
+}
+
+/// `node.arguments`, for each of the three kinds this cop walks. `x[…]` and `yield …` are sends
+/// upstream, so their arguments are read the same way a call's are.
+fn send_arguments<'tree>(node: Node<'tree>) -> Vec<Arg<'tree>> {
+    let written: Vec<Node<'tree>> = match node.kind_str() {
+        "call" | "yield" => match argument_list(node) {
+            Some(list) => named_children(list),
+            None => Vec::new(),
+        },
+        "element_reference" => named_children(node)
+            .into_iter()
+            .filter(|child| {
+                node.field("object")
+                    .is_none_or(|object| object.id() != child.id())
+            })
+            .collect(),
+        _ => Vec::new(),
+    };
+    fold(written)
+}
+
 fn argument_list<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     node.field("arguments").or_else(|| {
-        super::nodes::children(node)
+        named_children(node)
             .into_iter()
             .find(|child| child.kind_str() == "argument_list")
     })
 }
 
-/// `node.each_ancestor(:any_block).any?`.
-fn inside_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let mut current = Some(node);
-    while let Some(candidate) = current {
-        if matches!(candidate.kind_str(), "block" | "do_block" | "lambda") {
-            return true;
+fn fold<'tree>(written: Vec<Node<'tree>>) -> Vec<Arg<'tree>> {
+    let mut arguments: Vec<Arg<'tree>> = Vec::new();
+    let mut hash: Vec<Node<'tree>> = Vec::new();
+    for node in written {
+        if node.kind_str() == "comment" {
+            continue;
         }
-        // A block is a node written *around* the call upstream rather than hung off it, so a call
-        // that carries one stands inside it there -- and so does everything the call holds.
-        if candidate
-            .field("block")
-            .is_some_and(|block| matches!(block.kind_str(), "block" | "do_block"))
-        {
-            return true;
+        if matches!(node.kind_str(), "pair" | "hash_splat_argument") {
+            hash.push(node);
+            continue;
         }
-        current = candidate.parent_of(context);
+        if !hash.is_empty() {
+            arguments.push(Arg {
+                parts: std::mem::take(&mut hash),
+            });
+        }
+        arguments.push(Arg { parts: vec![node] });
     }
-    false
+    if !hash.is_empty() {
+        arguments.push(Arg { parts: hash });
+    }
+    arguments
 }
