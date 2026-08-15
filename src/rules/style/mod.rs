@@ -147,6 +147,7 @@ department_rules! {
     ip_addresses => ("IpAddresses", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     keyword_arguments_merging => ("KeywordArgumentsMerging", Convention),
+    method_call_with_args_parentheses => ("MethodCallWithArgsParentheses", Convention),
     method_def_parentheses => ("MethodDefParentheses", Convention),
     method_called_on_do_end_block => ("MethodCalledOnDoEndBlock", Convention),
     min_max => ("MinMax", Convention),
