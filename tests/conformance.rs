@@ -1150,6 +1150,18 @@ fn catalogue() -> Vec<CopCase> {
         .id("layout_condition_position")
         .severity(Severity::Warning)
         .correctable(true),
+        CopCase::annotated(
+            "Layout/ClassStructure",
+            r#"
+            class A
+              def pub; end
+              include Bar
+              ^^^^^^^^^^^ `module_inclusion` is supposed to appear before `public_methods`.
+            end
+            "#,
+        )
+        .id("layout_class_structure")
+        .correctable(true),
         CopCase::new(
             "Layout/ClosingHeredocIndentation",
             "def foo\n  <<~SQL\n    Hi\n      SQL\nend\n",
