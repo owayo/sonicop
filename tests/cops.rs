@@ -6321,6 +6321,56 @@ mod naming_rest {
         );
     }
 
+    /// 行末コメントとヒアドキュメントの本体は、本家の木では文の一部か、そもそもノードが
+    /// 無い。tree-sitter はどちらも本体の子に置くので、1 文の本体が 2 文に見えて代入が
+    /// 最後でなくなり、cop が黙っていた。
+    #[test]
+    fn memoized_instance_variable_name_ignores_comments_and_heredoc_bodies() {
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def b
+              @w ||= 1 # a trailing comment
+              ^^ Memoized variable `@w` does not match method name `b`. Use `@b` instead.
+            end
+            "#,
+        );
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def c
+              @w ||= <<~X
+              ^^ Memoized variable `@w` does not match method name `c`. Use `@c` instead.
+                hi
+              X
+            end
+            "#,
+        );
+        // 引数リストの中でも同じで、`bar(...)` の最後の子は行末コメントではなく代入。
+        expect_offense(
+            MEMOIZED,
+            r#"
+            def d
+              bar(
+                @w ||= 1 # a trailing comment
+                ^^ Memoized variable `@w` does not match method name `d`. Use `@d` instead.
+              )
+            end
+            "#,
+        );
+        expect_correction(
+            MEMOIZED,
+            "def b
+  @w ||= 1 # a trailing comment
+end
+",
+            "def b
+  @b ||= 1 # a trailing comment
+end
+",
+        );
+    }
+
     #[test]
     fn memoized_instance_variable_name_correction_renames_the_variable() {
         expect_correction(
@@ -7436,6 +7486,67 @@ mod layout_bracket_spacing {
                 Annotation::new(7, 17, 1, PERCENT_MSG),
             ],
         )
+        .run();
+    }
+
+    /// 本家の `BlockNode#single_line?` は式全体ではなく `loc.begin` と `loc.end`、
+    /// つまり中括弧同士の行を比べる。レシーバが複数行に跨っていても中括弧が同じ行なら
+    /// 1 行ブロックのままで、閉じ `}` も報告される。
+    #[test]
+    fn a_block_is_single_line_when_its_braces_share_a_line() {
+        const BLOCK: &str = "Layout/SpaceInsideBlockBraces";
+        const PIPE_MSG: &str = "Space between { and | missing.";
+        const CLOSE_MSG: &str = "Space missing inside }.";
+        CopCase::new(
+            BLOCK,
+            concat!(
+                "a = [\n",
+                "  1,\n",
+                "].map {|n| n}\n",
+                "\n",
+                "c = foo(\n",
+                "  1\n",
+                ").map {|n| n}\n",
+                "\n",
+                "d = [1].map {|n|\n",
+                "  n\n",
+                "}\n",
+            ),
+            vec![
+                Annotation::new(3, 7, 2, PIPE_MSG),
+                Annotation::new(3, 13, 1, CLOSE_MSG),
+                Annotation::new(7, 7, 2, PIPE_MSG),
+                Annotation::new(7, 13, 1, CLOSE_MSG),
+                Annotation::new(9, 13, 2, PIPE_MSG),
+            ],
+        )
+        .corrected(concat!(
+            "a = [\n",
+            "  1,\n",
+            "].map { |n| n }\n",
+            "\n",
+            "c = foo(\n",
+            "  1\n",
+            ").map { |n| n }\n",
+            "\n",
+            "d = [1].map { |n|\n",
+            "  n\n",
+            "}\n",
+        ))
+        .run();
+        // 中括弧が別々の行にあれば複数行ブロックで、閉じ `}` の手前の改行は咎められない。
+        expect_no_offenses(BLOCK, "e = [\n  1,\n].map { |n|\n  n\n}\n");
+        // `;` は本家の木では文の区切りでしかなくノードにならない。中身がそれだけなら
+        // `body` は `nil` で、複数行の空ブロックとして丸ごと見送られる。
+        expect_no_offenses(BLOCK, "a = foo {|f|\n  ;\n}\n");
+        expect_no_offenses(BLOCK, "b = foo {|f|\n  # a comment\n}\n");
+        // 中身が本物の文なら、空ブロックではないので `{` の詰まりが報告される。
+        CopCase::new(
+            BLOCK,
+            "c = foo {|f|\n  f\n}\n",
+            vec![Annotation::new(1, 9, 2, PIPE_MSG)],
+        )
+        .corrected("c = foo { |f|\n  f\n}\n")
         .run();
     }
 
@@ -25949,6 +26060,103 @@ mod style_it_block_parameter {
         CopCase::new(COP, "foo { _1 * 2 }\n".to_owned(), Vec::new())
             .target_ruby("3.3")
             .run();
+    }
+
+    /// `it "..." do ... end` の `it` はメソッド名であって暗黙の引数ではない。
+    ///
+    /// 本家のパーサが `it` を引数にするのは、引数もブロックも取らない裸の `it` だけ。RSpec の
+    /// 例を抱えた `describe` を `it` ブロックと読むと、spec を持つコーパスが丸ごと誤検出になる
+    /// (mastodon で 5,276 件)。
+    #[test]
+    fn the_it_that_names_a_call_is_not_the_parameter() {
+        for source in [
+            "describe 'x' do\n  it 'y' do\n    expect(1).to eq 1\n  end\nend\n",
+            "foo do\n  it(1)\n  bar\nend\n",
+            "foo do\n  bar.it\n  baz\nend\n",
+        ] {
+            case(source).run();
+        }
+        // 裸の `it` とレシーバに置いた `it` は引数。
+        case("foo do\n  it.bar\n  baz(it)\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// 代入された名前は変数であって引数ではない。読みが先なら引数のまま。
+    #[test]
+    fn a_name_assigned_before_it_is_read_is_a_variable() {
+        case("foo do\n  it = 1\n  puts it\nend\n").run();
+        // 読みが先にあるものは、後で代入されても引数。
+        case("foo do\n  puts args[it]\n  it += 1\nend\n")
+            .without_offense_check()
+            .cop_names(&[COP])
+            .run();
+    }
+
+    /// `-> x { }` は本家では 1 つの `block`。文法は引数を `lambda` に、波括弧を別のブロックに
+    /// 書くので、引数はそちらから取る。
+    #[test]
+    fn a_lambda_keeps_its_parameters_on_the_arrow() {
+        CopCase::new(
+            COP,
+            "-> message do\n  puts message\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("->  do\n  puts it\nend\n")
+        .run();
+    }
+
+    /// `{ name: }` の省略された値は、本家の木では鍵と同じ位置に置かれた `lvar`。
+    #[test]
+    fn a_hash_value_left_out_is_still_a_read() {
+        CopCase::new(
+            COP,
+            "foo do |name|\n  bar(tag: { name: })\n  baz(name)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  bar(tag: { it: })\n  baz(it)\nend\n")
+        .run();
+    }
+
+    /// 入れ子のブロックが同じ名前を宣言していても、宣言そのものは読みではない。
+    #[test]
+    fn a_nested_declaration_of_the_same_name_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    \
+             save = transaction\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
+        .run();
+    }
+
+    /// ヒアドキュメントの本体は開いた文の隣に置かれるが、本家の木では文字列の中なので、
+    /// そこで補間された名前もブロックの引数の読み。
+    #[test]
+    fn a_name_read_inside_a_heredoc_counts() {
+        CopCase::new(
+            COP,
+            "foo do |x|\n  puts <<~T\n    #{x}\n  T\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
+        .without_offense_check()
+        .corrected("foo do \n  puts <<~T\n    #{it}\n  T\nend\n")
+        .run();
     }
 
     /// 本体が引数そのものだけのブロックは、本家の `each_descendant` が自分自身を訪ねないので
