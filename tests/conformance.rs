@@ -5200,6 +5200,15 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_negated_if_else_condition")
         .correctable(true),
+        CopCase::annotated(
+            "Style/InvertibleUnlessCondition",
+            r"
+            a unless x != y
+            ^^^^^^^^^^^^^^^ Prefer `if x == y` over `unless x != y`.
+            ",
+        )
+        .id("style_invertible_unless_condition")
+        .correctable(true),
         // 位置はコメント全体。`=end` の行末までで、行末の改行も含む。
         CopCase::annotated(
             "Style/BlockComments",

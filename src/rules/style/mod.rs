@@ -139,6 +139,7 @@ department_rules! {
     line_end_concatenation => ("LineEndConcatenation", Convention),
     lambda_call => ("LambdaCall", Convention),
     inverse_methods => ("InverseMethods", Convention),
+    invertible_unless_condition => ("InvertibleUnlessCondition", Convention),
     ip_addresses => ("IpAddresses", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     keyword_arguments_merging => ("KeywordArgumentsMerging", Convention),

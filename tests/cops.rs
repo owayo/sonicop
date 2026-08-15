@@ -31864,3 +31864,90 @@ mod layout_heredoc_argument_closing_parenthesis {
         }
     }
 }
+
+/// `Style/InvertibleUnlessCondition` (既定無効)。
+///
+/// 期待値は本家 1.89.0 を `--only Style/InvertibleUnlessCondition` で走らせた実出力から
+/// 取った (検出 20 件・`-A` の結果ともバイト一致を確認済み)。
+mod style_invertible_unless_condition {
+    use super::*;
+
+    const COP: &str = "Style/InvertibleUnlessCondition";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は `unless` 全体。メッセージには反転後と元の条件が入る。
+    #[test]
+    fn an_invertible_condition_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            a unless x != y
+            ^^^^^^^^^^^^^^^ Prefer `if x == y` over `unless x != y`.
+            ",
+        );
+        correction("a unless x != y\n", "a if x == y\n");
+        correction("unless x.zero?\n  a\nend\n", "if x.nonzero?\n  a\nend\n");
+        correction("unless !x\n  a\nend\n", "if x\n  a\nend\n");
+        correction("unless x > y\n  a\nend\n", "if x <= y\n  a\nend\n");
+        correction("unless x.any?\n  a\nend\n", "if x.none?\n  a\nend\n");
+        correction("unless (x != y)\n  a\nend\n", "if (x == y)\n  a\nend\n");
+    }
+
+    /// 論理演算は演算子ごと反転し、`||` の中の `&&` は括弧が付く。
+    #[test]
+    fn a_logical_condition_inverts_both_sides() {
+        correction(
+            "unless x != y && z.zero?\n  a\nend\n",
+            "if x == y || z.nonzero?\n  a\nend\n",
+        );
+        correction(
+            "unless x != y || z.zero?\n  a\nend\n",
+            "if x == y && z.nonzero?\n  a\nend\n",
+        );
+        correction(
+            "unless (a != b && c != d) || e.zero?\n  a\nend\n",
+            "if (a == b || c == d) && e.nonzero?\n  a\nend\n",
+        );
+    }
+
+    /// `x < Bar` は継承の宣言に見えるので触らない。全部大文字の定数なら比較として扱う。
+    #[test]
+    fn an_inheritance_check_is_left_alone() {
+        expect_no_offenses(COP, "unless x < Foo\n  a\nend\n");
+        correction("unless x < CONST\n  a\nend\n", "if x >= CONST\n  a\nend\n");
+        correction(
+            "unless x < Foo::CONST\n  a\nend\n",
+            "if x >= Foo::CONST\n  a\nend\n",
+        );
+    }
+
+    /// ブロック付きの呼び出しは上流では `block` ノードで `send` ではない。
+    /// `InverseMethods` に無いメソッドも対象外。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "unless x.any? { |y| y }\n  a\nend\n",
+            "unless x.foo\n  a\nend\n",
+            "unless x.include?(y)\n  a\nend\n",
+            "unless x.eql? y\n  a\nend\n",
+            "unless a && b || c\n  a\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// 引数付きの呼び出しは括弧の有無をそのまま保つ。
+    #[test]
+    fn the_argument_spelling_is_kept() {
+        correction(
+            "unless x.any?(Integer)\n  a\nend\n",
+            "if x.none?(Integer)\n  a\nend\n",
+        );
+    }
+}
