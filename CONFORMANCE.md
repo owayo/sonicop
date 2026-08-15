@@ -188,6 +188,13 @@ What remains are constructs whose ambiguity Ruby resolves with information a gra
 whether the token before it completed an expression, which in turn depends on knowing that `a` is a
 local variable rather than a method call.
 
+A gap does not have to reject the file to cost offenses. `"%3d %s"%[l+1, line]` parses, but not as
+Ruby reads it: a `%` written against a string literal can only be the operator, while tree-sitter
+takes `%[…]` for a percent-literal string and yields two adjacent strings instead of a binary
+operation. Nothing downstream can recover it — the operator node the cop would report on is not in
+the tree — so `Layout/SpaceAroundOperators` misses both the `%` and the `+` nested inside the
+brackets. Three offenses on ruby/ruby come from this, all on one line of `libexec/erb`.
+
 ### Encoding — the one deliberate difference
 
 RuboCop's autocorrect ends in a plain `File.write`, so a corrected Shift_JIS file is written back as
