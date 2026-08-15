@@ -148,6 +148,7 @@ department_rules! {
     method_def_parentheses => ("MethodDefParentheses", Convention),
     method_called_on_do_end_block => ("MethodCalledOnDoEndBlock", Convention),
     min_max => ("MinMax", Convention),
+    missing_else => ("MissingElse", Convention),
     map_compact_with_conditional_block => ("MapCompactWithConditionalBlock", Convention),
     magic_comment_format => ("MagicCommentFormat", Convention),
     map_join => ("MapJoin", Convention),
