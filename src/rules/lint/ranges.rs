@@ -7,14 +7,7 @@ use crate::rules::RuleContext;
 
 /// `range_by_whole_lines(range, include_final_newline: true)`.
 pub(super) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
-    start..end
+    crate::rules::support::whole_lines(range, context)
 }
 
 /// `range_with_surrounding_space(range, side: :right)`: the span plus the spaces and tabs that

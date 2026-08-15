@@ -1,7 +1,7 @@
-use std::path::{Component, Path, PathBuf};
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::support::expand_path;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -43,22 +43,3 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     ));
 }
 
-/// `File.expand_path`: RuboCop resolves every target against the working directory before it
-/// inspects it, so the path this cop writes into its message is always an absolute one.
-fn expand_path(path: &Path) -> PathBuf {
-    let absolute = match path.is_absolute() {
-        true => path.to_path_buf(),
-        false => std::env::current_dir().unwrap_or_default().join(path),
-    };
-    let mut expanded = PathBuf::new();
-    for component in absolute.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                expanded.pop();
-            }
-            component => expanded.push(component),
-        }
-    }
-    expanded
-}

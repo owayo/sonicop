@@ -18,11 +18,14 @@ department_rules! {
     else_alignment => ("ElseAlignment", Convention),
     empty_comment => ("EmptyComment", Convention),
     empty_line_after_guard_clause => ("EmptyLineAfterGuardClause", Convention),
+    heredoc_argument_closing_parenthesis => ("HeredocArgumentClosingParenthesis", Convention),
     rescue_ensure_alignment => ("RescueEnsureAlignment", Convention),
     end_alignment => ("EndAlignment", Warning),
     empty_line_between_defs => ("EmptyLineBetweenDefs", Convention),
     empty_lines => ("EmptyLines", Convention),
     empty_lines_around_attribute_accessor => ("EmptyLinesAroundAttributeAccessor", Convention),
+    empty_line_after_multiline_condition => ("EmptyLineAfterMultilineCondition", Convention),
+    empty_lines_after_module_inclusion => ("EmptyLinesAfterModuleInclusion", Convention),
     empty_lines_around_access_modifier => ("EmptyLinesAroundAccessModifier", Convention),
     empty_lines_around_arguments => ("EmptyLinesAroundArguments", Convention),
     empty_lines_around_begin_body => ("EmptyLinesAroundBeginBody", Convention),
@@ -45,6 +48,18 @@ department_rules! {
     initial_indentation => ("InitialIndentation", Convention),
     leading_comment_space => ("LeadingCommentSpace", Convention),
     leading_empty_lines => ("LeadingEmptyLines", Convention),
+    first_array_element_line_break => ("FirstArrayElementLineBreak", Convention),
+    first_hash_element_line_break => ("FirstHashElementLineBreak", Convention),
+    first_method_argument_line_break => ("FirstMethodArgumentLineBreak", Convention),
+    first_method_parameter_line_break => ("FirstMethodParameterLineBreak", Convention),
+    multiline_array_line_breaks => ("MultilineArrayLineBreaks", Convention),
+    multiline_assignment_layout => ("MultilineAssignmentLayout", Convention),
+    multiline_hash_key_line_breaks => ("MultilineHashKeyLineBreaks", Convention),
+    multiline_method_argument_line_breaks => ("MultilineMethodArgumentLineBreaks", Convention),
+    multiline_method_parameter_line_breaks => ("MultilineMethodParameterLineBreaks", Convention),
+    line_continuation_leading_space => ("LineContinuationLeadingSpace", Convention),
+    line_end_string_concatenation_indentation => ("LineEndStringConcatenationIndentation", Convention),
+    line_continuation_spacing => ("LineContinuationSpacing", Convention),
     line_length => ("LineLength", Convention),
     multiline_array_brace_layout => ("MultilineArrayBraceLayout", Convention),
     multiline_block_layout => ("MultilineBlockLayout", Convention),
@@ -54,6 +69,7 @@ department_rules! {
     multiline_method_definition_brace_layout => ("MultilineMethodDefinitionBraceLayout", Convention),
     multiline_operation_indentation => ("MultilineOperationIndentation", Convention),
     parameter_alignment => ("ParameterAlignment", Convention),
+    single_line_block_chain => ("SingleLineBlockChain", Convention),
     space_after_colon => ("SpaceAfterColon", Convention),
     space_after_comma => ("SpaceAfterComma", Convention),
     space_after_method_name => ("SpaceAfterMethodName", Convention),
@@ -67,6 +83,7 @@ department_rules! {
     space_before_first_arg => ("SpaceBeforeFirstArg", Convention),
     space_before_comma => ("SpaceBeforeComma", Convention),
     space_before_comment => ("SpaceBeforeComment", Convention),
+    space_before_brackets => ("SpaceBeforeBrackets", Convention),
     space_before_block_braces => ("SpaceBeforeBlockBraces", Convention),
     space_before_semicolon => ("SpaceBeforeSemicolon", Convention),
     space_in_lambda_literal => ("SpaceInLambdaLiteral", Convention),
@@ -84,6 +101,7 @@ department_rules! {
 }
 
 mod alignment;
+mod element_line_breaks;
 mod empty_lines_around_body;
 mod multiline_brace;
 mod multiline_expression;
