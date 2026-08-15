@@ -231,9 +231,10 @@ fn inspect_planned(
     });
     let directives = crate::profile::phase(crate::profile::Phase::Directives, || {
         (!selection.ignore_disable_comments).then(|| {
-            DirectiveState::parse(&source, ast.comment_ranges()).preventing_directive_disabling(
-                config.cop_value::<bool>(crate::directives::DISABLE_COPS_DIRECTIVE_COP, "Enabled")
-                    == Some(true),
+            DirectiveState::parse_for(
+                &source,
+                ast.comment_ranges(),
+                config.prevents_directive_disabling(),
             )
         })
     });

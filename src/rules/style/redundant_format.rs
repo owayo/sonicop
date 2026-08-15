@@ -1,419 +1,858 @@
+//! `Style/RedundantFormat`: a `format` whose result is already written out in its arguments.
+
 use tree_sitter::Node;
 
+use super::format_sequences::{Sequence, SequenceStyle, sequences};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::ruby_literal::string_value;
-use crate::rules::send_node::{Argument, arguments, named_children};
-
-use super::format_sequences::{Sequence, SequenceStyle, sequences};
-use super::format_value::{Field, Value, format_with};
+use crate::rules::ruby_literal::{string_value, unescape};
+use crate::rules::send_node::{
+    Argument, arguments, has_interpolation, heredoc_body, send_range, symbol_name,
+};
 
 /// `RESTRICT_ON_SEND`.
-const METHODS: &[&str] = &["format", "sprintf"];
+const FORMAT_METHODS: &[&str] = &["format", "sprintf"];
+
+/// One argument as `format` would see it.
+#[derive(Clone, PartialEq)]
+enum Value {
+    Text(String),
+    /// A `dstr`: acceptable wherever a string is, but never a number.
+    Dynamic(String),
+    /// A `rational`, kept as the pair it reduces to.
+    Rational(i128, i128),
+    /// A `complex`, kept as what it prints as.
+    Complex(String),
+    Integer(i128),
+    Float(f64),
+    Boolean(bool),
+    Nil,
+    Pairs(Vec<(String, Value)>),
+    /// A number upstream's parser keeps as the call it was written as -- `2 / 4r` and `1 + 2i`. Its
+    /// value is known, but `ACCEPTABLE_LITERAL_TYPES` asks about the node, so a `%s` will not take it.
+    Computed(Box<Value>),
+}
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for call in context.nodes_of("call") {
-        let Some(method) = call.field("method") else {
-            continue;
-        };
-        let name = context.source.node_text(method);
-        if !METHODS.contains(&name) {
+        if !is_format_method(call, context) {
             continue;
         }
-        let list = arguments(call);
-        // `format_without_additional_args?`: one argument, a string or a constant, on no receiver or
-        // on `Kernel`.
-        if let Some(offense) = without_additional_arguments(call, &list, name, context) {
-            offenses.push(offense);
+        let call_arguments = arguments(call);
+        // `format_without_additional_args?`: one argument, and it is already the answer. Only this
+        // form asks about the receiver -- `detect_unnecessary_fields` matches `(send _ ...)`, so
+        // `foo.format('%s', 'a')` is reported just as a receiverless one is.
+        if is_kernel_receiver(call, context)
+            && let [only] = call_arguments.as_slice()
+            && let [value] = only.parts()
+            && matches!(
+                value.kind_str(),
+                "string" | "chained_string" | "constant" | "scope_resolution"
+                    | "heredoc_beginning"
+            )
+            && !string_with_format_sequence(*value, context)
+        {
+            let replacement = escape_control_chars(context.source.node_text(*value));
+            offenses.push(report(context, call, replacement));
             continue;
         }
-        if let Some(offense) = unnecessary_fields(call, &list, name, context) {
-            offenses.push(offense);
+        detect_unnecessary_fields(context, call, &call_arguments, offenses);
+    }
+}
+
+/// The methods `RESTRICT_ON_SEND` names, whatever they were called on.
+fn is_format_method(call: Node<'_>, context: &RuleContext<'_>) -> bool {
+    call.field("method")
+        .is_some_and(|method| FORMAT_METHODS.contains(&context.source.node_text(method)))
+}
+
+/// `{(const {nil? cbase} :Kernel) nil?}`: the receiver the single-argument form asks for.
+fn is_kernel_receiver(call: Node<'_>, context: &RuleContext<'_>) -> bool {
+    match call.field("receiver") {
+        None => true,
+        Some(receiver) => match receiver.kind_str() {
+            "constant" => context.source.node_text(receiver) == "Kernel",
+            "scope_resolution" => {
+                receiver.field("scope").is_none()
+                    && receiver
+                        .field("name")
+                        .is_some_and(|name| context.source.node_text(name) == "Kernel")
+            }
+            _ => false,
+        },
+    }
+}
+
+/// `string_with_format_sequence?`.
+fn string_with_format_sequence(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    match static_string_value(node, context) {
+        Some(text) => !sequences(&text).is_empty(),
+        None => false,
+    }
+}
+
+/// `static_string_value`: the text a literal holds, with what it interpolates left out.
+fn static_string_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
+    match node.kind_str() {
+        "string" if !has_interpolation(node) => Some(string_value(node, context)),
+        "string" => {
+            let mut text = String::new();
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                if child.kind_str() != "interpolation" {
+                    text.push_str(&string_value(node, context));
+                    break;
+                }
+            }
+            Some(text)
         }
-    }
-}
-
-/// `format_without_additional_args?`: `format('text')` says no more than `'text'` does, unless the text
-/// still holds a format sequence -- `format('%s')` raises and `format('%%')` answers with `'%'`.
-fn without_additional_arguments(
-    call: Node<'_>,
-    list: &[Argument<'_>],
-    name: &str,
-    context: &RuleContext<'_>,
-) -> Option<Offense> {
-    if !is_kernel_receiver(call, context) {
-        return None;
-    }
-    let [only] = list else {
-        return None;
-    };
-    let node = only.first();
-    if only.parts().len() != 1
-        || !matches!(node.kind_str(), "string" | "constant" | "scope_resolution")
-    {
-        return None;
-    }
-    // `string_with_format_sequence?`: a constant says nothing about its text, so only a literal can be
-    // ruled out this way.
-    if node.kind_str() == "string" && !sequences(&static_string_value(node, context)).is_empty() {
-        return None;
-    }
-    Some(offense(
-        call,
-        escape_control_chars(context.source.node_text(node)),
-        name,
-        context,
-    ))
-}
-
-/// `static_string_value`: the text of the literal parts alone, since an interpolation says nothing
-/// about what it will hold.
-fn static_string_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    named_children(node)
-        .into_iter()
-        .filter(|child| child.kind_str() != "interpolation")
-        .map(|child| context.source.node_text(child))
-        .collect()
-}
-
-/// `detect_unnecessary_fields` and `register_all_fields_literal`: every field of the format string is
-/// filled by a literal, so the string it builds is known here and now.
-fn unnecessary_fields(
-    call: Node<'_>,
-    list: &[Argument<'_>],
-    name: &str,
-    context: &RuleContext<'_>,
-) -> Option<Offense> {
-    let (first, rest) = list.split_first()?;
-    let literal = first.first();
-    // `node.first_argument&.str_type?` and `return if node.first_argument.heredoc?`
-    if first.parts().len() != 1 || literal.kind_str() != "string" || has_interpolation(literal) {
-        return None;
-    }
-    if rest.is_empty() {
-        return None;
-    }
-    // `splatted_arguments?`: what a splat holds is unknown.
-    if rest.iter().any(|argument| is_splatted(argument)) {
-        return None;
-    }
-    let string = string_value(literal, context);
-    let found = sequences(&string);
-    let values = all_fields_literal(&found, rest, context)?;
-    let formatted = format_with(&string, &found, &values)?;
-    Some(offense(
-        call,
-        quote(literal, call, escape_control_chars(&formatted), context),
-        name,
-        context,
-    ))
-}
-
-/// `all_fields_literal?`: the value each field will be filled with, in the order the sequences take
-/// them, or nothing when any field cannot be worked out here.
-fn all_fields_literal(
-    found: &[Sequence],
-    rest: &[Argument<'_>],
-    context: &RuleContext<'_>,
-) -> Option<Vec<Field>> {
-    if found.is_empty() {
-        return None;
-    }
-    let hash = rest.iter().find(|argument| is_hash(argument));
-    // The positional arguments are consumed in order, and a variable width takes one of its own.
-    let mut queue: Vec<&Argument<'_>> = rest.iter().collect();
-    let mut values = Vec::new();
-    let (mut used_numbered, mut used_sequential) = (false, false);
-    for sequence in found {
-        // `next if sequence.percent?`: the count is not raised for one, so `sequences.size == count`
-        // can never hold once a `%%` was written.
-        if sequence.style == SequenceStyle::Percent {
-            return None;
+        "chained_string" => {
+            let mut text = String::new();
+            let mut cursor = node.walk();
+            for child in node.named_children(&mut cursor) {
+                if child.kind_str() == "string" && !has_interpolation(child) {
+                    text.push_str(&string_value(child, context));
+                }
+            }
+            Some(text)
         }
-        let width = variable_width(sequence, &queue, context)?;
-        // `format` refuses a string that names one argument by position and leaves another to the
-        // order it was written in, and upstream reports nothing where `format` would have raised. A
-        // `*` width takes an argument of its own, so it has a mode of its own too.
-        let (numbered, sequential) = argument_modes(sequence);
-        used_numbered |= numbered;
-        used_sequential |= sequential;
-        let argument = find_argument(sequence, &mut queue, hash, context)?;
-        let value = argument_value(argument, context)?;
-        if !matching_argument(sequence, &value, argument) {
-            return None;
+        // A heredoc's text is written under the statement rather than inside the opener.
+        "heredoc_beginning" => {
+            let body = heredoc_body(node, context)?;
+            let mut text = String::new();
+            let mut cursor = body.walk();
+            for child in body.named_children(&mut cursor) {
+                if child.kind_str() == "heredoc_content" {
+                    text.push_str(context.source.node_text(child));
+                }
+            }
+            Some(text)
         }
-        values.push(Field { value, width });
-    }
-    (!(used_numbered && used_sequential)).then_some(values)
-}
-
-/// How the field reaches the arguments it needs: by position, in the order they were written, or in
-/// both ways at once where a `*` width names one and the value takes the next in line.
-fn argument_modes(sequence: &Sequence) -> (bool, bool) {
-    let (mut numbered, mut sequential) = (false, false);
-    if let Some(rest) = sequence.width.strip_prefix('*') {
-        match argument_number(rest).is_some() {
-            true => numbered = true,
-            false => sequential = true,
-        }
-    }
-    // A named field reads the hash and asks nothing of the order.
-    if matches!(
-        sequence.style,
-        SequenceStyle::Annotated | SequenceStyle::Template
-    ) {
-        return (numbered, sequential);
-    }
-    match argument_number(&sequence.flags).is_some() {
-        true => numbered = true,
-        false => sequential = true,
-    }
-    (numbered, sequential)
-}
-
-/// `unknown_variable_width?`: a `*` takes its width from an argument, which has to be a number for the
-/// string to be known.
-fn variable_width(
-    sequence: &Sequence,
-    queue: &[&Argument<'_>],
-    context: &RuleContext<'_>,
-) -> Option<Option<i64>> {
-    if !sequence.width.starts_with('*') {
-        return Some(None);
-    }
-    let number = argument_number(&sequence.width[1..]).unwrap_or(1);
-    let argument = queue.get(number - 1)?;
-    if argument.parts().len() != 1 {
-        return None;
-    }
-    match argument_value(argument.first(), context)? {
-        Value::Int(width) => Some(Some(width)),
         _ => None,
     }
 }
 
-/// `find_argument`: a named field reads the hash, a numbered one counts from the front, and the rest
-/// take the next one in line.
-fn find_argument<'a, 'tree>(
-    sequence: &Sequence,
-    queue: &mut Vec<&'a Argument<'tree>>,
-    hash: Option<&'a Argument<'tree>>,
+/// `detect_unnecessary_fields`.
+fn detect_unnecessary_fields(
     context: &RuleContext<'_>,
-) -> Option<Node<'tree>> {
-    let named = matches!(
-        sequence.style,
-        SequenceStyle::Annotated | SequenceStyle::Template
-    );
-    if let (Some(hash), true) = (hash, named) {
-        return hash_value(hash, sequence.name.as_deref()?, context);
+    call: Node<'_>,
+    call_arguments: &[Argument<'_>],
+    offenses: &mut Vec<Offense>,
+) {
+    let Some((first, rest)) = call_arguments.split_first() else {
+        return;
+    };
+    let [template] = first.parts() else {
+        return;
+    };
+    if template.kind_str() != "string" || has_interpolation(*template) || rest.is_empty() {
+        return;
     }
-    if sequence.width.starts_with('*') {
-        let number = argument_number(&sequence.width[1..]).unwrap_or(1);
-        if number - 1 < queue.len() {
-            queue.remove(number - 1);
-        }
-        return (!queue.is_empty()).then(|| queue.remove(0).first());
+    if splatted_arguments(rest) {
+        return;
     }
-    if let Some(number) = argument_number(&sequence.flags) {
-        return queue.get(number - 1).map(|argument| argument.first());
+    let text = string_value(*template, context);
+    let Some(values) = argument_values(context, rest) else {
+        return;
+    };
+    if !all_fields_literal(context, &text, rest, &values) {
+        return;
     }
-    (!queue.is_empty()).then(|| queue.remove(0).first())
+    let Some(formatted) = apply_format(&text, &values) else {
+        return;
+    };
+    let replacement = quote(context, *template, call, &formatted);
+    offenses.push(report(context, call, replacement));
 }
 
-/// The `\d+$` a flag run or a `*` width may carry, which names the argument by position.
-fn argument_number(text: &str) -> Option<usize> {
-    let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
-    (!digits.is_empty() && text[digits.len()..].starts_with('$'))
-        .then(|| digits.parse().ok())
-        .flatten()
-}
-
-/// `find_hash_value_node`: the value a `key: value` pair holds under `name`.
-fn hash_value<'tree>(
-    argument: &Argument<'tree>,
-    name: &str,
-    context: &RuleContext<'_>,
-) -> Option<Node<'tree>> {
-    pairs(argument).into_iter().find_map(|pair| {
-        let key = pair.field("key")?;
-        let text = context.source.node_text(key);
-        (text.trim_end_matches(':').trim_start_matches(':') == name).then(|| pair.field("value"))?
+/// `splatted_arguments?`.
+fn splatted_arguments(rest: &[Argument<'_>]) -> bool {
+    rest.iter().any(|argument| {
+        argument
+            .parts()
+            .iter()
+            .any(|part| matches!(part.kind_str(), "splat_argument" | "hash_splat_argument"))
+            || argument.parts().iter().any(|part| {
+                part.kind_str() == "hash"
+                    && super::nodes::children(*part)
+                        .iter()
+                        .any(|pair| pair.kind_str() == "hash_splat_argument")
+            })
     })
 }
 
-/// `matching_argument?`: whether the field can be filled with what was written.
-fn matching_argument(sequence: &Sequence, value: &Value, node: Node<'_>) -> bool {
-    // `argument.type?(*ACCEPTABLE_LITERAL_TYPES)` asks about the node, so a number written as
-    // `2 / 4r` -- a call upstream -- is no literal however well its value is known.
+/// `all_fields_literal?`.
+fn all_fields_literal(
+    context: &RuleContext<'_>,
+    text: &str,
+    rest: &[Argument<'_>],
+    values: &[Value],
+) -> bool {
+    let found = sequences(text);
+    if found.is_empty() {
+        return false;
+    }
+    let mut pending: Vec<usize> = (0..rest.len()).collect();
+    let hash = values
+        .iter()
+        .position(|value| matches!(value, Value::Pairs(_)));
+    let mut count = 0;
+    for sequence in &found {
+        if sequence.style == SequenceStyle::Percent {
+            continue;
+        }
+        if unknown_variable_width(sequence, &pending, values) {
+            continue;
+        }
+        let Some(index) = find_argument(sequence, &mut pending, hash, values) else {
+            continue;
+        };
+        let Some(value) = value_at(values, hash, sequence, index) else {
+            continue;
+        };
+        if !matching_argument(sequence, value) {
+            continue;
+        }
+        // `(sequence.width || sequence.precision) && argument.dstr_type?`.
+        if (!sequence.width.is_empty() || !sequence.precision.is_empty())
+            && is_interpolated(context, rest, index)
+        {
+            continue;
+        }
+        count += 1;
+    }
+    found.len() == count && !mixes_numbered_and_unnumbered(&found)
+}
+
+/// `format` raises `ArgumentError` for a string that names one argument by position and leaves
+/// another to the order it was written in, and upstream reports nothing where it would have raised.
+/// A `*` width takes an argument of its own, so it has a mode of its own too.
+fn mixes_numbered_and_unnumbered(found: &[Sequence]) -> bool {
+    let (mut numbered, mut sequential) = (false, false);
+    for sequence in found {
+        if sequence.style == SequenceStyle::Percent {
+            continue;
+        }
+        if is_variable_width(sequence) {
+            match sequence.width.strip_prefix('*').is_some_and(has_argument_number) {
+                true => numbered = true,
+                false => sequential = true,
+            }
+        }
+        if matches!(
+            sequence.style,
+            SequenceStyle::Annotated | SequenceStyle::Template
+        ) {
+            continue;
+        }
+        match argument_number(sequence).is_some() {
+            true => numbered = true,
+            false => sequential = true,
+        }
+    }
+    numbered && sequential
+}
+
+/// Whether a `*` width names the argument it takes its number from.
+fn has_argument_number(rest: &str) -> bool {
+    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+    !digits.is_empty() && rest[digits.len()..].starts_with('$')
+}
+
+/// `find_argument`, which consumes the positional arguments as it goes.
+fn find_argument(
+    sequence: &Sequence,
+    pending: &mut Vec<usize>,
+    hash: Option<usize>,
+    values: &[Value],
+) -> Option<usize> {
+    if hash.is_some()
+        && matches!(
+            sequence.style,
+            SequenceStyle::Annotated | SequenceStyle::Template
+        )
+    {
+        return hash;
+    }
+    if is_variable_width(sequence) {
+        let number = variable_width_argument_number(sequence)?;
+        let index = number.checked_sub(1)?;
+        if index < pending.len() {
+            pending.remove(index);
+        }
+        return (!pending.is_empty()).then(|| pending.remove(0));
+    }
+    if let Some(number) = argument_number(sequence) {
+        let index = number.checked_sub(1)?;
+        return pending.get(index).copied();
+    }
+    let _ = values;
+    (!pending.is_empty()).then(|| pending.remove(0))
+}
+
+/// The value a sequence was matched with, which for a name is the one the hash holds under it.
+fn value_at<'a>(
+    values: &'a [Value],
+    hash: Option<usize>,
+    sequence: &Sequence,
+    index: usize,
+) -> Option<&'a Value> {
+    if hash == Some(index)
+        && matches!(
+            sequence.style,
+            SequenceStyle::Annotated | SequenceStyle::Template
+        )
+    {
+        let Value::Pairs(pairs) = values.get(index)? else {
+            return None;
+        };
+        let name = sequence.name.as_ref()?;
+        return pairs
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value);
+    }
+    values.get(index)
+}
+
+/// `matching_argument?`.
+fn matching_argument(sequence: &Sequence, value: &Value) -> bool {
     if sequence.style == SequenceStyle::Template {
-        return is_literal(node);
+        return acceptable_literal(value);
     }
     match sequence.kind {
-        Some('s') => is_literal(node),
-        Some('d' | 'i' | 'u') => value.as_integer().is_some(),
-        Some('f') => value.as_float().is_some(),
+        Some('s') => acceptable_literal(value),
+        Some('d' | 'i' | 'u') => as_integer(value).is_some(),
+        Some('f') => as_float(value).is_some(),
         _ => false,
     }
 }
 
-/// `ACCEPTABLE_LITERAL_TYPES`: the kinds upstream's parser writes as a literal rather than a call.
-fn is_literal(node: Node<'_>) -> bool {
-    matches!(
-        node.kind_str(),
-        "string"
-            | "chained_string"
-            | "simple_symbol"
-            | "delimited_symbol"
-            | "integer"
-            | "float"
-            | "rational"
-            | "complex"
-            | "true"
-            | "false"
-            | "nil"
-    ) || (node.kind_str() == "unary" && signed_number(node))
+/// `ACCEPTABLE_LITERAL_TYPES`.
+fn acceptable_literal(value: &Value) -> bool {
+    !matches!(value, Value::Pairs(_) | Value::Computed(_))
 }
 
-/// A sign the parser folds into the number it was written on.
-fn signed_number(node: Node<'_>) -> bool {
-    node.field("operand").is_some_and(|operand| {
-        matches!(
-            operand.kind_str(),
-            "integer" | "float" | "rational" | "complex"
-        )
+/// `numeric?` together with `Integer(value, exception: false)`.
+fn as_integer(value: &Value) -> Option<i128> {
+    match value {
+        Value::Integer(number) => Some(*number),
+        // `Integer(Rational(3, 4))` is 0: it truncates just as `Integer(0.75)` does.
+        Value::Rational(numerator, denominator) if *denominator != 0 => Some(numerator / denominator),
+        Value::Float(number) => Some(number.trunc() as i128),
+        // `Integer('0x10')` is 16: the prefixes count, which a plain parse would refuse.
+        Value::Text(text) => parse_integer(text.trim()),
+        Value::Computed(inner) => as_integer(inner),
+        _ => None,
+    }
+}
+
+/// `numeric?` together with `Float(value, exception: false)`.
+fn as_float(value: &Value) -> Option<f64> {
+    match value {
+        Value::Integer(number) => Some(*number as f64),
+        Value::Rational(numerator, denominator) => Some(*numerator as f64 / *denominator as f64),
+        Value::Float(number) => Some(*number),
+        Value::Text(text) => text.trim().parse::<f64>().ok(),
+        Value::Computed(inner) => as_float(inner),
+        _ => None,
+    }
+}
+
+/// `unknown_variable_width?`.
+fn unknown_variable_width(sequence: &Sequence, pending: &[usize], values: &[Value]) -> bool {
+    if !is_variable_width(sequence) {
+        return false;
+    }
+    let Some(number) = variable_width_argument_number(sequence) else {
+        return true;
+    };
+    let Some(index) = number.checked_sub(1).and_then(|index| pending.get(index)) else {
+        return true;
+    };
+    !matches!(
+        values.get(*index),
+        Some(Value::Integer(_) | Value::Float(_) | Value::Text(_))
+    )
+}
+
+fn is_variable_width(sequence: &Sequence) -> bool {
+    sequence.width.starts_with('*')
+}
+
+/// The `N` of a `%*N$d`, or the position that follows when none was written.
+fn variable_width_argument_number(sequence: &Sequence) -> Option<usize> {
+    match sequence.width.strip_prefix('*') {
+        Some(rest) => match rest.strip_suffix('$') {
+            Some(number) => number.parse().ok(),
+            None => Some(1),
+        },
+        None => None,
+    }
+}
+
+/// The `N` of a `%N$s`.
+fn argument_number(sequence: &Sequence) -> Option<usize> {
+    sequence
+        .flags
+        .split('$')
+        .next()
+        .filter(|digits| !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit()))
+        .filter(|_| sequence.flags.contains('$'))
+        .and_then(|digits| digits.parse().ok())
+}
+
+/// Whether the argument at that position was written as an interpolated string.
+fn is_interpolated(context: &RuleContext<'_>, rest: &[Argument<'_>], index: usize) -> bool {
+    let _ = context;
+    rest.get(index).is_some_and(|argument| {
+        matches!(argument.parts(), [only]
+            if only.kind_str() == "chained_string"
+                || (only.kind_str() == "string" && has_interpolation(*only)))
     })
 }
 
-/// `argument_value`: what the literal stands for, or nothing when it is no literal at all.
-fn argument_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Value> {
-    Value::of(node, context)
-}
-
-/// `quote`: the delimiters the format string was written with, changed where an interpolation forces
-/// a reading pair.
-fn quote(literal: Node<'_>, call: Node<'_>, text: String, context: &RuleContext<'_>) -> String {
-    let source = context.source.node_text(literal);
-    let mut open = opening_delimiter(source);
-    let mut close = closing_delimiter(source);
-    if has_interpolated_descendant(call) {
-        if open == "'" {
-            open = "\"".to_owned();
-            close = "\"".to_owned();
-        } else if let Some(rest) = open.strip_prefix("%q") {
-            open = format!("%Q{rest}");
+/// `argument_values`.
+fn argument_values(context: &RuleContext<'_>, rest: &[Argument<'_>]) -> Option<Vec<Value>> {
+    let mut values = Vec::new();
+    for argument in rest {
+        // A brace-less hash reaches here as its pairs, which upstream had already folded into one
+        // `hash` argument.
+        if argument
+            .parts()
+            .iter()
+            .all(|part| part.kind_str() == "pair")
+        {
+            let mut held = Vec::new();
+            for pair in argument.parts() {
+                held.push(pair_value(context, *pair)?);
+            }
+            values.push(Value::Pairs(held));
+            continue;
+        }
+        match argument.parts() {
+            [only] => values.push(argument_value(context, *only)?),
+            _ => return None,
         }
     }
-    format!("{open}{text}{close}")
+    Some(values)
 }
 
-fn opening_delimiter(source: &str) -> String {
-    match source.starts_with('%') {
-        true => source.chars().take(3).collect(),
-        false => source.chars().take(1).collect(),
+fn pair_value(context: &RuleContext<'_>, pair: Node<'_>) -> Option<(String, Value)> {
+    if pair.kind_str() != "pair" {
+        return None;
+    }
+    let key = pair.field("key")?;
+    let name = symbol_name(key, context).map(str::to_owned).or_else(|| {
+        (key.kind_str() == "string" && !has_interpolation(key)).then(|| string_value(key, context))
+    })?;
+    Some((name, argument_value(context, pair.field("value")?)?))
+}
+
+/// `argument_value`, for the literals this cop can reproduce.
+fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
+    let node = match node.kind_str() {
+        "parenthesized_statements" => *super::nodes::children(node).first()?,
+        _ => node,
+    };
+    let text = context.source.node_text(node);
+    match node.kind_str() {
+        "nil" => Some(Value::Nil),
+        "true" => Some(Value::Boolean(true)),
+        "false" => Some(Value::Boolean(false)),
+        "integer" => parse_integer(text).map(Value::Integer),
+        "float" => text.replace('_', "").parse().ok().map(Value::Float),
+        "string" if !has_interpolation(node) => Some(Value::Text(string_value(node, context))),
+        "string" | "chained_string" => Some(Value::Dynamic(dstr_value(node, context))),
+        // The parser folds a leading sign into the literal it precedes.
+        "unary" => {
+            let operator = node.field("operator")?;
+            let operand = node.field("operand")?;
+            let sign = context.source.node_text(operator);
+            if !matches!(sign, "-" | "+") || !matches!(operand.kind_str(), "integer" | "float") {
+                return None;
+            }
+            match argument_value(context, operand)? {
+                Value::Integer(number) if sign == "-" => Some(Value::Integer(-number)),
+                Value::Float(number) if sign == "-" => Some(Value::Float(-number)),
+                value => Some(value),
+            }
+        }
+        "simple_symbol" | "hash_key_symbol" | "bare_symbol" => {
+            symbol_name(node, context).map(|name| Value::Text(name.to_owned()))
+        }
+        "delimited_symbol" if !has_interpolation(node) => {
+            symbol_name(node, context).map(|name| Value::Text(name.to_owned()))
+        }
+        // `?a`, which the parser resolves into the one-character string it stands for.
+        "character" => Some(Value::Text(crate::rules::ruby_literal::character_value(text))),
+        "rational" => rational_value(text).map(|(num, den)| Value::Rational(num, den)),
+        // `rational_number?` and `complex_number?`: the two shapes upstream reads as one number even
+        // though the parser keeps them as calls.
+        "binary" => computed_number(context, node),
+        "complex" => complex_value(text).map(Value::Complex),
+        "hash" => {
+            let mut held = Vec::new();
+            for pair in super::nodes::children(node) {
+                held.push(pair_value(context, pair)?);
+            }
+            Some(Value::Pairs(held))
+        }
+        _ => None,
     }
 }
 
-fn closing_delimiter(source: &str) -> String {
-    source
-        .chars()
-        .next_back()
-        .map(String::from)
-        .unwrap_or_default()
+/// `{rational (send int :/ rational)}` and `{complex (send int :+ complex)}`, for the halves written
+/// as a call.
+fn computed_number(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
+    let operator = node.field("operator")?;
+    let (left, right) = (node.field("left")?, node.field("right")?);
+    if left.kind_str() != "integer" {
+        return None;
+    }
+    let left_text = context.source.node_text(left);
+    let right_text = context.source.node_text(right);
+    match context.source.node_text(operator) {
+        "/" if right.kind_str() == "rational" => {
+            let numerator = parse_integer(left_text)?;
+            let (denominator, _) = rational_value(right_text)?;
+            if denominator == 0 {
+                return None;
+            }
+            let divisor = greatest_common_divisor(
+                numerator.unsigned_abs(),
+                denominator.unsigned_abs(),
+            );
+            let divisor = i128::try_from(divisor.max(1)).ok()?;
+            Some(Value::Computed(Box::new(Value::Rational(
+                numerator / divisor,
+                denominator / divisor,
+            ))))
+        }
+        "+" if right.kind_str() == "complex" => {
+            let imaginary = complex_value(right_text)?;
+            let sign = match imaginary.starts_with('-') {
+                true => "",
+                false => "+",
+            };
+            let imaginary = imaginary.trim_start_matches("0+").trim_start_matches("0");
+            Some(Value::Computed(Box::new(Value::Complex(format!(
+                "{left_text}{sign}{imaginary}"
+            )))))
+        }
+        _ => None,
+    }
 }
 
-/// `node.each_descendant(:dstr, :dsym).any?`: a literal upstream's parser builds out of parts, which
-/// is one that interpolates and one written as literals side by side.
+/// `DstrNode#value`: the parts that hold text contribute what they stand for, and what is
+/// interpolated contributes the source it was written as.
+fn dstr_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
+    if node.kind_str() == "chained_string" {
+        return super::nodes::children(node)
+            .into_iter()
+            .map(|child| dstr_value(child, context))
+            .collect();
+    }
+    if !has_interpolation(node) {
+        return string_value(node, context);
+    }
+    let mut value = String::new();
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        match child.kind_str() {
+            "string_content" => value.push_str(context.source.node_text(child)),
+            "escape_sequence" => unescape(context.source.node_text(child), &mut value),
+            "interpolation" => value.push_str(context.source.node_text(child)),
+            _ => {}
+        }
+    }
+    value
+}
+
+/// `rational_value`: what `3r` and `0.5r` reduce to.
+fn rational_value(text: &str) -> Option<(i128, i128)> {
+    let body = text.strip_suffix('r')?.replace('_', "");
+    let (numerator, denominator) = match body.split_once('.') {
+        None => (body.parse::<i128>().ok()?, 1),
+        Some((whole, fraction)) => {
+            let scale = 10_i128.checked_pow(u32::try_from(fraction.len()).ok()?)?;
+            let digits = format!("{whole}{fraction}").parse::<i128>().ok()?;
+            (digits, scale)
+        }
+    };
+    let divisor = greatest_common_divisor(numerator.unsigned_abs(), denominator.unsigned_abs());
+    let divisor = i128::try_from(divisor.max(1)).ok()?;
+    Some((numerator / divisor, denominator / divisor))
+}
+
+fn greatest_common_divisor(left: u128, right: u128) -> u128 {
+    match right {
+        0 => left,
+        _ => greatest_common_divisor(right, left % right),
+    }
+}
+
+/// `complex_value`: what `1i` prints as, which spells out the real part it never had.
+fn complex_value(text: &str) -> Option<String> {
+    let body = text.strip_suffix('i')?.replace('_', "");
+    match body.contains('.') {
+        true => Some(format!("0.0+{}i", body.parse::<f64>().ok()?)),
+        false => Some(format!("0+{}i", body.parse::<i128>().ok()?)),
+    }
+}
+
+/// A Ruby integer literal, in any of its bases.
+fn parse_integer(text: &str) -> Option<i128> {
+    let text = text.replace('_', "");
+    let (radix, digits) = match text.get(..2) {
+        Some("0x" | "0X") => (16, &text[2..]),
+        Some("0b" | "0B") => (2, &text[2..]),
+        Some("0o" | "0O") => (8, &text[2..]),
+        _ => (10, text.as_str()),
+    };
+    i128::from_str_radix(digits, radix).ok()
+}
+
+/// `format(string, *arguments)`, for the sequences `matching_argument?` lets through.
+fn apply_format(text: &str, values: &[Value]) -> Option<String> {
+    let found = sequences(text);
+    let hash = values
+        .iter()
+        .position(|value| matches!(value, Value::Pairs(_)));
+    let mut pending: Vec<usize> = (0..values.len()).collect();
+    let mut out = String::new();
+    let mut cursor = 0;
+    for sequence in &found {
+        out.push_str(text.get(cursor..sequence.begin)?);
+        cursor = sequence.end;
+        if sequence.style == SequenceStyle::Percent {
+            out.push('%');
+            continue;
+        }
+        let width = match is_variable_width(sequence) {
+            true => {
+                let number = variable_width_argument_number(sequence)?;
+                let index = number.checked_sub(1)?;
+                let taken = *pending.get(index)?;
+                pending.remove(index);
+                Some(as_integer(values.get(taken)?)? as isize)
+            }
+            false => sequence.width.parse::<isize>().ok(),
+        };
+        let index = match hash.is_some()
+            && matches!(
+                sequence.style,
+                SequenceStyle::Annotated | SequenceStyle::Template
+            ) {
+            true => hash?,
+            false => match argument_number(sequence) {
+                Some(number) => *pending.get(number.checked_sub(1)?)?,
+                None => {
+                    let taken = *pending.first()?;
+                    pending.remove(0);
+                    taken
+                }
+            },
+        };
+        let value = value_at(values, hash, sequence, index)?;
+        out.push_str(&render(sequence, value, width)?);
+    }
+    out.push_str(text.get(cursor..)?);
+    Some(out)
+}
+
+/// One formatted field.
+fn render(sequence: &Sequence, value: &Value, width: Option<isize>) -> Option<String> {
+    let precision: Option<usize> = match sequence.precision.is_empty() {
+        true => None,
+        false => Some(sequence.precision.parse().ok()?),
+    };
+    let kind = match sequence.style {
+        SequenceStyle::Template => 's',
+        _ => sequence.kind?,
+    };
+    let body = match kind {
+        's' => {
+            let mut text = to_s(value);
+            if let Some(precision) = precision {
+                text = text.chars().take(precision).collect();
+            }
+            text
+        }
+        'd' | 'i' | 'u' => {
+            let number = as_integer(value)?;
+            let mut digits = number.unsigned_abs().to_string();
+            if let Some(precision) = precision {
+                while digits.len() < precision {
+                    digits.insert(0, '0');
+                }
+            }
+            let sign = match (
+                number < 0,
+                sequence.flags.contains('+'),
+                sequence.flags.contains(' '),
+            ) {
+                (true, _, _) => "-",
+                (false, true, _) => "+",
+                (false, false, true) => " ",
+                _ => "",
+            };
+            // `0` pads between the sign and the digits, and a precision turns the flag off.
+            if sequence.flags.contains('0')
+                && !sequence.flags.contains('-')
+                && precision.is_none()
+                && let Some(width) = width
+                && width > 0
+            {
+                let width = width as usize;
+                while sign.len() + digits.len() < width {
+                    digits.insert(0, '0');
+                }
+            }
+            format!("{sign}{digits}")
+        }
+        'f' => {
+            let number = as_float(value)?;
+            let precision = precision.unwrap_or(6);
+            let mut text = format!("{:.*}", precision, number.abs());
+            let sign = match (
+                number.is_sign_negative(),
+                sequence.flags.contains('+'),
+                sequence.flags.contains(' '),
+            ) {
+                (true, _, _) => "-",
+                (false, true, _) => "+",
+                (false, false, true) => " ",
+                _ => "",
+            };
+            if sequence.flags.contains('0')
+                && !sequence.flags.contains('-')
+                && let Some(width) = width
+                && width > 0
+            {
+                let width = width as usize;
+                while sign.len() + text.len() < width {
+                    text.insert(0, '0');
+                }
+            }
+            format!("{sign}{text}")
+        }
+        _ => return None,
+    };
+    let Some(width) = width else {
+        return Some(body);
+    };
+    let (left, width) = match width < 0 {
+        true => (true, width.unsigned_abs()),
+        false => (sequence.flags.contains('-'), width as usize),
+    };
+    let length = body.chars().count();
+    if length >= width {
+        return Some(body);
+    }
+    let padding = " ".repeat(width - length);
+    Some(match left {
+        true => format!("{body}{padding}"),
+        false => format!("{padding}{body}"),
+    })
+}
+
+/// `value.to_s`.
+fn to_s(value: &Value) -> String {
+    match value {
+        Value::Text(text) | Value::Dynamic(text) => text.clone(),
+        Value::Integer(number) => number.to_string(),
+        Value::Float(number) => match number.fract() == 0.0 && number.abs() < 1e16 {
+            true => format!("{number:.1}"),
+            false => number.to_string(),
+        },
+        Value::Rational(numerator, denominator) => format!("{numerator}/{denominator}"),
+        Value::Complex(text) => text.clone(),
+        Value::Boolean(flag) => flag.to_string(),
+        Value::Nil => String::new(),
+        Value::Pairs(_) => String::new(),
+        Value::Computed(inner) => to_s(inner),
+    }
+}
+
+/// `quote`: the result keeps the delimiters the template was written with.
+fn quote(context: &RuleContext<'_>, template: Node<'_>, call: Node<'_>, formatted: &str) -> String {
+    let mut cursor = template.walk();
+    let delimiters: Vec<Node<'_>> = template
+        .children(&mut cursor)
+        .filter(|child| !child.is_named())
+        .collect();
+    let mut opening = delimiters.first().map_or("'".to_owned(), |token| {
+        context.source.node_text(*token).to_owned()
+    });
+    let mut closing = delimiters.last().map_or("'".to_owned(), |token| {
+        context.source.node_text(*token).to_owned()
+    });
+    // An interpolated argument means the result has to stay interpolatable.
+    if has_interpolated_descendant(call) {
+        if opening == "'" {
+            opening = "\"".to_owned();
+            closing = "\"".to_owned();
+        } else if let Some(rest) = opening.strip_prefix("%q") {
+            opening = format!("%Q{rest}");
+        }
+    }
+    format!("{opening}{}{closing}", escape_control_chars(formatted))
+}
+
+/// `node.each_descendant(:dstr, :dsym).any?`.
 fn has_interpolated_descendant(call: Node<'_>) -> bool {
-    let mut stack = named_children(call);
+    let mut stack: Vec<Node<'_>> = Vec::new();
+    crate::rules::push_named_children(call, &mut stack);
     while let Some(node) = stack.pop() {
-        if node.kind_str() == "chained_string"
-            || (matches!(node.kind_str(), "string" | "delimited_symbol")
-                && has_interpolation(node))
+        if matches!(node.kind_str(), "chained_string")
+            || (matches!(node.kind_str(), "string" | "delimited_symbol") && has_interpolation(node))
         {
             return true;
         }
-        stack.extend(named_children(node));
+        crate::rules::push_named_children(node, &mut stack);
     }
     false
 }
 
-/// `escape_control_chars`: `string.gsub(/\p{Cc}/) { |s| s.dump[1..-2] }`, which touches the control
-/// characters and nothing else.
+/// `escape_control_chars`.
 fn escape_control_chars(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
+    let mut out = String::new();
     for character in text.chars() {
         match character {
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
             '\r' => out.push_str("\\r"),
-            '\u{7}' => out.push_str("\\a"),
-            '\u{8}' => out.push_str("\\b"),
-            '\u{b}' => out.push_str("\\v"),
-            '\u{c}' => out.push_str("\\f"),
-            '\u{1b}' => out.push_str("\\e"),
+            '\x0b' => out.push_str("\\v"),
+            '\x0c' => out.push_str("\\f"),
+            '\x08' => out.push_str("\\b"),
+            '\x07' => out.push_str("\\a"),
+            '\x1b' => out.push_str("\\e"),
             '\0' => out.push_str("\\0"),
-            other if other.is_control() => out.push_str(&format!("\\u{:04X}", other as u32)),
-            other => out.push(other),
+            character if (character as u32) < 0x20 || character as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02X}", character as u32));
+            }
+            character => out.push(character),
         }
     }
     out
 }
 
-fn has_interpolation(node: Node<'_>) -> bool {
-    named_children(node)
-        .iter()
-        .any(|child| child.kind_str() == "interpolation")
-}
-
-/// `(send {(const {nil? cbase} :Kernel) nil?} ...)`.
-fn is_kernel_receiver(call: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let Some(receiver) = call.field("receiver") else {
-        return true;
-    };
-    match receiver.kind_str() {
-        "constant" => context.source.node_text(receiver) == "Kernel",
-        "scope_resolution" => {
-            receiver.field("scope").is_none()
-                && receiver
-                    .field("name")
-                    .is_some_and(|name| context.source.node_text(name) == "Kernel")
-        }
-        _ => false,
-    }
-}
-
-/// `splat` and `(hash <kwsplat ...>)`.
-fn is_splatted(argument: &Argument<'_>) -> bool {
-    argument.parts().iter().any(|part| {
-        matches!(
-            part.kind_str(),
-            "splat_argument" | "hash_splat_argument" | "splat_parameter"
-        )
-    })
-}
-
-/// Whether the argument is the hash a run of `key: value` pairs builds, however it was written.
-fn is_hash(argument: &Argument<'_>) -> bool {
-    argument.parts().len() > 1 || matches!(argument.first().kind_str(), "hash" | "pair")
-}
-
-/// The pairs the hash holds, whether it was written with braces or without.
-fn pairs<'tree>(argument: &Argument<'tree>) -> Vec<Node<'tree>> {
-    match argument.first().kind_str() {
-        "hash" => named_children(argument.first()),
-        _ => argument.parts().to_vec(),
-    }
-}
-
-/// The offense, whose correction replaces the whole call with the string it builds.
-fn offense(call: Node<'_>, replacement: String, name: &str, context: &RuleContext<'_>) -> Offense {
-    let message = format!("Use `{replacement}` directly instead of `{name}`.");
+/// The offence and the rewrite it carries.
+fn report(context: &RuleContext<'_>, call: Node<'_>, replacement: String) -> Offense {
+    let name = call.field("method").map_or_else(String::new, |method| {
+        context.source.node_text(method).to_owned()
+    });
+    let range = send_range(call, context);
     context
-        .offense(message, call.byte_range())
+        .offense(
+            format!("Use `{replacement}` directly instead of `{name}`."),
+            range.clone(),
+        )
         .corrected_by(Edit {
-            start: call.start_byte(),
-            end: call.end_byte(),
+            start: range.start,
+            end: range.end,
             replacement,
             safe: true,
         })

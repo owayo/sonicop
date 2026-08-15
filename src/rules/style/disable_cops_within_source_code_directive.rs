@@ -1,124 +1,130 @@
-use std::ops::Range;
+use std::collections::HashSet;
 
 use crate::diagnostic::{Edit, Offense};
-use crate::directives::{DirectiveComment, DirectiveMode};
+use crate::directives::directive_cop_names;
 use crate::rules::RuleContext;
 
 const MSG: &str = "RuboCop disable/enable directives are not permitted.";
 
+/// A `# rubocop:disable` written to make an offense go away rather than fixing it.
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let allowed: Vec<String> = context.setting("AllowedCops").unwrap_or_default();
-    let disallowed_config: Vec<String> = context.setting("DisallowedCops").unwrap_or_default();
-    for comment in context.comment_ranges() {
-        let line = context.source.line_column(comment.start).0;
-        let Some(directive) = DirectiveComment::parse(context.source, comment.clone(), line) else {
-            continue;
-        };
-        let named = directive_cops(&directive);
-        let disallowed = compute_disallowed(&named, &allowed, &disallowed_config);
+    let allowed = names(context, "AllowedCops");
+    let disallowed_config = names(context, "DisallowedCops");
+    for range in context.comment_ranges() {
+        let text = context.source.slice(range.clone());
+        let listed = directive_cop_names(text);
+        let disallowed = disallowed_of(&listed, &allowed, &disallowed_config);
         if disallowed.is_empty() {
             continue;
         }
-        offenses.push(offense(
-            comment,
-            &named,
-            &disallowed,
-            !allowed.is_empty() || !disallowed_config.is_empty(),
-            context,
-        ));
+        let message = if allowed.is_empty() && disallowed_config.is_empty() {
+            MSG.to_owned()
+        } else {
+            format!(
+                "RuboCop disable/enable directives for `{}` are not permitted.",
+                disallowed.join("`, `")
+            )
+        };
+        // A directive naming something the configuration still allows keeps its comment, minus the
+        // name that is not allowed; one naming nothing else goes away entirely.
+        let replacement = match listed.len() == disallowed.len() {
+            true => String::new(),
+            false => without(text, &disallowed),
+        };
+        offenses.push(context.offense(message, range.clone()).corrected_by(Edit {
+            start: range.start,
+            end: range.end,
+            replacement,
+            safe: true,
+        }));
     }
 }
 
-/// `directive_cops`: the names the directive lists, as they were written. A `push` or a `pop` carries
-/// its arguments in a group of its own, which the cop never reads.
-fn directive_cops(directive: &DirectiveComment) -> Vec<String> {
-    if matches!(directive.mode, DirectiveMode::Push | DirectiveMode::Pop) {
-        return Vec::new();
+/// `compute_disallowed_cops`.
+fn disallowed_of<'a>(
+    listed: &[&'a str],
+    allowed: &HashSet<String>,
+    disallowed_config: &HashSet<String>,
+) -> Vec<&'a str> {
+    if disallowed_config.is_empty() {
+        return listed
+            .iter()
+            .filter(|cop| !allowed.contains(**cop))
+            .copied()
+            .collect();
     }
-    directive
-        .raw_cop_names()
-        .into_iter()
-        .map(|name| name.trim().to_owned())
+    // `DisallowedCops` names what may not be switched off, and `all` switches off everything named
+    // there along with the rest.
+    if listed.contains(&"all") {
+        return listed.to_vec();
+    }
+    let mut seen = HashSet::new();
+    listed
+        .iter()
+        .filter(|cop| seen.insert(**cop) && disallowed_config.contains(**cop))
+        .copied()
         .collect()
 }
 
-/// `compute_disallowed_cops`: `DisallowedCops` names the ones to object to and `AllowedCops` the ones
-/// to let through, and the first of the two wins where both were configured.
-fn compute_disallowed(named: &[String], allowed: &[String], disallowed: &[String]) -> Vec<String> {
-    if disallowed.is_empty() {
-        return named
-            .iter()
-            .filter(|cop| !allowed.contains(cop))
-            .cloned()
-            .collect();
-    }
-    // A directive that switches off everything is objected to whole, since what it covers cannot be
-    // narrowed down to the names that were configured.
-    if named.iter().any(|cop| cop == "all") {
-        return named.to_vec();
-    }
-    let mut unique: Vec<String> = Vec::new();
-    for cop in named {
-        if disallowed.contains(cop) && !unique.contains(cop) {
-            unique.push(cop.clone());
+/// `comment.text.sub(/#{Regexp.union(disallowed_cops)},?\s*/, '').sub(/,\s*$/, '')`.
+///
+/// Both substitutions replace one match, so a comment naming two cops the configuration turns down
+/// keeps the second of them -- and the pass that follows reports what is left over again.
+fn without(text: &str, disallowed: &[&str]) -> String {
+    let Some((start, end)) = first_match(text, disallowed) else {
+        return trimmed_trailing_comma(text);
+    };
+    let mut out = String::with_capacity(text.len());
+    out.push_str(&text[..start]);
+    out.push_str(&text[end..]);
+    trimmed_trailing_comma(&out)
+}
+
+/// The leftmost place any of the names is written, with the comma and blanks after it.
+///
+/// An alternation prefers the branch written first where several of them match at one place, which
+/// is what `Regexp.union` builds and what the crate matches with.
+fn first_match(text: &str, disallowed: &[&str]) -> Option<(usize, usize)> {
+    let bytes = text.as_bytes();
+    for start in 0..=text.len() {
+        if !text.is_char_boundary(start) {
+            continue;
         }
+        let Some(name) = disallowed
+            .iter()
+            .find(|name| !name.is_empty() && text[start..].starts_with(**name))
+        else {
+            continue;
+        };
+        let mut end = start + name.len();
+        if bytes.get(end) == Some(&b',') {
+            end += 1;
+        }
+        while bytes
+            .get(end)
+            .is_some_and(|byte| matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c))
+        {
+            end += 1;
+        }
+        return Some((start, end));
     }
-    unique
+    None
 }
 
-/// The offense, whose correction drops the directive -- or the one name it objects to, where the
-/// others were let through.
-fn offense(
-    comment: &Range<usize>,
-    named: &[String],
-    disallowed: &[String],
-    configured: bool,
-    context: &RuleContext<'_>,
-) -> Offense {
-    let message = match configured {
-        true => format!(
-            "RuboCop disable/enable directives for `{}` are not permitted.",
-            disallowed.join("`, `")
-        ),
-        false => MSG.to_owned(),
-    };
-    let replacement = match named.len() == disallowed.len() {
-        true => String::new(),
-        false => without_disallowed(context.source.slice(comment.clone()), disallowed),
-    };
+/// `sub(/,\s*$/, '')`.
+fn trimmed_trailing_comma(text: &str) -> String {
+    let without_blanks = text.trim_end_matches([' ', '\t', '\r', '\n', '\x0b', '\x0c']);
+    match without_blanks.strip_suffix(',') {
+        Some(kept) => kept.to_owned(),
+        None => text.to_owned(),
+    }
+}
+
+/// `Array(cop_config[key]).to_set`.
+fn names(context: &RuleContext<'_>, key: &str) -> HashSet<String> {
     context
-        .offense(message, comment.clone())
-        .corrected_by(Edit {
-            start: comment.start,
-            end: comment.end,
-            replacement,
-            safe: true,
-        })
-}
-
-/// `comment.text.sub(/#{Regexp.union(disallowed_cops)},?\s*/, '').sub(/,\s*$/, '')`: the first of the
-/// objected-to names is taken out, and a comma the removal left at the end goes with it.
-fn without_disallowed(text: &str, disallowed: &[String]) -> String {
-    let Some((start, name)) = disallowed
-        .iter()
-        .filter_map(|name| text.find(name.as_str()).map(|start| (start, name)))
-        .min_by_key(|(start, _)| *start)
-    else {
-        return trimmed_comma(text.to_owned());
-    };
-    let mut end = start + name.len();
-    if text[end..].starts_with(',') {
-        end += 1;
-    }
-    end += text[end..].len() - text[end..].trim_start().len();
-    trimmed_comma(format!("{}{}", &text[..start], &text[end..]))
-}
-
-/// `.sub(/,\s*$/, '')`.
-fn trimmed_comma(text: String) -> String {
-    let trimmed = text.trim_end();
-    match trimmed.strip_suffix(',') {
-        Some(rest) => rest.to_owned(),
-        None => text,
-    }
+        .setting::<Vec<String>>(key)
+        .unwrap_or_default()
+        .into_iter()
+        .collect()
 }

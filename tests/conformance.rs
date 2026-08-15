@@ -3155,6 +3155,34 @@ fn catalogue() -> Vec<CopCase> {
         .id("lint_redundant_regexp_quantifiers")
         .severity(Severity::Warning)
         .correctable(true),
+        // 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+        // `locations` / `lengths` で押さえる。
+        CopCase::annotated(
+            "Lint/RequireRangeParentheses",
+            r"
+            x = 1..
+                ^^^ Wrap the range literal `1..` in parentheses to avoid confusion with an endless range.
+            42
+            ",
+        )
+        .id("lint_require_range_parentheses")
+        .locations(&[(1, 5, 2, 2)])
+        .lengths(&[6])
+        .severity(Severity::Warning)
+        .correctable(false),
+        CopCase::annotated(
+            "Style/ArgumentsForwarding",
+            r"
+            def foo(*args, &block)
+                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+              bar(*args, &block)
+                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
+            end
+            ",
+        )
+        .id("style_arguments_forwarding")
+        .severity(Severity::Convention)
+        .correctable(true),
         // ---- Metrics ----
         CopCase::annotated(
             "Metrics/AbcSize",
@@ -5238,6 +5266,25 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_redundant_double_splat_hash_braces")
         .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantStringEscape",
+            "foo = \"\\.bar\"\n       ^^ Redundant escape of . inside string literal.\n",
+        )
+        .id("style_redundant_string_escape")
+        .correctable(true),
+        // 位置は `\\` と改行の 2 文字ぶんで、次の行にまたがる。
+        CopCase::annotated("Style/RedundantLineContinuation", "foo = 1 + \\\n  2\n")
+            .id("style_redundant_line_continuation")
+            .without_offense_check()
+            .locations(&[(1, 11, 2, 1)])
+            .lengths(&[2])
+            .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFormat",
+            "a = format('name')\n    ^^^^^^^^^^^^^^ Use `'name'` directly instead of `format`.\n",
+        )
+        .id("style_redundant_format")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")
@@ -5340,6 +5387,33 @@ fn catalogue() -> Vec<CopCase> {
         .without_offense_check()
         .locations(&[(2, 3, 6, 5)])
         .lengths(&[55])
+        .correctable(true),
+        // 位置はコメント全体。
+        CopCase::annotated(
+            "Style/DisableCopsWithinSourceCodeDirective",
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .id("style_disable_cops_within_source_code_directive")
+        .correctable(true),
+        // 位置は条件式の全体。
+        CopCase::annotated("Style/MissingElse", "if a\n  b\nend\n")
+            .id("style_missing_else")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[12])
+            .correctable(false),
+        // 位置は呼び出し全体。
+        CopCase::annotated(
+            "Style/MethodCallWithArgsParentheses",
+            r"
+            obj.foo 1, 2
+            ^^^^^^^^^^^^ Use parentheses for method calls with arguments.
+            ",
+        )
+        .id("style_method_call_with_args_parentheses")
         .correctable(true),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
@@ -6061,37 +6135,6 @@ fn catalogue() -> Vec<CopCase> {
             "#,
         )
         .id("style_sample")
-        .correctable(true),
-        CopCase::annotated(
-            "Style/ArgumentsForwarding",
-            r#"
-            def foo(*args, &block)
-                    ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-              bar(*args, &block)
-                  ^^^^^^^^^^^^^ Use shorthand syntax `...` for arguments forwarding.
-            end
-            "#,
-        )
-        .id("style_arguments_forwarding")
-        .target_ruby("2.7")
-        .correctable(true),
-        CopCase::annotated(
-            "Style/DisableCopsWithinSourceCodeDirective",
-            r#"
-            # rubocop:disable Style/Documentation
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
-            "#,
-        )
-        .id("style_disable_cops_within_source_code_directive")
-        .correctable(true),
-        CopCase::annotated(
-            "Style/RedundantFormat",
-            r#"
-            format('string')
-            ^^^^^^^^^^^^^^^^ Use `'string'` directly instead of `format`.
-            "#,
-        )
-        .id("style_redundant_format")
         .correctable(true),
         CopCase::annotated(
             "Style/RedundantFreeze",

@@ -19183,7 +19183,7 @@ mod style_combinable_loops {
 }
 
 /// `Style/RedundantInterpolation` — 補間 1 つだけの文字列。
-mod style_arguments_forwarding {
+mod style_arguments_forwarding_probes {
     use super::*;
 
     const COP: &str = "Style/ArgumentsForwarding";
@@ -19313,7 +19313,7 @@ mod style_arguments_forwarding {
     }
 }
 
-mod style_disable_cops_within_source_code_directive {
+mod style_disable_cops_within_source_code_directive_probes {
     use super::*;
 
     const COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
@@ -19394,7 +19394,7 @@ mod style_disable_cops_within_source_code_directive {
     }
 }
 
-mod style_redundant_format {
+mod style_redundant_format_probes {
     use super::*;
 
     const COP: &str = "Style/RedundantFormat";
@@ -33635,6 +33635,890 @@ mod style_class_methods_definitions {
             Vec::new(),
         )
         .config(SELF_CLASS)
+        .run();
+    }
+}
+
+/// `Style/DisableCopsWithinSourceCodeDirective` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_disable_cops_within_source_code_directive {
+    use super::*;
+
+    const COP: &str = "Style/DisableCopsWithinSourceCodeDirective";
+    const ON: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n";
+    const ALLOWED: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  AllowedCops:\n    - Metrics/AbcSize\n    - Style/For\n";
+    const DISALLOWED: &str = "Style/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n  DisallowedCops:\n    - Lint/Void\n    - Style/Next\n";
+
+    fn correction(config: &str, source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(config)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置はコメント全体。`disable` も `enable` も同じように報告され、補正は
+    /// コメントを消す。
+    #[test]
+    fn every_directive_comment_is_reported_and_taken_out() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            def foo
+            end
+            # rubocop:enable Metrics/AbcSize
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "x = 0\n# rubocop:disable Metrics/AbcSize\ndef foo\nend\n# rubocop:enable Metrics/AbcSize\n",
+            "x = 0\n\ndef foo\nend\n\n",
+        );
+    }
+
+    /// コードの後ろに書かれたものも同じ。位置はコメントだけで、コードは残る。
+    #[test]
+    fn a_directive_written_after_code_is_reported_on_the_comment_alone() {
+        CopCase::annotated(
+            COP,
+            r"
+            x = 1 # rubocop:disable Style/For
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "y = 0\nx = 1 # rubocop:disable Style/For\n",
+            "y = 0\nx = 1 \n",
+        );
+    }
+
+    /// マーカーの前が `#` と空白だけのものは、コメントアウトされたディレクティブ
+    /// なので数に入らない。前にコードがあるものは数に入る。
+    #[test]
+    fn a_directive_that_has_itself_been_commented_out_is_not_one() {
+        CopCase::new(
+            COP,
+            "## rubocop:disable Style/For\n# a plain comment\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config(ON)
+        .run();
+        correction(
+            ON,
+            "x = 0\n#   def f # rubocop:disable Style/For\nx = 1\n",
+            "x = 0\n\nx = 1\n",
+        );
+    }
+
+    /// `push` の引数も名前として読まれる。`pop` は名前を持たないので報告されない。
+    #[test]
+    fn the_names_a_push_carries_are_read_as_its_cops() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:push +Style/For
+            ^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            x = 1
+            # rubocop:pop
+            ",
+        )
+        .config(ON)
+        .run();
+    }
+
+    /// `AllowedCops` に挙げた名前は許される。残りが名前で挙がり、コメントからは
+    /// 許されない名前だけが落ちる。`all` は挙げても許されない。
+    #[test]
+    fn allowed_cops_keeps_the_names_it_lists() {
+        for source in [
+            "# rubocop:disable Metrics/AbcSize\ndef foo\nend\n# rubocop:enable Metrics/AbcSize\n",
+            "x = 1 # rubocop:disable Style/For\n",
+            "# rubocop:disable Style/For -- because\nx = 1\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(ALLOWED)
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize, Style/Next
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Style/Next` are not permitted.
+            x = 1
+            ",
+        )
+        .config(ALLOWED)
+        .run();
+        correction(
+            ALLOWED,
+            "x = 0\n# rubocop:disable Metrics/AbcSize, Style/Next\nx = 1\n",
+            "x = 0\n# rubocop:disable Metrics/AbcSize\nx = 1\n",
+        );
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            x = 1
+            ",
+        )
+        .config(ALLOWED)
+        .run();
+    }
+
+    /// `DisallowedCops` を書いたときは、そこに挙げた名前と `all` だけが対象。
+    #[test]
+    fn disallowed_cops_reports_only_the_names_it_lists() {
+        for source in [
+            "x = 1 # rubocop:disable Style/For\n",
+            "# rubocop:push +Style/For\nx = 1\n# rubocop:pop\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(DISALLOWED)
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable Metrics/AbcSize, Style/Next
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `Style/Next` are not permitted.
+            x = 1
+            ",
+        )
+        .config(DISALLOWED)
+        .run();
+        // `all` は挙げていない名前も道連れにする。
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives for `all` are not permitted.
+            x = 1
+            ",
+        )
+        .config(DISALLOWED)
+        .run();
+    }
+
+    /// 設定が明示的に有効にしたこの cop は、ディレクティブでは黙らせられない。
+    #[test]
+    fn a_directive_cannot_switch_the_cop_off_once_the_configuration_asks_for_it() {
+        CopCase::annotated(
+            COP,
+            r"
+            # rubocop:disable all
+            ^^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            x = 1
+            # rubocop:enable all
+            ^^^^^^^^^^^^^^^^^^^^ RuboCop disable/enable directives are not permitted.
+            ",
+        )
+        .config(ON)
+        .run();
+    }
+}
+
+mod lint_require_range_parentheses {
+    use super::*;
+
+    const COP: &str = "Lint/RequireRangeParentheses";
+
+    const MSG: &str = "Wrap the range literal `1..` in parentheses to avoid confusion with an \
+                       endless range.";
+
+    /// 行末で終わるレンジは括弧で囲む。レンジ全体を報告し、補正はしない。
+    ///
+    /// 注記のキャレットは 1 行目までしか描けないので、またいだ先までの範囲は
+    /// `tests/conformance.rs` 側で `locations` / `lengths` に固定してある。
+    #[test]
+    fn a_range_whose_end_is_on_the_next_line_is_reported() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n42\n"));
+        // 文法はレンジを 2 つに割るが、Ruby は 1 つのレンジとして読む。
+        // 報告の範囲は組み直したレンジ全体。
+        expect_offense(COP, &format!("1..\n^^^ {MSG}\n42\n"));
+    }
+
+    /// 括弧の中では改行が区切りにならないので、文法もレンジを割らない。
+    /// それでも本家は演算子と終端の行が違えば報告する。
+    #[test]
+    fn a_range_the_grammar_kept_whole_is_reported_the_same_way() {
+        expect_offense(COP, &format!("a = [1..\n     ^^^ {MSG}\n42]\n"));
+        expect_offense(COP, &format!("foo(1..\n    ^^^ {MSG}\n42)\n"));
+    }
+
+    /// 終端の式は行頭の 1 語ではなく式全体。
+    #[test]
+    fn the_end_is_the_whole_expression_that_follows() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n8 + 9\n"));
+    }
+
+    /// 間にコメントしかなければ、Ruby は改行をまたいでレンジを続ける。
+    #[test]
+    fn a_comment_in_between_does_not_end_the_range() {
+        expect_offense(COP, &format!("x = 1..\n    ^^^ {MSG}\n# note\n42\n"));
+    }
+
+    /// 括弧で囲めばそれが答え。式が続かない書き方、終端が同じ行にあるもの、
+    /// 始端の無いレンジ、複数の文を持つ本体の中にあるものは黙る。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "y = (1..\n42)\n",
+            "z = 1..42\n",
+            "x = (1..)\ny = 2\n",
+            "def m\n  1..\nend\n",
+            // `,` があるので Ruby は終端を取り込まない。
+            "c = [1.., 2]\n",
+            "d = [1..,\n3]\n",
+            "f = {a: 1..,\nb: 2}\n",
+            // `then` が挟まると endless range のまま。
+            "case x\nwhen 1..\nthen y\nend\n",
+            // 本体が 2 文以上あると、本家はレンジの親を `begin` にする。
+            "def n\n  q = 0\n  1..\n  42\nend\n",
+            "puts 0\n1..\n42\n",
+            // 補間は 1 文でも `begin`。
+            "s = \"#{3..\n44}\"\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+}
+
+/// `Style/RedundantFormat`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_format {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 書式指定の無い `format` は、その文字列そのもの。
+    #[test]
+    fn a_format_with_nothing_to_format_is_the_string_itself() {
+        correction("a = format('name')\n", "a = 'name'\n");
+        correction("a = sprintf(\"name\")\n", "a = \"name\"\n");
+        correction("a = Kernel.format('name')\n", "a = 'name'\n");
+        correction("a = format(CONST)\n", "a = CONST\n");
+    }
+
+    /// 引数が全部リテラルなら、書式を当てた結果まで畳める。
+    #[test]
+    fn literal_arguments_are_folded_into_the_result() {
+        correction("a = format('%s', 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%d', 1)\n", "a = '1'\n");
+        correction("a = format('%f', 1.5)\n", "a = '1.500000'\n");
+        correction("a = format('%05d', 42)\n", "a = '00042'\n");
+        correction("a = format('%-10s|', 'ab')\n", "a = 'ab        |'\n");
+        correction("a = format('%.2f', 1.234)\n", "a = '1.23'\n");
+        correction("a = format('%<x>s', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%{x}', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%2$s %1$s', 'x', 'y')\n", "a = 'y x'\n");
+        correction("a = format('%*d', 5, 42)\n", "a = '   42'\n");
+        correction("a = format('%s', nil)\n", "a = ''\n");
+        correction("a = format('%s', :sym)\n", "a = 'sym'\n");
+        // 式展開のある引数は結果も式展開できる形にする。
+        correction("a = format('%s', \"x#{b}y\")\n", "a = \"x#{b}y\"\n");
+    }
+
+    /// リテラルでない引数、型の合わない書式、`%%`、splat は黙る。
+    #[test]
+    fn what_the_format_cop_leaves_alone() {
+        for source in [
+            "a = format('%s', foo)\n",
+            "a = format('%x', 255)\n",
+            "a = format('%s%%', 'a')\n",
+            "a = format('%s', *args)\n",
+            "a = format('%s', **opts)\n",
+            "a = format('%s %d', 'a')\n",
+            "a = format('%d', true)\n",
+            "a = format('%5s', \"a#{b}c\")\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantLineContinuation`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_line_continuation {
+    use super::*;
+
+    const COP: &str = "Style/RedundantLineContinuation";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 消しても構文が変わらない `\` は消える。消えるのは backslash 1 文字だけなので、
+    /// 手前にあった空白はそのまま残る。
+    #[test]
+    fn a_line_continuation_the_parser_did_not_need_is_removed() {
+        correction("foo = 1 + \\\n  2\n", "foo = 1 + \n  2\n");
+        correction("qux = foo \\\n  .bar\n", "qux = foo \n  .bar\n");
+        correction("quux(1, \\\n  2)\n", "quux(1, \n  2)\n");
+        correction("corge = [1, \\\n  2]\n", "corge = [1, \n  2]\n");
+        // 最終行の末尾に残った `\` も対象。
+        correction("fred = 1 + 2 \\\n", "fred = 1 + 2 \n");
+    }
+
+    /// 文字列の中、コメントの中、暗黙の文字列連結、消すと構文が変わるものは黙る。
+    #[test]
+    fn what_the_line_continuation_cop_leaves_alone() {
+        for source in [
+            "baz = \"a\" \\\n  \"b\"\n",
+            "waldo = \"a\\\nb\"\n",
+            "# comment \\\ngarply = 1\n",
+            "grault = <<~T\n  a \\\n  b\nT\n",
+            // 次の行が演算子で始まるので、`\` を消すと別の構文になる。
+            "s = 1 if foo \\\n  && bar\n",
+            // 空行を挟んだ leading dot は `\` が無いと繋がらない。
+            "r = foo \\\n\n  .bar\n",
+            // 次の行が新しい式を始めるなら、`\` はそれを引数として繋いでいる。
+            "assert_equal \\\n  \"a\",\n  b\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/RedundantStringEscape`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_string_escape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantStringEscape";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 何も escape していない backslash は消える。
+    #[test]
+    fn a_backslash_that_escapes_nothing_is_removed() {
+        correction("foo = \"\\.bar\"\n", "foo = \".bar\"\n");
+        correction("foo = \"\\!bar\"\n", "foo = \"!bar\"\n");
+        // 二重引用符の中の単引用符は区切り文字ではない。
+        correction("foo = \"\\'bar\"\n", "foo = \"'bar\"\n");
+        // `%W` は式展開が効くので escape も効く。`%w` は効かない。
+        correction("foo = %W[a\\.b]\n", "foo = %W[a.b]\n");
+        correction("foo = \"a\\ b\"\n", "foo = \"a b\"\n");
+        // ヒアドキュメントの中も見る。
+        correction("foo = <<~T\n  a\\.b\nT\n", "foo = <<~T\n  a.b\nT\n");
+    }
+
+    /// 区切り文字、英数字、`\\`、式展開を止める `\#{`、式展開の無い書き方は黙る。
+    #[test]
+    fn what_the_escape_cop_leaves_alone() {
+        for source in [
+            "foo = \"\\\"bar\"\n",
+            "foo = \"\\n\"\n",
+            "foo = \"\\\\\"\n",
+            "foo = 'a\\.b'\n",
+            "foo = 'a\\'b'\n",
+            "foo = %q(a\\.b)\n",
+            "foo = %w[a\\.b]\n",
+            "foo = \"a\\#{b}c\"\n",
+            "foo = /a\\.b/\n",
+            "foo = ?\\.\n",
+            "foo = <<~'T'\n  a\\.b\nT\n",
+            "foo = %(a\\(b\\)c)\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
+
+/// `Style/MissingElse` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_missing_else {
+    use super::*;
+
+    const COP: &str = "Style/MissingElse";
+    const EMPTY: &str = "Style/EmptyElse:\n  EnforcedStyle: empty\n";
+    const NIL: &str = "Style/EmptyElse:\n  EnforcedStyle: nil\n";
+
+    /// 位置は条件式の全体。既定では `Style/EmptyElse` が `else` の中身を決めないので
+    /// 補正は付かない。
+    #[test]
+    fn a_conditional_without_an_else_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an `else`-clause.
+              b
+            end
+            ",
+        );
+        expect_offense(
+            COP,
+            r"
+            case v
+            ^^^^^^ `case` condition requires an `else`-clause.
+            when 1
+              b
+            end
+            ",
+        );
+        for source in [
+            "if a\n  b\nelse\n  c\nend\n",
+            "case v\nwhen 1\n  b\nelse\n  c\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `elsif` は本家の木では `if` そのものなので、それだけで報告される。`elsif` を
+    /// 持つ外側の `if` は `loc.else` を持つので報告されない。
+    #[test]
+    fn an_elsif_is_a_conditional_of_its_own() {
+        expect_offense(
+            COP,
+            r"
+            if a
+              b
+            elsif c
+            ^^^^^^^ `if` condition requires an `else`-clause.
+              d
+            end
+            ",
+        );
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nelse\n  e\nend\n");
+    }
+
+    /// ヒアドキュメントの本体も行末のコメントも本家の式の範囲には入らないので、
+    /// `elsif` はそれを開いた文までで終わる。
+    #[test]
+    fn the_range_stops_at_the_last_statement_of_the_branch() {
+        CopCase::annotated(
+            COP,
+            "if a\n  b\nelsif c\n  raise D, <<~MSG\n    text\n  MSG\nend\n",
+        )
+        .without_offense_check()
+        .locations(&[(3, 1, 4, 17)])
+        .lengths(&[25])
+        .run();
+    }
+
+    /// 三項演算子と後置修飾は `OnNormalIfUnless` が外す。`case ... in` は何も
+    /// 合わなければ例外を上げるので `else` を要らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        for source in [
+            "x = a ? b : c\ny = b if a\nz = b unless a\n",
+            "case v\nin 1\n  b\nend\n",
+            // `Style/UnlessElse` が有効なら `unless` はあちらの持ち場。
+            "unless a\n  b\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `Style/UnlessElse` を切ると `unless` もこちらが見る。
+    #[test]
+    fn an_unless_is_checked_once_the_other_cop_is_off() {
+        CopCase::annotated(
+            COP,
+            r"
+            unless a
+            ^^^^^^^^ `if` condition requires an `else`-clause.
+              b
+            end
+            ",
+        )
+        .config("Style/UnlessElse:\n  Enabled: false\n")
+        .run();
+    }
+
+    /// `EnforcedStyle` はどちらを見るかを決める。
+    #[test]
+    fn the_enforced_style_chooses_between_if_and_case() {
+        let both = "if a\n  b\nend\ncase v\nwhen 1\n  b\nend\n";
+        CopCase::new(COP, both.to_owned(), Vec::new())
+            .config("Style/MissingElse:\n  EnforcedStyle: if\n")
+            .without_offense_check()
+            .locations(&[(1, 1, 3, 3)])
+            .lengths(&[12])
+            .run();
+        CopCase::new(COP, both.to_owned(), Vec::new())
+            .config("Style/MissingElse:\n  EnforcedStyle: case\n")
+            .without_offense_check()
+            .locations(&[(4, 1, 7, 3)])
+            .lengths(&[21])
+            .run();
+    }
+
+    /// `Style/EmptyElse` の style が `else` の中身を決めているときだけ補正が付く。
+    /// 空の `else` を報告する側なら `nil` を入れ、`nil` を報告する側なら空で足す。
+    #[test]
+    fn the_neighbouring_cop_decides_what_the_added_else_holds() {
+        CopCase::annotated(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an `else`-clause with `nil` in it.
+              b
+            end
+            ",
+        )
+        .config(EMPTY)
+        .run();
+        CopCase::new(COP, "if a\n  b\nend\n".to_owned(), Vec::new())
+            .config(EMPTY)
+            .without_offense_check()
+            .corrected("if a\n  b\nelse; nil; end\n")
+            .run();
+        CopCase::annotated(
+            COP,
+            r"
+            if a
+            ^^^^ `if` condition requires an empty `else`-clause.
+              b
+            end
+            ",
+        )
+        .config(NIL)
+        .run();
+        CopCase::new(COP, "if a\n  b\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("if a\n  b\nelse; end\n")
+            .run();
+        // `elsif` を閉じるのは自分の `end` ではなく、属している `if` の `end`。
+        CopCase::new(COP, "if a\n  b\nelsif c\n  d\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("if a\n  b\nelsif c\n  d\nelse; end\n")
+            .run();
+        CopCase::new(COP, "case v\nwhen 1\n  b\nend\n".to_owned(), Vec::new())
+            .config(NIL)
+            .without_offense_check()
+            .corrected("case v\nwhen 1\n  b\nelse; end\n")
+            .run();
+    }
+}
+
+mod style_arguments_forwarding {
+    use super::*;
+
+    const COP: &str = "Style/ArgumentsForwarding";
+
+    const FORWARDING: &str = "Use shorthand syntax `...` for arguments forwarding.";
+    const ARGS: &str = "Use anonymous positional arguments forwarding (`*`).";
+    const KWARGS: &str = "Use anonymous keyword arguments forwarding (`**`).";
+    const BLOCK: &str = "Use anonymous block arguments forwarding (`&`).";
+
+    /// 2.7 では `...` にまとめられる。定義と呼び出しの両方を報告する。
+    #[test]
+    fn everything_forwarded_together_becomes_the_shorthand() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, &block)\n      ^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// `AllowOnlyRestArgument` が既定で真なので、`*args` だけの転送は 2.7 では通る。
+    /// ブロックまで持っていってしまう `...` とは意味が違うため。
+    #[test]
+    fn only_a_rest_argument_is_allowed_before_3_2() {
+        expect_no_offenses(COP, "def foo(*args)\n  bar(*args)\nend\n");
+        expect_no_offenses(COP, "def foo(**kwargs)\n  bar(**kwargs)\nend\n");
+    }
+
+    /// 3.2 では `*` と `**` の両方が揃っていないと `...` にできない。片方だけなら
+    /// それぞれを匿名にする。
+    #[test]
+    fn from_3_2_each_one_is_anonymised_on_its_own() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, &block)\n        ^^^^^ {ARGS}\n               ^^^^^^ {BLOCK}\n  \
+                 bar(*args, &block)\n      ^^^^^ {ARGS}\n             ^^^^^^ {BLOCK}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, &)\n  bar(*, &)\nend\n")
+        .run();
+        // 3 つ揃っていれば 3.2 でも `...`。
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs, &block)\n        ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\n  \
+                 bar(*args, **kwargs, &block)\n      ^^^^^^^^^^^^^^^^^^^^^^^ {FORWARDING}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(...)\n  bar(...)\nend\n")
+        .run();
+    }
+
+    /// 括弧を書いていない定義や呼び出しには、書き換えのついでに括弧が付く。
+    #[test]
+    fn parentheses_are_added_where_they_were_missing() {
+        expect_correction(
+            COP,
+            "def foo(*args, &block)\n  bar *args, &block\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+        expect_correction(
+            COP,
+            "def foo *args, &block\n  bar(*args, &block)\nend\n",
+            "def foo(...)\n  bar(...)\nend\n",
+        );
+    }
+
+    /// 名前が設定の一覧に無ければ、意味のある名前として残す。
+    #[test]
+    fn a_meaningful_name_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "def foo(*things, &callback)\n  bar(*things, &callback)\nend\n",
+        );
+        // 転送以外の場所で読まれている名前も残す。
+        expect_no_offenses(
+            COP,
+            "def foo(*args, &block)\n  args.first\n  bar(*args, &block)\nend\n",
+        );
+    }
+
+    /// ブロックの中では匿名の引数が 3.3 で構文エラーになるので、3.4 未満では提案しない。
+    /// 本家では `block` ノードが呼び出しを包むので、ブロックを持つ呼び出しの引数も
+    /// 「ブロックの中」に数える。
+    #[test]
+    fn nothing_is_anonymised_inside_a_block_before_3_4() {
+        for source in [
+            "def foo(*args, &block)\n  [1].each { bar(*args, &block) }\nend\n",
+            "def foo(*args)\n  bar(*args) { baz }\nend\n",
+            "def foo(*args)\n  bar(*args).tap { |x| x }\nend\n",
+        ] {
+            CopCase::new(COP, support::annotation::dedent(source), Vec::new())
+                .target_ruby("3.2")
+                .run();
+        }
+    }
+
+    /// 2.7 より前にはそもそも `...` が無い。
+    #[test]
+    fn the_cop_is_silent_before_2_7() {
+        CopCase::new(
+            COP,
+            "def foo(*args, &block)\n  bar(*args, &block)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("2.6")
+        .run();
+    }
+
+    /// `yield` と `x[...]` も本家では送信なので同じように見る。
+    #[test]
+    fn a_yield_and_an_index_are_sends_too() {
+        CopCase::annotated(
+            COP,
+            &format!(
+                "def foo(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\n  \
+                 yield(*args, **kwargs)\n        ^^^^^ {ARGS}\n               ^^^^^^^^ {KWARGS}\nend\n"
+            ),
+        )
+        .target_ruby("3.2")
+        .corrected("def foo(*, **)\n  yield(*, **)\nend\n")
+        .run();
+    }
+}
+
+/// `Style/MethodCallWithArgsParentheses` (既定無効) — 期待値は本家 1.89.0 の実測。
+mod style_method_call_with_args_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/MethodCallWithArgsParentheses";
+    const NO_MACROS: &str = "Style/MethodCallWithArgsParentheses:\n  IgnoreMacros: false\n";
+    const OMIT: &str = "Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n";
+
+    fn correction(config: &str, source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .config(config)
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 位置は呼び出し全体。補正は selector の後ろの空白を `(` に変え、引数の末尾へ
+    /// `)` を足す。
+    #[test]
+    fn a_call_given_arguments_without_parentheses_is_reported() {
+        expect_offense(
+            COP,
+            r"
+            obj.foo 1, 2
+            ^^^^^^^^^^^^ Use parentheses for method calls with arguments.
+            ",
+        );
+        expect_correction(COP, "obj.foo 1, 2\n", "obj.foo(1, 2)\n");
+    }
+
+    /// `IgnoreMacros` が既定で真なので、クラス本体やトップレベルに書かれた呼び出しは
+    /// マクロとして見逃される。`def` の中はマクロの立ち位置ではない。
+    #[test]
+    fn a_macro_is_left_alone_unless_the_configuration_asks_for_it() {
+        CopCase::annotated(
+            COP,
+            r"
+            class C
+              validates :a
+              def m
+                helper 1
+                ^^^^^^^^ Use parentheses for method calls with arguments.
+              end
+            end
+            ",
+        )
+        .run();
+        CopCase::annotated(
+            COP,
+            r"
+            class C
+              validates :a
+              ^^^^^^^^^^^^ Use parentheses for method calls with arguments.
+              def m
+                helper 1
+                ^^^^^^^^ Use parentheses for method calls with arguments.
+              end
+            end
+            ",
+        )
+        .config("Style/MethodCallWithArgsParentheses:\n  IncludedMacros:\n    - validates\n")
+        .run();
+        correction(
+            NO_MACROS,
+            "puts \"x\"\nassert_equal 1, 2\nfoo 1\n",
+            "puts(\"x\")\nassert_equal(1, 2)\nfoo(1)\n",
+        );
+    }
+
+    /// 引数が 1 つで、それ自身が括弧で括られているなら、その括弧を借りて閉じる。
+    /// `yield` の selector はキーワードそのもの。
+    #[test]
+    fn an_argument_that_is_already_parenthesized_lends_its_own() {
+        correction(NO_MACROS, "foo (1)\n", "foo(1)\n");
+        correction(NO_MACROS, "yield 1\n", "yield(1)\n");
+    }
+
+    /// `AllowedMethods` と `AllowedPatterns` に当たる名前は見逃す。
+    #[test]
+    fn the_allowed_names_are_left_alone() {
+        CopCase::new(
+            COP,
+            "puts \"x\"\nassert_equal 1, 2\nfoo 1\n".to_owned(),
+            Vec::new(),
+        )
+        .config(
+            "Style/MethodCallWithArgsParentheses:\n  AllowedMethods:\n    - puts\n  AllowedPatterns:\n    - '\\Aassert'\n",
+        )
+        .run();
+    }
+
+    /// 演算子・setter・`super`・既に括弧のあるもの・引数の無いものは触らない。
+    #[test]
+    fn what_the_cop_leaves_alone() {
+        CopCase::new(
+            COP,
+            "a.+ b\nfoo.bar = 1\nsuper 1\nfoo(1)\nfoo\n".to_owned(),
+            Vec::new(),
+        )
+        .config(NO_MACROS)
+        .run();
+    }
+
+    /// `omit_parentheses` では逆向き。位置は括弧の開きから閉じまで。
+    #[test]
+    fn the_other_enforced_style_takes_the_parentheses_away() {
+        CopCase::annotated(
+            COP,
+            r"
+            foo(1)
+               ^^^ Omit parentheses for method calls with arguments.
+            ",
+        )
+        .config(OMIT)
+        .run();
+        correction(OMIT, "foo(1)\n", "foo 1\n");
+        // 大文字で始まる名前は引数があれば報告される。設定で見逃せる。
+        correction(OMIT, "Foo(1)\n", "Foo 1\n");
+        CopCase::new(COP, "Foo(1)\n".to_owned(), Vec::new())
+            .config("Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n  AllowParenthesesInCamelCaseMethod: true\n")
+            .run();
+    }
+
+    /// 括弧が行末を閉じている複数行の呼び出しは、空白ではなく行継続を置く。
+    /// 継続の後ろの空白は構文誤りなので、そこまで巻き取る。
+    #[test]
+    fn a_multiline_call_leaves_a_line_continuation_behind() {
+        correction(OMIT, "x = foo(\n  1\n)\n", "x = foo \\\n  1\n\n");
+        CopCase::new(COP, "x = foo(\n  1\n)\n".to_owned(), Vec::new())
+            .config("Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n  AllowParenthesesInMultilineCall: true\n")
+            .run();
+    }
+
+    /// 外すと読み方が変わるものは残す。
+    #[test]
+    fn the_parentheses_a_call_needs_are_left_where_they_are() {
+        for source in [
+            // ブロックを持つ呼び出し。
+            "foo(1) { }\n",
+            // 別の呼び出しの引数。
+            "x = { a: 1 }\nbar foo(1)\n",
+            // 符号付きの数、三項演算子、終端の無い範囲、波括弧のハッシュ。
+            "foo(-1)\nfoo(a ? b : c)\nfoo(1..)\nfoo({ a: 1 })\n",
+            // 1 行の継承、既定値、`when` の条件。
+            "class C < Foo(1); end\ndef m(a = foo(1)); end\ncase x\nwhen foo(1)\n  y\nend\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(OMIT)
+                .run();
+        }
+    }
+
+    /// エンドレス定義の引数は括弧が要る。
+    #[test]
+    fn an_endless_definition_keeps_the_parentheses_of_its_body() {
+        CopCase::new(
+            COP,
+            "def m = foo(1)\nx = foo(\n  1\n)\n".to_owned(),
+            Vec::new(),
+        )
+        .config(OMIT)
+        .target_ruby("3.4")
+        .without_offense_check()
+        .locations(&[(2, 8, 4, 1)])
+        .lengths(&[7])
         .run();
     }
 }

@@ -267,6 +267,58 @@ fn disable_comment_suppresses_an_offense() {
     assert_offenses(&output, &[]);
 }
 
+/// 散文の後ろに書かれたディレクティブもディレクティブ。コメントを開いていない
+/// ので、効くのはその行だけ。
+#[test]
+fn a_directive_written_behind_prose_covers_its_own_line() {
+    let directory = project(&[]);
+    let output = lint_stdin(
+        directory.path(),
+        "Layout/TrailingWhitespace",
+        "# see: # rubocop:disable Layout/TrailingWhitespace  \ny = 1  \n",
+    )
+    .code(1)
+    .get_output()
+    .stdout
+    .clone();
+
+    assert_offenses(
+        &output,
+        &[(
+            "Layout/TrailingWhitespace",
+            2,
+            6,
+            "Trailing whitespace detected.",
+        )],
+    );
+}
+
+/// `# rubocop:enable` を書いた行は、それが閉じる範囲の最終行なので、まだ無効の
+/// まま。効き始めるのは次の行から。
+#[test]
+fn the_line_an_enable_directive_is_written_on_is_still_disabled() {
+    let directory = project(&[]);
+    let output = lint_stdin(
+        directory.path(),
+        "Layout/TrailingWhitespace",
+        "# rubocop:disable Layout/TrailingWhitespace\nx = 1  \n# rubocop:enable Layout/TrailingWhitespace  \ny = 2  \n",
+    )
+    .code(1)
+    .get_output()
+    .stdout
+    .clone();
+
+    assert_offenses(
+        &output,
+        &[(
+            "Layout/TrailingWhitespace",
+            4,
+            6,
+            "Trailing whitespace detected.",
+        )],
+    );
+}
+
 #[test]
 fn directive_text_inside_a_heredoc_does_not_suppress_later_offenses() {
     let directory = project(&[]);
@@ -480,8 +532,8 @@ end
 
 /// 既定の実行では stderr へ何も出さない。
 ///
-/// 既定で有効な 394 cop はすべて実装済みなので、未実装を告げる警告が混ざる余地は無い。
-/// ここが崩れると stderr を読んでいる検証スクリプトや計測が巻き添えになる。
+/// 全 609 cop が実装済みなので、未実装を告げる警告が混ざる余地は無い。ここが崩れると
+/// stderr を読んでいる検証スクリプトや計測が巻き添えになる。
 #[test]
 fn a_default_run_stays_silent_on_stderr() {
     let directory = project(&[("example.rb", "value = 1\n")]);
@@ -498,19 +550,65 @@ fn a_default_run_stays_silent_on_stderr() {
     );
 }
 
-/// 未実装 cop を名指しで有効にしたら、検査されなかったことを stderr で知らせる。
+/// 本家の全 cop が実装済みで、名前も 1 つ残らず一致している。
 ///
-/// 黙って 0 件を返すと「違反なし」と読めてしまうが、RuboCop なら報告する。
-/// `Style/MethodCallWithArgsParentheses` を実装したら、まだ実装していない別の cop へ
-/// 差し替えること。
+/// もともとは「未実装 cop を名指しすると stderr で警告する」ことを見るテストで、実装が
+/// 進むたびに名指しする cop を差し替えていた。全部そろった今は名指しできる cop が無いので、
+/// **そろっていること自体**を固定する形へ変えた。`--show-cops` は実装の有無に関わらず全 cop
+/// を出し、各エントリに `Implemented:` を添える (この形式を取り違えて「名前の集合が一致 =
+/// 全実装」と読み、実際には 25 個未実装だったのを見落としかけたことがある)。
+///
+/// 警告そのものは [`super`] の `warn_unimplemented_enabled` に残してある。本家が新しい cop を
+/// 足し、`config/default.yml` を取り込んで名前だけ認識した状態になったときに効く。
 #[test]
-fn naming_an_unimplemented_cop_warns_on_stderr() {
+fn every_upstream_cop_is_implemented() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .get_output()
+        .stdout
+        .clone();
+    let listing = String::from_utf8(output).expect("--show-cops の出力が UTF-8 でなかった");
+
+    let mut current = None;
+    let mut unimplemented = Vec::new();
+    let mut implemented = 0_usize;
+    for line in listing.lines() {
+        if let Some(name) = line.strip_suffix(':').filter(|name| name.contains('/')) {
+            current = Some(name.to_owned());
+        } else if let Some(state) = line.trim().strip_prefix("Implemented: ") {
+            match (state, current.take()) {
+                ("true", _) => implemented += 1,
+                (_, Some(name)) => unimplemented.push(name),
+                (_, None) => {}
+            }
+        }
+    }
+
+    assert!(
+        unimplemented.is_empty(),
+        "未実装の cop が残っている: {unimplemented:?}"
+    );
+    assert_eq!(
+        implemented,
+        sonicop::rules::rule_names().count(),
+        "--show-cops が数える実装済み cop とレジストリの登録数が食い違う"
+    );
+}
+
+/// 既定以外の設定で名指しされた cop も、実装がある以上は黙って素通りしない。
+///
+/// 警告が出るのは未実装のときだけなので、全実装のいまは**出ないこと**が正しい。stdout を
+/// 汚さないことも合わせて見る (RuboCop は同種の注記を stdout に出して自分の JSON を壊す)。
+#[test]
+fn naming_any_cop_leaves_stdout_clean() {
     let directory = project(&[("example.rb", "value = 1\n")]);
     let output = command(directory.path())
         .args([
             "--force-default-config",
             "--only",
-            "Style/MethodCallWithArgsParentheses",
+            "Style/ArgumentsForwarding",
             "--format",
             "json",
         ])
@@ -520,11 +618,10 @@ fn naming_an_unimplemented_cop_warns_on_stderr() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("Style/MethodCallWithArgsParentheses"),
-        "警告に cop 名が出ていない: {stderr}"
+        !stderr.contains("not implemented"),
+        "実装済みの cop に未実装の警告が出た: {stderr}"
     );
 
-    // 警告は stdout を汚さない。RuboCop は同種の注記を stdout に出して自分の JSON を壊す。
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.starts_with('{'),

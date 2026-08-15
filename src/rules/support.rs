@@ -811,6 +811,31 @@ fn is_logical_not(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
 }
 
+/// The span upstream's parser gives the node.
+///
+/// A heredoc's body is spelled after the statement that opened it and a comment is no node at all
+/// there, so neither is part of the expression: a branch whose last statement is followed by one
+/// runs only as far as that statement. A node closed by a keyword of its own -- an `if`, a `def`
+/// -- ends at the keyword either way, so this only ever differs for the ones that are not.
+pub(crate) fn expression_range(node: Node<'_>) -> Range<usize> {
+    node.start_byte()..expression_end(node)
+}
+
+fn expression_end(node: Node<'_>) -> usize {
+    let mut cursor = node.walk();
+    let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
+    let Some(last) = children
+        .into_iter()
+        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
+    else {
+        return node.end_byte();
+    };
+    match last.is_named() {
+        true => expression_end(last),
+        false => last.end_byte(),
+    }
+}
+
 /// The last statement of a statement list, skipping what the grammar parks there that upstream's
 /// `begin` has no child for.
 fn last_statement<'tree>(list: Node<'tree>) -> Option<Node<'tree>> {

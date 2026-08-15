@@ -4,7 +4,6 @@ mod conditional;
 mod endless;
 mod file_open_call;
 mod format_sequences;
-mod format_value;
 mod frozen_string;
 mod hash_subset;
 mod hash_transform;
@@ -29,12 +28,12 @@ department_rules! {
     accessor_grouping => ("AccessorGrouping", Convention),
     and_or => ("AndOr", Convention),
     ambiguous_endless_method_definition => ("AmbiguousEndlessMethodDefinition", Convention),
-    arguments_forwarding => ("ArgumentsForwarding", Convention),
     array_intersect => ("ArrayIntersect", Convention),
     array_intersect_with_single_element => ("ArrayIntersectWithSingleElement", Convention),
     array_first_last => ("ArrayFirstLast", Convention),
     array_join => ("ArrayJoin", Convention),
     array_coercion => ("ArrayCoercion", Convention),
+    arguments_forwarding => ("ArgumentsForwarding", Convention),
     ascii_comments => ("AsciiComments", Convention),
     attr => ("Attr", Convention),
     auto_resource_cleanup => ("AutoResourceCleanup", Convention),
@@ -71,8 +70,8 @@ department_rules! {
     date_time => ("DateTime", Convention),
     copyright => ("Copyright", Convention),
     def_with_parentheses => ("DefWithParentheses", Convention),
-    disable_cops_within_source_code_directive => ("DisableCopsWithinSourceCodeDirective", Convention),
     dir => ("Dir", Convention),
+    disable_cops_within_source_code_directive => ("DisableCopsWithinSourceCodeDirective", Convention),
     dir_empty => ("DirEmpty", Convention),
     dig_chain => ("DigChain", Convention),
     data_inheritance => ("DataInheritance", Convention),
@@ -148,9 +147,11 @@ department_rules! {
     ip_addresses => ("IpAddresses", Convention),
     keyword_parameters_order => ("KeywordParametersOrder", Convention),
     keyword_arguments_merging => ("KeywordArgumentsMerging", Convention),
+    method_call_with_args_parentheses => ("MethodCallWithArgsParentheses", Convention),
     method_def_parentheses => ("MethodDefParentheses", Convention),
     method_called_on_do_end_block => ("MethodCalledOnDoEndBlock", Convention),
     min_max => ("MinMax", Convention),
+    missing_else => ("MissingElse", Convention),
     map_compact_with_conditional_block => ("MapCompactWithConditionalBlock", Convention),
     magic_comment_format => ("MagicCommentFormat", Convention),
     map_join => ("MapJoin", Convention),
@@ -228,7 +229,6 @@ department_rules! {
     redundant_exception => ("RedundantException", Convention),
     redundant_fetch_block => ("RedundantFetchBlock", Convention),
     redundant_file_extension_in_require => ("RedundantFileExtensionInRequire", Convention),
-    redundant_format => ("RedundantFormat", Convention),
     redundant_filter_chain => ("RedundantFilterChain", Convention),
     redundant_freeze => ("RedundantFreeze", Convention),
     redundant_initialize => ("RedundantInitialize", Convention),
@@ -266,6 +266,9 @@ department_rules! {
     require_order => ("RequireOrder", Convention),
     super_arguments => ("SuperArguments", Convention),
     redundant_double_splat_hash_braces => ("RedundantDoubleSplatHashBraces", Convention),
+    redundant_string_escape => ("RedundantStringEscape", Convention),
+    redundant_line_continuation => ("RedundantLineContinuation", Convention),
+    redundant_format => ("RedundantFormat", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     send => ("Send", Convention),
