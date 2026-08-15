@@ -55,18 +55,11 @@ fn is_public(node: Node<'_>, reported: Node<'_>, context: &RuleContext<'_>) -> b
     if wrapping_modifier(node, context, &NON_PUBLIC_MODIFIERS).is_some() {
         return false;
     }
-    // `node_visibility` through the block form: the nearest bare `private` or `protected` above it.
-    let Some(parent) = reported.parent() else {
-        return true;
-    };
-    let siblings = super::nodes::children(parent);
-    let Some(position) = siblings.iter().position(|child| child.id() == reported.id()) else {
-        return true;
-    };
-    !siblings[..position]
-        .iter()
-        .rev()
-        .any(|sibling| is_visibility_marker(*sibling, context))
+    // `preceding_non_public_modifier?`: whatever `node_visibility` answers, which is the *last*
+    // marker written above the definition rather than the first one found. A bare `public` written
+    // to close a `private` section puts the definitions after it back in public view, and a
+    // `private :name` written below names one on its own.
+    crate::rules::visibility::node_visibility(reported, context) == "public"
 }
 
 /// The call the definition was handed to, when its selector is one of `names`.
@@ -88,20 +81,4 @@ fn wrapping_modifier<'tree>(
     names
         .contains(&context.source.node_text(selector))
         .then_some(call)
-}
-
-/// `visibility_block?`: `(send nil? {:private :protected :public})`, which the grammar leaves as a
-/// bare `identifier` when it takes neither receiver nor arguments.
-fn is_visibility_marker(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let name = match node.kind_str() {
-        "identifier" => context.source.node_text(node),
-        "call" if node.field("receiver").is_none() && node.field("arguments").is_none() => {
-            match node.field("method") {
-                Some(selector) => context.source.node_text(selector),
-                None => return false,
-            }
-        }
-        _ => return false,
-    };
-    matches!(name, "private" | "protected")
 }

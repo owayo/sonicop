@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 /// `"unless".len()`.
 const UNLESS_LENGTH: usize = 6;
@@ -85,8 +86,9 @@ fn invertible(
             // `inheritance_check?`: `Foo < Bar` declares a subclass rather than compares.
             !is_inheritance_check(node, operator, context)
         }
-        // A block makes the condition a `block` node upstream, which is not a `send`.
-        "call" if node.field("block").is_none() => node
+        // A block makes the condition a `block` node upstream, which is not a `send`. Neither is a
+        // call written with `&.`, which its parser gives a `csend` node of its own.
+        "call" if node.field("block").is_none() && send_node::is_plain_send(node, context) => node
             .field("method")
             .is_some_and(|selector| inverses.contains_key(context.source.node_text(selector))),
         _ => false,

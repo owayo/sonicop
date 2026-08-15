@@ -26,8 +26,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `{str dstr}`: a string literal, interpolating or not. Adjacent literals are a `dstr` too,
-        // which tree-sitter keeps as a `chained_string`.
-        if !matches!(only.kind_str(), "string" | "chained_string") {
+        // which tree-sitter keeps as a `chained_string`, and a heredoc is one of the two as well --
+        // the grammar writes its opener as a node of its own rather than as a string.
+        if !matches!(
+            only.kind_str(),
+            "string" | "chained_string" | "heredoc_beginning"
+        ) {
             continue;
         }
         offenses.push(context.offense(
