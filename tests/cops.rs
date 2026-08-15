@@ -35041,6 +35041,100 @@ mod style_method_call_with_args_parentheses {
             .run();
     }
 
+    /// 中身の無い括弧も外す。本家のパーサは空の引数リストにノードを作らないので、`foo()` と
+    /// `foo`、`yield()` と `yield` は同じ木になる。tree-sitter は前者に `argument_list` を
+    /// 作るため、外した後の木が元と一致せず報告できなかった。
+    #[test]
+    fn a_pair_of_parentheses_holding_nothing_comes_off_too() {
+        CopCase::annotated(
+            COP,
+            r"
+            def a
+              mail()
+                  ^^ Omit parentheses for method calls with arguments.
+            end
+            def b
+              Firm.new()
+                      ^^ Omit parentheses for method calls with arguments.
+            end
+            def c
+              yield()
+                   ^^ Omit parentheses for method calls with arguments.
+            end
+            ",
+        )
+        .config(OMIT)
+        .run();
+        // 訂正は `(` を空白に置き換えて `)` を消すので、行末に空白が 1 つ残る。
+        correction(OMIT, "def a
+  mail()
+end
+", "def a
+  mail 
+end
+");
+        correction(OMIT, "def b
+  Firm.new()
+end
+", "def b
+  Firm.new 
+end
+");
+        correction(OMIT, "def c
+  yield()
+end
+", "def c
+  yield 
+end
+");
+        correction(
+            OMIT,
+            "def d
+  bar() do
+    1
+  end
+end
+",
+            "def d
+  bar  do
+    1
+  end
+end
+",
+        );
+    }
+
+    /// 名前を局所変数が持っているときだけは残る。括弧があるうちは呼び出しだが、外すと
+    /// その変数を読むだけになり、本家の再パースが別の木として弾く。
+    #[test]
+    fn empty_parentheses_stay_where_the_name_is_a_local_variable() {
+        for source in [
+            "def d
+  foo = 1
+  foo()
+end
+",
+            // 波括弧のブロックを持つ呼び出しと、引数を渡さない `super`。
+            "def e
+  bar() { 1 }
+end
+",
+            "def f
+  super()
+end
+",
+            // 連鎖の途中。
+            "def h
+  qux().to_s
+end
+",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(OMIT)
+                .run();
+        }
+    }
+
     /// 括弧が行末を閉じている複数行の呼び出しは、空白ではなく行継続を置く。
     /// 継続の後ろの空白は構文誤りなので、そこまで巻き取る。
     #[test]

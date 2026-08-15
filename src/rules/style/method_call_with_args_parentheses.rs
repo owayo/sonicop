@@ -195,7 +195,13 @@ fn omit_parentheses(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         |node| omission_edits(*node, context),
         |node| omission_range(*node),
         // 本家の `verified_by_reparse(@pending_omit_offenses)` は追加のオプションを渡さない。
-        crate::rules::support::Verification::default(),
+        // `fold_empty_call_parentheses` は本家の設定ではなく、`foo()` と `foo` を 1 つの
+        // ノードにする本家のパーサに合わせるためのもの。名前を局所変数が持っている呼び出しは
+        // `omits` が先に外している。
+        crate::rules::support::Verification {
+            fold_empty_call_parentheses: true,
+            ..Default::default()
+        },
     );
     verified.extend(with_heredoc);
     verified.sort_by_key(tree_sitter::Node::start_byte);
@@ -247,7 +253,11 @@ impl Omission {
             return false;
         }
         let written = super::nodes::children(arguments);
-        !inside_endless_method_def(node, &written, context)
+        // Upstream's reparse settles this one: `foo()` is a call, `foo` is the local variable of
+        // that name, and the two trees do not match. The comparison here cannot tell them apart,
+        // so the candidate never reaches it.
+        !locals.shadows_a_local(node)
+            && !inside_endless_method_def(node, &written, context)
             && !hash_value_omission_needs_parentheses(node, &written, context)
             && !syntax_like_method_call(node, context)
             && !before_constant_resolution(node, context)
@@ -488,7 +498,9 @@ fn call_with_ambiguous_arguments(
         return true;
     }
     let _ = arguments;
-    if hash_literal_in_arguments(node, written, context, locals) || ambiguous_range_argument(written) {
+    if hash_literal_in_arguments(node, written, context, locals)
+        || ambiguous_range_argument(written)
+    {
         return true;
     }
     descendants(node, context)
@@ -697,10 +709,7 @@ fn inside_string_interpolation(node: Node<'_>, context: &RuleContext<'_>) -> boo
 
 /// The node's descendants, leaving out the block a call carries: upstream's parser wraps the block
 /// around the call rather than hanging it off it, so a block is never a call's descendant there.
-fn descendants<'tree>(
-    node: Node<'tree>,
-    context: &'tree RuleContext<'_>,
-) -> Vec<Node<'tree>> {
+fn descendants<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut out = Vec::new();
     let block = node.field("block").map(|block| block.id());
     for child in super::nodes::children(node) {
