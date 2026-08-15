@@ -51,6 +51,19 @@ fn conversion_call(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node:
 
 fn conversion_correction(receiver: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     match receiver.kind_str() {
+        // Literals written next to each other are one `dstr` upstream, and it has no delimiters of
+        // its own -- so the correction is built from the value, which keeps each interpolation as it
+        // was written and strips the quotes around every part.
+        "chained_string" => {
+            let mut out = String::from(":\"");
+            for part in named_children(receiver) {
+                for inner in named_children(part) {
+                    out.push_str(context.source.node_text(inner));
+                }
+            }
+            out.push('"');
+            Some(out)
+        }
         "string" | "delimited_symbol" if has_interpolation(receiver) => {
             // `dstr_correction`: a literal already written with `"` keeps its body verbatim.
             let text = context.source.node_text(receiver);

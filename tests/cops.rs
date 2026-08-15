@@ -32260,6 +32260,25 @@ mod lint_symbol_conversion {
             CopCase::new(COP, source.to_owned(), Vec::new()).run();
         }
     }
+
+    /// 続けて書いた文字列は 1 つの `dstr` で、区切り記号を持たない。置換は値から
+    /// 組み立てるので、各部分の引用符を外して繋げた綴りになる。
+    #[test]
+    fn adjacent_strings_are_one_literal() {
+        let report = CopCase::new(
+            COP,
+            "a = 1\nx = \"#{ a }\" \\\n  \"b#{ a }\".to_sym\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(
+            report.offenses[0].message.contains(":\"#{ a }b#{ a }\""),
+            "{}",
+            report.offenses[0].message
+        );
+    }
 }
 
 /// `Lint/ToEnumArguments`。
