@@ -259,6 +259,7 @@ department_rules! {
     redundant_double_splat_hash_braces => ("RedundantDoubleSplatHashBraces", Convention),
     redundant_string_escape => ("RedundantStringEscape", Convention),
     redundant_line_continuation => ("RedundantLineContinuation", Convention),
+    redundant_format => ("RedundantFormat", Convention),
     rescue_standard_error => ("RescueStandardError", Convention),
     sample => ("Sample", Convention),
     send => ("Send", Convention),

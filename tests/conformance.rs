@@ -5188,6 +5188,12 @@ fn catalogue() -> Vec<CopCase> {
             .locations(&[(1, 11, 2, 1)])
             .lengths(&[2])
             .correctable(true),
+        CopCase::annotated(
+            "Style/RedundantFormat",
+            "a = format('name')\n    ^^^^^^^^^^^^^^ Use `'name'` directly instead of `format`.\n",
+        )
+        .id("style_redundant_format")
+        .correctable(true),
         // 位置はクラス全体。
         CopCase::annotated("Style/StaticClass", "class A\n  def self.foo; end\nend\n")
             .id("style_static_class")

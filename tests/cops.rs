@@ -32306,3 +32306,65 @@ mod style_redundant_line_continuation {
         }
     }
 }
+
+/// `Style/RedundantFormat`。
+///
+/// 期待値は本家 1.89.0 を同じソースで走らせた実出力から取った (検出も `-A` もバイト一致を
+/// 確認済み)。
+mod style_redundant_format {
+    use super::*;
+
+    const COP: &str = "Style/RedundantFormat";
+
+    fn correction(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    /// 書式指定の無い `format` は、その文字列そのもの。
+    #[test]
+    fn a_format_with_nothing_to_format_is_the_string_itself() {
+        correction("a = format('name')\n", "a = 'name'\n");
+        correction("a = sprintf(\"name\")\n", "a = \"name\"\n");
+        correction("a = Kernel.format('name')\n", "a = 'name'\n");
+        correction("a = format(CONST)\n", "a = CONST\n");
+    }
+
+    /// 引数が全部リテラルなら、書式を当てた結果まで畳める。
+    #[test]
+    fn literal_arguments_are_folded_into_the_result() {
+        correction("a = format('%s', 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%d', 1)\n", "a = '1'\n");
+        correction("a = format('%f', 1.5)\n", "a = '1.500000'\n");
+        correction("a = format('%05d', 42)\n", "a = '00042'\n");
+        correction("a = format('%-10s|', 'ab')\n", "a = 'ab        |'\n");
+        correction("a = format('%.2f', 1.234)\n", "a = '1.23'\n");
+        correction("a = format('%<x>s', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%{x}', x: 'foo')\n", "a = 'foo'\n");
+        correction("a = format('%2$s %1$s', 'x', 'y')\n", "a = 'y x'\n");
+        correction("a = format('%*d', 5, 42)\n", "a = '   42'\n");
+        correction("a = format('%s', nil)\n", "a = ''\n");
+        correction("a = format('%s', :sym)\n", "a = 'sym'\n");
+        // 式展開のある引数は結果も式展開できる形にする。
+        correction("a = format('%s', \"x#{b}y\")\n", "a = \"x#{b}y\"\n");
+    }
+
+    /// リテラルでない引数、型の合わない書式、`%%`、splat は黙る。
+    #[test]
+    fn what_the_format_cop_leaves_alone() {
+        for source in [
+            "a = format('%s', foo)\n",
+            "a = format('%x', 255)\n",
+            "a = format('%s%%', 'a')\n",
+            "a = format('%s', *args)\n",
+            "a = format('%s', **opts)\n",
+            "a = format('%s %d', 'a')\n",
+            "a = format('%d', true)\n",
+            "a = format('%5s', \"a#{b}c\")\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+}
