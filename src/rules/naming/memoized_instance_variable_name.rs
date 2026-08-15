@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-use super::support::quoted_content;
+use super::support::{last_named_child, quoted_content};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
@@ -221,7 +221,7 @@ fn parser_last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
         "while" | "until" => sole_statement(node.field("body")?),
         "call" => match node.field("block") {
             Some(block) => sole_statement(block.field("body")?),
-            None => parser_children(node.field("arguments")?).into_iter().last(),
+            None => last_named_child(node.field("arguments")?),
         },
         "begin" | "body_statement" | "block_body" | "then" | "else" => {
             let mut cursor = node.walk();
@@ -229,7 +229,7 @@ fn parser_last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
                 .filter(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
                 .last()
         }
-        _ => parser_children(node).into_iter().last(),
+        _ => last_named_child(node),
     }
 }
 
