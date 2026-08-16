@@ -11298,6 +11298,57 @@ mod hash_compare_by_identity {
             );
         }
 
+        /// 最終要素の行にコメントがあるとき、補正するかどうかは**その呼び出しが `send` の引数か**
+        /// で決まる (`new_line_needed_before_closing_brace?` の
+        /// `コメントがある && (chained? || argument?)`)。
+        ///
+        /// 判定は `parent&.send_type?` なので、上流で `send` ではない親は「引数ではない」に倒れる。
+        /// 文法は `super(...)` を `call` ノードに書くため、そのままだと引数と読んで補正を諦めていた。
+        ///
+        /// 期待値は本家 1.89.0 の `--only <cop> -A` の実測 (8 形測って全部一致。修正前は
+        /// `super` の 1 形だけが食い違っていた)。**両側を置く** — 補正する側だけだと、
+        /// 条件を丸ごと消した実装でも通ってしまう。
+        #[test]
+        fn a_comment_stops_the_correction_only_inside_a_real_send() {
+            // `super` は上流では `send` ではないので、その引数は `argument?` が偽 -> 補正する。
+            // 閉じ括弧が最終要素の直後へ移り、行末コメントが行の末尾に残る。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham # comment\n))\n",
+                "super(bar(baz,\n  ham)) # comment\n",
+            );
+            // `&.` も `send` ではない (`csend`) ので同じ側。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo&.bar(baz(qux,\n  ham # comment\n))\n",
+                "foo&.bar(baz(qux,\n  ham)) # comment\n",
+            );
+            // 親も自分も無い形は当然補正する。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n)\n",
+                "bar(baz,\n  ham) # comment\n",
+            );
+            // ★ 本物の `send` の引数なら本家も補正しない。コメントをどこへ置くかは人の判断。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+            );
+            // ★ レシーバとして繋がっている側 (`chained?`) も補正しない。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+            );
+            // コメントが無ければどちらの側でも補正する (条件はコメントの有無から始まる)。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham\n))\n",
+                "super(bar(baz,\n  ham))\n",
+            );
+        }
+
         /// 第 1 引数がヒアドキュメントの呼び出しに繋いだメソッドは閉じ括弧と一緒に動く。
         /// 本家は `insert_before` で括弧、`insert_after` でチェインを同じ空レンジへ入れる。
         #[test]

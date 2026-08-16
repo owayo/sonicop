@@ -286,15 +286,21 @@ fn is_chained(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     }
 }
 
-/// `Node#argument?`: the node is an argument of the `send` written around it. A `csend` is not a
-/// `send`, so an argument of `foo&.bar(...)` answers no.
+/// `Node#argument?`: the node is an argument of the `send` written around it.
+///
+/// `return false unless parent&.send_type?` is the whole first line upstream, and two of the
+/// grammar's `call` nodes are not a `send` there: a `csend` (`foo&.bar(...)`) and the keyword
+/// `super(...)`, which has a node of its own. **An argument of `super` therefore answers no**, and
+/// that is what lets the brace of `super(foo(a,\n b # comment\n))` be corrected.
 fn is_argument(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(parent) = node.parent_of(context) else {
         return false;
     };
     match parent.kind_str() {
         "argument_list" => parent.parent_of(context).is_some_and(|call| {
-            call.kind_str() == "call" && crate::rules::send_node::is_plain_send(call, context)
+            call.kind_str() == "call"
+                && crate::rules::send_node::is_plain_send(call, context)
+                && !crate::rules::send_node::is_super_call(call)
         }),
         "element_reference" => parent.field("object") != Some(node),
         "binary" => {
