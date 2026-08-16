@@ -487,7 +487,31 @@ impl CopCase {
             ),
             offense_list(&verification.expected, &[]),
             offense_list(&verification.actual, &verification.cop_names),
-        )
+        ) + &self.guard_hint(verification)
+    }
+
+    /// A line pointing at the guard when the correction simply did not happen.
+    ///
+    /// **`#41` withholds a correction whose result does not parse.** From here that looks
+    /// identical to a cop that lost its corrector, and the expected text -- taken from upstream --
+    /// looks like the right answer. It is not always: upstream writes text Ruby rejects in a
+    /// handful of places, and the guard is what stops us from copying that.
+    ///
+    /// This cost three people an evening on `Layout/BlockEndNewline` with a heredoc. One line
+    /// here is cheaper than the next person rediscovering it.
+    fn guard_hint(&self, verification: &Verification) -> String {
+        let withheld = verification.divergences.iter().any(|divergence| {
+            divergence.kind == Kind::Correction && divergence.sonicop == self.source
+        });
+        if !withheld {
+            return String::new();
+        }
+        "\n--- ヒント ---\n  \
+         **補正が起きず、出力が原本のままです。**安全網 (#41) が発火した可能性があります。\n  \
+         期待値が本当に妥当な Ruby かを `ruby -c` で確かめてください。本家が構文エラーを\n  \
+         書く箇所があり、そこでは移植版が書き戻しを止めます。\n  \
+         cop の訂正だけを測りたいなら `.without_syntax_guard()` を付けてください。\n"
+            .to_owned()
     }
 }
 
