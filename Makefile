@@ -18,8 +18,12 @@ release: ## Build optimized native executable
 install: release ## Install the executable
 	install -m 755 target/release/$(BINARY_NAME) $(INSTALL_PATH)/$(BINARY_NAME)
 
+# `--no-fail-fast` runs every test binary even after one of them fails. Without it cargo stops at
+# the first binary that reports a failure, so a single failing unit test hides everything in
+# `tests/cops.rs` -- and "1 test is failing" reads as "1 test is failing" when it means "at least 1".
+# Measured on 2026-08-17: a run reported as 1 failure was 3 once the later binaries got to run.
 test: test-ruby ## Run Rust and Ruby wrapper tests
-	cargo test --all-targets --locked
+	cargo test --all-targets --locked --no-fail-fast
 
 test-ruby: ## Run the Ruby wrapper tests only
 	$(RAKE) test:ruby
@@ -36,7 +40,7 @@ version-check: ## Fail when Cargo.toml and lib/sonicop/version.rb disagree
 check: version-check ## Run all local quality gates
 	cargo fmt --all -- --check
 	cargo clippy --all-targets --all-features --locked -- -D warnings
-	cargo test --all-targets --locked
+	cargo test --all-targets --locked --no-fail-fast
 	$(RAKE) test:ruby
 
 gem: ## Build the source gem

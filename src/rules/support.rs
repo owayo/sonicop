@@ -853,7 +853,8 @@ fn rotate_same_operator(node: Sexp) -> Sexp {
 /// `VERSION_SPECIFICATION_REGEX`, shared by the two cops that ask whether a dependency was pinned.
 /// Ruby anchors `^` at the start of a *line*, which this engine only does under `(?m)`.
 static VERSION_SPECIFICATION: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?m)^(?-u:\s)*[~<>=]*(?-u:\s)*[0-9.]+").expect("the version requirement pattern compiles")
+    Regex::new(r"(?m)^(?-u:\s)*[~<>=]*(?-u:\s)*[0-9.]+")
+        .expect("the version requirement pattern compiles")
 });
 
 /// The keys that pin a dependency to a commit rather than to a version.
@@ -1193,10 +1194,15 @@ pub(crate) fn expression_range(node: Node<'_>) -> Range<usize> {
 fn expression_end(node: Node<'_>) -> usize {
     let mut cursor = node.walk();
     let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
-    let Some(last) = children
-        .into_iter()
-        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
-    else {
+    // A `;` between statements is a token here and nothing at all upstream, so an expression that
+    // happens to be followed by one would otherwise reach a byte further than upstream's node
+    // does. `if a; 1; elsif b; 2; end` reported the `elsif` branch one character too long.
+    let Some(last) = children.into_iter().rfind(|child| {
+        !matches!(
+            child.kind_str(),
+            "comment" | "heredoc_body" | ";" | "empty_statement"
+        )
+    }) else {
         return node.end_byte();
     };
     match last.is_named() {

@@ -93,6 +93,18 @@ pub(crate) fn is_plain_send(call: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_none_or(|operator| context.source.node_text(operator) != "&.")
 }
 
+/// Whether the `call` is the keyword `super` rather than a method call.
+///
+/// **The grammar writes `super(a)` as a `call` whose `method` is the keyword**, while upstream's
+/// parser gives it a `super` node of its own (and a bare `super` a `zsuper`). Every judgement that
+/// reads "is this a `send`" -- `send_type?`, `argument?`, `RESTRICT_ON_SEND` -- is false for it
+/// there, so a cop that walks `call` nodes has to take it out again. Only the parenthesized form
+/// needs this: a bare `super` is a `super` node here too, and `yield(a)` is a `yield` node.
+pub(crate) fn is_super_call(call: Node<'_>) -> bool {
+    call.field("method")
+        .is_some_and(|method| method.kind_str() == "super")
+}
+
 /// Whether `node` is the constant `name` reached from the top level, which is how a node pattern
 /// spells `(const {nil? cbase} :Name)`. A constant reached through any other scope -- `Foo::Marshal`
 /// -- is a different constant and never matches.

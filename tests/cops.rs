@@ -3827,6 +3827,16 @@ mod local_variable_analysis {
 mod semicolon_shapes {
     use super::*;
 
+    /// 終端の無いレンジから `;` を外すと、次の行まで飲み込んで 1 つのレンジになる。
+    /// 本家は先に括弧で包む (`corrector.wrap(node, '(', ')')`)。包まないと `-A` が
+    /// **動くコードを別の意味に変える**。
+    #[test]
+    fn an_endless_range_is_parenthesized_before_its_semicolon_goes() {
+        expect_correction("Style/Semicolon", "42..;\n42...;\n", "(42..)\n(42...)\n");
+        // 終端があるレンジは意味が変わらないので包まない。
+        expect_correction("Style/Semicolon", "1..2;\n", "1..2\n");
+    }
+
     const SEMICOLON: &str = "Style/Semicolon";
 
     /// 本家は式の分割まで直す。`;` を改行に置き換えるので、後ろの空白はそのまま残る。
@@ -4072,6 +4082,33 @@ mod line_length_breakable {
 /// `Style/HashSyntax` が新記法で書けると認めるシンボル。期待値は本家 1.89.0 の実測。
 mod hash_syntax_symbols {
     use super::*;
+
+    /// `return key: value` は Ruby として書けないので、本家は `return` に渡された波括弧
+    /// 無しのハッシュに `{}` を足す。足さないと `-A` が構文エラーを作る。**各ペアが別々の
+    /// offense なので、再パースの関門も気づけない。**
+    #[test]
+    fn a_hash_returned_without_braces_gains_them() {
+        expect_correction(
+            "Style/HashSyntax",
+            "return :key => value\n",
+            "return {key: value}\n",
+        );
+        expect_correction(
+            "Style/HashSyntax",
+            "return :a => 1, :b => 2\n",
+            "return {a: 1, b: 2}\n",
+        );
+    }
+
+    /// `argument_without_space?`: セレクタとハッシュの間に空白が無い形は、新しい構文にすると
+    /// 名前が繋がってしまう。**比べる相手は引数リストではなくハッシュの開始**で、括弧付きの
+    /// 呼び出しはリストが `(` から始まるため常に一致してしまう。
+    #[test]
+    fn a_hash_written_against_the_selector_gains_a_space() {
+        expect_correction("Style/HashSyntax", "foo:bar => 1\n", "foo bar: 1\n");
+        // 括弧付きは空白を足さない。
+        expect_correction("Style/HashSyntax", "func(3, :a => 0)\n", "func(3, a: 0)\n");
+    }
 
     const HASH_SYNTAX: &str = "Style/HashSyntax";
     const MSG_19: &str = "Use the new Ruby 1.9 hash syntax.";
@@ -7342,6 +7379,21 @@ mod interpolation_check {
     const MSG: &str = "Interpolation in single quoted string detected. Use double quoted strings \
                        if you need interpolation.";
 
+    /// 本家は `%{...}` を式の直後にも書くが、そこでは `%` が剰余演算子に読まれてファイルが
+    /// 壊れる (`'a ' \\` の継続の後に `%{b}` を置くと `'a ' % {b}`)。offense は立てたまま、
+    /// 書き換えだけを見送る。**本家に合わせると ruby -c が通らなくなる。**
+    #[test]
+    fn a_percent_brace_is_not_offered_where_the_percent_would_be_an_operator() {
+        CopCase::new(
+            COP,
+            "it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n")
+        .run();
+    }
+
     #[test]
     fn a_single_quoted_string_holding_an_interpolation_is_reported() {
         CopCase::new(
@@ -9147,6 +9199,95 @@ mod layout_indentation {
         .without_offense_check()
         .corrected("def c\n  begin\n    d\n  rescue\n    nil\n  end\nend\n")
         .run();
+    }
+
+    /// 本家の `rescue` / `ensure` ノードは**最後の**節の最後の文で終わる。
+    /// `begin a rescue b rescue c else d ensure e end` は
+    /// `(ensure (rescue a (resbody b) (resbody c) d) e)` になるので、本体をずらす補正は
+    /// **節のキーワード行を全部連れて動く**。
+    ///
+    /// 最初の節までしか届かない範囲でずらすと、2 本目の `rescue` や `else` / `ensure` は
+    /// 書かれたままの位置に残り、ファイルは本家より 2 桁ずれた形で落ち着く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力
+    /// (17 形測って全部一致。修正前は 10 形が食い違っていた)。
+    #[test]
+    fn every_clause_keyword_moves_with_the_body() {
+        // 2 本目の `rescue` も動く。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        // `else` も `ensure` も同じ。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nelse\n   puts 'c'\nensure\n    puts 'd'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  else\n    puts 'c'\n  ensure\n    \
+             puts 'd'\nend\n",
+        );
+        // `def` / `class` / ブロックの本体でも同じ (節は本体の器に付く)。
+        expect_correction(
+            WIDTH,
+            "def my_func\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "def my_func\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "class Foo\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "class Foo\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "foo do\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "foo do\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+    }
+
+    /// 動かないものの側。**`end` の行と、最後の節と `end` の間のコメントと、ヒアドキュメントの
+    /// 中身は動かない。** 本家のノード範囲がそこで閉じているからで、この 3 つを範囲に入れると
+    /// `end` は相対字下げが変わらず収束しなくなり、コメントとヒアドキュメントは本家と 2 桁ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_end_a_trailing_comment_and_a_heredoc_body_stay_put() {
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nensure\n puts 'c'\n# tail comment\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  ensure\n    puts 'c'\n# tail \
+             comment\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts(<<~X)\n   keep me\n X\nensure\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts(<<~X)\n   keep me\n X\n  ensure\n    \
+             puts 'c'\nend\n",
+        );
+    }
+
+    /// 本家 spec の `with begin/rescue/else/ensure/end` (1929 行付近) の入力そのまま。
+    /// 節が 4 つ並ぶので、範囲が最初の節で止まっていると 6 行ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    /// **spec に書かれている `expect_correction` の文面とは別の不動点**なので、そちらを
+    /// 写さないこと (spec のループと CLI の `-A` のループは同じ入力から別の形に着く)。
+    #[test]
+    fn the_spec_case_with_four_clauses() {
+        expect_correction(
+            WIDTH,
+            "def my_func\n  puts 'do something outside block'\n  begin\n  \
+             puts 'do something error prone'\n  rescue SomeException, SomeOther => e\n   \
+             puts 'wrongly indented error handling'\n  rescue\n   \
+             puts 'wrongly indented error handling'\n  else\n     \
+             puts 'wrongly indented normal case handling'\n  ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+            "def my_func\n  puts 'do something outside block'\n  begin\n    \
+             puts 'do something error prone'\n    rescue SomeException, SomeOther => e\n      \
+             puts 'wrongly indented error handling'\n    rescue\n      \
+             puts 'wrongly indented error handling'\n    else\n      \
+             puts 'wrongly indented normal case handling'\n    ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+        );
     }
 
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
@@ -11333,6 +11474,57 @@ mod hash_compare_by_identity {
             expect_no_offenses(
                 "Layout/MultilineMethodCallBraceLayout",
                 "foo(a,\n  <<~X\n    hi\n  X\n)\n",
+            );
+        }
+
+        /// 最終要素の行にコメントがあるとき、補正するかどうかは**その呼び出しが `send` の引数か**
+        /// で決まる (`new_line_needed_before_closing_brace?` の
+        /// `コメントがある && (chained? || argument?)`)。
+        ///
+        /// 判定は `parent&.send_type?` なので、上流で `send` ではない親は「引数ではない」に倒れる。
+        /// 文法は `super(...)` を `call` ノードに書くため、そのままだと引数と読んで補正を諦めていた。
+        ///
+        /// 期待値は本家 1.89.0 の `--only <cop> -A` の実測 (8 形測って全部一致。修正前は
+        /// `super` の 1 形だけが食い違っていた)。**両側を置く** — 補正する側だけだと、
+        /// 条件を丸ごと消した実装でも通ってしまう。
+        #[test]
+        fn a_comment_stops_the_correction_only_inside_a_real_send() {
+            // `super` は上流では `send` ではないので、その引数は `argument?` が偽 -> 補正する。
+            // 閉じ括弧が最終要素の直後へ移り、行末コメントが行の末尾に残る。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham # comment\n))\n",
+                "super(bar(baz,\n  ham)) # comment\n",
+            );
+            // `&.` も `send` ではない (`csend`) ので同じ側。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo&.bar(baz(qux,\n  ham # comment\n))\n",
+                "foo&.bar(baz(qux,\n  ham)) # comment\n",
+            );
+            // 親も自分も無い形は当然補正する。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n)\n",
+                "bar(baz,\n  ham) # comment\n",
+            );
+            // ★ 本物の `send` の引数なら本家も補正しない。コメントをどこへ置くかは人の判断。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+            );
+            // ★ レシーバとして繋がっている側 (`chained?`) も補正しない。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+            );
+            // コメントが無ければどちらの側でも補正する (条件はコメントの有無から始まる)。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham\n))\n",
+                "super(bar(baz,\n  ham))\n",
             );
         }
 
@@ -13849,6 +14041,68 @@ mod layout_spacing_and_alignment {
         );
         expect_correction(COP, "[2].each { |b|b }\n", "[2].each { |b| b }\n");
         expect_no_offenses(COP, "[1].each { |a, b| a }\n");
+    }
+
+    /// ラムダリテラルの丸括弧も「ブロックのパイプ」として扱う。
+    ///
+    /// 本家では `->(x) { }` も `block` ノード (`(block (lambda) (args ...) body)`) なので
+    /// `on_send` ではなく `on_block` が見る。`pipes` が読むのは
+    /// `[arguments.loc.begin, arguments.loc.end]` の 2 箇所だけで、ラムダではそれが丸括弧になる
+    /// ため、**メッセージは「block parameter」のまま**である。文法はラムダに専用のノードを与える
+    /// ので、`block` / `do_block` だけを回していると丸ごと見落とす (この cop の spec で 8 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec と `--only <cop> -A` の実測 (spec 29 ケース全一致)。
+    #[test]
+    fn a_lambda_literals_parentheses_are_its_pipes() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        expect_offense(
+            COP,
+            r"
+            ->( x, y) { puts x }
+               ^ Space before first block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->( x, y) { puts x }\n", "->(x, y) { puts x }\n");
+        expect_offense(
+            COP,
+            r"
+            ->(x, y  ) { puts x }
+                   ^^ Space after last block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->(x, y  ) { puts x }\n", "->(x, y) { puts x }\n");
+        // 3 種類が同時に出る形。1 回の -A で全部片付く。
+        expect_correction(
+            COP,
+            "->(  a,  b, c) { puts a }\n",
+            "->(a, b, c) { puts a }\n",
+        );
+        // 対照 1: 揃っていれば何も出ない。
+        expect_no_offenses(COP, "->(x, y) { puts x }\n");
+        // 対照 2: **丸括弧を書いていないラムダは対象外** (`loc.begin` が無いので `pipes?` が偽)。
+        expect_no_offenses(COP, "->x { puts x }\n");
+        expect_no_offenses(COP, "-> { puts 1 }\n");
+    }
+
+    /// `EnforcedStyleInsidePipes: space` でもラムダの丸括弧を同じ 2 箇所として読む。
+    ///
+    /// 期待値は本家 1.89.0 の spec (274 / 285 行付近) と `-A` の実測。
+    #[test]
+    fn the_space_style_also_reads_a_lambdas_parentheses() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        let space = |source: &str, corrected: &str| {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        };
+        space("->(x ) { puts x }\n", "->( x ) { puts x }\n");
+        space("->( x, y) { puts x }\n", "->( x, y ) { puts x }\n");
+        // 対照: この style では空白が空いている形が正しいので何も出ない。
+        CopCase::new(COP, "->( x, y ) { puts x }\n".to_owned(), Vec::new())
+            .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+            .run();
     }
 
     /// 行末コメントの手前の空白。ヒアドキュメント本文中の `#` は数えない。
@@ -17831,6 +18085,31 @@ mod each_with_object {
 mod hash_transform {
     use super::*;
 
+    /// `transforming_body_expr.hash_type? && !braces?`: 波括弧の無いハッシュは、ブロックの
+    /// 本体そのものになるときに波括弧が要る。**文法は波括弧の無い形に `hash` の節を作らない**
+    /// ので、`hash` だけを見ると、この門が存在する理由そのものを外す。
+    #[test]
+    fn a_braceless_hash_body_gains_braces() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.to_h { |key, val| [key, value: val] }\n",
+            "{a: 1, b: 2}.transform_values { |val| { value: val } }\n",
+        );
+    }
+
+    /// 本家の `send` はぶら下がったブロックを含まない。`x.map { }.to_h { }` は
+    /// `(call (block (call _ :map) ..) :to_h)` に当たるので**報告される**。
+    /// そして `.to_h` にブロックが付いているときは `.to_h` を残す
+    /// (`strip_trailing_chars = 0`) — 消すとブロックがぶら下がる先を失う。
+    #[test]
+    fn a_block_on_to_h_keeps_the_selector() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.map {|k, v| [k, foo(v)]}.to_h {|k, v| [v, k]}\n",
+            "{a: 1, b: 2}.transform_values {|v| foo(v)}.to_h {|k, v| [v, k]}\n",
+        );
+    }
+
     const KEYS: &str = "Style/HashTransformKeys";
     const VALUES: &str = "Style/HashTransformValues";
 
@@ -18179,6 +18458,34 @@ mod redundant_regexp_escape {
 mod one_line_conditional {
     use super::*;
 
+    /// `%i[and or if]` は**ノードの種別**で、本家のパーサは `||` にも `or` を作る。
+    /// キーワードの綴りだけを見ると `a || b ? x : y` になり、三項が想定より強く結び付く。
+    #[test]
+    fn a_pipe_condition_is_the_same_or_as_the_keyword() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a || b then x else y end\n",
+            "(a || b) ? x : y\n",
+        );
+    }
+
+    /// `node.arguments? && !node.parenthesized_call?`: 引数が既に括弧の中にあるキーワードは、
+    /// 後ろから何も取らないので自前の括弧が要らない。`yield(2)` が `(yield(2))` になっていた。
+    #[test]
+    fn a_keyword_whose_arguments_are_parenthesized_needs_no_more() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield(2) end\n",
+            "a(0) ? puts(1) : yield(2)\n",
+        );
+        // 括弧が無ければ `:` を引数と読むので、こちらは包む。
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield 2 end\n",
+            "a(0) ? puts(1) : (yield 2)\n",
+        );
+    }
+
     const COP: &str = "Style/OneLineConditional";
 
     #[test]
@@ -18404,11 +18711,13 @@ mod style_c_corpus_regressions {
             "Style/ExplicitBlockArgument",
             "def each5; @body.each { |*x| yield(*x) } end\n",
         );
-        // A `->` block is a `lambda` send upstream, and its parameters are the block's.
+        // A `->` block is a `lambda` send upstream, and its parameters are the block's. Upstream
+        // writes `->(&block).call`, which is not Ruby: `ruby -c` rejects it. The safety net holds
+        // the file back, so the source survives unchanged. Matching upstream again fails here.
         expect_correction(
             "Style/ExplicitBlockArgument",
             "def a\n  ->{ yield }.call\nend\n",
-            "def a(&block)\n  ->(&block).call\nend\n",
+            "def a\n  ->{ yield }.call\nend\n",
         );
         // A yield with arguments but no block parameters pairs them with nothing.
         expect_no_offenses(
@@ -18792,6 +19101,34 @@ mod style_special_global_vars {
 /// `Style/RescueModifier` — 修飾形の `rescue` は `begin ... rescue ... end` に開く。
 mod style_rescue_modifier {
     use super::*;
+
+    /// 本家のパーサは `rescue` を**代入の中**に置く (`(masgn (mlhs ..) (rescue (array 1 2) ..))`)。
+    /// 報告する範囲も、`begin` を書く桁も、右辺の位置で決まる。文法は修飾子を代入の外に
+    /// 置くので、節をそのまま使うと 7 文字ぶん左にずれる。
+    #[test]
+    fn a_multiple_assignment_wraps_only_its_right_hand_side() {
+        expect_correction(
+            "Style/RescueModifier",
+            "a, b = 1, 2 rescue nil\n",
+            "a, b = begin\n         [1, 2]\n       rescue\n         nil\n       end\n",
+        );
+    }
+
+    /// 入れ子の修飾子は、両方の木で同じように入れ子になるが、**本家は内側だけ**報告する。
+    #[test]
+    fn nested_modifiers_report_only_the_inner_one() {
+        let report = CopCase::new(
+            "Style/RescueModifier",
+            "blah rescue 1 rescue 2\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/RescueModifier:\n  Enabled: true\n")
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        // `blah rescue 1` はバイト 0..13。外側の 0..22 ではない。
+        assert_eq!((report.offenses[0].start, report.offenses[0].end), (0, 13));
+    }
 
     const COP: &str = "Style/RescueModifier";
 
@@ -19356,6 +19693,23 @@ mod style_multiline_ternary_operator {
 /// `Style/TrailingUnderscoreVariable` — 多重代入の末尾の `_`。
 mod style_trailing_underscore_variable {
     use super::*;
+
+    /// 左辺全体を囲む括弧は本家の木には無く、`mlhs` が 3 つの代入先を直接持つ。文法は
+    /// `destructured_left_assignment` を 1 段挟むので、それを入れ子の群と読むと**右辺という
+    /// 錨を失い**、削除が閉じ括弧で止まって ` = foo()` が残る (Ruby として書けない)。
+    #[test]
+    fn parentheses_around_the_whole_left_side_are_not_a_nested_group() {
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_, _, _,) = foo()\n",
+            "foo()\n",
+        );
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_,) = foo()\n",
+            "foo()\n",
+        );
+    }
 
     const COP: &str = "Style/TrailingUnderscoreVariable";
 
@@ -20199,6 +20553,30 @@ mod ternary_parentheses {
 /// 期待値は本家 1.89.0 の `--only Style/SoleNestedConditional` と `-A` の実測。
 mod sole_nested_conditional {
     use super::*;
+
+    /// `parenthesize_method?` は `node.call_type?` を尋ねる。ブロックを持つ呼び出しは本家では
+    /// `block` ノードなのでこの枝に入らず、**全体**が括弧に入る。文法はブロックを call の子に
+    /// するので、種別だけを見ると引数リストの枝に入って `ok?(bar do ... end)` になる。
+    #[test]
+    fn a_call_carrying_a_block_is_wrapped_whole() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if foo\n  if ok? bar do\n      do_something\n    end\n  end\nend\n",
+            "if foo && (ok? bar do\n      do_something\n    end)\n  end\n",
+        );
+    }
+
+    /// `range_with_surrounding_space(operator, whitespace: true)` の `whitespace` の段は
+    /// 改行の段の**後**に走るので、右辺が乗る行の字下げまで届く。改行で止めると字下げが落ちて
+    /// 節が桁 0 に移る。
+    #[test]
+    fn the_indentation_of_a_continued_clause_survives() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if baz &&\n   foo = bar\n  if quux\n    do_something\n  end\nend\n",
+            "if baz &&\n   (foo = bar) && quux\n    do_something\n  end\n",
+        );
+    }
 
     const COP: &str = "Style/SoleNestedConditional";
 
@@ -21402,6 +21780,211 @@ mod lint_redundant_cop_enable_directive_removal_range {
     }
 }
 
+/// 括弧つきの `super(...)` は文法では `call` ノードだが、本家では `send` ではない。
+///
+/// 本家の parser は `super` / `zsuper` / `yield` をそれぞれ別のノード種別にするので、
+/// `on_send` (と `alias on_csend on_send`) しか持たない cop は `super(...)` を**一度も見ない**。
+/// 文法は括弧つきの `super(...)` を `call` に書くため、`call` を回す移植版は素通しにすると
+/// 本家が触らない行を動かす。
+///
+/// 期待値は本家 1.89.0 を `--only <cop>` と `-A` で走らせた実測。`super(...)` を置ける文法上の
+/// 位置を 34 形作って全 cop で突き合わせ (`super_probe.py`)、**5 形で食い違っていた**。
+/// 4 cop が該当し、いずれも「本家は 0 件、移植版が報告して `-A` で 8 桁ずらす」形だった。
+///
+/// **どのケースにも普通の呼び出しの対照を置く。** `super` を外すだけで本家も報告するので、
+/// 「cop を丸ごと黙らせた」実装がテストを通り抜けない。
+mod super_is_not_a_send {
+    use super::*;
+
+    /// 引数の配列は `super(` からではなく素の配列として測る (`on_send` の枝に入らない)。
+    #[test]
+    fn an_array_argument_of_super_is_measured_as_a_plain_array() {
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super([\n    1,\n    2\n  ])\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super(%w[\n    a\n    b\n  ])\nend\n",
+        );
+        // 対照: 普通の呼び出しなら本家も報告して、括弧の位置から測り直す。
+        expect_correction(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  foo([\n    1,\n    2\n  ])\nend\n",
+            "def m\n  foo([\n        1,\n    2\n      ])\nend\n",
+        );
+    }
+
+    /// ハッシュも同じ (`Layout/FirstHashElementIndentation` は配列側の兄弟)。
+    #[test]
+    fn a_hash_argument_of_super_is_measured_as_a_plain_hash() {
+        expect_no_offenses(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  super({\n    a: 1,\n    b: 2\n  })\nend\n",
+        );
+        expect_correction(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  foo({\n    a: 1,\n    b: 2\n  })\nend\n",
+            "def m\n  foo({\n        a: 1,\n    b: 2\n      })\nend\n",
+        );
+    }
+
+    /// 引数の間の空行は `super` では残る。`on_send` / `on_csend` しかないので届かない。
+    #[test]
+    fn a_blank_line_between_supers_arguments_stays() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  super(a,\n\n    b)\nend\n",
+        );
+        expect_correction(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  foo(a,\n\n    b)\nend\n",
+            "def m\n  foo(a,\n    b)\nend\n",
+        );
+    }
+
+    /// 閉じ括弧の字下げも同じ。`on_send` / `on_csend` / `on_begin` / `on_def` に `super` は無い。
+    #[test]
+    fn the_closing_parenthesis_of_super_is_left_where_it_was_written() {
+        expect_no_offenses(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  super(<<~X\n    hi\n  X\n  )\nend\n",
+        );
+        expect_correction(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  foo(<<~X\n    hi\n  X\n  )\nend\n",
+            "def m\n  foo(<<~X\n    hi\n  X\n     )\nend\n",
+        );
+    }
+}
+
+/// `Lint/RedundantCopEnableDirective` の部署名は 1 語ではなく、その部署の cop 全部を指す。
+///
+/// `DirectiveComment#parsed_cop_names` が部署を展開するので、`# rubocop:enable Layout` は
+/// Layout の cop 100 個あまりに対する enable になる。効くのは 2 か所。
+///
+/// - 数えるとき: `handle_switch` は cop ごとの counter を上下させる。部署を 1 個の counter で
+///   代表すると、cop 名 1 本の enable が部署ぶん全部を解放してしまう。
+/// - 消すとき: `match?` は展開した集合と「無駄に有効化した名前」の集合を比べる。**1 つでも
+///   取り消していれば一致しない**ので、directive を丸ごと消す枝ではなく `range_with_comma`
+///   側に入る。そちらはコメント本体だけを消して行の改行を残すため、空行が 1 行残る。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantCopEnableDirective -A` で走らせた実出力。
+/// 11 形を測って全部一致させた。部署を展開する前は 3 形が食い違っていた -- 空行を残さない
+/// (補正の差)、`dept → cop` の 2 本目を見落とす (不足)、`部署 disable → cop enable` の
+/// 2 本目を余分に報告して **本家が残す `enable` 行を消す** (過剰かつ `-A` が壊す側)。
+mod lint_redundant_cop_enable_directive_departments {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantCopEnableDirective";
+
+    /// 部署の enable が cop 名の disable を 1 本取り消しているので、丸ごと消す枝には入らない。
+    /// **消えるのはコメント本体だけで行の改行は残る**ため、空行が 1 行残る。
+    #[test]
+    fn a_department_enable_that_undid_one_cop_leaves_the_line_behind() {
+        expect_correction(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n",
+        );
+    }
+
+    /// 何も取り消していない部署の enable は行ごと消える。上の 1 件との差は
+    /// 「1 つでも取り消したか」だけで、書かれ方は同じ。
+    #[test]
+    fn a_department_enable_that_undid_nothing_goes_with_its_line() {
+        expect_correction(
+            COP,
+            "foo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "foo = 1\nsome_code\n",
+        );
+    }
+
+    /// 部署の enable は cop ごとの counter を下げる。`Layout/LineLength` の disable はそこで
+    /// 消費されるので、続く cop 名の enable には取り消す相手が無い = offense 2 件。
+    #[test]
+    fn the_department_enable_spends_the_cops_own_disable() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\n\
+             # rubocop:enable Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n")
+        .run();
+    }
+
+    /// 逆向き。部署の disable を cop 名の enable が 1 本取り消しても、**残りの cop は disable
+    /// のまま**。部署の counter を下げる実装では 2 本目の enable が無駄に見え、本家が残す行を
+    /// 消してしまう。
+    #[test]
+    fn a_cop_enable_spends_only_its_own_share_of_a_department_disable() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout/LineLength\n\
+             # rubocop:enable Layout/EmptyLines\nsome_code\n",
+        );
+    }
+
+    /// 部署の disable と部署の enable が釣り合えば offense は出ない。
+    #[test]
+    fn a_department_disable_and_enable_cancel_out() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+        );
+    }
+
+    /// 部署は 1 回しか報告されない。`add_offense` は同じレンジの 2 件目を corrector ごと捨てる
+    /// (`current_offense_locations.add?`) ので、展開した 100 個あまりの名前が同じ位置を指しても
+    /// offense は 1 件で、走る補正はその 1 件目のもの。
+    #[test]
+    fn the_department_is_reported_once_not_once_per_cop_it_holds() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout
+                             ^^^^^^ Unnecessary enabling of Layout.
+            some_code
+            ",
+        );
+    }
+
+    /// 部署と、その部署の cop を並べて書いたときは、cop 名は部署に縮められずそのまま報告される
+    /// (`overridden_by_department?`: 部署で届く名前でも、明示して書いてあれば縮めない)。
+    #[test]
+    fn a_cop_written_next_to_its_own_department_keeps_its_full_name() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout, Layout/LineLength
+                             ^^^^^^ Unnecessary enabling of Layout.
+                                     ^^^^^^^^^^^^^^^^^ Unnecessary enabling of Layout/LineLength.
+            some_code
+            ",
+        );
+    }
+
+    /// 同じ形で 1 本だけ取り消しても丸ごと消える。展開すると `Layout/LineLength` が 2 回現れ、
+    /// `match?` は両側を `uniq.sort` してから比べるので一致する -- **個数で比べると 111 対 110 で
+    /// 一致せず、本家が消す行が残ってしまう**。
+    #[test]
+    fn the_match_compares_sets_not_counts() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\
+             # rubocop:enable Layout, Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\nsome_code\n")
+        .run();
+    }
+}
+
 /// `Style/NestedFileDirname`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/NestedFileDirname` で走らせた実出力から取った
@@ -22333,6 +22916,20 @@ mod style_file_write {
 /// (検出 2 件 / 1 件・`-A` の結果ともバイト一致を確認済み)。
 mod style_in_pattern_then {
     use super::*;
+
+    /// 本家が報告するのは `node.loc.begin` = **パターンと本体の間**のトークン。本体の中の
+    /// `;` は文の区切りで、この cop の管轄ではない。`in b then c; d` は既に `then` を
+    /// 言っているので本家は黙る。
+    #[test]
+    fn a_semicolon_inside_the_body_is_not_the_separator() {
+        expect_no_offenses("Style/InPatternThen", "case a\nin b then c; d\nend\n");
+        // 本体の先頭が `;` のときだけ報告する。
+        expect_correction(
+            "Style/InPatternThen",
+            "case a\nin b; c\nend\n",
+            "case a\nin b then c\nend\n",
+        );
+    }
 
     /// 1 行に収まる `in` の `;` は ` then` になる。選択パターンはメッセージ側で
     /// ` | ` 区切りに整形される。
@@ -26048,9 +26645,12 @@ mod style_redundant_struct_keyword_init {
             "S4 = Struct.new()\n",
         );
         // 波括弧を明示した書き方では上流の範囲がペアの末尾で止まるので `}` が残る (本家のバグ)。
+        // 本家は `S5 = Struct.new(:a })` を書き戻すが、それは `ruby -c` が syntax error に
+        // する字面なので写さない。安全網 (engine.rs の withhold_unparsable) が書き戻しを
+        // 止め、原本がそのまま残る。合わせ直せばこのテストが落ちる。
         correction(
             "S5 = Struct.new(:a, { keyword_init: true })\n",
-            "S5 = Struct.new(:a })\n",
+            "S5 = Struct.new(:a, { keyword_init: true })\n",
         );
     }
 
@@ -35192,6 +35792,27 @@ mod style_redundant_string_escape {
 mod style_missing_else {
     use super::*;
 
+    /// 文の区切りの `;` は文法ではトークンだが、本家の木には無い。範囲の末尾に混ぜると
+    /// `elsif` の枝が 1 文字長くなる。
+    #[test]
+    fn a_trailing_semicolon_is_not_part_of_the_branch() {
+        let report = CopCase::new(
+            "Style/MissingElse",
+            "if cond_1; 1; elsif cond_2; 3; end\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MissingElse:\n  Enabled: true\n  EnforcedStyle: if\n")
+        .without_offense_check()
+        .inspect();
+        // `elsif cond_2; 3` はバイト 14..29。末尾の `;` (29) は含まない。
+        assert!(
+            report
+                .offenses
+                .iter()
+                .any(|offense| (offense.start, offense.end) == (14, 29))
+        );
+    }
+
     const COP: &str = "Style/MissingElse";
     const EMPTY: &str = "Style/EmptyElse:\n  EnforcedStyle: empty\n";
     const NIL: &str = "Style/EmptyElse:\n  EnforcedStyle: nil\n";
@@ -36993,5 +37614,128 @@ mod safe_navigation_is_not_a_send {
         ] {
             expect_no_offenses(cop, source);
         }
+    }
+}
+
+/// `Layout/BlockEndNewline` がヒアドキュメントを持つブロックで壊れた Ruby を書いていた件。
+///
+/// `}` は本文の後ろへ移さなければならない。移植版は**条件は正しかったが、測っている文字列が
+/// 違っていた** — 本文として読んでいた範囲が、開き記号の行末の改行から終端子の字下げまでを
+/// 含んでいたので、1 行の本文が 3 行と数えられ、**すべての実物が「複数行」に分類されて**
+/// `}` が本文の上に書かれていた (`ruby -c` が通らない出力)。
+///
+/// 本家の条件は `arg.str_type? && arg.heredoc?`。実測すると `<<~` / `<<-` / `<<` のどれでも
+/// **本文が 2 行以上なら別の枝**で、**空の本文も別の枝**である (どちらも `dstr` になる)。
+/// 期待値はすべて本家 1.89.0 の `--only Layout/BlockEndNewline -A` の実出力。
+mod layout_block_end_newline_heredoc {
+    use super::*;
+
+    const COP: &str = "Layout/BlockEndNewline";
+
+    /// 1 行の本文なら `}` は本文の後ろへ (spec:104)。
+    #[test]
+    fn the_brace_moves_after_a_one_line_heredoc() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// 2 つのヒアドキュメントなら最後の終端子の後ろへ (spec:123)。
+    #[test]
+    fn the_brace_moves_after_the_last_terminator() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~FIRST, <<~SECOND) }\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "test {\n  foo(<<~FIRST, <<~SECOND)\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n}\n",
+        )
+        .run();
+    }
+
+    /// レシーバの側にヒアドキュメントがあるときも辿る (spec:146)。
+    #[test]
+    fn the_receiver_chain_is_followed() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS).bar }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS).bar\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
+    ///
+    /// **その字面は Ruby として通らない。**`}` が heredoc の本文より前に出るので、ブロックが
+    /// 閉じられない。`ruby -c` で確かめてある。**だから `without_syntax_guard()` を付ける** —
+    /// このケースが測るのは「訂正が本家と一致するか」で、書き出すかどうかは engine の別の
+    /// 判断だから (`#41`)。付けないと安全網が発火して原本が返り、cop のバグに見える。
+    ///
+    /// ```text
+    /// 原本            test { / foo(<<~EOS) } / line one / line two / EOS      Syntax OK
+    /// 本家 -A         test { / foo(<<~EOS) / } / line one / line two / EOS    SyntaxError
+    /// sonicop         原本のまま
+    /// ```
+    ///
+    /// 安全網 (`src/engine.rs` の `withhold_unparsable`) が書き戻しを止める。**期待値を本家の
+    /// 字面に戻すと、有効な Ruby を壊す補正を仕様として焼き付けることになる。**`#41` で
+    /// 承認済みの方針で、`known_divergences.yml` にも同じ family が 3 つ登録されている。
+    ///
+    /// **本文が 1 行のときは壊れない** (`}` が終端子の後ろへ行く) ので、上の
+    /// `the_brace_moves_after_a_one_line_heredoc` は本家の字面のままである。**割れるのは
+    /// `dstr` の枝だけ。**
+    #[test]
+    fn a_two_line_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。**同じく Ruby として通らない。**
+    ///
+    /// 上のケースと同じ機構なので、片方だけ直しても両方は動かない。
+    #[test]
+    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 上の 2 件を「安全網を切って」測っているので、**切らないほうも 1 件測る。**
+    ///
+    /// 上の 2 件は cop の層 (訂正が本家と一致するか) を見ている。こちらは engine の層
+    /// (そのテキストを書き出すか) を見る。**分けたぶん、両方に検査が要る** — 片方だけだと、
+    /// 安全網が丸ごと消えても上の 2 件は通り続ける。
+    #[test]
+    fn the_guard_keeps_the_file_when_that_correction_would_not_parse() {
+        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(source)
+            .run();
     }
 }

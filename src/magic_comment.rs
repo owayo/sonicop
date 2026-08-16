@@ -31,15 +31,21 @@ static SIMPLE_FROZEN: LazyLock<Regex> = LazyLock::new(|| {
         r"(?i)^(?-u:\s)*#(?-u:\s)*frozen[_-]string[_-]literal:(?-u:\s)*({TOKEN})(?-u:\s)*$"
     ))
 });
-static SIMPLE_RBS_INLINE: LazyLock<Regex> =
-    LazyLock::new(|| compile(&format!(r"(?i)^(?-u:\s)*#(?-u:\s)*rbs_inline:(?-u:\s)*({TOKEN})(?-u:\s)*$")));
+static SIMPLE_RBS_INLINE: LazyLock<Regex> = LazyLock::new(|| {
+    compile(&format!(
+        r"(?i)^(?-u:\s)*#(?-u:\s)*rbs_inline:(?-u:\s)*({TOKEN})(?-u:\s)*$"
+    ))
+});
 static SIMPLE_SHAREABLE: LazyLock<Regex> = LazyLock::new(|| {
     compile(&format!(
         r"(?i)^(?-u:\s)*#(?-u:\s)*shareable[_-]constant[_-]value:(?-u:\s)*({TOKEN})(?-u:\s)*$"
     ))
 });
-static SIMPLE_TYPED: LazyLock<Regex> =
-    LazyLock::new(|| compile(&format!(r"(?i)^(?-u:\s)*#(?-u:\s)*typed:(?-u:\s)*({TOKEN})(?-u:\s)*$")));
+static SIMPLE_TYPED: LazyLock<Regex> = LazyLock::new(|| {
+    compile(&format!(
+        r"(?i)^(?-u:\s)*#(?-u:\s)*typed:(?-u:\s)*({TOKEN})(?-u:\s)*$"
+    ))
+});
 
 /// The settings an editor comment holds, split the way RuboCop's `tokens` does. Ruby's `split`
 /// drops the empty strings a trailing separator leaves, which is what decides whether a Vim comment

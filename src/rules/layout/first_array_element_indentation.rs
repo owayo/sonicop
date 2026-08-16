@@ -36,6 +36,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     let mut claimed: HashSet<usize> = HashSet::new();
     for call in context.nodes_of("call") {
+        // The `special_inside_parentheses` style measures an array argument from the call's own `(`,
+        // and that path is `on_send` / `on_csend`. **There is no `on_super`**, so an array inside
+        // `super(...)` is measured as a plain array instead (the loop below), which is what leaves
+        // upstream's indentation alone. Treating the keyword as a send indented the elements from
+        // `super(`, eight columns to the right of where upstream puts them.
+        if crate::rules::send_node::is_super_call(call) {
+            continue;
+        }
         for (array, parenthesis) in argument_literals(context, call, &ARRAY_KINDS) {
             if claimed.insert(array.id()) {
                 inspect(context, &style, width, array, Some(parenthesis), offenses);
@@ -77,7 +85,15 @@ fn inspect(
         );
     }
     let first_node = first.as_ref().and_then(|(_, node)| *node);
-    check_right_bracket(context, style, array, first_node, open, parenthesis, offenses);
+    check_right_bracket(
+        context,
+        style,
+        array,
+        first_node,
+        open,
+        parenthesis,
+        offenses,
+    );
 }
 
 /// `array_node.values.first`. A run of `key: value` pairs is one `hash` value upstream, so the

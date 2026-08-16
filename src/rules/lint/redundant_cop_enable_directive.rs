@@ -1,46 +1,40 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::support::final_pos;
+use crate::rules::support::{self, Side};
 
-use super::cop_directives::{Directive, Mode, directives, is_department};
+use super::cop_directives::{ALL, Directive, Mode, directives, reached_by_all};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if !context.source.text().contains("enable") {
         return;
     }
-    let mut disabled = Counters {
-        // `inject_disabled_cops_directives` gives every cop the configuration switched off an
-        // outstanding disable, so an `enable all` always has one of them to undo. Only whether the
-        // set is empty matters, and the run's selection decides that as much as the configuration:
-        // `--only Foo` leaves a registry of one enabled cop and nothing to undo.
-        config_pool: context.run_disables_a_cop(),
-        ..Counters::default()
-    };
-    let parsed = directives(context);
-    // `registry.disabled_names(config)`: an `enable` of a cop the configuration switched off has
-    // something to undo, so it starts out counted as disabled.
+    // `extra_enabled_comments` seeds the counters from `registry.disabled_names(config)`: a cop the
+    // configuration switched off has an outstanding disable for an `enable` to undo.
     //
-    // Ask for the resolved state rather than the literal `Enabled` value. RuboCop ships 159 cops
-    // as `Enabled: pending`, which is neither `true` nor `false` but resolves to off, so reading
-    // the literal as a boolean missed every one of them and their `enable` looked redundant.
-    // Homebrew pairs a `disable`/`enable` around such cops in ten files, and autocorrect deleted
-    // the `enable` line that the upstream run keeps.
-    for directive in &parsed {
-        for name in &directive.names {
-            if !disabled.named.contains_key(name) && !context.cop_enabled(name) {
-                disabled.named.insert(name.clone(), 1);
-            }
-        }
+    // The list is the run's, not the configuration's alone. `disabled_names` walks the *mobilized*
+    // registry, so `--only Foo` leaves one enabled cop in it and nothing to undo, and `--except`
+    // takes its cops out of the reckoning entirely. The engine settles it once for the run; asking
+    // the configuration cop by cop instead reported every `--only` run's pending cops as disabled.
+    let mut disabled = Counters::default();
+    for name in context.disabled_cops() {
+        disabled.add(name);
     }
-    for directive in &parsed {
+    // `current_offense_locations`: `add_offense` keeps one offense per range, so the hundred-odd
+    // names a department stands for report that department once -- and the first of them is the one
+    // whose correction runs.
+    let mut reported = HashSet::new();
+    for directive in directives(context) {
         if !directive.comment_only_line {
             continue;
         }
-        let extras = extra_names(directive, &mut disabled);
+        let names = directive.parsed_names();
+        let extras = extra_names(&directive, &names, &mut disabled);
+        // `match?(cop_names)`: the directive goes as a whole only when it undid nothing at all.
+        let whole = directive.matches(&extras);
         for name in &extras {
-            register(directive, name, &extras, context, offenses);
+            register(&directive, name, whole, context, offenses, &mut reported);
         }
     }
 }
@@ -55,10 +49,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 struct Counters {
     blanket: usize,
     named: HashMap<String, i64>,
-    /// Whether the cops the configuration switched off still have their injected disable
-    /// outstanding. `handle_enable_all` lowers every positive counter, so the first `enable all`
-    /// spends them all at once.
-    config_pool: bool,
 }
 
 impl Counters {
@@ -85,10 +75,6 @@ impl Counters {
             self.blanket -= 1;
         }
         let mut enabled = blanket;
-        if self.config_pool {
-            self.config_pool = false;
-            enabled = true;
-        }
         for (name, count) in &mut self.named {
             // A name the blanket covers has already come down with it.
             if blanket && reached_by_all(name) {
@@ -103,13 +89,15 @@ impl Counters {
     }
 }
 
-/// `exclude_lint_department_cops`: the two cops `all` never stands for.
-fn reached_by_all(name: &str) -> bool {
-    name != "Lint/RedundantCopDisableDirective" && name != "Lint/Syntax"
-}
-
 /// `handle_enable_all` and `handle_switch`: the names this directive enabled for nothing.
-fn extra_names(directive: &Directive, disabled: &mut Counters) -> Vec<String> {
+///
+/// `names` is the directive's expanded list (`Directive::parsed_names`), which is what upstream
+/// counts over -- a department is a hundred names here, not one.
+fn extra_names<'n>(
+    directive: &Directive,
+    names: &[&'n str],
+    disabled: &mut Counters,
+) -> Vec<&'n str> {
     if directive.all {
         if directive.mode == Mode::Disable {
             disabled.blanket += 1;
@@ -118,27 +106,21 @@ fn extra_names(directive: &Directive, disabled: &mut Counters) -> Vec<String> {
         return if disabled.take_all() {
             Vec::new()
         } else {
-            vec!["all".to_owned()]
+            vec![ALL]
         };
     }
     let mut extras = Vec::new();
-    for name in &directive.names {
+    for name in names {
         if directive.mode == Mode::Disable {
             disabled.add(name);
-            continue;
-        }
-        // A cop switched off through its department is switched on again by its own name.
-        let key = if disabled.covers(name) {
-            Some(name.clone())
+        } else if disabled.covers(name) {
+            // `names[name] -= 1`: the cop's own counter comes down, **never its department's**. A
+            // `# rubocop:disable Layout` raises one counter per Layout cop upstream, so enabling one
+            // of them by name leaves the rest disabled -- lowering the department instead released
+            // all hundred at once and the next `enable` of any of them looked redundant.
+            disabled.take(name);
         } else {
-            name.split('/')
-                .next()
-                .map(str::to_owned)
-                .filter(|department| is_department(department) && disabled.covers(department))
-        };
-        match key {
-            Some(key) => disabled.take(&key),
-            None => extras.push(name.clone()),
+            extras.push(*name);
         }
     }
     extras
@@ -147,40 +129,52 @@ fn extra_names(directive: &Directive, disabled: &mut Counters) -> Vec<String> {
 fn register(
     directive: &Directive,
     name: &str,
-    extras: &[String],
+    whole: bool,
     context: &RuleContext<'_>,
     offenses: &mut Vec<Offense>,
+    reported: &mut HashSet<(usize, usize)>,
 ) {
     // A cop reached through its department is reported as that department.
-    let reported = directive.department_of(name).unwrap_or(name);
+    let display = directive.department_of(name).unwrap_or(name);
     let text = context.source.slice(directive.comment.clone());
-    let Some(offset) = find_name(text, reported) else {
+    let Some(offset) = find_name(text, display) else {
         return;
     };
     let start = directive.comment.start + offset;
-    let range = start..start + reported.len();
-    let label = if reported == "all" {
+    let range = start..start + display.len();
+    // `current_offense_locations.add?(range)`: the second offense at a range is dropped, corrector
+    // and all. Every cop of a department reports the department's own range, so this is what keeps
+    // one `# rubocop:enable Layout` from being reported a hundred times.
+    if !reported.insert((range.start, range.end)) {
+        return;
+    }
+    let label = if display == ALL {
         "all cops".to_owned()
     } else {
-        reported.to_owned()
+        display.to_owned()
     };
-    let edit = if directive.names.len() == extras.len() || directive.all {
-        // The whole directive goes, with the whitespace behind it --
-        // `range_with_surrounding_space(side: :right)`, which reaches over the line breaks that
-        // follow but stops there. The indentation of the next line belongs to that line's code.
+    let edit = if whole {
+        // `range_with_surrounding_space(directive.range, side: :right)`: the whole directive and the
+        // line breaks behind it. The indentation of the next line belongs to that line's code.
+        let span = support::range_with_surrounding_space(
+            directive.range.clone(),
+            context.source.text(),
+            Side::Right,
+            false,
+            true,
+            false,
+        );
         Edit {
-            start: directive.range.start,
-            end: final_pos(
-                context.source.text(),
-                directive.range.end,
-                true, false,
-                true,
-                false,
-            ),
+            start: span.start,
+            end: span.end,
             replacement: String::new(),
             safe: true,
         }
     } else {
+        // `range_with_comma`: the name with the comma that joined it to its neighbours, or -- when
+        // it has none -- the comment and nothing else. **The comment's newline stays**, so a
+        // directive that undid something leaves a blank line behind. That is upstream's output, not
+        // a step left undone.
         range_with_comma(directive, &range, context)
     };
     offenses.push(

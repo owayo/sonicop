@@ -29,6 +29,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(separator) = super::conditional::token(body, &[";"]) else {
             continue;
         };
+        // `node.then?`: upstream reports `node.loc.begin`, which is the token **between the
+        // pattern and the body** -- the `;` or the `then`. A `;` further in is a statement
+        // separator and none of this cop's business.
+        //
+        // `in b then c; d` already says `then`, so upstream returns. Taking any `;` inside the
+        // body turns that into `in b then c then d`, which is a different program.
+        if separator.start_byte() != body.start_byte() {
+            continue;
+        }
         let message = format!(
             "Do not use `in {0};`. Use `in {0} then` instead.",
             pattern_source(pattern, context)

@@ -95,8 +95,10 @@ fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// `last_heredoc_argument`: the terminator of the last heredoc handed to the call the block body
 /// consists of, following the receiver chain when the call itself was given none.
 ///
-/// Only a heredoc upstream's parser calls a `str` counts, which leaves out the ones whose body is
-/// empty, spans more than one line or interpolates.
+/// Only a heredoc upstream's parser calls a `str` counts (`arg.str_type? && arg.heredoc?`), which
+/// leaves out the ones whose body is empty, spans more than one line or interpolates -- the parser
+/// builds a `dstr` for each of those. Measured against 1.89.0: `<<~`, `<<-` and `<<` all take the
+/// other branch as soon as the body has two lines, and an empty body does too.
 fn last_heredoc_argument(
     context: &RuleContext<'_>,
     block: Node<'_>,
@@ -110,7 +112,7 @@ fn last_heredoc_argument(
             let found = list
                 .named_children(&mut cursor)
                 .filter(|child| child.kind_str() == "heredoc_beginning")
-                .filter_map(|child| single_line_heredoc(context, &bodies, &terminators, child))
+                .filter_map(|child| plain_heredoc(context, &bodies, &terminators, child))
                 .last();
             if found.is_some() {
                 return found;
@@ -145,7 +147,7 @@ fn argument_list<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
         .find(|child| child.kind_str() == "argument_list")
 }
 
-fn single_line_heredoc(
+fn plain_heredoc(
     context: &RuleContext<'_>,
     bodies: &[Node<'_>],
     terminators: &[(usize, Range<usize>)],
@@ -155,7 +157,13 @@ fn single_line_heredoc(
         .iter()
         .position(|(offset, _)| *offset == opener.start_byte())?;
     let terminator = terminators[index].1.clone();
-    let content = &context.source.text()[bodies.get(index)?.start_byte()..terminator.start];
+    let span = &context.source.text()[bodies.get(index)?.start_byte()..terminator.start];
+    // **The span is not the body.** It opens with the line break that ends the opener's line and
+    // closes with the indentation the terminator sits behind, so counting its lines answers 3 where
+    // the body has 1. Reading it directly is what sent every real heredoc down the other branch,
+    // where the `}` is written above the body and the file no longer parses.
+    let body = span.strip_prefix('\n').unwrap_or(span);
+    let body = body.rsplit_once('\n').map_or("", |(lines, _)| lines);
     // `str` rather than `dstr`: one line of body, and nothing in it the parser has to evaluate.
-    (content.lines().count() == 1 && !content.contains("#{")).then_some(terminator)
+    (body.lines().count() == 1 && !body.contains("#{")).then_some(terminator)
 }

@@ -167,10 +167,16 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if matches!(node.kind_str(), "assignment" | "operator_assignment") {
         return true;
     }
+    // `%i[and or if]` are **node types**, and upstream's parser builds an `or` for `||` just as it
+    // does for `or`. Reading the two keyword spellings only leaves `a || b ? x : y`, where the
+    // ternary binds tighter than the reader expects.
     if node.kind_str() == "binary"
-        && node
-            .field("operator")
-            .is_some_and(|operator| matches!(context.source.node_text(operator), "and" | "or"))
+        && node.field("operator").is_some_and(|operator| {
+            matches!(
+                context.source.node_text(operator),
+                "and" | "or" | "&&" | "||"
+            )
+        })
     {
         return true;
     }
@@ -191,7 +197,13 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "not");
     }
+    // `node.arguments? && !node.parenthesized_call?`: a keyword whose arguments are already in
+    // parentheses takes nothing more from what follows, so it needs no parentheses of its own.
+    // `yield(2)` was coming out as `(yield(2))`.
     matches!(node.kind_str(), "return" | "break" | "next" | "yield")
+        && node
+            .child(1)
+            .is_some_and(|arguments| !context.source.node_text(arguments).starts_with('('))
         && !super::nodes::children(node).is_empty()
 }
 
