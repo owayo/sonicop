@@ -14,6 +14,12 @@ const MSG: &str = "Empty line detected around arguments.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "element_reference", "assignment", "binary"]) {
+        // `on_send` and `on_csend` are all this cop handles: **no `on_super`**, so a blank line
+        // between `super`'s arguments is left alone upstream. The grammar writes `super(...)` as a
+        // `call`, and removing that line is a change upstream never makes.
+        if crate::rules::send_node::is_super_call(node) {
+            continue;
+        }
         let Some(send) = send_view(context, node) else {
             continue;
         };
@@ -128,12 +134,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
                     ),
                     None,
                 ),
-                "call" => (
-                    left.field("receiver"),
-                    selector(left),
-                    Vec::new(),
-                    None,
-                ),
+                "call" => (left.field("receiver"), selector(left), Vec::new(), None),
                 _ => return None,
             };
             arguments.push(right.start_byte());

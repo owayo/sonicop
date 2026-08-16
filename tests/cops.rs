@@ -9163,6 +9163,95 @@ mod layout_indentation {
         .run();
     }
 
+    /// 本家の `rescue` / `ensure` ノードは**最後の**節の最後の文で終わる。
+    /// `begin a rescue b rescue c else d ensure e end` は
+    /// `(ensure (rescue a (resbody b) (resbody c) d) e)` になるので、本体をずらす補正は
+    /// **節のキーワード行を全部連れて動く**。
+    ///
+    /// 最初の節までしか届かない範囲でずらすと、2 本目の `rescue` や `else` / `ensure` は
+    /// 書かれたままの位置に残り、ファイルは本家より 2 桁ずれた形で落ち着く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力
+    /// (17 形測って全部一致。修正前は 10 形が食い違っていた)。
+    #[test]
+    fn every_clause_keyword_moves_with_the_body() {
+        // 2 本目の `rescue` も動く。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        // `else` も `ensure` も同じ。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nelse\n   puts 'c'\nensure\n    puts 'd'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  else\n    puts 'c'\n  ensure\n    \
+             puts 'd'\nend\n",
+        );
+        // `def` / `class` / ブロックの本体でも同じ (節は本体の器に付く)。
+        expect_correction(
+            WIDTH,
+            "def my_func\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "def my_func\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "class Foo\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "class Foo\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "foo do\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "foo do\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+    }
+
+    /// 動かないものの側。**`end` の行と、最後の節と `end` の間のコメントと、ヒアドキュメントの
+    /// 中身は動かない。** 本家のノード範囲がそこで閉じているからで、この 3 つを範囲に入れると
+    /// `end` は相対字下げが変わらず収束しなくなり、コメントとヒアドキュメントは本家と 2 桁ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_end_a_trailing_comment_and_a_heredoc_body_stay_put() {
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nensure\n puts 'c'\n# tail comment\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  ensure\n    puts 'c'\n# tail \
+             comment\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts(<<~X)\n   keep me\n X\nensure\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts(<<~X)\n   keep me\n X\n  ensure\n    \
+             puts 'c'\nend\n",
+        );
+    }
+
+    /// 本家 spec の `with begin/rescue/else/ensure/end` (1929 行付近) の入力そのまま。
+    /// 節が 4 つ並ぶので、範囲が最初の節で止まっていると 6 行ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    /// **spec に書かれている `expect_correction` の文面とは別の不動点**なので、そちらを
+    /// 写さないこと (spec のループと CLI の `-A` のループは同じ入力から別の形に着く)。
+    #[test]
+    fn the_spec_case_with_four_clauses() {
+        expect_correction(
+            WIDTH,
+            "def my_func\n  puts 'do something outside block'\n  begin\n  \
+             puts 'do something error prone'\n  rescue SomeException, SomeOther => e\n   \
+             puts 'wrongly indented error handling'\n  rescue\n   \
+             puts 'wrongly indented error handling'\n  else\n     \
+             puts 'wrongly indented normal case handling'\n  ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+            "def my_func\n  puts 'do something outside block'\n  begin\n    \
+             puts 'do something error prone'\n    rescue SomeException, SomeOther => e\n      \
+             puts 'wrongly indented error handling'\n    rescue\n      \
+             puts 'wrongly indented error handling'\n    else\n      \
+             puts 'wrongly indented normal case handling'\n    ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+        );
+    }
+
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
     /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
     /// ずれが効いた次のパスで入れ子でなくなってから直す
@@ -21400,6 +21489,84 @@ mod lint_redundant_cop_enable_directive_removal_range {
             COP,
             "x = 1\n# rubocop:enable Style/For   \n  y = 2\n",
             "x = 1\n  y = 2\n",
+        );
+    }
+}
+
+/// 括弧つきの `super(...)` は文法では `call` ノードだが、本家では `send` ではない。
+///
+/// 本家の parser は `super` / `zsuper` / `yield` をそれぞれ別のノード種別にするので、
+/// `on_send` (と `alias on_csend on_send`) しか持たない cop は `super(...)` を**一度も見ない**。
+/// 文法は括弧つきの `super(...)` を `call` に書くため、`call` を回す移植版は素通しにすると
+/// 本家が触らない行を動かす。
+///
+/// 期待値は本家 1.89.0 を `--only <cop>` と `-A` で走らせた実測。`super(...)` を置ける文法上の
+/// 位置を 34 形作って全 cop で突き合わせ (`super_probe.py`)、**5 形で食い違っていた**。
+/// 4 cop が該当し、いずれも「本家は 0 件、移植版が報告して `-A` で 8 桁ずらす」形だった。
+///
+/// **どのケースにも普通の呼び出しの対照を置く。** `super` を外すだけで本家も報告するので、
+/// 「cop を丸ごと黙らせた」実装がテストを通り抜けない。
+mod super_is_not_a_send {
+    use super::*;
+
+    /// 引数の配列は `super(` からではなく素の配列として測る (`on_send` の枝に入らない)。
+    #[test]
+    fn an_array_argument_of_super_is_measured_as_a_plain_array() {
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super([\n    1,\n    2\n  ])\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super(%w[\n    a\n    b\n  ])\nend\n",
+        );
+        // 対照: 普通の呼び出しなら本家も報告して、括弧の位置から測り直す。
+        expect_correction(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  foo([\n    1,\n    2\n  ])\nend\n",
+            "def m\n  foo([\n        1,\n    2\n      ])\nend\n",
+        );
+    }
+
+    /// ハッシュも同じ (`Layout/FirstHashElementIndentation` は配列側の兄弟)。
+    #[test]
+    fn a_hash_argument_of_super_is_measured_as_a_plain_hash() {
+        expect_no_offenses(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  super({\n    a: 1,\n    b: 2\n  })\nend\n",
+        );
+        expect_correction(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  foo({\n    a: 1,\n    b: 2\n  })\nend\n",
+            "def m\n  foo({\n        a: 1,\n    b: 2\n      })\nend\n",
+        );
+    }
+
+    /// 引数の間の空行は `super` では残る。`on_send` / `on_csend` しかないので届かない。
+    #[test]
+    fn a_blank_line_between_supers_arguments_stays() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  super(a,\n\n    b)\nend\n",
+        );
+        expect_correction(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  foo(a,\n\n    b)\nend\n",
+            "def m\n  foo(a,\n    b)\nend\n",
+        );
+    }
+
+    /// 閉じ括弧の字下げも同じ。`on_send` / `on_csend` / `on_begin` / `on_def` に `super` は無い。
+    #[test]
+    fn the_closing_parenthesis_of_super_is_left_where_it_was_written() {
+        expect_no_offenses(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  super(<<~X\n    hi\n  X\n  )\nend\n",
+        );
+        expect_correction(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  foo(<<~X\n    hi\n  X\n  )\nend\n",
+            "def m\n  foo(<<~X\n    hi\n  X\n     )\nend\n",
         );
     }
 }
