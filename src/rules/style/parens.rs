@@ -83,7 +83,8 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 /// corrector. Folding the two into one edit above fixed that, and the `continuations` step below
 /// then started doing its work: it is what keeps the `\` from being left in front of the comma.
 ///
-/// **No corpus reaches this**, but upstream's spec does. Across the five corpora the two cops that
+/// **No corpus reaches this** (as of 5 corpora / 18,251 files, 2026-08-17), but upstream's spec
+/// does. Across the five corpora the two cops that
 /// correct through here fire 1,185 times and none of them is this shape, so a byte comparison of
 /// autocorrected output says nothing about the code below. `redundant_parentheses_spec.rb:1966`
 /// is exactly it -- `foo(\n  (\n    1\n  ),\n  2\n)` -- so the guard is upstream's own case, not
