@@ -18,6 +18,7 @@ mod percent;
 mod percent_array;
 mod ranges;
 mod select_by;
+mod statement_modifier;
 mod trailing_body;
 mod trailing_comma;
 

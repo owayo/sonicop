@@ -10,6 +10,7 @@ use crate::rules::send_node;
 
 use super::conditional::{UpstreamParent, body_of, upstream_parent};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG: &str = "Redundant `begin` block detected.";
 
@@ -265,22 +266,14 @@ fn removal_of(range: Range<usize>) -> Edit {
 /// `range_with_surrounding_space(range, newlines: true)`: spaces and tabs on either side, then the
 /// newlines beyond them.
 fn with_surrounding_space(context: &RuleContext<'_>, range: &Range<usize>) -> Range<usize> {
-    let text = context.source.text().as_bytes();
-    let mut start = range.start;
-    while start > 0 && matches!(text[start - 1], b' ' | b'\t') {
-        start -= 1;
-    }
-    while start > 0 && text[start - 1] == b'\n' {
-        start -= 1;
-    }
-    let mut end = range.end;
-    while end < text.len() && matches!(text[end], b' ' | b'\t') {
-        end += 1;
-    }
-    while end < text.len() && text[end] == b'\n' {
-        end += 1;
-    }
-    start..end
+    support::range_with_surrounding_space(
+        range.clone(),
+        context.source.text(),
+        support::Side::Both,
+        false,
+        true,
+        false,
+    )
 }
 
 /// `range_by_whole_lines(range, include_final_newline: true)`.

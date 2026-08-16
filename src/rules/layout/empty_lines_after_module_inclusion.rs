@@ -7,6 +7,7 @@ use crate::directives::directive_header;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, is_plain_send, named_children, send_range};
+use crate::rules::support;
 
 const MSG: &str = "Add an empty line after module inclusion.";
 
@@ -73,7 +74,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `autocorrect`: the blank line goes after the inclusion, or after the `rubocop:enable`
         // comment written directly below it.
-        let mut anchor = whole_lines(send_range(node, context), context);
+        let mut anchor = support::whole_lines_without_terminator(send_range(node, context), context);
         let below = context.source.line_column(anchor.end).0 + 1;
         if let Some(comment) = enable_directive_at(below, context) {
             anchor = comment;
@@ -184,14 +185,3 @@ fn enable_directive_at(line: usize, context: &RuleContext<'_>) -> Option<Range<u
     (header.mode == "enable").then(|| comment.clone())
 }
 
-/// `range_by_whole_lines(range)`: the lines the node sits on, without the break that closes them.
-fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset);
-    start..end
-}

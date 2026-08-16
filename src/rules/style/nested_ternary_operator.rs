@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG: &str = "Ternary operators must not be nested. Prefer `if` or `else` constructs instead.";
 
@@ -87,18 +88,19 @@ fn replace_with_surrounding_space(
     range: Range<usize>,
     replacement: &str,
 ) -> Edit {
-    let bytes = context.source.text().as_bytes();
-    let mut start = range.start;
-    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
-        start -= 1;
-    }
-    let mut end = range.end;
-    while bytes.get(end).is_some_and(u8::is_ascii_whitespace) {
-        end += 1;
-    }
+    // `range_with_surrounding_space(range: range, whitespace: true)`. The fourth stage is Ruby's
+    // `\s`, which takes the vertical tab that `is_ascii_whitespace` left out.
+    let taken = support::range_with_surrounding_space(
+        range,
+        context.source.text(),
+        support::Side::Both,
+        false,
+        true,
+        true,
+    );
     Edit {
-        start,
-        end,
+        start: taken.start,
+        end: taken.end,
         replacement: replacement.to_owned(),
         safe: true,
     }

@@ -3,8 +3,8 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::spurious_assignment_list;
 
-use super::variable_force::spurious_assignment_list;
 
 /// `MISTAKES`: the operator each two-character run was probably meant to be.
 const MISTAKES: [(u8, &str); 4] = [(b'-', "-="), (b'+', "+="), (b'*', "*="), (b'!', "!=")];

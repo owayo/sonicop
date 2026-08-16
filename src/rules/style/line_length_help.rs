@@ -15,6 +15,7 @@ use regex::Regex;
 use crate::diagnostic::{Offense, Severity};
 use crate::directives::DirectiveState;
 use crate::rules::RuleContext;
+use crate::rules::support::is_ruby_space_char;
 
 pub(super) struct LineLengthHelp<'a, 'tree> {
     context: &'a RuleContext<'tree>,
@@ -176,14 +177,9 @@ fn length_without_directive(line: &str) -> usize {
     DIRECTIVE
         .find(line)
         .map_or(line, |found| &line[..found.start()])
-        .trim_end_matches(is_ruby_space)
+        .trim_end_matches(is_ruby_space_char)
         .chars()
         .count()
-}
-
-/// Ruby's `\s`, which is ASCII-only.
-fn is_ruby_space(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\r' | '\n' | '\u{b}' | '\u{c}')
 }
 
 /// `find_excessive_range(line, :uri)` as a character range.
@@ -208,8 +204,8 @@ fn extended_end(line: &str, mut end: usize) -> usize {
         }
     }
     let rest = &line[end..];
-    if rest.starts_with(|character| !is_ruby_space(character)) {
-        end += rest.find(is_ruby_space).unwrap_or(rest.len());
+    if rest.starts_with(|character| !is_ruby_space_char(character)) {
+        end += rest.find(is_ruby_space_char).unwrap_or(rest.len());
     }
     end
 }

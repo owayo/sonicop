@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG: &str = "Convert `if` nested inside `else` to `elsif`.";
 
@@ -94,13 +95,13 @@ fn autocorrect(
                 replacement: context.source.slice(branch.clone()).to_owned(),
                 safe: true,
             });
-            edits.push(remove(whole_lines(context, branch)));
+            edits.push(remove(support::whole_lines(branch, context)));
         }
-        None => edits.push(remove(whole_lines(context, condition_range))),
+        None => edits.push(remove(support::whole_lines(condition_range, context))),
     }
     edits.push(remove(condition.byte_range()));
     let end = end_keyword(inner)?;
-    edits.push(remove(whole_lines(context, end.byte_range())));
+    edits.push(remove(support::whole_lines(end.byte_range(), context)));
     Some(edits)
 }
 
@@ -111,13 +112,6 @@ fn remove(range: Range<usize>) -> Edit {
         replacement: String::new(),
         safe: true,
     }
-}
-
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(context: &RuleContext<'_>, range: Range<usize>) -> Range<usize> {
-    let first = context.source.line_column(range.start).0;
-    let last = context.source.line_column(range.end).0;
-    context.source.line_start(first)..context.source.line_range(last).end
 }
 
 /// `range_with_comments(node.if_branch)`: the body of the inner `if`, together with the comments

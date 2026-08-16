@@ -5,11 +5,12 @@ use tree_sitter::Node;
 
 use super::variable_force::{
     Analysis, Assignment, AssignmentKind, Scope, Variable, body_node, is_variable_read,
-    named_children, scope_nodes, spurious_assignment_list,
+    named_children, scope_nodes,
 };
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::spurious_assignment_list;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let analysis = context.variable_analysis();

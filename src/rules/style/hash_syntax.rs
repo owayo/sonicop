@@ -7,6 +7,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 /// The symbol names the new syntax can spell without quoting them, as
 /// `acceptable_19_syntax_symbol?` matches them. A trailing `?` or `!` is fine; a trailing `=` is
@@ -118,16 +119,5 @@ fn acceptable_19_syntax_symbol(text: &str, quoted_keys_allowed: bool) -> bool {
 /// RuboCop's `range_with_surrounding_space` takes the spaces and tabs first and only then the line
 /// breaks, so the indentation of a following line is left where it is.
 fn whitespace_end(context: &RuleContext<'_>, offset: usize) -> usize {
-    let text = context.source.text().as_bytes();
-    let mut end = offset;
-    while text
-        .get(end)
-        .is_some_and(|byte| matches!(byte, b' ' | b'\t'))
-    {
-        end += 1;
-    }
-    while text.get(end) == Some(&b'\n') {
-        end += 1;
-    }
-    end
+    support::final_pos(context.source.text(), offset, true, false, true, false)
 }

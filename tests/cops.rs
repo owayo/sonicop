@@ -35926,3 +35926,253 @@ mod style_redundant_return_heredoc {
         .run();
     }
 }
+
+/// `Lint/EmptyConditionalBody` が末尾の `elsif` のコメントを見落として過剰検出していた件 (#47)。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/EmptyConditionalBody` の実出力。**5 コーパスには 1 件も
+/// 出ない形**なので、ここが唯一の防波堤になる。
+mod lint_empty_conditional_body_elsif_comment {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyConditionalBody";
+
+    /// 本家 `CommentsHelp#find_end_line` の `elsif?` の分岐。空の `elsif` が最後の枝のとき、
+    /// コメントを探す範囲は**それを含む `if` の `end` の行**まで伸びる。
+    #[test]
+    fn a_comment_in_the_last_elsif_excuses_the_empty_branch() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nend\n");
+    }
+
+    /// `elsif` が 2 段でも、いちばん外の `if` の `end` まで伸びる。
+    #[test]
+    fn a_comment_in_a_nested_elsif_is_found_too() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nelsif e\n  # 理由\nend\n");
+    }
+
+    /// `else` が後ろにあるときは、そこで止まる (以前から通っていた形)。
+    #[test]
+    fn a_comment_before_a_following_else_still_excuses_it() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nelse\n  d\nend\n");
+    }
+
+    /// コメントが無ければ報告する。**範囲を伸ばしすぎて黙るようになっていないか**を見る。
+    #[test]
+    fn an_empty_last_elsif_without_a_comment_is_still_reported() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend\n",
+        );
+    }
+
+    /// `end` の行にあるコメントは枝のものではない (本家の範囲は終端の行を含まない)。
+    #[test]
+    fn a_comment_on_the_end_line_does_not_excuse_it() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend # 理由\n",
+        );
+    }
+}
+
+/// `Style/CollectionCompact` の `AllowedReceivers` が `Foo::Bar.baz` を `Foo::Bar` と読んでいた件 (#48)。
+///
+/// 本家の `const_type?` は `Foo` も `Foo::Bar` も真だが、文法は `constant` と `scope_resolution` に
+/// 分ける。**既定は `AllowedReceivers: []` なのでコーパスでは踏まない。**
+mod style_collection_compact_allowed_receivers {
+    use super::*;
+
+    const COP: &str = "Style/CollectionCompact";
+    const CONFIG: &str =
+        "Style/CollectionCompact:\n  Enabled: true\n  AllowedReceivers:\n    - Foo::Bar\n";
+
+    /// `Foo::Bar.baz` の receiver_name は `Foo::Bar.baz` なので、`Foo::Bar` の許可には当たらない。
+    #[test]
+    fn a_selector_after_the_constant_is_not_allowed_by_the_constant_alone() {
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.baz.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+            "receiver_name は Foo::Bar.baz なので許可リストに当たらない"
+        );
+    }
+
+    /// 定数そのものが receiver なら許可される。
+    #[test]
+    fn the_constant_itself_is_allowed() {
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            0,
+            "receiver_name は Foo::Bar なので許可される"
+        );
+    }
+}
+
+/// `Lint/Void` の `-A` が空白だけの行を余分に消していた件 (#53)。
+///
+/// 本家 `RangeHelp#final_pos` は**段を順に 1 回ずつ**通る (空白/タブ → 行継続 → 改行 → 全空白)。
+/// 混ぜて歩くと、改行の向こう側の空白まで食べて**空白だけの行が消える**。
+/// 期待値は本家 1.89.0 の `--only Lint/Void -A` の実出力。
+mod lint_void_blank_line_before {
+    use super::*;
+
+    const COP: &str = "Lint/Void";
+
+    /// 手前に空白だけの行があっても、消えるのは void 式とその行の字下げだけ。
+    #[test]
+    fn a_whitespace_only_line_above_survives() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n   \n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n   \n  baz\nend\n")
+        .run();
+    }
+
+    /// 空行 (空白を持たない行) が手前にあるときは、本家も改行をまとめて食べる。
+    #[test]
+    fn an_empty_line_above_is_taken_with_it() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n\n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n  baz\nend\n")
+        .run();
+    }
+}
+
+/// `Style/NestedTernaryOperator` の `-A` が垂直タブを飲むこと (#52)。
+///
+/// 本家は `range_with_surrounding_space(range: range, whitespace: true)` を渡す。その段は Ruby の
+/// `/\s/` で、**垂直タブ (0x0b) を含む**。移植版は `is_ascii_whitespace` で歩いていたので VT を
+/// 残していた。
+///
+/// **5 コーパスに VT は 1 バイトも無いので、このテストが唯一の番人である。** 期待値は本家 1.89.0 の
+/// `--only Style/NestedTernaryOperator -A` の実出力。陰性対照は `is_ascii_whitespace` に戻すこと:
+/// そのとき出力は `x = if cond \u{b}` と VT を残す (main の binary で実測した)。
+mod style_nested_ternary_operator_vertical_tab {
+    use super::*;
+
+    const COP: &str = "Style/NestedTernaryOperator";
+
+    #[test]
+    fn the_vertical_tab_beside_the_question_mark_is_taken() {
+        CopCase::new(
+            COP,
+            "x = cond \u{b}? (a ? b : c) : d\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+        .run();
+    }
+
+    /// 空白だけのときも同じ (VT を足したことで普通の空白の扱いが変わっていないか)。
+    #[test]
+    fn a_plain_space_still_behaves_the_same() {
+        CopCase::new(COP, "x = cond ? (a ? b : c) : d\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+            .run();
+    }
+}
+
+/// Ruby の `strip` / `/\s/` と Rust の `trim` で空白の集合が違う件 (#56)。
+///
+/// ```text
+///                       NUL  space tab VT  FF  CR  LF  NBSP U+3000
+/// Ruby /\s/              ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Ruby String#strip      ✓    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Rust str::trim         ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✓    ✓
+/// ```
+///
+/// **`str::trim` は 2 方向にずれる** — Unicode の空白を余分に剥がし、NUL を残す。
+/// **5 コーパスに no-break space を含む Ruby ソースは実質無いので、テストが唯一の番人。**
+/// 期待値は本家 1.89.0 の `--only <cop>` の実出力。
+mod ruby_whitespace_is_not_unicode_whitespace {
+    use super::*;
+
+    /// `Layout/EmptyLineAfterMagicComment` は `next_line.strip.empty?` で見る。
+    /// no-break space だけの行は**空行ではない**ので、本家は空行の追加を求める。
+    #[test]
+    fn a_no_break_space_line_is_not_an_empty_line_after_a_magic_comment() {
+        let report = CopCase::new(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\u{a0}\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        let offenses: Vec<_> = report
+            .offenses
+            .iter()
+            .filter(|offense| offense.cop_name == "Layout/EmptyLineAfterMagicComment")
+            .collect();
+        assert_eq!(offenses.len(), 1, "本家は 1 件報告する");
+    }
+
+    /// 本物の空行なら黙る (集合を狭めたことで普通の空行が壊れていないか)。
+    #[test]
+    fn a_real_empty_line_after_a_magic_comment_is_accepted() {
+        expect_no_offenses(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
+    /// `Layout/TrailingEmptyLines` は `buffer.source[/\s*\Z/]` で見る。`/\s/` は no-break space に
+    /// 当たらないので、最後の行がそれだけなら**末尾の空行ではない**。
+    ///
+    /// **この cop は correctable なので、誤って空行と数えると `-A` がその行を消す。**
+    #[test]
+    fn a_no_break_space_last_line_is_not_a_trailing_blank_line() {
+        expect_no_offenses("Layout/TrailingEmptyLines", "x = 1\n\u{a0}\n");
+    }
+
+    /// 本物の空行が末尾にあるときは報告する (陰性対照)。
+    #[test]
+    fn a_real_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(
+            "Layout/TrailingEmptyLines",
+            "x = 1\n\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Layout/TrailingEmptyLines")
+                .count(),
+            1,
+            "末尾の空行は 1 件報告される"
+        );
+    }
+}

@@ -7,6 +7,7 @@ use crate::rules::lint::locals::LocalVariables;
 use crate::rules::lint::node_equality::identical;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
+use crate::rules::support;
 
 /// `SELECT_METHODS`.
 const SELECT_METHODS: [&str; 3] = ["select", "filter", "find_all"];
@@ -95,7 +96,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 "{select_var}, {reject_var} = {}",
                 partition_call(partition, context)
             );
-            let removed = whole_lines(container.byte_range(), context);
+            let removed = support::whole_lines(container.byte_range(), context);
             // Upstream removes the whole of the second statement's lines and rewrites the first
             // one, which is two corrections over the same text when the pair shares a line. Its
             // rewriter refuses that, and the exception it raises leaves the offense unreported.
@@ -388,14 +389,3 @@ fn assigned_name<'a>(container: Node<'_>, context: &'a RuleContext<'_>) -> Optio
     (target.kind_str() == "identifier").then(|| context.source.node_text(target))
 }
 
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(range: std::ops::Range<usize>, context: &RuleContext<'_>) -> std::ops::Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
-    start..end
-}
