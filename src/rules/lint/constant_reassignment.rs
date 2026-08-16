@@ -6,8 +6,8 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
+use crate::rules::support::spurious_assignment_list;
 
-use super::variable_force::spurious_assignment_list;
 
 /// The parts of a constant path, as `each_path` walks them.
 struct ConstantPath {

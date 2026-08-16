@@ -9,6 +9,7 @@ use crate::rules::RuleContext;
 use crate::rules::lint::node_equality::identical;
 use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG: &str = "Use safe navigation (`&.`) instead of checking if an object \
                    exists before calling the method.";
@@ -736,15 +737,14 @@ fn insertion(at: usize, text: impl Into<String>) -> Edit {
 
 /// `range_with_surrounding_space(range: ..., side: :right)`: spaces and tabs, then newlines.
 fn with_trailing_space(context: &RuleContext<'_>, range: Range<usize>) -> Range<usize> {
-    let text = context.source.text().as_bytes();
-    let mut end = range.end;
-    while end < text.len() && matches!(text[end], b' ' | b'\t') {
-        end += 1;
-    }
-    while end < text.len() && text[end] == b'\n' {
-        end += 1;
-    }
-    range.start..end
+    support::range_with_surrounding_space(
+        range,
+        context.source.text(),
+        support::Side::Right,
+        false,
+        true,
+        false,
+    )
 }
 
 fn is_and(context: &RuleContext<'_>, node: Node<'_>) -> bool {

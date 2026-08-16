@@ -17,10 +17,11 @@ use tree_sitter::Node;
 use super::fragments::Fragments;
 use super::locals::{
     Locals, field_name, folded_parameter_list, is_keyword_literal, named_children, operator,
-    split_match_operator, spurious_assignment_list,
+    split_match_operator,
 };
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::spurious_assignment_list;
 use crate::source::SourceFile;
 
 /// The parser node types the three complexity cops count. Types they all ignore are never emitted,

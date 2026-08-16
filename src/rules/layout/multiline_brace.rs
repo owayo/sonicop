@@ -11,6 +11,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 /// The four sentences one of these cops reports with.
 pub(super) struct Messages {
@@ -260,28 +261,12 @@ fn line_end(context: &RuleContext<'_>, offset: usize) -> usize {
 /// `range_with_surrounding_space(range, side: :left)`: the blanks before `offset`, then the line
 /// breaks before those -- and no further, so a blank line above is left alone.
 fn space_before(text: &str, offset: usize) -> usize {
-    let bytes = text.as_bytes();
-    let mut position = offset;
-    while position > 0 && matches!(bytes[position - 1], b' ' | b'\t') {
-        position -= 1;
-    }
-    while position > 0 && bytes[position - 1] == b'\n' {
-        position -= 1;
-    }
-    position
+    support::final_pos(text, offset, false, false, true, false)
 }
 
 /// `range_with_surrounding_space(range, side: :right)`.
 fn space_after(text: &str, offset: usize) -> usize {
-    let bytes = text.as_bytes();
-    let mut position = offset;
-    while position < bytes.len() && matches!(bytes[position], b' ' | b'\t') {
-        position += 1;
-    }
-    while position < bytes.len() && bytes[position] == b'\n' {
-        position += 1;
-    }
-    position
+    support::final_pos(text, offset, true, false, true, false)
 }
 
 /// `Node#chained?`: the node is the receiver of the call written around it.

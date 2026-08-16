@@ -21,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::{scope_kind, spurious_assignment_list};
 use crate::source::SourceFile;
 
 /// How a variable came into being, which decides what may be reported about it.
@@ -142,12 +143,22 @@ pub(in crate::rules) struct Analysis<'tree> {
     /// local from a receiverless call, and only the analysis knows which one the parser upstream
     /// would have built.
     lvars: HashSet<usize>,
+    /// The `foo()` calls whose name a local variable already holds. The parentheses make these
+    /// calls whatever the name resolves to, so nothing here is an `lvar` -- but writing the same
+    /// name without them would be one, which is the question a cop that drops parentheses asks.
+    shadowed_calls: HashSet<usize>,
 }
 
 impl<'tree> Analysis<'tree> {
     /// Whether the parser upstream would have built an `lvar` here rather than a receiverless call.
     pub(in crate::rules) fn is_variable_reference(&self, node: Node<'_>) -> bool {
         self.lvars.contains(&node.id())
+    }
+
+    /// Whether this `foo()` would stop being a call if its parentheses went away, because a local
+    /// variable of that name is in scope. Only the walk knows what is in scope at a given node.
+    pub(in crate::rules) fn shadows_a_local(&self, node: Node<'_>) -> bool {
+        self.shadowed_calls.contains(&node.id())
     }
 
     pub(in crate::rules) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
@@ -161,6 +172,7 @@ impl<'tree> Analysis<'tree> {
             heredocs: heredoc_bodies(root),
             scanned: HashSet::new(),
             lvars: HashSet::new(),
+            shadowed_calls: HashSet::new(),
         };
         force.push_scope(root, true);
         force.process_children(root);
@@ -169,6 +181,7 @@ impl<'tree> Analysis<'tree> {
             scopes: force.scopes,
             variables: force.variables,
             lvars: force.lvars,
+            shadowed_calls: force.shadowed_calls,
         }
     }
 }
@@ -207,36 +220,12 @@ struct Force<'tree, 'a> {
     /// Nodes already walked in an outer scope, which the scope they sit in must not walk again.
     scanned: HashSet<usize>,
     lvars: HashSet<usize>,
+    shadowed_calls: HashSet<usize>,
 }
 
 // ---------------------------------------------------------------------------
 // Node classification
 // ---------------------------------------------------------------------------
-
-/// The scope a node opens, and the fields that still belong to the scope around it. RuboCop calls
-/// these "twisted" nodes: `class Foo < bar` evaluates `bar` outside the class body it precedes.
-fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
-    match kind {
-        "method" => Some((false, &[])),
-        "singleton_method" => Some((false, &["object"])),
-        "class" => Some((false, &["name", "superclass"])),
-        "module" => Some((false, &["name"])),
-        "singleton_class" => Some((false, &["value"])),
-        "block" | "do_block" | "lambda" => Some((true, &[])),
-        _ => None,
-    }
-}
-
-/// Node kinds that hold a comma-separated list of expressions. tree-sitter parses `foo(a, b = 1)`
-/// as a multiple assignment that swallowed `a`, which Ruby does not: only `b` is assigned.
-const COMMA_SEPARATED_LISTS: &[&str] = &[
-    "argument_list",
-    "array",
-    "splat_argument",
-    "optional_parameter",
-    "keyword_parameter",
-    "right_assignment_list",
-];
 
 /// Whether the `=` the grammar found is really the left half of a `=~`.
 fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
@@ -251,26 +240,6 @@ fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
         return false;
     };
     operator.end_byte() == right.start_byte() && source.node_text(right).starts_with('~')
-}
-
-pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
-    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
-    // assignment inside the next and only the outermost one stands in the list itself.
-    let mut current = list.parent();
-    while let Some(node) = current {
-        let Some(parent) = node.parent() else {
-            return false;
-        };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
-            return true;
-        }
-        let continues = parent.kind_str() == "assignment"
-            && parent
-                .field("right")
-                .is_some_and(|right| right.id() == node.id());
-        current = continues.then_some(parent);
-    }
-    false
 }
 
 /// What an assignment really stores. When the grammar swallowed the neighbouring items of a
@@ -779,6 +748,9 @@ impl<'tree> Force<'tree, '_> {
         if self.binary_operator_on_a_local(node) {
             return;
         }
+        if self.name_is_taken_by_a_local(node) {
+            self.shadowed_calls.insert(node.id());
+        }
         if let Some(method) = node.field("method")
             && self.text(method) == "binding"
             && opaque_binding_argument(node)
@@ -802,6 +774,24 @@ impl<'tree> Force<'tree, '_> {
                 self.process_node(child);
             }
         }
+    }
+
+    /// Whether `foo()` is written where a local variable already holds the name `foo`.
+    ///
+    /// The empty parentheses make it a call either way, so no `lvar` is built here and the name is
+    /// not a read of the variable. Dropping them would leave a bare name, and that one _is_ the
+    /// variable -- which is why a cop that offers to drop them has to leave this call alone.
+    fn name_is_taken_by_a_local(&self, node: Node<'tree>) -> bool {
+        if node.field("receiver").is_some() {
+            return false;
+        }
+        let (Some(method), Some(arguments)) = (node.field("method"), node.field("arguments"))
+        else {
+            return false;
+        };
+        method.kind_str() == "identifier"
+            && arguments.named_child_count() == 0
+            && self.find_variable(self.text(method)).is_some()
     }
 
     /// Whether the call is really `local & expr` or `local * expr`. Ruby resolves the ambiguity by

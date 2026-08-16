@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::is_ruby_space_char;
 
 /// One lambda, however it was written, in the shape upstream's `BlockNode` presents.
 struct Lambda<'tree> {
@@ -242,7 +243,7 @@ fn literal_to_method(context: &RuleContext<'_>, lambda: &Lambda<'_>, offense: Of
     // so that it still binds to that call.
     if !lambda.braces() && argument_of_unparenthesized_call(context, lambda.block) {
         let after = text[begin.end_byte()..].chars().next();
-        if !after.is_some_and(is_ruby_space) {
+        if !after.is_some_and(is_ruby_space_char) {
             edits.push(Edit {
                 start: begin.end_byte(),
                 end: begin.end_byte(),
@@ -347,6 +348,3 @@ fn argument_of_unparenthesized_call(context: &RuleContext<'_>, block: Node<'_>) 
     }
 }
 
-fn is_ruby_space(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\r' | '\n' | '\u{b}' | '\u{c}')
-}

@@ -44,7 +44,7 @@ pub(super) fn elements(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Element
     let mut found = Vec::new();
     let mut offset = start;
     while offset < end {
-        if is_blank(text[offset]) {
+        if crate::rules::support::separates_words(text[offset]) {
             offset += 1;
             continue;
         }
@@ -60,7 +60,7 @@ pub(super) fn elements(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Element
                 offset = next_boundary(context, offset + 1, end);
                 continue;
             }
-            if is_blank(text[offset]) {
+            if crate::rules::support::separates_words(text[offset]) {
                 break;
             }
             offset = next_boundary(context, offset, end);
@@ -71,10 +71,6 @@ pub(super) fn elements(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Element
         });
     }
     found
-}
-
-fn is_blank(byte: u8) -> bool {
-    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 fn next_boundary(context: &RuleContext<'_>, offset: usize, end: usize) -> usize {

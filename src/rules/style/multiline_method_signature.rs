@@ -57,11 +57,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if closing_line_text.starts_with(')') {
             joined.push_str(closing_line_text);
             let closing = parameters.end_byte() - 1..parameters.end_byte();
-            edits.push(remove(whole_lines(closing, context)));
+            edits.push(remove(support::whole_lines(closing, context)));
         }
         // `range_with_surrounding_space(arguments_range(node), side: :left)`.
         let arguments_range =
-            support::final_pos(text, first.start_byte(), false, true, false)..last.end_byte();
+            support::final_pos(text, first.start_byte(), false, false, true, false)..last.end_byte();
         // A list that starts on a later line leaves the name alone on the first one.
         if context.source.line_column(arguments_range.start).0 != opening_line {
             let prefix = node.start_byte() + DEF_LENGTH..parameters.start_byte();
@@ -127,18 +127,6 @@ fn squeeze(text: &str) -> String {
         }
     }
     out
-}
-
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(range: std::ops::Range<usize>, context: &RuleContext<'_>) -> std::ops::Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
-    start..end
 }
 
 fn remove(range: std::ops::Range<usize>) -> Edit {

@@ -38,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let start = final_pos(
             context.source.text(),
             keyword.start_byte(),
-            false,
+            false, false,
             false,
             false,
         );

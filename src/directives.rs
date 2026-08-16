@@ -334,7 +334,7 @@ fn cop_list(arguments: &str) -> Vec<String> {
 
 /// The length of the cop name `text` starts with, following `COP_NAME_PATTERN`: one or more
 /// `[A-Za-z]\w+` segments separated by slashes.
-fn cop_name_length(text: &str) -> Option<usize> {
+pub(crate) fn cop_name_length(text: &str) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut index = 0;
     loop {
@@ -619,7 +619,7 @@ fn commented_out(prefix: &str) -> bool {
     prefix.starts_with('#')
         && prefix[1..]
             .bytes()
-            .all(|byte| matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c))
+            .all(crate::rules::support::is_ruby_space)
 }
 
 /// A `# rubocop:` comment, parsed the way `RuboCop::DirectiveComment` parses one.

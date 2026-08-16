@@ -132,12 +132,35 @@ fn contains_comments(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let end = match node.field("alternative") {
         // `find_end_line`: the `else` or `elsif` that follows ends the span.
         Some(clause) => context.source.line_column(clause.start_byte()).0,
+        // `find_end_line`'s `elsif?` branch: `node.each_ancestor(:if).find(&:if?).loc.end.line`.
+        // An `elsif` with nothing after it owns the lines up to the `end` that closes the whole
+        // conditional, and that `end` belongs to the `if` above it. The grammar stops the `elsif`
+        // node at its own last statement, so reading its end instead leaves an empty span and the
+        // comment that excuses the branch is never seen.
+        None if node.kind_str() == "elsif" => enclosing_end(node, context)
+            .map_or_else(
+                || context.source.line_column(node.end_byte()).0,
+                |keyword| context.source.line_column(keyword.start_byte()).0,
+            ),
         None => context.source.line_column(node.end_byte()).0,
     };
     context.comment_ranges().iter().any(|comment| {
         let line = context.source.line_column(comment.start).0;
         line >= start && line < end
     })
+}
+
+/// The `end` closing the conditional an `elsif` sits in, which is the `if` above it. A chain of
+/// `elsif` nests, so the walk passes any number of them before it reaches the `if`.
+fn enclosing_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if ancestor.kind_str() == "if" {
+            return end_keyword(ancestor, context);
+        }
+        current = ancestor.parent();
+    }
+    None
 }
 
 /// `node.loc.begin`: the `then` or `;` the branch was introduced with. The grammar puts a `then`

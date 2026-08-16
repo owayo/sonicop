@@ -3,10 +3,11 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tree_sitter::Node;
 
-use super::support::{Variables, last_named_child, spurious_assignment_list};
+use super::support::{Variables, last_named_child};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::spurious_assignment_list;
 
 // `[[:digit:][:upper:]_]` upstream, and Ruby's POSIX classes are Unicode-aware, so `Ä` counts as
 // upper case. Rust's `[[:upper:]]` would only accept ASCII.

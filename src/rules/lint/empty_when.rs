@@ -7,6 +7,8 @@ use crate::directives::DirectiveState;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+use super::comments_help::comment_search_lines;
+
 const MSG: &str = "Avoid `when` branches without a body.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -59,33 +61,6 @@ fn allowed_by_comments(
         lines.contains(&line)
     });
     has_comment && !comments_contain_disables(context, &lines)
-}
-
-/// `find_end_line`: a `when` runs up to the line the next branch starts on, or to the `end` of the
-/// `case` when it is the last. The range excludes that line, which is why the keyword itself never
-/// counts as a comment of the branch before it.
-fn comment_search_lines(
-    context: &RuleContext<'_>,
-    case: Node<'_>,
-    children: &[Node<'_>],
-    index: usize,
-) -> Range<usize> {
-    let branch = children[index];
-    let (start, _) = context.source.line_column(branch.start_byte());
-    let end = children[index + 1..]
-        .iter()
-        .find(|sibling| sibling.kind_str() != "comment")
-        .map_or_else(
-            || {
-                // `parent.loc.end.line`, the `end` keyword closing the `case`.
-                let (line, _) = context
-                    .source
-                    .line_column(case.end_byte().saturating_sub(1));
-                line
-            },
-            |next| context.source.line_column(next.start_byte()).0,
-        );
-    start..end
 }
 
 /// `comments_contain_disables?`: whether a `rubocop:disable` of this cop overlaps the branch. The

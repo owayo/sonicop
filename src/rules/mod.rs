@@ -55,7 +55,9 @@ mod security;
 mod send_node;
 mod single_line;
 mod style;
-mod support;
+/// Reachable from `directives` too: Ruby's `\s` is one set, and the directive reader asks the
+/// same question of a comment's prefix that a cop asks of the blanks beside a range.
+pub(crate) mod support;
 mod visibility;
 
 pub(crate) use support::{push_named_children, walk_named};

@@ -40,7 +40,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let dot_source = context.source.node_text(dot);
-        let start = final_pos(context.source.text(), dot.start_byte(), false, true, false);
+        let start = final_pos(context.source.text(), dot.start_byte(), false, false, true, false);
         let mut edits = vec![
             Edit {
                 start,
