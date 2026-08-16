@@ -131,6 +131,20 @@ fn read_operand<'tree>(
             (node.field("operand"), method, None)
         }
         "element_reference" => (node.child(0), "[]".to_owned(), None),
+        // `foo&.baz = 1` is one `csend` upstream, with the method name `baz=`. The grammar spells
+        // it as an assignment whose left is the call, so the operand has to be read through it --
+        // otherwise a safe navigation written on the left of an assignment is never an operand.
+        "assignment" | "operator_assignment" => {
+            let left = node.field("left")?;
+            if left.kind_str() != "call" {
+                return None;
+            }
+            (
+                left.field("receiver"),
+                format!("{}=", context.source.node_text(left.field("method")?)),
+                left.field("operator").map(|operator| operator.byte_range()),
+            )
+        }
         _ => return None,
     };
     let safe_navigation = dot

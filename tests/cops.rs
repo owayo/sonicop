@@ -36100,3 +36100,43 @@ mod style_map_compact_with_conditional_block_shapes {
         );
     }
 }
+
+/// `Lint/SafeNavigationConsistency` が代入の左辺の `&.` を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/SafeNavigationConsistency` の実出力。
+/// 本家の spec から見つけた。**この cop は 5 コーパスで 10 件しか発火しない。**
+mod lint_safe_navigation_consistency_assignment {
+    use super::*;
+
+    const COP: &str = "Lint/SafeNavigationConsistency";
+
+    /// `foo&.baz = 1` は本家では `csend` 1 ノード (メソッド名 `baz=`)。文法は代入の
+    /// 左辺に呼び出しを置くので、代入を通して読まないと**左辺の安全参照が
+    /// オペランドにならない**。
+    #[test]
+    fn a_safe_navigation_on_the_left_of_an_assignment_is_an_operand() {
+        expect_offense(
+            COP,
+            "foo.bar && foo&.baz = 1\n              ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+        expect_offense(
+            COP,
+            "foo&.bar && foo&.baz = 1\n               ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+    }
+
+    /// 代入を外した形は元から一致している (陰性対照)。
+    #[test]
+    fn the_plain_form_is_unchanged() {
+        expect_offense(
+            COP,
+            "foo.bar && foo&.baz\n              ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+    }
+
+    /// `&.` が無ければ報告しない。
+    #[test]
+    fn a_plain_dot_assignment_is_left_alone() {
+        expect_no_offenses(COP, "foo.bar && foo.baz = 1\n");
+    }
+}
