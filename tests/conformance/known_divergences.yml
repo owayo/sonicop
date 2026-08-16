@@ -94,6 +94,63 @@ blind_spots:
 # 本家へ upstream パッチを送るべき問題でもある。
 
 divergences:
+  # --- Style/MethodCallWithArgsParentheses (EnforcedStyle: omit_parentheses) ---
+  # tree-sitter は Ruby の command call の文法制約を持たない。括弧を外した結果が Ruby として
+  # 通らない形でも ERROR ノードを作らずに受理するので、再パース検証 (`accepts_more_than_ruby`)
+  # を素通りして「外せる」と判定される。本家は parser gem が弾くので何も報告しない。
+  #
+  # `ruby -c` で確かめた境界 (2026-08-16):
+  #   規則 A  右辺が括弧無し呼び出しの代入は、引数リスト / 配列の中に裸で置けない
+  #             x = baz 1            OK    文のレベルなら良い
+  #             foo bar = baz 1      エラー
+  #             foo(1, bar = baz 2)  エラー   外側に括弧があっても駄目
+  #             foo bar = baz(1)     OK    右辺に括弧があれば良い
+  #             { k: (bar = baz 1) } OK    自分に括弧があれば良い
+  #   規則 B  括弧無し呼び出しは他の引数と並べられない
+  #             puts foo 1           OK    単独ならよい
+  #             puts a, foo 1        エラー
+  #   規則 C  多重代入の中の連鎖代入
+  #             a, b = @app.call env   OK
+  #             a = b = @app.call env  OK
+  #             a, b = c = @app.call env  エラー   両方揃うと駄目
+  #
+  # rails/rails での規模: 過剰 73 件 (補正後が通らない 57 / 通るが意味が変わりうる 15 / 元が
+  # 通らない 1)。57 の内訳は assert 系 31、多重代入 8、終端の無い範囲 4、無名の `&` 2、
+  # `return` の多値 2、`yield` 1、その他 9。
+  #
+  # **直さない判断 (2026-08-16)**: `accepts_more_than_ruby` は `parse()` が無条件に呼び、
+  # `parse()` には 2 経路ある (`correction_parses` 経由の 2 cop と `verified_by_reparse` 経由の
+  # 4 cop) ので、規則を足すと 6 cop 全部に乗る。その中には既定有効の
+  # Style/SoleNestedConditional と Style/ConditionalAssignment が含まれる。一方で直したいのは
+  # 既定無効な cop の非既定 style で、利用者は 2 段階 opt-in して初めて踏む。
+  # しかも足りない規則は「過剰」を生むが、広すぎる規則は「不足」を生む — 本家が出す指摘を
+  # 出さなくなる側で、こちらのほうが悪い。最初に考えた素朴な規則 (入れ子の括弧無し引数リストは
+  # 無効) は `puts foo 1` を誤って弾いた。境界の見積もりを 1 つ目で外している。
+  # `Verification` にフラグを足して 1 cop に閉じることは技術的には可能だが、
+  # 「Ruby として無効か」の判定を cop ごとに変えるのは意味的におかしいので採らない。
+  #
+  # **再開するなら**: 規則を 1 つずつ入れて、そのつど 6 cop x 5 コーパスを測る。まとめて入れると
+  # 不足が出たときにどの規則が原因か分からない。規則 A (57 件中 31 + 1) から始めるのが、
+  # いちばん大きく境界も明確。
+  - cop: Style/MethodCallWithArgsParentheses
+    case: style_method_call_with_args_parentheses_omit_assignment_argument
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: |-
+      1:34-38 (5 chars) Omit parentheses for method calls with arguments.
+    note: >-
+      規則 A。`assert_not_nil pool = handler.foo("x")` の括弧を外すと
+      `assert_not_nil pool = handler.foo "x"` になり Ruby の構文エラー。引数リストの中の代入は
+      右辺に括弧が要る。tree-sitter は受理するので移植版だけが報告する。
+  - cop: Style/MethodCallWithArgsParentheses
+    case: style_method_call_with_args_parentheses_omit_chained_masgn
+    kind: false_positive
+    upstream: (検出なし)
+    sonicop: |-
+      1:21-25 (5 chars) Omit parentheses for method calls with arguments.
+    note: >-
+      規則 C。`a, b = c = @app.call(env)` の括弧を外すと `a, b = c = @app.call env` になり
+      Ruby の構文エラー。多重代入と連鎖代入が揃ったときだけ駄目で、どちらか一方なら通る。
   # --- Lint/Syntax ---
   # 本家は parser gem (LALR) の誤り回復に乗って追加の診断を出す。tree-sitter は
   # ファイルを正しく解析してしまうので、回復後の状態から生まれる診断は再現できない。
