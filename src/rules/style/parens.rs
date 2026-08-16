@@ -39,27 +39,50 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     // way to trip that, since the walks above land on the same byte whenever no continuation sits
     // between them. Widening the single edit reaches the same text and stays verifiable.
     //
-    // The heredoc half of upstream's handling is left out. It rewrites the comma rather than
-    // removing it, and no corpus reaches it -- but upstream's own spec does, at
-    // `redundant_parentheses_spec.rb:1985` ("an array of multiple heredocs"), so this is a known
-    // gap with a case waiting for it rather than dead weight.
-    if let Some(orphaned) = orphaned_comma_start(context, close) {
-        close_start = close_start.min(orphaned);
+    // The heredoc half of upstream's handling was left out here for a while, and the cost of
+    // leaving it out was not "the shape is not corrected" but "the shape is not reported": the
+    // correction it would have produced puts no comma between the two elements, so it does not
+    // parse, so `verified_by_reparse` throws the candidate away. `redundant_parentheses_spec.rb:1985`
+    // ("an array of multiple heredocs") is the case, and it read as a detection miss.
+    let orphaned = orphaned_comma_start(context, close);
+    if let Some(start) = orphaned {
+        close_start = close_start.min(start);
     }
-    let mut edits = vec![
-        Edit {
-            start: range.start,
-            end: open_end,
-            replacement: String::new(),
+    // `extend_range_for_heredoc` and `add_heredoc_comma`: a heredoc's body sits on the lines after
+    // the `)`, so a comma left where it was would land in front of that body rather than after the
+    // element. Upstream takes the comma with the parentheses and writes a fresh one straight after
+    // the opening token, turning `<<-STRING\n...\nSTRING\n) ,` into `<<-STRING,`.
+    let heredoc = orphaned.and_then(|_| heredoc_opener(node));
+    let close_end = match heredoc {
+        Some(_) => comma_after(text, range.end),
+        None => range.end,
+    };
+    let mut edits = vec![Edit {
+        start: range.start,
+        end: open_end,
+        replacement: String::new(),
+        safe: true,
+    }];
+    // The new comma goes between the two removals, not after them. `apply_edits` walks the list in
+    // the order it is given and drops the whole correction the moment an edit starts before the
+    // previous one ended -- and the opening token sits on an *earlier* line than the `)` it is
+    // replacing the comma of, so appending this at the end silently loses the offense. That failure
+    // is invisible from the cop: it reads as "not detected", exactly the way the doubled close-paren
+    // removal did before it was folded above.
+    if let Some(opener) = heredoc.filter(|_| close_end > range.end) {
+        edits.push(Edit {
+            start: opener.end_byte(),
+            end: opener.end_byte(),
+            replacement: ",".to_owned(),
             safe: true,
-        },
-        Edit {
-            start: close_start,
-            end: range.end,
-            replacement: String::new(),
-            safe: true,
-        },
-    ];
+        });
+    }
+    edits.push(Edit {
+        start: close_start,
+        end: close_end,
+        replacement: String::new(),
+        safe: true,
+    });
     // `ternary_condition?`: `(a) ? b : c` needs the space the parenthesis used to provide.
     if is_ternary_condition_before_question_mark(context, node) {
         edits.push(Edit {
@@ -70,6 +93,39 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
         });
     }
     edits
+}
+
+/// `heredoc?`: the group's last element is a heredoc, so pulling the parentheses moves the `)`
+/// while the body stays put.
+///
+/// Upstream asks whether `node.child_nodes.last.loc` is a `Heredoc` map. Here the opening token is
+/// its own node and the body is a sibling that trails the whole statement, so the question becomes
+/// whether the last child is that opener.
+fn heredoc_opener<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    super::nodes::children(node)
+        .last()
+        .copied()
+        .filter(|last| last.kind_str() == "heredoc_beginning")
+}
+
+/// `COMMA_REGEXP = /(?<=\))\s*,/` over the line the `)` sits on: how far past the parenthesis the
+/// comma reaches, so the removal can take it too.
+///
+/// The walk stays on the line -- upstream matches inside `range_by_whole_lines`, so a comma opening
+/// the next line belongs to something else.
+fn comma_after(text: &str, after_close: usize) -> usize {
+    let bytes = text.as_bytes();
+    let mut index = after_close;
+    while bytes
+        .get(index)
+        .is_some_and(|byte| *byte != b'\n' && crate::rules::support::is_ruby_space(*byte))
+    {
+        index += 1;
+    }
+    match bytes.get(index) {
+        Some(b',') => index + 1,
+        _ => after_close,
+    }
 }
 
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would

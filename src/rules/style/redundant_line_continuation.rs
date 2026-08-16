@@ -104,9 +104,7 @@ fn within_comment(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
 fn implicit_string_concatenation(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
     let stream = tokens(context);
     let line = context.source.line_column(range.start).0;
-    let before = stream
-        .iter()
-        .rfind(|token| token.range.end <= range.start);
+    let before = stream.iter().rfind(|token| token.range.end <= range.start);
     let ends = before.is_some_and(|token| {
         matches!(token.kind, TokenKind::String | TokenKind::StringEnd)
             && context
@@ -204,7 +202,9 @@ fn leading_dot_method_chain_with_blank_line(
 /// What decides it is what stands on either side of the break.
 fn statement_would_end(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
     let line = context.source.line_column(range.start).0;
-    let before = context.source.slice(context.source.line_start(line)..range.start);
+    let before = context
+        .source
+        .slice(context.source.line_start(line)..range.start);
     let before = before.trim_end();
     if before.is_empty() || !ends_an_expression(before) {
         return false;
@@ -214,6 +214,25 @@ fn statement_would_end(context: &RuleContext<'_>, range: &Range<usize>) -> bool 
     // A leading `.` on the very next line is the one thing that still continues the expression.
     if next.starts_with('.') || next.starts_with("&.") {
         return false;
+    }
+    // A blank line is joined to the line above and contributes nothing of its own, so what decides
+    // the question is the first line with something on it. The test below reads an empty next line
+    // as "opens nothing, so the statement ends here" and suppressed the offense, which is the
+    // opposite of what emptiness means for everything except a chain.
+    //
+    // The exception is a leading `.` after the blank line, and it is the backslash that makes it
+    // work: Ruby joins a leading-dot line to the one above it, but **a blank line breaks that**
+    // (`ruby` answers `unexpected '.', ignoring it`). So the continuation is carrying the chain
+    // across the gap and removing it would change the program -- upstream reports no offense for
+    // `r = foo \` / `` / `  .bar`, however many blank lines sit in between.
+    if next.is_empty() {
+        let following = (line + 1..=context.source.line_count())
+            .map(|number| context.source.line(number))
+            .find(|text| !text.trim().is_empty());
+        return following.is_some_and(|text| {
+            let text = text.trim_start();
+            text.starts_with('.') || text.starts_with("&.")
+        });
     }
     // Everything else the next line could open would have joined the expression, which is what
     // the backslash was doing; only a closing keyword or bracket stands on its own.
