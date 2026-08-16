@@ -60,10 +60,84 @@ impl Directive {
             .map(String::as_str)
             .filter(|_| !self.names.iter().any(|name| name == cop))
     }
+
+    /// `parsed_cop_names`: the names the directive acts on, with a department standing for every
+    /// cop in it.
+    ///
+    /// **A department is one word to the reader and a hundred names to the counting**, which is the
+    /// whole difference between the two lists: [`Self::names`] is what the comment says, this is
+    /// what it does. `handle_switch` counts one outstanding disable per name here, so a
+    /// `# rubocop:disable Layout/LineLength` followed by a `# rubocop:enable Layout` undoes that
+    /// one cop and enables the other hundred-odd for nothing.
+    ///
+    /// Upstream expands from `Cop::Registry.global` -- the whole registry rather than the run's --
+    /// so `--only` does not narrow what a department stands for.
+    pub(super) fn parsed_names<'d>(&'d self) -> Vec<&'d str> {
+        if self.all {
+            // `parsed_cop_names` reads `raw_cop_names`, which for a blanket directive is the one
+            // word `all`. Only `cop_names` expands it, and `match?` does not go through that.
+            return vec![ALL];
+        }
+        let mut names: Vec<&'d str> = Vec::new();
+        for name in &self.names {
+            if is_department(name) {
+                for cop in cop_names_for_department(name) {
+                    names.push(cop);
+                }
+            } else {
+                names.push(name.as_str());
+            }
+        }
+        // `parsed_cop_names`: `cops - [LINT_SYNTAX_COP]`. A directive may name it, and nothing
+        // counts it.
+        names.retain(|name| *name != LINT_SYNTAX_COP);
+        names
+    }
+
+    /// `match?`: whether the directive acts on exactly these names.
+    ///
+    /// Both sides are `uniq.sort`ed, so a name written twice matches once -- and the comparison is
+    /// against [`Self::parsed_names`], the expanded list, which is why a department directive that
+    /// undid even one cop's disable does not match the names it enabled for nothing.
+    pub(super) fn matches(&self, names: &[&str]) -> bool {
+        uniq(&self.parsed_names()) == uniq(names)
+    }
 }
 
 pub(super) fn is_department(name: &str) -> bool {
     DEPARTMENTS.contains(&name)
+}
+
+/// `uniq.sort`, which is how `match?` compares its two lists.
+fn uniq<'n>(names: &[&'n str]) -> Vec<&'n str> {
+    let mut sorted = names.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    sorted
+}
+
+/// The word that stands for every cop at once.
+pub(super) const ALL: &str = "all";
+
+const LINT_SYNTAX_COP: &str = "Lint/Syntax";
+const LINT_REDUNDANT_DIRECTIVE_COP: &str = "Lint/RedundantCopDisableDirective";
+
+/// `exclude_lint_department_cops`: the two names neither an `all` nor a `Lint` department directive
+/// stands for. Both are cops a directive must not be able to switch off.
+pub(super) fn reached_by_all(name: &str) -> bool {
+    name != LINT_REDUNDANT_DIRECTIVE_COP && name != LINT_SYNTAX_COP
+}
+
+/// `cop_names_for_department`: every cop the department holds.
+///
+/// The registry walked here is the static one, matching upstream's `Cop::Registry.global`: what a
+/// department stands for is a property of the cops that exist, not of the cops this run selected.
+fn cop_names_for_department(department: &str) -> impl Iterator<Item = &'static str> {
+    let prefix = format!("{department}/");
+    let lint = department == "Lint";
+    crate::rules::rule_names()
+        .filter(move |name| name.starts_with(&prefix))
+        .filter(move |name| !lint || reached_by_all(name))
 }
 
 /// Every `disable`, `todo` and `enable` comment of the file, in source order.

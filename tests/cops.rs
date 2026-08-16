@@ -21226,6 +21226,133 @@ mod lint_redundant_cop_enable_directive_removal_range {
     }
 }
 
+/// `Lint/RedundantCopEnableDirective` の部署名は 1 語ではなく、その部署の cop 全部を指す。
+///
+/// `DirectiveComment#parsed_cop_names` が部署を展開するので、`# rubocop:enable Layout` は
+/// Layout の cop 100 個あまりに対する enable になる。効くのは 2 か所。
+///
+/// - 数えるとき: `handle_switch` は cop ごとの counter を上下させる。部署を 1 個の counter で
+///   代表すると、cop 名 1 本の enable が部署ぶん全部を解放してしまう。
+/// - 消すとき: `match?` は展開した集合と「無駄に有効化した名前」の集合を比べる。**1 つでも
+///   取り消していれば一致しない**ので、directive を丸ごと消す枝ではなく `range_with_comma`
+///   側に入る。そちらはコメント本体だけを消して行の改行を残すため、空行が 1 行残る。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantCopEnableDirective -A` で走らせた実出力。
+/// 11 形を測って全部一致させた。部署を展開する前は 3 形が食い違っていた -- 空行を残さない
+/// (補正の差)、`dept → cop` の 2 本目を見落とす (不足)、`部署 disable → cop enable` の
+/// 2 本目を余分に報告して **本家が残す `enable` 行を消す** (過剰かつ `-A` が壊す側)。
+mod lint_redundant_cop_enable_directive_departments {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantCopEnableDirective";
+
+    /// 部署の enable が cop 名の disable を 1 本取り消しているので、丸ごと消す枝には入らない。
+    /// **消えるのはコメント本体だけで行の改行は残る**ため、空行が 1 行残る。
+    #[test]
+    fn a_department_enable_that_undid_one_cop_leaves_the_line_behind() {
+        expect_correction(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n",
+        );
+    }
+
+    /// 何も取り消していない部署の enable は行ごと消える。上の 1 件との差は
+    /// 「1 つでも取り消したか」だけで、書かれ方は同じ。
+    #[test]
+    fn a_department_enable_that_undid_nothing_goes_with_its_line() {
+        expect_correction(
+            COP,
+            "foo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "foo = 1\nsome_code\n",
+        );
+    }
+
+    /// 部署の enable は cop ごとの counter を下げる。`Layout/LineLength` の disable はそこで
+    /// 消費されるので、続く cop 名の enable には取り消す相手が無い = offense 2 件。
+    #[test]
+    fn the_department_enable_spends_the_cops_own_disable() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\n\
+             # rubocop:enable Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n")
+        .run();
+    }
+
+    /// 逆向き。部署の disable を cop 名の enable が 1 本取り消しても、**残りの cop は disable
+    /// のまま**。部署の counter を下げる実装では 2 本目の enable が無駄に見え、本家が残す行を
+    /// 消してしまう。
+    #[test]
+    fn a_cop_enable_spends_only_its_own_share_of_a_department_disable() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout/LineLength\n\
+             # rubocop:enable Layout/EmptyLines\nsome_code\n",
+        );
+    }
+
+    /// 部署の disable と部署の enable が釣り合えば offense は出ない。
+    #[test]
+    fn a_department_disable_and_enable_cancel_out() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+        );
+    }
+
+    /// 部署は 1 回しか報告されない。`add_offense` は同じレンジの 2 件目を corrector ごと捨てる
+    /// (`current_offense_locations.add?`) ので、展開した 100 個あまりの名前が同じ位置を指しても
+    /// offense は 1 件で、走る補正はその 1 件目のもの。
+    #[test]
+    fn the_department_is_reported_once_not_once_per_cop_it_holds() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout
+                             ^^^^^^ Unnecessary enabling of Layout.
+            some_code
+            ",
+        );
+    }
+
+    /// 部署と、その部署の cop を並べて書いたときは、cop 名は部署に縮められずそのまま報告される
+    /// (`overridden_by_department?`: 部署で届く名前でも、明示して書いてあれば縮めない)。
+    #[test]
+    fn a_cop_written_next_to_its_own_department_keeps_its_full_name() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout, Layout/LineLength
+                             ^^^^^^ Unnecessary enabling of Layout.
+                                     ^^^^^^^^^^^^^^^^^ Unnecessary enabling of Layout/LineLength.
+            some_code
+            ",
+        );
+    }
+
+    /// 同じ形で 1 本だけ取り消しても丸ごと消える。展開すると `Layout/LineLength` が 2 回現れ、
+    /// `match?` は両側を `uniq.sort` してから比べるので一致する -- **個数で比べると 111 対 110 で
+    /// 一致せず、本家が消す行が残ってしまう**。
+    #[test]
+    fn the_match_compares_sets_not_counts() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\
+             # rubocop:enable Layout, Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\nsome_code\n")
+        .run();
+    }
+}
+
 /// `Style/NestedFileDirname`。
 ///
 /// 期待値は本家 1.89.0 を `--only Style/NestedFileDirname` で走らせた実出力から取った
