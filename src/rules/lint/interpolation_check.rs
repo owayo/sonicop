@@ -51,15 +51,33 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// lines, so what matters is the last thing Ruby read, not what the previous line looked like.
 fn follows_an_expression(context: &RuleContext<'_>, start: usize) -> bool {
     let before = &context.source.text()[..start];
-    let last = before
+    let trimmed =
+        before.trim_end_matches(|character: char| character.is_whitespace() || character == '\\');
+    let Some(last) = trimmed.chars().last() else {
+        // A literal opening the file is unambiguous.
+        return false;
+    };
+    // A closing delimiter or a quote ends a value, and a value takes an operator next.
+    if matches!(last, ')' | ']' | '}' | '"' | '\'' | '`') {
+        return true;
+    }
+    // **A bare name does not end a value -- it can be a method that takes an argument**, and Ruby
+    // reads `it %{...}` as passing the literal, not as `it % {...}`. Reading every word as a value
+    // withheld the rewrite from `it 'a #{b}'`, which is the shape every RSpec description has:
+    // upstream corrected it, this cop stopped offering to, and the `-A` comparison split on five
+    // files. Only the words that genuinely close an expression count.
+    let word: String = trimmed
         .chars()
         .rev()
-        .find(|character| !character.is_whitespace() && *character != '\\');
-    // A literal opening a line, an argument list, or the right of an assignment is unambiguous.
-    last.is_some_and(|character| {
-        character.is_alphanumeric()
-            || matches!(character, '_' | ')' | ']' | '}' | '"' | '\'' | '`' | '?' | '!')
-    })
+        .take_while(|character| character.is_alphanumeric() || *character == '_')
+        .collect();
+    let word: String = word.chars().rev().collect();
+    match word.chars().next() {
+        // A numeric literal is a value.
+        Some(character) if character.is_ascii_digit() => true,
+        Some(_) => matches!(word.as_str(), "end" | "self" | "nil" | "true" | "false"),
+        None => false,
+    }
 }
 
 /// `/(?<!\\)#\{.*\}/`: a `#{` that is not escaped, closed on the same line. `.` does not cross a
