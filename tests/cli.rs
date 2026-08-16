@@ -12,7 +12,7 @@ use std::fs;
 use std::process::Command;
 
 use support::project::{
-    assert_offenses, command, lint_stdin, offenses, project, project_with_ruby,
+    assert_offenses, command, lint_stdin, offense_tuples, offenses, project, project_with_ruby,
     project_without_pinned_ruby, report,
 };
 
@@ -291,6 +291,50 @@ fn a_directive_written_behind_prose_covers_its_own_line() {
             "Trailing whitespace detected.",
         )],
     );
+}
+
+/// 設定で無効にした cop も、ファイル中の `# rubocop:enable` から下では有効に戻る。
+///
+/// 本家は `CommentConfig#inject_disabled_cops_directives` が設定無効の cop へ `-∞` 行から
+/// 始まる disable を注入し、実在する `enable` がその範囲を閉じる。cop 自体は `enable` が
+/// 名前を挙げたときだけ動員される (`opt_in_cops`) ので、`enable all` や部門名では戻らない。
+#[test]
+fn a_config_disabled_cop_comes_back_from_an_enable_directive() {
+    let long = "x = '0123456789012345678901234567890123456789'\n";
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Layout/LineLength:\n  Enabled: false\n  Max: 20\n",
+    )]);
+    let reported = |source: String| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source)
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Layout/LineLength")
+            .map(|(_, line, column, _)| (line, column))
+            .collect::<Vec<_>>()
+    };
+
+    // 名前を挙げた `enable` の下から報告される。書いた行そのものはまだ無効。
+    assert_eq!(
+        reported(format!("# rubocop:enable Layout/LineLength\n{long}")),
+        vec![(2, 21)]
+    );
+    // `enable` より上は無効のまま。
+    assert_eq!(
+        reported(format!("{long}# rubocop:enable Layout/LineLength\n{long}")),
+        vec![(3, 21)]
+    );
+    // `enable all` と部門名は cop を動員しない (`raw_cop_names` に cop 名が無い)。
+    assert!(reported(format!("# rubocop:enable all\n{long}")).is_empty());
+    assert!(reported(format!("# rubocop:enable Layout\n{long}")).is_empty());
+    // ディレクティブが無ければ設定どおり無効。
+    assert!(reported(long.to_owned()).is_empty());
 }
 
 /// `# rubocop:enable` を書いた行は、それが閉じる範囲の最終行なので、まだ無効の
