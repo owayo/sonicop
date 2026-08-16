@@ -24,6 +24,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if node.kind_str() != "conditional" && alternative.kind_str() != "else" {
             continue;
         }
+        // `else_branch &&`: an `else` that holds nothing is no branch at all upstream, where an
+        // empty body is `nil` rather than a node. The grammar still writes the `else` keyword as a
+        // node, so asking whether the field is present answers a different question.
+        if alternative.kind_str() == "else" && super::nodes::children(alternative).is_empty() {
+            continue;
+        }
         let Some(condition) = node.field("condition").map(unwrap_parentheses) else {
             continue;
         };
@@ -52,20 +58,28 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
+/// `negation_method?`: whether the node is `!x`.
+///
+/// Upstream's parser builds the same `(send x :!)` for `!x` and for `not x`, so a pattern written
+/// for the operator matches the keyword too. The grammar keeps the spelling, and reading only `!`
+/// is the cop going quiet on every `if not x`.
+fn is_negation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    node.kind_str() == "unary"
+        && node
+            .field("operator")
+            .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
+}
+
 /// `correct_negated_condition`: what the condition says once the negation is taken out.
 fn inverted_condition(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     match node.kind_str() {
         "unary" => {
-            if context.source.node_text(node.field("operator")?) != "!" {
+            if !is_negation(node, context) {
                 return None;
             }
             let operand = node.field("operand")?;
             // `double_negation?`: `!!x` is a way of casting to a boolean, not a negation to undo.
-            if operand.kind_str() == "unary"
-                && operand
-                    .field("operator")
-                    .is_some_and(|inner| context.source.node_text(inner) == "!")
-            {
+            if is_negation(operand, context) {
                 return None;
             }
             Some(context.source.node_text(operand).to_owned())

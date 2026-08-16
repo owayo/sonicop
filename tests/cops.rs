@@ -22671,6 +22671,25 @@ mod style_collection_querying {
         expect_correction(COP, "x.count(&:foo).positive?\n", "x.any?(&:foo)\n");
     }
 
+    /// 本家のパターンは `(any_block $(call !nil? :count) _ _)` で、`_` は無いものにも
+    /// 当たる。**引数の書き方も本体の有無も問わない。**`_1` / `it` は引数の並びを
+    /// 書かないので、「引数を取ること」を条件にすると 3 通りとも落ちる。
+    #[test]
+    fn a_block_matches_however_its_parameter_is_written() {
+        expect_correction(
+            COP,
+            "x.count { _1.foo? }.positive?\n",
+            "x.any? { _1.foo? }\n",
+        );
+        expect_correction(
+            COP,
+            "x.count { it.foo? }.positive?\n",
+            "x.any? { it.foo? }\n",
+        );
+        expect_correction(COP, "x.count { foo }.positive?\n", "x.any? { foo }\n");
+        expect_correction(COP, "x.count {}.positive?\n", "x.any? {}\n");
+    }
+
     /// `> 1` は Active Support の `many?` にしかならないので既定では黙る。引数付きの
     /// `count`、レシーバの無い `count`、`size` も対象外。
     #[test]
@@ -32604,6 +32623,31 @@ mod style_negated_if_else_condition {
     use super::*;
 
     const COP: &str = "Style/NegatedIfElseCondition";
+
+    /// 本家のパーサは `!x` と `not x` に同じ `(send x :!)` を作るので、`negation_method?`
+    /// はどちらにも当たる。文法は綴りを残すので、`!` だけを見ると `not` の側が丸ごと
+    /// 落ちる。
+    #[test]
+    fn the_not_keyword_is_the_same_negation_as_the_bang() {
+        expect_correction(
+            COP,
+            "if not x\n  a\nelse\n  b\nend\n",
+            "if x\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// `if_else?` は `else_branch` が**あること**を尋ねる。本家では中身の無い本体は
+    /// `nil` なので、`else` と書いただけの枝は枝ではない。文法は `else` の節を必ず
+    /// 作るため、フィールドの有無を見ると別の問いになる。
+    #[test]
+    fn an_else_that_holds_nothing_is_not_a_branch() {
+        for source in [
+            "if !condition.nil?\n  foo = 42\nelse\nend\n",
+            "if !condition.nil?\nelse\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
 
     /// 位置は `if` 全体。条件を反転して枝を入れ替える。
     #[test]
