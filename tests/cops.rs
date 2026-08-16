@@ -20906,6 +20906,34 @@ mod redundant_parentheses {
         expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
     }
 
+    /// `handle_orphaned_comma`: upstream removes a second range that contains the first, and its
+    /// `TreeRewriter` folds the pair. Handing the engine two overlapping edits instead lost the
+    /// whole offense, so this shape went unreported -- detection looked broken while the cause sat
+    /// in the corrector. Expectations are upstream 1.89.0's `-A`.
+    #[test]
+    fn a_closing_paren_alone_on_its_line_before_a_comma_is_still_reported() {
+        expect_correction(
+            COP,
+            "foo(\n  (bar\n  ),\n  baz\n)\n",
+            "foo(\n  bar,\n  baz\n)\n",
+        );
+        expect_correction(COP, "foo(a, (bar\n), b)\n", "foo(a, bar, b)\n");
+        // The parentheses as the *last* argument leave no comma behind, so the second range never
+        // appears and this shape kept working throughout.
+        expect_correction(COP, "foo(baz, (bar\n))\n", "foo(baz, bar)\n");
+    }
+
+    /// The `continuations: true` walk in `parens_range` only matters once the offense above is
+    /// reported. Without it the `\` is stranded in front of the comma and the result stops parsing.
+    #[test]
+    fn the_orphaned_comma_walk_takes_a_line_continuation_with_it() {
+        expect_correction(
+            COP,
+            "foo(\n  (bar \\\n  ),\n  baz\n)\n",
+            "foo(\n  bar,\n  baz\n)\n",
+        );
+    }
+
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
         expect_offense(
