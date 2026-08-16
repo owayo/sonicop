@@ -119,6 +119,9 @@ pub(crate) struct RulePlan {
     /// when `CommentConfig#opt_in_cops` names it, so the selection is settled here but the decision
     /// is per file.
     standby: Vec<PlannedRule>,
+    /// `registry.disabled_names(config)`: the same set as [`Self::standby`], as the two directive
+    /// cops read it -- by name, in registry order.
+    standby_names: Vec<&'static str>,
     /// What the cop that reads directives needs to know about the cops that exist. Built once per
     /// configuration because it depends on nothing in the file, and only when that cop will run.
     directive_registry: Option<CopRegistry>,
@@ -170,9 +173,11 @@ impl RulePlan {
                 .iter()
                 .any(|planned| planned.rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE))
         .then(|| CopRegistry::new(config, selection));
+        let standby_names = standby.iter().map(|planned| planned.rule.name).collect();
         Self {
             entries,
             standby,
+            standby_names,
             directive_registry,
         }
     }
@@ -305,9 +310,9 @@ fn inspect_planned(
         syntax_severity,
         selection.correcting,
     )
-    // `registry.disabled_names(config)`: whether the run switches any cop off at all, which is
-    // what an `# rubocop:enable all` has to undo. The standby list is that set already.
-    .with_disabled_cops(!plan.standby.is_empty());
+    // `registry.disabled_names(config)`: the cops the run switches off, which is what an
+    // `# rubocop:enable` has to undo. The standby list is that set already.
+    .with_disabled_cops(&plan.standby_names);
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
@@ -435,11 +440,11 @@ pub fn inspect_files_with_store(
     // to building its own, which costs no more than resolving the cops inline would have.
     let root_plan = RulePlan::build(configs.root(), selection);
     let inspect = |path: &PathBuf| -> Result<FileReport> {
-        let Some(text) =
-            crate::profile::phase(crate::profile::Phase::Read, || decoded_source(path))?
-        else {
-            return Ok(undecodable_report(path));
-        };
+        let text =
+            match crate::profile::phase(crate::profile::Phase::Read, || decoded_source(path))? {
+                Decoded::Text(text) => text,
+                Decoded::Undecodable(message) => return Ok(undecodable_report(path, &message)),
+            };
         let config = configs.for_path(path)?;
         let own_plan = (!std::ptr::eq(Arc::as_ptr(&config), configs.root()))
             .then(|| RulePlan::build(&config, selection));
@@ -464,21 +469,92 @@ pub fn inspect_files_with_store(
     Ok(reports)
 }
 
-/// `None` when the file exists but cannot be decoded. RuboCop reports that as a fatal `Lint/Syntax`
-/// offense and inspects the remaining files, so it must not abort the run; a genuine IO failure
-/// still does.
-fn decoded_source(path: &Path) -> Result<Option<String>> {
+/// What reading a file produced.
+///
+/// RuboCop reports a file it cannot decode as a fatal `Lint/Syntax` offense and inspects the rest,
+/// so this must not abort the run; a genuine IO failure still does. The message travels with the
+/// failure because RuboCop writes a different one for each way the decoding can fail.
+enum Decoded {
+    Text(String),
+    Undecodable(String),
+}
+
+/// `Encoding::InvalidByteSequenceError` as RuboCop capitalizes it for a source that is not UTF-8
+/// and does not say what it is.
+const INVALID_UTF8: &str = "Invalid byte sequence in utf-8.";
+
+/// Decodes a file the way Ruby does: through the encoding its own magic comment names, and only
+/// through UTF-8 when it names none.
+///
+/// Reaching for UTF-8 first and falling back to the declaration would be more forgiving, but Ruby
+/// is not forgiving here, and the difference shows twice. A file declaring a single-byte encoding
+/// while holding UTF-8 is read as one character per byte upstream, so every column after the first
+/// multibyte character moves. A file naming an encoding that does not exist is a syntax error
+/// upstream however well its bytes read as UTF-8.
+///
+/// Four ways to fail are recorded upstream; three are reproduced here. The fourth -- a multibyte
+/// encoding whose lead byte is fine and whose trailing byte is not, spelled
+/// `"\x81" followed by " " on windows-31j.` -- needs Ruby's canonical encoding names, which are
+/// not the ones `encoding_rs` answers to. It keeps the message it had. See
+/// `tests/conformance/known_divergences.yml`.
+fn decoded_source(path: &Path) -> Result<Decoded> {
     let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let Some(label) = declared_label(&bytes) else {
+        return Ok(utf8_or_invalid(bytes));
+    };
     // A file declaring itself binary has to be read that way even when its bytes happen to be valid
     // UTF-8: Ruby measures an `ASCII-8BIT` source one byte at a time, so a cop reporting a length or
     // a column over a multibyte sequence counts each byte separately.
-    if declared_label(&bytes).is_some_and(|label| is_binary_label(&label)) {
-        return Ok(Some(bytes.iter().map(|byte| *byte as char).collect()));
+    if is_binary_label(&label) {
+        return Ok(Decoded::Text(
+            bytes.iter().map(|byte| *byte as char).collect(),
+        ));
     }
+    // `encoding_rs` answers to the WHATWG registry, which folds `us-ascii` into windows-1252 and so
+    // reads every byte happily. Ruby's `US-ASCII` refuses anything above 7 bits, and that refusal is
+    // the whole point of the declaration, so it is checked here rather than delegated.
+    if is_seven_bit_label(&label) {
+        return Ok(match bytes.iter().position(|byte| *byte > 0x7f) {
+            Some(index) => {
+                Decoded::Undecodable(format!("\"\\x{:02x}\" on us-ascii.", bytes[index]))
+            }
+            None => Decoded::Text(String::from_utf8(bytes).expect("7-bit bytes are UTF-8")),
+        });
+    }
+    let Some(encoding) = encoding_for_ruby_label(&label) else {
+        // The label reaches here already cut at the first `.`, since the magic comment's token
+        // pattern holds no dot -- upstream's does not either, so `ANSI_X3.4-1968` is `ansi_x3` to
+        // both of us and neither can name it. Cutting it is upstream's behaviour, not a defect to
+        // repair: repairing it would resolve an encoding RuboCop reports as unknown.
+        return Ok(Decoded::Undecodable(format!(
+            "Unknown encoding name - {}.",
+            label.to_ascii_lowercase()
+        )));
+    };
+    if encoding == encoding_rs::UTF_8 {
+        return Ok(utf8_or_invalid(bytes));
+    }
+    let (text, _, malformed) = encoding.decode(&bytes);
+    Ok(match malformed {
+        true => Decoded::Undecodable(INVALID_UTF8.to_owned()),
+        false => Decoded::Text(text.into_owned()),
+    })
+}
+
+/// A source with nothing to say about its own encoding, which Ruby reads as UTF-8.
+fn utf8_or_invalid(bytes: Vec<u8>) -> Decoded {
     match String::from_utf8(bytes) {
-        Ok(text) => Ok(Some(text)),
-        Err(error) => Ok(decode_declared_encoding(error.as_bytes())),
+        Ok(text) => Decoded::Text(text),
+        Err(_) => Decoded::Undecodable(INVALID_UTF8.to_owned()),
     }
+}
+
+/// The names Ruby spells `US-ASCII`, where a byte above 7 bits is not a character at all.
+fn is_seven_bit_label(label: &str) -> bool {
+    matches!(
+        label.to_ascii_lowercase().as_str(),
+        "us-ascii" | "ascii" | "ansi_x3.4-1968" | "646"
+    )
 }
 
 /// The encoding a source names for itself, read loosely: the magic comment is ASCII in every
@@ -533,14 +609,7 @@ pub(crate) fn declared_literal_encoding(text: &str) -> LiteralEncoding {
     // more than a prefix would -- and slicing one would have to find a character boundary first.
     match encoding_declaration(text) {
         Some(label) if is_binary_label(&label) => LiteralEncoding::Binary,
-        Some(label)
-            if matches!(
-                label.to_ascii_lowercase().as_str(),
-                "us-ascii" | "ascii" | "ansi_x3.4-1968" | "646"
-            ) =>
-        {
-            LiteralEncoding::SevenBit
-        }
+        Some(label) if is_seven_bit_label(&label) => LiteralEncoding::SevenBit,
         _ => LiteralEncoding::Text,
     }
 }
@@ -551,17 +620,6 @@ fn is_binary_label(label: &str) -> bool {
         label.to_ascii_lowercase().as_str(),
         "binary" | "ascii-8bit" | "ascii8bit"
     )
-}
-
-/// Decodes a file that is not UTF-8 using the encoding its own magic comment names, which is what
-/// Ruby's parser does before handing the source to a cop. A file with no such comment -- a Vim
-/// `fileencoding` line does not count, since Ruby does not read those -- stays undecodable, and
-/// RuboCop reports it as a syntax error rather than guessing.
-fn decode_declared_encoding(bytes: &[u8]) -> Option<String> {
-    let label = declared_label(bytes)?;
-    let encoding = encoding_for_ruby_label(&label)?;
-    let (text, _, malformed) = encoding.decode(bytes);
-    (!malformed).then(|| text.into_owned())
 }
 
 /// Resolves an encoding name the way Ruby spells it. `encoding_rs` answers to the WHATWG label
@@ -582,16 +640,10 @@ fn encoding_for_ruby_label(label: &str) -> Option<&'static encoding_rs::Encoding
     encoding_rs::Encoding::for_label(alias.as_bytes())
 }
 
-fn undecodable_report(path: &Path) -> FileReport {
-    // RuboCop capitalizes the parser's `invalid byte sequence in UTF-8` and anchors the offense at
-    // the head of the file, since it never got a syntax tree to locate anything against.
-    let mut offense = Offense::new(
-        "Lint/Syntax",
-        Severity::Fatal,
-        "Invalid byte sequence in utf-8.",
-        0,
-        0,
-    );
+fn undecodable_report(path: &Path, message: &str) -> FileReport {
+    // RuboCop anchors the offense at the head of the file however far in the bad byte sits, since
+    // it never got a syntax tree to locate anything against.
+    let mut offense = Offense::new("Lint/Syntax", Severity::Fatal, message, 0, 0);
     let source = SourceFile::new(path.to_path_buf(), String::new());
     offense.freeze_location(&source);
     FileReport {
@@ -1291,6 +1343,7 @@ pub fn corrected_text(
             };
             cop = merged;
             placed.push(index);
+            trace_edits(cop_name, &report.offenses[index], source);
         }
 
         if cop.children.is_empty() {
@@ -1304,13 +1357,18 @@ pub fn corrected_text(
         // A cop an earlier one declared itself incompatible with is passed over: its corrections
         // wait for the pass after the one that provoked the incompatibility.
         if skipped {
+            trace_outcome("skip ", cop_name);
             continue;
         }
         // `Team#merge_corrector!`: a cop whose corrections clash with what is already scheduled
         // loses every correction it asked for in this file, not just the one that clashed.
-        if let Ok(merged) = run.clone().combine_children(&cop.children) {
-            run = merged;
-            applied += placed.len();
+        match run.clone().combine_children(&cop.children) {
+            Ok(merged) => {
+                run = merged;
+                applied += placed.len();
+                trace_outcome("apply", cop_name);
+            }
+            Err(_) => trace_outcome("clash", cop_name),
         }
     }
 
@@ -1322,6 +1380,34 @@ pub fn corrected_text(
         }
     }
     (run.rewrite(source), applied)
+}
+
+/// 一時的ではない計装。`SONICOP_TRACE_EDITS` が立っているときだけ、1 パスの中で
+/// **どの cop が何を書き換えようとし、それが採用されたか**を stderr へ出す。
+///
+/// 出力を比べるだけでは「誰の Edit がどう混ざったか」が見えない。`%q{...}` が `%(...)` になる
+/// ように、**どの cop も単独では出さない字面**が出ることがあり、そこは出力からは遡れない。
+///
+/// 既定の実行には 1 バイトも出さないので、測定に使うバイナリのまま有効にできる。計装版と
+/// 測定版を分けると、測るたびにビルドが要り、そのビルドが測定を壊す。
+fn trace_edits(cop_name: &str, offense: &Offense, source: &str) {
+    if std::env::var_os("SONICOP_TRACE_EDITS").is_none() {
+        return;
+    }
+    for edit in &offense.corrections {
+        let before = source.get(edit.start..edit.end).unwrap_or("<範囲外>");
+        eprintln!(
+            "TRACE edit  {cop_name} [{}..{}] {before:?} -> {:?}",
+            edit.start, edit.end, edit.replacement
+        );
+    }
+}
+
+/// 同上。cop 単位の採否 (`Team#merge_corrector!` の結果) を出す。
+fn trace_outcome(outcome: &str, cop_name: &str) {
+    if std::env::var_os("SONICOP_TRACE_EDITS").is_some() {
+        eprintln!("TRACE {outcome} {cop_name}");
+    }
 }
 
 const MAX_CORRECTION_PASSES: usize = 200;
@@ -1479,6 +1565,91 @@ pub struct CorrectionOutcome {
     /// Set when the passes never settled. RuboCop reports this per file, still writes the last
     /// corrected text, and keeps inspecting the rest of the run.
     pub infinite_loop: Option<String>,
+    /// Set when the corrections were withheld because writing them would have left a file Ruby can
+    /// no longer parse. The text is then the source exactly as it was read.
+    ///
+    /// This is not an offense. Reporting it as `Lint/Syntax` would point at a syntax error the
+    /// reader cannot find, because the file on disk is the one that parses. It is an autocorrect
+    /// failure: nothing was corrected, and the run must not end in success.
+    pub rollback: Option<String>,
+}
+
+/// Switches off the guard below. **Measurement only** -- see `withhold_unparsable`.
+///
+/// It is read from the environment rather than the configuration on purpose: `.rubocop.yml` is
+/// committed and shared, so a project could turn the guard off for everyone who checks it out.
+pub const NO_SYNTAX_GUARD: &str = "SONICOP_NO_SYNTAX_GUARD";
+
+/// Whether a report carries the fatal `Lint/Syntax` offense that says the source did not parse.
+fn holds_fatal_syntax(report: &FileReport) -> bool {
+    report
+        .offenses
+        .iter()
+        .any(|offense| offense.severity == Severity::Fatal && offense.cop_name == "Lint/Syntax")
+}
+
+/// Refuses a correction that would leave the file unparsable, handing back the source as it was.
+///
+/// A cop can produce text Ruby rejects, and RuboCop writes it: `Layout/LineLength` folds a line
+/// that opens a heredoc and the body ends up before the rest of the statement. Both tools then
+/// agree byte for byte on a file that no longer loads, so the `-A` comparison calls it a match.
+/// **A byte match says "the same as upstream", not "correct".**
+///
+/// The guard is deliberately narrow. It asks only whether a source that parsed before parses
+/// after, so it cannot mistake a pre-existing error for one the correction introduced, and it
+/// cannot object to anything but the one failure it can name.
+///
+/// It also asks the wrong parser. Ruby raises `SyntaxError` for rules this grammar does not
+/// model, so text it accepts can still be rejected by Ruby — measured cases: a dynamic constant
+/// assignment (`def a; X = 1; end`), a repeated parameter name (`def a(x, x)`), and `break`,
+/// `next`, `redo` or `retry` where no loop or block encloses it. Each of those is a hole in the
+/// guard. So this **prevents the destructive writes it can detect**; it does not make correction
+/// safe in general, and the phrase to avoid when describing it is "guaranteed".
+///
+/// The corrections are dropped rather than reported as applied: the file on disk is the original,
+/// so calling them corrected would describe a state that does not exist anywhere.
+///
+/// `SONICOP_NO_SYNTAX_GUARD` turns the guard off. It exists because the guard fires exactly when
+/// this parser rejects the correction, which is not the same question as whether Ruby rejects it:
+/// the gap between the two parsers is the guard's false-positive rate, and with the guard on, the
+/// text needed to measure that rate never reaches disk. **A guard that cannot be switched off is a
+/// guard whose error rate cannot be quoted.** It is for measurement, not for use.
+fn withhold_unparsable(
+    outcome: CorrectionOutcome,
+    original: &str,
+    started_valid: bool,
+    config: &Config,
+    selection: &Selection,
+    plan: &RulePlan,
+) -> Result<CorrectionOutcome> {
+    if !started_valid || !outcome.rewritten || !holds_fatal_syntax(&outcome.report) {
+        return Ok(outcome);
+    }
+    if std::env::var_os(NO_SYNTAX_GUARD).is_some() {
+        return Ok(outcome);
+    }
+    let path = outcome.report.path.clone();
+    // The report describes text that will never exist on disk. Inspecting the original again is
+    // what the caller would have got with correction turned off, which is the state being kept.
+    let report = inspect_planned(
+        path.clone(),
+        original.to_owned(),
+        config,
+        selection,
+        plan,
+        false,
+    )?;
+    Ok(CorrectionOutcome {
+        report,
+        text: original.to_owned(),
+        corrected_count: 0,
+        rewritten: false,
+        infinite_loop: outcome.infinite_loop,
+        rollback: Some(format!(
+            "Autocorrection was not written to {} because it introduced a syntax error.",
+            path.display()
+        )),
+    })
 }
 
 pub fn correct_file(
@@ -1495,9 +1666,14 @@ pub fn correct_file(
             corrected_count: 0,
             rewritten: false,
             infinite_loop: None,
+            rollback: None,
         });
     }
 
+    let original = text.clone();
+    // A file the parser already rejected cannot be made worse by correcting it, and RuboCop does
+    // correct such files. Only a source that started out valid is protected.
+    let started_valid = !holds_fatal_syntax(&report);
     let path = report.path.clone();
     let mut log = CorrectionLog::default();
     let mut sources = vec![digest(&text)];
@@ -1519,13 +1695,21 @@ pub fn correct_file(
         }
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
-            return Ok(CorrectionOutcome {
-                report,
-                text,
-                corrected_count,
-                rewritten,
-                infinite_loop: None,
-            });
+            return withhold_unparsable(
+                CorrectionOutcome {
+                    report,
+                    text,
+                    corrected_count,
+                    rewritten,
+                    infinite_loop: None,
+                    rollback: None,
+                },
+                &original,
+                started_valid,
+                config,
+                selection,
+                &plan,
+            );
         }
         log.record_pass(&mut report, directive_pass);
         rewritten |= corrected != text;
@@ -1538,16 +1722,24 @@ pub fn correct_file(
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
             let root_cause = log.root_cause(loop_start);
             let (report, corrected_count) = log.merge_into(report);
-            return Ok(CorrectionOutcome {
-                report,
-                text: corrected,
-                corrected_count,
-                rewritten,
-                infinite_loop: Some(format!(
-                    "Infinite loop detected in {} and caused by {root_cause}",
-                    path.display()
-                )),
-            });
+            return withhold_unparsable(
+                CorrectionOutcome {
+                    report,
+                    text: corrected,
+                    corrected_count,
+                    rewritten,
+                    infinite_loop: Some(format!(
+                        "Infinite loop detected in {} and caused by {root_cause}",
+                        path.display()
+                    )),
+                    rollback: None,
+                },
+                &original,
+                started_valid,
+                config,
+                selection,
+                &plan,
+            );
         }
 
         sources.push(corrected_digest);
@@ -1585,10 +1777,11 @@ pub fn correct_until_stable(
 /// data loss on purpose, which is further than drop-in compatibility reaches. The divergence is
 /// recorded in `tests/conformance/known_divergences.yml`.
 ///
-/// That protection only applies to a file the declaration was actually needed for.
-/// [`decoded_source`] reaches for the declared encoding only when the bytes are not valid UTF-8, so
-/// a UTF-8 file naming some other encoding was read as UTF-8 and has to go back out as UTF-8 --
-/// `decoded_as_declared` says which happened, and is only asked once a declaration is found.
+/// That protection only applies to a file that named an encoding where the reader could see it.
+/// [`decoded_source`] reads the declaration from the first line (the second under a shebang) and
+/// nowhere else, but `Lint/OrderedMagicComments` can move one onto the first line during the
+/// correction loop -- so the corrected text can carry a declaration the reader never applied.
+/// `decoded_as_declared` asks the file on disk, and is only asked once a declaration is found.
 /// Encoding such a file to the label it names rewrites bytes no cop asked to change: rails'
 /// `1_currencies_have_symbols.rb` declares `ISO-8859-15` and holds a UTF-8 `€`, and turning those
 /// three bytes into `\xa4` changes what the program says as surely as editing the literal would.
@@ -1623,8 +1816,11 @@ fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> R
 
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     // The file on disk is still the one that was read: the loop corrects in memory and writes once.
+    // What matters is whether the file *as read* named its own encoding, not whether the corrected
+    // text does: `Lint/OrderedMagicComments` can lift a declaration onto the first line, where the
+    // reader never saw it.
     let bytes = output_bytes(contents, || {
-        fs::read(path).is_ok_and(|bytes| String::from_utf8(bytes).is_err())
+        fs::read(path).is_ok_and(|bytes| declared_label(&bytes).is_some())
     })
     .with_context(|| format!("refusing to rewrite {}", path.display()))?;
     let parent = path.parent().unwrap_or(Path::new("."));
@@ -1667,7 +1863,7 @@ pub fn offense_count(reports: &[FileReport], fail_level: Severity) -> usize {
 mod tests {
     use tempfile::tempdir;
 
-    use super::output_bytes;
+    use super::{Decoded, decoded_source, output_bytes};
     use crate::config::Config;
     use crate::diagnostic::{Edit, FileReport, Offense, Severity};
     use crate::source::SourceFile;
@@ -2026,6 +2222,65 @@ mod tests {
         );
     }
 
+    /// The guard against writing a correction that does not parse is on when nothing asks for it.
+    ///
+    /// **The switch that turns it off is an environment variable, so nothing in the argument list
+    /// or the configuration records which way it was set.** A reader of a `-A` run cannot tell a
+    /// guarded run from an unguarded one by looking at the command. This pins the default here so
+    /// that turning it off has to be a deliberate edit to a test, not a forgotten variable.
+    ///
+    /// `Lint/SafeNavigationChain` reads the `-` of `foo&.bar - 1` as another link in the chain and
+    /// writes `foo&.bar&. - 1`, which Ruby rejects. Measured with `ruby -c`, not assumed.
+    ///
+    /// ## ★ If this test fails with "the source must come back untouched", read this first
+    ///
+    /// **The likely cause is that the cop was fixed, not that the guard broke.** This test needs
+    /// one correction that produces text Ruby rejects, and such corrections are meant to be fixed.
+    /// The first version used `foo:bar => 1` with `Style/HashSyntax`; that cop was fixed hours
+    /// later and the test started failing because the correction became valid.
+    ///
+    /// **Do not delete it. Swap the input for another case that still breaks.** The list lives in
+    /// `#41` ("the cases the guard stopped"). Whichever you pick, **check it first**: with
+    /// `SONICOP_NO_SYNTAX_GUARD=1` the output must fail `ruby -c`. Two candidates were tried for
+    /// this swap and both had already been fixed, so the check is not a formality.
+    ///
+    /// The whole default selection is used, not `only`. Under `--only <cop>` the guard does not
+    /// fire here, so narrowing would make this pass without testing anything.
+    #[test]
+    fn a_correction_that_would_not_parse_is_not_applied() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let original = "foo&.bar ? foo&.bar - 1 : baz\n";
+        let report = inspect_source(
+            directory.path().join("example.rb"),
+            original.to_owned(),
+            &config,
+            &selection,
+        )
+        .unwrap();
+
+        let outcome = correct_file(report, CorrectMode::All, &config, &selection).unwrap();
+
+        assert_eq!(
+            outcome.text, original,
+            "the source must come back untouched"
+        );
+        assert!(!outcome.rewritten, "nothing may be written");
+        assert_eq!(
+            outcome.corrected_count, 0,
+            "a correction that never lands is not a correction"
+        );
+        assert!(
+            outcome
+                .rollback
+                .as_deref()
+                .is_some_and(|message| message.contains("syntax error")),
+            "the refusal has to be reported, not swallowed: {:?}",
+            outcome.rollback
+        );
+    }
+
     #[test]
     fn autocorrect_keeps_corrected_offenses_and_their_original_lines() {
         let directory = tempdir().unwrap();
@@ -2180,5 +2435,112 @@ mod tests {
 
         assert_eq!(reports[0].offenses.len(), 1);
         assert_eq!(reports[0].offenses[0].cop_name, "Lint/Syntax");
+        // The cop name alone passed while the message was wrong for every case but this one, which
+        // is how the missing `Unknown encoding name` went unnoticed. Read the message too.
+        assert_eq!(
+            reports[0].offenses[0].message,
+            "Invalid byte sequence in utf-8."
+        );
+    }
+
+    #[test]
+    fn a_correction_that_would_leave_the_file_unparsable_is_not_written() {
+        // `Layout/LineLength` folds the line that opens the heredoc, so the rest of the statement
+        // lands before the body and Ruby can no longer read the file. RuboCop writes it anyway,
+        // and the `-A` comparison calls the two byte-identical outputs a match.
+        let directory = tempdir().unwrap();
+        let source = "# frozen_string_literal: true\n\ndef m(account, limit)\n               Account.find_by_sql([<<~SQL.squish, { id: account.id, limit: limit, extra: 1,              more: 2, yet: 3, again: 4, plus: 5, over: 6 }])\n    select 1\n  SQL\nend\n";
+        std::fs::write(directory.path().join("heredoc.rb"), source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+        let selection = Selection {
+            correcting: true,
+            ..Selection::default()
+        };
+        let reports = inspect_files(&targets, &config, &selection, false).unwrap();
+
+        let outcome = correct_file(
+            reports.into_iter().next().unwrap(),
+            CorrectMode::All,
+            &config,
+            &selection,
+        )
+        .unwrap();
+
+        assert!(outcome.rollback.is_some());
+        // The text handed back is the source as read, so the caller writes nothing.
+        assert_eq!(outcome.text, source);
+        assert!(!outcome.rewritten);
+        // Nothing reached disk, so nothing may be reported as corrected.
+        assert_eq!(outcome.corrected_count, 0);
+        assert!(
+            !outcome
+                .report
+                .offenses
+                .iter()
+                .any(|offense| offense.corrected)
+        );
+    }
+
+    #[test]
+    fn an_encoding_no_such_name_exists_for_is_a_syntax_error_however_the_bytes_read() {
+        // The body is plain ASCII, so nothing about the bytes is wrong. Ruby still refuses the file
+        // because the name is not an encoding, and RuboCop reports that rather than reading on.
+        let directory = tempdir().unwrap();
+        std::fs::write(
+            directory.path().join("typo.rb"),
+            "# coding: no-such-encoding\nx = 1\n",
+        )
+        .unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &Selection::default(), false).unwrap();
+
+        assert_eq!(reports[0].offenses.len(), 1);
+        assert_eq!(
+            reports[0].offenses[0].message,
+            "Unknown encoding name - no-such-encoding."
+        );
+    }
+
+    #[test]
+    fn a_byte_over_seven_bits_under_a_us_ascii_declaration_names_itself() {
+        // `encoding_rs` folds `us-ascii` into windows-1252 and would read this happily; Ruby does
+        // not, and the byte it stopped at is part of the message.
+        let directory = tempdir().unwrap();
+        let mut bytes = b"# coding: ascii\nx = \"".to_vec();
+        bytes.extend_from_slice(b"\xe2\"\n");
+        std::fs::write(directory.path().join("seven.rb"), bytes).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let targets = discover_targets(&[], directory.path(), &config, false, false).unwrap();
+
+        let reports = inspect_files(&targets, &config, &Selection::default(), false).unwrap();
+
+        assert_eq!(reports[0].offenses.len(), 1);
+        // `ascii` and `646` are aliases; upstream reports the name they resolve to, in lower case.
+        assert_eq!(reports[0].offenses[0].message, "\"\\xe2\" on us-ascii.");
+    }
+
+    #[test]
+    fn a_declaration_of_a_single_byte_encoding_moves_the_columns_after_it() {
+        // The bytes spell `€` in UTF-8, but the file says ISO-8859-15, so Ruby reads three
+        // characters where UTF-8 would read one. Every column after it moves by two.
+        let directory = tempdir().unwrap();
+        let mut bytes = b"# coding: ISO-8859-15\nx = \"".to_vec();
+        bytes.extend_from_slice("\u{20ac}".as_bytes());
+        bytes.extend_from_slice(b"\" ; y  = 1\n");
+        let path = directory.path().join("cols.rb");
+        std::fs::write(&path, bytes).unwrap();
+
+        let Decoded::Text(text) = decoded_source(&path).unwrap() else {
+            panic!("ISO-8859-15 maps every byte, so this decodes");
+        };
+
+        // Reading the same bytes as UTF-8 gives 16 characters; the declaration makes it 18, and
+        // that difference of two is exactly what upstream's columns show after the `€`.
+        let as_utf8 = String::from_utf8(std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(as_utf8.lines().nth(1).unwrap().chars().count(), 16);
+        assert_eq!(text.lines().nth(1).unwrap().chars().count(), 18);
     }
 }

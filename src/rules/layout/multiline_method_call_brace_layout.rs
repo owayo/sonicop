@@ -17,12 +17,9 @@ const MESSAGES: Messages = Messages {
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
         // `super(...)` is a node of its own upstream rather than a `send`, so `on_send` never sees
-        // it. The grammar files it under `call` and marks the keyword, which is what tells it apart
-        // from the `foo.super(...)` that really is a call.
-        if node
-            .field("method")
-            .is_some_and(|method| method.kind_str() == "super")
-        {
+        // it. The same question is asked of the *parent* in `MultilineLiteralBraceLayout`'s
+        // `argument?`, so both go through one predicate.
+        if crate::rules::send_node::is_super_call(node) {
             continue;
         }
         // An index read is a `send` upstream as well, but the parser gives it no `begin` and `end`

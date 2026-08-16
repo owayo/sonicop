@@ -244,16 +244,36 @@ fn walk_keywords(node: Node<'_>, found: &mut bool) {
 
 /// `block_reassigns_arg?`: an assignment to the parameter makes `0` the wrong substitution.
 fn reassigns(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
-    if node.kind_str() == "assignment"
-        && node.field("left").is_some_and(|left| {
-            left.kind_str() == "identifier" && context.source.node_text(left) == name
-        })
+    // **代入は 1 種類ではない。**この節が `assignment` の `left` が素の `identifier` の形しか
+    // 見ていなかったため、次の 2 つを素通りして `i` を `0` に置き換え、`0 += 1` /
+    // `0, j = ...` という代入できない字面を書いていた (どちらも `ruby -c` が落ちる)。
+    //
+    //   i += 1        operator_assignment    ← 別のノード種別
+    //   i, j = 1, 2   assignment + left_assignment_list  ← left が識別子ではない
+    if matches!(node.kind_str(), "assignment" | "operator_assignment")
+        && node
+            .field("left")
+            .is_some_and(|left| assigns_to(left, name, context))
     {
         return true;
     }
     named_children(node)
         .into_iter()
         .any(|child| reassigns(child, name, context))
+}
+
+/// Whether the left of an assignment writes to `name`, through however many targets it lists.
+fn assigns_to(left: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
+    match left.kind_str() {
+        "identifier" => context.source.node_text(left) == name,
+        // `i, j = 1, 2` and `(i, j), k = [1, 2], 3` nest their targets.
+        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
+            named_children(left)
+                .into_iter()
+                .any(|target| assigns_to(target, name, context))
+        }
+        _ => false,
+    }
 }
 
 /// `own_line?`: nothing but whitespace stands before the call on its line.

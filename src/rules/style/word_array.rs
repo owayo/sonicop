@@ -18,7 +18,22 @@ use crate::rules::node_ext::NodeExt;
 const PERCENT_MSG: &str = "Use `%w` or `%W` for an array of words.";
 const ARRAY_MSG: &str = "Use %<prefer>s for an array of words.";
 
-/// `WordRegex`'s default, with Ruby's `\p{Word}` written as this engine spells the same class.
+/// `WordRegex`'s default. Upstream writes `\p{Word}`, which this engine cannot parse at all --
+/// `\w` is the nearest it offers, and it is the right *definition*: both are the Unicode word
+/// class, not the ASCII one, so `(?-u:\w)` here would drop `%w[月 火 水]` on the floor.
+///
+/// The two sets are close but not equal (measured 2026-08-17, over every codepoint):
+///
+/// ```text
+/// Ruby  \p{Word}   149,366      Ruby is on Unicode 17.0.0
+/// Rust  \w         144,667      regex-syntax 0.8.11 ships older tables
+/// ```
+///
+/// Rust's set is a strict subset -- it holds nothing Ruby's lacks -- so the 4,699 it misses are
+/// codepoints added by a Unicode release the crate has not caught up to. There is nothing to fix
+/// here: `regex-syntax` 0.8.11 is the newest published version as of 2026-08-17 and
+/// `cargo update -p regex-syntax` has nowhere to go. This closes when the crate ships Unicode 17,
+/// not before.
 static DEFAULT_WORD: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?:\w|\w-\w|\n|\t)+$").unwrap());
 

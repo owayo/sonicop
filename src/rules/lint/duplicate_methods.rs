@@ -433,6 +433,11 @@ fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: boo
     } else {
         return false;
     };
+    // `on_send` は `csend` に呼ばれないので、`Class&.new` は本家からはクラス生成に見えない。
+    // ブロックの中の `def` はどの名前空間にも属さず、重複としても数えられない。
+    if !crate::rules::send_node::is_plain_send(call, context) {
+        return false;
+    }
     let (Some(receiver), Some(method)) = (
         call.field("receiver"),
         call.field("method"),
@@ -477,6 +482,11 @@ fn block_module_name(context: &RuleContext<'_>, block: Node<'_>) -> BlockScope {
     let Some(call) = block.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return BlockScope::Opaque;
     };
+    // `on_send` は `csend` に呼ばれないので、`Class&.new do` のブロックは本家からは名前の付かない
+    // ものに見える。中の `def` はどの名前空間にも属さず、重複としても数えられない。
+    if !crate::rules::send_node::is_plain_send(call, context) {
+        return BlockScope::Opaque;
+    }
     let Some(method) = call.field("method") else {
         return BlockScope::Opaque;
     };

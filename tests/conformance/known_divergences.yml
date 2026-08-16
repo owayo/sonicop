@@ -19,6 +19,48 @@
 # 括弧内は測定に使ったコーパスの commit。CONFORMANCE.md の表と同じものを指す。
 # 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
 # 版依存の挙動はこの 3 つの範囲では踏めている。
+# 死守ライン (`fullfmt.sh` の `-A` バイト比較) で、意図して割れているファイル。
+#
+# **除外しない。差分そのものを期待値として監視する。** 両者の出力のハッシュを固定して
+# あるので、**同じファイルが別の理由で変わったら気づける**。除外にすると、そこが
+# どう変わっても静かになる。
+#
+# 読み方: `既知 4 / 新規 0` なら通過。`新規` が 1 でもあれば退行。
+# ハッシュが動いた既知は「同じファイルが別の理由で割れた」なので、これも止める。
+#
+# **数字だけを報告しない。**「4 件割れている」と読まれる。必ず「既知 4 / 新規 0」と書く。
+autocorrect_divergences:
+  - id: interpolation-check-percent-brace
+    corpus: rubocop_rubocop
+    path: spec/rubocop/cop/style/expand_path_arguments_spec.rb
+    rubocop_sha256: 603977aaae1c518b
+    sonicop_sha256: 2be281e983fbf686
+    reason: >-
+      `#41` の根 2。`'…' \` の次行に `%{…}` が続く形で、`Lint/InterpolationCheck` の
+      補正が構文エラーを作る。**本家も同じように壊す** (原本 Syntax OK / 本家 -A が
+      SyntaxError)。安全網 (src/engine.rs の withhold_unparsable) が書き戻しを止めるので、
+      移植版だけ原本が残る。**バイト列が割れている理由は移植版が正しいこと。**
+  - id: safety-net-mastodon-friends-of-friends
+    corpus: mastodon_mastodon
+    path: app/models/account_suggestions/friends_of_friends_source.rb
+    rubocop_sha256: 2a4e571fc0977c7c
+    sonicop_sha256: ae1b5cce6c23ba26
+    reason: >-
+      安全網の発火。原本 `ruby -c` OK / 安全網を切った移植版の出力 NG /
+      **本家の -A 出力も NG**。本家は実在のコードを壊し、移植版は原本を残す。
+  - id: safety-net-mastodon-account-summary
+    corpus: mastodon_mastodon
+    path: app/models/account_summary.rb
+    rubocop_sha256: d1bf059718079691
+    sonicop_sha256: a71e0ccb80346ac6
+    reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
+  - id: safety-net-mastodon-notify-service
+    corpus: mastodon_mastodon
+    path: app/services/notify_service.rb
+    rubocop_sha256: 5d93f5a44a49e490
+    sonicop_sha256: 3be80e05f158a5f9
+    reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
+
 blind_spots:
   - corpus: 全コーパス
     not_covered: 既定以外の設定値 (EnforcedStyle の非既定値・CountAsOne・Max の変更など)
@@ -100,6 +142,13 @@ blind_spots:
 # `# coding: ISO-8859-15` と書きながら UTF-8 の `€` (e2 82 ac) を持つ。本家はこの 3 バイトを
 # そのまま書き戻すが、以前の sonicop は `\xa4` の 1 バイトへ潰していた (3 文字が 1 文字になる)。
 #
+# **このファイルは、読むときには宣言が効いていない。** 原本は 1 行目が
+# `# frozen_string_literal: true` で `# coding:` は 2 行目にあり、
+# `Parser::Source::Buffer.recognize_encoding` は 1 行目 (shebang なら 2 行目) しか見ないので、
+# 本家も sonicop も UTF-8 として読む。ところが `-A` の途中で Lint/OrderedMagicComments が
+# 順序を入れ替えて `# coding:` を 1 行目へ動かすため、**書き戻しの時点で初めて宣言が有効になる**。
+# 「読みと書きが非対称」だけでは再現できない。**cop が宣言の位置を動かすのが引き金**である。
+#
 # 「本家のバグは再現しない」と判断した根拠: ai-second-opinion (gpt-5.6-sol) の判定。
 #   ドロップイン互換はバグ互換の対象に境界があり、ファイル内容と encoding 宣言を
 #   不整合にする挙動まで製品保証に含めるべきではない。非 UTF-8 ソースは検証コーパス全体で
@@ -127,6 +176,97 @@ blind_spots:
 #
 # 引数が 1 つなら両者とも `routing(/abc/)` で一致する。ハッシュ引数のときだけ割れる。
 
+# 読めなかったファイルに本家が付ける文面のうち、1 つだけ再現していない。
+#
+#   本家   : "\x81" followed by " " on windows-31j.
+#   sonicop: Invalid byte sequence in utf-8.
+#
+# 多バイト符号化で先導バイトは妥当・後続が不正、という失敗のときに出る。再現するには
+# **Ruby の正準符号化名**が要るが、これは `encoding_rs` が答える名前と違う
+# (宣言 `cp932` → 本家 `windows-31j` / `encoding_rs` は `Shift_JIS`、
+#  宣言 `ascii` → 本家 `us-ascii` / `encoding_rs` に US-ASCII は無い)。
+# 別名から正準名への表を新設することになり、**表に入れた分しか正しくならない**。
+# 5 コーパスに該当ファイルは 0 件で、かつ**この差は以前からある** (直さないことで
+# 悪くなるものが無い) ため、費用の割に合わないと判断した。
+#
+# **この一覧は実測の標本であって、網羅ではない。** 9 通り測って「2 形」と書き、
+# 13 通りで「3 形」になり、16 通りで「4 形」になった。**5 形目が無い保証は無い。**
+# 文面の出所は Ruby のパーサ側なので、網羅するならそこを読むことになる。
+#
+#   A  Invalid byte sequence in utf-8.        実効符号化が UTF-8 でバイトが不正   再現済み
+#   B1 "\xNN" on <正準名>.                    単一バイトが表せない (us-ascii)     再現済み
+#   B2 "\xNN" followed by "<文字>" on <正準名>. 多バイトの後続が不正              ★ 未再現
+#   C  Unknown encoding name - <ラベル>.      ラベルが解決できない               再現済み
+
+# 意図的に本家と違えている箇所が 3 つ目。**本家の corrector が構文として成り立たない字面を
+# 出すことがある。** 安全網 (src/engine.rs の withhold_unparsable) が、原本が構文的に有効
+# だったのに補正後に fatal な構文エラーが出るファイルの書き戻しを止める。
+#
+# 手書きケースで当たっているのは 2 件。どちらも `ruby -c` で確認済み。
+#
+#   Style/RedundantStructKeywordInit
+#     本家    S5 = Struct.new(:a })                       syntax error
+#     sonicop S5 = Struct.new(:a, { keyword_init: true })  原本のまま
+#     波括弧を明示した書き方で、本家の置換範囲がペアの末尾で止まり `}` だけが残る
+#
+#   Style/ExplicitBlockArgument
+#     本家    def a(&block)\n  ->(&block).call\nend       syntax error
+#     sonicop def a\n  ->{ yield }.call\nend               原本のまま
+#     `->(&block)` は Ruby の構文として存在しない
+#
+# **テストは削っていない。** tests/cops.rs は本家の字面を書いたうえで、
+# 「それは構文エラーなので採らず原本を残す」を期待値にしている。誰かが本家に
+# 合わせ直せば、そのテストが落ちる。
+#
+# **コーパスでも発火する。死守ラインが 3 ファイル割れるのはこれである** (2026-08-17 実測)。
+#
+#   mastodon_mastodon の -A       差分 3 ファイル
+#     app/models/account_suggestions/friends_of_friends_source.rb
+#     app/models/account_summary.rb
+#     app/services/notify_service.rb
+#
+# **3 件とも安全網の発火で、3 件とも正しい捕捉である。**
+#
+#   原本                          ruby -c OK
+#   安全網を切った移植版の出力      ruby -c NG   ← 補正が壊す
+#   ★ 本家の -A 出力              ruby -c NG   ← 本家も同じように壊す
+#
+# つまり**本家は実在のコードを 3 ファイル壊し、移植版は原本を残す。**バイト列は割れるが、
+# 割れている理由は移植版が正しいことである。`action_mailbox.rb` と同じ family で、
+# あちらが 1 件の手作業の発見だったのに対し、こちらはコーパス全体で数えた値。
+#
+#   rubocop_rubocop   差分 1 (安全網とは無関係。本家が `'…' \` + `%{…}` をパースできない)
+#   mastodon_mastodon 差分 3 (すべて安全網。上記)
+#   Homebrew_brew     差分 0
+#
+# **この 3 件を「バイト一致」に戻す唯一の方法は、本家と同じように壊すことである。**
+#
+# **この安全網は完全ではない。実測した (#41、spec 12,782 ケース / 分母 12,709)。**
+#
+#   安全網が止めた (壊れた出力が disk に届かなかった)   24 件 / 10 cop
+#   見逃した (tree-sitter が通してしまう壊れ方)          9 件 /  6 cop
+#   誤検知 (正しい補正を止めた)                          1 件 = 0.0079%
+#
+# **止めた側と漏れた側の比は 24 対 9。**「完全保証」ではなく「検出できる破壊は止める」。
+#
+# 見逃しの正体は、**Ruby のパーサが規則違反として `SyntaxError` を投げるが、tree-sitter の
+# 文法はその規則を模していない**形。実測した 7 通り:
+#
+#   def a; X = 1; end                    動的定数代入
+#   def a(x, x)                          引数名の重複
+#   break / next                         囲むループが無い
+#   x = "#{next}"                        補間の中
+#   def a; redo; end
+#   class C; def a; end; retry; end
+#
+# **以前ここに「`%{...}` の中に `}`」と書いていたが、それは誤りだった。**測ると
+# tree-sitter も拒む (`x = %{a }b}` は両者 NG)。**推測で書いた機構が 1 つ残っていた。**
+#
+# 誤検知 1 件は `Style/Lambda` の `->(x; y)` (#49)。直せば 0 になる。
+#
+# 測定条件: `TargetRubyVersion` を `-c` で固定し、移植版・本家・`ruby -c` の 3 者が
+# 版で割れる 4 通りに同じ答えを返すことを確認したうえで測っている。**`--force-default-config`
+# は版を固定しない** (cwd から推定する) ので、固定しないと数字が条件で動く。
 # **本家に合わせた結果、壊れ方まで一致している箇所がある。** 行継続が 2 つ続くと、
 # `Style/NestedParenthesizedCalls` の `-A` が両者とも構文エラーを吐く。
 #

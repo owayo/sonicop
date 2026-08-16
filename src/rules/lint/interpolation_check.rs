@@ -26,12 +26,57 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !interpolates(&quoted, &mut parser) {
             continue;
         }
+        // `%{` cannot follow an expression: Ruby reads the `%` as the operator and the braces as a
+        // hash, so `'a ' \` + `%{b}` becomes `'a ' % {b}`. Upstream writes it anyway and the file
+        // stops parsing. The offense still stands -- the string does hold an interpolation -- but
+        // there is no rewrite to offer, since the only other spelling would have to escape the
+        // quotes the `%{}` was chosen to avoid.
+        if quoted.starts_with("%{") && follows_an_expression(context, node.start_byte()) {
+            offenses.push(context.offense(MSG, node.byte_range()));
+            continue;
+        }
         offenses.push(context.offense(MSG, node.byte_range()).corrected_by(Edit {
             start: node.start_byte(),
             end: node.end_byte(),
             replacement: quoted,
             safe: true,
         }));
+    }
+}
+
+/// Whether the text before `start` ends an expression, which is what makes a following `%` an
+/// operator rather than the opening of a literal.
+///
+/// Whitespace and a backslash continuing the line are skipped: the continuation joins the two
+/// lines, so what matters is the last thing Ruby read, not what the previous line looked like.
+fn follows_an_expression(context: &RuleContext<'_>, start: usize) -> bool {
+    let before = &context.source.text()[..start];
+    let trimmed =
+        before.trim_end_matches(|character: char| character.is_whitespace() || character == '\\');
+    let Some(last) = trimmed.chars().last() else {
+        // A literal opening the file is unambiguous.
+        return false;
+    };
+    // A closing delimiter or a quote ends a value, and a value takes an operator next.
+    if matches!(last, ')' | ']' | '}' | '"' | '\'' | '`') {
+        return true;
+    }
+    // **A bare name does not end a value -- it can be a method that takes an argument**, and Ruby
+    // reads `it %{...}` as passing the literal, not as `it % {...}`. Reading every word as a value
+    // withheld the rewrite from `it 'a #{b}'`, which is the shape every RSpec description has:
+    // upstream corrected it, this cop stopped offering to, and the `-A` comparison split on five
+    // files. Only the words that genuinely close an expression count.
+    let word: String = trimmed
+        .chars()
+        .rev()
+        .take_while(|character| character.is_alphanumeric() || *character == '_')
+        .collect();
+    let word: String = word.chars().rev().collect();
+    match word.chars().next() {
+        // A numeric literal is a value.
+        Some(character) if character.is_ascii_digit() => true,
+        Some(_) => matches!(word.as_str(), "end" | "self" | "nil" | "true" | "false"),
+        None => false,
     }
 }
 
