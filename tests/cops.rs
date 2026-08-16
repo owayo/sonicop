@@ -36176,3 +36176,184 @@ mod ruby_whitespace_is_not_unicode_whitespace {
         );
     }
 }
+
+/// `Layout/TrailingEmptyLines` が `__END__` を持つファイルを見送る件 (#56 の追加分)。
+///
+/// 本家は `ends_in_end?` と `end_with_percent_blank_string?` の 2 つの門で早期 return する。
+/// **`__END__` の後ろは `DATA` が読む素のテキストで、末尾の改行の数に意味があることがある。**
+/// 移植版はどちらの門も持たず、`-A` でその改行を削っていた。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/TrailingEmptyLines` の実出力 (spec:17 / spec:26)。
+mod layout_trailing_empty_lines_end_marker {
+    use super::*;
+
+    const COP: &str = "Layout/TrailingEmptyLines";
+
+    /// `__END__` があれば末尾の空行は数えない。
+    #[test]
+    fn a_file_with_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "x = 0\n\n__END__\n\n");
+    }
+
+    /// `__END__` だけのファイルも同じ。
+    #[test]
+    fn a_file_that_is_only_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "__END__\n\n\n");
+    }
+
+    /// 本家の正規表現 `/\s*__END__/` は `match?` に錨なしで渡るので、**文字列の中の `__END__`
+    /// でも門が閉じる**。忠実に写した結果としてそうなることを固定する。
+    #[test]
+    fn the_marker_inside_a_string_also_closes_the_gate() {
+        expect_no_offenses(COP, "x = \"__END__\"\n\n\n");
+    }
+
+    /// `%\n\n` で終わるファイルも見送る (`end_with_percent_blank_string?`)。
+    #[test]
+    fn a_file_ending_in_a_percent_and_a_blank_line_is_left_alone() {
+        expect_no_offenses(COP, "x = %\n\n");
+    }
+
+    /// 門に当たらない普通のファイルは今までどおり報告する (陰性対照)。
+    #[test]
+    fn an_ordinary_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(COP, "x = 0\n\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+        );
+    }
+}
+
+/// `begin ... end` の中の文が互いに兄弟であること (#26 の節 K の 2 件目)。
+///
+/// `visibility.rs::CONTAINERS` に `begin` が無く、`siblings()` が `None` を返していた。上流の
+/// `left_siblings` は `kwbegin` の子を歩くので、**中に書いた文は互いに兄弟**である。
+/// 1 語の欠落で 3 cop が同時にずれていた。期待値は本家 1.89.0 の実出力。
+mod begin_block_holds_siblings {
+    use super::*;
+
+    /// `Layout/ClassStructure` が `begin` の中で並べ替えを作れていなかった (spec:169)。
+    #[test]
+    fn class_structure_reorders_inside_a_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    private def do_internal_work; end\n    \
+             public def do_something; end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    public def do_something; end\n    \
+             private def do_internal_work; end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 二重の `begin` でも同じ (spec:190)。
+    #[test]
+    fn class_structure_reorders_inside_a_nested_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    begin\n      private def do_internal_work; end\n      \
+             public def do_something; end\n    end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    begin\n      public def do_something; end\n      \
+             private def do_internal_work; end\n    end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 同じ `begin` の中の `private` は、その下の定義に効く。
+    /// **旧実装は `private` を見落として public と読み、`Style/DocumentationMethod` が過剰検出していた。**
+    #[test]
+    fn a_private_inside_the_same_begin_applies_to_the_definitions_below_it() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// ここから 4 つは **`CONTAINERS` を次に誰かが触ったときの網**。上の 2 つ (`begin` の中で
+    /// 並べ替えが出る / `begin` の中の `private` が効く) が**同じモジュール内の陽性対照**なので、
+    /// この 4 つが 0 件であることは「観測されず 0」ではなく「守られて 0」と言える。
+    ///
+    /// 6 通りのうち `program` (ファイル最上位) は cop-style-a が別に持っている。
+    /// 期待値はすべて本家 1.89.0 の `--only Style/DocumentationMethod` の実測。
+    #[test]
+    fn a_bare_private_in_a_class_body_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  private\n\n  def foo\n    1\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_a_singleton_class_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  class << self\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_an_if_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  if true\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// `rescue` を持つ `def` の後ろも兄弟の列が切れない (本家は 2 件報告する)。
+    #[test]
+    fn a_def_with_a_rescue_does_not_break_the_sibling_chain() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  def bar\n    1\n  rescue\n    2\n  end\n\n  def foo\n    1\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            2,
+        );
+    }
+
+    /// 別の `begin` の中の `private` は外の定義に効かない (本家もそう読む。陰性対照)。
+    #[test]
+    fn a_private_in_another_begin_does_not_reach_outside_it() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n  end\n\n  def foo\n    1\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            1,
+            "begin の外の定義は public のまま",
+        );
+    }
+}

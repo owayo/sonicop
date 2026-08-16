@@ -15,8 +15,13 @@ use crate::rules::send_node::{arguments, named_children, symbol_name};
 /// `VISIBILITY_SCOPES`.
 const VISIBILITY_SCOPES: &[&str] = &["private", "protected", "public"];
 
-/// The node kinds the grammar adds for statement lists.
-const CONTAINERS: &[&str] = &["body_statement", "block_body", "then", "else"];
+/// The node kinds that hold a statement list, which is what `left_siblings` / `right_siblings` walk.
+///
+/// **The question is "where are my siblings", not "is this a method body".** `begin ... end` is a
+/// `kwbegin` upstream and its children are siblings of each other, so leaving it out makes
+/// `Layout/ClassStructure` unable to find the element to move a definition in front of, and makes a
+/// `private` written inside a `begin` invisible to the definitions below it.
+const CONTAINERS: &[&str] = &["body_statement", "block_body", "then", "else", "begin"];
 
 /// `node_visibility`.
 pub(crate) fn node_visibility(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
