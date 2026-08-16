@@ -36291,34 +36291,6 @@ mod ruby_whitespace_is_not_unicode_whitespace {
         let report = CopCase::new(
             "Layout/TrailingEmptyLines",
             "x = 1\n\n".to_owned(),
-/// `Layout/ConditionPosition` が `elsif` を見落とす件。
-///
-/// 期待値は本家 1.89.0 の `--only Layout/ConditionPosition` / `-A` の実出力。
-/// 本家の spec (spec/rubocop/cop/layout/condition_position_spec.rb) から見つけた。
-/// **この cop は 5 コーパスで 1 件も発火しないので、コーパスからは出ない。**
-mod layout_condition_position_elsif {
-    use super::*;
-
-    const COP: &str = "Layout/ConditionPosition";
-
-    /// 本家のパーサは `elsif` にも `if` の節を作り、それが else 枝に入れ子になるので
-    /// `on_if` が走る。文法は `elsif` を別種別にするため、種別の列挙から漏れると
-    /// **`elsif` の下に書かれた条件についてこの cop がまるごと黙る。**
-    #[test]
-    fn a_condition_under_an_elsif_is_reported() {
-        expect_offense(
-            COP,
-            "if something\n  test\nelsif\n  something\n  ^^^^^^^^^ Place the condition on the \
-             same line as `elsif`.\n  test\nend\n",
-        );
-    }
-
-    /// 2 段の `elsif` でも両方報告する。
-    #[test]
-    fn every_elsif_is_reported() {
-        let report = CopCase::new(
-            COP,
-            "if a\n  b\nelsif\n  c\nelsif\n  d\nend\n".to_owned(),
             Vec::new(),
         )
         .without_offense_check()
@@ -36500,6 +36472,58 @@ mod begin_block_holds_siblings {
         let report = CopCase::new(
             "Style/DocumentationMethod",
             "class Foo\n  begin\n    private\n  end\n\n  def foo\n    1\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            1,
+            "begin の外の定義は public のまま",
+        );
+    }
+}
+
+/// `Layout/ConditionPosition` が `elsif` を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/ConditionPosition` / `-A` の実出力。
+/// 本家の spec (spec/rubocop/cop/layout/condition_position_spec.rb) から見つけた。
+/// **この cop は 5 コーパスで 1 件も発火しないので、コーパスからは出ない。**
+mod layout_condition_position_elsif {
+    use super::*;
+
+    const COP: &str = "Layout/ConditionPosition";
+
+    /// 本家のパーサは `elsif` にも `if` の節を作り、それが else 枝に入れ子になるので
+    /// `on_if` が走る。文法は `elsif` を別種別にするため、種別の列挙から漏れると
+    /// **`elsif` の下に書かれた条件についてこの cop がまるごと黙る。**
+    #[test]
+    fn a_condition_under_an_elsif_is_reported() {
+        expect_offense(
+            COP,
+            "if something\n  test\nelsif\n  something\n  ^^^^^^^^^ Place the condition on the \
+             same line as `elsif`.\n  test\nend\n",
+        );
+    }
+
+    /// 2 段の `elsif` でも両方報告する。
+    #[test]
+    fn every_elsif_is_reported() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  b\nelsif\n  c\nelsif\n  d\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
                 .filter(|offense| offense.cop_name == COP)
                 .count(),
             2,
@@ -36526,7 +36550,6 @@ mod begin_block_holds_siblings {
         .run();
     }
 }
-
 /// `Style/OrAssignment` が本家の `if` 節に対応する 2 つの形を見落とす件。
 ///
 /// 期待値は本家 1.89.0 の `--only Style/OrAssignment` / `-A` の実出力。
@@ -36587,7 +36610,6 @@ mod style_or_assignment_keyword_forms {
         );
     }
 }
-
 /// `Style/MapCompactWithConditionalBlock` が本家の 6 つの形のうち 3 つを取り落とす件。
 ///
 /// 期待値は本家 1.89.0 の実出力。本家の spec から見つけた (33 ケース中 7 件が落ちていた)。
@@ -36656,13 +36678,6 @@ mod style_map_compact_with_conditional_block_shapes {
             report
                 .offenses
                 .iter()
-                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
-                .count(),
-            1,
-            "begin の外の定義は public のまま",
-        );
-    }
-}
                 .filter(|offense| offense.cop_name == COP)
                 .count(),
             1,
@@ -36670,7 +36685,6 @@ mod style_map_compact_with_conditional_block_shapes {
         );
     }
 }
-
 /// `Lint/SafeNavigationConsistency` が代入の左辺の `&.` を見落とす件。
 ///
 /// 期待値は本家 1.89.0 の `--only Lint/SafeNavigationConsistency` の実出力。
@@ -36710,7 +36724,6 @@ mod lint_safe_navigation_consistency_assignment {
         expect_no_offenses(COP, "foo.bar && foo.baz = 1\n");
     }
 }
-
 /// 本家の `on_send` は `csend` ノードには呼ばれない。`alias on_csend on_send` を書いて
 /// いない cop は `x&.foo` を構造的に一切拾わないので、`call` を回す移植版は `&.` を
 /// 落とさなければ必ず過剰検出になる。

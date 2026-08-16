@@ -30,8 +30,14 @@ const VISIBILITY_SCOPES: &[&str] = &["private", "protected", "public"];
 ///
 /// Two words were found missing on the same day by two people. The set is not derived from the
 /// grammar, so a third may be missing; the tests carry one case per container kind.
-const CONTAINERS: &[&str] =
-    &["program", "body_statement", "block_body", "then", "else", "begin"];
+const CONTAINERS: &[&str] = &[
+    "program",
+    "body_statement",
+    "block_body",
+    "then",
+    "else",
+    "begin",
+];
 
 /// `node_visibility`.
 pub(crate) fn node_visibility(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
