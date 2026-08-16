@@ -16,7 +16,12 @@ use crate::rules::send_node::{arguments, named_children, symbol_name};
 const VISIBILITY_SCOPES: &[&str] = &["private", "protected", "public"];
 
 /// The node kinds the grammar adds for statement lists.
-const CONTAINERS: &[&str] = &["body_statement", "block_body", "then", "else"];
+///
+/// `program` is one of them. A file's top level is a statement list like any other, and a bare
+/// `private` written there puts the definitions below it out of public view -- upstream walks
+/// `left_siblings` and reaches it. Leaving it out made every top-level definition look public
+/// (`Style/DocumentationMethod` reported 16 spec cases the upstream cop stays quiet on).
+const CONTAINERS: &[&str] = &["program", "body_statement", "block_body", "then", "else"];
 
 /// `node_visibility`.
 pub(crate) fn node_visibility(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
