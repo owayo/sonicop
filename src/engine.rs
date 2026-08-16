@@ -2236,22 +2236,6 @@ mod tests {
     /// **The selection is narrowed to that one cop on purpose.** With the whole default set the
     /// other cops reach the same text first and land on `foo bar: 1`, which parses, so the guard
     /// never fires and the test would pass without testing anything.
-    /// **★ 2026-08-17: この検査は陽性対照を失った。無効にしてあるが、消さないこと。**
-    ///
-    /// `Style/HashSyntax` の `argument_without_space?` が実装され (`03f43fb`)、`foo:bar => 1` は
-    /// `foo bar: 1` という**妥当な Ruby** に補正されるようになった。安全網が発火しないので、
-    /// この検査は「無変更で返る」を主張できない。**安全網が壊れたのではなく、この cop が直った。**
-    ///
-    /// **直し方**: いま実際に安全網が発火するケースへ差し替える。材料は cop-lint が持つ
-    /// 「安全網が止めた」欄の一覧 (`#41`)。**差し替えるときは陽性対照を必ず通すこと** —
-    /// `SONICOP_NO_SYNTAX_GUARD=1` を立てて**出力が `ruby -c` で落ちる**ことを確かめる。
-    /// team-lead が 3 通り (`Lint/InterpolationCheck` の行継続 / `expand_path_arguments_spec`
-    /// の実物 / `#41` の根 1 = `Layout/LineLength` × heredoc) を試し、**3 つとも安全網 OFF でも
-    /// `Syntax OK` だった** — つまり補正自体が起きておらず、「無変更」は安全網の働きではない。
-    ///
-    /// **この検査が無い間、既定が ON であることを固定しているものは無い。**`#41` の
-    /// 承認条件 2 が満たされていない状態なので、リリースの前に必ず戻すこと。
-    #[ignore = "陽性対照を失った。#41 の一覧から差し替えること (消さない)"]
     #[test]
     fn a_correction_that_would_not_parse_is_not_applied() {
         let directory = tempdir().unwrap();
