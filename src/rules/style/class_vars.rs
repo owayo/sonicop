@@ -5,7 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::arguments;
+use crate::rules::send_node::{is_plain_send, arguments};
 use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -18,6 +18,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     // `RESTRICT_ON_SEND = %i[class_variable_set]`: the reflective spelling of the same assignment.
     for node in context.nodes_of("call") {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some(method) = node.field("method") else {
             continue;
         };

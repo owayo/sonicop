@@ -8926,6 +8926,61 @@ mod parallel_assignment {
         expect_correction(COP, "j, k = [1, 2]\n", "j = 1\nk = 2\n");
     }
 
+    /// `Symbol#inspect` は `"` で囲む。この cop は `Symbol#inspect` の 3 つ目の複製を
+    /// 持っていて、`'` で囲んでいた (しかも `char::is_alphanumeric` で「裸で書けるか」を
+    /// 判定していたので、Unicode の文字を裸のまま出す)。共有の実装に寄せてある。
+    #[test]
+    fn a_percent_symbol_element_is_written_back_the_way_ruby_inspects_it() {
+        expect_correction(
+            COP,
+            "a, b = %i(foo-bar baz)\n",
+            "a = :\"foo-bar\"\nb = :baz\n",
+        );
+    }
+
+    /// `rescue` 修飾子は、単一代入なら右辺の中に、多重代入なら**代入の外側**に付く。
+    /// 外側を見ていないと、守りが最後の 1 行だけに移った補正 (`b = 2 rescue foo`) に
+    /// なる。意味が変わる実害。
+    #[test]
+    fn a_rescue_modifier_around_the_assignment_opens_a_begin() {
+        expect_correction(
+            COP,
+            "a, b = 1, 2 rescue foo\n",
+            "begin\n  a = 1\n  b = 2\nrescue\n  foo\nend\n",
+        );
+    }
+
+    /// メソッドが守られた代入 1 つしか持たないときは、本体そのものが `begin` なので
+    /// `begin` を書き足さない。書くと本家より 1 段深く字下げされる。
+    #[test]
+    fn a_method_body_is_already_a_begin() {
+        expect_correction(
+            COP,
+            "def foo\n  a, b = 1, 2 rescue foo\nend\n",
+            "def foo\n  a = 1\n  b = 2\nrescue\n  foo\nend\n",
+        );
+    }
+
+    /// `part_of_ignored_node?`: 入れ子の多重代入は外側の補正が丸ごと書き直すので、
+    /// 内側は報告しない。両方報告すると同じバイト列に 2 つの書き換えが重なる。
+    /// 並べ替えも合わせて確かめる — ラムダの中の `a` は**代入先**であって読みではないので、
+    /// `a = x` が先に来る。
+    #[test]
+    fn a_nested_parallel_assignment_is_left_to_the_outer_one() {
+        let report = CopCase::new(COP, "a, b = x, -> { a, b = x, y }\n".to_owned(), Vec::new())
+            .config("Style/ParallelAssignment:\n  Enabled: true\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        // `-A` は不動点まで回るので、外側を直した次の周で内側も直る。**本家の出力と
+        // 一字一句同じ**であることを確かめている (内側の字下げはラムダの開き位置に揃う)。
+        expect_correction(
+            COP,
+            "a, b = x, -> { a, b = x, y }\n",
+            "a = x\nb = -> { a = x\n         b = y }\n",
+        );
+    }
+
     /// 後の代入が前の値を読むときは、読む側が先に来るよう並べ替える。
     #[test]
     fn the_assignments_are_ordered_so_that_none_reads_an_overwritten_name() {
@@ -8954,6 +9009,37 @@ mod block_delimiters {
     use super::*;
 
     const COP: &str = "Style/BlockDelimiters";
+
+    /// 括弧の無い引数リストでは `{...}` と `do...end` が別のものに結び付くので、本家は
+    /// **引数の中に見えるブロックを全部無視する** (`on_send` から `get_blocks`)。
+    /// その `get_blocks` は `:send` を辿るが、本家のパーサは演算子も `send` にするので、
+    /// `[0] + [1,2,3].map { }` の `+` を越えてブロックに届く。文法は `binary` という
+    /// 別の節にするため、`call` だけを辿ると届かない。
+    #[test]
+    fn a_block_reached_through_an_operator_argument_is_left_alone() {
+        for source in [
+            "puts [0] + [1,2,3].map { |n|\n  n * n\n}, 1\n",
+            "puts [0] + [1,2,3].map {\n  _1 * _1\n}, 1\n",
+            "puts [0] + [1,2,3].map {\n  it * it\n}, 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `modifier_rescue?` は「守っている式があること」を最初に尋ねる
+    /// (`return false if rescue_node.body.nil?`)。`do rescue; bar end` は前に何も無いので
+    /// 修飾子の形ではなく、`{ }` では書けない。守る式が無い `rescue` は文法では
+    /// 本体の先頭に来るので、そこで見分ける。
+    #[test]
+    fn a_rescue_with_nothing_in_front_of_it_keeps_do_end() {
+        expect_no_offenses(COP, "foo do rescue; bar end\n");
+        // 守る式があれば修飾子の形なので、こちらは 1 行ブロックとして報告される。
+        expect_correction(
+            COP,
+            "foo do bar rescue baz end\n",
+            "foo { bar rescue baz }\n",
+        );
+    }
 
     #[test]
     fn a_single_line_do_end_becomes_braces() {
@@ -22697,6 +22783,25 @@ mod style_collection_querying {
         expect_correction(COP, "x.count(&:foo).positive?\n", "x.any?(&:foo)\n");
     }
 
+    /// 本家のパターンは `(any_block $(call !nil? :count) _ _)` で、`_` は無いものにも
+    /// 当たる。**引数の書き方も本体の有無も問わない。**`_1` / `it` は引数の並びを
+    /// 書かないので、「引数を取ること」を条件にすると 3 通りとも落ちる。
+    #[test]
+    fn a_block_matches_however_its_parameter_is_written() {
+        expect_correction(
+            COP,
+            "x.count { _1.foo? }.positive?\n",
+            "x.any? { _1.foo? }\n",
+        );
+        expect_correction(
+            COP,
+            "x.count { it.foo? }.positive?\n",
+            "x.any? { it.foo? }\n",
+        );
+        expect_correction(COP, "x.count { foo }.positive?\n", "x.any? { foo }\n");
+        expect_correction(COP, "x.count {}.positive?\n", "x.any? {}\n");
+    }
+
     /// `> 1` は Active Support の `many?` にしかならないので既定では黙る。引数付きの
     /// `count`、レシーバの無い `count`、`size` も対象外。
     #[test]
@@ -32631,6 +32736,31 @@ mod style_negated_if_else_condition {
 
     const COP: &str = "Style/NegatedIfElseCondition";
 
+    /// 本家のパーサは `!x` と `not x` に同じ `(send x :!)` を作るので、`negation_method?`
+    /// はどちらにも当たる。文法は綴りを残すので、`!` だけを見ると `not` の側が丸ごと
+    /// 落ちる。
+    #[test]
+    fn the_not_keyword_is_the_same_negation_as_the_bang() {
+        expect_correction(
+            COP,
+            "if not x\n  a\nelse\n  b\nend\n",
+            "if x\n  b\nelse\n  a\nend\n",
+        );
+    }
+
+    /// `if_else?` は `else_branch` が**あること**を尋ねる。本家では中身の無い本体は
+    /// `nil` なので、`else` と書いただけの枝は枝ではない。文法は `else` の節を必ず
+    /// 作るため、フィールドの有無を見ると別の問いになる。
+    #[test]
+    fn an_else_that_holds_nothing_is_not_a_branch() {
+        for source in [
+            "if !condition.nil?\n  foo = 42\nelse\nend\n",
+            "if !condition.nil?\nelse\nend\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
     /// 位置は `if` 全体。条件を反転して枝を入れ替える。
     #[test]
     fn a_negated_condition_with_both_branches_is_reported() {
@@ -36161,6 +36291,34 @@ mod ruby_whitespace_is_not_unicode_whitespace {
         let report = CopCase::new(
             "Layout/TrailingEmptyLines",
             "x = 1\n\n".to_owned(),
+/// `Layout/ConditionPosition` が `elsif` を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/ConditionPosition` / `-A` の実出力。
+/// 本家の spec (spec/rubocop/cop/layout/condition_position_spec.rb) から見つけた。
+/// **この cop は 5 コーパスで 1 件も発火しないので、コーパスからは出ない。**
+mod layout_condition_position_elsif {
+    use super::*;
+
+    const COP: &str = "Layout/ConditionPosition";
+
+    /// 本家のパーサは `elsif` にも `if` の節を作り、それが else 枝に入れ子になるので
+    /// `on_if` が走る。文法は `elsif` を別種別にするため、種別の列挙から漏れると
+    /// **`elsif` の下に書かれた条件についてこの cop がまるごと黙る。**
+    #[test]
+    fn a_condition_under_an_elsif_is_reported() {
+        expect_offense(
+            COP,
+            "if something\n  test\nelsif\n  something\n  ^^^^^^^^^ Place the condition on the \
+             same line as `elsif`.\n  test\nend\n",
+        );
+    }
+
+    /// 2 段の `elsif` でも両方報告する。
+    #[test]
+    fn every_elsif_is_reported() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  b\nelsif\n  c\nelsif\n  d\nend\n".to_owned(),
             Vec::new(),
         )
         .without_offense_check()
@@ -36342,6 +36500,154 @@ mod begin_block_holds_siblings {
         let report = CopCase::new(
             "Style/DocumentationMethod",
             "class Foo\n  begin\n    private\n  end\n\n  def foo\n    1\n  end\nend\n".to_owned(),
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            2,
+            "elsif が 2 つあるので 2 件のはず"
+        );
+    }
+
+    /// 条件が `elsif` と同じ行にあるなら報告しない。
+    #[test]
+    fn a_condition_on_the_elsif_line_is_left_alone() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nend\n");
+    }
+
+    /// 補正は `elsif` の後ろへ条件を移して、元の行を消す。
+    #[test]
+    fn the_condition_moves_up_to_the_elsif() {
+        CopCase::new(
+            COP,
+            "if something\n  test\nelsif\n  something\n  test\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("if something\n  test\nelsif something\n  test\nend\n")
+        .run();
+    }
+}
+
+/// `Style/OrAssignment` が本家の `if` 節に対応する 2 つの形を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Style/OrAssignment` / `-A` の実出力。
+/// 本家の spec (spec/rubocop/cop/style/or_assignment_spec.rb) から見つけた。
+/// **この cop は 5 コーパスで 1 件しか発火しないので、コーパスからは出ない。**
+mod style_or_assignment_keyword_forms {
+    use super::*;
+
+    const COP: &str = "Style/OrAssignment";
+
+    /// `ternary_assignment?` は `if` 節を見る。本家のパーサは三項演算子にも
+    /// キーワード形にも同じ `if` を作るが、文法は `conditional` と `if` に分ける。
+    /// キーワード形を種別の列挙から落とすと、この形でまるごと黙る。
+    #[test]
+    fn the_keyword_form_of_the_ternary_is_reported() {
+        for (source, corrected) in [
+            (
+                "foo = if foo\n        foo\n      else\n        'default'\n      end\n",
+                "foo ||= 'default'\n",
+            ),
+            (
+                "@foo = if @foo\n         @foo\n       else\n         'default'\n       end\n",
+                "@foo ||= 'default'\n",
+            ),
+            (
+                "$foo = if $foo\n         $foo\n       else\n         'default'\n       end\n",
+                "$foo ||= 'default'\n",
+            ),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// `unless_assignment?` は `(if cond nil? assignment)`。本家のパーサは
+    /// `x = 1 unless x` からも、**本体が空で `else` を持つ `if`** からも同じ形に至る。
+    #[test]
+    fn an_if_with_an_empty_body_and_an_else_is_reported() {
+        CopCase::new(
+            COP,
+            "foo = nil\nif foo\nelse\n  foo = 2\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo = nil\nfoo ||= 2\n")
+        .run();
+    }
+
+    /// `return if else_branch.if_type?`。`elsif` は文法では別種別なので、
+    /// 弾く一覧に入れておかないと過剰に報告する。
+    #[test]
+    fn an_elsif_chain_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "foo = if foo\n        foo\n      elsif\n        bar\n      else\n        'default'\n      end\n",
+        );
+    }
+}
+
+/// `Style/MapCompactWithConditionalBlock` が本家の 6 つの形のうち 3 つを取り落とす件。
+///
+/// 期待値は本家 1.89.0 の実出力。本家の spec から見つけた (33 ケース中 7 件が落ちていた)。
+mod style_map_compact_with_conditional_block_shapes {
+    use super::*;
+
+    const COP: &str = "Style/MapCompactWithConditionalBlock";
+
+    /// 本家の `if` 節にはパーサが三項演算子も畳み込む。文法は `conditional` に分けるので、
+    /// 落とすと三項の形でまるごと黙る。
+    #[test]
+    fn the_ternary_form_is_reported() {
+        for (source, corrected) in [
+            (
+                "foo.map do |item|\n  item.bar? ? item : next\nend.compact\n",
+                "foo.select { |item| item.bar? }\n",
+            ),
+            (
+                "foo.map { |item| item.bar? ? next : item }.compact\n",
+                "foo.reject { |item| item.bar? }\n",
+            ),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// 本家の `next` は節の種別だけを見るので、`next nil` のように引数があっても当たる。
+    /// そして `truthy_branch_for_guard?` は**引数の有無**で `select` と `reject` を決める。
+    #[test]
+    fn a_guard_whose_next_carries_a_value_is_reported() {
+        CopCase::new(
+            COP,
+            "foo.map do |item|\n  next nil if item.bar?\n\n  item\nend.compact\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo.select { |item| item.bar? }\n")
+        .run();
+        CopCase::new(
+            COP,
+            "foo.map do |item|\n  next nil unless item.bar?\n\n  item\nend.compact\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo.reject { |item| item.bar? }\n")
+        .run();
+    }
+
+    /// 外側の `.compact` で 1 件報告したら、内側の `filter_map` では報告しない。
+    /// 本家の `add_offense` はブロックを走らせてから offense を積むので、ブロックの中の
+    /// `return` は記録される前に中断する。
+    #[test]
+    fn the_inner_filter_map_is_not_reported_twice() {
+        let report = CopCase::new(
+            COP,
+            "foo.filter_map do |item|\n  if item.bar?\n    item\n  else\n    next\n  end\nend.compact\n"
+                .to_owned(),
             Vec::new(),
         )
         .without_offense_check()
@@ -36355,5 +36661,101 @@ mod begin_block_holds_siblings {
             1,
             "begin の外の定義は public のまま",
         );
+    }
+}
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+            "外側の .compact だけが報告するはず"
+        );
+    }
+}
+
+/// `Lint/SafeNavigationConsistency` が代入の左辺の `&.` を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/SafeNavigationConsistency` の実出力。
+/// 本家の spec から見つけた。**この cop は 5 コーパスで 10 件しか発火しない。**
+mod lint_safe_navigation_consistency_assignment {
+    use super::*;
+
+    const COP: &str = "Lint/SafeNavigationConsistency";
+
+    /// `foo&.baz = 1` は本家では `csend` 1 ノード (メソッド名 `baz=`)。文法は代入の
+    /// 左辺に呼び出しを置くので、代入を通して読まないと**左辺の安全参照が
+    /// オペランドにならない**。
+    #[test]
+    fn a_safe_navigation_on_the_left_of_an_assignment_is_an_operand() {
+        expect_offense(
+            COP,
+            "foo.bar && foo&.baz = 1\n              ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+        expect_offense(
+            COP,
+            "foo&.bar && foo&.baz = 1\n               ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+    }
+
+    /// 代入を外した形は元から一致している (陰性対照)。
+    #[test]
+    fn the_plain_form_is_unchanged() {
+        expect_offense(
+            COP,
+            "foo.bar && foo&.baz\n              ^^ Use `.` instead of unnecessary `&.`.\n",
+        );
+    }
+
+    /// `&.` が無ければ報告しない。
+    #[test]
+    fn a_plain_dot_assignment_is_left_alone() {
+        expect_no_offenses(COP, "foo.bar && foo.baz = 1\n");
+    }
+}
+
+/// 本家の `on_send` は `csend` ノードには呼ばれない。`alias on_csend on_send` を書いて
+/// いない cop は `x&.foo` を構造的に一切拾わないので、`call` を回す移植版は `&.` を
+/// 落とさなければ必ず過剰検出になる。
+///
+/// 13 件を 1 つずつ直したが、**同じ穴が繰り返し開く形**なので、cop ごとの節ではなく
+/// 1 つの表にまとめてある。新しく `nodes_of("call")` を書いたら、その cop の本家に
+/// `on_csend` があるかを確かめて、無ければここに 1 行足す。
+///
+/// 対応する本家の入力はすべて実測済みで、本家はいずれも 0 件を返す。
+mod safe_navigation_is_not_a_send {
+    use super::*;
+
+    #[test]
+    fn no_cop_reports_a_call_written_with_safe_navigation() {
+        for (cop, source) in [
+            (
+                "Style/Attr",
+                "SomeClass&.class_eval do\n  attr :name\nend\n",
+            ),
+            ("Style/AutoResourceCleanup", "File&.open(\"filename\")\n"),
+            (
+                "Style/ClassVars",
+                "TestClass&.class_variable_set(:@@class_var, 2)\n",
+            ),
+            ("Style/CollectionQuerying", "x.count&.positive?\n"),
+            ("Style/Dir", "File&.expand_path(File.dirname(__FILE__))\n"),
+            (
+                "Style/DocumentDynamicEvalDefinition",
+                "stringio&.instance_eval(\"def original_filename; 'foo'; end\")\n",
+            ),
+            ("Style/EmptyLiteral", "Array&.new\n"),
+            ("Style/EnvHome", "ENV&.fetch('HOME')\n"),
+            (
+                "Style/ExpandPathArguments",
+                "File&.expand_path('..', __FILE__)\n",
+            ),
+            ("Style/RandomWithOffset", "rand(6)&.succ\n"),
+            ("Style/RedundantArrayConstructor", "Array&.new([])\n"),
+            (
+                "Style/RedundantRegexpConstructor",
+                "Regexp&.new(/regexp/)\n",
+            ),
+            ("Style/SignalException", "Kernel&.fail\n"),
+        ] {
+            expect_no_offenses(cop, source);
+        }
     }
 }

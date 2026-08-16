@@ -2,12 +2,18 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node::is_plain_send;
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Prefer ranges when generating random numbers instead of integers with offsets.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["binary", "call"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some(replacement) = corrected(context, node) else {
             continue;
         };

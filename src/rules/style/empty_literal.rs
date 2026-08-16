@@ -3,12 +3,17 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, top_level_constant};
+use crate::rules::send_node::{is_plain_send, arguments, top_level_constant};
 use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let frozen = frozen_strings(context);
     for node in context.nodes_of_any(&["call", "element_reference"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some(literal) = Literal::read(node, context) else {
             continue;
         };
