@@ -34902,6 +34902,33 @@ mod style_redundant_line_continuation {
 
     const COP: &str = "Style/RedundantLineContinuation";
 
+    /// `redundant_line_continuation_spec.rb:514` and `:1047`.
+    ///
+    /// A blank line after the backslash is joined to the line above and contributes nothing, so
+    /// the continuation is doing no work. `statement_would_end` read the empty line as "opens
+    /// nothing, so the statement ends here" and suppressed the offense, which is backwards.
+    #[test]
+    fn a_continuation_before_a_blank_line_is_redundant() {
+        expect_correction(COP, "foo 'bar' \\\n\n'baz'\n", "foo 'bar' \n\n'baz'\n");
+        expect_correction(
+            COP,
+            "foo \\\n\n__END__\ndata \\\n",
+            "foo \n\n__END__\ndata \\\n",
+        );
+    }
+
+    /// The one thing a blank line does not make redundant, because the backslash is what carries
+    /// the chain across it: Ruby joins a leading-dot line to the one above, but a blank line breaks
+    /// that (`ruby` says `unexpected '.', ignoring it`), so removing the `\` changes the program.
+    #[test]
+    fn a_continuation_carrying_a_chain_across_a_blank_line_stays() {
+        expect_no_offenses(COP, "r = foo \\\n\n  .bar\n");
+        // However many blank lines sit in between.
+        expect_no_offenses(COP, "r = foo \\\n\n\n  .bar\n");
+        // A non-chain line after the blank is redundant again, which is the pair to the case above.
+        expect_correction(COP, "foo \\\n\n  bar\n", "foo \n\n  bar\n");
+    }
+
     fn correction(source: &str, corrected: &str) {
         CopCase::new(COP, source.to_owned(), Vec::new())
             .without_offense_check()
