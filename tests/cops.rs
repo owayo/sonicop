@@ -21366,6 +21366,84 @@ mod lint_redundant_cop_enable_directive_removal_range {
     }
 }
 
+/// 括弧つきの `super(...)` は文法では `call` ノードだが、本家では `send` ではない。
+///
+/// 本家の parser は `super` / `zsuper` / `yield` をそれぞれ別のノード種別にするので、
+/// `on_send` (と `alias on_csend on_send`) しか持たない cop は `super(...)` を**一度も見ない**。
+/// 文法は括弧つきの `super(...)` を `call` に書くため、`call` を回す移植版は素通しにすると
+/// 本家が触らない行を動かす。
+///
+/// 期待値は本家 1.89.0 を `--only <cop>` と `-A` で走らせた実測。`super(...)` を置ける文法上の
+/// 位置を 34 形作って全 cop で突き合わせ (`super_probe.py`)、**5 形で食い違っていた**。
+/// 4 cop が該当し、いずれも「本家は 0 件、移植版が報告して `-A` で 8 桁ずらす」形だった。
+///
+/// **どのケースにも普通の呼び出しの対照を置く。** `super` を外すだけで本家も報告するので、
+/// 「cop を丸ごと黙らせた」実装がテストを通り抜けない。
+mod super_is_not_a_send {
+    use super::*;
+
+    /// 引数の配列は `super(` からではなく素の配列として測る (`on_send` の枝に入らない)。
+    #[test]
+    fn an_array_argument_of_super_is_measured_as_a_plain_array() {
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super([\n    1,\n    2\n  ])\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super(%w[\n    a\n    b\n  ])\nend\n",
+        );
+        // 対照: 普通の呼び出しなら本家も報告して、括弧の位置から測り直す。
+        expect_correction(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  foo([\n    1,\n    2\n  ])\nend\n",
+            "def m\n  foo([\n        1,\n    2\n      ])\nend\n",
+        );
+    }
+
+    /// ハッシュも同じ (`Layout/FirstHashElementIndentation` は配列側の兄弟)。
+    #[test]
+    fn a_hash_argument_of_super_is_measured_as_a_plain_hash() {
+        expect_no_offenses(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  super({\n    a: 1,\n    b: 2\n  })\nend\n",
+        );
+        expect_correction(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  foo({\n    a: 1,\n    b: 2\n  })\nend\n",
+            "def m\n  foo({\n        a: 1,\n    b: 2\n      })\nend\n",
+        );
+    }
+
+    /// 引数の間の空行は `super` では残る。`on_send` / `on_csend` しかないので届かない。
+    #[test]
+    fn a_blank_line_between_supers_arguments_stays() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  super(a,\n\n    b)\nend\n",
+        );
+        expect_correction(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  foo(a,\n\n    b)\nend\n",
+            "def m\n  foo(a,\n    b)\nend\n",
+        );
+    }
+
+    /// 閉じ括弧の字下げも同じ。`on_send` / `on_csend` / `on_begin` / `on_def` に `super` は無い。
+    #[test]
+    fn the_closing_parenthesis_of_super_is_left_where_it_was_written() {
+        expect_no_offenses(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  super(<<~X\n    hi\n  X\n  )\nend\n",
+        );
+        expect_correction(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  foo(<<~X\n    hi\n  X\n  )\nend\n",
+            "def m\n  foo(<<~X\n    hi\n  X\n     )\nend\n",
+        );
+    }
+}
+
 /// `Lint/RedundantCopEnableDirective` の部署名は 1 語ではなく、その部署の cop 全部を指す。
 ///
 /// `DirectiveComment#parsed_cop_names` が部署を展開するので、`# rubocop:enable Layout` は
