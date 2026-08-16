@@ -124,7 +124,10 @@ pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bo
 ///
 /// Set `SONICOP_TRACE_OVERLAP=1` to list them.
 fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize) {
-    if std::env::var_os("SONICOP_TRACE_OVERLAP").is_none() {
+    /// Read once. Every offense of every cop on this path would otherwise pay for the lookup.
+    static ENABLED: std::sync::LazyLock<bool> =
+        std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_OVERLAP").is_some());
+    if !*ENABLED {
         return;
     }
     let mut ordered: Vec<&Edit> = edits.iter().collect();
