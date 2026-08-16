@@ -8926,6 +8926,61 @@ mod parallel_assignment {
         expect_correction(COP, "j, k = [1, 2]\n", "j = 1\nk = 2\n");
     }
 
+    /// `Symbol#inspect` は `"` で囲む。この cop は `Symbol#inspect` の 3 つ目の複製を
+    /// 持っていて、`'` で囲んでいた (しかも `char::is_alphanumeric` で「裸で書けるか」を
+    /// 判定していたので、Unicode の文字を裸のまま出す)。共有の実装に寄せてある。
+    #[test]
+    fn a_percent_symbol_element_is_written_back_the_way_ruby_inspects_it() {
+        expect_correction(
+            COP,
+            "a, b = %i(foo-bar baz)\n",
+            "a = :\"foo-bar\"\nb = :baz\n",
+        );
+    }
+
+    /// `rescue` 修飾子は、単一代入なら右辺の中に、多重代入なら**代入の外側**に付く。
+    /// 外側を見ていないと、守りが最後の 1 行だけに移った補正 (`b = 2 rescue foo`) に
+    /// なる。意味が変わる実害。
+    #[test]
+    fn a_rescue_modifier_around_the_assignment_opens_a_begin() {
+        expect_correction(
+            COP,
+            "a, b = 1, 2 rescue foo\n",
+            "begin\n  a = 1\n  b = 2\nrescue\n  foo\nend\n",
+        );
+    }
+
+    /// メソッドが守られた代入 1 つしか持たないときは、本体そのものが `begin` なので
+    /// `begin` を書き足さない。書くと本家より 1 段深く字下げされる。
+    #[test]
+    fn a_method_body_is_already_a_begin() {
+        expect_correction(
+            COP,
+            "def foo\n  a, b = 1, 2 rescue foo\nend\n",
+            "def foo\n  a = 1\n  b = 2\nrescue\n  foo\nend\n",
+        );
+    }
+
+    /// `part_of_ignored_node?`: 入れ子の多重代入は外側の補正が丸ごと書き直すので、
+    /// 内側は報告しない。両方報告すると同じバイト列に 2 つの書き換えが重なる。
+    /// 並べ替えも合わせて確かめる — ラムダの中の `a` は**代入先**であって読みではないので、
+    /// `a = x` が先に来る。
+    #[test]
+    fn a_nested_parallel_assignment_is_left_to_the_outer_one() {
+        let report = CopCase::new(COP, "a, b = x, -> { a, b = x, y }\n".to_owned(), Vec::new())
+            .config("Style/ParallelAssignment:\n  Enabled: true\n")
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        // `-A` は不動点まで回るので、外側を直した次の周で内側も直る。**本家の出力と
+        // 一字一句同じ**であることを確かめている (内側の字下げはラムダの開き位置に揃う)。
+        expect_correction(
+            COP,
+            "a, b = x, -> { a, b = x, y }\n",
+            "a = x\nb = -> { a = x\n         b = y }\n",
+        );
+    }
+
     /// 後の代入が前の値を読むときは、読む側が先に来るよう並べ替える。
     #[test]
     fn the_assignments_are_ordered_so_that_none_reads_an_overwritten_name() {
