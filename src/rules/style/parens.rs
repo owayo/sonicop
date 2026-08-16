@@ -43,9 +43,19 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     // removing it, and no corpus reaches it -- but upstream's own spec does, at
     // `redundant_parentheses_spec.rb:1985` ("an array of multiple heredocs"), so this is a known
     // gap with a case waiting for it rather than dead weight.
-    if let Some(orphaned) = orphaned_comma_start(context, close) {
-        close_start = close_start.min(orphaned);
+    let orphaned = orphaned_comma_start(context, close);
+    if let Some(start) = orphaned {
+        close_start = close_start.min(start);
     }
+    // `extend_range_for_heredoc` and `add_heredoc_comma`: a heredoc's body sits on the lines after
+    // the `)`, so a comma left where it was would land in front of that body rather than after the
+    // element. Upstream takes the comma with the parentheses and writes a fresh one straight after
+    // the opening token, turning `<<-STRING\n...\nSTRING\n) ,` into `<<-STRING,`.
+    let heredoc = orphaned.and_then(|_| heredoc_opener(node));
+    let close_end = match heredoc {
+        Some(_) => comma_after(text, range.end),
+        None => range.end,
+    };
     let mut edits = vec![
         Edit {
             start: range.start,
@@ -55,11 +65,19 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
         },
         Edit {
             start: close_start,
-            end: range.end,
+            end: close_end,
             replacement: String::new(),
             safe: true,
         },
     ];
+    if let Some(opener) = heredoc.filter(|_| close_end > range.end) {
+        edits.push(Edit {
+            start: opener.end_byte(),
+            end: opener.end_byte(),
+            replacement: ",".to_owned(),
+            safe: true,
+        });
+    }
     // `ternary_condition?`: `(a) ? b : c` needs the space the parenthesis used to provide.
     if is_ternary_condition_before_question_mark(context, node) {
         edits.push(Edit {
@@ -70,6 +88,39 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
         });
     }
     edits
+}
+
+/// `heredoc?`: the group's last element is a heredoc, so pulling the parentheses moves the `)`
+/// while the body stays put.
+///
+/// Upstream asks whether `node.child_nodes.last.loc` is a `Heredoc` map. Here the opening token is
+/// its own node and the body is a sibling that trails the whole statement, so the question becomes
+/// whether the last child is that opener.
+fn heredoc_opener<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    super::nodes::children(node)
+        .last()
+        .copied()
+        .filter(|last| last.kind_str() == "heredoc_beginning")
+}
+
+/// `COMMA_REGEXP = /(?<=\))\s*,/` over the line the `)` sits on: how far past the parenthesis the
+/// comma reaches, so the removal can take it too.
+///
+/// The walk stays on the line -- upstream matches inside `range_by_whole_lines`, so a comma opening
+/// the next line belongs to something else.
+fn comma_after(text: &str, after_close: usize) -> usize {
+    let bytes = text.as_bytes();
+    let mut index = after_close;
+    while bytes
+        .get(index)
+        .is_some_and(|byte| *byte != b'\n' && crate::rules::support::is_ruby_space(*byte))
+    {
+        index += 1;
+    }
+    match bytes.get(index) {
+        Some(b',') => index + 1,
+        _ => after_close,
+    }
 }
 
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would
