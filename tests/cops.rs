@@ -35865,3 +35865,79 @@ mod style_or_assignment_keyword_forms {
         );
     }
 }
+
+/// `Style/MapCompactWithConditionalBlock` が本家の 6 つの形のうち 3 つを取り落とす件。
+///
+/// 期待値は本家 1.89.0 の実出力。本家の spec から見つけた (33 ケース中 7 件が落ちていた)。
+mod style_map_compact_with_conditional_block_shapes {
+    use super::*;
+
+    const COP: &str = "Style/MapCompactWithConditionalBlock";
+
+    /// 本家の `if` 節にはパーサが三項演算子も畳み込む。文法は `conditional` に分けるので、
+    /// 落とすと三項の形でまるごと黙る。
+    #[test]
+    fn the_ternary_form_is_reported() {
+        for (source, corrected) in [
+            (
+                "foo.map do |item|\n  item.bar? ? item : next\nend.compact\n",
+                "foo.select { |item| item.bar? }\n",
+            ),
+            (
+                "foo.map { |item| item.bar? ? next : item }.compact\n",
+                "foo.reject { |item| item.bar? }\n",
+            ),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// 本家の `next` は節の種別だけを見るので、`next nil` のように引数があっても当たる。
+    /// そして `truthy_branch_for_guard?` は**引数の有無**で `select` と `reject` を決める。
+    #[test]
+    fn a_guard_whose_next_carries_a_value_is_reported() {
+        CopCase::new(
+            COP,
+            "foo.map do |item|\n  next nil if item.bar?\n\n  item\nend.compact\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo.select { |item| item.bar? }\n")
+        .run();
+        CopCase::new(
+            COP,
+            "foo.map do |item|\n  next nil unless item.bar?\n\n  item\nend.compact\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo.reject { |item| item.bar? }\n")
+        .run();
+    }
+
+    /// 外側の `.compact` で 1 件報告したら、内側の `filter_map` では報告しない。
+    /// 本家の `add_offense` はブロックを走らせてから offense を積むので、ブロックの中の
+    /// `return` は記録される前に中断する。
+    #[test]
+    fn the_inner_filter_map_is_not_reported_twice() {
+        let report = CopCase::new(
+            COP,
+            "foo.filter_map do |item|\n  if item.bar?\n    item\n  else\n    next\n  end\nend.compact\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+            "外側の .compact だけが報告するはず"
+        );
+    }
+}
