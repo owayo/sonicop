@@ -29,8 +29,9 @@ enum Position {
     Branch,
     /// Inside a `next` in a branch of the conditional.
     InNext,
-    /// The second statement of a guard clause.
-    AfterGuard,
+    /// The second statement of a guard clause. The flag is whether the guard's `next` carries a
+    /// value, which is what decides `select` from `reject` there.
+    AfterGuard { next_has_value: bool },
 }
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -81,9 +82,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             range.clone(),
         );
         // `part_of_ignored_node?`: a chain folded from further out has already been rewritten.
-        offenses.push(if has_ignored_ancestor(node, context, &ignored) {
-            offense
-        } else {
+        //
+        // 本家の `add_offense` はブロックを走らせてから offense を積むので、ブロックの中の
+        // `return` は**記録される前に**中断する。報告だけ残るのではなく、offense ごと出ない。
+        // `filter_map { ... }.compact` は外側の `.compact` で 1 件報告したあと、内側の
+        // `filter_map` がここに来る。
+        if has_ignored_ancestor(node, context, &ignored) {
+            continue;
+        }
+        offenses.push({
             ignored.insert(node.id());
             offense.corrected_by(Edit {
                 start: range.start,
@@ -153,12 +160,19 @@ fn conditional_block<'tree>(
             let (condition, if_branch, else_branch, is_unless) = conditional(*guard, context)?;
             match (if_branch, else_branch) {
                 // `(begin {(if $_ next nil?) (if $_ nil? next)} $(lvar _))`.
-                (Branch::BareNext, Branch::Absent) | (Branch::Absent, Branch::BareNext) => {
-                    (last.kind_str() == "identifier").then_some((
+                //
+                // 本家の `next` は節の種別だけを見るので、`next nil` のように引数があっても
+                // 当たる。`NextValue` を除くと `next nil if cond` / 空行 / 値 の形で黙る。
+                (guard_branch @ (Branch::BareNext | Branch::NextValue(_)), Branch::Absent)
+                | (Branch::Absent, guard_branch @ (Branch::BareNext | Branch::NextValue(_)))
+                    if last.kind_str() == "identifier" =>
+                {
+                    let next_has_value = matches!(guard_branch, Branch::NextValue(_));
+                    Some((
                         *parameter,
                         condition,
                         *last,
-                        Position::AfterGuard,
+                        Position::AfterGuard { next_has_value },
                         is_unless,
                     ))
                 }
@@ -182,8 +196,10 @@ fn conditional<'tree>(
     node: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<(Node<'tree>, Branch<'tree>, Branch<'tree>, bool)> {
+    // 本家の `if` 節にはパーサが三項演算子も畳み込む。文法は `conditional` に分けるので、
+    // 落とすと `item.bar? ? item : next` の形でまるごと黙る。
     let is_unless = match node.kind_str() {
-        "if" | "if_modifier" => false,
+        "if" | "if_modifier" | "conditional" => false,
         "unless" | "unless_modifier" => true,
         // `condition_node.parent.elsif?`.
         _ => return None,
@@ -241,9 +257,17 @@ fn truthy_branch(
     context: &RuleContext<'_>,
 ) -> bool {
     match position {
-        // `truthy_branch_for_guard?`: a guard that carries a value skips on the condition, so the
-        // value below it is the falsy branch -- and the other way round for a bare `next`.
-        Position::AfterGuard => is_unless,
+        // `truthy_branch_for_guard?`:
+        //
+        //     if_node.if?  ->  if_node.if_branch.arguments.any?
+        //     else         ->  if_node.if_branch.arguments.none?
+        //
+        // つまり `if` の番なら `next` が値を持つときが truthy、`unless` の番なら持たないときが
+        // truthy。値の有無を見ないと `next nil if cond` で select と reject が入れ替わる。
+        Position::AfterGuard { next_has_value } => match is_unless {
+            false => next_has_value,
+            true => !next_has_value,
+        },
         Position::Branch | Position::InNext => {
             let Some(conditional) = context.parent(condition) else {
                 return false;

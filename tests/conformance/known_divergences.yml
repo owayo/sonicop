@@ -23,6 +23,11 @@ blind_spots:
   - corpus: 全コーパス
     not_covered: 既定以外の設定値 (EnforcedStyle の非既定値・CountAsOne・Max の変更など)
     consequence: 設定分岐は tests/cops.rs の手書きケースでしか通らず、実プロジェクトの .rubocop.yml で差分が出得る
+    note: >-
+      2026-08-16 に本家の spec 由来の「単純な let(:cop_config) 1 つ」のケース 343 件を
+      一度だけ通し、そこで見つかった実バグを修正した (Lint/SafeNavigationConsistency など)。
+      **一度掃いただけで、継続的なテストにはなっていない。** ケースは commit していないので、
+      次に設定分岐を壊しても CI は落ちない。「測った」と「守られている」は別である。
   - corpus: 全コーパス
     not_covered: 拡張プラグイン (rubocop-rails / rubocop-performance など) を入れた状態
     consequence: プラグイン cop との相互作用や、プラグインが変える既定値の影響を測れていない

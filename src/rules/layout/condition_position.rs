@@ -9,7 +9,11 @@ use crate::rules::node_ext::NodeExt;
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The modifier forms and the ternary have their own node kinds here, so reaching one of these
     // already means `modifier_form?` and `ternary?` are both false.
-    for node in context.nodes_of_any(&["if", "unless", "while", "until"]) {
+    //
+    // `elsif` is in the list because upstream's parser builds an `if` node for it, nested in the
+    // else branch, so `on_if` runs for it as well. The grammar gives it a kind of its own, and
+    // leaving it out is the whole of the cop going quiet on a condition written under an `elsif`.
+    for node in context.nodes_of_any(&["if", "unless", "elsif", "while", "until"]) {
         let Some(condition) = node.field("condition") else {
             continue;
         };
@@ -47,9 +51,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `removal_range`: the condition's own lines, unless the body shares the condition's last line.
 fn removal(context: &RuleContext<'_>, node: Node<'_>, condition: Node<'_>) -> Edit {
-    let body = node
-        .field("consequence")
-        .or_else(|| node.field("body"));
+    let body = node.field("consequence").or_else(|| node.field("body"));
     let body_start = body
         .and_then(|body| {
             let mut cursor = body.walk();

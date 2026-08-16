@@ -2,12 +2,18 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node::is_plain_send;
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use `__dir__` to get an absolute path to the current file's directory.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some((outer, argument)) = file_call(context, node) else {
             continue;
         };
