@@ -20,7 +20,7 @@ use crate::rules::send_node::{arguments, named_children};
 /// `method_uses_parens?`: the text before the first element closes with the parenthesis that opened
 /// the list.
 static OPENS_WITH_PARENTHESIS: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\s*\(\s*$").expect("the pattern compiles"));
+    LazyLock::new(|| Regex::new(r"(?-u:\s)*\((?-u:\s)*$").expect("the pattern compiles"));
 
 /// The array literals upstream's parser builds an `array` node for. A percent literal is one, so is
 /// the bracketless list on the right of `x = 1, 2`, and so is a `rescue`'s list of exceptions.

@@ -1889,6 +1889,25 @@ mod style {
         );
     }
 
+    /// Ruby's `\s` is the six ASCII characters, so the space upstream's magic-comment patterns
+    /// allow after the `#` is an ASCII one. Rust's `\s` is Unicode White_Space -- 25 characters --
+    /// and it read an ideographic space as a magic comment upstream does not recognise, so the file
+    /// looked like it already had the comment and the offense went missing.
+    ///
+    /// The ASCII spelling right below is the pair to it: that one *is* the magic comment, and the
+    /// only difference between the two is which space stands after the `#`.
+    #[test]
+    fn only_an_ascii_space_makes_a_magic_comment() {
+        expect_offense(
+            "Style/FrozenStringLiteralComment",
+            "#\u{3000}frozen_string_literal: true\n^ Missing frozen string literal comment.\nx = 1\n",
+        );
+        expect_no_offenses(
+            "Style/FrozenStringLiteralComment",
+            "#\tfrozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
     #[test]
     fn hash_syntax() {
         expect_offense(

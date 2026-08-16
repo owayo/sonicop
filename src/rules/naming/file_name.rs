@@ -11,7 +11,7 @@ use crate::rules::RuleContext;
 /// `SNAKE_CASE`, whose POSIX class is Unicode-aware in Ruby. A dot is allowed because only the
 /// last extension is stripped before the name is judged.
 static SNAKE_CASE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^[\d\p{Lowercase}_.?!]+$").unwrap());
+    LazyLock::new(|| Regex::new(r"(?m)^[0-9\p{Lowercase}_.?!]+$").unwrap());
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let path = context.source.path();

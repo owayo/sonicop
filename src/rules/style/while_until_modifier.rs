@@ -262,7 +262,7 @@ fn nonempty_line_count(source: &str) -> usize {
 /// directive listing this cop after another one alone.
 static DISABLES_COP: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"#\s*rubocop\s*:\s*(?:disable|todo)\s*(?:[^,],)*\s*(?:all|Style/WhileUntilModifier)",
+        r"#(?-u:\s)*rubocop(?-u:\s)*:(?-u:\s)*(?:disable|todo)(?-u:\s)*(?:[^,],)*(?-u:\s)*(?:all|Style/WhileUntilModifier)",
     )
     .unwrap()
 });

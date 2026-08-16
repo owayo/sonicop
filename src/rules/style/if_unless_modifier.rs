@@ -810,7 +810,7 @@ impl HeredocIndex {
 /// `comment_disables_cop?`, whose `([^,],)*` only ever matches one-character names and so leaves a
 /// directive listing this cop after another one alone.
 static DISABLES_COP: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"#\s*rubocop\s*:\s*(?:disable|todo)\s*(?:[^,],)*\s*(?:all|Style/IfUnlessModifier)")
+    Regex::new(r"#(?-u:\s)*rubocop(?-u:\s)*:(?-u:\s)*(?:disable|todo)(?-u:\s)*(?:[^,],)*(?-u:\s)*(?:all|Style/IfUnlessModifier)")
         .unwrap()
 });
 

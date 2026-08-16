@@ -17,9 +17,9 @@ use crate::source::SourceFile;
 // `[[:lower:]]` is ASCII-only, so the Unicode properties are what reproduce the upstream regexes.
 // The `@{0,2}` prefix is why one pattern can judge `foo`, `@foo` and `@@foo` alike.
 static SNAKE_CASE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^@{0,2}[\d\p{Lowercase}_]+[!?=]?$").unwrap());
+    LazyLock::new(|| Regex::new(r"^@{0,2}[0-9\p{Lowercase}_]+[!?=]?$").unwrap());
 static CAMEL_CASE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^@{0,2}(?:_|_?\p{Lowercase}[\d\p{Lowercase}\p{Uppercase}]*)[!?=]?$").unwrap()
+    Regex::new(r"^@{0,2}(?:_|_?\p{Lowercase}[0-9\p{Lowercase}\p{Uppercase}]*)[!?=]?$").unwrap()
 });
 
 pub(super) fn valid_name(name: &str, style: &str) -> bool {

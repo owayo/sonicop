@@ -12,14 +12,14 @@ use crate::rules::RuleContext;
 /// `DirectiveComment::DIRECTIVE_COMMENT_REGEXP`, reduced to the part that decides whether a comment
 /// is one at all. Upstream leaves it unanchored, so a directive appended to prose still counts.
 static RUBOCOP_DIRECTIVE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"#\s*rubocop\s*:\s*(disable-next|todo-next|disable|enable|todo|push|pop)\b")
+    Regex::new(r"#(?-u:\s)*rubocop(?-u:\s)*:(?-u:\s)*(disable-next|todo-next|disable|enable|todo|push|pop)(?-u:\b)")
         .unwrap()
 });
 
 /// `Parser::Source::Buffer::ENCODING_RE`, which decides whether the parser's comment associator
 /// skips the file's opening comment as an encoding line.
 static ENCODING_LINE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[\s#](?:en)?coding\s*[:=]\s*[A-Za-z0-9_-]").unwrap());
+    LazyLock::new(|| Regex::new(r"[[:space:]#](?:en)?coding(?-u:\s)*[:=](?-u:\s)*[A-Za-z0-9_-]").unwrap());
 
 /// The file's comments, ordered, with the leading directives the parser's associator consumes
 /// before it starts walking already dropped.

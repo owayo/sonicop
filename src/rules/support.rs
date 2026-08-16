@@ -853,7 +853,7 @@ fn rotate_same_operator(node: Sexp) -> Sexp {
 /// `VERSION_SPECIFICATION_REGEX`, shared by the two cops that ask whether a dependency was pinned.
 /// Ruby anchors `^` at the start of a *line*, which this engine only does under `(?m)`.
 static VERSION_SPECIFICATION: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?m)^\s*[~<>=]*\s*[0-9.]+").expect("the version requirement pattern compiles")
+    Regex::new(r"(?m)^(?-u:\s)*[~<>=]*(?-u:\s)*[0-9.]+").expect("the version requirement pattern compiles")
 });
 
 /// The keys that pin a dependency to a commit rather than to a version.
