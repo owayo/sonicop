@@ -304,7 +304,10 @@ fn inspect_planned(
         syntax_rule,
         syntax_severity,
         selection.correcting,
-    );
+    )
+    // `registry.disabled_names(config)`: whether the run switches any cop off at all, which is
+    // what an `# rubocop:enable all` has to undo. The standby list is that set already.
+    .with_disabled_cops(!plan.standby.is_empty());
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own

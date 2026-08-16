@@ -337,6 +337,72 @@ fn a_config_disabled_cop_comes_back_from_an_enable_directive() {
     assert!(reported(long.to_owned()).is_empty());
 }
 
+/// 設定で無効にした cop は再有効化を期待されないので、閉じられていない `disable` も
+/// 咎められない (`acceptable_range?`)。無効な cop と有効な cop を並べて書いたときは、
+/// 有効なほうの名前で報告される。
+#[test]
+fn a_disable_of_a_config_disabled_cop_needs_no_enable() {
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Layout/LineLength:\n  Enabled: false\n  Max: 20\n",
+    )]);
+    let missing = |source: &str| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source.to_owned())
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Lint/MissingCopEnableDirective")
+            .map(|(_, _, _, message)| message)
+            .collect::<Vec<_>>()
+    };
+
+    assert!(missing("# rubocop:disable Layout/LineLength\nx = 1\n").is_empty());
+    // 有効なほうの名前で報告される。書いた順ではない。
+    assert_eq!(
+        missing("# rubocop:disable Layout/LineLength, Style/Documentation\nclass A\nend\n"),
+        vec![
+            "Re-enable Style/Documentation cop with `# rubocop:enable` after disabling it."
+                .to_owned()
+        ]
+    );
+}
+
+/// `# rubocop:enable all` は、設定が何か 1 つでも cop を無効にしていれば戻すものがある。
+/// 本家は無効な cop 全部に disable を注入するので、その最初の `enable all` は余計ではない。
+#[test]
+fn an_enable_all_undoes_the_cops_the_configuration_switched_off() {
+    let directory = project(&[]);
+    let redundant = |source: &str| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source.to_owned())
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Lint/RedundantCopEnableDirective")
+            .count()
+    };
+
+    // 既定設定でも pending / 既定無効の cop が残っているので、戻すものがある。
+    assert_eq!(
+        redundant("# frozen_string_literal: true\n\n# rubocop:enable all\nx = 1\n"),
+        0
+    );
+    // 名前を挙げた enable は、その cop に戻すものが無ければ余計。
+    assert_eq!(
+        redundant("# frozen_string_literal: true\n\n# rubocop:enable Style/Documentation\nx = 1\n"),
+        1
+    );
+}
+
 /// `# rubocop:enable` を書いた行は、それが閉じる範囲の最終行なので、まだ無効の
 /// まま。効き始めるのは次の行から。
 #[test]
