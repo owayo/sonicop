@@ -10,7 +10,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if !context.source.text().contains("enable") {
         return;
     }
-    let mut disabled = Counters::default();
+    let mut disabled = Counters {
+        // `inject_disabled_cops_directives` gives every cop the configuration switched off an
+        // outstanding disable, so an `enable all` always has one of them to undo. Only whether the
+        // set is empty matters, and the run's selection decides that as much as the configuration:
+        // `--only Foo` leaves a registry of one enabled cop and nothing to undo.
+        config_pool: context.run_disables_a_cop(),
+        ..Counters::default()
+    };
     let parsed = directives(context);
     // `registry.disabled_names(config)`: an `enable` of a cop the configuration switched off has
     // something to undo, so it starts out counted as disabled.
@@ -48,6 +55,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 struct Counters {
     blanket: usize,
     named: HashMap<String, i64>,
+    /// Whether the cops the configuration switched off still have their injected disable
+    /// outstanding. `handle_enable_all` lowers every positive counter, so the first `enable all`
+    /// spends them all at once.
+    config_pool: bool,
 }
 
 impl Counters {
@@ -74,6 +85,10 @@ impl Counters {
             self.blanket -= 1;
         }
         let mut enabled = blanket;
+        if self.config_pool {
+            self.config_pool = false;
+            enabled = true;
+        }
         for (name, count) in &mut self.named {
             // A name the blanket covers has already come down with it.
             if blanket && reached_by_all(name) {
