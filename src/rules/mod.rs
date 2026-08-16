@@ -142,6 +142,14 @@ pub(crate) struct RuleContext<'a> {
     fragments: OnceCell<Fragments>,
     /// Which identifiers the Metrics cops read as local variables, replayed once per file.
     metric_locals: OnceCell<Locals>,
+    /// Whether the run has any cop the configuration switches off, which is what an
+    /// `# rubocop:enable all` undoes.
+    ///
+    /// `Registry#disabled_names` is the list upstream walks, and only whether it is empty decides
+    /// the answer. It depends on the run's selection as well as the configuration -- `--only Foo`
+    /// leaves a registry of one cop, and that cop is enabled -- so the engine settles it once
+    /// instead of every cop working it out.
+    run_disables_a_cop: bool,
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -178,7 +186,14 @@ impl<'a> RuleContext<'a> {
             variables: OnceCell::new(),
             fragments: OnceCell::new(),
             metric_locals: OnceCell::new(),
+            run_disables_a_cop: false,
         }
+    }
+
+    /// Records whether the run switches any cop off. See [`Self::run_disables_a_cop`].
+    pub(crate) fn with_disabled_cops(mut self, any: bool) -> Self {
+        self.run_disables_a_cop = any;
+        self
     }
 
     /// Points the context at the next cop of the same file, keeping everything the file's cops
@@ -250,6 +265,12 @@ impl<'a> RuleContext<'a> {
     /// has to know whether the neighbour will do it.
     pub fn cop_enabled(&self, cop: &str) -> bool {
         self.config.rule_enabled(cop)
+    }
+
+    /// Whether the run switches any cop off, which is what an `# rubocop:enable all` undoes even
+    /// when the file disabled nothing itself.
+    pub fn run_disables_a_cop(&self) -> bool {
+        self.run_disables_a_cop
     }
 
     /// The Ruby version the run analyzes as, which version-gated cops compare against.
