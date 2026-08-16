@@ -1,5 +1,6 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node::is_plain_send;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
 
@@ -12,6 +13,11 @@ const MSG: &str = "Remove the redundant `Array` constructor.";
 /// * `(send nil? :Array $(array ...))`
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "element_reference"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some((reported, replacement)) = redundant(node, context) else {
             continue;
         };
