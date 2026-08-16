@@ -653,6 +653,16 @@ impl Parser {
                 }
             }
             'K' if !in_set => ("keep", "mark", 2),
+            // `\cX` and `\C-X`: a control escape swallows the character that names it, and the
+            // gem spells the pair as a single `control` node.
+            //
+            // Without this the `\c` falls through to a plain escape of two characters and **the
+            // character it was meant to take is left behind to be read as a literal of its own**.
+            // That stray literal is not a cosmetic difference: `Lint/UnescapedBracketInRegexp`
+            // reads `literal` nodes, so `/abc\c]123/` -- where the `]` belongs to the escape --
+            // was reported as an unescaped bracket that upstream says nothing about.
+            'c' if self.peek(2).is_some() => ("escape", "control", 3),
+            'C' if self.peek(2) == Some('-') && self.peek(3).is_some() => ("escape", "control", 4),
             _ => {
                 let (kind, token) = escape_token(escaped, in_set);
                 (kind, token, 2)
