@@ -35975,3 +35975,40 @@ mod style_collection_compact_allowed_receivers {
         );
     }
 }
+
+/// `Lint/Void` の `-A` が空白だけの行を余分に消していた件 (#53)。
+///
+/// 本家 `RangeHelp#final_pos` は**段を順に 1 回ずつ**通る (空白/タブ → 行継続 → 改行 → 全空白)。
+/// 混ぜて歩くと、改行の向こう側の空白まで食べて**空白だけの行が消える**。
+/// 期待値は本家 1.89.0 の `--only Lint/Void -A` の実出力。
+mod lint_void_blank_line_before {
+    use super::*;
+
+    const COP: &str = "Lint/Void";
+
+    /// 手前に空白だけの行があっても、消えるのは void 式とその行の字下げだけ。
+    #[test]
+    fn a_whitespace_only_line_above_survives() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n   \n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n   \n  baz\nend\n")
+        .run();
+    }
+
+    /// 空行 (空白を持たない行) が手前にあるときは、本家も改行をまとめて食べる。
+    #[test]
+    fn an_empty_line_above_is_taken_with_it() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n\n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n  baz\nend\n")
+        .run();
+    }
+}

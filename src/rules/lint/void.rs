@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, named_children};
+use crate::rules::support;
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::literals::{is_literal, literal_type};
@@ -534,14 +535,15 @@ impl Void<'_, '_> {
         })
     }
 
-    /// `range_with_surrounding_space(side: :left)`, which takes the newline before it too.
+    /// `range_with_surrounding_space(range: node.source_range, side: :left)`, whose keywords are
+    /// upstream's defaults: `newlines: true`, `whitespace: false`, `continuations: false`.
+    ///
+    /// **The stages do not run again.** Walking one run of spaces and then one run of line breaks is
+    /// not the same as walking whatever whitespace is there: with a line holding only spaces above,
+    /// eating past its break reaches those spaces, and eating them reaches the break above *them*.
+    /// The blank line then disappears with the void expression, which upstream leaves alone.
     fn expand_left(&self, start: usize) -> usize {
-        let text = self.context.source.text().as_bytes();
-        let mut position = start;
-        while position > 0 && matches!(text[position - 1], b' ' | b'\t' | b'\n' | b'\r') {
-            position -= 1;
-        }
-        position
+        support::final_pos(self.context.source.text(), start, false, false, true, false)
     }
 
     /// `entirely_literal?`.
