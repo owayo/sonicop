@@ -509,7 +509,7 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
             }
             continue;
         }
-        if separates_words(character) {
+        if u8::try_from(character).is_ok_and(separates_words) {
             if !word.is_empty() {
                 words.push(word_leaf(std::mem::take(&mut word)));
             }
@@ -526,13 +526,18 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
     })
 }
 
-/// Whether the character ends a word of a `%w` or `%i` literal.
+/// Whether the byte ends a word of a `%w` or `%i` literal.
 ///
 /// Ruby's lexer asks `ISSPACE`, which is the six ASCII spacing characters and nothing else -- a
-/// no-break space is part of the word. `char::is_ascii_whitespace` is the same set minus the
-/// vertical tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
-fn separates_words(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
+/// no-break space is part of the word. `is_ascii_whitespace` is the same set minus the vertical
+/// tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
+///
+/// The same six are what Ruby's `/\s/` matches, so a cop written against `\S` asks for the
+/// negation of this. Every place that decides where one word of a percent literal ends comes
+/// through here, because the same mistake was written into two of them independently and a fix
+/// reached only one.
+pub(crate) const fn separates_words(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 fn word_leaf(text: String) -> Sexp {
