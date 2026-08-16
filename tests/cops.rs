@@ -18167,6 +18167,30 @@ mod explicit_block_argument {
 
     const COP: &str = "Style/ExplicitBlockArgument";
 
+    /// 本家は `super` に渡す引数を**定義の側から組み立てる**。`zsuper` は書かれていない引数を
+    /// 暗黙に持つノードなので、`&block` を足すとその暗黙が消え、明示的に書き直すしかない。
+    #[test]
+    fn a_bare_super_gains_the_arguments_it_was_passing_implicitly() {
+        expect_correction(
+            COP,
+            "def foo(a, b)\n  super { yield }\nend\n",
+            "def foo(a, b, &block)\n  super(a, b, &block)\nend\n",
+        );
+        // 既定値つきの**位置**引数だけが名前になる。キーワード引数が `c` になると、
+        // 宣言されていない位置引数を渡すことになる。
+        expect_correction(
+            COP,
+            "def foo(a, b = 1, c: 2)\n  super { yield }\nend\n",
+            "def foo(a, b = 1, c: 2, &block)\n  super(a, b, c: 2, &block)\nend\n",
+        );
+        // 括弧つきの `super` は引数が書かれているので、組み立て直さない。
+        expect_correction(
+            COP,
+            "def foo(a)\n  super(a) { yield }\nend\n",
+            "def foo(a, &block)\n  super(a, &block)\nend\n",
+        );
+    }
+
     #[test]
     fn a_block_that_only_yields_becomes_a_block_argument() {
         expect_correction(
@@ -18347,6 +18371,29 @@ mod redundant_condition {
     use super::*;
 
     const COP: &str = "Style/RedundantCondition";
+
+    /// `test.bar = foo` は本家では `(send test :bar= foo)` -- **代入ではなく送信**である
+    /// (本家の `asgn_type?` は属性代入を含まない)。文法はこれを `assignment` と綴るので、
+    /// `call` だけを見ていると両枝が同じ属性に書く形を落とす。
+    #[test]
+    fn an_attribute_assignment_counts_as_a_method_call() {
+        expect_correction(
+            COP,
+            "if foo\n  test.bar = foo\nelse\n  test.bar = 'baz'\nend\n",
+            "test.bar = foo || 'baz'\n",
+        );
+        // 受け手が違えば同じ問いではない。
+        expect_no_offenses(COP, "if foo\n  a.bar = foo\nelse\n  b.bar = 'baz'\nend\n");
+        // 書き先が違えば同じ問いではない。
+        expect_no_offenses(COP, "if foo\n  a.bar = foo\nelse\n  a.baz = 'baz'\nend\n");
+    }
+
+    /// 単一行に畳めるかは**書かれたとおりの `else`** で決まる。正規化した姿で測ると、
+    /// 元が複数行の `else` を 1 行の三項に畳んでしまう。
+    #[test]
+    fn the_else_branch_is_measured_as_written() {
+        expect_correction(COP, "if b\n  b\nelse\n  c\nend\n", "b || c\n");
+    }
 
     #[test]
     fn a_branch_that_repeats_the_condition_becomes_a_double_pipe() {
@@ -22696,6 +22743,15 @@ mod style_collection_compact {
     use super::*;
 
     const COP: &str = "Style/CollectionCompact";
+
+    /// `!` は前置演算子としても `&.!` としても書ける。文法は前者を `unary`、後者を
+    /// `call` にするので、**片方だけを見ると `&.` の側が落ちる**。
+    #[test]
+    fn negation_is_read_through_both_spellings() {
+        expect_correction(COP, "array.select { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.select { |e| e.nil?.! }\n", "array.compact\n");
+        expect_correction(COP, "array.select { |e| e.nil?&.! }\n", "array.compact\n");
+    }
 
     /// `reject`・`select`・`filter`・`grep_v` のどれもが `compact` になり、破壊版は
     /// `compact!` になる。

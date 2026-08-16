@@ -148,7 +148,10 @@ fn is_offense(
     if ternary {
         return true;
     }
-    let Some(branch) = normalized_else else {
+    // `else_branch` here is the **parser's** else, not the one the source reads as `else`. An
+    // `unless` holds its branches the other way round, so looking at the normalized side asks
+    // whether `b` fits on one line when upstream asks it of `c; d`.
+    let Some(branch) = raw_else else {
         return true;
     };
     // `!else_branch.instance_of?(AST::Node)`: only the node types without a class of their own --
@@ -311,13 +314,34 @@ fn is_send(node: Node<'_>) -> bool {
     match node.kind_str() {
         "call" => node.field("block").is_none(),
         "binary" => true,
+        // `a.foo = 1` is `(send a :foo= 1)` upstream, so `test.bar = foo` is one of these -- the
+        // grammar spells it as an assignment whose left is a call. Leaving it out makes the cop
+        // silent on `if foo / test.bar = foo / else / test.bar = 'baz' / end`, which upstream
+        // reports through `branches_have_method?` (its `asgn_type?` deliberately excludes it).
+        "assignment" => attribute_assignment(node).is_some(),
         _ => false,
     }
+}
+
+/// The call an attribute assignment writes through, when that is what the node is.
+fn attribute_assignment<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    if node.kind_str() != "assignment" {
+        return None;
+    }
+    let left = node.field("left")?;
+    (left.kind_str() == "call" && left.field("receiver").is_some()).then_some(left)
 }
 
 /// A call's arguments grouped the way upstream's parser does: a trailing run of `key: value` pairs
 /// is one `hash` argument there, however many pairs were written.
 fn arguments<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Range<usize>)> {
+    // The value an attribute assignment writes is upstream's only argument to `foo=`.
+    if attribute_assignment(node).is_some() {
+        return node
+            .field("right")
+            .map(|right| vec![(right, right.byte_range())])
+            .unwrap_or_default();
+    }
     if node.kind_str() == "binary" {
         return node
             .field("right")
@@ -352,6 +376,13 @@ fn first_argument<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Range<usize>
 }
 
 fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
+    if let Some(call) = attribute_assignment(node) {
+        // The selector upstream sees is `foo=`, but only the name is written; comparing the two
+        // branches by the bare name answers the same question.
+        return call
+            .field("method")
+            .map(|method| context.source.node_text(method));
+    }
     let field = match node.kind_str() {
         "binary" => "operator",
         _ => "method",
@@ -361,6 +392,11 @@ fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str>
 }
 
 fn receiver<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
+    if let Some(call) = attribute_assignment(node) {
+        return call
+            .field("receiver")
+            .map(|receiver| context.source.node_text(receiver));
+    }
     let field = match node.kind_str() {
         "binary" => "left",
         _ => "receiver",
