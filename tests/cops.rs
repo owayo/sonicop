@@ -20370,6 +20370,61 @@ mod style_identical_conditional_branches {
 
     const COP: &str = "Style/IdenticalConditionalBranches";
 
+    /// `identical_conditional_branches_spec.rb:132`.
+    ///
+    /// Hoisting an assignment above the condition that reads what it writes would change what the
+    /// condition sees. What the guard compares is the **receiver** on both sides -- `h[:key]` and
+    /// `h.x` are a `send` of `:[]` / `:x` upstream and reduce to `h` -- so what sits in between is
+    /// not part of the question. The port only knew the shape where a bare name is assigned.
+    #[test]
+    fn writing_through_the_receiver_the_condition_reads_is_left_alone() {
+        for (condition, assignment) in [
+            ("h[:key]", "h[:key] = foo"),
+            // The key need not match: both sides still reduce to `h`.
+            ("h[:other]", "h[:key] = foo"),
+            ("h.x", "h.x = foo"),
+            ("h", "h[:key] = foo"),
+        ] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "if {condition}\n  {assignment}\n  bar\nelse\n  {assignment}\n  baz\nend\n"
+                ),
+            );
+        }
+    }
+
+    /// The pair to the case above: a *different* receiver is hoistable, which is what makes the
+    /// receiver -- rather than the whole condition -- the thing being compared.
+    #[test]
+    fn writing_through_a_different_receiver_is_still_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if g[:key]
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              bar
+            else
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              baz
+            end
+            "#,
+        );
+    }
+
+    /// `identical_conditional_branches_spec.rb:739`, "does not raise any error when using empty
+    /// brace in the both parentheses".
+    ///
+    /// Upstream reads a branch's head through `begin.children.first`, so a group holding nothing
+    /// hands back `nil` and the check stops. The grammar keeps a node for the parentheses, so the
+    /// emptiness has to be asked about rather than falling out of the tree.
+    #[test]
+    fn branches_holding_only_empty_parentheses_are_not_reported() {
+        expect_no_offenses(COP, "if condition\n  ()\nelse\n  ()\nend\n");
+    }
+
     #[test]
     fn every_branch_that_shares_an_expression_is_reported() {
         expect_offense(

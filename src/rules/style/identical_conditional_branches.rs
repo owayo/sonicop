@@ -98,7 +98,14 @@ fn check_branches(
         .filter_map(|branch| branch.last().copied())
         .collect();
     if duplicated(context, locals, node, &tails) {
-        check_expressions(context, node, &tails, Position::AfterCondition, reported, offenses);
+        check_expressions(
+            context,
+            node,
+            &tails,
+            Position::AfterCondition,
+            reported,
+            offenses,
+        );
     }
     // The head of a branch holding one statement is also its tail: moving it out would leave the
     // branch with nothing to return.
@@ -121,7 +128,14 @@ fn check_branches(
             }
         }
     }
-    check_expressions(context, node, &heads, Position::BeforeCondition, reported, offenses);
+    check_expressions(
+        context,
+        node,
+        &heads,
+        Position::BeforeCondition,
+        reported,
+        offenses,
+    );
 }
 
 /// `duplicated_expressions?`: every branch ends -- or begins -- with the same expression.
@@ -160,6 +174,16 @@ fn check_expressions(
     reported: &mut Vec<Range<usize>>,
     offenses: &mut Vec<Offense>,
 ) {
+    // `return if expressions.any?(&:nil?)`: upstream reaches a branch's head and tail through
+    // `begin.children.first`, so a group with nothing in it hands back `nil` and the whole check
+    // stops. `()` is exactly that group. The grammar keeps a node for the parentheses themselves,
+    // so here the emptiness has to be asked about instead of falling out of the tree.
+    if expressions.iter().any(|expression| {
+        expression.kind_str() == "parenthesized_statements"
+            && super::nodes::children(*expression).is_empty()
+    }) {
+        return;
+    }
     // A conditional written on one line has no lines to move an expression between.
     let correctable = !written_inline(context, node);
     let mut inserted = false;
@@ -174,7 +198,10 @@ fn check_expressions(
         );
         let mut offense = context.offense(message, expression.byte_range());
         if correctable {
-            let mut edits = vec![remove(support::whole_lines(expression.byte_range(), context))];
+            let mut edits = vec![remove(support::whole_lines(
+                expression.byte_range(),
+                context,
+            ))];
             let mut anchor = node.byte_range();
             if !inserted {
                 inserted = true;
@@ -198,7 +225,9 @@ fn hoist(
     edits: &mut Vec<Edit>,
 ) -> Range<usize> {
     let source = context.source.node_text(expression);
-    let assignment = node.parent_of(context).filter(|parent| is_assignment(*parent));
+    let assignment = node
+        .parent_of(context)
+        .filter(|parent| is_assignment(*parent));
     let anchored = assignment.unwrap_or(node);
     let indentation = " ".repeat(context.source.line_column(anchored.start_byte()).1 - 1);
     match (assignment, position) {
@@ -272,8 +301,7 @@ fn last_child_of_parent(node: Node<'_>) -> bool {
 
 /// `node.condition`, which a `case` names its subject with.
 fn condition<'t>(node: Node<'t>) -> Option<Node<'t>> {
-    node.field("condition")
-        .or_else(|| node.field("value"))
+    node.field("condition").or_else(|| node.field("value"))
 }
 
 /// `assignable_condition_value`: the name the condition tests, when it tests one.
@@ -289,6 +317,11 @@ fn condition_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> 
                 )
                 .to_owned(),
         ),
+        // `h[:key]` is a `send` of `:[]` upstream, so it answers `call_type?` and reduces to its
+        // receiver. The grammar gives it a node of its own, which is why it has to be named here.
+        "element_reference" => condition
+            .field("object")
+            .map(|object| context.source.node_text(object).to_owned()),
         "binary" => condition
             .field("left")
             .map(|left| context.source.node_text(left).to_owned()),
@@ -301,14 +334,25 @@ fn condition_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> 
 
 /// `node_parts[0].to_s` of an assignment: the name it binds, for the spellings that name one.
 fn assigned_name<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    if node.kind_str() != "assignment" || !is_assignment(node) {
+    if node.kind_str() != "assignment" {
         return None;
     }
     let left = node.field("left")?;
-    // A multiple assignment and a shorthand one both stand for a node rather than a name upstream,
-    // which never equals what the condition spells.
-    (VARIABLE_KINDS.contains(&left.kind_str()) || left.kind_str() == "constant")
-        .then(|| context.source.node_text(left))
+    match left.kind_str() {
+        // `h[:key] = foo` and `h.x = foo` are both a `send` upstream, and what the guard reads off
+        // them is the *receiver* -- `h` -- not the key or the method. That is the same thing the
+        // condition `h[:key]` / `h.x` reduces to, so writing through the receiver the condition
+        // reads is what stops the hoist. What sits in between does not matter, which is why
+        // `if h[:other]` with `h[:key] = foo` is also left alone.
+        "element_reference" => left.field("object").map(|o| context.source.node_text(o)),
+        "call" => left.field("receiver").map(|r| context.source.node_text(r)),
+        // A multiple assignment and a shorthand one both stand for a node rather than a name
+        // upstream, which never equals what the condition spells.
+        kind if VARIABLE_KINDS.contains(&kind) || kind == "constant" => {
+            Some(context.source.node_text(left))
+        }
+        _ => None,
+    }
 }
 
 /// `unique_expression.child_nodes.first` of an assignment: the value for a single assignment, the
