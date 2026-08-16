@@ -15,11 +15,6 @@ const MSG_INDENT: &str = "Indent the first part of a string concatenated with ba
 /// the parts are indented rather than aligned.
 const INDENTED_PARENTS: &[&str] = &[
     "program",
-    "body_statement",
-    "block_body",
-    "then",
-    "else",
-    "do",
     "begin",
     "block",
     "do_block",
@@ -30,6 +25,10 @@ const INDENTED_PARENTS: &[&str] = &[
     "elsif",
     "conditional",
 ];
+
+/// The node kinds the grammar adds for a statement list. Upstream has one only where it holds
+/// several statements -- a body of one statement *is* that statement there.
+const CONTAINERS: &[&str] = &["body_statement", "block_body", "then", "else", "do"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let indented_style = context
@@ -63,10 +62,22 @@ fn concatenated_with_backslash(node: Node<'_>, parts: &[Node<'_>]) -> bool {
 
 /// `always_indented?`: the concatenation is a statement rather than a value handed to something.
 fn always_indented(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match context.parent(node) {
-        None => true,
-        Some(parent) => INDENTED_PARENTS.contains(&parent.kind_str()),
+    let Some(mut parent) = context.parent(node) else {
+        return true;
+    };
+    // A body holding one statement *is* that statement upstream, so the concatenation written as the
+    // only statement of a `when` has the `when` for a parent -- and that is not one of the places the
+    // parts are indented. A body holding several is a `begin`, which is.
+    while CONTAINERS.contains(&parent.kind_str()) {
+        if crate::rules::visibility::statements(parent).len() > 1 {
+            return true;
+        }
+        match context.parent(parent) {
+            Some(grandparent) => parent = grandparent,
+            None => return true,
+        }
     }
+    INDENTED_PARENTS.contains(&parent.kind_str())
 }
 
 /// `check_aligned`: every part after the first lines up with the one before it.

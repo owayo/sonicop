@@ -902,9 +902,15 @@ fn expression_end(node: Node<'_>) -> usize {
 fn last_statement<'tree>(list: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = list.walk();
     let children: Vec<Node<'tree>> = list.named_children(&mut cursor).collect();
-    children
-        .into_iter()
-        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
+    children.into_iter().rfind(|child| {
+        !matches!(
+            child.kind_str(),
+            // A `rescue`, `else` or `ensure` clause stands beside the statements it guards here,
+            // where upstream wraps the statements in a node of its own. Reading the clause as the
+            // last statement makes the value of the last real statement look unused.
+            "comment" | "heredoc_body" | "rescue" | "else" | "ensure"
+        )
+    })
 }
 
 /// `ProcessedSource#contains_comment?`: whether any comment sits on one of the lines the range

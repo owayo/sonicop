@@ -13,9 +13,10 @@
 
 # 検証コーパスが見ていないもの。CONFORMANCE.md に必ず出す。
 #
-# 現在の検証コーパスは 5 本、計 18,246 ファイル:
-#   rubocop/rubocop 1,765 / rails/rails 3,550 / ruby/ruby 7,465 /
-#   Homebrew/brew 2,176 / mastodon/mastodon 3,290
+# 現在の検証コーパスは 5 本、計 18,251 ファイル:
+#   rubocop/rubocop 1,765 (f009b33) / rails/rails 3,551 (62b5458) / ruby/ruby 7,466 (3349f41) /
+#   Homebrew/brew 2,179 (38ee325) / mastodon/mastodon 3,290 (fad3685)
+# 括弧内は測定に使ったコーパスの commit。CONFORMANCE.md の表と同じものを指す。
 # 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
 # 版依存の挙動はこの 3 つの範囲では踏めている。
 blind_spots:
@@ -88,7 +89,7 @@ blind_spots:
 #
 # 「本家のバグは再現しない」と判断した根拠: ai-second-opinion (gpt-5.6-sol) の判定。
 #   ドロップイン互換はバグ互換の対象に境界があり、ファイル内容と encoding 宣言を
-#   不整合にする挙動まで製品保証に含めるべきではない。非 UTF-8 ソースは 18,246 ファイル中
+#   不整合にする挙動まで製品保証に含めるべきではない。非 UTF-8 ソースは検証コーパス全体で
 #   8 件と稀だが、稀なファイルほど置換困難な資産である可能性がある。
 # 本家へ upstream パッチを送るべき問題でもある。
 
@@ -108,10 +109,10 @@ divergences:
     note: >-
       endless メソッドの誤りが parser の def 文脈を開いたままにするため、本家は class の還元でこれを出す。
       回復後の状態は tree-sitter からは再現できない。
-      規模の実測 (Homebrew/brew): 構文エラーを含むと判定するファイルは両者とも同じ 568 個で
-      過不足なし (= 他の cop を走らせる対象が完全に一致するため、Lint/Syntax 以外は全 cop 一致する)。
-      その 568 個の内訳は、最初の診断が位置・文面まで一致 499 / 全診断が一致 223。
-      最初の診断がずれる 69 個はすべてこの形 (class の位置に報告されるため出現順で先頭に来る)
+      構文エラーと判定するファイルの集合は両者で一致するので、Lint/Syntax 以外は全 cop 一致する。
+      規模の実測 (ファイル数・診断の一致数) は CONFORMANCE.md の
+      "Error recovery after a syntax error" 節だけに置く。ここに書き写すと、片方だけ更新されて
+      食い違う (実際に 498 対 499 でずれていた)
   # 本家は解析前にソースを UTF-8 へ再符号化し、補間の無い正規表現リテラルを
   # `Regexp.new` に通す (parser gem `Builders::Default#static_regexp`)。診断の文面は
   # Ruby の正規表現エンジン (Onigmo) の例外そのままなので、再現するには Onigmo の
