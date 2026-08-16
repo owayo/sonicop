@@ -260,7 +260,10 @@ fn in_pattern_matching_in_method_argument(
 
 /// `allowed_pin_operator?`: `^(pin (begin !{lvar ivar cvar gvar}))`.
 fn allowed_pin_operator(node: Node<'_>, children: &[Node<'_>]) -> bool {
-    if !node.parent().is_some_and(|parent| parent.kind_str() == "pin") {
+    if !node
+        .parent()
+        .is_some_and(|parent| parent.kind_str() == "pin")
+    {
         return false;
     }
     !children.first().is_some_and(|first| {
@@ -608,9 +611,7 @@ fn is_lambda_or_proc(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let name = node
         .field("method")
         .map(|method| context.source.node_text(method));
-    if !matches!(name, Some("lambda") | Some("proc"))
-        || node.field("receiver").is_some()
-    {
+    if !matches!(name, Some("lambda") | Some("proc")) || node.field("receiver").is_some() {
         return false;
     }
     // `node.braces?`: only the brace spelling is rewritten, since `do ... end` would bind
@@ -686,11 +687,9 @@ fn argument_of_parenthesized_method_call(
     // `parent.receiver != begin_node`: `Node#!=` compares structurally, so a receiver written the
     // same way as the group counts as being it.
     call_is_parenthesized(context, parent)
-        && !parent
-            .field("receiver")
-            .is_some_and(|receiver| {
-                crate::rules::lint::node_equality::identical(receiver, node, context)
-            })
+        && !parent.field("receiver").is_some_and(|receiver| {
+            crate::rules::lint::node_equality::identical(receiver, node, context)
+        })
 }
 
 /// `BASIC_CONDITIONALS`: `if`, `while` and `until`. A ternary is an `if` upstream, so it is one.
@@ -746,10 +745,15 @@ fn oneline_rescue_parentheses_required(
     if parent.kind_str() == "conditional" {
         return false;
     }
+    // `case` and `case_match` name their subject `value`, not `condition`, so asking for one field
+    // reaches every member of the family except those two. `while (foo rescue bar)` sits right
+    // beside them in the spec and passes, which is what hides it.
     if is_conditional(parent)
-        && parent
-            .field("condition")
-            .is_some_and(|condition| condition.id() == node.id())
+        && ["condition", "value"].iter().any(|name| {
+            parent
+                .field(name)
+                .is_some_and(|held| held.id() == node.id())
+        })
     {
         return false;
     }
@@ -945,12 +949,10 @@ fn has_own_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         }
         // `defined?(x)` and `not(x)` carry the parentheses themselves; written with a blank they
         // are a group of their own.
-        "unary" => node
-            .field("operator")
-            .is_some_and(|operator| {
-                matches!(context.source.node_text(operator), "defined?" | "not")
-                    && context.source.text().as_bytes().get(operator.end_byte()) == Some(&b'(')
-            }),
+        "unary" => node.field("operator").is_some_and(|operator| {
+            matches!(context.source.node_text(operator), "defined?" | "not")
+                && context.source.text().as_bytes().get(operator.end_byte()) == Some(&b'(')
+        }),
         "parenthesized_statements" => true,
         _ => false,
     }
@@ -968,7 +970,11 @@ fn call_has_arguments(node: Node<'_>) -> bool {
 }
 
 /// `call_node?`: a call, or a brace block that is not a lambda or a proc.
-fn is_call_node(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+fn is_call_node(
+    context: &RuleContext<'_>,
+    locals: &LocalVariables<'_, '_>,
+    node: Node<'_>,
+) -> bool {
     if is_send(context, locals, node) {
         return true;
     }
@@ -1028,12 +1034,10 @@ fn check_send<'tree>(
 /// `unary_operation?`: an operator call whose selector opens the expression.
 fn is_unary_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     node.kind_str() == "unary"
-        && node
-            .field("operator")
-            .is_some_and(|operator| {
-                context.source.node_text(operator) != "defined?"
-                    && operator.start_byte() == node.start_byte()
-            })
+        && node.field("operator").is_some_and(|operator| {
+            context.source.node_text(operator) != "defined?"
+                && operator.start_byte() == node.start_byte()
+        })
 }
 
 fn is_prefix_not(context: &RuleContext<'_>, node: Node<'_>) -> bool {
