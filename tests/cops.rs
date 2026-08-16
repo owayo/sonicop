@@ -6806,6 +6806,21 @@ mod style_rest {
             .run();
     }
 
+    /// ブロック付きの呼び出しは上流では `block` ノードで `send` ではないので、括弧を足す
+    /// 書き直しに入らず本文がそのまま出る。名前と引数から組み立て直すとブロックが消える。
+    #[test]
+    fn an_endless_definition_keeps_the_block_of_its_body() {
+        CopCase::new(
+            "Style/SingleLineMethods",
+            "def save; run_callbacks(:save) { @events << :save }; end\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .target_ruby("3.2")
+        .corrected("def save() = run_callbacks(:save) { @events << :save }\n")
+        .run();
+    }
+
     /// 行末コメントは定義の上の行に持ち上げられる。
     #[test]
     fn a_trailing_comment_moves_above_the_definition() {
@@ -21865,6 +21880,14 @@ mod style_file_open {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// `begin ... rescue ... end` の値として書いた形は本家では咎められない。文法は
+    /// rescue 節を本体の文と並べて置くので、本体の最後の文の値が使われていないように
+    /// 見えてしまう。
+    #[test]
+    fn the_value_of_a_begin_rescue_is_used() {
+        expect_no_offenses(COP, "a = begin\n  File.open(p1)\nrescue X\n  nil\nend\n");
+    }
 }
 
 /// `Style/FileRead`。
@@ -22799,6 +22822,12 @@ mod style_keyword_arguments_merging {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// `super` は上流では専用のノードで、`(send _ _ ...)` のどのパターンにも当たらない。
+    #[test]
+    fn a_super_call_is_not_a_send() {
+        expect_no_offenses(COP, "def m(o)\n  super(o, **o.merge(a: 1))\nend\n");
+    }
 }
 
 /// `Style/IfWithBooleanLiteralBranches`。
@@ -23548,6 +23577,22 @@ mod style_redundant_interpolation_unfreeze {
             .target_ruby("2.7")
             .run();
     }
+
+    /// 続けて書いた文字列は 1 つの `dstr` なので、そのどこかに埋め込みがあれば
+    /// `+` は余計。文法は連結を独立した節にするので、開始の文字列だけを見ると
+    /// 埋め込みを見落とす。
+    #[test]
+    fn an_interpolation_in_any_part_of_a_concatenation_counts() {
+        let report = CopCase::new(
+            COP,
+            "a = 1\nm = +\"x #{a}\" \\\n    \" y\"\n".to_owned(),
+            Vec::new(),
+        )
+        .target_ruby("3.3")
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
 }
 
 /// `Style/NilLambda`。
@@ -23989,6 +24034,17 @@ mod style_inline_comment {
             ",
         );
     }
+
+    /// ヒアドキュメントの中に書いた `#` はコメントではない。文法の走査は埋め込みを閉じた
+    /// 直後の `#` から行末までをコメントとして切り出してしまうので、字面のなかで見つかった
+    /// コメントは数えない。
+    #[test]
+    fn a_hash_inside_a_heredoc_is_not_a_comment() {
+        expect_no_offenses(
+            COP,
+            "def m(a, b)\n  <<~MSG\n    Error in #{a}##{b}: done\n  MSG\nend\n",
+        );
+    }
 }
 
 /// `Style/AsciiComments` (既定無効)。
@@ -24239,6 +24295,16 @@ mod style_date_time {
         ] {
             expect_no_offenses(COP, source);
         }
+    }
+
+    /// 演算子も上流では呼び出し。`::DateTime === x` は `:===` の send で、レシーバは
+    /// `DateTime` なので対象になる。
+    #[test]
+    fn an_operator_written_on_the_class_is_a_call_too() {
+        let report = CopCase::new(COP, "x = (::DateTime === y)\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 }
 
@@ -25384,6 +25450,27 @@ mod style_option_hash {
             .config("Style/OptionHash:\n  Allowlist:\n    - m\n")
             .run();
     }
+
+    /// 本家の `on_args` はブロックの引数にも掛かる。名前は「ブロックを渡した
+    /// メソッド」で、`Allowlist` はそれと突き合わせる。
+    #[test]
+    fn a_block_parameter_counts_too() {
+        let report = CopCase::new(
+            COP,
+            "mock = lambda do |_, _, options = {}|\n  options\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        CopCase::new(
+            COP,
+            "mock = lambda do |_, options = {}|\n  options\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/OptionHash:\n  Allowlist:\n    - lambda\n")
+        .run();
+    }
 }
 
 /// `Style/OneClassPerFile`。
@@ -26254,6 +26341,17 @@ mod style_fetch_env_var {
             "if cond\n  x = ENV['X']\nend\n",
             "if cond\n  x = ENV.fetch('X', nil)\nend\n",
         );
+    }
+
+    /// 多重代入の代入先は上流では `:[]=` で、そもそも cop に尋ねられない。
+    #[test]
+    fn a_multiple_assignment_target_is_not_a_read() {
+        CopCase::new(
+            COP,
+            "old, ENV['VERBOSE'] = ENV.fetch('VERBOSE', nil), 'false'\n".to_owned(),
+            Vec::new(),
+        )
+        .run();
     }
 
     /// 条件が `&&` や `||` のときも、その両辺は「旗として使っている」ぶんに入る。
@@ -28160,6 +28258,17 @@ mod lint_it_without_arguments_in_block {
             .target_ruby("3.4")
             .run();
     }
+
+    /// 書き込まれる名前は上流では `lvasgn` で、`it += 1` は変数の読み書きであって
+    /// メソッド呼び出しではない。
+    #[test]
+    fn a_name_being_assigned_is_a_variable() {
+        for source in ["foo { it += 1 }\n", "foo { it = 1 }\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.3")
+                .run();
+        }
+    }
 }
 
 /// `Lint/UnexpectedBlockArity`。
@@ -28386,6 +28495,21 @@ mod lint_constant_resolution {
         for source in ["A, B = 1, 2\n", "def O0(&block)\n  block\nend\n"] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 引数の既定値に書いた定数は読み。文法は `def m(a = X, b = {})` を「並んだ代入先へ
+    /// の 1 つの代入」と読むが、上流では引数 2 つと `X` の素の参照になる。
+    #[test]
+    fn a_constant_written_as_a_parameter_default_is_a_read() {
+        let report = CopCase::new(
+            COP,
+            "def m(value = EMPTY, opts = {})\n  value\nend\n",
+            Vec::new(),
+        )
+        .config(ENABLED)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
     }
 
     /// 大文字で始まるメソッド呼び出しは本家では `send` で、定数の参照ではない。文法は
@@ -30876,6 +31000,9 @@ mod style_string_hash_keys {
             "{ 'a': 1 }\n",
             "{ \"a\": 1 }\n",
             "{ 'file:///x.rb': [] }\n",
+            // `\xAD` は 1 バイトを書くので、鍵の中身は valid_encoding? を満たさない。
+            "{ \"\\xAD\" => 1 }\n",
+            "{ \"malformed \\251\" => 1 }\n",
         ] {
             expect_no_offenses(COP, source);
         }
@@ -31658,6 +31785,26 @@ mod style_documentation_method {
             ",
         );
     }
+
+    /// `else` や `begin` の行末に書いたコメントは、その下の定義の説明になる。上流の
+    /// 関連付けは「その行で終わるノード」にコメントを渡し、何も終わっていなければ
+    /// 次のノードに渡すため、キーワードだけの行は素通しになる。
+    #[test]
+    fn a_comment_after_a_bare_keyword_documents_what_follows() {
+        expect_no_offenses(
+            COP,
+            "if x\n  1\nelse # note\n  def foo\n    2\n  end\nend\n",
+        );
+        // 行に文があるときはそちらのコメントなので、定義は説明されていない。
+        let report = CopCase::new(
+            COP,
+            "x = 1 # note\ndef foo\n  1\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
 }
 
 /// `Lint/NonAtomicFileOperation`。
@@ -32112,6 +32259,41 @@ mod lint_symbol_conversion {
             expect_no_offenses(COP, source);
         }
     }
+
+    /// `Symbol#inspect` が裸で書く綴りは識別子だけではない。演算子・1 文字の
+    /// グローバル・引用符を含む名前で、引用の要否の判定が本家と分かれていた。
+    #[test]
+    fn what_ruby_writes_bare_decides_the_quoting() {
+        // `!~` は演算子なので `:"!~"` は余計な引用。
+        let report = CopCase::new(COP, "x = :\"!~\"\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(report.offenses[0].message.contains(":!~"));
+        // 1 文字のグローバルと、引用符を含む名前はそのままで正しい。
+        for source in ["x = :$'\n", "x = :\"I\\\"like\\\"quotes\"\n"] {
+            CopCase::new(COP, source.to_owned(), Vec::new()).run();
+        }
+    }
+
+    /// 続けて書いた文字列は 1 つの `dstr` で、区切り記号を持たない。置換は値から
+    /// 組み立てるので、各部分の引用符を外して繋げた綴りになる。
+    #[test]
+    fn adjacent_strings_are_one_literal() {
+        let report = CopCase::new(
+            COP,
+            "a = 1\nx = \"#{ a }\" \\\n  \"b#{ a }\".to_sym\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        assert!(
+            report.offenses[0].message.contains(":\"#{ a }b#{ a }\""),
+            "{}",
+            report.offenses[0].message
+        );
+    }
 }
 
 /// `Lint/ToEnumArguments`。
@@ -32172,6 +32354,21 @@ mod lint_to_enum_arguments {
                 .run();
         }
     }
+
+    /// 位置は呼び出しの引数までで、後ろに書いたブロックは含まない。上流ではブロックは
+    /// 呼び出しを包む別のノードで、`send` はそこで終わっている。
+    #[test]
+    fn the_range_stops_before_a_block() {
+        expect_offense(
+            COP,
+            r"
+            def m(a)
+              to_enum(:m) { 1 }
+              ^^^^^^^^^^^ Ensure you correctly provided all the arguments.
+            end
+            ",
+        );
+    }
 }
 
 /// `Layout/LineEndStringConcatenationIndentation`。
@@ -32228,6 +32425,13 @@ mod layout_line_end_string_concatenation_indentation {
         .without_offense_check()
         .corrected("text = 'offense' \\\n  'aligned'\n")
         .run();
+    }
+
+    /// `when` の枝に 1 文だけ書いた連結は、上流では親が `when` になるので「字下げ」側では
+    /// なく「揃える」側。本体が 1 文のときそれ自体が文であって `begin` ではない。
+    #[test]
+    fn a_concatenation_alone_in_a_when_branch_is_aligned() {
+        expect_no_offenses(COP, "case x\nwhen 1\n  'a' \\\n  'b'\nwhen 2\n  'c'\nend\n");
     }
 }
 
@@ -32505,6 +32709,17 @@ mod lint_unmodified_reduce_accumulator {
                 .run();
         }
     }
+
+    /// `break` が返す値は文法上では引数リストに包まれる。上流にはその節が無く、値は
+    /// キーワードの直接の子なので、包みを外さないと「累算器を返している」ことを
+    /// 見落とす。
+    #[test]
+    fn the_value_a_break_hands_back_counts_as_a_return_value() {
+        expect_no_offenses(
+            COP,
+            "v.reduce(nil) do |offense, variable|\n  break offense unless x\n  variable\nend\n",
+        );
+    }
 }
 
 /// `Lint/UnusedPrivateMethod` と `Lint/NameTypo`。
@@ -32657,6 +32872,17 @@ mod lint_shadowing_outer_local_variable {
         ] {
             CopCase::new(COP, source, Vec::new()).config(ENABLED).run();
         }
+    }
+
+    /// 多重代入の右側に書いたブロックは何も隠していない。上流は値を先に読むので、
+    /// そのときまだ左側の名前は存在しない。文法は代入先を独立したリストに集めるため、
+    /// 宣言のノードがブロックを含まなくなる。
+    #[test]
+    fn a_block_on_the_right_of_a_multiple_assignment_shadows_nothing() {
+        expect_no_offenses(
+            COP,
+            "def m\n  a, b = f do |a, b|\n    [a, b]\n  end\n  [a, b]\nend\n",
+        );
     }
 }
 

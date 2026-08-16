@@ -142,22 +142,20 @@ Both tools run their full default set — **the same 394 cops**, matched name fo
 side is restricted and the comparison is like-for-like as it stands. Times are the fastest of two
 warmed runs.
 
-These timings were taken at v26.8.103, on corpora a few commits older than the ones
-[CONFORMANCE.md](CONFORMANCE.md) pins — which is why the file counts here are slightly lower. What
-has changed since is cop logic, not the engine: the parse, the rule dispatch and the correction loop
-are untouched. Treat the seconds as of that measurement rather than of this commit.
-
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
-| rubocop/rubocop | 1,765 | 10.64 s | **2.84 s** | 40.66 s | **13.60 s** |
-| mastodon/mastodon | 3,290 | 10.78 s | **3.13 s** | 33.22 s | **13.57 s** |
-| Homebrew/brew | 2,176 | 11.13 s | **4.61 s** | 37.89 s | **10.81 s** |
-| rails/rails | 3,550 | 23.84 s | **10.15 s** | 84.93 s | **33.69 s** |
-| ruby/ruby | 7,465 | 95.71 s | **35.74 s** | 258.87 s | **107.37 s** |
+| rubocop/rubocop | 1,765 | 11.49 s | **3.45 s** | 42.49 s | **16.39 s** |
+| mastodon/mastodon | 3,290 | 27.26 s | **6.03 s** | 42.07 s | **19.53 s** |
+| Homebrew/brew | 2,179 | 20.37 s | **5.36 s** | 45.08 s | **16.03 s** |
+| rails/rails | 3,551 | 45.89 s | **18.96 s** | 99.56 s | **44.61 s** |
+| ruby/ruby | 7,466 | 117.79 s | **54.97 s** | 215.87 s | **100.62 s** |
 
-The gap is 2.4x to 3.8x in parallel and 2.4x to 3.5x single-process, so no single corpus summarizes
-it. The single-process column is the steadier of the two — it measures the engines rather than how
-well each one's parallelism happens to fit the tree it was pointed at.
+The gap is 2.1x to 4.5x in parallel and 2.1x to 2.8x single-process, so no single corpus summarizes
+it. **Read the single-process column and treat the parallel one as indicative.** Measuring the same
+two binaries three times over a day put the single-process figures within 16% of each other every
+time, while the parallel ratio on RuboCop's own tree moved between 3.3x and 9.2x purely with what
+else the machine was doing. Single-process measures the engines; parallel measures the engines plus
+how well each one's scheduling happens to fit that tree on that run.
 
 The speed is not bought by skipping work: over those same 394 cops the two agree on **every offense**
 on RuboCop's own tree and on Mastodon, and autocorrect there is byte-identical.
@@ -178,11 +176,12 @@ sonicop --force-default-config --format quiet
 ```
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-The numbers above were taken with a one-minute load average between 4 and 29 — the machine was in
-use, not idle. Both tools ran under the same conditions, so the ratios hold, but the absolute
+The one-minute load average was 3.6 when the run started and 9.6 when it finished — the machine was
+in use, not idle. Both tools ran under the same conditions, so the ratios hold, but the absolute
 seconds are not a floor: expect better on a quiet machine. Anything competing for cores inflates
-both sides, and not by the same factor on each, so measure on an otherwise idle machine when the
-absolute numbers matter to you.
+both sides, and not by the same factor on each, which is what makes the parallel column move as much
+as it does. If the absolute numbers matter to you, measure on an idle machine and record the load
+either side of the run — a figure without that context cannot be compared with another one.
 
 ## Development
 

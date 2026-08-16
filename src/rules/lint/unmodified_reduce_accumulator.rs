@@ -124,13 +124,23 @@ fn return_values<'tree>(
     while let Some(node) = stack.pop() {
         if matches!(node.kind_str(), "next" | "break")
             && enclosing_block(node, context).is_some_and(|inner| inner.id() == block.id())
-            && let Some(argument) = named_children(node).into_iter().next()
+            && let Some(argument) = handed_back(node)
         {
             values.push(argument);
         }
         crate::rules::push_named_children(node, &mut stack);
     }
     values
+}
+
+/// What a `next` or `break` hands back. The grammar wraps it in an argument list, which upstream has
+/// no node for -- the value is the keyword's own child there.
+fn handed_back<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let first = named_children(node).into_iter().next()?;
+    match first.kind_str() {
+        "argument_list" => named_children(first).into_iter().next(),
+        _ => Some(first),
+    }
 }
 
 fn enclosing_block<'tree>(

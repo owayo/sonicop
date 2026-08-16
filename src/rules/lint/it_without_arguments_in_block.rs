@@ -50,11 +50,16 @@ fn is_deprecated_it(
     if context.source.node_text(node) != "it" || locals.is_lvar(node) {
         return false;
     }
-    node.parent_of(context).is_none_or(|parent| {
-        parent.kind_str() != "call"
-            || parent
-                .field("method")
-                .is_none_or(|method| method.id() != node.id())
+    node.parent_of(context).is_none_or(|parent| match parent.kind_str() {
+        "call" => parent
+            .field("method")
+            .is_none_or(|method| method.id() != node.id()),
+        // A name being written to is an `lvasgn` upstream, and `it += 1` reads the variable the
+        // assignment declares rather than calling a method.
+        "assignment" | "operator_assignment" => parent
+            .field("left")
+            .is_none_or(|left| left.id() != node.id()),
+        _ => true,
     })
 }
 

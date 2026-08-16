@@ -11,6 +11,14 @@ const MSG: &str = "Provide additional arguments directly rather than using `merg
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
+        // `(send _ _ ...)`: a `super` is a node of its own upstream and matches no `send` pattern,
+        // though the grammar writes it as the method of a call.
+        if node
+            .field("method")
+            .is_some_and(|method| method.kind_str() == "super")
+        {
+            continue;
+        }
         // `(send _ _ ... (hash (kwsplat $(send $_ :merge $...)) ...))`: the double splat has to
         // open the hash the call ends with.
         let list = arguments(node);

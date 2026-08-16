@@ -10,18 +10,59 @@ use tree_sitter::Node;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+/// The names a method may be given that are not identifiers, which Ruby writes a symbol of bare.
+const OPERATOR_NAMES: &[&str] = &[
+    "+", "-", "*", "/", "%", "**", "==", "===", "!=", "!", "<", "<=", ">", ">=", "<=>", "<<", ">>",
+    "=~", "!~", "~", "&", "|", "^", "[]", "[]=", "+@", "-@", "`",
+];
+
+/// The globals Ruby names with a single character, which are written bare as well.
+const SPECIAL_GLOBAL_CHARACTERS: &str = "!@&`'+~=/\\,;.<>_*$?:\"0123456789-";
+
 /// `Symbol#inspect`: quotes only go on a name that could not be written bare.
 pub(crate) fn inspect_symbol(name: &str) -> String {
-    let plain = !name.is_empty()
-        && name
-            .chars()
-            .all(|character| character.is_alphanumeric() || character == '_')
-        && !name.starts_with(|character: char| character.is_ascii_digit());
-    if plain {
+    if writable_bare(name) {
         format!(":{name}")
     } else {
         format!(":{}", inspect_string(name))
     }
+}
+
+/// Whether Ruby writes the name without quotes.
+///
+/// Three shapes qualify beyond a plain identifier: the `?`, `!` or `=` a method name may end in, a
+/// variable written with its sigil (`@x`, `@@x`, `$x`, and the one-character globals such as `$'`),
+/// and the operators a method can be named after. Quoting any of them is what
+/// `Lint/SymbolConversion` reports, so reading them as needing quotes hides the offence.
+fn writable_bare(name: &str) -> bool {
+    if OPERATOR_NAMES.contains(&name) {
+        return true;
+    }
+    if let Some(rest) = name.strip_prefix("@@").or_else(|| name.strip_prefix('@')) {
+        return is_bare_identifier(rest, false);
+    }
+    if let Some(rest) = name.strip_prefix('$') {
+        return is_bare_identifier(rest, false)
+            || (rest.chars().count() == 1
+                && rest
+                    .chars()
+                    .all(|one| SPECIAL_GLOBAL_CHARACTERS.contains(one)));
+    }
+    is_bare_identifier(name, true)
+}
+
+/// Whether the name reads as an identifier, optionally with the one character a method name may
+/// close with.
+fn is_bare_identifier(name: &str, method: bool) -> bool {
+    let body = match method {
+        true => name.strip_suffix(['?', '!', '=']).unwrap_or(name),
+        false => name,
+    };
+    !body.is_empty()
+        && !body.starts_with(|character: char| character.is_ascii_digit())
+        && body
+            .chars()
+            .all(|character| character.is_alphanumeric() || character == '_')
 }
 
 /// `String#inspect`.
@@ -52,7 +93,7 @@ pub(crate) fn inspect_string(value: &str) -> String {
 /// two escapes they have, which is why the grammar leaves their contents in one piece.
 pub(crate) fn string_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let raw = context.source.node_text(node);
-    let verbatim = raw.starts_with('\'') || raw.starts_with("%q");
+    let verbatim = raw.starts_with('\'') || raw.starts_with("%q") || raw.starts_with(":'");
     let mut value = String::new();
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {

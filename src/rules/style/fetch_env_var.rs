@@ -188,10 +188,15 @@ fn assigned(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = upstream_parent(node, context) else {
         return false;
     };
-    matches!(parent.kind_str(), "assignment" | "operator_assignment")
-        && parent
+    match parent.kind_str() {
+        "assignment" | "operator_assignment" => parent
             .field("left")
-            .is_some_and(|left| left.id() == node.id())
+            .is_some_and(|left| left.id() == node.id()),
+        // Every target of a multiple assignment is written into a list of its own. Writing to a
+        // subscript is `:[]=` upstream, which `RESTRICT_ON_SEND` never asks the cop about.
+        "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => true,
+        _ => false,
+    }
 }
 
 /// `or_lhs?`: the read is the left of an `||`, or sits anywhere in a chain of them.
