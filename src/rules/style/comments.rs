@@ -18,8 +18,9 @@ static RUBOCOP_DIRECTIVE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// `Parser::Source::Buffer::ENCODING_RE`, which decides whether the parser's comment associator
 /// skips the file's opening comment as an encoding line.
-static ENCODING_LINE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[[:space:]#](?:en)?coding(?-u:\s)*[:=](?-u:\s)*[A-Za-z0-9_-]").unwrap());
+static ENCODING_LINE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"[[:space:]#](?:en)?coding(?-u:\s)*[:=](?-u:\s)*[A-Za-z0-9_-]").unwrap()
+});
 
 /// The file's comments, ordered, with the leading directives the parser's associator consumes
 /// before it starts walking already dropped.
