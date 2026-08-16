@@ -17810,6 +17810,31 @@ mod each_with_object {
 mod hash_transform {
     use super::*;
 
+    /// `transforming_body_expr.hash_type? && !braces?`: 波括弧の無いハッシュは、ブロックの
+    /// 本体そのものになるときに波括弧が要る。**文法は波括弧の無い形に `hash` の節を作らない**
+    /// ので、`hash` だけを見ると、この門が存在する理由そのものを外す。
+    #[test]
+    fn a_braceless_hash_body_gains_braces() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.to_h { |key, val| [key, value: val] }\n",
+            "{a: 1, b: 2}.transform_values { |val| { value: val } }\n",
+        );
+    }
+
+    /// 本家の `send` はぶら下がったブロックを含まない。`x.map { }.to_h { }` は
+    /// `(call (block (call _ :map) ..) :to_h)` に当たるので**報告される**。
+    /// そして `.to_h` にブロックが付いているときは `.to_h` を残す
+    /// (`strip_trailing_chars = 0`) — 消すとブロックがぶら下がる先を失う。
+    #[test]
+    fn a_block_on_to_h_keeps_the_selector() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.map {|k, v| [k, foo(v)]}.to_h {|k, v| [v, k]}\n",
+            "{a: 1, b: 2}.transform_values {|v| foo(v)}.to_h {|k, v| [v, k]}\n",
+        );
+    }
+
     const KEYS: &str = "Style/HashTransformKeys";
     const VALUES: &str = "Style/HashTransformValues";
 
@@ -22239,6 +22264,20 @@ mod style_file_write {
 /// (検出 2 件 / 1 件・`-A` の結果ともバイト一致を確認済み)。
 mod style_in_pattern_then {
     use super::*;
+
+    /// 本家が報告するのは `node.loc.begin` = **パターンと本体の間**のトークン。本体の中の
+    /// `;` は文の区切りで、この cop の管轄ではない。`in b then c; d` は既に `then` を
+    /// 言っているので本家は黙る。
+    #[test]
+    fn a_semicolon_inside_the_body_is_not_the_separator() {
+        expect_no_offenses("Style/InPatternThen", "case a\nin b then c; d\nend\n");
+        // 本体の先頭が `;` のときだけ報告する。
+        expect_correction(
+            "Style/InPatternThen",
+            "case a\nin b; c\nend\n",
+            "case a\nin b then c\nend\n",
+        );
+    }
 
     /// 1 行に収まる `in` の `;` は ` then` になる。選択パターンはメッセージ側で
     /// ` | ` 区切りに整形される。
