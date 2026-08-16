@@ -1338,6 +1338,7 @@ pub fn corrected_text(
             };
             cop = merged;
             placed.push(index);
+            trace_edits(cop_name, &report.offenses[index], source);
         }
 
         if cop.children.is_empty() {
@@ -1351,13 +1352,18 @@ pub fn corrected_text(
         // A cop an earlier one declared itself incompatible with is passed over: its corrections
         // wait for the pass after the one that provoked the incompatibility.
         if skipped {
+            trace_outcome("skip ", cop_name);
             continue;
         }
         // `Team#merge_corrector!`: a cop whose corrections clash with what is already scheduled
         // loses every correction it asked for in this file, not just the one that clashed.
-        if let Ok(merged) = run.clone().combine_children(&cop.children) {
-            run = merged;
-            applied += placed.len();
+        match run.clone().combine_children(&cop.children) {
+            Ok(merged) => {
+                run = merged;
+                applied += placed.len();
+                trace_outcome("apply", cop_name);
+            }
+            Err(_) => trace_outcome("clash", cop_name),
         }
     }
 
@@ -1369,6 +1375,34 @@ pub fn corrected_text(
         }
     }
     (run.rewrite(source), applied)
+}
+
+/// 一時的ではない計装。`SONICOP_TRACE_EDITS` が立っているときだけ、1 パスの中で
+/// **どの cop が何を書き換えようとし、それが採用されたか**を stderr へ出す。
+///
+/// 出力を比べるだけでは「誰の Edit がどう混ざったか」が見えない。`%q{...}` が `%(...)` になる
+/// ように、**どの cop も単独では出さない字面**が出ることがあり、そこは出力からは遡れない。
+///
+/// 既定の実行には 1 バイトも出さないので、測定に使うバイナリのまま有効にできる。計装版と
+/// 測定版を分けると、測るたびにビルドが要り、そのビルドが測定を壊す。
+fn trace_edits(cop_name: &str, offense: &Offense, source: &str) {
+    if std::env::var_os("SONICOP_TRACE_EDITS").is_none() {
+        return;
+    }
+    for edit in &offense.corrections {
+        let before = source.get(edit.start..edit.end).unwrap_or("<範囲外>");
+        eprintln!(
+            "TRACE edit  {cop_name} [{}..{}] {before:?} -> {:?}",
+            edit.start, edit.end, edit.replacement
+        );
+    }
+}
+
+/// 同上。cop 単位の採否 (`Team#merge_corrector!` の結果) を出す。
+fn trace_outcome(outcome: &str, cop_name: &str) {
+    if std::env::var_os("SONICOP_TRACE_EDITS").is_some() {
+        eprintln!("TRACE {outcome} {cop_name}");
+    }
 }
 
 const MAX_CORRECTION_PASSES: usize = 200;
