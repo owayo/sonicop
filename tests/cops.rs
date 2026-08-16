@@ -14024,6 +14024,68 @@ mod layout_spacing_and_alignment {
         expect_no_offenses(COP, "[1].each { |a, b| a }\n");
     }
 
+    /// ラムダリテラルの丸括弧も「ブロックのパイプ」として扱う。
+    ///
+    /// 本家では `->(x) { }` も `block` ノード (`(block (lambda) (args ...) body)`) なので
+    /// `on_send` ではなく `on_block` が見る。`pipes` が読むのは
+    /// `[arguments.loc.begin, arguments.loc.end]` の 2 箇所だけで、ラムダではそれが丸括弧になる
+    /// ため、**メッセージは「block parameter」のまま**である。文法はラムダに専用のノードを与える
+    /// ので、`block` / `do_block` だけを回していると丸ごと見落とす (この cop の spec で 8 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec と `--only <cop> -A` の実測 (spec 29 ケース全一致)。
+    #[test]
+    fn a_lambda_literals_parentheses_are_its_pipes() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        expect_offense(
+            COP,
+            r"
+            ->( x, y) { puts x }
+               ^ Space before first block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->( x, y) { puts x }\n", "->(x, y) { puts x }\n");
+        expect_offense(
+            COP,
+            r"
+            ->(x, y  ) { puts x }
+                   ^^ Space after last block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->(x, y  ) { puts x }\n", "->(x, y) { puts x }\n");
+        // 3 種類が同時に出る形。1 回の -A で全部片付く。
+        expect_correction(
+            COP,
+            "->(  a,  b, c) { puts a }\n",
+            "->(a, b, c) { puts a }\n",
+        );
+        // 対照 1: 揃っていれば何も出ない。
+        expect_no_offenses(COP, "->(x, y) { puts x }\n");
+        // 対照 2: **丸括弧を書いていないラムダは対象外** (`loc.begin` が無いので `pipes?` が偽)。
+        expect_no_offenses(COP, "->x { puts x }\n");
+        expect_no_offenses(COP, "-> { puts 1 }\n");
+    }
+
+    /// `EnforcedStyleInsidePipes: space` でもラムダの丸括弧を同じ 2 箇所として読む。
+    ///
+    /// 期待値は本家 1.89.0 の spec (274 / 285 行付近) と `-A` の実測。
+    #[test]
+    fn the_space_style_also_reads_a_lambdas_parentheses() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        let space = |source: &str, corrected: &str| {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        };
+        space("->(x ) { puts x }\n", "->( x ) { puts x }\n");
+        space("->( x, y) { puts x }\n", "->( x, y ) { puts x }\n");
+        // 対照: この style では空白が空いている形が正しいので何も出ない。
+        CopCase::new(COP, "->( x, y ) { puts x }\n".to_owned(), Vec::new())
+            .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+            .run();
+    }
+
     /// 行末コメントの手前の空白。ヒアドキュメント本文中の `#` は数えない。
     #[test]
     fn space_before_comment() {
