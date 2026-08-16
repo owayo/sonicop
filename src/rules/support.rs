@@ -107,11 +107,43 @@ use crate::rules::send_node::{Argument, is_string, pair_key_symbol, string_text}
 /// the gate an offense is reported behind, which is what keeps a corrector that cannot handle an
 /// unusual shape from emitting broken code rather than staying quiet.
 pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bool {
+    trace_overlapping_edits(context, edits, edits.first().map_or(0, |edit| edit.start));
     // `Parser::ClobberingError`: a rewrite whose parts collide is no correction to begin with.
     let Some(corrected) = apply_edits(context.source.text(), edits) else {
         return false;
     };
     parses(&corrected)
+}
+
+/// Names a cop whose own edits overlap each other.
+///
+/// [`apply_edits`] refuses such a set, and every caller reads that refusal as "this correction does
+/// not work" and drops the candidate -- so the cop goes quiet with nothing to say why. A cop asking
+/// to remove one span twice is not a correction that fails, it is a corrector written twice over,
+/// and the offense it loses never reaches the output to be noticed.
+///
+/// Set `SONICOP_TRACE_OVERLAP=1` to list them.
+fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize) {
+    if std::env::var_os("SONICOP_TRACE_OVERLAP").is_none() {
+        return;
+    }
+    let mut ordered: Vec<&Edit> = edits.iter().collect();
+    ordered.sort_by_key(|edit| (edit.start, edit.end));
+    let mut cursor = 0;
+    for edit in ordered {
+        if edit.start < cursor {
+            let (line, column) = context.source.line_column(at);
+            eprintln!(
+                "[overlap]\t{}\t{}:{}:{}",
+                context.rule.name,
+                context.source.path().display(),
+                line,
+                column
+            );
+            return;
+        }
+        cursor = edit.end;
+    }
 }
 
 /// The source with every edit applied, or `None` when two of them overlap.
@@ -239,6 +271,7 @@ pub(crate) fn verified_by_reparse<T>(
     // `scope_groups`, keyed by node identity and ordered by the first item that reached each scope.
     let mut groups: Vec<(Option<Node<'_>>, Vec<T>)> = Vec::new();
     for item in items {
+        trace_overlapping_edits(context, &edits_of(&item), range_of(&item).start);
         let scope = reparse_scope(root, &range_of(&item));
         let key = scope.map(|node| node.id());
         match groups
