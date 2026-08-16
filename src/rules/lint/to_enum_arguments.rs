@@ -33,9 +33,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if arguments_match(rest, definition, context) {
             continue;
         }
+        // Upstream's `send` ends where its arguments do -- a block written after it belongs to the
+        // `block` node wrapped around the call, and the reported range stops before it.
         offenses.push(context.offense(
             "Ensure you correctly provided all the arguments.",
-            node.byte_range(),
+            crate::rules::send_node::send_range(node, context),
         ));
     }
 }

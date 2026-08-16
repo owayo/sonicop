@@ -493,11 +493,41 @@ impl<'tree> AstIndex<'tree> {
         if node.kind_str() == "heredoc_body" {
             self.heredoc_ranges.push(node.byte_range());
         }
-        if node.kind_str() == "comment" {
+        if node.kind_str() == "comment" && !inside_literal_text(node) {
             self.comment_ranges.push(node.byte_range());
         }
     }
 }
+
+/// Whether the grammar found the comment inside the text of a literal, where Ruby has no comments
+/// at all.
+///
+/// A `#` that opens no interpolation is ordinary text in a heredoc, but the scanner takes `##{x}` for
+/// a comment running to the end of the line -- and upstream's parser reads the same bytes as part of
+/// the string. A comment written *inside* an interpolation is a real one, so the search stops there.
+fn inside_literal_text(node: Node<'_>) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind_str() {
+            "interpolation" => return false,
+            kind if LITERAL_TEXT_KINDS.contains(&kind) => return true,
+            _ => current = parent,
+        }
+    }
+    false
+}
+
+/// The node kinds whose contents are text rather than code.
+const LITERAL_TEXT_KINDS: &[&str] = &[
+    "heredoc_body",
+    "string",
+    "regex",
+    "subshell",
+    "bare_string",
+    "string_array",
+    "symbol_array",
+    "delimited_symbol",
+];
 
 /// Collapses overlapping and touching ranges of a start-sorted list so that no
 /// offset is covered by more than one entry. `source::is_protected` inspects

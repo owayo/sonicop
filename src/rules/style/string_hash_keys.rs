@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // A quoted key written with the `:` separator is a symbol already -- `'a': 1` is `:a`, not
         // the string `'a'`. The grammar writes it with the same node either separator gets, so the
         // separator itself is what tells them apart.
-        if is_symbol_key(node, context) {
+        if is_symbol_key(node, context) || !is_valid_encoding(key, context) {
             continue;
         }
         if receives_environment(node, context) {
@@ -53,6 +53,38 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             safe: true,
         }));
     }
+}
+
+/// `key_content.valid_encoding?`.
+///
+/// `\xAD` and `\251` write a single byte rather than a code point, so a key spelling one that does
+/// not make up valid UTF-8 has no encoding to read and upstream leaves it alone. The value decoded
+/// for the replacement resolves such an escape to a character, which loses the distinction.
+fn is_valid_encoding(key: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut cursor = key.walk();
+    for child in key.named_children(&mut cursor) {
+        let text = context.source.node_text(child);
+        match raw_byte(text).filter(|_| child.kind_str() == "escape_sequence") {
+            Some(byte) => bytes.push(byte),
+            // Every other escape stands for a character, and its own spelling is ASCII -- keeping it
+            // as written cannot turn valid text invalid, and it still keeps two runs of bytes apart.
+            None => bytes.extend_from_slice(text.as_bytes()),
+        }
+    }
+    std::str::from_utf8(&bytes).is_ok()
+}
+
+/// The single byte a `\xNN` or `\NNN` escape writes, which is where an invalid encoding comes from.
+fn raw_byte(text: &str) -> Option<u8> {
+    let body = text.strip_prefix('\\')?;
+    if let Some(digits) = body.strip_prefix('x') {
+        return u8::from_str_radix(digits, 16).ok();
+    }
+    if !body.is_empty() && body.bytes().all(|byte| byte.is_ascii_digit() && byte < b'8') {
+        return u32::from_str_radix(body, 8).ok().and_then(|value| u8::try_from(value).ok());
+    }
+    None
 }
 
 /// Whether the pair was written with the `:` separator, which makes a quoted key a symbol.
