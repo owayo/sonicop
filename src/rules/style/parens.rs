@@ -56,20 +56,18 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
         Some(_) => comma_after(text, range.end),
         None => range.end,
     };
-    let mut edits = vec![
-        Edit {
-            start: range.start,
-            end: open_end,
-            replacement: String::new(),
-            safe: true,
-        },
-        Edit {
-            start: close_start,
-            end: close_end,
-            replacement: String::new(),
-            safe: true,
-        },
-    ];
+    let mut edits = vec![Edit {
+        start: range.start,
+        end: open_end,
+        replacement: String::new(),
+        safe: true,
+    }];
+    // The new comma goes between the two removals, not after them. `apply_edits` walks the list in
+    // the order it is given and drops the whole correction the moment an edit starts before the
+    // previous one ended -- and the opening token sits on an *earlier* line than the `)` it is
+    // replacing the comma of, so appending this at the end silently loses the offense. That failure
+    // is invisible from the cop: it reads as "not detected", exactly the way the doubled close-paren
+    // removal did before it was folded above.
     if let Some(opener) = heredoc.filter(|_| close_end > range.end) {
         edits.push(Edit {
             start: opener.end_byte(),
@@ -78,6 +76,12 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
             safe: true,
         });
     }
+    edits.push(Edit {
+        start: close_start,
+        end: close_end,
+        replacement: String::new(),
+        safe: true,
+    });
     // `ternary_condition?`: `(a) ? b : c` needs the space the parenthesis used to provide.
     if is_ternary_condition_before_question_mark(context, node) {
         edits.push(Edit {
