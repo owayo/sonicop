@@ -35464,15 +35464,386 @@ mod lint_unused_block_argument_correction {
     /// 次のパスへ回るが、範囲の端への挿入はすり抜けて隣の字面にくっついてしまう。
     /// `-> env do` を `lambda do |env|` にする `Style/Lambda` と重なると、`lambda_` が
     /// できていた。
+    /// 単独で走らせるとどちらの形でも `_env` になるので、字面だけでは捕まらない。
+    /// Edit の形そのものを見る。
     #[test]
     fn the_name_is_replaced_rather_than_prefixed() {
+        let source = "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n";
+        let report = CopCase::new("Lint/UnusedBlockArgument", source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        let name = source.find("env").expect("引数が見つからない");
+        assert_eq!(corrections.len(), 1, "correction は 1 件のはず");
+        assert_eq!(
+            (
+                corrections[0].start,
+                corrections[0].end,
+                corrections[0].replacement.as_str()
+            ),
+            (name, name + "env".len(), "_env"),
+            "名前のレンジごと `_env` に置き換わっていない (先頭への挿入になっている)"
+        );
+    }
+
+    /// 実際に壊れていた組み合わせ。`-> env do` を `lambda do |env|` に組み替える
+    /// `Style/Lambda` と重なると、先頭への挿入は引数から離れて `lambda_` になっていた。
+    #[test]
+    fn the_lambda_keyword_does_not_absorb_the_underscore() {
         CopCase::new(
             "Lint/UnusedBlockArgument",
             "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n".to_owned(),
             Vec::new(),
         )
+        .cops(&["Lint/UnusedBlockArgument", "Style/Lambda"])
         .without_offense_check()
-        .corrected("def m\n  foo(bar: -> _env do\n    1\n  end)\nend\n")
+        .corrected("def m\n  foo(bar: lambda do |_env|\n    1\n  end)\nend\n")
+        .run();
+    }
+}
+
+/// `Lint/UnusedMethodArgument` の correction。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Lint/UnusedMethodArgument,Style/MethodDefParentheses -A` の実出力。
+mod lint_unused_method_argument_correction {
+    use super::*;
+
+    /// `Lint/UnusedBlockArgument` と同じ `UnusedArgCorrector` を共有していて、同じ
+    /// 取り違えをしていた。本家は `corrector.replace(node.loc.name, "_#{name}")` で
+    /// **名前を丸ごと置き換える**。移植版は先頭へ `_` を差し込んでいた。
+    ///
+    /// 直った字面だけを見ても捕まらない。単独で走らせればどちらの形でも `_bar` に
+    /// なるからで、差が出るのは同じ引数を別の cop が同じパスで書き換えたときだけ。
+    /// メソッド引数ではその相手になる cop が今のところ無く、`-A` の出力比較では
+    /// 一致してしまう。だから **Edit の形そのもの** を見る。
+    #[test]
+    fn the_name_is_replaced_rather_than_prefixed() {
+        let source = "def foo(bar)\n  1\nend\n";
+        let report = CopCase::new("Lint/UnusedMethodArgument", source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        let name = source.find("bar").expect("引数が見つからない");
+        assert_eq!(corrections.len(), 1, "correction は 1 件のはず");
+        assert_eq!(
+            (
+                corrections[0].start,
+                corrections[0].end,
+                corrections[0].replacement.as_str()
+            ),
+            (name, name + "bar".len(), "_bar"),
+            "名前のレンジごと `_bar` に置き換わっていない (先頭への挿入になっている)"
+        );
+    }
+
+    /// 上と同じことを `-A` の側からも押さえておく。括弧を補う
+    /// `Style/MethodDefParentheses` と重なっても本家と同じ字面になる。
+    #[test]
+    fn parentheses_are_added_around_the_renamed_argument() {
+        CopCase::new(
+            "Lint/UnusedMethodArgument",
+            "def foo bar\n  1\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .cops(&["Lint/UnusedMethodArgument", "Style/MethodDefParentheses"])
+        .without_offense_check()
+        .corrected("def foo(_bar)\n  1\nend\n")
+        .run();
+    }
+
+    /// splat は `*` を残して名前だけを置き換える (本家の `gsub(/\A\*+/, '')`)。
+    #[test]
+    fn a_splat_keeps_its_star() {
+        CopCase::new(
+            "Lint/UnusedMethodArgument",
+            "def one(*bar)\n  do_something(1, 2)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def one(*_bar)\n  do_something(1, 2)\nend\n")
+        .run();
+    }
+}
+
+/// `Layout/DefEndAlignment` の走査。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/DefEndAlignment -A` の実出力。
+mod layout_def_end_alignment_walk {
+    use super::*;
+
+    const COP: &str = "Layout/DefEndAlignment";
+
+    /// ブロックの中の定義も見る。`private def foo` を拾う枝が、それ以外の呼び出しで
+    /// 走査ごと打ち切っていたので、ブロックがぶら下がる呼び出しの下がまるごと
+    /// 見えなくなっていた。`class` の中なら通っていたぶん気づきにくい。
+    #[test]
+    fn a_definition_inside_a_block_is_still_measured() {
+        CopCase::new(
+            COP,
+            "Foo.bar do\n  def m\n    x\n      end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("Foo.bar do\n  def m\n    x\n  end\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "Foo.bar {\n  def m\n    x\n      end\n}\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("Foo.bar {\n  def m\n    x\n  end\n}\n")
+        .run();
+        // `private def foo` の枝は従来どおり。
+        CopCase::new(
+            COP,
+            "class C\n  private def m\n    x\n      end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("class C\n  private def m\n    x\n  end\nend\n")
+        .run();
+    }
+}
+
+/// `Naming/RescuedExceptionsVariableName` の correction。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Naming/RescuedExceptionsVariableName,Lint/UselessAssignment -a` の実出力。
+mod naming_rescued_exceptions_variable_name_correction {
+    use super::*;
+
+    const COP: &str = "Naming/RescuedExceptionsVariableName";
+
+    /// 本家は改名する箇所ごとに `corrector.replace` を呼ぶ。移植版は宣言から最後の参照
+    /// までを 1 つの Edit にまとめていて、その間に書かれたものを丸ごと飲み込んでいた。
+    ///
+    /// 変数は `begin`/`end` を抜けても生きているので、ブロックの後ろの参照まで改名する。
+    /// つまりこの 1 つの Edit は**ファイルの後ろにある別の `rescue` ごと覆う**。同名を
+    /// 使う 2 つ目の `rescue` は自分の offense が clobber して次のパスへ回され、本体だけ
+    /// 新しい名前になった中間状態が残る。そこで `Lint/UselessAssignment` が
+    /// 「もう誰も読んでいない」と見て `=> error` を消してしまい、動かないコードになる。
+    #[test]
+    fn each_rename_is_its_own_edit() {
+        let source = "begin\n  a\nrescue LoadError => error\n  raise error\nend\n";
+        let report = CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        assert_eq!(
+            corrections.len(),
+            2,
+            "宣言と参照で 2 件のはず。1 件なら間を飲み込む 1 つの Edit に戻っている: {corrections:?}"
+        );
+        for correction in &corrections {
+            assert_eq!(
+                correction.replacement, "e",
+                "置き換えるのは名前だけのはず: {correction:?}"
+            );
+        }
+    }
+
+    /// 同じ名前を使う `rescue` がもう 1 つあっても、両方とも改名される。
+    /// まとめた Edit だったころは 2 つ目が `rescue Foo` になり、本体は `c e` のまま
+    /// 残っていた。
+    #[test]
+    fn a_second_handler_using_the_same_name_keeps_its_variable() {
+        CopCase::new(
+            COP,
+            "begin\n  a\nrescue LoadError => error\n  raise error\nend\n\n\
+             def m\n  b\nrescue Foo => error\n  c error\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .cops(&[COP, "Lint/UselessAssignment"])
+        .without_offense_check()
+        .corrected(
+            "begin\n  a\nrescue LoadError => e\n  raise e\nend\n\n\
+             def m\n  b\nrescue Foo => e\n  c e\nend\n",
+        )
+        .run();
+    }
+}
+
+/// `Style/RedundantCondition` が `||` に畳んだ式を括弧で包むかどうか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantCondition -A` の実出力。
+mod style_redundant_condition_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/RedundantCondition";
+
+    /// `make_ternary_form` は `node.parent&.send_type?` のときだけ包む。文法はこの
+    /// 「send」を複数の節に散らしていて、うち 2 つは send ではない。論理演算子は
+    /// 本家では `and`/`or` の節で、代入が send なのは `[]=` と属性の書き手のときだけ。
+    fn corrects(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    const BRANCHES: &str = "if a\n  a\nelse\n  b\nend\n";
+
+    /// `[]=` と属性の書き手は send なので包む。
+    #[test]
+    fn writing_through_a_send_wraps() {
+        corrects(&format!("h[k] = {BRANCHES}"), "h[k] = (a || b)\n");
+        corrects(&format!("o.attr = {BRANCHES}"), "o.attr = (a || b)\n");
+    }
+
+    /// ふつうの代入は send ではないので包まない。`&.` は `csend` で、
+    /// `send_type?` は偽になる。
+    #[test]
+    fn the_other_assignments_do_not() {
+        corrects(&format!("x = {BRANCHES}"), "x = a || b\n");
+        corrects(&format!("@x = {BRANCHES}"), "@x = a || b\n");
+        corrects(&format!("X = {BRANCHES}"), "X = a || b\n");
+        // 演算子代入は書き先によらず `op-asgn` で send ではない。
+        corrects(&format!("h[k] += {BRANCHES}"), "h[k] += a || b\n");
+        corrects(&format!("o&.attr = {BRANCHES}"), "o&.attr = a || b\n");
+    }
+
+    /// 演算子は本家では send だが、論理演算子だけは `and`/`or` の節になる。
+    #[test]
+    fn operators_wrap_except_the_logical_ones() {
+        corrects(&format!("z = 1 == {BRANCHES}"), "z = 1 == (a || b)\n");
+        corrects(&format!("z = 1 + {BRANCHES}"), "z = 1 + (a || b)\n");
+        corrects(&format!("z = c && {BRANCHES}"), "z = c && a || b\n");
+        corrects(&format!("z = c || {BRANCHES}"), "z = c || a || b\n");
+        corrects(&format!("z = c and {BRANCHES}"), "z = c and a || b\n");
+    }
+
+    /// 添字は `[]` の send。
+    #[test]
+    fn an_index_wraps() {
+        corrects("z = h[if a\n  a\nelse\n  b\nend]\n", "z = h[(a || b)]\n");
+    }
+}
+
+/// `Lint/AssignmentInCondition` の correction の形。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Layout/IndentationConsistency,Lint/AssignmentInCondition -A` の実出力。
+mod lint_assignment_in_condition_wrap {
+    use super::*;
+
+    const COP: &str = "Lint/AssignmentInCondition";
+
+    /// 本家は `corrector.wrap(asgn_node, '(', ')')` で、範囲の両端への挿入 2 つ。
+    /// 移植版は範囲ごとの置換にしていて、括弧の間の字面をそのまま複写していた。
+    /// 複数行にまたがる代入では、その範囲の中で別の cop が直そうとしたものを
+    /// 丸ごと飲み込む。
+    #[test]
+    fn the_parentheses_are_inserted_rather_than_the_range_replaced() {
+        let source = "if x = foo\n  bar\nend\n";
+        let report = CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        assert_eq!(
+            corrections.len(),
+            2,
+            "両端への挿入 2 件のはず: {corrections:?}"
+        );
+        for correction in &corrections {
+            assert_eq!(
+                correction.start, correction.end,
+                "挿入なのでレンジは空のはず: {correction:?}"
+            );
+        }
+    }
+
+    /// 同じパスで `Layout/IndentationConsistency` が中の行を横へずらしても、
+    /// そのずれが失われない。まとめた置換だったころは継続行だけ元の桁に残っていた。
+    #[test]
+    fn a_shift_inside_the_assignment_survives() {
+        CopCase::new(
+            COP,
+            "class C\n  private\n    def m\n      if p = (\n          a ||\n          b\n        )\n        c\n      end\n    end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .cops(&[COP, "Layout/IndentationConsistency"])
+        .without_offense_check()
+        .corrected(
+            "class C\n  private\n  def m\n    if (p = (\n        a ||\n        b\n      ))\n      c\n    end\n  end\nend\n",
+        )
+        .run();
+    }
+}
+
+/// `Style/RedundantReturn` が heredoc を返すメソッドを見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantReturn -A` の実出力。
+mod style_redundant_return_heredoc {
+    use super::*;
+
+    const COP: &str = "Style/RedundantReturn";
+
+    /// 文法は heredoc の本体を、それを開いた文の**隣**に置く。`return <<~SQL` だと
+    /// 本体が `return` の後ろに立つので、末尾の文を数えるときに本体を勘定すると
+    /// `return` が末尾でなくなり、cop がまったく発火しなくなっていた。
+    #[test]
+    fn a_returned_heredoc_is_still_the_last_statement() {
+        CopCase::new(
+            COP,
+            "def m\n  return <<~SQL\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  <<~SQL\n    select 1\n  SQL\nend\n")
+        .run();
+    }
+
+    /// `<<-` と `<<` も同じ。heredoc を引数に渡す形でも本体は隣に立つ。
+    #[test]
+    fn the_other_heredoc_forms_too() {
+        CopCase::new(
+            COP,
+            "def m\n  return <<-SQL\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  <<-SQL\n    select 1\n  SQL\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "def m\n  return foo(<<~SQL)\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  foo(<<~SQL)\n    select 1\n  SQL\nend\n")
+        .run();
+    }
+
+    /// heredoc が末尾でないときは今までどおり。
+    #[test]
+    fn a_heredoc_before_the_return_is_left_alone() {
+        CopCase::new(
+            COP,
+            "def m\n  a = <<~SQL\n    x\n  SQL\n  return a\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  a = <<~SQL\n    x\n  SQL\n  a\nend\n")
         .run();
     }
 }

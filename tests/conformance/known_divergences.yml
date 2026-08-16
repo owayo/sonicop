@@ -87,11 +87,40 @@ blind_spots:
 # sonicop は宣言された符号化へ再符号化して書き戻す (src/engine.rs の output_bytes)。
 # 表現できない文字が出る場合は書き戻さず失敗させ、元のファイルに触れない。
 #
+# ただし**再符号化するのは、その宣言が読むときに実際に要ったファイルだけ**である。
+# decoded_source は UTF-8 を先に試すので、中身が UTF-8 で宣言だけ別のものになっている
+# ファイルは UTF-8 として読まれており、そのまま UTF-8 で書き戻す。宣言どおりに符号化すると
+# cop が触っていないバイトが変わるうえ、Ruby は宣言を信じて読むので**文字列の中身が変わる**。
+# rails の activerecord/test/migrations/magic/1_currencies_have_symbols.rb が実例で、
+# `# coding: ISO-8859-15` と書きながら UTF-8 の `€` (e2 82 ac) を持つ。本家はこの 3 バイトを
+# そのまま書き戻すが、以前の sonicop は `\xa4` の 1 バイトへ潰していた (3 文字が 1 文字になる)。
+#
 # 「本家のバグは再現しない」と判断した根拠: ai-second-opinion (gpt-5.6-sol) の判定。
 #   ドロップイン互換はバグ互換の対象に境界があり、ファイル内容と encoding 宣言を
 #   不整合にする挙動まで製品保証に含めるべきではない。非 UTF-8 ソースは検証コーパス全体で
 #   8 件と稀だが、稀なファイルほど置換困難な資産である可能性がある。
 # 本家へ upstream パッチを送るべき問題でもある。
+
+# 意図的に本家と違えている箇所がもう 1 つある。**本家の `-A` は、構文的に正しいファイルを
+# 構文エラーに変えることがある。** rails の guides/bug_report_templates/action_mailbox.rb で
+# 実測した。
+#
+#   原本       : Syntax OK
+#   本家 -A 後 : ruby: .../action_mailbox.rb:53: syntax error found (SyntaxError)
+#   移植 -A 後 : Syntax OK
+#
+# 経路: `routing (/^replies@/i) => :replies` から Style/RedundantParentheses が内側の括弧を
+# 外すと `routing /^replies@/i => :replies` になり、正規表現リテラルが曖昧になる。本家の
+# Lint/AmbiguousRegexpLiteral は find_offense_node が正規表現の親 (ハッシュの pair) を選び、
+# add_parentheses が `corrector.wrap` の枝を通って **pair だけ**を括弧で囲む。
+# `routing (/^replies@/i => :replies)` という形は Ruby の構文として存在しない。
+# 本家はそこで解析できなくなり、以降どの cop も動かない。sonicop は tree-sitter が
+# 寛容に読むので先へ進み、`routing(/^replies@/i => :replies)` という正しい Ruby に着地する。
+#
+# **合わせない。** 合わせると sonicop が構文エラーを吐くようになる。一度実装して差し戻した
+# 経緯があるので、再挑戦する前にここを読むこと (`ruby -c` で両者の出力を確かめれば 1 分で分かる)。
+#
+# 引数が 1 つなら両者とも `routing(/abc/)` で一致する。ハッシュ引数のときだけ割れる。
 
 divergences:
   # --- Style/MethodCallWithArgsParentheses (EnforcedStyle: omit_parentheses) ---
