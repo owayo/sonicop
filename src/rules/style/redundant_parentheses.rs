@@ -512,7 +512,7 @@ fn find_offense_message(
     if literal_type(inner, context).is_some() && disallowed_literal(context, node, inner) {
         return Some("a literal");
     }
-    if is_variable(locals, inner) {
+    if is_variable(context, locals, inner) {
         return Some("a variable");
     }
     if is_constant(inner, context) {
@@ -587,12 +587,42 @@ fn is_block(node: Node<'_>) -> bool {
 
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
-fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
+fn is_variable(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind_str() {
         "instance_variable" | "class_variable" | "global_variable" => true,
-        "identifier" => locals.is_lvar(node),
+        "identifier" => locals.is_lvar(node) || is_implicit_block_parameter(context, node),
         _ => false,
     }
+}
+
+/// `_1`..`_9` and `it`, which upstream's parser gives a block that declares no parameters of its
+/// own, so `variable?` answers true for them.
+///
+/// `LocalVariables` cannot know these: it learns names from what is written to, and nothing ever
+/// assigns an implicit parameter. tree-sitter spells them as a plain `identifier` like any other,
+/// so without this they read as a method call. Outside a block they *are* a method call and both
+/// agree there, which is what makes the enclosing block the whole of the question.
+///
+/// A block that declares parameters does not put these in scope -- but that spelling does not
+/// parse (`'it' is not allowed when an ordinary parameter is defined`, `ordinary parameter is
+/// defined` for `_1`), so reaching here from source that parsed means the block declares none.
+/// Upstream does not look for a method of the same name either: `def it; end` above the block
+/// leaves `it` a variable inside it.
+fn is_implicit_block_parameter(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let name = context.source.slice(node.byte_range());
+    let numbered =
+        matches!(name.as_bytes(), [b'_', digit] if digit.is_ascii_digit() && *digit != b'0');
+    if !(numbered || name == "it") {
+        return false;
+    }
+    let mut ancestor = parent_node(context, node);
+    while let Some(node) = ancestor {
+        if is_block(node) {
+            return true;
+        }
+        ancestor = parent_node(context, node);
+    }
+    false
 }
 
 fn is_assignment(node: Node<'_>) -> bool {

@@ -21074,6 +21074,41 @@ mod redundant_parentheses {
         );
     }
 
+    /// `redundant_parentheses_spec.rb:976`, "parens around a numblock body".
+    ///
+    /// An implicit block parameter is a local variable to upstream's parser, but nothing assigns
+    /// it, so the name table built from assignments cannot know it and it read as a method call.
+    #[test]
+    fn an_implicit_block_parameter_is_a_variable() {
+        for name in ["_1", "_2", "it"] {
+            expect_offense(
+                COP,
+                &format!(
+                    r#"
+            x do
+              ({name}; bar)
+              ^^^^^^^^^ Don't use parentheses around a variable.
+            end
+            "#,
+                )
+                .replace("^^^^^^^^^", &"^".repeat(name.len() + 7)),
+            );
+        }
+    }
+
+    /// The same names outside a block really are method calls, which is what makes the enclosing
+    /// block the whole of the question rather than the spelling of the name.
+    #[test]
+    fn an_implicit_block_parameter_outside_a_block_is_a_call() {
+        expect_offense(
+            COP,
+            r#"
+            (_1; bar)
+            ^^^^^^^^^ Don't use parentheses around a method call.
+            "#,
+        );
+    }
+
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
         expect_offense(
