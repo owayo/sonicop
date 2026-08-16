@@ -137,10 +137,13 @@ fn reads_as_binary_and(
 /// `foo \(bar)` -- which is not Ruby. The shared walk takes the `\` and its line break together,
 /// since a backslash only ends a line when the break follows it.
 ///
-/// **No corpus exercises this.** Across the five corpora the cop fires 17 times and not one of
-/// those sits next to a line continuation, so a byte comparison of autocorrected output cannot
-/// tell a working version from a broken one here. The tests next to this cop are the only guard,
-/// which is why they carry a case built by hand rather than one taken from a corpus.
+/// **No corpus exercises this** (as of 5 corpora / 18,251 files, 2026-08-17), but upstream's spec
+/// does. Across the five corpora the cop fires 17
+/// times and not one of those sits next to a line continuation, so a byte comparison of
+/// autocorrected output cannot tell a working version from a broken one here.
+/// `nested_parenthesized_calls_spec.rb:97` is a context named "backslash newline in method call"
+/// holding `puts(nex \` / `5)` -- the shape this walk exists for. The guard is upstream's own case
+/// as well as the ones written here by hand.
 ///
 /// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
 /// works. `style/parens.rs::orphaned_comma_start` carries the same note for the same reason.
