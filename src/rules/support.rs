@@ -180,11 +180,46 @@ use crate::rules::send_node::{Argument, is_string, pair_key_symbol, string_text}
 /// the gate an offense is reported behind, which is what keeps a corrector that cannot handle an
 /// unusual shape from emitting broken code rather than staying quiet.
 pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bool {
+    trace_overlapping_edits(context, edits, edits.first().map_or(0, |edit| edit.start));
     // `Parser::ClobberingError`: a rewrite whose parts collide is no correction to begin with.
     let Some(corrected) = apply_edits(context.source.text(), edits) else {
         return false;
     };
     parses(&corrected)
+}
+
+/// Names a cop whose own edits overlap each other.
+///
+/// [`apply_edits`] refuses such a set, and every caller reads that refusal as "this correction does
+/// not work" and drops the candidate -- so the cop goes quiet with nothing to say why. A cop asking
+/// to remove one span twice is not a correction that fails, it is a corrector written twice over,
+/// and the offense it loses never reaches the output to be noticed.
+///
+/// Set `SONICOP_TRACE_OVERLAP=1` to list them.
+fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize) {
+    /// Read once. Every offense of every cop on this path would otherwise pay for the lookup.
+    static ENABLED: std::sync::LazyLock<bool> =
+        std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_OVERLAP").is_some());
+    if !*ENABLED {
+        return;
+    }
+    let mut ordered: Vec<&Edit> = edits.iter().collect();
+    ordered.sort_by_key(|edit| (edit.start, edit.end));
+    let mut cursor = 0;
+    for edit in ordered {
+        if edit.start < cursor {
+            let (line, column) = context.source.line_column(at);
+            eprintln!(
+                "[overlap]\t{}\t{}:{}:{}",
+                context.rule.name,
+                context.source.path().display(),
+                line,
+                column
+            );
+            return;
+        }
+        cursor = edit.end;
+    }
 }
 
 /// The source with every edit applied, or `None` when two of them overlap.
@@ -312,6 +347,7 @@ pub(crate) fn verified_by_reparse<T>(
     // `scope_groups`, keyed by node identity and ordered by the first item that reached each scope.
     let mut groups: Vec<(Option<Node<'_>>, Vec<T>)> = Vec::new();
     for item in items {
+        trace_overlapping_edits(context, &edits_of(&item), range_of(&item).start);
         let scope = reparse_scope(root, &range_of(&item));
         let key = scope.map(|node| node.id());
         match groups
@@ -546,7 +582,7 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
             }
             continue;
         }
-        if separates_words(character) {
+        if u8::try_from(character).is_ok_and(separates_words) {
             if !word.is_empty() {
                 words.push(word_leaf(std::mem::take(&mut word)));
             }
@@ -563,13 +599,18 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
     })
 }
 
-/// Whether the character ends a word of a `%w` or `%i` literal.
+/// Whether the byte ends a word of a `%w` or `%i` literal.
 ///
 /// Ruby's lexer asks `ISSPACE`, which is the six ASCII spacing characters and nothing else -- a
-/// no-break space is part of the word. `char::is_ascii_whitespace` is the same set minus the
-/// vertical tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
-fn separates_words(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
+/// no-break space is part of the word. `is_ascii_whitespace` is the same set minus the vertical
+/// tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
+///
+/// The same six are what Ruby's `/\s/` matches, so a cop written against `\S` asks for the
+/// negation of this. Every place that decides where one word of a percent literal ends comes
+/// through here, because the same mistake was written into two of them independently and a fix
+/// reached only one.
+pub(crate) const fn separates_words(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 fn word_leaf(text: String) -> Sexp {

@@ -11365,6 +11365,18 @@ mod hash_compare_by_identity {
             );
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = %w[a\\  b]\n");
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = [a,  b]\n");
+            // 本家の `\S` は Ruby の `\s` の補集合なので垂直タブを含まない。`is_ascii_whitespace`
+            // は VT を空白から外すため、VT が来ると `\S` と読んで offense を出していた。
+            // **5 コーパスに VT は 1 バイトも無い**ので、この 2 件だけが番人になる。
+            // 期待値は本家 1.89.0 の実測 (どちらも 0 件)。
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo  \u{b}bar)\n",
+            );
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo\u{b}  bar)\n",
+            );
         }
 
         /// 1 つの `#{}` につき corrector は 1 回しか回らないので、2 件目の offense は
@@ -20904,6 +20916,20 @@ mod redundant_parentheses {
     #[test]
     fn the_line_continuation_before_the_closing_paren_stays() {
         expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
+    }
+
+    /// `oneline_rescue_parentheses_required?`: a `case` holds its subject in `value`, not
+    /// `condition`, so a check written for one field alone reaches every other member of the
+    /// conditional family and misses these two. The `while` below passes either way, which is what
+    /// kept it hidden. Expectations are upstream 1.89.0's.
+    #[test]
+    fn a_one_line_rescue_keeps_its_parentheses_as_a_case_subject() {
+        expect_no_offenses(
+            COP,
+            "case (foo rescue bar)\nwhen foo\n  do_something\nend\n",
+        );
+        expect_no_offenses(COP, "case (foo rescue bar)\nin Integer\n  x\nend\n");
+        expect_no_offenses(COP, "while (foo rescue bar)\n  x\nend\n");
     }
 
     /// `handle_orphaned_comma`: upstream removes a second range that contains the first, and its
