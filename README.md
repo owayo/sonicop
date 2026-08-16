@@ -129,8 +129,8 @@ parser recovers from an error and emits diagnostics a tree-sitter parse cannot r
 Autocorrect is byte-identical on RuboCop's own tree and on Mastodon, the two corpora held as a hard
 line: a change that breaks byte equality there is a regression, not a new known divergence.
 
-See [CONFORMANCE.md](CONFORMANCE.md) for the commands, the per-corpus numbers, and the two ways a
-measurement of this kind can mislead you.
+See [CONFORMANCE.md](CONFORMANCE.md) for the commands, the corpus commits these counts were
+measured at, and the two ways a measurement of this kind can mislead you.
 
 ### Performance
 
