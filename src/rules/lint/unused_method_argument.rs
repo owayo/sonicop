@@ -230,12 +230,21 @@ fn correction(context: &RuleContext<'_>, variable: &Variable<'_>) -> Option<Edit
                 safe: true,
             })
         }
-        _ => Some(Edit {
-            start: variable.name_node.start_byte(),
-            end: variable.name_node.start_byte(),
-            replacement: "_".to_owned(),
-            safe: true,
-        }),
+        // `corrector.replace(node.loc.name, "_#{variable_name}")`. Writing the whole name rather
+        // than inserting a `_` in front of it matters when another cop is rewriting the same
+        // argument in the same pass: a replacement of the same range clobbers and is deferred to
+        // the next pass, while an insertion at its edge slips out of the range and lands on the
+        // neighbour. The name node already excludes the leading `*` of a splat, which is what the
+        // `gsub(/\A\*+/, '')` there is for.
+        _ => {
+            let name = context.source.node_text(variable.name_node);
+            Some(Edit {
+                start: variable.name_node.start_byte(),
+                end: variable.name_node.end_byte(),
+                replacement: format!("_{name}"),
+                safe: true,
+            })
+        }
     }
 }
 
