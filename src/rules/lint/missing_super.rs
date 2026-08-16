@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::const_name;
 
 const CONSTRUCTOR_MSG: &str = "Call `super` to initialize state of the parent class.";
 const CALLBACK_MSG: &str = "Call `super` to invoke callback defined in the parent class.";
@@ -121,21 +122,6 @@ fn top_level_class(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// not a constant at all has no name to match, so it counts as stateful.
 fn allowed_class(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
     const_name(node, context).is_some_and(|name| allowed.contains(&name))
-}
-
-fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    let name = match node.kind_str() {
-        "constant" => return Some(context.source.node_text(node).to_owned()),
-        "scope_resolution" => context.source.node_text(node.field("name")?),
-        _ => return None,
-    };
-    match node.field("scope") {
-        Some(scope) => Some(format!(
-            "{}::{name}",
-            const_name(scope, context).unwrap_or_default()
-        )),
-        None => Some(name.to_owned()),
-    }
 }
 
 fn ancestor<'tree>(node: Node<'tree>, kinds: &[&str]) -> Option<Node<'tree>> {

@@ -39,8 +39,10 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     // way to trip that, since the walks above land on the same byte whenever no continuation sits
     // between them. Widening the single edit reaches the same text and stays verifiable.
     //
-    // The heredoc half of upstream's handling is left out -- nothing in the corpora reaches it,
-    // and it rewrites the comma rather than removing it.
+    // The heredoc half of upstream's handling is left out. It rewrites the comma rather than
+    // removing it, and no corpus reaches it -- but upstream's own spec does, at
+    // `redundant_parentheses_spec.rb:1985` ("an array of multiple heredocs"), so this is a known
+    // gap with a case waiting for it rather than dead weight.
     if let Some(orphaned) = orphaned_comma_start(context, close) {
         close_start = close_start.min(orphaned);
     }
@@ -81,9 +83,16 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 /// corrector. Folding the two into one edit above fixed that, and the `continuations` step below
 /// then started doing its work: it is what keeps the `\` from being left in front of the comma.
 ///
-/// **No corpus reaches this.** Across the five corpora the two cops that correct through here fire
-/// 1,185 times and none of them is this shape, so a byte comparison of autocorrected output says
-/// nothing about the code below. The tests carry cases built by hand for that reason.
+/// **No corpus reaches this** (as of 5 corpora / 18,251 files, 2026-08-17), but upstream's spec
+/// does. Across the five corpora the two cops that
+/// correct through here fire 1,185 times and none of them is this shape, so a byte comparison of
+/// autocorrected output says nothing about the code below. `redundant_parentheses_spec.rb:1966`
+/// is exactly it -- `foo(\n  (\n    1\n  ),\n  2\n)` -- so the guard is upstream's own case, not
+/// only the ones written here by hand.
+///
+/// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
+/// works. `style/nested_parenthesized_calls.rs::leading_space` carries the same note for the same
+/// reason.
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();

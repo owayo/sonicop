@@ -21,6 +21,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::Node;
 
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::{scope_kind, spurious_assignment_list};
 use crate::source::SourceFile;
 
 /// How a variable came into being, which decides what may be reported about it.
@@ -226,31 +227,6 @@ struct Force<'tree, 'a> {
 // Node classification
 // ---------------------------------------------------------------------------
 
-/// The scope a node opens, and the fields that still belong to the scope around it. RuboCop calls
-/// these "twisted" nodes: `class Foo < bar` evaluates `bar` outside the class body it precedes.
-fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
-    match kind {
-        "method" => Some((false, &[])),
-        "singleton_method" => Some((false, &["object"])),
-        "class" => Some((false, &["name", "superclass"])),
-        "module" => Some((false, &["name"])),
-        "singleton_class" => Some((false, &["value"])),
-        "block" | "do_block" | "lambda" => Some((true, &[])),
-        _ => None,
-    }
-}
-
-/// Node kinds that hold a comma-separated list of expressions. tree-sitter parses `foo(a, b = 1)`
-/// as a multiple assignment that swallowed `a`, which Ruby does not: only `b` is assigned.
-const COMMA_SEPARATED_LISTS: &[&str] = &[
-    "argument_list",
-    "array",
-    "splat_argument",
-    "optional_parameter",
-    "keyword_parameter",
-    "right_assignment_list",
-];
-
 /// Whether the `=` the grammar found is really the left half of a `=~`.
 fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
     let Some(right) = node.field("right") else {
@@ -264,26 +240,6 @@ fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
         return false;
     };
     operator.end_byte() == right.start_byte() && source.node_text(right).starts_with('~')
-}
-
-pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
-    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
-    // assignment inside the next and only the outermost one stands in the list itself.
-    let mut current = list.parent();
-    while let Some(node) = current {
-        let Some(parent) = node.parent() else {
-            return false;
-        };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
-            return true;
-        }
-        let continues = parent.kind_str() == "assignment"
-            && parent
-                .field("right")
-                .is_some_and(|right| right.id() == node.id());
-        current = continues.then_some(parent);
-    }
-    false
 }
 
 /// What an assignment really stores. When the grammar swallowed the neighbouring items of a

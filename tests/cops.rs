@@ -11451,6 +11451,18 @@ mod hash_compare_by_identity {
             );
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = %w[a\\  b]\n");
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = [a,  b]\n");
+            // 本家の `\S` は Ruby の `\s` の補集合なので垂直タブを含まない。`is_ascii_whitespace`
+            // は VT を空白から外すため、VT が来ると `\S` と読んで offense を出していた。
+            // **5 コーパスに VT は 1 バイトも無い**ので、この 2 件だけが番人になる。
+            // 期待値は本家 1.89.0 の実測 (どちらも 0 件)。
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo  \u{b}bar)\n",
+            );
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo\u{b}  bar)\n",
+            );
         }
 
         /// 1 つの `#{}` につき corrector は 1 回しか回らないので、2 件目の offense は
@@ -21018,6 +21030,20 @@ mod redundant_parentheses {
     #[test]
     fn the_line_continuation_before_the_closing_paren_stays() {
         expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
+    }
+
+    /// `oneline_rescue_parentheses_required?`: a `case` holds its subject in `value`, not
+    /// `condition`, so a check written for one field alone reaches every other member of the
+    /// conditional family and misses these two. The `while` below passes either way, which is what
+    /// kept it hidden. Expectations are upstream 1.89.0's.
+    #[test]
+    fn a_one_line_rescue_keeps_its_parentheses_as_a_case_subject() {
+        expect_no_offenses(
+            COP,
+            "case (foo rescue bar)\nwhen foo\n  do_something\nend\n",
+        );
+        expect_no_offenses(COP, "case (foo rescue bar)\nin Integer\n  x\nend\n");
+        expect_no_offenses(COP, "while (foo rescue bar)\n  x\nend\n");
     }
 
     /// `handle_orphaned_comma`: upstream removes a second range that contains the first, and its
@@ -36080,6 +36106,437 @@ mod style_redundant_return_heredoc {
     }
 }
 
+/// `Lint/EmptyConditionalBody` が末尾の `elsif` のコメントを見落として過剰検出していた件 (#47)。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/EmptyConditionalBody` の実出力。**5 コーパスには 1 件も
+/// 出ない形**なので、ここが唯一の防波堤になる。
+mod lint_empty_conditional_body_elsif_comment {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyConditionalBody";
+
+    /// 本家 `CommentsHelp#find_end_line` の `elsif?` の分岐。空の `elsif` が最後の枝のとき、
+    /// コメントを探す範囲は**それを含む `if` の `end` の行**まで伸びる。
+    #[test]
+    fn a_comment_in_the_last_elsif_excuses_the_empty_branch() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nend\n");
+    }
+
+    /// `elsif` が 2 段でも、いちばん外の `if` の `end` まで伸びる。
+    #[test]
+    fn a_comment_in_a_nested_elsif_is_found_too() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nelsif e\n  # 理由\nend\n");
+    }
+
+    /// `else` が後ろにあるときは、そこで止まる (以前から通っていた形)。
+    #[test]
+    fn a_comment_before_a_following_else_still_excuses_it() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nelse\n  d\nend\n");
+    }
+
+    /// コメントが無ければ報告する。**範囲を伸ばしすぎて黙るようになっていないか**を見る。
+    #[test]
+    fn an_empty_last_elsif_without_a_comment_is_still_reported() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend\n",
+        );
+    }
+
+    /// `end` の行にあるコメントは枝のものではない (本家の範囲は終端の行を含まない)。
+    #[test]
+    fn a_comment_on_the_end_line_does_not_excuse_it() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend # 理由\n",
+        );
+    }
+}
+
+/// `Style/CollectionCompact` の `AllowedReceivers` が `Foo::Bar.baz` を `Foo::Bar` と読んでいた件 (#48)。
+///
+/// 本家の `const_type?` は `Foo` も `Foo::Bar` も真だが、文法は `constant` と `scope_resolution` に
+/// 分ける。**既定は `AllowedReceivers: []` なのでコーパスでは踏まない。**
+mod style_collection_compact_allowed_receivers {
+    use super::*;
+
+    const COP: &str = "Style/CollectionCompact";
+    const CONFIG: &str =
+        "Style/CollectionCompact:\n  Enabled: true\n  AllowedReceivers:\n    - Foo::Bar\n";
+
+    /// `Foo::Bar.baz` の receiver_name は `Foo::Bar.baz` なので、`Foo::Bar` の許可には当たらない。
+    #[test]
+    fn a_selector_after_the_constant_is_not_allowed_by_the_constant_alone() {
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.baz.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+            "receiver_name は Foo::Bar.baz なので許可リストに当たらない"
+        );
+    }
+
+    /// 定数そのものが receiver なら許可される。
+    #[test]
+    fn the_constant_itself_is_allowed() {
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            0,
+            "receiver_name は Foo::Bar なので許可される"
+        );
+    }
+}
+
+/// `Lint/Void` の `-A` が空白だけの行を余分に消していた件 (#53)。
+///
+/// 本家 `RangeHelp#final_pos` は**段を順に 1 回ずつ**通る (空白/タブ → 行継続 → 改行 → 全空白)。
+/// 混ぜて歩くと、改行の向こう側の空白まで食べて**空白だけの行が消える**。
+/// 期待値は本家 1.89.0 の `--only Lint/Void -A` の実出力。
+mod lint_void_blank_line_before {
+    use super::*;
+
+    const COP: &str = "Lint/Void";
+
+    /// 手前に空白だけの行があっても、消えるのは void 式とその行の字下げだけ。
+    #[test]
+    fn a_whitespace_only_line_above_survives() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n   \n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n   \n  baz\nend\n")
+        .run();
+    }
+
+    /// 空行 (空白を持たない行) が手前にあるときは、本家も改行をまとめて食べる。
+    #[test]
+    fn an_empty_line_above_is_taken_with_it() {
+        CopCase::new(
+            COP,
+            "def foo\n  bar\n\n  42\n  baz\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def foo\n  bar\n  baz\nend\n")
+        .run();
+    }
+}
+
+/// `Style/NestedTernaryOperator` の `-A` が垂直タブを飲むこと (#52)。
+///
+/// 本家は `range_with_surrounding_space(range: range, whitespace: true)` を渡す。その段は Ruby の
+/// `/\s/` で、**垂直タブ (0x0b) を含む**。移植版は `is_ascii_whitespace` で歩いていたので VT を
+/// 残していた。
+///
+/// **5 コーパスに VT は 1 バイトも無いので、このテストが唯一の番人である。** 期待値は本家 1.89.0 の
+/// `--only Style/NestedTernaryOperator -A` の実出力。陰性対照は `is_ascii_whitespace` に戻すこと:
+/// そのとき出力は `x = if cond \u{b}` と VT を残す (main の binary で実測した)。
+mod style_nested_ternary_operator_vertical_tab {
+    use super::*;
+
+    const COP: &str = "Style/NestedTernaryOperator";
+
+    #[test]
+    fn the_vertical_tab_beside_the_question_mark_is_taken() {
+        CopCase::new(
+            COP,
+            "x = cond \u{b}? (a ? b : c) : d\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+        .run();
+    }
+
+    /// 空白だけのときも同じ (VT を足したことで普通の空白の扱いが変わっていないか)。
+    #[test]
+    fn a_plain_space_still_behaves_the_same() {
+        CopCase::new(COP, "x = cond ? (a ? b : c) : d\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+            .run();
+    }
+}
+
+/// Ruby の `strip` / `/\s/` と Rust の `trim` で空白の集合が違う件 (#56)。
+///
+/// ```text
+///                       NUL  space tab VT  FF  CR  LF  NBSP U+3000
+/// Ruby /\s/              ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Ruby String#strip      ✓    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Rust str::trim         ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✓    ✓
+/// ```
+///
+/// **`str::trim` は 2 方向にずれる** — Unicode の空白を余分に剥がし、NUL を残す。
+/// **5 コーパスに no-break space を含む Ruby ソースは実質無いので、テストが唯一の番人。**
+/// 期待値は本家 1.89.0 の `--only <cop>` の実出力。
+mod ruby_whitespace_is_not_unicode_whitespace {
+    use super::*;
+
+    /// `Layout/EmptyLineAfterMagicComment` は `next_line.strip.empty?` で見る。
+    /// no-break space だけの行は**空行ではない**ので、本家は空行の追加を求める。
+    #[test]
+    fn a_no_break_space_line_is_not_an_empty_line_after_a_magic_comment() {
+        let report = CopCase::new(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\u{a0}\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        let offenses: Vec<_> = report
+            .offenses
+            .iter()
+            .filter(|offense| offense.cop_name == "Layout/EmptyLineAfterMagicComment")
+            .collect();
+        assert_eq!(offenses.len(), 1, "本家は 1 件報告する");
+    }
+
+    /// 本物の空行なら黙る (集合を狭めたことで普通の空行が壊れていないか)。
+    #[test]
+    fn a_real_empty_line_after_a_magic_comment_is_accepted() {
+        expect_no_offenses(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
+    /// `Layout/TrailingEmptyLines` は `buffer.source[/\s*\Z/]` で見る。`/\s/` は no-break space に
+    /// 当たらないので、最後の行がそれだけなら**末尾の空行ではない**。
+    ///
+    /// **この cop は correctable なので、誤って空行と数えると `-A` がその行を消す。**
+    #[test]
+    fn a_no_break_space_last_line_is_not_a_trailing_blank_line() {
+        expect_no_offenses("Layout/TrailingEmptyLines", "x = 1\n\u{a0}\n");
+    }
+
+    /// 本物の空行が末尾にあるときは報告する (陰性対照)。
+    #[test]
+    fn a_real_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(
+            "Layout/TrailingEmptyLines",
+            "x = 1\n\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Layout/TrailingEmptyLines")
+                .count(),
+            1,
+            "末尾の空行は 1 件報告される"
+        );
+    }
+}
+
+/// `Layout/TrailingEmptyLines` が `__END__` を持つファイルを見送る件 (#56 の追加分)。
+///
+/// 本家は `ends_in_end?` と `end_with_percent_blank_string?` の 2 つの門で早期 return する。
+/// **`__END__` の後ろは `DATA` が読む素のテキストで、末尾の改行の数に意味があることがある。**
+/// 移植版はどちらの門も持たず、`-A` でその改行を削っていた。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/TrailingEmptyLines` の実出力 (spec:17 / spec:26)。
+mod layout_trailing_empty_lines_end_marker {
+    use super::*;
+
+    const COP: &str = "Layout/TrailingEmptyLines";
+
+    /// `__END__` があれば末尾の空行は数えない。
+    #[test]
+    fn a_file_with_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "x = 0\n\n__END__\n\n");
+    }
+
+    /// `__END__` だけのファイルも同じ。
+    #[test]
+    fn a_file_that_is_only_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "__END__\n\n\n");
+    }
+
+    /// 本家の正規表現 `/\s*__END__/` は `match?` に錨なしで渡るので、**文字列の中の `__END__`
+    /// でも門が閉じる**。忠実に写した結果としてそうなることを固定する。
+    #[test]
+    fn the_marker_inside_a_string_also_closes_the_gate() {
+        expect_no_offenses(COP, "x = \"__END__\"\n\n\n");
+    }
+
+    /// `%\n\n` で終わるファイルも見送る (`end_with_percent_blank_string?`)。
+    #[test]
+    fn a_file_ending_in_a_percent_and_a_blank_line_is_left_alone() {
+        expect_no_offenses(COP, "x = %\n\n");
+    }
+
+    /// 門に当たらない普通のファイルは今までどおり報告する (陰性対照)。
+    #[test]
+    fn an_ordinary_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(COP, "x = 0\n\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+        );
+    }
+}
+
+/// `begin ... end` の中の文が互いに兄弟であること (#26 の節 K の 2 件目)。
+///
+/// `visibility.rs::CONTAINERS` に `begin` が無く、`siblings()` が `None` を返していた。上流の
+/// `left_siblings` は `kwbegin` の子を歩くので、**中に書いた文は互いに兄弟**である。
+/// 1 語の欠落で 3 cop が同時にずれていた。期待値は本家 1.89.0 の実出力。
+mod begin_block_holds_siblings {
+    use super::*;
+
+    /// `Layout/ClassStructure` が `begin` の中で並べ替えを作れていなかった (spec:169)。
+    #[test]
+    fn class_structure_reorders_inside_a_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    private def do_internal_work; end\n    \
+             public def do_something; end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    public def do_something; end\n    \
+             private def do_internal_work; end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 二重の `begin` でも同じ (spec:190)。
+    #[test]
+    fn class_structure_reorders_inside_a_nested_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    begin\n      private def do_internal_work; end\n      \
+             public def do_something; end\n    end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    begin\n      public def do_something; end\n      \
+             private def do_internal_work; end\n    end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 同じ `begin` の中の `private` は、その下の定義に効く。
+    /// **旧実装は `private` を見落として public と読み、`Style/DocumentationMethod` が過剰検出していた。**
+    #[test]
+    fn a_private_inside_the_same_begin_applies_to_the_definitions_below_it() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// ここから 4 つは **`CONTAINERS` を次に誰かが触ったときの網**。上の 2 つ (`begin` の中で
+    /// 並べ替えが出る / `begin` の中の `private` が効く) が**同じモジュール内の陽性対照**なので、
+    /// この 4 つが 0 件であることは「観測されず 0」ではなく「守られて 0」と言える。
+    ///
+    /// 6 通りのうち `program` (ファイル最上位) は cop-style-a が別に持っている。
+    /// 期待値はすべて本家 1.89.0 の `--only Style/DocumentationMethod` の実測。
+    #[test]
+    fn a_bare_private_in_a_class_body_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  private\n\n  def foo\n    1\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_a_singleton_class_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  class << self\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_an_if_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  if true\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// `rescue` を持つ `def` の後ろも兄弟の列が切れない (本家は 2 件報告する)。
+    #[test]
+    fn a_def_with_a_rescue_does_not_break_the_sibling_chain() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  def bar\n    1\n  rescue\n    2\n  end\n\n  def foo\n    1\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            2,
+        );
+    }
+
+    /// 別の `begin` の中の `private` は外の定義に効かない (本家もそう読む。陰性対照)。
+    #[test]
+    fn a_private_in_another_begin_does_not_reach_outside_it() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n  end\n\n  def foo\n    1\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            1,
+            "begin の外の定義は public のまま",
+        );
+    }
+}
+
 /// `Layout/ConditionPosition` が `elsif` を見落とす件。
 ///
 /// 期待値は本家 1.89.0 の `--only Layout/ConditionPosition` / `-A` の実出力。
@@ -36142,7 +36599,6 @@ mod layout_condition_position_elsif {
         .run();
     }
 }
-
 /// `Style/OrAssignment` が本家の `if` 節に対応する 2 つの形を見落とす件。
 ///
 /// 期待値は本家 1.89.0 の `--only Style/OrAssignment` / `-A` の実出力。
@@ -36203,7 +36659,6 @@ mod style_or_assignment_keyword_forms {
         );
     }
 }
-
 /// `Style/MapCompactWithConditionalBlock` が本家の 6 つの形のうち 3 つを取り落とす件。
 ///
 /// 期待値は本家 1.89.0 の実出力。本家の spec から見つけた (33 ケース中 7 件が落ちていた)。
@@ -36279,7 +36734,6 @@ mod style_map_compact_with_conditional_block_shapes {
         );
     }
 }
-
 /// `Lint/SafeNavigationConsistency` が代入の左辺の `&.` を見落とす件。
 ///
 /// 期待値は本家 1.89.0 の `--only Lint/SafeNavigationConsistency` の実出力。
@@ -36319,7 +36773,6 @@ mod lint_safe_navigation_consistency_assignment {
         expect_no_offenses(COP, "foo.bar && foo.baz = 1\n");
     }
 }
-
 /// 本家の `on_send` は `csend` ノードには呼ばれない。`alias on_csend on_send` を書いて
 /// いない cop は `x&.foo` を構造的に一切拾わないので、`call` を回す移植版は `&.` を
 /// 落とさなければ必ず過剰検出になる。

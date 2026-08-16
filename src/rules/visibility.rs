@@ -15,13 +15,29 @@ use crate::rules::send_node::{arguments, named_children, symbol_name};
 /// `VISIBILITY_SCOPES`.
 const VISIBILITY_SCOPES: &[&str] = &["private", "protected", "public"];
 
-/// The node kinds the grammar adds for statement lists.
+/// The node kinds that hold a statement list, which is what `left_siblings` / `right_siblings` walk.
+///
+/// **The question is "where are my siblings", not "is this a method body".**
 ///
 /// `program` is one of them. A file's top level is a statement list like any other, and a bare
 /// `private` written there puts the definitions below it out of public view -- upstream walks
 /// `left_siblings` and reaches it. Leaving it out made every top-level definition look public
 /// (`Style/DocumentationMethod` reported 16 spec cases the upstream cop stays quiet on).
-const CONTAINERS: &[&str] = &["program", "body_statement", "block_body", "then", "else"];
+///
+/// `begin ... end` is a `kwbegin` upstream and its children are siblings of each other, so leaving
+/// it out makes `Layout/ClassStructure` unable to find the element to move a definition in front
+/// of, and makes a `private` written inside a `begin` invisible to the definitions below it.
+///
+/// Two words were found missing on the same day by two people. The set is not derived from the
+/// grammar, so a third may be missing; the tests carry one case per container kind.
+const CONTAINERS: &[&str] = &[
+    "program",
+    "body_statement",
+    "block_body",
+    "then",
+    "else",
+    "begin",
+];
 
 /// `node_visibility`.
 pub(crate) fn node_visibility(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {

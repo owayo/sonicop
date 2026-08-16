@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children;
+use crate::rules::support;
 
 const MSG: &str = "Use empty line after multiline condition.";
 
@@ -139,7 +140,7 @@ fn rescue_branch(node: Node<'_>, context: &RuleContext<'_>) -> Option<Offense> {
 
 /// The offense, whose correction writes a blank line under the last line of `anchor`.
 fn offense(reported: Node<'_>, anchor: Node<'_>, context: &RuleContext<'_>) -> Offense {
-    let lines = whole_lines(anchor.byte_range(), context);
+    let lines = support::whole_lines_without_terminator(anchor.byte_range(), context);
     context
         .offense(MSG, reported.byte_range())
         .corrections_anchored_at(lines.clone())
@@ -182,18 +183,6 @@ fn next_statement<'tree>(
 /// `next_line_empty?`, which reads a line past the end of the file as empty.
 fn is_blank(line: usize, context: &RuleContext<'_>) -> bool {
     line > context.source.line_count() || context.source.line(line).trim().is_empty()
-}
-
-/// `range_by_whole_lines(range)`: the lines the node sits on, without the break that closes them.
-fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset);
-    start..end
 }
 
 fn line(offset: usize, context: &RuleContext<'_>) -> usize {

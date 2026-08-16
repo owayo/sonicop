@@ -1,9 +1,22 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::support;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
     if text.is_empty() {
+        return;
+    }
+    // `ends_in_end?`: **`__END__` があるファイルは丸ごと見送る。** その後ろは `DATA` が読む
+    // 素のテキストで、末尾の改行の数に意味があることがある。
+    //
+    // 本家の正規表現は `/\s*__END__/` で、`match?` に渡っていて錨が無い。`\s*` は 0 文字にも
+    // 当たるので、**実際には「ソースのどこかに `__END__` という並びがあるか」しか見ていない**
+    // (文字列リテラルの中でも当たる)。忠実に写すならこの形になる。
+    //
+    // `end_with_percent_blank_string?`: `%\n\n` で終わるファイルも見送る。`%` は
+    // パーセントリテラルの開き記号で、改行が本文の一部になりうる。
+    if text.contains("__END__") || text.ends_with("%\n\n") {
         return;
     }
     let style: String = context
@@ -14,7 +27,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // All trailing whitespace, as RuboCop's `/\s*\Z/` takes it -- not just newlines, so a file
     // ending in spaces is measured from where the whitespace starts rather than from the last
     // newline. Only `\n` is counted, leaving carriage returns to `Layout/EndOfLine`.
-    let whitespace_start = text.trim_end_matches(char::is_whitespace).len();
+    // **`char::is_whitespace` would reach over a no-break space**, which `/\s/` does not match:
+    // a last line holding one is not trailing whitespace, and counting it as such reports a blank
+    // line upstream does not see -- and this cop's correction would then delete that line.
+    let whitespace_start = text
+        .trim_end_matches(support::is_ruby_space_char)
+        .len();
     let whitespace = &text[whitespace_start..];
     let blank_lines = whitespace.matches('\n').count() as isize - 1;
     if blank_lines == wanted_blank_lines {

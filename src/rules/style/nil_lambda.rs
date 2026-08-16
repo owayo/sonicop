@@ -42,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 ..support::final_pos(text, body.end_byte(), true, false, true, false)
         } else {
             // `range_by_whole_lines(body.source_range, include_final_newline: true)`.
-            whole_lines(body.byte_range(), context)
+            support::whole_lines(body.byte_range(), context)
         };
         offenses.push(
             context
@@ -122,14 +122,3 @@ fn returns_nil(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
 }
 
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(range: std::ops::Range<usize>, context: &RuleContext<'_>) -> std::ops::Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
-    start..end
-}

@@ -25,11 +25,84 @@ pub(crate) fn final_pos(
     });
     position = move_pos_str(text, position, forward, continuations, "\\\n");
     position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
-    // `/\s/` upstream, which is Ruby's and takes the vertical tab that Rust's
-    // `is_ascii_whitespace` leaves out.
-    move_pos(text, position, forward, whitespace, |byte| {
-        matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
-    })
+    move_pos(text, position, forward, whitespace, is_ruby_space)
+}
+
+/// Which side of a range grows when the blanks beside it are taken in.
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum Side {
+    Left,
+    Right,
+    Both,
+}
+
+/// `RangeHelp#range_with_surrounding_space`: the range with the blanks beside it taken in.
+///
+/// The three switches are upstream's keywords, and each one is a stage of [`final_pos`]:
+/// `continuations` reaches over a `\` that ends a line, `newlines` over line breaks, `whitespace`
+/// over anything Ruby's `\s` matches. **The stages do not run again**, so `newlines` alone stops at
+/// the first blank beyond a break -- a line holding only spaces above the range survives.
+///
+/// Upstream's defaults are `newlines: true`, `whitespace: false`, `continuations: false`, and only
+/// two of its call sites ask for continuations (`Style/NestedParenthesizedCalls` and
+/// `ParenthesesCorrector#parens_range`). **Passing them everywhere would eat a `\` that the cop was
+/// not asked to touch.**
+pub(crate) fn range_with_surrounding_space(
+    range: Range<usize>,
+    text: &str,
+    side: Side,
+    continuations: bool,
+    newlines: bool,
+    whitespace: bool,
+) -> Range<usize> {
+    let start = match side {
+        Side::Left | Side::Both => final_pos(
+            text,
+            range.start,
+            false,
+            continuations,
+            newlines,
+            whitespace,
+        ),
+        Side::Right => range.start,
+    };
+    let end = match side {
+        Side::Right | Side::Both => {
+            final_pos(text, range.end, true, continuations, newlines, whitespace)
+        }
+        Side::Left => range.end,
+    };
+    start..end
+}
+
+/// `/\s/` as Ruby's regexp engine and its lexer (`ISSPACE`) define it: the six ASCII spacing
+/// characters and nothing else.
+///
+/// **Rust's `is_ascii_whitespace` is the same set minus the vertical tab**, so a walk written with it
+/// stops one character early in `%w[a\vb]` and in an indentation that begins with a `\v`. A
+/// no-break space is *not* in the set either way -- it is content, not spacing.
+pub(crate) const fn is_ruby_space(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
+}
+
+/// `String#strip` (and `rstrip` / `lstrip`): Ruby's `\s` **plus NUL**.
+///
+/// **Rust's `str::trim` is wrong in both directions here.** It reaches over every Unicode
+/// `White_Space` character -- a no-break space, an ideographic space -- which Ruby leaves in place,
+/// and it stops at a NUL, which Ruby strips. A line holding only a no-break space is *not* blank to
+/// `strip.empty?`, so a cop ported with `trim().is_empty()` goes quiet where upstream reports.
+///
+/// Reach for [`is_ruby_space_char`] instead when the original is `/\s/` rather than `strip`: the
+/// regexp does not match NUL.
+pub(crate) fn is_ruby_strippable(character: char) -> bool {
+    character == '\0' || is_ruby_space_char(character)
+}
+
+/// The same set spelled for a `char`, which is what a walk over `chars()` needs. **The set itself is
+/// defined once**, in [`is_ruby_space`]: anything outside ASCII cannot be Ruby's `\s`, so a character
+/// that does not fit in a byte is not one.
+pub(crate) fn is_ruby_space_char(character: char) -> bool {
+    u8::try_from(character).is_ok_and(is_ruby_space)
 }
 
 /// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
@@ -107,11 +180,46 @@ use crate::rules::send_node::{Argument, is_string, pair_key_symbol, string_text}
 /// the gate an offense is reported behind, which is what keeps a corrector that cannot handle an
 /// unusual shape from emitting broken code rather than staying quiet.
 pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bool {
+    trace_overlapping_edits(context, edits, edits.first().map_or(0, |edit| edit.start));
     // `Parser::ClobberingError`: a rewrite whose parts collide is no correction to begin with.
     let Some(corrected) = apply_edits(context.source.text(), edits) else {
         return false;
     };
     parses(&corrected)
+}
+
+/// Names a cop whose own edits overlap each other.
+///
+/// [`apply_edits`] refuses such a set, and every caller reads that refusal as "this correction does
+/// not work" and drops the candidate -- so the cop goes quiet with nothing to say why. A cop asking
+/// to remove one span twice is not a correction that fails, it is a corrector written twice over,
+/// and the offense it loses never reaches the output to be noticed.
+///
+/// Set `SONICOP_TRACE_OVERLAP=1` to list them.
+fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize) {
+    /// Read once. Every offense of every cop on this path would otherwise pay for the lookup.
+    static ENABLED: std::sync::LazyLock<bool> =
+        std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_OVERLAP").is_some());
+    if !*ENABLED {
+        return;
+    }
+    let mut ordered: Vec<&Edit> = edits.iter().collect();
+    ordered.sort_by_key(|edit| (edit.start, edit.end));
+    let mut cursor = 0;
+    for edit in ordered {
+        if edit.start < cursor {
+            let (line, column) = context.source.line_column(at);
+            eprintln!(
+                "[overlap]\t{}\t{}:{}:{}",
+                context.rule.name,
+                context.source.path().display(),
+                line,
+                column
+            );
+            return;
+        }
+        cursor = edit.end;
+    }
 }
 
 /// The source with every edit applied, or `None` when two of them overlap.
@@ -239,6 +347,7 @@ pub(crate) fn verified_by_reparse<T>(
     // `scope_groups`, keyed by node identity and ordered by the first item that reached each scope.
     let mut groups: Vec<(Option<Node<'_>>, Vec<T>)> = Vec::new();
     for item in items {
+        trace_overlapping_edits(context, &edits_of(&item), range_of(&item).start);
         let scope = reparse_scope(root, &range_of(&item));
         let key = scope.map(|node| node.id());
         match groups
@@ -473,7 +582,7 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
             }
             continue;
         }
-        if separates_words(character) {
+        if u8::try_from(character).is_ok_and(separates_words) {
             if !word.is_empty() {
                 words.push(word_leaf(std::mem::take(&mut word)));
             }
@@ -490,13 +599,18 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
     })
 }
 
-/// Whether the character ends a word of a `%w` or `%i` literal.
+/// Whether the byte ends a word of a `%w` or `%i` literal.
 ///
 /// Ruby's lexer asks `ISSPACE`, which is the six ASCII spacing characters and nothing else -- a
-/// no-break space is part of the word. `char::is_ascii_whitespace` is the same set minus the
-/// vertical tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
-fn separates_words(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
+/// no-break space is part of the word. `is_ascii_whitespace` is the same set minus the vertical
+/// tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
+///
+/// The same six are what Ruby's `/\s/` matches, so a cop written against `\S` asks for the
+/// negation of this. Every place that decides where one word of a percent literal ends comes
+/// through here, because the same mistake was written into two of them independently and a fix
+/// reached only one.
+pub(crate) const fn separates_words(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 fn word_leaf(text: String) -> Sexp {
@@ -738,14 +852,112 @@ pub(crate) fn expand_path(path: &std::path::Path) -> std::path::PathBuf {
 /// `range_by_whole_lines(range, include_final_newline: true)`: the lines `range` sits on, taken
 /// whole, with the line break that closes the last of them.
 pub(crate) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
+    by_whole_lines(range, context, true)
+}
+
+/// `range_by_whole_lines(range)`: the same lines, stopping before the line break that closes them.
+///
+/// This is upstream's default. A caller that deletes the span wants [`whole_lines`] instead, or the
+/// line it emptied stays behind as a blank one; a caller that only measures or replaces the text of
+/// those lines wants this one, or it takes a character that is not on them.
+pub(crate) fn whole_lines_without_terminator(
+    range: Range<usize>,
+    context: &RuleContext<'_>,
+) -> Range<usize> {
+    by_whole_lines(range, context, false)
+}
+
+/// `RangeHelp#range_by_whole_lines`, with upstream's keyword spelled out as an argument.
+///
+/// The last line's break is looked for rather than added, so a file that ends without one is not
+/// reported as reaching past its own text.
+fn by_whole_lines(
+    range: Range<usize>,
+    context: &RuleContext<'_>,
+    include_final_newline: bool,
+) -> Range<usize> {
     let text = context.source.text();
     let start = text[..range.start]
         .rfind('\n')
         .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
+    let end = text[range.end..].find('\n').map_or(text.len(), |offset| {
+        range.end + offset + usize::from(include_final_newline)
+    });
     start..end
+}
+
+/// Node kinds that hold a comma-separated list of expressions. Ruby's own parser closes such a
+/// list at every comma, so `foo(a, b = 1)` passes two arguments and only `b` is assigned.
+const COMMA_SEPARATED_LISTS: &[&str] = &[
+    "argument_list",
+    "array",
+    "splat_argument",
+    "optional_parameter",
+    "keyword_parameter",
+    "right_assignment_list",
+];
+
+/// Whether a `left_assignment_list` is one the grammar invented. tree-sitter parses `foo(a, b = 1)`
+/// and `def m(x = A, y = 2)` as a multiple assignment that swallowed the items written before the
+/// one being assigned to, which is not how Ruby reads them, so such a list is not a `masgn` and
+/// binds only its last name.
+///
+/// Every walk that binds names -- the one the Lint cops run, the one the Metrics cops run and the
+/// one the Naming cops run -- meets the same invented lists, so the reading lives here rather than
+/// once per walk.
+pub(crate) fn spurious_assignment_list(list: Node<'_>) -> bool {
+    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
+    // assignment inside the next and only the outermost one stands in the list itself.
+    let mut current = list.parent();
+    while let Some(node) = current {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
+            return true;
+        }
+        let continues = parent.kind_str() == "assignment"
+            && parent
+                .field("right")
+                .is_some_and(|right| right.id() == node.id());
+        current = continues.then_some(parent);
+    }
+    false
+}
+
+/// The scope a node opens, and the fields that still belong to the scope around it. RuboCop calls
+/// these "twisted" nodes: `class Foo < bar` evaluates `bar` outside the class body it precedes, and
+/// so do the receiver of `def obj.name` and the value of `class << expr`. The `bool` says whether
+/// the scope is a block, which is the one kind that still sees the variables around it.
+pub(crate) fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
+    match kind {
+        "method" => Some((false, &[])),
+        "singleton_method" => Some((false, &["object"])),
+        "class" => Some((false, &["name", "superclass"])),
+        "module" => Some((false, &["name"])),
+        "singleton_class" => Some((false, &["value"])),
+        "block" | "do_block" | "lambda" => Some((true, &[])),
+        _ => None,
+    }
+}
+
+/// The constant path as written, joined with `::`.
+///
+/// A `scope` that cannot be read is dropped rather than failing the whole name, so `::Foo` answers
+/// `::Foo`. The cops that must not accept a partial reading keep their own stricter version.
+pub(crate) fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
+    let name = match node.kind_str() {
+        "constant" => return Some(context.source.node_text(node).to_owned()),
+        "scope_resolution" => context.source.node_text(node.field("name")?),
+        _ => return None,
+    };
+    match node.field("scope") {
+        Some(scope) => Some(format!(
+            "{}::{name}",
+            const_name(scope, context).unwrap_or_default()
+        )),
+        None => Some(name.to_owned()),
+    }
 }
 
 /// Pushes `node`'s named children so that popping the stack yields them in

@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG: &str = "Don't extend an instance initialized by `Struct.new`. \
                    Use a block to customize the struct.";
@@ -159,20 +160,10 @@ fn unparenthesized_arguments(context: &RuleContext<'_>, parent: Node<'_>) -> Opt
 
 /// `range_with_surrounding_space(side: :right, newlines: false)`.
 fn spaces_after(context: &RuleContext<'_>, offset: usize) -> usize {
-    let bytes = context.source.text().as_bytes();
-    let mut end = offset;
-    while matches!(bytes.get(end), Some(b' ' | b'\t')) {
-        end += 1;
-    }
-    end
+    support::final_pos(context.source.text(), offset, true, false, false, false)
 }
 
 /// `range_with_surrounding_space(side: :left, newlines: false)`.
 fn spaces_before(context: &RuleContext<'_>, offset: usize) -> usize {
-    let bytes = context.source.text().as_bytes();
-    let mut start = offset;
-    while start > 0 && matches!(bytes.get(start - 1), Some(b' ' | b'\t')) {
-        start -= 1;
-    }
-    start
+    support::final_pos(context.source.text(), offset, false, false, false, false)
 }

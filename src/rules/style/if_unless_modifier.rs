@@ -12,9 +12,11 @@ use super::conditional::{
     UpstreamParent, descendants, first_line, last_line, self_statements, token, upstream_parent,
 };
 use super::line_length_help::LineLengthHelp;
+use super::statement_modifier::non_eligible_condition;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG_USE_MODIFIER: &str = "Favor modifier `%<keyword>s` usage when having a single-line body. \
      Another good alternative is the usage of control flow `&&`/`||`.";
@@ -562,15 +564,14 @@ impl Cop<'_, '_> {
     /// `range_with_surrounding_space(side: :left)` over a comment: the blanks in front of it go
     /// with it, so removing it leaves no trailing whitespace behind.
     fn with_space_on_the_left(&self, comment: Range<usize>) -> Range<usize> {
-        let text = self.context.source.text().as_bytes();
-        let mut start = comment.start;
-        while start > 0 && matches!(text[start - 1], b' ' | b'\t') {
-            start -= 1;
-        }
-        while start > 0 && text[start - 1] == b'\n' {
-            start -= 1;
-        }
-        start..comment.end
+        support::range_with_surrounding_space(
+            comment,
+            self.context.source.text(),
+            support::Side::Left,
+            false,
+            true,
+            false,
+        )
     }
 
     /// The heredoc opened by the call's last argument, with the lines the correction lifts into the
@@ -623,27 +624,6 @@ fn nonempty_line_count(source: &str) -> usize {
 
 fn is_operator_keyword(operator: &str) -> bool {
     matches!(operator, "&&" | "||" | "and" | "or")
-}
-
-/// `condition.each_node.any?(&:lvasgn_type?)`: a condition that binds a local cannot move behind
-/// the body that reads it.
-fn non_eligible_condition(condition: Node<'_>) -> bool {
-    descendants(condition).into_iter().any(|node| {
-        matches!(node.kind_str(), "assignment" | "operator_assignment")
-            && node.field("left").is_some_and(binds_local)
-    })
-}
-
-/// Whether the left-hand side of an assignment writes a local anywhere in it. A multiple
-/// assignment is one `masgn` upstream, but every name it writes is still an `lvasgn` beneath it.
-fn binds_local(left: Node<'_>) -> bool {
-    match left.kind_str() {
-        "identifier" => true,
-        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
-            super::nodes::children(left).into_iter().any(binds_local)
-        }
-        _ => false,
-    }
 }
 
 fn has_dstr_ancestor(node: Node<'_>) -> bool {

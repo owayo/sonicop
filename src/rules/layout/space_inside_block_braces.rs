@@ -6,6 +6,8 @@ use super::support::{character_column, parser_node_start};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
+use crate::rules::support::is_ruby_space;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Style {
@@ -91,7 +93,7 @@ impl Cop<'_, '_> {
             return;
         }
         let inner = &self.text()[left.end_byte()..right.start_byte()];
-        if inner.bytes().any(|byte| !is_space(byte)) {
+        if inner.bytes().any(|byte| !is_ruby_space(byte)) {
             self.braces_with_contents_inside(node, braces, inner, offenses);
         } else if self.empty_style == Style::NoSpace {
             self.offense(
@@ -127,7 +129,7 @@ impl Cop<'_, '_> {
         pipe: Option<Node<'_>>,
         offenses: &mut Vec<Offense>,
     ) {
-        if inner.bytes().next().is_some_and(|byte| !is_space(byte)) {
+        if inner.bytes().next().is_some_and(|byte| !is_ruby_space(byte)) {
             self.no_space_inside_left_brace(left, pipe, offenses);
         } else {
             self.space_inside_left_brace(left, pipe, offenses);
@@ -192,7 +194,7 @@ impl Cop<'_, '_> {
             && inner
                 .bytes()
                 .next_back()
-                .is_some_and(|byte| !is_space(byte))
+                .is_some_and(|byte| !is_ruby_space(byte))
         {
             self.no_space(
                 right.start_byte(),
@@ -263,7 +265,7 @@ impl Cop<'_, '_> {
             return;
         }
         let source = &self.text()[begin_pos..end_pos];
-        let edit = if source.bytes().any(is_space) {
+        let edit = if source.bytes().any(is_ruby_space) {
             Edit {
                 start: begin_pos,
                 end: end_pos,
@@ -330,12 +332,6 @@ fn last_line_spaces(inner: &str) -> i64 {
     })
 }
 
-/// `\s` as Ruby's regexp engine defines it, which is ASCII only -- a non-breaking space is a
-/// character the cop counts as content.
-fn is_space(byte: u8) -> bool {
-    matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c)
-}
-
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum Direction {
     Left,
@@ -345,23 +341,14 @@ enum Direction {
 /// `RangeHelp#range_with_surrounding_space` with the defaults this cop passes: the run of spaces
 /// and tabs, and then the run of newlines beyond it.
 fn expand_space(text: &str, offset: usize, direction: Direction) -> usize {
-    let bytes = text.as_bytes();
-    let mut position = offset;
-    let peek = |position: usize| match direction {
-        Direction::Left => (position > 0).then(|| bytes[position - 1]),
-        Direction::Right => bytes.get(position).copied(),
-    };
-    let step = |position: usize| match direction {
-        Direction::Left => position - 1,
-        Direction::Right => position + 1,
-    };
-    while peek(position).is_some_and(|byte| byte == b' ' || byte == b'\t') {
-        position = step(position);
-    }
-    while peek(position).is_some_and(|byte| byte == b'\n') {
-        position = step(position);
-    }
-    position
+    support::final_pos(
+        text,
+        offset,
+        direction == Direction::Right,
+        false,
+        true,
+        false,
+    )
 }
 
 /// Moves `offset` by `delta` characters. Upstream addresses source by character, so a span it
