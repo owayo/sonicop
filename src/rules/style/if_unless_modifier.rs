@@ -16,6 +16,7 @@ use super::statement_modifier::non_eligible_condition;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 const MSG_USE_MODIFIER: &str = "Favor modifier `%<keyword>s` usage when having a single-line body. \
      Another good alternative is the usage of control flow `&&`/`||`.";
@@ -563,15 +564,14 @@ impl Cop<'_, '_> {
     /// `range_with_surrounding_space(side: :left)` over a comment: the blanks in front of it go
     /// with it, so removing it leaves no trailing whitespace behind.
     fn with_space_on_the_left(&self, comment: Range<usize>) -> Range<usize> {
-        let text = self.context.source.text().as_bytes();
-        let mut start = comment.start;
-        while start > 0 && matches!(text[start - 1], b' ' | b'\t') {
-            start -= 1;
-        }
-        while start > 0 && text[start - 1] == b'\n' {
-            start -= 1;
-        }
-        start..comment.end
+        support::range_with_surrounding_space(
+            comment,
+            self.context.source.text(),
+            support::Side::Left,
+            false,
+            true,
+            false,
+        )
     }
 
     /// The heredoc opened by the call's last argument, with the lines the correction lifts into the

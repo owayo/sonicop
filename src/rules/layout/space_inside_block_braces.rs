@@ -6,6 +6,7 @@ use super::support::{character_column, parser_node_start};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 use crate::rules::support::is_ruby_space;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -340,23 +341,14 @@ enum Direction {
 /// `RangeHelp#range_with_surrounding_space` with the defaults this cop passes: the run of spaces
 /// and tabs, and then the run of newlines beyond it.
 fn expand_space(text: &str, offset: usize, direction: Direction) -> usize {
-    let bytes = text.as_bytes();
-    let mut position = offset;
-    let peek = |position: usize| match direction {
-        Direction::Left => (position > 0).then(|| bytes[position - 1]),
-        Direction::Right => bytes.get(position).copied(),
-    };
-    let step = |position: usize| match direction {
-        Direction::Left => position - 1,
-        Direction::Right => position + 1,
-    };
-    while peek(position).is_some_and(|byte| byte == b' ' || byte == b'\t') {
-        position = step(position);
-    }
-    while peek(position).is_some_and(|byte| byte == b'\n') {
-        position = step(position);
-    }
-    position
+    support::final_pos(
+        text,
+        offset,
+        direction == Direction::Right,
+        false,
+        true,
+        false,
+    )
 }
 
 /// Moves `offset` by `delta` characters. Upstream addresses source by character, so a span it

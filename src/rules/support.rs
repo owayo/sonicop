@@ -28,6 +28,53 @@ pub(crate) fn final_pos(
     move_pos(text, position, forward, whitespace, is_ruby_space)
 }
 
+/// Which side of a range grows when the blanks beside it are taken in.
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum Side {
+    Left,
+    Right,
+    Both,
+}
+
+/// `RangeHelp#range_with_surrounding_space`: the range with the blanks beside it taken in.
+///
+/// The three switches are upstream's keywords, and each one is a stage of [`final_pos`]:
+/// `continuations` reaches over a `\` that ends a line, `newlines` over line breaks, `whitespace`
+/// over anything Ruby's `\s` matches. **The stages do not run again**, so `newlines` alone stops at
+/// the first blank beyond a break -- a line holding only spaces above the range survives.
+///
+/// Upstream's defaults are `newlines: true`, `whitespace: false`, `continuations: false`, and only
+/// two of its call sites ask for continuations (`Style/NestedParenthesizedCalls` and
+/// `ParenthesesCorrector#parens_range`). **Passing them everywhere would eat a `\` that the cop was
+/// not asked to touch.**
+pub(crate) fn range_with_surrounding_space(
+    range: Range<usize>,
+    text: &str,
+    side: Side,
+    continuations: bool,
+    newlines: bool,
+    whitespace: bool,
+) -> Range<usize> {
+    let start = match side {
+        Side::Left | Side::Both => final_pos(
+            text,
+            range.start,
+            false,
+            continuations,
+            newlines,
+            whitespace,
+        ),
+        Side::Right => range.start,
+    };
+    let end = match side {
+        Side::Right | Side::Both => {
+            final_pos(text, range.end, true, continuations, newlines, whitespace)
+        }
+        Side::Left => range.end,
+    };
+    start..end
+}
+
 /// `/\s/` as Ruby's regexp engine and its lexer (`ISSPACE`) define it: the six ASCII spacing
 /// characters and nothing else.
 ///

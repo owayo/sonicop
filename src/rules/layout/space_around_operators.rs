@@ -17,6 +17,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 use crate::rules::support::is_ruby_space;
 
 /// The node kinds carrying an operator RuboCop checks. `binary` stands in for `on_send`,
@@ -456,22 +457,15 @@ fn check_operator<'src>(
 /// either side, plus the line breaks that follow it. `None` stands for the range that begins
 /// with a line break, which `check_operator` refuses to judge.
 fn surrounding_space(source: &str, operator: &Range<usize>) -> Option<Range<usize>> {
-    let bytes = source.as_bytes();
-    let mut start = operator.start;
-    while start > 0 && matches!(bytes[start - 1], b' ' | b'\t') {
-        start -= 1;
-    }
-    if start > 0 && bytes[start - 1] == b'\n' {
+    // The left side is `range_with_surrounding_space(side: :left, newlines: false)` and the right is
+    // the same with `newlines: true`, **but this cop gives up entirely when a line break sits on the
+    // left**: an operator that opens a line is aligned rather than spaced, so the range is no longer
+    // the thing to measure. That decision belongs to the cop and stays here.
+    let start = support::final_pos(source, operator.start, false, false, false, false);
+    if start > 0 && source.as_bytes()[start - 1] == b'\n' {
         return None;
     }
-    let mut end = operator.end;
-    while end < bytes.len() && matches!(bytes[end], b' ' | b'\t') {
-        end += 1;
-    }
-    while end < bytes.len() && bytes[end] == b'\n' {
-        end += 1;
-    }
-    Some(start..end)
+    Some(start..support::final_pos(source, operator.end, true, false, true, false))
 }
 
 fn should_not_have_surrounding_space(
