@@ -16,16 +16,51 @@ pub(crate) fn final_pos(
     text: &str,
     position: usize,
     forward: bool,
+    continuations: bool,
     newlines: bool,
     whitespace: bool,
 ) -> usize {
     let mut position = move_pos(text, position, forward, true, |byte| {
         matches!(byte, b' ' | b'\t')
     });
+    position = move_pos_str(text, position, forward, continuations, "\\\n");
     position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
+    // `/\s/` upstream, which is Ruby's and takes the vertical tab that Rust's
+    // `is_ascii_whitespace` leaves out.
     move_pos(text, position, forward, whitespace, |byte| {
-        byte.is_ascii_whitespace()
+        matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
     })
+}
+
+/// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
+///
+/// The one caller wants `\` and a line break, which a class cannot express -- a backslash only ends
+/// the line when the break follows it, and eating it on its own would join two statements.
+fn move_pos_str(
+    text: &str,
+    mut position: usize,
+    forward: bool,
+    enabled: bool,
+    needle: &str,
+) -> usize {
+    if !enabled {
+        return position;
+    }
+    let width = needle.len();
+    loop {
+        let found = match forward {
+            true => text.get(position..position + width) == Some(needle),
+            false => position >= width && text.get(position - width..position) == Some(needle),
+        };
+        if !found {
+            return position;
+        }
+        position = if forward {
+            position + width
+        } else {
+            position - width
+        };
+    }
 }
 
 fn move_pos(

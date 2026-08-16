@@ -31,7 +31,10 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
             safe: true,
         },
         Edit {
-            start: super::ranges::extended_left(text, close, newlines),
+            // `parens_range`: upstream asks for `continuations: true` here, so a `\` that ends the
+            // line before the closing parenthesis goes with the whitespace rather than being left
+            // behind.
+            start: crate::rules::support::final_pos(text, close, false, true, newlines, true),
             end: range.end,
             replacement: String::new(),
             safe: true,

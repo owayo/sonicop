@@ -34,7 +34,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let comma = final_pos(
             context.source.text(),
             arguments[arguments.len() - 2].range().end,
-            true,
+            true, false,
             true,
             false,
         );

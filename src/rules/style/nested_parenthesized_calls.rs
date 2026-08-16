@@ -122,12 +122,13 @@ fn reads_as_binary_and(
             .ends_with([' ', '\t', '\n'])
 }
 
-/// Every blank, line continuation and newline before `start`.
+/// `range_with_surrounding_space(first_arg.begin, side: :left, whitespace: true,
+/// continuations: true)`.
+///
+/// The line continuation is the part that matters: walking back over whitespace alone stops at the
+/// `\` and leaves it in the source, so the `(` that replaces the run lands after it and writes
+/// `foo \(bar)` -- which is not Ruby. The shared walk takes the `\` and its line break together,
+/// since a backslash only ends a line when the break follows it.
 fn leading_space(context: &RuleContext<'_>, start: usize) -> usize {
-    let bytes = context.source.text().as_bytes();
-    let mut position = start;
-    while position > 0 && bytes[position - 1].is_ascii_whitespace() {
-        position -= 1;
-    }
-    position
+    crate::rules::support::final_pos(context.source.text(), start, false, true, true, true)
 }
