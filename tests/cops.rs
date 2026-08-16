@@ -18249,6 +18249,34 @@ mod redundant_regexp_escape {
 mod one_line_conditional {
     use super::*;
 
+    /// `%i[and or if]` は**ノードの種別**で、本家のパーサは `||` にも `or` を作る。
+    /// キーワードの綴りだけを見ると `a || b ? x : y` になり、三項が想定より強く結び付く。
+    #[test]
+    fn a_pipe_condition_is_the_same_or_as_the_keyword() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a || b then x else y end\n",
+            "(a || b) ? x : y\n",
+        );
+    }
+
+    /// `node.arguments? && !node.parenthesized_call?`: 引数が既に括弧の中にあるキーワードは、
+    /// 後ろから何も取らないので自前の括弧が要らない。`yield(2)` が `(yield(2))` になっていた。
+    #[test]
+    fn a_keyword_whose_arguments_are_parenthesized_needs_no_more() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield(2) end\n",
+            "a(0) ? puts(1) : yield(2)\n",
+        );
+        // 括弧が無ければ `:` を引数と読むので、こちらは包む。
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield 2 end\n",
+            "a(0) ? puts(1) : (yield 2)\n",
+        );
+    }
+
     const COP: &str = "Style/OneLineConditional";
 
     #[test]
@@ -20316,6 +20344,30 @@ mod ternary_parentheses {
 /// 期待値は本家 1.89.0 の `--only Style/SoleNestedConditional` と `-A` の実測。
 mod sole_nested_conditional {
     use super::*;
+
+    /// `parenthesize_method?` は `node.call_type?` を尋ねる。ブロックを持つ呼び出しは本家では
+    /// `block` ノードなのでこの枝に入らず、**全体**が括弧に入る。文法はブロックを call の子に
+    /// するので、種別だけを見ると引数リストの枝に入って `ok?(bar do ... end)` になる。
+    #[test]
+    fn a_call_carrying_a_block_is_wrapped_whole() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if foo\n  if ok? bar do\n      do_something\n    end\n  end\nend\n",
+            "if foo && (ok? bar do\n      do_something\n    end)\n  end\n",
+        );
+    }
+
+    /// `range_with_surrounding_space(operator, whitespace: true)` の `whitespace` の段は
+    /// 改行の段の**後**に走るので、右辺が乗る行の字下げまで届く。改行で止めると字下げが落ちて
+    /// 節が桁 0 に移る。
+    #[test]
+    fn the_indentation_of_a_continued_clause_survives() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if baz &&\n   foo = bar\n  if quux\n    do_something\n  end\nend\n",
+            "if baz &&\n   (foo = bar) && quux\n    do_something\n  end\n",
+        );
+    }
 
     const COP: &str = "Style/SoleNestedConditional";
 
