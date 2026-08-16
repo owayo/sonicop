@@ -20,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM {
         return;
     }
-    for node in context.nodes_of_any(&["string", "heredoc_beginning"]) {
+    for node in context.nodes_of_any(&["string", "heredoc_beginning", "chained_string"]) {
         if !interpolates(node, context) {
             continue;
         }
@@ -49,7 +49,13 @@ fn interpolates(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     };
     super::nodes::children(literal)
         .iter()
-        .any(|child| child.kind_str() == "interpolation")
+        .any(|child| match child.kind_str() {
+            "interpolation" => true,
+            // Literals written next to each other are one `dstr` upstream, so an interpolation in
+            // any of the parts belongs to the whole -- and it is the whole that `+` was written on.
+            "string" | "chained_string" => interpolates(*child, context),
+            _ => false,
+        })
 }
 
 /// The reported range and the range the literal replaces, for the three ways of asking for an

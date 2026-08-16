@@ -5,12 +5,6 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{has_interpolation, named_children, string_text, symbol_name};
 
-/// The operators a symbol may be written bare, as `rb_enc_symname_type` accepts them.
-const OPERATOR_SYMBOLS: [&str; 27] = [
-    "|", "^", "&", "<=>", "==", "===", "=~", ">", ">=", "<", "<=", "<<", ">>", "+", "-", "*", "/",
-    "%", "**", "~", "+@", "-@", "[]", "[]=", "`", "!", "!=",
-];
-
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let consistent = context
         .setting::<String>("EnforcedStyle")
@@ -57,6 +51,19 @@ fn conversion_call(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node:
 
 fn conversion_correction(receiver: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     match receiver.kind_str() {
+        // Literals written next to each other are one `dstr` upstream, and it has no delimiters of
+        // its own -- so the correction is built from the value, which keeps each interpolation as it
+        // was written and strips the quotes around every part.
+        "chained_string" => {
+            let mut out = String::from(":\"");
+            for part in named_children(receiver) {
+                for inner in named_children(part) {
+                    out.push_str(context.source.node_text(inner));
+                }
+            }
+            out.push('"');
+            Some(out)
+        }
         "string" | "delimited_symbol" if has_interpolation(receiver) => {
             // `dstr_correction`: a literal already written with `"` keeps its body verbatim.
             let text = context.source.node_text(receiver);
@@ -205,7 +212,14 @@ fn literal_symbol_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Str
     match node.kind_str() {
         "string" => {
             let (_, colon) = hash_key_pair(node, context)?;
-            (colon && !has_interpolation(node)).then(|| string_text(node, context).to_owned())
+            (colon && !has_interpolation(node))
+                .then(|| crate::rules::ruby_literal::string_value(node, context))
+        }
+        // A quoted symbol resolves its escapes the way a string does. The value is what
+        // `Symbol#inspect` writes back out, so keeping `\"` as written would double the backslash
+        // and make every escaped quote look like a difference.
+        "delimited_symbol" if !has_interpolation(node) => {
+            Some(crate::rules::ruby_literal::string_value(node, context))
         }
         _ => symbol_name(node, context).map(str::to_owned),
     }
@@ -227,52 +241,11 @@ fn hash_key_pair<'tree>(
     Some((parent, colon))
 }
 
-/// `Symbol#inspect`.
+/// `Symbol#inspect`, which is where the decision to quote is made.
+///
+/// The shared reading of `rb_enc_symname_type` is the one to use: the operators, the `?`, `!` and
+/// `=` a method name may close with, and the one-character globals such as `$'` all stand bare, and
+/// quoting any of them is exactly what this cop reports.
 fn symbol_inspect(name: &str) -> String {
-    if is_bare_symbol(name) {
-        return format!(":{name}");
-    }
-    let mut quoted = String::with_capacity(name.len() + 4);
-    quoted.push_str(":\"");
-    for character in name.chars() {
-        match character {
-            '"' => quoted.push_str("\\\""),
-            '\\' => quoted.push_str("\\\\"),
-            '\n' => quoted.push_str("\\n"),
-            '\t' => quoted.push_str("\\t"),
-            '\r' => quoted.push_str("\\r"),
-            '\u{1b}' => quoted.push_str("\\e"),
-            '\0' => quoted.push_str("\\0"),
-            _ => quoted.push(character),
-        }
-    }
-    quoted.push('"');
-    quoted
-}
-
-/// `rb_enc_symname_type`: whether the name can stand after a colon with no quotes.
-fn is_bare_symbol(name: &str) -> bool {
-    if OPERATOR_SYMBOLS.contains(&name) {
-        return true;
-    }
-    let (prefixed, rest) = if let Some(rest) = name.strip_prefix("@@") {
-        (true, rest)
-    } else if let Some(rest) = name.strip_prefix('@').or_else(|| name.strip_prefix('$')) {
-        (true, rest)
-    } else {
-        (false, name)
-    };
-    // Only a plain name may end in `?`, `!` or `=`.
-    let core = match prefixed {
-        true => rest,
-        false => rest.strip_suffix(['?', '!', '=']).unwrap_or(rest),
-    };
-    let mut characters = core.chars();
-    let Some(first) = characters.next() else {
-        return false;
-    };
-    (first.is_alphabetic() || first == '_' || !first.is_ascii())
-        && characters.all(|character| {
-            character.is_alphanumeric() || character == '_' || !character.is_ascii()
-        })
+    crate::rules::ruby_literal::inspect_symbol(name)
 }
