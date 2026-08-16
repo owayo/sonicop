@@ -3,9 +3,15 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::is_plain_send;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         // `node.command?(:attr)`: no receiver, and the name spelled out.
         if node.field("receiver").is_some() {
             continue;
@@ -60,9 +66,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `allowed_context?`: only a class body, or a `class_eval` block, is where `attr` means what this
 /// cop thinks it means -- and even there a locally defined `attr` excuses it.
 fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(ancestor) = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
-        .find(|current| matches!(current.kind_str(), "class" | "block" | "do_block"))
-    else {
+    let Some(ancestor) = std::iter::successors(node.parent_of(context), |current| {
+        current.parent_of(context)
+    })
+    .find(|current| matches!(current.kind_str(), "class" | "block" | "do_block")) else {
         return false;
     };
     if ancestor.kind_str() != "class" && !is_class_eval(context, ancestor) {
@@ -73,16 +80,19 @@ fn allowed_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `(block (send _ {:class_eval :module_eval}) ...)`: the grammar hangs the block off the call, so
 /// the call is the block's parent rather than its first child.
+///
+/// The pattern is written for `send`, so `x&.class_eval { ... }` is a `csend` and does not match
+/// it. That makes the block *not* a `class_eval` block, which is what keeps the cop quiet there.
 fn is_class_eval(context: &RuleContext<'_>, block: Node<'_>) -> bool {
-    block
-        .parent_of(context)
-        .and_then(|call| call.field("method"))
-        .is_some_and(|method| {
-            matches!(
-                context.source.node_text(method),
-                "class_eval" | "module_eval"
-            )
-        })
+    block.parent_of(context).is_some_and(|call| {
+        is_plain_send(call, context)
+            && call.field("method").is_some_and(|method| {
+                matches!(
+                    context.source.node_text(method),
+                    "class_eval" | "module_eval"
+                )
+            })
+    })
 }
 
 /// `each_descendant(:def).any? { |def_node| def_node.method?(:attr) }`.

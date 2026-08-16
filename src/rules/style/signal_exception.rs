@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
-use crate::rules::send_node::top_level_constant;
+use crate::rules::send_node::{is_plain_send, top_level_constant};
 use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -24,6 +24,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     let message = format!("Always use `{preferred}` to signal exceptions.");
     for node in context.nodes_of_any(&["call", "identifier"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some(selector) = signal_selector(node, looked_for, context, &locals) else {
             continue;
         };

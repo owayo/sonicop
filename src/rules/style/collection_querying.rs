@@ -5,7 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::arguments;
+use crate::rules::send_node::{is_plain_send, arguments};
 use crate::rules::support::final_pos;
 
 /// `REPLACEMENTS`, keyed by the comparison and the number it compares against.
@@ -24,6 +24,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting_of::<bool>("AllCops", "ActiveSupportExtensionsEnabled")
         .unwrap_or(false);
     for node in context.nodes_of_any(&["binary", "call"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some((receiver, method, argument, dot)) = comparison(node, context) else {
             continue;
         };

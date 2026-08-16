@@ -36140,3 +36140,52 @@ mod lint_safe_navigation_consistency_assignment {
         expect_no_offenses(COP, "foo.bar && foo.baz = 1\n");
     }
 }
+
+/// 本家の `on_send` は `csend` ノードには呼ばれない。`alias on_csend on_send` を書いて
+/// いない cop は `x&.foo` を構造的に一切拾わないので、`call` を回す移植版は `&.` を
+/// 落とさなければ必ず過剰検出になる。
+///
+/// 13 件を 1 つずつ直したが、**同じ穴が繰り返し開く形**なので、cop ごとの節ではなく
+/// 1 つの表にまとめてある。新しく `nodes_of("call")` を書いたら、その cop の本家に
+/// `on_csend` があるかを確かめて、無ければここに 1 行足す。
+///
+/// 対応する本家の入力はすべて実測済みで、本家はいずれも 0 件を返す。
+mod safe_navigation_is_not_a_send {
+    use super::*;
+
+    #[test]
+    fn no_cop_reports_a_call_written_with_safe_navigation() {
+        for (cop, source) in [
+            (
+                "Style/Attr",
+                "SomeClass&.class_eval do\n  attr :name\nend\n",
+            ),
+            ("Style/AutoResourceCleanup", "File&.open(\"filename\")\n"),
+            (
+                "Style/ClassVars",
+                "TestClass&.class_variable_set(:@@class_var, 2)\n",
+            ),
+            ("Style/CollectionQuerying", "x.count&.positive?\n"),
+            ("Style/Dir", "File&.expand_path(File.dirname(__FILE__))\n"),
+            (
+                "Style/DocumentDynamicEvalDefinition",
+                "stringio&.instance_eval(\"def original_filename; 'foo'; end\")\n",
+            ),
+            ("Style/EmptyLiteral", "Array&.new\n"),
+            ("Style/EnvHome", "ENV&.fetch('HOME')\n"),
+            (
+                "Style/ExpandPathArguments",
+                "File&.expand_path('..', __FILE__)\n",
+            ),
+            ("Style/RandomWithOffset", "rand(6)&.succ\n"),
+            ("Style/RedundantArrayConstructor", "Array&.new([])\n"),
+            (
+                "Style/RedundantRegexpConstructor",
+                "Regexp&.new(/regexp/)\n",
+            ),
+            ("Style/SignalException", "Kernel&.fail\n"),
+        ] {
+            expect_no_offenses(cop, source);
+        }
+    }
+}
