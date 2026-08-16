@@ -37191,7 +37191,9 @@ mod layout_block_end_newline_heredoc {
     /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
     ///
     /// **その字面は Ruby として通らない。**`}` が heredoc の本文より前に出るので、ブロックが
-    /// 閉じられない。`ruby -c` で確かめてある。
+    /// 閉じられない。`ruby -c` で確かめてある。**だから `without_syntax_guard()` を付ける** —
+    /// このケースが測るのは「訂正が本家と一致するか」で、書き出すかどうかは engine の別の
+    /// 判断だから (`#41`)。付けないと安全網が発火して原本が返り、cop のバグに見える。
     ///
     /// ```text
     /// 原本            test { / foo(<<~EOS) } / line one / line two / EOS      Syntax OK
@@ -37207,20 +37209,42 @@ mod layout_block_end_newline_heredoc {
     /// `the_brace_moves_after_a_one_line_heredoc` は本家の字面のままである。**割れるのは
     /// `dstr` の枝だけ。**
     #[test]
-    fn a_two_line_heredoc_is_left_alone_because_upstreams_output_does_not_parse() {
-        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
-        CopCase::new(COP, source.to_owned(), Vec::new())
-            .without_offense_check()
-            .corrected(source)
-            .run();
+    fn a_two_line_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
+        .run();
     }
 
     /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。**同じく Ruby として通らない。**
     ///
     /// 上のケースと同じ機構なので、片方だけ直しても両方は動かない。
     #[test]
-    fn an_interpolated_heredoc_is_left_alone_for_the_same_reason() {
-        let source = "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n";
+    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 上の 2 件を「安全網を切って」測っているので、**切らないほうも 1 件測る。**
+    ///
+    /// 上の 2 件は cop の層 (訂正が本家と一致するか) を見ている。こちらは engine の層
+    /// (そのテキストを書き出すか) を見る。**分けたぶん、両方に検査が要る** — 片方だけだと、
+    /// 安全網が丸ごと消えても上の 2 件は通り続ける。
+    #[test]
+    fn the_guard_keeps_the_file_when_that_correction_would_not_parse() {
+        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
         CopCase::new(COP, source.to_owned(), Vec::new())
             .without_offense_check()
             .corrected(source)

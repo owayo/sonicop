@@ -411,6 +411,9 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         ignore_disable_comments: cli.ignore_disable_comments,
         display_suppressed: cli.display_suppressed,
         correcting: cli.correct_mode() != CorrectMode::None,
+        // **No flag turns this on from the command line.** The guard is switched off for tests
+        // only, and even then per case; a run reaches the environment variable or nothing.
+        skip_syntax_guard: false,
     };
     let correct_mode = cli.correct_mode();
     if !cli.list_target_files {
