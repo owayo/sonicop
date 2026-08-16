@@ -151,6 +151,30 @@ blind_spots:
 #   B2 "\xNN" followed by "<文字>" on <正準名>. 多バイトの後続が不正              ★ 未再現
 #   C  Unknown encoding name - <ラベル>.      ラベルが解決できない               再現済み
 
+# 意図的に本家と違えている箇所が 3 つ目。**本家の corrector が構文として成り立たない字面を
+# 出すことがある。** 安全網 (src/engine.rs の withhold_unparsable) が、原本が構文的に有効
+# だったのに補正後に fatal な構文エラーが出るファイルの書き戻しを止める。
+#
+# 手書きケースで当たっているのは 2 件。どちらも `ruby -c` で確認済み。
+#
+#   Style/RedundantStructKeywordInit
+#     本家    S5 = Struct.new(:a })                       syntax error
+#     sonicop S5 = Struct.new(:a, { keyword_init: true })  原本のまま
+#     波括弧を明示した書き方で、本家の置換範囲がペアの末尾で止まり `}` だけが残る
+#
+#   Style/ExplicitBlockArgument
+#     本家    def a(&block)\n  ->(&block).call\nend       syntax error
+#     sonicop def a\n  ->{ yield }.call\nend               原本のまま
+#     `->(&block)` は Ruby の構文として存在しない
+#
+# **テストは削っていない。** tests/cops.rs は本家の字面を書いたうえで、
+# 「それは構文エラーなので採らず原本を残す」を期待値にしている。誰かが本家に
+# 合わせ直せば、そのテストが落ちる。
+#
+# **この安全網は完全ではない。** tree-sitter が通してしまう壊れ方 (`%{...}` の中に `}`)
+# は止められないし、逆に tree-sitter が有効な Ruby を拒む形 (`->(x; y)`) では
+# **正しい補正を止めてしまう**。後者の件数は測定中 (#41)。
+
 divergences:
   # --- Lint/Syntax ---
   # 本家は parser gem (LALR) の誤り回復に乗って追加の診断を出す。tree-sitter は
