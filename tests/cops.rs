@@ -35508,3 +35508,66 @@ mod layout_def_end_alignment_walk {
         .run();
     }
 }
+
+/// `Naming/RescuedExceptionsVariableName` の correction。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Naming/RescuedExceptionsVariableName,Lint/UselessAssignment -a` の実出力。
+mod naming_rescued_exceptions_variable_name_correction {
+    use super::*;
+
+    const COP: &str = "Naming/RescuedExceptionsVariableName";
+
+    /// 本家は改名する箇所ごとに `corrector.replace` を呼ぶ。移植版は宣言から最後の参照
+    /// までを 1 つの Edit にまとめていて、その間に書かれたものを丸ごと飲み込んでいた。
+    ///
+    /// 変数は `begin`/`end` を抜けても生きているので、ブロックの後ろの参照まで改名する。
+    /// つまりこの 1 つの Edit は**ファイルの後ろにある別の `rescue` ごと覆う**。同名を
+    /// 使う 2 つ目の `rescue` は自分の offense が clobber して次のパスへ回され、本体だけ
+    /// 新しい名前になった中間状態が残る。そこで `Lint/UselessAssignment` が
+    /// 「もう誰も読んでいない」と見て `=> error` を消してしまい、動かないコードになる。
+    #[test]
+    fn each_rename_is_its_own_edit() {
+        let source = "begin\n  a\nrescue LoadError => error\n  raise error\nend\n";
+        let report = CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        assert_eq!(
+            corrections.len(),
+            2,
+            "宣言と参照で 2 件のはず。1 件なら間を飲み込む 1 つの Edit に戻っている: {corrections:?}"
+        );
+        for correction in &corrections {
+            assert_eq!(
+                correction.replacement, "e",
+                "置き換えるのは名前だけのはず: {correction:?}"
+            );
+        }
+    }
+
+    /// 同じ名前を使う `rescue` がもう 1 つあっても、両方とも改名される。
+    /// まとめた Edit だったころは 2 つ目が `rescue Foo` になり、本体は `c e` のまま
+    /// 残っていた。
+    #[test]
+    fn a_second_handler_using_the_same_name_keeps_its_variable() {
+        CopCase::new(
+            COP,
+            "begin\n  a\nrescue LoadError => error\n  raise error\nend\n\n\
+             def m\n  b\nrescue Foo => error\n  c error\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .cops(&[COP, "Lint/UselessAssignment"])
+        .without_offense_check()
+        .corrected(
+            "begin\n  a\nrescue LoadError => e\n  raise e\nend\n\n\
+             def m\n  b\nrescue Foo => e\n  c e\nend\n",
+        )
+        .run();
+    }
+}
