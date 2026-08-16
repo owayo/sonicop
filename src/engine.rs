@@ -1295,6 +1295,27 @@ pub fn corrected_text(
 
 const MAX_CORRECTION_PASSES: usize = 200;
 
+/// What a pass's text is remembered by, so that the loop can tell it has come round again.
+///
+/// `Runner#check_for_infinite_loop` keeps `processed_source.checksum` rather than the text, and the
+/// difference shows on a file a cop keeps adding to. `Regexp.new("a\\d]b")` grows about 1.5x per
+/// pass under `Lint/UnescapedBracketInRegexp`, measured identical to upstream pass for pass, so
+/// holding every pass costs the sum of that series -- roughly three times the current text -- and
+/// comparing against every pass re-reads all of it. Neither form bounds the growth: that is
+/// upstream's defect, reproduced here rather than fixed.
+///
+/// The length rides along with the hash because it is free and makes a collision take two
+/// coincidences instead of one. A collision would report a loop that is not there, which is a
+/// worse failure than the one being avoided.
+type SourceDigest = (u64, usize);
+
+fn digest(text: &str) -> SourceDigest {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    text.hash(&mut hasher);
+    (hasher.finish(), text.len())
+}
+
 type OffenseKey = (usize, usize, &'static str, String, Severity);
 
 fn offense_key(offense: &Offense, source: &SourceFile) -> OffenseKey {
@@ -1448,7 +1469,7 @@ pub fn correct_file(
 
     let path = report.path.clone();
     let mut log = CorrectionLog::default();
-    let mut sources = vec![text.clone()];
+    let mut sources = vec![digest(&text)];
     let mut rewritten = false;
     // Every pass re-inspects the same file under the same configuration, so the plan is resolved
     // once for the whole fixed-point loop.
@@ -1480,7 +1501,8 @@ pub fn correct_file(
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
         // repeat tells us which pass the cycle closed on.
-        let repeated = sources.iter().position(|source| *source == corrected);
+        let corrected_digest = digest(&corrected);
+        let repeated = sources.iter().position(|seen| *seen == corrected_digest);
         if pass == MAX_CORRECTION_PASSES || repeated.is_some() {
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
             let root_cause = log.root_cause(loop_start);
@@ -1497,7 +1519,7 @@ pub fn correct_file(
             });
         }
 
-        sources.push(corrected.clone());
+        sources.push(corrected_digest);
         text = corrected;
         report = inspect_planned(
             path.clone(),
