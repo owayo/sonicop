@@ -88,12 +88,12 @@ fn integer_part(source: &str) -> &str {
 /// wrong only when the grouping itself is off: four digits in a row means a group was missed, and
 /// a group of one or two digits means one was cut short.
 fn offending(integer: &str, strict: bool) -> bool {
-    static FOUR_DIGITS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\d{4}").unwrap());
+    static FOUR_DIGITS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?-u:\d){4}").unwrap());
     // Without `Strict`, a trailing short group is the accepted way to write cents
     // (`10_000_00` for $10,000), so only an interior one counts.
-    static SHORT_GROUP: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"_\d{1,2}_").unwrap());
+    static SHORT_GROUP: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"_(?-u:\d){1,2}_").unwrap());
     static SHORT_GROUP_STRICT: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"_\d{1,2}(_|$)").unwrap());
+        LazyLock::new(|| Regex::new(r"_(?-u:\d){1,2}(_|$)").unwrap());
 
     if !integer.is_empty() && integer.bytes().all(|byte| byte.is_ascii_digit()) {
         return true;

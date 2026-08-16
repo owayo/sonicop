@@ -80,23 +80,23 @@ fn is_rubocop_directive(line: &str) -> bool {
 }
 
 static KEYWORD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^\s*(?:begin|class|def|end|module)\s").unwrap());
+    LazyLock::new(|| Regex::new(r"(?m)^(?-u:\s)*(?:begin|class|def|end|module)(?-u:\s)").unwrap());
 
 /// `REGEXP`: the first word of the line, which is the keyword the message names.
 static KEYWORD_BEFORE_COMMENT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(\S+).*#").unwrap());
 
 static ALLOWED_COMMENT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"#\s*(?::nodoc:|:yields:)").unwrap());
+    LazyLock::new(|| Regex::new(r"#(?-u:\s)*(?::nodoc:|:yields:)").unwrap());
 
 static SUBCLASS_DEFINITION: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\A\s*class\s+(?:\w|::)+\s*<\s*(?:\w|::)+").unwrap());
+    LazyLock::new(|| Regex::new(r"\A(?-u:\s)*class(?-u:\s)+(?:(?-u:\w)|::)+(?-u:\s)*<(?-u:\s)*(?:(?-u:\w)|::)+").unwrap());
 
 static METHOD_OR_END_DEFINITION: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\A\s*(?:def\s|end)").unwrap());
+    LazyLock::new(|| Regex::new(r"\A(?-u:\s)*(?:def(?-u:\s)|end)").unwrap());
 
 static RBS_TYPE_APPLICATION: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\A#\[.+\]").unwrap());
 
 static STEEP_IGNORE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"#\ssteep:ignore(\s|\z)").unwrap());
+    LazyLock::new(|| Regex::new(r"#(?-u:\s)steep:ignore((?-u:\s)|\z)").unwrap());

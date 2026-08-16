@@ -1889,6 +1889,25 @@ mod style {
         );
     }
 
+    /// Ruby's `\s` is the six ASCII characters, so the space upstream's magic-comment patterns
+    /// allow after the `#` is an ASCII one. Rust's `\s` is Unicode White_Space -- 25 characters --
+    /// and it read an ideographic space as a magic comment upstream does not recognise, so the file
+    /// looked like it already had the comment and the offense went missing.
+    ///
+    /// The ASCII spelling right below is the pair to it: that one *is* the magic comment, and the
+    /// only difference between the two is which space stands after the `#`.
+    #[test]
+    fn only_an_ascii_space_makes_a_magic_comment() {
+        expect_offense(
+            "Style/FrozenStringLiteralComment",
+            "#\u{3000}frozen_string_literal: true\n^ Missing frozen string literal comment.\nx = 1\n",
+        );
+        expect_no_offenses(
+            "Style/FrozenStringLiteralComment",
+            "#\tfrozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
     #[test]
     fn hash_syntax() {
         expect_offense(
@@ -20590,6 +20609,61 @@ mod style_identical_conditional_branches {
 
     const COP: &str = "Style/IdenticalConditionalBranches";
 
+    /// `identical_conditional_branches_spec.rb:132`.
+    ///
+    /// Hoisting an assignment above the condition that reads what it writes would change what the
+    /// condition sees. What the guard compares is the **receiver** on both sides -- `h[:key]` and
+    /// `h.x` are a `send` of `:[]` / `:x` upstream and reduce to `h` -- so what sits in between is
+    /// not part of the question. The port only knew the shape where a bare name is assigned.
+    #[test]
+    fn writing_through_the_receiver_the_condition_reads_is_left_alone() {
+        for (condition, assignment) in [
+            ("h[:key]", "h[:key] = foo"),
+            // The key need not match: both sides still reduce to `h`.
+            ("h[:other]", "h[:key] = foo"),
+            ("h.x", "h.x = foo"),
+            ("h", "h[:key] = foo"),
+        ] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "if {condition}\n  {assignment}\n  bar\nelse\n  {assignment}\n  baz\nend\n"
+                ),
+            );
+        }
+    }
+
+    /// The pair to the case above: a *different* receiver is hoistable, which is what makes the
+    /// receiver -- rather than the whole condition -- the thing being compared.
+    #[test]
+    fn writing_through_a_different_receiver_is_still_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if g[:key]
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              bar
+            else
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              baz
+            end
+            "#,
+        );
+    }
+
+    /// `identical_conditional_branches_spec.rb:739`, "does not raise any error when using empty
+    /// brace in the both parentheses".
+    ///
+    /// Upstream reads a branch's head through `begin.children.first`, so a group holding nothing
+    /// hands back `nil` and the check stops. The grammar keeps a node for the parentheses, so the
+    /// emptiness has to be asked about rather than falling out of the tree.
+    #[test]
+    fn branches_holding_only_empty_parentheses_are_not_reported() {
+        expect_no_offenses(COP, "if condition\n  ()\nelse\n  ()\nend\n");
+    }
+
     #[test]
     fn every_branch_that_shares_an_expression_is_reported() {
         expect_offense(
@@ -21310,6 +21384,41 @@ mod redundant_parentheses {
             COP,
             "x = (\n  <<-STRING\n    foo\n  STRING\n)\n",
             "x = <<-STRING\n    foo\n  STRING\n",
+        );
+    }
+
+    /// `redundant_parentheses_spec.rb:976`, "parens around a numblock body".
+    ///
+    /// An implicit block parameter is a local variable to upstream's parser, but nothing assigns
+    /// it, so the name table built from assignments cannot know it and it read as a method call.
+    #[test]
+    fn an_implicit_block_parameter_is_a_variable() {
+        for name in ["_1", "_2", "it"] {
+            expect_offense(
+                COP,
+                &format!(
+                    r#"
+            x do
+              ({name}; bar)
+              ^^^^^^^^^ Don't use parentheses around a variable.
+            end
+            "#,
+                )
+                .replace("^^^^^^^^^", &"^".repeat(name.len() + 7)),
+            );
+        }
+    }
+
+    /// The same names outside a block really are method calls, which is what makes the enclosing
+    /// block the whole of the question rather than the spelling of the name.
+    #[test]
+    fn an_implicit_block_parameter_outside_a_block_is_a_call() {
+        expect_offense(
+            COP,
+            r#"
+            (_1; bar)
+            ^^^^^^^^^ Don't use parentheses around a method call.
+            "#,
         );
     }
 

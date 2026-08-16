@@ -12,7 +12,7 @@ use crate::rules::support::spurious_assignment_list;
 // `[[:digit:][:upper:]_]` upstream, and Ruby's POSIX classes are Unicode-aware, so `Ä` counts as
 // upper case. Rust's `[[:upper:]]` would only accept ASCII.
 static SCREAMING_SNAKE_CASE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\d\p{Uppercase}_]+$").unwrap());
+    LazyLock::new(|| Regex::new(r"^[0-9\p{Uppercase}_]+$").unwrap());
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let variables = context.variable_roles();

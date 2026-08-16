@@ -19,27 +19,27 @@ fn compile(pattern: &str) -> Regex {
 }
 
 static EMACS: LazyLock<Regex> = LazyLock::new(|| compile(r"-\*-(.+)-\*-"));
-static VIM: LazyLock<Regex> = LazyLock::new(|| compile(r"#\s*vim:\s*(.+)"));
+static VIM: LazyLock<Regex> = LazyLock::new(|| compile(r"#(?-u:\s)*vim:(?-u:\s)*(.+)"));
 
 static SIMPLE_ENCODING: LazyLock<Regex> = LazyLock::new(|| {
     compile(&format!(
-        r"(?i)^\s*#\s*(?:frozen_string_literal:\s*(?:true|false))?\s*(?:en)?coding: ({TOKEN})"
+        r"(?i)^(?-u:\s)*#(?-u:\s)*(?:frozen_string_literal:(?-u:\s)*(?:true|false))?(?-u:\s)*(?:en)?coding: ({TOKEN})"
     ))
 });
 static SIMPLE_FROZEN: LazyLock<Regex> = LazyLock::new(|| {
     compile(&format!(
-        r"(?i)^\s*#\s*frozen[_-]string[_-]literal:\s*({TOKEN})\s*$"
+        r"(?i)^(?-u:\s)*#(?-u:\s)*frozen[_-]string[_-]literal:(?-u:\s)*({TOKEN})(?-u:\s)*$"
     ))
 });
 static SIMPLE_RBS_INLINE: LazyLock<Regex> =
-    LazyLock::new(|| compile(&format!(r"(?i)^\s*#\s*rbs_inline:\s*({TOKEN})\s*$")));
+    LazyLock::new(|| compile(&format!(r"(?i)^(?-u:\s)*#(?-u:\s)*rbs_inline:(?-u:\s)*({TOKEN})(?-u:\s)*$")));
 static SIMPLE_SHAREABLE: LazyLock<Regex> = LazyLock::new(|| {
     compile(&format!(
-        r"(?i)^\s*#\s*shareable[_-]constant[_-]value:\s*({TOKEN})\s*$"
+        r"(?i)^(?-u:\s)*#(?-u:\s)*shareable[_-]constant[_-]value:(?-u:\s)*({TOKEN})(?-u:\s)*$"
     ))
 });
 static SIMPLE_TYPED: LazyLock<Regex> =
-    LazyLock::new(|| compile(&format!(r"(?i)^\s*#\s*typed:\s*({TOKEN})\s*$")));
+    LazyLock::new(|| compile(&format!(r"(?i)^(?-u:\s)*#(?-u:\s)*typed:(?-u:\s)*({TOKEN})(?-u:\s)*$")));
 
 /// The settings an editor comment holds, split the way RuboCop's `tokens` does. Ruby's `split`
 /// drops the empty strings a trailing separator leaves, which is what decides whether a Vim comment
@@ -221,7 +221,7 @@ const VIM_SEPARATOR: &str = ", ";
 static LEADING_ENCODING: LazyLock<Regex> = LazyLock::new(|| compile(r"^(?:en)?coding"));
 static LEADING_FILEENCODING: LazyLock<Regex> = LazyLock::new(|| compile(r"^fileencoding"));
 static SIMPLE_LEADING_ENCODING: LazyLock<Regex> =
-    LazyLock::new(|| compile(r"(?i)^#\s*(?:en)?coding"));
+    LazyLock::new(|| compile(r"(?i)^#(?-u:\s)*(?:en)?coding"));
 
 /// An editor comment rewritten without the settings whose name `keyword` matches. Dropping the last
 /// one leaves nothing rather than an empty comment.

@@ -44,7 +44,7 @@ static SIMPLE: LazyLock<Vec<Regex>> = LazyLock::new(|| {
 
 /// `EmacsComment::REGEXP` and `VimComment::REGEXP`.
 static EMACS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-\*-(.+)-\*-").expect("valid"));
-static VIM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"#\s*vim:\s*(.+)").expect("valid"));
+static VIM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"#(?-u:\s)*vim:(?-u:\s)*(.+)").expect("valid"));
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let kebab = context
