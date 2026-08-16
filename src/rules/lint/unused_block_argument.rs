@@ -1,9 +1,11 @@
 use super::variable_force::{
     Analysis, Argument, Declaration, Scope, Variable, block_method, body_node, is_lambda,
 };
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+
+use super::unused_arg_corrector::correction;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let ignore_empty: bool = context.setting("IgnoreEmptyBlocks").unwrap_or(true);
@@ -93,47 +95,3 @@ fn underscore_message(name: &str) -> String {
     )
 }
 
-/// RuboCop's `UnusedArgCorrector` leaves keyword arguments alone -- prefixing one would rename the
-/// keyword itself -- and deletes an explicit block argument instead of renaming it, since an
-/// unused `&block` is simply surplus.
-fn correction(context: &RuleContext<'_>, variable: &Variable<'_>) -> Option<Edit> {
-    match variable.kind {
-        Declaration::Argument(Argument::Keyword) => None,
-        Declaration::Argument(Argument::Block) => {
-            let start = removal_start(context, variable.declaration.start_byte());
-            Some(Edit {
-                start,
-                end: variable.declaration.end_byte(),
-                replacement: String::new(),
-                safe: true,
-            })
-        }
-        // `corrector.replace(node.loc.name, "_#{name}")`. Writing the whole name rather than
-        // inserting a `_` in front of it matters when another cop is rewriting the same argument
-        // in the same pass: a replacement of the same range clobbers and is deferred to the next
-        // pass, while an insertion at its edge slips out of the range and lands on the neighbour.
-        _ => {
-            let name = context.source.node_text(variable.name_node);
-            Some(Edit {
-                start: variable.name_node.start_byte(),
-                end: variable.name_node.end_byte(),
-                replacement: format!("_{name}"),
-                safe: true,
-            })
-        }
-    }
-}
-
-/// Walks back over the whitespace and then the comma that separated the argument from the one
-/// before it, so deleting the argument does not leave `|a, |` behind.
-fn removal_start(context: &RuleContext<'_>, start: usize) -> usize {
-    let text = context.source.text().as_bytes();
-    let mut cursor = start;
-    while cursor > 0 && (text[cursor - 1] == b' ' || text[cursor - 1] == b'\t') {
-        cursor -= 1;
-    }
-    if cursor > 0 && text[cursor - 1] == b',' {
-        cursor -= 1;
-    }
-    cursor
-}

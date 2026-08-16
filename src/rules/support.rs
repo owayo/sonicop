@@ -642,14 +642,112 @@ pub(crate) fn expand_path(path: &std::path::Path) -> std::path::PathBuf {
 /// `range_by_whole_lines(range, include_final_newline: true)`: the lines `range` sits on, taken
 /// whole, with the line break that closes the last of them.
 pub(crate) fn whole_lines(range: Range<usize>, context: &RuleContext<'_>) -> Range<usize> {
+    by_whole_lines(range, context, true)
+}
+
+/// `range_by_whole_lines(range)`: the same lines, stopping before the line break that closes them.
+///
+/// This is upstream's default. A caller that deletes the span wants [`whole_lines`] instead, or the
+/// line it emptied stays behind as a blank one; a caller that only measures or replaces the text of
+/// those lines wants this one, or it takes a character that is not on them.
+pub(crate) fn whole_lines_without_terminator(
+    range: Range<usize>,
+    context: &RuleContext<'_>,
+) -> Range<usize> {
+    by_whole_lines(range, context, false)
+}
+
+/// `RangeHelp#range_by_whole_lines`, with upstream's keyword spelled out as an argument.
+///
+/// The last line's break is looked for rather than added, so a file that ends without one is not
+/// reported as reaching past its own text.
+fn by_whole_lines(
+    range: Range<usize>,
+    context: &RuleContext<'_>,
+    include_final_newline: bool,
+) -> Range<usize> {
     let text = context.source.text();
     let start = text[..range.start]
         .rfind('\n')
         .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
+    let end = text[range.end..].find('\n').map_or(text.len(), |offset| {
+        range.end + offset + usize::from(include_final_newline)
+    });
     start..end
+}
+
+/// Node kinds that hold a comma-separated list of expressions. Ruby's own parser closes such a
+/// list at every comma, so `foo(a, b = 1)` passes two arguments and only `b` is assigned.
+const COMMA_SEPARATED_LISTS: &[&str] = &[
+    "argument_list",
+    "array",
+    "splat_argument",
+    "optional_parameter",
+    "keyword_parameter",
+    "right_assignment_list",
+];
+
+/// Whether a `left_assignment_list` is one the grammar invented. tree-sitter parses `foo(a, b = 1)`
+/// and `def m(x = A, y = 2)` as a multiple assignment that swallowed the items written before the
+/// one being assigned to, which is not how Ruby reads them, so such a list is not a `masgn` and
+/// binds only its last name.
+///
+/// Every walk that binds names -- the one the Lint cops run, the one the Metrics cops run and the
+/// one the Naming cops run -- meets the same invented lists, so the reading lives here rather than
+/// once per walk.
+pub(crate) fn spurious_assignment_list(list: Node<'_>) -> bool {
+    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
+    // assignment inside the next and only the outermost one stands in the list itself.
+    let mut current = list.parent();
+    while let Some(node) = current {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
+            return true;
+        }
+        let continues = parent.kind_str() == "assignment"
+            && parent
+                .field("right")
+                .is_some_and(|right| right.id() == node.id());
+        current = continues.then_some(parent);
+    }
+    false
+}
+
+/// The scope a node opens, and the fields that still belong to the scope around it. RuboCop calls
+/// these "twisted" nodes: `class Foo < bar` evaluates `bar` outside the class body it precedes, and
+/// so do the receiver of `def obj.name` and the value of `class << expr`. The `bool` says whether
+/// the scope is a block, which is the one kind that still sees the variables around it.
+pub(crate) fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
+    match kind {
+        "method" => Some((false, &[])),
+        "singleton_method" => Some((false, &["object"])),
+        "class" => Some((false, &["name", "superclass"])),
+        "module" => Some((false, &["name"])),
+        "singleton_class" => Some((false, &["value"])),
+        "block" | "do_block" | "lambda" => Some((true, &[])),
+        _ => None,
+    }
+}
+
+/// The constant path as written, joined with `::`.
+///
+/// A `scope` that cannot be read is dropped rather than failing the whole name, so `::Foo` answers
+/// `::Foo`. The cops that must not accept a partial reading keep their own stricter version.
+pub(crate) fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
+    let name = match node.kind_str() {
+        "constant" => return Some(context.source.node_text(node).to_owned()),
+        "scope_resolution" => context.source.node_text(node.field("name")?),
+        _ => return None,
+    };
+    match node.field("scope") {
+        Some(scope) => Some(format!(
+            "{}::{name}",
+            const_name(scope, context).unwrap_or_default()
+        )),
+        None => Some(name.to_owned()),
+    }
 }
 
 /// Pushes `node`'s named children so that popping the stack yields them in

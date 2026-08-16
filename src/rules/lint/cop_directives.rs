@@ -12,6 +12,7 @@
 
 use std::ops::Range;
 
+use crate::directives::cop_name_length;
 use crate::rules::RuleContext;
 
 /// The departments a cop name can be shortened to. `cop_registry.department?` answers from the
@@ -139,30 +140,4 @@ fn next_is_name_character(text: &str, index: usize) -> bool {
     text.as_bytes()
         .get(index)
         .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
-}
-
-/// `COP_NAME_PATTERN`: one or more `[A-Za-z]\w+` segments joined by slashes.
-fn cop_name_length(text: &str) -> Option<usize> {
-    let bytes = text.as_bytes();
-    let mut index = 0;
-    loop {
-        let start = index;
-        if !bytes.get(index).is_some_and(u8::is_ascii_alphabetic) {
-            return None;
-        }
-        index += 1;
-        while bytes
-            .get(index)
-            .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
-        {
-            index += 1;
-        }
-        if index - start < 2 {
-            return None;
-        }
-        if bytes.get(index) != Some(&b'/') {
-            return Some(index);
-        }
-        index += 1;
-    }
 }

@@ -2,10 +2,11 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
-use super::support::{Variables, last_named_child, spurious_assignment_list};
+use super::support::{Variables, last_named_child};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::spurious_assignment_list;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let configured: String = context

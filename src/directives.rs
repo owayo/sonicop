@@ -334,7 +334,7 @@ fn cop_list(arguments: &str) -> Vec<String> {
 
 /// The length of the cop name `text` starts with, following `COP_NAME_PATTERN`: one or more
 /// `[A-Za-z]\w+` segments separated by slashes.
-fn cop_name_length(text: &str) -> Option<usize> {
+pub(crate) fn cop_name_length(text: &str) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut index = 0;
     loop {

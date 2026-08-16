@@ -6,6 +6,8 @@ use crate::diagnostic::Offense;
 use crate::directives::DirectiveState;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+
+use super::comments_help::comment_search_lines;
 use crate::ruby_version::RubyVersion;
 
 use super::statements::statements;
@@ -62,31 +64,6 @@ fn allowed_by_comments(
         lines.contains(&line)
     });
     has_comment && !comments_contain_disables(context, &lines)
-}
-
-/// `find_end_line`: a branch runs up to the line the next one starts on, or to the `end` of the
-/// `case` when it is the last. The range excludes that line.
-fn comment_search_lines(
-    context: &RuleContext<'_>,
-    case: Node<'_>,
-    children: &[Node<'_>],
-    index: usize,
-) -> Range<usize> {
-    let branch = children[index];
-    let (start, _) = context.source.line_column(branch.start_byte());
-    let end = children[index + 1..]
-        .iter()
-        .find(|sibling| sibling.kind_str() != "comment")
-        .map_or_else(
-            || {
-                let (line, _) = context
-                    .source
-                    .line_column(case.end_byte().saturating_sub(1));
-                line
-            },
-            |next| context.source.line_column(next.start_byte()).0,
-        );
-    start..end
 }
 
 fn comments_contain_disables(context: &RuleContext<'_>, lines: &Range<usize>) -> bool {
