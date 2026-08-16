@@ -30,8 +30,10 @@ const ARRAY_MSG: &str = "Use %<prefer>s for an array of words.";
 /// ```
 ///
 /// Rust's set is a strict subset -- it holds nothing Ruby's lacks -- so the 4,699 it misses are
-/// codepoints added by a Unicode release the crate has not caught up to. That closes when the
-/// dependency updates; there is nothing to fix here.
+/// codepoints added by a Unicode release the crate has not caught up to. There is nothing to fix
+/// here: `regex-syntax` 0.8.11 is the newest published version as of 2026-08-17 and
+/// `cargo update -p regex-syntax` has nowhere to go. This closes when the crate ships Unicode 17,
+/// not before.
 static DEFAULT_WORD: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?:\w|\w-\w|\n|\t)+$").unwrap());
 
