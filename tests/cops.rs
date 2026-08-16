@@ -35804,3 +35804,64 @@ mod layout_condition_position_elsif {
         .run();
     }
 }
+
+/// `Style/OrAssignment` が本家の `if` 節に対応する 2 つの形を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Style/OrAssignment` / `-A` の実出力。
+/// 本家の spec (spec/rubocop/cop/style/or_assignment_spec.rb) から見つけた。
+/// **この cop は 5 コーパスで 1 件しか発火しないので、コーパスからは出ない。**
+mod style_or_assignment_keyword_forms {
+    use super::*;
+
+    const COP: &str = "Style/OrAssignment";
+
+    /// `ternary_assignment?` は `if` 節を見る。本家のパーサは三項演算子にも
+    /// キーワード形にも同じ `if` を作るが、文法は `conditional` と `if` に分ける。
+    /// キーワード形を種別の列挙から落とすと、この形でまるごと黙る。
+    #[test]
+    fn the_keyword_form_of_the_ternary_is_reported() {
+        for (source, corrected) in [
+            (
+                "foo = if foo\n        foo\n      else\n        'default'\n      end\n",
+                "foo ||= 'default'\n",
+            ),
+            (
+                "@foo = if @foo\n         @foo\n       else\n         'default'\n       end\n",
+                "@foo ||= 'default'\n",
+            ),
+            (
+                "$foo = if $foo\n         $foo\n       else\n         'default'\n       end\n",
+                "$foo ||= 'default'\n",
+            ),
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        }
+    }
+
+    /// `unless_assignment?` は `(if cond nil? assignment)`。本家のパーサは
+    /// `x = 1 unless x` からも、**本体が空で `else` を持つ `if`** からも同じ形に至る。
+    #[test]
+    fn an_if_with_an_empty_body_and_an_else_is_reported() {
+        CopCase::new(
+            COP,
+            "foo = nil\nif foo\nelse\n  foo = 2\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("foo = nil\nfoo ||= 2\n")
+        .run();
+    }
+
+    /// `return if else_branch.if_type?`。`elsif` は文法では別種別なので、
+    /// 弾く一覧に入れておかないと過剰に報告する。
+    #[test]
+    fn an_elsif_chain_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "foo = if foo\n        foo\n      elsif\n        bar\n      else\n        'default'\n      end\n",
+        );
+    }
+}
