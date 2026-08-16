@@ -36357,3 +36357,90 @@ mod begin_block_holds_siblings {
         );
     }
 }
+
+/// `Layout/BlockEndNewline` がヒアドキュメントを持つブロックで壊れた Ruby を書いていた件。
+///
+/// `}` は本文の後ろへ移さなければならない。移植版は**条件は正しかったが、測っている文字列が
+/// 違っていた** — 本文として読んでいた範囲が、開き記号の行末の改行から終端子の字下げまでを
+/// 含んでいたので、1 行の本文が 3 行と数えられ、**すべての実物が「複数行」に分類されて**
+/// `}` が本文の上に書かれていた (`ruby -c` が通らない出力)。
+///
+/// 本家の条件は `arg.str_type? && arg.heredoc?`。実測すると `<<~` / `<<-` / `<<` のどれでも
+/// **本文が 2 行以上なら別の枝**で、**空の本文も別の枝**である (どちらも `dstr` になる)。
+/// 期待値はすべて本家 1.89.0 の `--only Layout/BlockEndNewline -A` の実出力。
+mod layout_block_end_newline_heredoc {
+    use super::*;
+
+    const COP: &str = "Layout/BlockEndNewline";
+
+    /// 1 行の本文なら `}` は本文の後ろへ (spec:104)。
+    #[test]
+    fn the_brace_moves_after_a_one_line_heredoc() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// 2 つのヒアドキュメントなら最後の終端子の後ろへ (spec:123)。
+    #[test]
+    fn the_brace_moves_after_the_last_terminator() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~FIRST, <<~SECOND) }\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "test {\n  foo(<<~FIRST, <<~SECOND)\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n}\n",
+        )
+        .run();
+    }
+
+    /// レシーバの側にヒアドキュメントがあるときも辿る (spec:146)。
+    #[test]
+    fn the_receiver_chain_is_followed() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS).bar }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS).bar\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
+    /// 条件を落とすと逆にずれるので、境界の外側を固定する。
+    #[test]
+    fn a_two_line_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。
+    #[test]
+    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
+        .run();
+    }
+}
