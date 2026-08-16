@@ -443,6 +443,13 @@ fn parenthesize_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if node.kind_str() != "call" {
         return false;
     }
+    // `node.call_type?`: a call carrying a block is a `block` node upstream, not a `send`, so this
+    // branch is not taken for it and the **whole thing** gets the parentheses. The grammar hangs
+    // the block off the call, so asking only about the kind takes the argument-list branch and
+    // writes `ok?(bar do ... end)` where upstream writes `(ok? bar do ... end)`.
+    if node.field("block").is_some() {
+        return false;
+    }
     let Some((arguments, parenthesized, _)) = call_shape(context, node) else {
         return false;
     };
@@ -480,9 +487,13 @@ fn parenthesized_and(context: &RuleContext<'_>, node: Node<'_>) -> String {
         return context.source.node_text(node).to_owned();
     };
     let text = context.source.text();
+    // `range_with_surrounding_space(node.loc.operator, whitespace: true)`: the `whitespace` stage
+    // runs **after** the newline stage, so it reaches the indentation of the line the right-hand
+    // clause sits on. Stopping at the newline drops that indentation and moves the clause to
+    // column 0.
     let spaced = context.source.slice(
-        super::ranges::extended_left(text, operator.start_byte(), true)
-            ..super::ranges::extended_right(text, operator.end_byte(), true),
+        crate::rules::support::final_pos(text, operator.start_byte(), false, false, true, true)
+            ..crate::rules::support::final_pos(text, operator.end_byte(), true, false, true, true),
     );
     format!(
         "{}{}{}",

@@ -3,6 +3,8 @@
 //! Upstream writes them once in `HashTransformMethod` and lets each cop say which half of the pair
 //! is the one being transformed, which is the only difference between the two.
 
+use std::ops::Range;
+
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
@@ -38,8 +40,11 @@ const HASH_BLOCK_METHODS: &[&str] = &[
 
 /// One recognized shape, and everything the correction needs from it.
 struct Candidate<'tree> {
-    /// What `add_offense` is given.
-    node: Node<'tree>,
+    /// The span `add_offense` is given.
+    ///
+    /// For `map { ... }.to_h { ... }` it is **not** the whole grammar node: upstream reports the
+    /// `send`, and a block hung on `to_h` belongs to the node above it.
+    range: Range<usize>,
     /// The call the block hangs off, whose selector becomes `transform_keys`.
     call: Node<'tree>,
     block: Node<'tree>,
@@ -81,7 +86,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, half
             context
                 .offense(
                     format!("Prefer `{name}` over `{}`.", candidate.description),
-                    node.byte_range(),
+                    candidate.range.clone(),
                 )
                 .corrected_by_all(corrections(context, &candidate, name)),
         );
@@ -190,7 +195,7 @@ fn each_with_object<'tree>(
         return None;
     }
     Some(Candidate {
-        node,
+        range: node.byte_range(),
         call: node,
         block,
         leading: 0,
@@ -221,7 +226,7 @@ fn hash_brackets_map<'tree>(
     };
     let (block, argname, transforming, unchanged) = mapping_block(context, *mapping, half)?;
     Some(Candidate {
-        node,
+        range: node.byte_range(),
         call: *mapping,
         block,
         leading: "Hash[".len(),
@@ -239,23 +244,31 @@ fn map_to_h<'tree>(
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
-    if node.kind_str() != "call"
-        || node.field("arguments").is_some()
-        || node.field("block").is_some()
-    {
+    if node.kind_str() != "call" || node.field("arguments").is_some() {
         return None;
     }
     if context.source.node_text(node.field("method")?) != "to_h" {
         return None;
     }
+    // `(call (block ...) :to_h)`: upstream's `send` for `.to_h` **does not include a block hung on
+    // it** -- the block is the node above. So `x.map { ... }.to_h { ... }` still matches, and only
+    // the `map { ... }.to_h` part is rewritten. The grammar hangs the block off the call, so
+    // refusing a call that has one loses the whole shape.
+    let send = crate::rules::send_node::send_range(node, context);
     let mapping = node.field("receiver")?;
     let (block, argname, transforming, unchanged) = mapping_block(context, mapping, half)?;
     Some(Candidate {
-        node,
+        range: node.start_byte()..send.end,
         call: mapping,
         block,
         leading: 0,
-        trailing: node.end_byte() - mapping.end_byte(),
+        // `if node.parent&.block_type? && node.parent.send_node == node then 0`: with a block
+        // hung on `to_h`, the `.to_h` has to stay -- removing it would leave the block with
+        // nothing to hang off. Upstream strips the suffix only when `to_h` stands alone.
+        trailing: match node.field("block").is_some() {
+            true => 0,
+            false => send.end - mapping.end_byte(),
+        },
         argname,
         transforming,
         unchanged,
@@ -279,7 +292,7 @@ fn to_h_block<'tree>(
     hash_receiver(context, node.field("receiver")?)?;
     let (argname, transforming, unchanged) = pair_block(context, block, half)?;
     Some(Candidate {
-        node,
+        range: node.byte_range(),
         call: node,
         block,
         leading: 0,
@@ -414,7 +427,7 @@ fn mentions(context: &RuleContext<'_>, node: Node<'_>, name: &str) -> bool {
 /// `execute_correction`: the wrapper goes, the selector is renamed, and the block keeps one
 /// parameter and one expression.
 fn corrections(context: &RuleContext<'_>, candidate: &Candidate<'_>, name: &str) -> Vec<Edit> {
-    let range = candidate.node.byte_range();
+    let range = candidate.range.clone();
     let mut edits = Vec::new();
     if candidate.leading > 0 {
         edits.push(Edit {
@@ -456,11 +469,18 @@ fn corrections(context: &RuleContext<'_>, candidate: &Candidate<'_>, name: &str)
     }
     if let Some(body) = candidate.block.field("body") {
         let source = context.source.node_text(candidate.transforming);
-        let replacement =
-            match candidate.transforming.kind_str() == "hash" && !source.starts_with('{') {
-                true => format!("{{ {source} }}"),
-                false => source.to_owned(),
-            };
+        // `transforming_body_expr.hash_type? && !transforming_body_expr.braces?`: a hash written
+        // without braces has to gain them once it becomes the block's whole body.
+        //
+        // The grammar writes **no `hash` node at all** for the braceless form -- `[key, value: val]`
+        // holds a bare `pair` -- so asking only about `hash` misses exactly the case the guard
+        // exists for, and the correction comes out as `{ |val| value: val }`, which is not Ruby.
+        let braceless_hash = matches!(candidate.transforming.kind_str(), "hash" | "pair")
+            && !source.starts_with('{');
+        let replacement = match braceless_hash {
+            true => format!("{{ {source} }}"),
+            false => source.to_owned(),
+        };
         edits.push(Edit {
             start: body.start_byte(),
             end: body.end_byte(),
