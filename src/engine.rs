@@ -2229,22 +2229,29 @@ mod tests {
     /// guarded run from an unguarded one by looking at the command. This pins the default here so
     /// that turning it off has to be a deliberate edit to a test, not a forgotten variable.
     ///
-    /// `foo:bar => 1` is a hash written with an old-style rocket whose key is a symbol without a
-    /// space. `Style/HashSyntax` rewrites it to `foobar: 1`, which Ruby rejects -- the symbol's
-    /// name and the value run together. Measured with `ruby -c`, not assumed.
+    /// `Lint/SafeNavigationChain` reads the `-` of `foo&.bar - 1` as another link in the chain and
+    /// writes `foo&.bar&. - 1`, which Ruby rejects. Measured with `ruby -c`, not assumed.
     ///
-    /// **The selection is narrowed to that one cop on purpose.** With the whole default set the
-    /// other cops reach the same text first and land on `foo bar: 1`, which parses, so the guard
-    /// never fires and the test would pass without testing anything.
+    /// ## ★ If this test fails with "the source must come back untouched", read this first
+    ///
+    /// **The likely cause is that the cop was fixed, not that the guard broke.** This test needs
+    /// one correction that produces text Ruby rejects, and such corrections are meant to be fixed.
+    /// The first version used `foo:bar => 1` with `Style/HashSyntax`; that cop was fixed hours
+    /// later and the test started failing because the correction became valid.
+    ///
+    /// **Do not delete it. Swap the input for another case that still breaks.** The list lives in
+    /// `#41` ("the cases the guard stopped"). Whichever you pick, **check it first**: with
+    /// `SONICOP_NO_SYNTAX_GUARD=1` the output must fail `ruby -c`. Two candidates were tried for
+    /// this swap and both had already been fixed, so the check is not a formality.
+    ///
+    /// The whole default selection is used, not `only`. Under `--only <cop>` the guard does not
+    /// fire here, so narrowing would make this pass without testing anything.
     #[test]
     fn a_correction_that_would_not_parse_is_not_applied() {
         let directory = tempdir().unwrap();
         let config = Config::load(None, directory.path()).unwrap();
-        let selection = Selection {
-            only: vec!["Style/HashSyntax".to_owned()],
-            ..Selection::default()
-        };
-        let original = "foo:bar => 1\n";
+        let selection = Selection::default();
+        let original = "foo&.bar ? foo&.bar - 1 : baz\n";
         let report = inspect_source(
             directory.path().join("example.rb"),
             original.to_owned(),

@@ -19,6 +19,48 @@
 # 括弧内は測定に使ったコーパスの commit。CONFORMANCE.md の表と同じものを指す。
 # 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
 # 版依存の挙動はこの 3 つの範囲では踏めている。
+# 死守ライン (`fullfmt.sh` の `-A` バイト比較) で、意図して割れているファイル。
+#
+# **除外しない。差分そのものを期待値として監視する。** 両者の出力のハッシュを固定して
+# あるので、**同じファイルが別の理由で変わったら気づける**。除外にすると、そこが
+# どう変わっても静かになる。
+#
+# 読み方: `既知 4 / 新規 0` なら通過。`新規` が 1 でもあれば退行。
+# ハッシュが動いた既知は「同じファイルが別の理由で割れた」なので、これも止める。
+#
+# **数字だけを報告しない。**「4 件割れている」と読まれる。必ず「既知 4 / 新規 0」と書く。
+autocorrect_divergences:
+  - id: interpolation-check-percent-brace
+    corpus: rubocop_rubocop
+    path: spec/rubocop/cop/style/expand_path_arguments_spec.rb
+    rubocop_sha256: 603977aaae1c518b
+    sonicop_sha256: 2be281e983fbf686
+    reason: >-
+      `#41` の根 2。`'…' \` の次行に `%{…}` が続く形で、`Lint/InterpolationCheck` の
+      補正が構文エラーを作る。**本家も同じように壊す** (原本 Syntax OK / 本家 -A が
+      SyntaxError)。安全網 (src/engine.rs の withhold_unparsable) が書き戻しを止めるので、
+      移植版だけ原本が残る。**バイト列が割れている理由は移植版が正しいこと。**
+  - id: safety-net-mastodon-friends-of-friends
+    corpus: mastodon_mastodon
+    path: app/models/account_suggestions/friends_of_friends_source.rb
+    rubocop_sha256: 2a4e571fc0977c7c
+    sonicop_sha256: ae1b5cce6c23ba26
+    reason: >-
+      安全網の発火。原本 `ruby -c` OK / 安全網を切った移植版の出力 NG /
+      **本家の -A 出力も NG**。本家は実在のコードを壊し、移植版は原本を残す。
+  - id: safety-net-mastodon-account-summary
+    corpus: mastodon_mastodon
+    path: app/models/account_summary.rb
+    rubocop_sha256: d1bf059718079691
+    sonicop_sha256: a71e0ccb80346ac6
+    reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
+  - id: safety-net-mastodon-notify-service
+    corpus: mastodon_mastodon
+    path: app/services/notify_service.rb
+    rubocop_sha256: 5d93f5a44a49e490
+    sonicop_sha256: 3be80e05f158a5f9
+    reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
+
 blind_spots:
   - corpus: 全コーパス
     not_covered: 既定以外の設定値 (EnforcedStyle の非既定値・CountAsOne・Max の変更など)
