@@ -200,9 +200,15 @@ fn allowed_receiver(receiver: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 /// `receiver_name`: the innermost non-constant receiver, spelled as a dotted chain of selectors.
+///
+/// Upstream stops at a `const_type?` receiver, and **upstream's `const` covers `Foo::Bar` as much as
+/// `Foo`** (`Foo::Bar` is a `const` whose child is a `const`). The grammar splits those into two
+/// kinds, so both have to be named or the walk runs past the constant and drops the selector that
+/// followed it: `Foo::Bar.baz` would answer `Foo::Bar` and match an `AllowedReceivers` entry it
+/// should not.
 fn receiver_name(receiver: Node<'_>, context: &RuleContext<'_>) -> String {
     if let Some(inner) = receiver.field("receiver")
-        && inner.kind_str() != "constant"
+        && !matches!(inner.kind_str(), "constant" | "scope_resolution")
     {
         return receiver_name(inner, context);
     }

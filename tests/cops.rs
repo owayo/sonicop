@@ -35872,3 +35872,101 @@ mod style_redundant_return_heredoc {
         .run();
     }
 }
+
+/// `Lint/EmptyConditionalBody` が末尾の `elsif` のコメントを見落として過剰検出していた件 (#47)。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/EmptyConditionalBody` の実出力。**5 コーパスには 1 件も
+/// 出ない形**なので、ここが唯一の防波堤になる。
+mod lint_empty_conditional_body_elsif_comment {
+    use super::*;
+
+    const COP: &str = "Lint/EmptyConditionalBody";
+
+    /// 本家 `CommentsHelp#find_end_line` の `elsif?` の分岐。空の `elsif` が最後の枝のとき、
+    /// コメントを探す範囲は**それを含む `if` の `end` の行**まで伸びる。
+    #[test]
+    fn a_comment_in_the_last_elsif_excuses_the_empty_branch() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nend\n");
+    }
+
+    /// `elsif` が 2 段でも、いちばん外の `if` の `end` まで伸びる。
+    #[test]
+    fn a_comment_in_a_nested_elsif_is_found_too() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nelsif e\n  # 理由\nend\n");
+    }
+
+    /// `else` が後ろにあるときは、そこで止まる (以前から通っていた形)。
+    #[test]
+    fn a_comment_before_a_following_else_still_excuses_it() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  # 理由\nelse\n  d\nend\n");
+    }
+
+    /// コメントが無ければ報告する。**範囲を伸ばしすぎて黙るようになっていないか**を見る。
+    #[test]
+    fn an_empty_last_elsif_without_a_comment_is_still_reported() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend\n",
+        );
+    }
+
+    /// `end` の行にあるコメントは枝のものではない (本家の範囲は終端の行を含まない)。
+    #[test]
+    fn a_comment_on_the_end_line_does_not_excuse_it() {
+        expect_offense(
+            COP,
+            "if a\n  b\nelsif c\n^^^^^^^ Avoid `elsif` branches without a body.\nend # 理由\n",
+        );
+    }
+}
+
+/// `Style/CollectionCompact` の `AllowedReceivers` が `Foo::Bar.baz` を `Foo::Bar` と読んでいた件 (#48)。
+///
+/// 本家の `const_type?` は `Foo` も `Foo::Bar` も真だが、文法は `constant` と `scope_resolution` に
+/// 分ける。**既定は `AllowedReceivers: []` なのでコーパスでは踏まない。**
+mod style_collection_compact_allowed_receivers {
+    use super::*;
+
+    const COP: &str = "Style/CollectionCompact";
+    const CONFIG: &str = "Style/CollectionCompact:\n  Enabled: true\n  AllowedReceivers:\n    - Foo::Bar\n";
+
+    /// `Foo::Bar.baz` の receiver_name は `Foo::Bar.baz` なので、`Foo::Bar` の許可には当たらない。
+    #[test]
+    fn a_selector_after_the_constant_is_not_allowed_by_the_constant_alone() {
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.baz.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+            "receiver_name は Foo::Bar.baz なので許可リストに当たらない"
+        );
+    }
+
+    /// 定数そのものが receiver なら許可される。
+    #[test]
+    fn the_constant_itself_is_allowed() {
+        let report = CopCase::new(COP, "Foo::Bar.reject { |e| e.nil? }\n".to_owned(), Vec::new())
+            .config(CONFIG)
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            0,
+            "receiver_name は Foo::Bar なので許可される"
+        );
+    }
+}
