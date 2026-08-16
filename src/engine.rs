@@ -114,6 +114,11 @@ impl Selection {
 /// `Exclude` reads the path being inspected, so it is all that stays per-file.
 pub(crate) struct RulePlan {
     entries: Vec<PlannedRule>,
+    /// The cops the configuration switched off that a file could ask back with an `enable`
+    /// directive. Upstream keeps the whole registry on standby for exactly this and mobilizes one
+    /// when `CommentConfig#opt_in_cops` names it, so the selection is settled here but the decision
+    /// is per file.
+    standby: Vec<PlannedRule>,
     /// What the cop that reads directives needs to know about the cops that exist. Built once per
     /// configuration because it depends on nothing in the file, and only when that cop will run.
     directive_registry: Option<CopRegistry>,
@@ -130,29 +135,36 @@ struct PlannedRule {
 
 impl RulePlan {
     pub(crate) fn build(config: &Config, selection: &Selection) -> Self {
-        let entries = rules()
-            .enumerate()
-            .filter(|(_, rule)| {
-                let enabled = config.rule_enabled_with_pending(
-                    rule.name,
-                    selection.enable_pending,
-                    selection.disable_pending,
-                );
-                selection.includes(rule.name, enabled, config.rule_safe(rule.name))
-            })
-            .map(|(index, rule)| PlannedRule {
-                rule,
-                index,
-                severity: config
-                    .cop_value::<String>(rule.name, "Severity")
-                    .and_then(|value| Severity::parse(&value))
-                    .unwrap_or(rule.severity),
-                // `AutocorrectLogic#safe_autocorrect?` is both halves: a cop whose analysis is
-                // unsafe cannot have a safe correction either, however `SafeAutoCorrect` was left.
-                safe_autocorrect: config.rule_safe(rule.name)
-                    && config.rule_safe_autocorrect(rule.name),
-            })
-            .collect::<Vec<_>>();
+        let planned = |index: usize, rule: &'static Rule| PlannedRule {
+            rule,
+            index,
+            severity: config
+                .cop_value::<String>(rule.name, "Severity")
+                .and_then(|value| Severity::parse(&value))
+                .unwrap_or(rule.severity),
+            // `AutocorrectLogic#safe_autocorrect?` is both halves: a cop whose analysis is
+            // unsafe cannot have a safe correction either, however `SafeAutoCorrect` was left.
+            safe_autocorrect: config.rule_safe(rule.name)
+                && config.rule_safe_autocorrect(rule.name),
+        };
+        let mut entries = Vec::new();
+        let mut standby = Vec::new();
+        for (index, rule) in rules().enumerate() {
+            let safe = config.rule_safe(rule.name);
+            let enabled = config.rule_enabled_with_pending(
+                rule.name,
+                selection.enable_pending,
+                selection.disable_pending,
+            );
+            if selection.includes(rule.name, enabled, safe) {
+                entries.push(planned(index, rule));
+            } else if !enabled && selection.includes(rule.name, true, safe) {
+                // Only the configuration stands in the way, which is what an `enable` directive can
+                // undo. A cop the run itself left out (`--only`, `--except`, the safety filters)
+                // stays out however the file is written.
+                standby.push(planned(index, rule));
+            }
+        }
         let directive_registry = (selection.checks_redundant_directives()
             && entries
                 .iter()
@@ -160,6 +172,7 @@ impl RulePlan {
         .then(|| CopRegistry::new(config, selection));
         Self {
             entries,
+            standby,
             directive_registry,
         }
     }
@@ -229,12 +242,27 @@ fn inspect_planned(
     let ast = crate::profile::phase(crate::profile::Phase::Index, || {
         AstIndex::new(tree.root_node())
     });
+    // `opted_in_standby_cops`: a cop the configuration switched off is put back on duty for this
+    // file when an `enable` directive names it. The names are read once and used twice -- to pick
+    // the cops out of the plan's standby list, and to seed the directive state so that only what
+    // the `enable` opens is reported.
+    let opted_in: Vec<&PlannedRule> = if plan.standby.is_empty() {
+        Vec::new()
+    } else {
+        let names = crate::directives::opted_in_cops(&source, ast.comment_ranges());
+        plan.standby
+            .iter()
+            .filter(|planned| names.contains(planned.rule.name))
+            .collect()
+    };
+    let disabled_by_config: Vec<&str> = opted_in.iter().map(|planned| planned.rule.name).collect();
     let directives = crate::profile::phase(crate::profile::Phase::Directives, || {
         (!selection.ignore_disable_comments).then(|| {
-            DirectiveState::parse_for(
+            DirectiveState::parse_opting_in(
                 &source,
                 ast.comment_ranges(),
                 config.prevents_directive_disabling(),
+                &disabled_by_config,
             )
         })
     });
@@ -276,8 +304,11 @@ fn inspect_planned(
         syntax_rule,
         syntax_severity,
         selection.correcting,
-    );
-    for planned in &plan.entries {
+    )
+    // `registry.disabled_names(config)`: whether the run switches any cop off at all, which is
+    // what an `# rubocop:enable all` has to undo. The standby list is that set already.
+    .with_disabled_cops(!plan.standby.is_empty());
+    for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
         // `Exclude` does not, which is how a `Bundler` cop stays off everything but a Gemfile.

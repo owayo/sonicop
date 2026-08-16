@@ -45,8 +45,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     for index in open {
         let directive = &parsed[index];
+        // `acceptable_range?`: a cop the configuration switched off is not expected to be
+        // re-enabled, so the range it leaves open to the end of the file is acceptable. Upstream
+        // reads that off `registry.enabled?`, which is the configuration and nothing else -- a cop
+        // an `enable` directive put back on duty for this file still counts as switched off here.
+        // The ranges are kept per cop upstream, so a directive naming one switched off and one left
+        // on is reported under the one left on.
         // `message` names the first cop of the range, which for a department is the department.
-        let Some(name) = directive.names.first() else {
+        let Some(name) = directive
+            .names
+            .iter()
+            .find(|name| is_department(name) || context.cop_enabled(name))
+        else {
             continue;
         };
         let kind = if is_department(name) {

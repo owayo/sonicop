@@ -12,7 +12,7 @@ use std::fs;
 use std::process::Command;
 
 use support::project::{
-    assert_offenses, command, lint_stdin, offenses, project, project_with_ruby,
+    assert_offenses, command, lint_stdin, offense_tuples, offenses, project, project_with_ruby,
     project_without_pinned_ruby, report,
 };
 
@@ -290,6 +290,177 @@ fn a_directive_written_behind_prose_covers_its_own_line() {
             6,
             "Trailing whitespace detected.",
         )],
+    );
+}
+
+/// 設定で無効にした cop も、ファイル中の `# rubocop:enable` から下では有効に戻る。
+///
+/// 本家は `CommentConfig#inject_disabled_cops_directives` が設定無効の cop へ `-∞` 行から
+/// 始まる disable を注入し、実在する `enable` がその範囲を閉じる。cop 自体は `enable` が
+/// 名前を挙げたときだけ動員される (`opt_in_cops`) ので、`enable all` や部門名では戻らない。
+#[test]
+fn a_config_disabled_cop_comes_back_from_an_enable_directive() {
+    let long = "x = '0123456789012345678901234567890123456789'\n";
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Layout/LineLength:\n  Enabled: false\n  Max: 20\n",
+    )]);
+    let reported = |source: String| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source)
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Layout/LineLength")
+            .map(|(_, line, column, _)| (line, column))
+            .collect::<Vec<_>>()
+    };
+
+    // 名前を挙げた `enable` の下から報告される。書いた行そのものはまだ無効。
+    assert_eq!(
+        reported(format!("# rubocop:enable Layout/LineLength\n{long}")),
+        vec![(2, 21)]
+    );
+    // `enable` より上は無効のまま。
+    assert_eq!(
+        reported(format!("{long}# rubocop:enable Layout/LineLength\n{long}")),
+        vec![(3, 21)]
+    );
+    // `enable all` と部門名は cop を動員しない (`raw_cop_names` に cop 名が無い)。
+    assert!(reported(format!("# rubocop:enable all\n{long}")).is_empty());
+    assert!(reported(format!("# rubocop:enable Layout\n{long}")).is_empty());
+    // ディレクティブが無ければ設定どおり無効。
+    assert!(reported(long.to_owned()).is_empty());
+}
+
+/// 設定で無効にした cop は再有効化を期待されないので、閉じられていない `disable` も
+/// 咎められない (`acceptable_range?`)。無効な cop と有効な cop を並べて書いたときは、
+/// 有効なほうの名前で報告される。
+#[test]
+fn a_disable_of_a_config_disabled_cop_needs_no_enable() {
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Layout/LineLength:\n  Enabled: false\n  Max: 20\n",
+    )]);
+    let missing = |source: &str| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source.to_owned())
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Lint/MissingCopEnableDirective")
+            .map(|(_, _, _, message)| message)
+            .collect::<Vec<_>>()
+    };
+
+    assert!(missing("# rubocop:disable Layout/LineLength\nx = 1\n").is_empty());
+    // 有効なほうの名前で報告される。書いた順ではない。
+    assert_eq!(
+        missing("# rubocop:disable Layout/LineLength, Style/Documentation\nclass A\nend\n"),
+        vec![
+            "Re-enable Style/Documentation cop with `# rubocop:enable` after disabling it."
+                .to_owned()
+        ]
+    );
+}
+
+/// 実コードの形。`rubocop/rubocop` の
+/// `lib/rubocop/cop/naming/memoized_instance_variable_name.rb` がこの並びで、設定で
+/// Metrics を無効にすると本家は `enable` の下の定義だけを報告する。
+///
+/// 3 つの挙動が同時に噛み合う: 設定無効の cop が `enable` で戻ること、既に無効な cop への
+/// `disable` は「余計」になること、`disable-next` は 1.89 のディレクティブではないので
+/// 何も抑えないこと。**どれか 1 つ壊れると別の 2 つの結果も変わる**ので、まとめて固定する。
+#[test]
+fn a_disable_enable_pair_around_a_config_disabled_cop_matches_upstream() {
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Metrics/MethodLength:\n  Enabled: false\n  Max: 1\n",
+    )]);
+    let output = command(directory.path())
+        .args(["--stdin", "example.rb", "--format", "json"])
+        .write_stdin(concat!(
+            "# frozen_string_literal: true\n",
+            "\n",
+            "# rubocop:disable Metrics/MethodLength\n",
+            "def first\n",
+            "  1\n",
+            "  2\n",
+            "end\n",
+            "# rubocop:enable Metrics/MethodLength\n",
+            "\n",
+            "# rubocop:disable-next Metrics/MethodLength\n",
+            "def second\n",
+            "  1\n",
+            "  2\n",
+            "end\n",
+        ))
+        .assert()
+        .get_output()
+        .stdout
+        .clone();
+
+    let reported: Vec<(String, usize, usize, String)> = offense_tuples(&output)
+        .into_iter()
+        .filter(|(cop, ..)| {
+            cop == "Metrics/MethodLength" || cop == "Lint/RedundantCopDisableDirective"
+        })
+        .collect();
+    assert_eq!(
+        reported,
+        vec![
+            (
+                "Lint/RedundantCopDisableDirective".to_owned(),
+                3,
+                1,
+                "Unnecessary disabling of `Metrics/MethodLength`.".to_owned()
+            ),
+            (
+                "Metrics/MethodLength".to_owned(),
+                11,
+                1,
+                "Method has too many lines. [2/1]".to_owned()
+            ),
+        ]
+    );
+}
+
+/// `# rubocop:enable all` は、設定が何か 1 つでも cop を無効にしていれば戻すものがある。
+/// 本家は無効な cop 全部に disable を注入するので、その最初の `enable all` は余計ではない。
+#[test]
+fn an_enable_all_undoes_the_cops_the_configuration_switched_off() {
+    let directory = project(&[]);
+    let redundant = |source: &str| {
+        let output = command(directory.path())
+            .args(["--stdin", "example.rb", "--format", "json"])
+            .write_stdin(source.to_owned())
+            .assert()
+            .get_output()
+            .stdout
+            .clone();
+        offense_tuples(&output)
+            .into_iter()
+            .filter(|(cop, ..)| cop == "Lint/RedundantCopEnableDirective")
+            .count()
+    };
+
+    // 既定設定でも pending / 既定無効の cop が残っているので、戻すものがある。
+    assert_eq!(
+        redundant("# frozen_string_literal: true\n\n# rubocop:enable all\nx = 1\n"),
+        0
+    );
+    // 名前を挙げた enable は、その cop に戻すものが無ければ余計。
+    assert_eq!(
+        redundant("# frozen_string_literal: true\n\n# rubocop:enable Style/Documentation\nx = 1\n"),
+        1
     );
 }
 

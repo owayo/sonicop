@@ -37,7 +37,27 @@ impl DirectiveState {
         comment_ranges: &[Range<usize>],
         prevents_directive_disabling: bool,
     ) -> Self {
+        Self::parse_opting_in(source, comment_ranges, prevents_directive_disabling, &[])
+    }
+
+    /// The same, plus the cops the configuration switched off that this file asks back with an
+    /// `enable` directive.
+    ///
+    /// `CommentConfig#inject_disabled_cops_directives` gives every cop the configuration switched
+    /// off a disable written at `-Float::INFINITY`, so a real `# rubocop:enable Foo` closes that
+    /// range and Foo reports from there down. Only the cops the file names are seeded here: the
+    /// snapshot is cloned for every line, and the 200-odd cops RuboCop ships switched off would
+    /// make that clone the cost of the run.
+    pub fn parse_opting_in(
+        source: &SourceFile,
+        comment_ranges: &[Range<usize>],
+        prevents_directive_disabling: bool,
+        disabled_by_config: &[&str],
+    ) -> Self {
         let mut current = Snapshot::default();
+        for cop in disabled_by_config {
+            current.cops.insert((*cop).to_owned(), None);
+        }
         let mut stack = Vec::new();
         let mut line_states = Vec::with_capacity(source.line_count());
         // Where the first comment written on each line begins, as an offset into that line. Only
@@ -155,6 +175,34 @@ impl DirectiveState {
         }
         state.all.then(|| state.all_reason.clone())
     }
+}
+
+/// `CommentConfig#opt_in_cops`: the cops an `enable` directive in the file names.
+///
+/// This is what can put a cop the configuration switched off back on duty -- upstream keeps the
+/// registry on standby and mobilizes one when a file asks for it. `enable all` names none of them,
+/// and a `push` directive is not an `enable`, so neither opts a cop in.
+pub fn opted_in_cops(source: &SourceFile, comment_ranges: &[Range<usize>]) -> HashSet<String> {
+    let mut names = HashSet::new();
+    // `@no_directives`: upstream skips the whole analysis, injection included, for a file that does
+    // not mention RuboCop at all. Most files do not, and this is the only reason the scan can be
+    // afforded on every one of them.
+    if !source.text().contains("rubocop") {
+        return names;
+    }
+    for range in comment_ranges {
+        let (line_number, _) = source.line_column(range.start);
+        let column = range.start - source.line_start(line_number);
+        let line = source.line(line_number);
+        let Some(directive) = parse_directive(line, column) else {
+            continue;
+        };
+        if !matches!(directive.action, Action::Enable) {
+            continue;
+        }
+        names.extend(directive.cops.iter().filter(|cop| *cop != "all").cloned());
+    }
+    names
 }
 
 fn apply_disable(state: &mut Snapshot, cops: &[String], reason: Option<String>) {
