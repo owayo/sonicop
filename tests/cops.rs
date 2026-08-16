@@ -3808,6 +3808,16 @@ mod local_variable_analysis {
 mod semicolon_shapes {
     use super::*;
 
+    /// 終端の無いレンジから `;` を外すと、次の行まで飲み込んで 1 つのレンジになる。
+    /// 本家は先に括弧で包む (`corrector.wrap(node, '(', ')')`)。包まないと `-A` が
+    /// **動くコードを別の意味に変える**。
+    #[test]
+    fn an_endless_range_is_parenthesized_before_its_semicolon_goes() {
+        expect_correction("Style/Semicolon", "42..;\n42...;\n", "(42..)\n(42...)\n");
+        // 終端があるレンジは意味が変わらないので包まない。
+        expect_correction("Style/Semicolon", "1..2;\n", "1..2\n");
+    }
+
     const SEMICOLON: &str = "Style/Semicolon";
 
     /// 本家は式の分割まで直す。`;` を改行に置き換えるので、後ろの空白はそのまま残る。
@@ -4053,6 +4063,33 @@ mod line_length_breakable {
 /// `Style/HashSyntax` が新記法で書けると認めるシンボル。期待値は本家 1.89.0 の実測。
 mod hash_syntax_symbols {
     use super::*;
+
+    /// `return key: value` は Ruby として書けないので、本家は `return` に渡された波括弧
+    /// 無しのハッシュに `{}` を足す。足さないと `-A` が構文エラーを作る。**各ペアが別々の
+    /// offense なので、再パースの関門も気づけない。**
+    #[test]
+    fn a_hash_returned_without_braces_gains_them() {
+        expect_correction(
+            "Style/HashSyntax",
+            "return :key => value\n",
+            "return {key: value}\n",
+        );
+        expect_correction(
+            "Style/HashSyntax",
+            "return :a => 1, :b => 2\n",
+            "return {a: 1, b: 2}\n",
+        );
+    }
+
+    /// `argument_without_space?`: セレクタとハッシュの間に空白が無い形は、新しい構文にすると
+    /// 名前が繋がってしまう。**比べる相手は引数リストではなくハッシュの開始**で、括弧付きの
+    /// 呼び出しはリストが `(` から始まるため常に一致してしまう。
+    #[test]
+    fn a_hash_written_against_the_selector_gains_a_space() {
+        expect_correction("Style/HashSyntax", "foo:bar => 1\n", "foo bar: 1\n");
+        // 括弧付きは空白を足さない。
+        expect_correction("Style/HashSyntax", "func(3, :a => 0)\n", "func(3, a: 0)\n");
+    }
 
     const HASH_SYNTAX: &str = "Style/HashSyntax";
     const MSG_19: &str = "Use the new Ruby 1.9 hash syntax.";
