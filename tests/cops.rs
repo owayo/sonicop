@@ -16643,6 +16643,65 @@ mod layout_block_alignment {
         .corrected(concat!("foo.bar\n", "  .each do\n", "    baz\n", "end\n"))
         .run();
     }
+
+    /// 単項演算子を前に置いた呼び出しでは、**`end` が揃う相手は演算子から始まる式**である。
+    ///
+    /// `~xyz { }` は本家の parser では `(send (block ...) :~)` で、ブロックを receiver に持つ
+    /// send になる。`block_end_align_target?` の `(send equal?(%1) !:[] ...)` がそれに当たるので
+    /// 歩みは演算子まで出て、メッセージも `~xyz { |x|` とその桁 (13) を名指しする。
+    /// 文法は `unary` ノードにするので、`call` の receiver だけを見ていると 1 桁内側
+    /// (`xyz { |x|` の 14) で止まり、**揃っている形を過剰検出し、文言も変わっていた**
+    /// (この cop の spec で 6 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec (612 / 643 / 674 行付近) と `-A` の実測。
+    #[test]
+    fn a_unary_operator_becomes_the_alignment_target() {
+        // 揃っている形。演算子の桁 (13) に `}` が来ているので何も出ない。
+        for operator in ["~", "!", "-"] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "def abc\n  @abc ||= A[{operator}xyz {{ |x|\n               x\n             \
+                     }}.flatten]\nend\n"
+                ),
+            );
+        }
+        // ずれている形。文言は演算子から始まる式を名指しする。
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[~xyz { |x|
+                           x
+                                    }.flatten]
+                                    ^ `}` at 4, 24 is not aligned with `~xyz { |x|` at 2, 13 or `@abc ||= A[~xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n                        \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[!xyz { |x|
+                           x
+            }.flatten]
+            ^ `}` at 4, 0 is not aligned with `!xyz { |x|` at 2, 13 or `@abc ||= A[!xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n                  \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
+    }
 }
 
 /// Style 部門の追加分 (前半)。
