@@ -241,6 +241,30 @@ blind_spots:
 #
 # **この 3 件を「バイト一致」に戻す唯一の方法は、本家と同じように壊すことである。**
 #
+# ■ 安全網が捕まえられず、**本家も同じように壊す** 4 ケース (2026-08-17 実測)
+#
+# 移植版の出力が `ruby -c` を通らないが、**本家の出力とバイト単位で一致する。**
+# 本家の欠陥を忠実に写しているので、直すと本家と割れる。**両側の `ruby -c` を書く** —
+# 「移植版 NG」だけだと、後から読む人が移植版のバグだと読む。
+#
+#   cop                                     spec      原本   移植版  本家   出力
+#   Style/MethodCallWithoutArgsParentheses  141       OK     NG      NG     バイト一致
+#   Style/MethodCallWithoutArgsParentheses  156       OK     NG      NG     バイト一致
+#   Style/RedundantSelf                     438       OK     NG      NG     バイト一致
+#   Style/RedundantSelf                     453       OK     NG      NG     バイト一致
+#
+# 形はどれも `0.times { || it() }` / `0.times { |_n| self.it }`。**`it` が Ruby 3.4 の
+# ブロック引数と衝突する。**本家の `parenthesized_it_method_in_block?` は
+# 「`it` を括弧つきで保つべきか」を見るが、`||` という区切りがあると
+# `empty_and_without_delimiters?` が偽になり、`if` が成立して `return false` する。
+# **門が開いて括弧を外し、`it` が引数参照になって構文エラーになる。**
+#
+# 安全網はこれを止められない。**tree-sitter は `it` を普通のメソッド呼び出しとして
+# 受理する**ので、補正後も木が通ってしまう (原則: 発火条件は「tree-sitter が拒む」で
+# あって「Ruby が拒む」ではない)。
+#
+# **合わせない側に倒していない。本家と同じままにしている。**
+#
 # **この安全網は完全ではない。実測した (#41、spec 12,782 ケース / 分母 12,709)。**
 #
 #   安全網が止めた (壊れた出力が disk に届かなかった)   24 件 / 10 cop
