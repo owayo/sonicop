@@ -372,6 +372,67 @@ fn a_disable_of_a_config_disabled_cop_needs_no_enable() {
     );
 }
 
+/// 実コードの形。`rubocop/rubocop` の
+/// `lib/rubocop/cop/naming/memoized_instance_variable_name.rb` がこの並びで、設定で
+/// Metrics を無効にすると本家は `enable` の下の定義だけを報告する。
+///
+/// 3 つの挙動が同時に噛み合う: 設定無効の cop が `enable` で戻ること、既に無効な cop への
+/// `disable` は「余計」になること、`disable-next` は 1.89 のディレクティブではないので
+/// 何も抑えないこと。**どれか 1 つ壊れると別の 2 つの結果も変わる**ので、まとめて固定する。
+#[test]
+fn a_disable_enable_pair_around_a_config_disabled_cop_matches_upstream() {
+    let directory = project(&[(
+        ".rubocop.yml",
+        "Metrics/MethodLength:\n  Enabled: false\n  Max: 1\n",
+    )]);
+    let output = command(directory.path())
+        .args(["--stdin", "example.rb", "--format", "json"])
+        .write_stdin(concat!(
+            "# frozen_string_literal: true\n",
+            "\n",
+            "# rubocop:disable Metrics/MethodLength\n",
+            "def first\n",
+            "  1\n",
+            "  2\n",
+            "end\n",
+            "# rubocop:enable Metrics/MethodLength\n",
+            "\n",
+            "# rubocop:disable-next Metrics/MethodLength\n",
+            "def second\n",
+            "  1\n",
+            "  2\n",
+            "end\n",
+        ))
+        .assert()
+        .get_output()
+        .stdout
+        .clone();
+
+    let reported: Vec<(String, usize, usize, String)> = offense_tuples(&output)
+        .into_iter()
+        .filter(|(cop, ..)| {
+            cop == "Metrics/MethodLength" || cop == "Lint/RedundantCopDisableDirective"
+        })
+        .collect();
+    assert_eq!(
+        reported,
+        vec![
+            (
+                "Lint/RedundantCopDisableDirective".to_owned(),
+                3,
+                1,
+                "Unnecessary disabling of `Metrics/MethodLength`.".to_owned()
+            ),
+            (
+                "Metrics/MethodLength".to_owned(),
+                11,
+                1,
+                "Method has too many lines. [2/1]".to_owned()
+            ),
+        ]
+    );
+}
+
 /// `# rubocop:enable all` は、設定が何か 1 つでも cop を無効にしていれば戻すものがある。
 /// 本家は無効な cop 全部に disable を注入するので、その最初の `enable all` は余計ではない。
 #[test]
