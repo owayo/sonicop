@@ -26,6 +26,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         "method",
         "singleton_method",
     ]) {
+        // `on_send` / `on_csend` / `on_begin` / `on_def` are all this cop handles, and **there is no
+        // `on_super`** -- `super(...)` is a node of its own upstream, so its parentheses are never
+        // looked at. The grammar writes it as a `call`, which would otherwise align the `)` of a
+        // `super(<<~X` against the `(` and move a line upstream leaves alone.
+        if crate::rules::send_node::is_super_call(node) {
+            continue;
+        }
         let Some(call) = delimited(node) else {
             continue;
         };
