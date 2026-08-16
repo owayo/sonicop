@@ -4,8 +4,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 const MSG: &str = "Avoid using `rescue` in its modifier form.";
 
@@ -14,17 +14,42 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting_of::<usize>("Layout/IndentationWidth", "Width")
         .unwrap_or(2);
     for node in context.nodes_of("rescue_modifier") {
-        let (Some(operation), Some(handler)) = (
-            node.field("body"),
-            node.field("handler"),
-        ) else {
+        let (Some(operation), Some(handler)) = (node.field("body"), node.field("handler")) else {
             continue;
         };
+        // `blah rescue 1 rescue 2` nests the same way in both trees, but upstream reports only the
+        // inner one. The outer is left alone.
+        if operation.kind_str() == "rescue_modifier" {
+            continue;
+        }
+        // Upstream's parser puts the `rescue` **inside** the assignment (`(masgn (mlhs ..)
+        // (rescue (array 1 2) ..))`), so what it reports and what it wraps is the right-hand side.
+        // The grammar puts the modifier around the whole assignment, and taking the node as it
+        // stands reports `a, b = 1, 2 rescue nil` where upstream reports `1, 2 rescue nil`.
+        //
+        // **多重代入のときだけ**である。`w = 1, 2 rescue nil` は `(rescue (lvasgn w (array 1 2))
+        // ..)` で修飾子が外に出るが、`a, b = 1, 2 rescue nil` は `(masgn (mlhs ..) (rescue ..))`
+        // で中に入る。左辺が代入の並びかどうかで分かれる。
+        let operation = match operation
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "left_assignment_list")
+        {
+            true => match operation.field("right") {
+                Some(right) => right,
+                None => continue,
+            },
+            false => operation,
+        };
+        let reported = operation.start_byte()..node.end_byte();
         // `parenthesized?`: the parentheses around the whole expression go with the rewrite.
         let parenthesized = node
             .parent_of(context)
             .filter(|parent| parent.kind_str() == "parenthesized_statements");
-        let (indentation, offset) = indentation_and_offset(context, node, width, parenthesized);
+        // The block is written where **upstream's rescue node** starts, which is the operation --
+        // not the whole statement. For `a, b = 1, 2 rescue nil` the two differ by the width of
+        // `a, b = `, and taking the statement's column indents the block 7 characters too far left.
+        let (indentation, offset) =
+            indentation_and_offset(context, operation, width, parenthesized);
 
         let mut edits = Vec::new();
         // A comma-separated list of values is one array upstream, and it needs brackets once it no
@@ -56,7 +81,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         offenses.push(
             context
-                .offense(MSG, node.byte_range())
+                .offense(MSG, reported)
                 .corrected_by_all(edits)
                 // `insert_before` / `insert_after` are given the operation's range, not the range
                 // this offense reports, and that range is what orders them against each other.

@@ -18723,6 +18723,34 @@ mod style_special_global_vars {
 mod style_rescue_modifier {
     use super::*;
 
+    /// 本家のパーサは `rescue` を**代入の中**に置く (`(masgn (mlhs ..) (rescue (array 1 2) ..))`)。
+    /// 報告する範囲も、`begin` を書く桁も、右辺の位置で決まる。文法は修飾子を代入の外に
+    /// 置くので、節をそのまま使うと 7 文字ぶん左にずれる。
+    #[test]
+    fn a_multiple_assignment_wraps_only_its_right_hand_side() {
+        expect_correction(
+            "Style/RescueModifier",
+            "a, b = 1, 2 rescue nil\n",
+            "a, b = begin\n         [1, 2]\n       rescue\n         nil\n       end\n",
+        );
+    }
+
+    /// 入れ子の修飾子は、両方の木で同じように入れ子になるが、**本家は内側だけ**報告する。
+    #[test]
+    fn nested_modifiers_report_only_the_inner_one() {
+        let report = CopCase::new(
+            "Style/RescueModifier",
+            "blah rescue 1 rescue 2\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/RescueModifier:\n  Enabled: true\n")
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        // `blah rescue 1` はバイト 0..13。外側の 0..22 ではない。
+        assert_eq!((report.offenses[0].start, report.offenses[0].end), (0, 13));
+    }
+
     const COP: &str = "Style/RescueModifier";
 
     #[test]
@@ -34942,6 +34970,27 @@ mod style_redundant_string_escape {
 /// `Style/MissingElse` (既定無効) — 期待値は本家 1.89.0 の実測。
 mod style_missing_else {
     use super::*;
+
+    /// 文の区切りの `;` は文法ではトークンだが、本家の木には無い。範囲の末尾に混ぜると
+    /// `elsif` の枝が 1 文字長くなる。
+    #[test]
+    fn a_trailing_semicolon_is_not_part_of_the_branch() {
+        let report = CopCase::new(
+            "Style/MissingElse",
+            "if cond_1; 1; elsif cond_2; 3; end\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MissingElse:\n  Enabled: true\n  EnforcedStyle: if\n")
+        .without_offense_check()
+        .inspect();
+        // `elsif cond_2; 3` はバイト 14..29。末尾の `;` (29) は含まない。
+        assert!(
+            report
+                .offenses
+                .iter()
+                .any(|offense| (offense.start, offense.end) == (14, 29))
+        );
+    }
 
     const COP: &str = "Style/MissingElse";
     const EMPTY: &str = "Style/EmptyElse:\n  EnforcedStyle: empty\n";
