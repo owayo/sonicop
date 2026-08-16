@@ -35627,3 +35627,59 @@ mod style_redundant_condition_parentheses {
         corrects("z = h[if a\n  a\nelse\n  b\nend]\n", "z = h[(a || b)]\n");
     }
 }
+
+/// `Lint/AssignmentInCondition` の correction の形。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Layout/IndentationConsistency,Lint/AssignmentInCondition -A` の実出力。
+mod lint_assignment_in_condition_wrap {
+    use super::*;
+
+    const COP: &str = "Lint/AssignmentInCondition";
+
+    /// 本家は `corrector.wrap(asgn_node, '(', ')')` で、範囲の両端への挿入 2 つ。
+    /// 移植版は範囲ごとの置換にしていて、括弧の間の字面をそのまま複写していた。
+    /// 複数行にまたがる代入では、その範囲の中で別の cop が直そうとしたものを
+    /// 丸ごと飲み込む。
+    #[test]
+    fn the_parentheses_are_inserted_rather_than_the_range_replaced() {
+        let source = "if x = foo\n  bar\nend\n";
+        let report = CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        assert_eq!(
+            corrections.len(),
+            2,
+            "両端への挿入 2 件のはず: {corrections:?}"
+        );
+        for correction in &corrections {
+            assert_eq!(
+                correction.start, correction.end,
+                "挿入なのでレンジは空のはず: {correction:?}"
+            );
+        }
+    }
+
+    /// 同じパスで `Layout/IndentationConsistency` が中の行を横へずらしても、
+    /// そのずれが失われない。まとめた置換だったころは継続行だけ元の桁に残っていた。
+    #[test]
+    fn a_shift_inside_the_assignment_survives() {
+        CopCase::new(
+            COP,
+            "class C\n  private\n    def m\n      if p = (\n          a ||\n          b\n        )\n        c\n      end\n    end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .cops(&[COP, "Layout/IndentationConsistency"])
+        .without_offense_check()
+        .corrected(
+            "class C\n  private\n  def m\n    if (p = (\n        a ||\n        b\n      ))\n      c\n    end\n  end\nend\n",
+        )
+        .run();
+    }
+}

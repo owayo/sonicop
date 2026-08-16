@@ -179,8 +179,12 @@ fn traverse(
                     MSG_WITHOUT_SAFE_ASSIGNMENT_ALLOWED
                 };
                 let offense = context.offense(message, operator.byte_range());
-                offenses.push(match correction(context, node, allow_safe) {
-                    Some(edit) => offense.corrected_by(edit),
+                offenses.push(match correction(allow_safe, node) {
+                    // `corrector.wrap(asgn_node, '(', ')')` is one action over the assignment, so
+                    // both insertions have to hang off that range rather than off the operator.
+                    Some(edits) => offense
+                        .corrected_by_all(edits)
+                        .corrections_anchored_at(node.byte_range()),
                     None => offense,
                 });
             }
@@ -198,7 +202,12 @@ fn traverse(
 /// it is not what the condition tests.
 fn discarded(node: Node<'_>) -> bool {
     node.parent()
-        .filter(|parent| matches!(parent.kind_str(), "parenthesized_statements" | "interpolation"))
+        .filter(|parent| {
+            matches!(
+                parent.kind_str(),
+                "parenthesized_statements" | "interpolation"
+            )
+        })
         .is_some_and(|parent| statements(parent).len() > 1)
 }
 
@@ -207,28 +216,47 @@ fn discarded(node: Node<'_>) -> bool {
 fn statements(node: Node<'_>) -> Vec<Node<'_>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind_str(), "empty_statement" | "comment" | "heredoc_body"))
+        .filter(|child| {
+            !matches!(
+                child.kind_str(),
+                "empty_statement" | "comment" | "heredoc_body"
+            )
+        })
         .collect()
 }
 
 /// The `=` the offense is reported at, which is `loc.operator` upstream.
 fn assignment_operator<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind_str() == "=")
+    node.children(&mut cursor)
+        .find(|child| child.kind_str() == "=")
 }
 
 /// Wrapping the assignment in parentheses is the one correction: it says the assignment was meant.
 /// With `AllowSafeAssignment: false` that is no longer an answer, and upstream leaves the
 /// corrector empty.
-fn correction(context: &RuleContext<'_>, node: Node<'_>, allow_safe: bool) -> Option<Edit> {
+/// `corrector.wrap` is two insertions at the ends of the range, not a replacement of it. Rewriting
+/// the whole assignment instead hands back the text between the parentheses verbatim, and that text
+/// is everything the assignment spans: an assignment written over several lines then swallows every
+/// other correction inside it. `Layout/IndentationConsistency` shifting those lines sideways in the
+/// same pass loses the shift, and the lines are left where they were.
+fn correction(allow_safe: bool, node: Node<'_>) -> Option<Vec<Edit>> {
     if !allow_safe {
         return None;
     }
     let range: Range<usize> = node.byte_range();
-    Some(Edit {
-        start: range.start,
-        end: range.end,
-        replacement: format!("({})", context.source.node_text(node)),
-        safe: true,
-    })
+    Some(vec![
+        Edit {
+            start: range.start,
+            end: range.start,
+            replacement: "(".to_owned(),
+            safe: true,
+        },
+        Edit {
+            start: range.end,
+            end: range.end,
+            replacement: ")".to_owned(),
+            safe: true,
+        },
+    ])
 }
