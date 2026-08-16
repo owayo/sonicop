@@ -31,10 +31,12 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
             safe: true,
         },
         Edit {
-            // `parens_range`: upstream asks for `continuations: true` here, so a `\` that ends the
-            // line before the closing parenthesis goes with the whitespace rather than being left
-            // behind.
-            start: crate::rules::support::final_pos(text, close, false, true, newlines, true),
+            // `remove_close_paren`: `range_with_surrounding_space(side: :left, newlines: newlines)`.
+            // `whitespace` and `continuations` both stay at their default of `false`, so the walk
+            // stops at a `\` that ends the line and leaves it standing. The `continuations: true`
+            // walk belongs to `parens_range`, which is a *different* range that upstream builds
+            // only when a comma would be left stranded -- see `orphaned_comma_start` below.
+            start: super::ranges::extended_left(text, close, newlines),
             end: range.end,
             replacement: String::new(),
             safe: true,
@@ -75,13 +77,17 @@ fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize
         return None;
     }
     // `range_with_surrounding_space(side: :left, newlines: true, whitespace: true,
-    // continuations: true)`.
-    let bytes = context.source.text().as_bytes();
-    let mut start = close;
-    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
-        start -= 1;
-    }
-    Some(start)
+    // continuations: true)`. The `continuations` step is the one that matters: a `\` ending the
+    // line would otherwise be left behind once the whitespace around it goes, stranding the
+    // backslash in front of the comma and producing source that does not parse.
+    Some(crate::rules::support::final_pos(
+        context.source.text(),
+        close,
+        false,
+        true,
+        true,
+        true,
+    ))
 }
 
 /// `ternary_condition?(node) && next_char_is_question_mark?(node)`.
