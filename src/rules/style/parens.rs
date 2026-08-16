@@ -67,6 +67,17 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would
 /// leave the comma stranded begins.
+///
+/// **Nothing reaches this today.** The shape it answers for -- a closing parenthesis alone on its
+/// line with a comma behind it -- is one the cop does not report in the first place, so the walk
+/// below never runs. Measuring a change here shows no difference for that reason and not because
+/// the change is inert.
+///
+/// - the arguments match upstream's `parens_range`, checked against a constructed case where
+///   upstream removes the continuation and leaves `bar,` behind
+/// - what stops the input short is the missing detection, which is its own issue
+/// - once that is fixed this walk starts running, and the continuations step is what keeps the
+///   `\` from being stranded in front of the comma
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();
