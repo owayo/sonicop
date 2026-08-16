@@ -31,6 +31,11 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
             safe: true,
         },
         Edit {
+            // `remove_close_paren`: `range_with_surrounding_space(side: :left, newlines: newlines)`.
+            // `whitespace` and `continuations` both stay at their default of `false`, so the walk
+            // stops at a `\` that ends the line and leaves it standing. The `continuations: true`
+            // walk belongs to `parens_range`, which is a *different* range that upstream builds
+            // only when a comma would be left stranded -- see `orphaned_comma_start` below.
             start: super::ranges::extended_left(text, close, newlines),
             end: range.end,
             replacement: String::new(),
@@ -62,6 +67,17 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would
 /// leave the comma stranded begins.
+///
+/// **Nothing reaches this today.** The shape it answers for -- a closing parenthesis alone on its
+/// line with a comma behind it -- is one the cop does not report in the first place, so the walk
+/// below never runs. Measuring a change here shows no difference for that reason and not because
+/// the change is inert.
+///
+/// - the arguments match upstream's `parens_range`, checked against a constructed case where
+///   upstream removes the continuation and leaves `bar,` behind
+/// - what stops the input short is the missing detection, which is its own issue
+/// - once that is fixed this walk starts running, and the continuations step is what keeps the
+///   `\` from being stranded in front of the comma
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();
@@ -72,13 +88,17 @@ fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize
         return None;
     }
     // `range_with_surrounding_space(side: :left, newlines: true, whitespace: true,
-    // continuations: true)`.
-    let bytes = context.source.text().as_bytes();
-    let mut start = close;
-    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
-        start -= 1;
-    }
-    Some(start)
+    // continuations: true)`. The `continuations` step is the one that matters: a `\` ending the
+    // line would otherwise be left behind once the whitespace around it goes, stranding the
+    // backslash in front of the comma and producing source that does not parse.
+    Some(crate::rules::support::final_pos(
+        context.source.text(),
+        close,
+        false,
+        true,
+        true,
+        true,
+    ))
 }
 
 /// `ternary_condition?(node) && next_char_is_question_mark?(node)`.

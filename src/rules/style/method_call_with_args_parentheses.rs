@@ -46,7 +46,7 @@ fn require_parentheses(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let written = super::nodes::children(arguments);
-        if written.is_empty() || is_parenthesized(arguments) {
+        if written.is_empty() || is_parenthesized(node, arguments, context) {
             continue;
         }
         // `args_begin`: the character after the selector, which is the blank before the arguments.
@@ -164,10 +164,23 @@ fn argument_list<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 
 /// `parenthesized?`: the parentheses belong to the call rather than to its first argument, which is
 /// what `foo(1)` has and `foo (1)` does not.
-fn is_parenthesized(arguments: Node<'_>) -> bool {
-    arguments
-        .child(0)
-        .is_some_and(|first| !first.is_named() && first.kind_str() == "(")
+///
+/// Upstream settles this while lexing -- a `(` written straight against the selector opens the call
+/// -- so the answer is adjacency, not shape. Reading the shape instead is wrong in one direction:
+/// the grammar here usually gives the call's own parentheses as `(` and `)` tokens of the argument
+/// list, but for some receivers it wraps them in a `parenthesized_statements` node, which then reads
+/// as `foo (1)` and makes a properly parenthesized call look bare.
+///
+/// `expect(x).to receive(:y) do ... end.at_least(:once)` is such a receiver: the `at_least(:once)`
+/// there parses to the wrapped shape while the same call after a simpler receiver does not.
+fn is_parenthesized(node: Node<'_>, arguments: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let Some(selector) = selector_end(node) else {
+        return false;
+    };
+    // The argument list begins where the arguments do, so a `(` of its own is the call's only when
+    // nothing separates it from the selector.
+    arguments.start_byte() == selector
+        && context.source.text().as_bytes().get(selector) == Some(&b'(')
 }
 
 /// `omit_parentheses`.
@@ -195,7 +208,13 @@ fn omit_parentheses(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         |node| omission_edits(*node, context),
         |node| omission_range(*node),
         // 本家の `verified_by_reparse(@pending_omit_offenses)` は追加のオプションを渡さない。
-        crate::rules::support::Verification::default(),
+        // `fold_empty_call_parentheses` は本家の設定ではなく、`foo()` と `foo` を 1 つの
+        // ノードにする本家のパーサに合わせるためのもの。名前を局所変数が持っている呼び出しは
+        // `omits` が先に外している。
+        crate::rules::support::Verification {
+            fold_empty_call_parentheses: true,
+            ..Default::default()
+        },
     );
     verified.extend(with_heredoc);
     verified.sort_by_key(tree_sitter::Node::start_byte);
@@ -243,11 +262,15 @@ impl Omission {
         let Some(arguments) = argument_list(node) else {
             return false;
         };
-        if !is_parenthesized(arguments) {
+        if !is_parenthesized(node, arguments, context) {
             return false;
         }
         let written = super::nodes::children(arguments);
-        !inside_endless_method_def(node, &written, context)
+        // Upstream's reparse settles this one: `foo()` is a call, `foo` is the local variable of
+        // that name, and the two trees do not match. The comparison here cannot tell them apart,
+        // so the candidate never reaches it.
+        !locals.shadows_a_local(node)
+            && !inside_endless_method_def(node, &written, context)
             && !hash_value_omission_needs_parentheses(node, &written, context)
             && !syntax_like_method_call(node, context)
             && !before_constant_resolution(node, context)
@@ -272,7 +295,7 @@ impl Omission {
             || call_in_optional_arguments(node, context)
             || call_in_single_line_inheritance(node, context)
             || (self.multiline && is_multiline(node, arguments, context))
-            || (self.chaining && chained_with_parentheses(node))
+            || (self.chaining && chained_with_parentheses(node, context))
             || assignment_in_condition(node, context)
             || forwards_anonymous_rest_arguments(written)
     }
@@ -488,7 +511,9 @@ fn call_with_ambiguous_arguments(
         return true;
     }
     let _ = arguments;
-    if hash_literal_in_arguments(node, written, context, locals) || ambiguous_range_argument(written) {
+    if hash_literal_in_arguments(node, written, context, locals)
+        || ambiguous_range_argument(written)
+    {
         return true;
     }
     descendants(node, context)
@@ -567,7 +592,7 @@ fn call_in_single_line_inheritance(node: Node<'_>, context: &RuleContext<'_>) ->
 }
 
 /// `allowed_chained_call_with_parentheses?`: the call it hangs off already writes its own.
-fn chained_with_parentheses(node: Node<'_>) -> bool {
+fn chained_with_parentheses(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     loop {
         let Some(previous) = current
@@ -576,7 +601,9 @@ fn chained_with_parentheses(node: Node<'_>) -> bool {
         else {
             return false;
         };
-        if argument_list(previous).is_some_and(is_parenthesized) {
+        if argument_list(previous)
+            .is_some_and(|arguments| is_parenthesized(previous, arguments, context))
+        {
             return true;
         }
         current = previous;
@@ -697,10 +724,7 @@ fn inside_string_interpolation(node: Node<'_>, context: &RuleContext<'_>) -> boo
 
 /// The node's descendants, leaving out the block a call carries: upstream's parser wraps the block
 /// around the call rather than hanging it off it, so a block is never a call's descendant there.
-fn descendants<'tree>(
-    node: Node<'tree>,
-    context: &'tree RuleContext<'_>,
-) -> Vec<Node<'tree>> {
+fn descendants<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut out = Vec::new();
     let block = node.field("block").map(|block| block.id());
     for child in super::nodes::children(node) {

@@ -439,12 +439,12 @@ fn trailing_range(source: &SourceFile, ranges: &[Range<usize>], range: &Range<us
 
 /// `range_with_surrounding_space(side: :left, newlines: true)`.
 fn grow_left(source: &SourceFile, range: Range<usize>) -> Range<usize> {
-    final_pos(source.text(), range.start, false, true, false)..range.end
+    final_pos(source.text(), range.start, false, false, true, false)..range.end
 }
 
 /// `range_with_surrounding_space(side: :right)`, with the newline eaten only when asked.
 fn grow_right(source: &SourceFile, range: Range<usize>, newlines: bool) -> Range<usize> {
-    range.start..final_pos(source.text(), range.end, true, newlines, false)
+    range.start..final_pos(source.text(), range.end, true, false, newlines, false)
 }
 
 fn grow_right_spaces_only(source: &SourceFile, range: Range<usize>) -> Range<usize> {

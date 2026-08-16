@@ -26,14 +26,22 @@ const DEFAULT_ALLOWED: &[&str] = &[
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed: Vec<String> = context
         .setting::<Vec<String>>("AllowedMethods")
-        .unwrap_or_else(|| DEFAULT_ALLOWED.iter().map(|name| (*name).to_owned()).collect());
+        .unwrap_or_else(|| {
+            DEFAULT_ALLOWED
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect()
+        });
 
     for node in context.nodes_of("call") {
         // `node.parenthesized?`.
         let Some(arguments) = node.field("arguments") else {
             continue;
         };
-        if !arguments.child(0).is_some_and(|open| open.kind_str() == "(") {
+        if !arguments
+            .child(0)
+            .is_some_and(|open| open.kind_str() == "(")
+        {
             continue;
         }
         let outer_arguments = super::nodes::children(arguments);
@@ -118,16 +126,21 @@ fn reads_as_binary_and(
     };
     only.kind_str() == "block_argument"
         && only.start_byte() == arguments.start_byte()
-        && !context.source.text()[..only.start_byte()]
-            .ends_with([' ', '\t', '\n'])
+        && !context.source.text()[..only.start_byte()].ends_with([' ', '\t', '\n'])
 }
 
-/// Every blank, line continuation and newline before `start`.
+/// `range_with_surrounding_space(first_arg.begin, side: :left, whitespace: true,
+/// continuations: true)`.
+///
+/// The line continuation is the part that matters: walking back over whitespace alone stops at the
+/// `\` and leaves it in the source, so the `(` that replaces the run lands after it and writes
+/// `foo \(bar)` -- which is not Ruby. The shared walk takes the `\` and its line break together,
+/// since a backslash only ends a line when the break follows it.
+///
+/// **No corpus exercises this.** Across the five corpora the cop fires 17 times and not one of
+/// those sits next to a line continuation, so a byte comparison of autocorrected output cannot
+/// tell a working version from a broken one here. The tests next to this cop are the only guard,
+/// which is why they carry a case built by hand rather than one taken from a corpus.
 fn leading_space(context: &RuleContext<'_>, start: usize) -> usize {
-    let bytes = context.source.text().as_bytes();
-    let mut position = start;
-    while position > 0 && bytes[position - 1].is_ascii_whitespace() {
-        position -= 1;
-    }
-    position
+    crate::rules::support::final_pos(context.source.text(), start, false, true, true, true)
 }

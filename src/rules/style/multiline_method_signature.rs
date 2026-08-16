@@ -61,7 +61,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `range_with_surrounding_space(arguments_range(node), side: :left)`.
         let arguments_range =
-            support::final_pos(text, first.start_byte(), false, true, false)..last.end_byte();
+            support::final_pos(text, first.start_byte(), false, false, true, false)..last.end_byte();
         // A list that starts on a later line leaves the name alone on the first one.
         if context.source.line_column(arguments_range.start).0 != opening_line {
             let prefix = node.start_byte() + DEF_LENGTH..parameters.start_byte();

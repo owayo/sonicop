@@ -31,6 +31,13 @@ impl<'ctx, 'tree> LocalVariables<'ctx, 'tree> {
         self.context.variable_analysis().is_variable_reference(node)
     }
 
+    /// Whether this `foo()` would read a local variable instead of calling anything once its
+    /// parentheses were gone. The call itself is a call whatever the name holds, so [`Self::is_lvar`]
+    /// says no about every part of it; the question is about the bare name a correction would leave.
+    pub(in crate::rules) fn shadows_a_local(&self, node: Node<'_>) -> bool {
+        self.context.variable_analysis().shadows_a_local(node)
+    }
+
     /// Where each variable in the file is written and where it is read.
     ///
     /// A cop that joins `VariableForce` through `after_leaving_scope` sees the whole table rather
