@@ -122,6 +122,37 @@ blind_spots:
 #
 # 引数が 1 つなら両者とも `routing(/abc/)` で一致する。ハッシュ引数のときだけ割れる。
 
+# **本家に合わせた結果、壊れ方まで一致している箇所がある。** 行継続が 2 つ続くと、
+# `Style/NestedParenthesizedCalls` の `-A` が両者とも構文エラーを吐く。
+#
+#   入力       method1(method2 \
+#                \
+#                 arg)                  ruby -c → Syntax OK
+#
+#   本家 -A    method1(method2 \(arg))  ruby -c → syntax error
+#   移植 -A    method1(method2 \(arg))  ruby -c → syntax error   ← バイト一致
+#
+# 経路: `RangeHelp#final_pos` は 4 段を 1 度ずつ通るだけで、段の間を往復しない。
+# 左へ歩くとき `[ \t]` → 継続 → `\n` → `\s` の順に送るが、継続が 2 つ並ぶと間に空白が挟まり、
+# 第 2 段 (`move_pos_str`) は隣接する継続しか繰り返せないのでそこで止まる。第 4 段 (`\s`) が
+# 残りの空白と改行を越えて `\` の手前まで来るが、**そこから第 2 段には戻れない。**
+# 結果、`\` が残ったまま `(` がその後ろに落ちる。
+#
+# **合わせない側に倒していない。本家と同じままにしている。** 直すには `final_pos` を
+# ループにする必要があり、**本家と構造の違う実装を抱えることになる。**
+#
+# コーパスでの件数 (2026-08-16 実測):
+#   5 コーパスで連続する行継続は 1 箇所のみ
+#     rubocop_rubocop spec/rubocop/cop/style/redundant_line_continuation_spec.rb:506
+#   その 1 箇所も到達しない。理由は 2 つあり、どちらか一方でも十分:
+#     - `<<~'RUBY'` (補間なし heredoc) の中身で、cop から見れば文字列の値でしかない
+#     - 形が `foo 'bar' \ \ 'baz'` という文字列連結で、括弧が 1 つも無い
+#   死守ライン (rubocop_rubocop の -A) がバイト一致で通ったので、被害が出ていないことは実測済み。
+#
+# **再挑戦する前にここを読むこと。** `ruby -c` に両者の出力を通せば 1 分で確かめられる。
+# 直すなら `final_pos` をループにする側の変更になるので、**実データで壊れている例を先に見つけること。**
+# 見つからないうちは、構造差を抱える理由がない。
+
 divergences:
   # --- Style/MethodCallWithArgsParentheses (EnforcedStyle: omit_parentheses) ---
   # tree-sitter は Ruby の command call の文法制約を持たない。括弧を外した結果が Ruby として
