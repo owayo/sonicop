@@ -1132,10 +1132,15 @@ pub(crate) fn expression_range(node: Node<'_>) -> Range<usize> {
 fn expression_end(node: Node<'_>) -> usize {
     let mut cursor = node.walk();
     let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
-    let Some(last) = children
-        .into_iter()
-        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
-    else {
+    // A `;` between statements is a token here and nothing at all upstream, so an expression that
+    // happens to be followed by one would otherwise reach a byte further than upstream's node
+    // does. `if a; 1; elsif b; 2; end` reported the `elsif` branch one character too long.
+    let Some(last) = children.into_iter().rfind(|child| {
+        !matches!(
+            child.kind_str(),
+            "comment" | "heredoc_body" | ";" | "empty_statement"
+        )
+    }) else {
         return node.end_byte();
     };
     match last.is_named() {

@@ -3808,6 +3808,16 @@ mod local_variable_analysis {
 mod semicolon_shapes {
     use super::*;
 
+    /// 終端の無いレンジから `;` を外すと、次の行まで飲み込んで 1 つのレンジになる。
+    /// 本家は先に括弧で包む (`corrector.wrap(node, '(', ')')`)。包まないと `-A` が
+    /// **動くコードを別の意味に変える**。
+    #[test]
+    fn an_endless_range_is_parenthesized_before_its_semicolon_goes() {
+        expect_correction("Style/Semicolon", "42..;\n42...;\n", "(42..)\n(42...)\n");
+        // 終端があるレンジは意味が変わらないので包まない。
+        expect_correction("Style/Semicolon", "1..2;\n", "1..2\n");
+    }
+
     const SEMICOLON: &str = "Style/Semicolon";
 
     /// 本家は式の分割まで直す。`;` を改行に置き換えるので、後ろの空白はそのまま残る。
@@ -4053,6 +4063,33 @@ mod line_length_breakable {
 /// `Style/HashSyntax` が新記法で書けると認めるシンボル。期待値は本家 1.89.0 の実測。
 mod hash_syntax_symbols {
     use super::*;
+
+    /// `return key: value` は Ruby として書けないので、本家は `return` に渡された波括弧
+    /// 無しのハッシュに `{}` を足す。足さないと `-A` が構文エラーを作る。**各ペアが別々の
+    /// offense なので、再パースの関門も気づけない。**
+    #[test]
+    fn a_hash_returned_without_braces_gains_them() {
+        expect_correction(
+            "Style/HashSyntax",
+            "return :key => value\n",
+            "return {key: value}\n",
+        );
+        expect_correction(
+            "Style/HashSyntax",
+            "return :a => 1, :b => 2\n",
+            "return {a: 1, b: 2}\n",
+        );
+    }
+
+    /// `argument_without_space?`: セレクタとハッシュの間に空白が無い形は、新しい構文にすると
+    /// 名前が繋がってしまう。**比べる相手は引数リストではなくハッシュの開始**で、括弧付きの
+    /// 呼び出しはリストが `(` から始まるため常に一致してしまう。
+    #[test]
+    fn a_hash_written_against_the_selector_gains_a_space() {
+        expect_correction("Style/HashSyntax", "foo:bar => 1\n", "foo bar: 1\n");
+        // 括弧付きは空白を足さない。
+        expect_correction("Style/HashSyntax", "func(3, :a => 0)\n", "func(3, a: 0)\n");
+    }
 
     const HASH_SYNTAX: &str = "Style/HashSyntax";
     const MSG_19: &str = "Use the new Ruby 1.9 hash syntax.";
@@ -18786,6 +18823,34 @@ mod style_special_global_vars {
 mod style_rescue_modifier {
     use super::*;
 
+    /// 本家のパーサは `rescue` を**代入の中**に置く (`(masgn (mlhs ..) (rescue (array 1 2) ..))`)。
+    /// 報告する範囲も、`begin` を書く桁も、右辺の位置で決まる。文法は修飾子を代入の外に
+    /// 置くので、節をそのまま使うと 7 文字ぶん左にずれる。
+    #[test]
+    fn a_multiple_assignment_wraps_only_its_right_hand_side() {
+        expect_correction(
+            "Style/RescueModifier",
+            "a, b = 1, 2 rescue nil\n",
+            "a, b = begin\n         [1, 2]\n       rescue\n         nil\n       end\n",
+        );
+    }
+
+    /// 入れ子の修飾子は、両方の木で同じように入れ子になるが、**本家は内側だけ**報告する。
+    #[test]
+    fn nested_modifiers_report_only_the_inner_one() {
+        let report = CopCase::new(
+            "Style/RescueModifier",
+            "blah rescue 1 rescue 2\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/RescueModifier:\n  Enabled: true\n")
+        .without_offense_check()
+        .inspect();
+        assert_eq!(report.offenses.len(), 1);
+        // `blah rescue 1` はバイト 0..13。外側の 0..22 ではない。
+        assert_eq!((report.offenses[0].start, report.offenses[0].end), (0, 13));
+    }
+
     const COP: &str = "Style/RescueModifier";
 
     #[test]
@@ -19349,6 +19414,23 @@ mod style_multiline_ternary_operator {
 /// `Style/TrailingUnderscoreVariable` — 多重代入の末尾の `_`。
 mod style_trailing_underscore_variable {
     use super::*;
+
+    /// 左辺全体を囲む括弧は本家の木には無く、`mlhs` が 3 つの代入先を直接持つ。文法は
+    /// `destructured_left_assignment` を 1 段挟むので、それを入れ子の群と読むと**右辺という
+    /// 錨を失い**、削除が閉じ括弧で止まって ` = foo()` が残る (Ruby として書けない)。
+    #[test]
+    fn parentheses_around_the_whole_left_side_are_not_a_nested_group() {
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_, _, _,) = foo()\n",
+            "foo()\n",
+        );
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_,) = foo()\n",
+            "foo()\n",
+        );
+    }
 
     const COP: &str = "Style/TrailingUnderscoreVariable";
 
@@ -35146,6 +35228,27 @@ mod style_redundant_string_escape {
 /// `Style/MissingElse` (既定無効) — 期待値は本家 1.89.0 の実測。
 mod style_missing_else {
     use super::*;
+
+    /// 文の区切りの `;` は文法ではトークンだが、本家の木には無い。範囲の末尾に混ぜると
+    /// `elsif` の枝が 1 文字長くなる。
+    #[test]
+    fn a_trailing_semicolon_is_not_part_of_the_branch() {
+        let report = CopCase::new(
+            "Style/MissingElse",
+            "if cond_1; 1; elsif cond_2; 3; end\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MissingElse:\n  Enabled: true\n  EnforcedStyle: if\n")
+        .without_offense_check()
+        .inspect();
+        // `elsif cond_2; 3` はバイト 14..29。末尾の `;` (29) は含まない。
+        assert!(
+            report
+                .offenses
+                .iter()
+                .any(|offense| (offense.start, offense.end) == (14, 29))
+        );
+    }
 
     const COP: &str = "Style/MissingElse";
     const EMPTY: &str = "Style/EmptyElse:\n  EnforcedStyle: empty\n";

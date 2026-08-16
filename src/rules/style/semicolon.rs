@@ -104,13 +104,49 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         } else {
             ""
         };
-        offenses.push(offense.corrected_by(Edit {
+        let removal = Edit {
             start: offset,
             end: offset + 1,
             replacement: replacement.to_owned(),
             safe: true,
-        }));
+        };
+        // `corrector.wrap(node, '(', ')') if node`: an endless range whose `;` goes away would
+        // reach on to the next line and swallow it (`42..;\n42...;` becomes one range). Upstream
+        // puts parentheses around the range first.
+        if let Some(range) = endless_range_before(context, offset) {
+            offenses.push(offense.corrected_by_all([
+                insert(range.start, "("),
+                insert(range.end, ")"),
+                removal,
+            ]));
+            continue;
+        }
+        offenses.push(offense.corrected_by(removal));
     }
+}
+
+fn insert(at: usize, text: &str) -> Edit {
+    Edit {
+        start: at,
+        end: at,
+        replacement: text.to_owned(),
+        safe: true,
+    }
+}
+
+/// `token_before_semicolon&.regexp_dots?`: the range that ends right where the semicolon stands,
+/// written without an end.
+///
+/// Only an endless one matters. `1..2;` keeps its meaning without the semicolon, but `1..;` reads
+/// on into whatever follows.
+fn endless_range_before(
+    context: &RuleContext<'_>,
+    offset: usize,
+) -> Option<std::ops::Range<usize>> {
+    context
+        .nodes_of("range")
+        .find(|node| node.end_byte() == offset && node.field("end").is_none())
+        .map(|node| node.byte_range())
 }
 
 /// Every semicolon that is code rather than text, as `(line, byte offset)`.
