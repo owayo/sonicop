@@ -11298,6 +11298,57 @@ mod hash_compare_by_identity {
             );
         }
 
+        /// 最終要素の行にコメントがあるとき、補正するかどうかは**その呼び出しが `send` の引数か**
+        /// で決まる (`new_line_needed_before_closing_brace?` の
+        /// `コメントがある && (chained? || argument?)`)。
+        ///
+        /// 判定は `parent&.send_type?` なので、上流で `send` ではない親は「引数ではない」に倒れる。
+        /// 文法は `super(...)` を `call` ノードに書くため、そのままだと引数と読んで補正を諦めていた。
+        ///
+        /// 期待値は本家 1.89.0 の `--only <cop> -A` の実測 (8 形測って全部一致。修正前は
+        /// `super` の 1 形だけが食い違っていた)。**両側を置く** — 補正する側だけだと、
+        /// 条件を丸ごと消した実装でも通ってしまう。
+        #[test]
+        fn a_comment_stops_the_correction_only_inside_a_real_send() {
+            // `super` は上流では `send` ではないので、その引数は `argument?` が偽 -> 補正する。
+            // 閉じ括弧が最終要素の直後へ移り、行末コメントが行の末尾に残る。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham # comment\n))\n",
+                "super(bar(baz,\n  ham)) # comment\n",
+            );
+            // `&.` も `send` ではない (`csend`) ので同じ側。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo&.bar(baz(qux,\n  ham # comment\n))\n",
+                "foo&.bar(baz(qux,\n  ham)) # comment\n",
+            );
+            // 親も自分も無い形は当然補正する。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n)\n",
+                "bar(baz,\n  ham) # comment\n",
+            );
+            // ★ 本物の `send` の引数なら本家も補正しない。コメントをどこへ置くかは人の判断。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+                "foo(bar(baz,\n  ham # comment\n))\n",
+            );
+            // ★ レシーバとして繋がっている側 (`chained?`) も補正しない。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+                "bar(baz,\n  ham # comment\n).to_s\n",
+            );
+            // コメントが無ければどちらの側でも補正する (条件はコメントの有無から始まる)。
+            expect_correction(
+                "Layout/MultilineMethodCallBraceLayout",
+                "super(bar(baz,\n  ham\n))\n",
+                "super(bar(baz,\n  ham))\n",
+            );
+        }
+
         /// 第 1 引数がヒアドキュメントの呼び出しに繋いだメソッドは閉じ括弧と一緒に動く。
         /// 本家は `insert_before` で括弧、`insert_after` でチェインを同じ空レンジへ入れる。
         #[test]
@@ -21223,6 +21274,133 @@ mod lint_redundant_cop_enable_directive_removal_range {
             "x = 1\n# rubocop:enable Style/For   \n  y = 2\n",
             "x = 1\n  y = 2\n",
         );
+    }
+}
+
+/// `Lint/RedundantCopEnableDirective` の部署名は 1 語ではなく、その部署の cop 全部を指す。
+///
+/// `DirectiveComment#parsed_cop_names` が部署を展開するので、`# rubocop:enable Layout` は
+/// Layout の cop 100 個あまりに対する enable になる。効くのは 2 か所。
+///
+/// - 数えるとき: `handle_switch` は cop ごとの counter を上下させる。部署を 1 個の counter で
+///   代表すると、cop 名 1 本の enable が部署ぶん全部を解放してしまう。
+/// - 消すとき: `match?` は展開した集合と「無駄に有効化した名前」の集合を比べる。**1 つでも
+///   取り消していれば一致しない**ので、directive を丸ごと消す枝ではなく `range_with_comma`
+///   側に入る。そちらはコメント本体だけを消して行の改行を残すため、空行が 1 行残る。
+///
+/// 期待値は本家 1.89.0 を `--only Lint/RedundantCopEnableDirective -A` で走らせた実出力。
+/// 11 形を測って全部一致させた。部署を展開する前は 3 形が食い違っていた -- 空行を残さない
+/// (補正の差)、`dept → cop` の 2 本目を見落とす (不足)、`部署 disable → cop enable` の
+/// 2 本目を余分に報告して **本家が残す `enable` 行を消す** (過剰かつ `-A` が壊す側)。
+mod lint_redundant_cop_enable_directive_departments {
+    use super::*;
+
+    const COP: &str = "Lint/RedundantCopEnableDirective";
+
+    /// 部署の enable が cop 名の disable を 1 本取り消しているので、丸ごと消す枝には入らない。
+    /// **消えるのはコメント本体だけで行の改行は残る**ため、空行が 1 行残る。
+    #[test]
+    fn a_department_enable_that_undid_one_cop_leaves_the_line_behind() {
+        expect_correction(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n",
+        );
+    }
+
+    /// 何も取り消していない部署の enable は行ごと消える。上の 1 件との差は
+    /// 「1 つでも取り消したか」だけで、書かれ方は同じ。
+    #[test]
+    fn a_department_enable_that_undid_nothing_goes_with_its_line() {
+        expect_correction(
+            COP,
+            "foo = 1\n# rubocop:enable Layout\nsome_code\n",
+            "foo = 1\nsome_code\n",
+        );
+    }
+
+    /// 部署の enable は cop ごとの counter を下げる。`Layout/LineLength` の disable はそこで
+    /// 消費されるので、続く cop 名の enable には取り消す相手が無い = offense 2 件。
+    #[test]
+    fn the_department_enable_spends_the_cops_own_disable() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n# rubocop:enable Layout\n\
+             # rubocop:enable Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\n\nsome_code\n")
+        .run();
+    }
+
+    /// 逆向き。部署の disable を cop 名の enable が 1 本取り消しても、**残りの cop は disable
+    /// のまま**。部署の counter を下げる実装では 2 本目の enable が無駄に見え、本家が残す行を
+    /// 消してしまう。
+    #[test]
+    fn a_cop_enable_spends_only_its_own_share_of_a_department_disable() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout/LineLength\n\
+             # rubocop:enable Layout/EmptyLines\nsome_code\n",
+        );
+    }
+
+    /// 部署の disable と部署の enable が釣り合えば offense は出ない。
+    #[test]
+    fn a_department_disable_and_enable_cancel_out() {
+        expect_no_offenses(
+            COP,
+            "# rubocop:disable Layout\nfoo = 1\n# rubocop:enable Layout\nsome_code\n",
+        );
+    }
+
+    /// 部署は 1 回しか報告されない。`add_offense` は同じレンジの 2 件目を corrector ごと捨てる
+    /// (`current_offense_locations.add?`) ので、展開した 100 個あまりの名前が同じ位置を指しても
+    /// offense は 1 件で、走る補正はその 1 件目のもの。
+    #[test]
+    fn the_department_is_reported_once_not_once_per_cop_it_holds() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout
+                             ^^^^^^ Unnecessary enabling of Layout.
+            some_code
+            ",
+        );
+    }
+
+    /// 部署と、その部署の cop を並べて書いたときは、cop 名は部署に縮められずそのまま報告される
+    /// (`overridden_by_department?`: 部署で届く名前でも、明示して書いてあれば縮めない)。
+    #[test]
+    fn a_cop_written_next_to_its_own_department_keeps_its_full_name() {
+        expect_offense(
+            COP,
+            r"
+            foo = 1
+            # rubocop:enable Layout, Layout/LineLength
+                             ^^^^^^ Unnecessary enabling of Layout.
+                                     ^^^^^^^^^^^^^^^^^ Unnecessary enabling of Layout/LineLength.
+            some_code
+            ",
+        );
+    }
+
+    /// 同じ形で 1 本だけ取り消しても丸ごと消える。展開すると `Layout/LineLength` が 2 回現れ、
+    /// `match?` は両側を `uniq.sort` してから比べるので一致する -- **個数で比べると 111 対 110 で
+    /// 一致せず、本家が消す行が残ってしまう**。
+    #[test]
+    fn the_match_compares_sets_not_counts() {
+        CopCase::new(
+            COP,
+            "# rubocop:disable Layout/LineLength\nfoo = 1\n\
+             # rubocop:enable Layout, Layout/LineLength\nsome_code\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("# rubocop:disable Layout/LineLength\nfoo = 1\nsome_code\n")
+        .run();
     }
 }
 
@@ -36770,5 +36948,92 @@ mod safe_navigation_is_not_a_send {
         ] {
             expect_no_offenses(cop, source);
         }
+    }
+}
+
+/// `Layout/BlockEndNewline` がヒアドキュメントを持つブロックで壊れた Ruby を書いていた件。
+///
+/// `}` は本文の後ろへ移さなければならない。移植版は**条件は正しかったが、測っている文字列が
+/// 違っていた** — 本文として読んでいた範囲が、開き記号の行末の改行から終端子の字下げまでを
+/// 含んでいたので、1 行の本文が 3 行と数えられ、**すべての実物が「複数行」に分類されて**
+/// `}` が本文の上に書かれていた (`ruby -c` が通らない出力)。
+///
+/// 本家の条件は `arg.str_type? && arg.heredoc?`。実測すると `<<~` / `<<-` / `<<` のどれでも
+/// **本文が 2 行以上なら別の枝**で、**空の本文も別の枝**である (どちらも `dstr` になる)。
+/// 期待値はすべて本家 1.89.0 の `--only Layout/BlockEndNewline -A` の実出力。
+mod layout_block_end_newline_heredoc {
+    use super::*;
+
+    const COP: &str = "Layout/BlockEndNewline";
+
+    /// 1 行の本文なら `}` は本文の後ろへ (spec:104)。
+    #[test]
+    fn the_brace_moves_after_a_one_line_heredoc() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// 2 つのヒアドキュメントなら最後の終端子の後ろへ (spec:123)。
+    #[test]
+    fn the_brace_moves_after_the_last_terminator() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~FIRST, <<~SECOND) }\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "test {\n  foo(<<~FIRST, <<~SECOND)\n    Heredoc text.\n  FIRST\n    \
+             Heredoc text.\n  SECOND\n}\n",
+        )
+        .run();
+    }
+
+    /// レシーバの側にヒアドキュメントがあるときも辿る (spec:146)。
+    #[test]
+    fn the_receiver_chain_is_followed() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS).bar }\n    Heredoc text.\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS).bar\n    Heredoc text.\n  EOS\n}\n")
+        .run();
+    }
+
+    /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
+    /// 条件を落とすと逆にずれるので、境界の外側を固定する。
+    #[test]
+    fn a_two_line_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。
+    #[test]
+    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
+        .run();
     }
 }

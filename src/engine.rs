@@ -119,6 +119,9 @@ pub(crate) struct RulePlan {
     /// when `CommentConfig#opt_in_cops` names it, so the selection is settled here but the decision
     /// is per file.
     standby: Vec<PlannedRule>,
+    /// `registry.disabled_names(config)`: the same set as [`Self::standby`], as the two directive
+    /// cops read it -- by name, in registry order.
+    standby_names: Vec<&'static str>,
     /// What the cop that reads directives needs to know about the cops that exist. Built once per
     /// configuration because it depends on nothing in the file, and only when that cop will run.
     directive_registry: Option<CopRegistry>,
@@ -170,9 +173,11 @@ impl RulePlan {
                 .iter()
                 .any(|planned| planned.rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE))
         .then(|| CopRegistry::new(config, selection));
+        let standby_names = standby.iter().map(|planned| planned.rule.name).collect();
         Self {
             entries,
             standby,
+            standby_names,
             directive_registry,
         }
     }
@@ -305,9 +310,9 @@ fn inspect_planned(
         syntax_severity,
         selection.correcting,
     )
-    // `registry.disabled_names(config)`: whether the run switches any cop off at all, which is
-    // what an `# rubocop:enable all` has to undo. The standby list is that set already.
-    .with_disabled_cops(!plan.standby.is_empty());
+    // `registry.disabled_names(config)`: the cops the run switches off, which is what an
+    // `# rubocop:enable` has to undo. The standby list is that set already.
+    .with_disabled_cops(&plan.standby_names);
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
