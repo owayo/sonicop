@@ -35358,15 +35358,112 @@ mod lint_unused_block_argument_correction {
     /// 次のパスへ回るが、範囲の端への挿入はすり抜けて隣の字面にくっついてしまう。
     /// `-> env do` を `lambda do |env|` にする `Style/Lambda` と重なると、`lambda_` が
     /// できていた。
+    /// 単独で走らせるとどちらの形でも `_env` になるので、字面だけでは捕まらない。
+    /// Edit の形そのものを見る。
     #[test]
     fn the_name_is_replaced_rather_than_prefixed() {
+        let source = "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n";
+        let report = CopCase::new("Lint/UnusedBlockArgument", source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        let name = source.find("env").expect("引数が見つからない");
+        assert_eq!(corrections.len(), 1, "correction は 1 件のはず");
+        assert_eq!(
+            (
+                corrections[0].start,
+                corrections[0].end,
+                corrections[0].replacement.as_str()
+            ),
+            (name, name + "env".len(), "_env"),
+            "名前のレンジごと `_env` に置き換わっていない (先頭への挿入になっている)"
+        );
+    }
+
+    /// 実際に壊れていた組み合わせ。`-> env do` を `lambda do |env|` に組み替える
+    /// `Style/Lambda` と重なると、先頭への挿入は引数から離れて `lambda_` になっていた。
+    #[test]
+    fn the_lambda_keyword_does_not_absorb_the_underscore() {
         CopCase::new(
             "Lint/UnusedBlockArgument",
             "def m\n  foo(bar: -> env do\n    1\n  end)\nend\n".to_owned(),
             Vec::new(),
         )
+        .cops(&["Lint/UnusedBlockArgument", "Style/Lambda"])
         .without_offense_check()
-        .corrected("def m\n  foo(bar: -> _env do\n    1\n  end)\nend\n")
+        .corrected("def m\n  foo(bar: lambda do |_env|\n    1\n  end)\nend\n")
+        .run();
+    }
+}
+
+/// `Lint/UnusedMethodArgument` の correction。
+///
+/// 期待値は本家 1.89.0 の
+/// `--only Lint/UnusedMethodArgument,Style/MethodDefParentheses -A` の実出力。
+mod lint_unused_method_argument_correction {
+    use super::*;
+
+    /// `Lint/UnusedBlockArgument` と同じ `UnusedArgCorrector` を共有していて、同じ
+    /// 取り違えをしていた。本家は `corrector.replace(node.loc.name, "_#{name}")` で
+    /// **名前を丸ごと置き換える**。移植版は先頭へ `_` を差し込んでいた。
+    ///
+    /// 直った字面だけを見ても捕まらない。単独で走らせればどちらの形でも `_bar` に
+    /// なるからで、差が出るのは同じ引数を別の cop が同じパスで書き換えたときだけ。
+    /// メソッド引数ではその相手になる cop が今のところ無く、`-A` の出力比較では
+    /// 一致してしまう。だから **Edit の形そのもの** を見る。
+    #[test]
+    fn the_name_is_replaced_rather_than_prefixed() {
+        let source = "def foo(bar)\n  1\nend\n";
+        let report = CopCase::new("Lint/UnusedMethodArgument", source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        let corrections: Vec<_> = report
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .collect();
+        let name = source.find("bar").expect("引数が見つからない");
+        assert_eq!(corrections.len(), 1, "correction は 1 件のはず");
+        assert_eq!(
+            (
+                corrections[0].start,
+                corrections[0].end,
+                corrections[0].replacement.as_str()
+            ),
+            (name, name + "bar".len(), "_bar"),
+            "名前のレンジごと `_bar` に置き換わっていない (先頭への挿入になっている)"
+        );
+    }
+
+    /// 上と同じことを `-A` の側からも押さえておく。括弧を補う
+    /// `Style/MethodDefParentheses` と重なっても本家と同じ字面になる。
+    #[test]
+    fn parentheses_are_added_around_the_renamed_argument() {
+        CopCase::new(
+            "Lint/UnusedMethodArgument",
+            "def foo bar\n  1\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .cops(&["Lint/UnusedMethodArgument", "Style/MethodDefParentheses"])
+        .without_offense_check()
+        .corrected("def foo(_bar)\n  1\nend\n")
+        .run();
+    }
+
+    /// splat は `*` を残して名前だけを置き換える (本家の `gsub(/\A\*+/, '')`)。
+    #[test]
+    fn a_splat_keeps_its_star() {
+        CopCase::new(
+            "Lint/UnusedMethodArgument",
+            "def one(*bar)\n  do_something(1, 2)\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def one(*_bar)\n  do_something(1, 2)\nend\n")
         .run();
     }
 }
