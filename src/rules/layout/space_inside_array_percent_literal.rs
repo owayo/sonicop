@@ -54,7 +54,7 @@ fn unnecessary_spaces(contents: &str) -> Vec<std::ops::Range<usize>> {
         if index - start < 2
             || bytes
                 .get(index)
-                .is_none_or(|byte| byte.is_ascii_whitespace())
+                .is_none_or(|byte| crate::rules::support::separates_words(*byte))
         {
             continue;
         }
@@ -72,5 +72,7 @@ fn word_ends_before(bytes: &[u8], start: usize) -> bool {
     while position >= 2 && bytes[position - 1] == b' ' && bytes[position - 2] == b'\\' {
         position -= 2;
     }
-    position > 0 && !bytes[position - 1].is_ascii_whitespace() && bytes[position - 1] != b'\\'
+    position > 0
+        && !crate::rules::support::separates_words(bytes[position - 1])
+        && bytes[position - 1] != b'\\'
 }
