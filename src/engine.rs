@@ -1586,12 +1586,23 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
 ///
 /// The guard is deliberately narrow. It asks only whether a source that parsed before parses
 /// after, so it cannot mistake a pre-existing error for one the correction introduced, and it
-/// cannot object to anything but the one failure it can name. tree-sitter accepts some text Ruby
-/// does not (a `%{...}` holding a `}`), so this **prevents the destructive writes it can detect**;
-/// it does not make correction safe in general.
+/// cannot object to anything but the one failure it can name.
+///
+/// It also asks the wrong parser. Ruby raises `SyntaxError` for rules this grammar does not
+/// model, so text it accepts can still be rejected by Ruby — measured cases: a dynamic constant
+/// assignment (`def a; X = 1; end`), a repeated parameter name (`def a(x, x)`), and `break`,
+/// `next`, `redo` or `retry` where no loop or block encloses it. Each of those is a hole in the
+/// guard. So this **prevents the destructive writes it can detect**; it does not make correction
+/// safe in general, and the phrase to avoid when describing it is "guaranteed".
 ///
 /// The corrections are dropped rather than reported as applied: the file on disk is the original,
 /// so calling them corrected would describe a state that does not exist anywhere.
+///
+/// `SONICOP_NO_SYNTAX_GUARD` turns the guard off. It exists because the guard fires exactly when
+/// this parser rejects the correction, which is not the same question as whether Ruby rejects it:
+/// the gap between the two parsers is the guard's false-positive rate, and with the guard on, the
+/// text needed to measure that rate never reaches disk. **A guard that cannot be switched off is a
+/// guard whose error rate cannot be quoted.** It is for measurement, not for use.
 fn withhold_unparsable(
     outcome: CorrectionOutcome,
     original: &str,
@@ -1601,6 +1612,9 @@ fn withhold_unparsable(
     plan: &RulePlan,
 ) -> Result<CorrectionOutcome> {
     if !started_valid || !outcome.rewritten || !holds_fatal_syntax(&outcome.report) {
+        return Ok(outcome);
+    }
+    if std::env::var_os("SONICOP_NO_SYNTAX_GUARD").is_some() {
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
