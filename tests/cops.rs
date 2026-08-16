@@ -21046,6 +21046,34 @@ mod redundant_parentheses {
         );
     }
 
+    /// `redundant_parentheses_spec.rb:1985`, "an array of multiple heredocs".
+    ///
+    /// The comma cannot stay where it is: the heredoc's body is written on the lines after the
+    /// `)`, so a comma left in place would sit in front of that body instead of after the element.
+    /// It is rewritten straight after the opening token. Leaving that out did not cost the
+    /// correction, it cost the *offense* -- the array would have come out with no comma between
+    /// its two elements, which does not parse, and the reparse check drops the candidate.
+    #[test]
+    fn an_array_of_heredocs_moves_the_comma_up_to_the_opening_token() {
+        expect_correction(
+            COP,
+            "[\n  (\n  <<-STRING\n    foo\n  STRING\n  ) ,\n  (\n  <<-STRING\n    bar\n  STRING\n  )\n]\n",
+            "[\n  <<-STRING,\n    foo\n  STRING\n  <<-STRING\n    bar\n  STRING\n]\n",
+        );
+    }
+
+    /// A heredoc with no comma after it needs no rewriting, but it still has to be *reported*: the
+    /// body is a node of its own that the parentheses enclose and the correction leaves outside, so
+    /// the group loses a child and the tree comparison called a correct correction a changed tree.
+    #[test]
+    fn parentheses_around_a_lone_heredoc_are_reported() {
+        expect_correction(
+            COP,
+            "x = (\n  <<-STRING\n    foo\n  STRING\n)\n",
+            "x = <<-STRING\n    foo\n  STRING\n",
+        );
+    }
+
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
         expect_offense(

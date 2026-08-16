@@ -39,10 +39,11 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     // way to trip that, since the walks above land on the same byte whenever no continuation sits
     // between them. Widening the single edit reaches the same text and stays verifiable.
     //
-    // The heredoc half of upstream's handling is left out. It rewrites the comma rather than
-    // removing it, and no corpus reaches it -- but upstream's own spec does, at
-    // `redundant_parentheses_spec.rb:1985` ("an array of multiple heredocs"), so this is a known
-    // gap with a case waiting for it rather than dead weight.
+    // The heredoc half of upstream's handling was left out here for a while, and the cost of
+    // leaving it out was not "the shape is not corrected" but "the shape is not reported": the
+    // correction it would have produced puts no comma between the two elements, so it does not
+    // parse, so `verified_by_reparse` throws the candidate away. `redundant_parentheses_spec.rb:1985`
+    // ("an array of multiple heredocs") is the case, and it read as a detection miss.
     let orphaned = orphaned_comma_start(context, close);
     if let Some(start) = orphaned {
         close_start = close_start.min(start);
