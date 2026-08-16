@@ -1,6 +1,7 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::rules::RuleContext;
+use crate::rules::support;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // RuboCop takes every comment that precedes the first line of code and keeps the *last* magic
@@ -11,7 +12,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         return;
     };
     let next = line_number + 1;
-    if next > context.source.line_count() || context.source.line(next).trim().is_empty() {
+    // `next_line.strip.empty?`. **`str::trim` would also reach over a no-break space**, which
+    // Ruby's `strip` leaves in place: a line holding one is not an empty line, and upstream asks for
+    // a real one to be added under the magic comment.
+    if next > context.source.line_count()
+        || context
+            .source
+            .line(next)
+            .trim_matches(support::is_ruby_strippable)
+            .is_empty()
+    {
         return;
     }
     let insertion = context.source.line_start(next);

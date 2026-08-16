@@ -85,6 +85,19 @@ pub(crate) const fn is_ruby_space(byte: u8) -> bool {
     matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
+/// `String#strip` (and `rstrip` / `lstrip`): Ruby's `\s` **plus NUL**.
+///
+/// **Rust's `str::trim` is wrong in both directions here.** It reaches over every Unicode
+/// `White_Space` character -- a no-break space, an ideographic space -- which Ruby leaves in place,
+/// and it stops at a NUL, which Ruby strips. A line holding only a no-break space is *not* blank to
+/// `strip.empty?`, so a cop ported with `trim().is_empty()` goes quiet where upstream reports.
+///
+/// Reach for [`is_ruby_space_char`] instead when the original is `/\s/` rather than `strip`: the
+/// regexp does not match NUL.
+pub(crate) fn is_ruby_strippable(character: char) -> bool {
+    character == '\0' || is_ruby_space_char(character)
+}
+
 /// The same set spelled for a `char`, which is what a walk over `chars()` needs. **The set itself is
 /// defined once**, in [`is_ruby_space`]: anything outside ASCII cannot be Ruby's `\s`, so a character
 /// that does not fit in a byte is not one.

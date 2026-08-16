@@ -36076,3 +36076,77 @@ mod style_nested_ternary_operator_vertical_tab {
             .run();
     }
 }
+
+/// Ruby の `strip` / `/\s/` と Rust の `trim` で空白の集合が違う件 (#56)。
+///
+/// ```text
+///                       NUL  space tab VT  FF  CR  LF  NBSP U+3000
+/// Ruby /\s/              ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Ruby String#strip      ✓    ✓    ✓   ✓   ✓   ✓   ✓   ✗    ✗
+/// Rust str::trim         ✗    ✓    ✓   ✓   ✓   ✓   ✓   ✓    ✓
+/// ```
+///
+/// **`str::trim` は 2 方向にずれる** — Unicode の空白を余分に剥がし、NUL を残す。
+/// **5 コーパスに no-break space を含む Ruby ソースは実質無いので、テストが唯一の番人。**
+/// 期待値は本家 1.89.0 の `--only <cop>` の実出力。
+mod ruby_whitespace_is_not_unicode_whitespace {
+    use super::*;
+
+    /// `Layout/EmptyLineAfterMagicComment` は `next_line.strip.empty?` で見る。
+    /// no-break space だけの行は**空行ではない**ので、本家は空行の追加を求める。
+    #[test]
+    fn a_no_break_space_line_is_not_an_empty_line_after_a_magic_comment() {
+        let report = CopCase::new(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\u{a0}\nx = 1\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        let offenses: Vec<_> = report
+            .offenses
+            .iter()
+            .filter(|offense| offense.cop_name == "Layout/EmptyLineAfterMagicComment")
+            .collect();
+        assert_eq!(offenses.len(), 1, "本家は 1 件報告する");
+    }
+
+    /// 本物の空行なら黙る (集合を狭めたことで普通の空行が壊れていないか)。
+    #[test]
+    fn a_real_empty_line_after_a_magic_comment_is_accepted() {
+        expect_no_offenses(
+            "Layout/EmptyLineAfterMagicComment",
+            "# frozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
+    /// `Layout/TrailingEmptyLines` は `buffer.source[/\s*\Z/]` で見る。`/\s/` は no-break space に
+    /// 当たらないので、最後の行がそれだけなら**末尾の空行ではない**。
+    ///
+    /// **この cop は correctable なので、誤って空行と数えると `-A` がその行を消す。**
+    #[test]
+    fn a_no_break_space_last_line_is_not_a_trailing_blank_line() {
+        expect_no_offenses("Layout/TrailingEmptyLines", "x = 1\n\u{a0}\n");
+    }
+
+    /// 本物の空行が末尾にあるときは報告する (陰性対照)。
+    #[test]
+    fn a_real_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(
+            "Layout/TrailingEmptyLines",
+            "x = 1\n\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Layout/TrailingEmptyLines")
+                .count(),
+            1,
+            "末尾の空行は 1 件報告される"
+        );
+    }
+}
