@@ -26,6 +26,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !interpolates(&quoted, &mut parser) {
             continue;
         }
+        // `%{` cannot follow an expression: Ruby reads the `%` as the operator and the braces as a
+        // hash, so `'a ' \` + `%{b}` becomes `'a ' % {b}`. Upstream writes it anyway and the file
+        // stops parsing. The offense still stands -- the string does hold an interpolation -- but
+        // there is no rewrite to offer, since the only other spelling would have to escape the
+        // quotes the `%{}` was chosen to avoid.
+        if quoted.starts_with("%{") && follows_an_expression(context, node.start_byte()) {
+            offenses.push(context.offense(MSG, node.byte_range()));
+            continue;
+        }
         offenses.push(context.offense(MSG, node.byte_range()).corrected_by(Edit {
             start: node.start_byte(),
             end: node.end_byte(),
@@ -33,6 +42,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             safe: true,
         }));
     }
+}
+
+/// Whether the text before `start` ends an expression, which is what makes a following `%` an
+/// operator rather than the opening of a literal.
+///
+/// Whitespace and a backslash continuing the line are skipped: the continuation joins the two
+/// lines, so what matters is the last thing Ruby read, not what the previous line looked like.
+fn follows_an_expression(context: &RuleContext<'_>, start: usize) -> bool {
+    let before = &context.source.text()[..start];
+    let last = before
+        .chars()
+        .rev()
+        .find(|character| !character.is_whitespace() && *character != '\\');
+    // A literal opening a line, an argument list, or the right of an assignment is unambiguous.
+    last.is_some_and(|character| {
+        character.is_alphanumeric()
+            || matches!(character, '_' | ')' | ']' | '}' | '"' | '\'' | '`' | '?' | '!')
+    })
 }
 
 /// `/(?<!\\)#\{.*\}/`: a `#{` that is not escaped, closed on the same line. `.` does not cross a

@@ -7323,6 +7323,21 @@ mod interpolation_check {
     const MSG: &str = "Interpolation in single quoted string detected. Use double quoted strings \
                        if you need interpolation.";
 
+    /// 本家は `%{...}` を式の直後にも書くが、そこでは `%` が剰余演算子に読まれてファイルが
+    /// 壊れる (`'a ' \\` の継続の後に `%{b}` を置くと `'a ' % {b}`)。offense は立てたまま、
+    /// 書き換えだけを見送る。**本家に合わせると ruby -c が通らなくなる。**
+    #[test]
+    fn a_percent_brace_is_not_offered_where_the_percent_would_be_an_operator() {
+        CopCase::new(
+            COP,
+            "it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n")
+        .run();
+    }
+
     #[test]
     fn a_single_quoted_string_holding_an_interpolation_is_reported() {
         CopCase::new(
