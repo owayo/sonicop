@@ -1546,7 +1546,7 @@ pub fn correct_until_stable(
     }
 }
 
-/// The bytes to write back for corrected source, in the encoding the file declares for itself.
+/// The bytes to write back for corrected source, in the encoding the file was read in.
 ///
 /// This is the one place Sonicop knowingly departs from RuboCop. RuboCop's runner ends in a plain
 /// `File.write`, so a corrected Shift_JIS file comes back out as UTF-8 while its magic comment still
@@ -1554,9 +1554,17 @@ pub fn correct_until_stable(
 /// data loss on purpose, which is further than drop-in compatibility reaches. The divergence is
 /// recorded in `tests/conformance/known_divergences.yml`.
 ///
+/// That protection only applies to a file the declaration was actually needed for.
+/// [`decoded_source`] reaches for the declared encoding only when the bytes are not valid UTF-8, so
+/// a UTF-8 file naming some other encoding was read as UTF-8 and has to go back out as UTF-8 --
+/// `decoded_as_declared` says which happened, and is only asked once a declaration is found.
+/// Encoding such a file to the label it names rewrites bytes no cop asked to change: rails'
+/// `1_currencies_have_symbols.rb` declares `ISO-8859-15` and holds a UTF-8 `€`, and turning those
+/// three bytes into `\xa4` changes what the program says as surely as editing the literal would.
+///
 /// `Err` when the correction cannot be represented in that encoding, so the caller leaves the file
 /// alone rather than writing a lossy approximation.
-fn output_bytes(contents: &str) -> Result<Vec<u8>> {
+fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> Result<Vec<u8>> {
     let Some(label) = encoding_declaration(contents) else {
         return Ok(contents.as_bytes().to_vec());
     };
@@ -1570,7 +1578,7 @@ fn output_bytes(contents: &str) -> Result<Vec<u8>> {
     let Some(encoding) = encoding_for_ruby_label(&label) else {
         return Ok(contents.as_bytes().to_vec());
     };
-    if encoding == encoding_rs::UTF_8 {
+    if encoding == encoding_rs::UTF_8 || !decoded_as_declared() {
         return Ok(contents.as_bytes().to_vec());
     }
     let (bytes, _, unmappable) = encoding.encode(contents);
@@ -1583,8 +1591,11 @@ fn output_bytes(contents: &str) -> Result<Vec<u8>> {
 }
 
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
-    let bytes = output_bytes(contents)
-        .with_context(|| format!("refusing to rewrite {}", path.display()))?;
+    // The file on disk is still the one that was read: the loop corrects in memory and writes once.
+    let bytes = output_bytes(contents, || {
+        fs::read(path).is_ok_and(|bytes| String::from_utf8(bytes).is_err())
+    })
+    .with_context(|| format!("refusing to rewrite {}", path.display()))?;
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
         .ok()
@@ -2097,7 +2108,7 @@ mod tests {
         // RuboCop would write UTF-8 here and leave the file claiming cp932, which no longer loads.
         let corrected = "# encoding: cp932\nx = '\u{65e5}\u{672c}'\n";
 
-        let bytes = output_bytes(corrected).unwrap();
+        let bytes = output_bytes(corrected, || true).unwrap();
 
         assert!(bytes.ends_with(b"x = '\x93\xfa\x96\x7b'\n"));
     }
@@ -2108,7 +2119,19 @@ mod tests {
         // very text the correction was meant to leave alone.
         let corrected = "# encoding: cp932\nx = '\u{1f363}'\n";
 
-        assert!(output_bytes(corrected).is_err());
+        assert!(output_bytes(corrected, || true).is_err());
+    }
+
+    #[test]
+    fn a_utf8_file_that_names_another_encoding_goes_back_out_unchanged() {
+        // rails' `1_currencies_have_symbols.rb`: the comment says ISO-8859-15, the bytes are UTF-8,
+        // and `decoded_source` read it as UTF-8. Encoding the `€` to `\xa4` on the way out would
+        // turn a three-character string into a one-character one -- a change no cop asked for.
+        let corrected = "# coding: ISO-8859-15\nx = '\u{20ac}'\n";
+
+        let bytes = output_bytes(corrected, || false).unwrap();
+
+        assert_eq!(bytes, corrected.as_bytes());
     }
 
     #[test]
