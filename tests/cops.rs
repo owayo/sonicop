@@ -19364,6 +19364,23 @@ mod style_multiline_ternary_operator {
 mod style_trailing_underscore_variable {
     use super::*;
 
+    /// 左辺全体を囲む括弧は本家の木には無く、`mlhs` が 3 つの代入先を直接持つ。文法は
+    /// `destructured_left_assignment` を 1 段挟むので、それを入れ子の群と読むと**右辺という
+    /// 錨を失い**、削除が閉じ括弧で止まって ` = foo()` が残る (Ruby として書けない)。
+    #[test]
+    fn parentheses_around_the_whole_left_side_are_not_a_nested_group() {
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_, _, _,) = foo()\n",
+            "foo()\n",
+        );
+        expect_correction(
+            "Style/TrailingUnderscoreVariable",
+            "(_,) = foo()\n",
+            "foo()\n",
+        );
+    }
+
     const COP: &str = "Style/TrailingUnderscoreVariable";
 
     #[test]
