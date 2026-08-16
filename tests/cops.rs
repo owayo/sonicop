@@ -7360,6 +7360,21 @@ mod interpolation_check {
     const MSG: &str = "Interpolation in single quoted string detected. Use double quoted strings \
                        if you need interpolation.";
 
+    /// 本家は `%{...}` を式の直後にも書くが、そこでは `%` が剰余演算子に読まれてファイルが
+    /// 壊れる (`'a ' \\` の継続の後に `%{b}` を置くと `'a ' % {b}`)。offense は立てたまま、
+    /// 書き換えだけを見送る。**本家に合わせると ruby -c が通らなくなる。**
+    #[test]
+    fn a_percent_brace_is_not_offered_where_the_percent_would_be_an_operator() {
+        CopCase::new(
+            COP,
+            "it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n")
+        .run();
+    }
+
     #[test]
     fn a_single_quoted_string_holding_an_interpolation_is_reported() {
         CopCase::new(
@@ -18434,11 +18449,13 @@ mod style_c_corpus_regressions {
             "Style/ExplicitBlockArgument",
             "def each5; @body.each { |*x| yield(*x) } end\n",
         );
-        // A `->` block is a `lambda` send upstream, and its parameters are the block's.
+        // A `->` block is a `lambda` send upstream, and its parameters are the block's. Upstream
+        // writes `->(&block).call`, which is not Ruby: `ruby -c` rejects it. The safety net holds
+        // the file back, so the source survives unchanged. Matching upstream again fails here.
         expect_correction(
             "Style/ExplicitBlockArgument",
             "def a\n  ->{ yield }.call\nend\n",
-            "def a(&block)\n  ->(&block).call\nend\n",
+            "def a\n  ->{ yield }.call\nend\n",
         );
         // A yield with arguments but no block parameters pairs them with nothing.
         expect_no_offenses(
@@ -26160,9 +26177,12 @@ mod style_redundant_struct_keyword_init {
             "S4 = Struct.new()\n",
         );
         // 波括弧を明示した書き方では上流の範囲がペアの末尾で止まるので `}` が残る (本家のバグ)。
+        // 本家は `S5 = Struct.new(:a })` を書き戻すが、それは `ruby -c` が syntax error に
+        // する字面なので写さない。安全網 (engine.rs の withhold_unparsable) が書き戻しを
+        // 止め、原本がそのまま残る。合わせ直せばこのテストが落ちる。
         correction(
             "S5 = Struct.new(:a, { keyword_init: true })\n",
-            "S5 = Struct.new(:a })\n",
+            "S5 = Struct.new(:a, { keyword_init: true })\n",
         );
     }
 

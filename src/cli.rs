@@ -11,8 +11,8 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, Selection, correct_file, discover_targets_with_store, inspect_files_with_store,
-    inspect_source, is_mandatory_cop, offense_count, write_corrected,
+    CorrectMode, NO_SYNTAX_GUARD, Selection, correct_file, discover_targets_with_store,
+    inspect_files_with_store, inspect_source, is_mandatory_cop, offense_count, write_corrected,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -359,6 +359,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     validate_compatibility(&cli)?;
     let fail_level = FailLevel::parse(&cli.fail_level)?;
     print_deprecation_warnings(&cli);
+    warn_if_syntax_guard_disabled();
 
     let cwd = std::env::current_dir().context("failed to determine current directory")?;
     if cli.init {
@@ -489,6 +490,13 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             eprintln!("{message}");
             run_errors += 1;
         }
+        // Not an offense: the file on disk parses, so a reader told to look for a syntax error
+        // would find none. It is an autocorrect failure, and it has to reach the exit code --
+        // a `-A` run that silently declined to correct must not look like a clean one to CI.
+        if let Some(message) = outcome.rollback {
+            eprintln!("{message}");
+            run_errors += 1;
+        }
         if outcome.rewritten {
             if cli.stdin.is_some() {
                 stdin_corrected = Some(outcome.text);
@@ -607,6 +615,22 @@ fn validate_compatibility(cli: &Cli) -> Result<()> {
         bail!("--lsp cannot be combined with --editor-mode");
     }
     Ok(())
+}
+
+/// Says out loud that the guard against writing unparsable corrections has been switched off.
+///
+/// The switch exists so the guard's error rate can be measured -- with it on, the text needed to
+/// measure it never reaches disk. **A measurement hatch must not be a silent one:** left set in a
+/// shell profile or a CI job it turns a refusal to write into a destructive write, and nothing
+/// else in the output would say so.
+fn warn_if_syntax_guard_disabled() {
+    if std::env::var_os(NO_SYNTAX_GUARD).is_some() {
+        eprintln!(
+            "Sonicop: {} is set. The guard against writing corrections that do not parse is off, \
+             so autocorrection will overwrite files even when the result is a syntax error.",
+            NO_SYNTAX_GUARD
+        );
+    }
 }
 
 fn print_deprecation_warnings(cli: &Cli) {
