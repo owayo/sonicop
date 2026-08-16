@@ -489,6 +489,13 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
             eprintln!("{message}");
             run_errors += 1;
         }
+        // Not an offense: the file on disk parses, so a reader told to look for a syntax error
+        // would find none. It is an autocorrect failure, and it has to reach the exit code --
+        // a `-A` run that silently declined to correct must not look like a clean one to CI.
+        if let Some(message) = outcome.rollback {
+            eprintln!("{message}");
+            run_errors += 1;
+        }
         if outcome.rewritten {
             if cli.stdin.is_some() {
                 stdin_corrected = Some(outcome.text);
