@@ -84,6 +84,10 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 /// **No corpus reaches this.** Across the five corpora the two cops that correct through here fire
 /// 1,185 times and none of them is this shape, so a byte comparison of autocorrected output says
 /// nothing about the code below. The tests carry cases built by hand for that reason.
+///
+/// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
+/// works. `style/nested_parenthesized_calls.rs::leading_space` carries the same note for the same
+/// reason.
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();
