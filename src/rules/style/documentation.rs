@@ -10,15 +10,15 @@ use super::comments::{AnnotationKeywords, PrecedingComments, is_annotation, is_r
 use crate::rules::node_ext::NodeExt;
 
 /// `nodoc?` without `require_all`: the comment that exempts one class or module.
-static NODOC: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^#\s*:nodoc:").unwrap());
+static NODOC: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^#(?-u:\s)*:nodoc:").unwrap());
 
 /// `nodoc?` with `require_all`: the comment that exempts everything nested inside.
 static NODOC_ALL: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^#\s*:nodoc:\s+all\s*$").unwrap());
+    LazyLock::new(|| Regex::new(r"(?m)^#(?-u:\s)*:nodoc:(?-u:\s)+all(?-u:\s)*$").unwrap());
 
 /// `interpreter_directive_comment?`: a comment the interpreter reads, which documents nothing.
 static INTERPRETER_DIRECTIVE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^#\s*(frozen_string_literal|encoding):").unwrap());
+    LazyLock::new(|| Regex::new(r"(?m)^#(?-u:\s)*(frozen_string_literal|encoding):").unwrap());
 
 /// The methods that make a body a bare namespace declaration rather than code.
 const CONSTANT_VISIBILITY: &[&str] = &["public_constant", "private_constant"];

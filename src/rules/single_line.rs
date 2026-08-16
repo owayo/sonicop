@@ -190,7 +190,7 @@ static SAME_SINGLE: LazyLock<Regex> = LazyLock::new(|| {
 /// The break in front of a chained call, whose dot has to stay against the receiver. Upstream looks
 /// ahead rather than matching the dot, which this engine cannot do, so the dot is put back.
 static BEFORE_CHAIN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(&format!(r"\n{SPACE}*(&?\.\w)")).expect("the chained call pattern compiles")
+    Regex::new(&format!(r"\n{SPACE}*(&?\.(?-u:\w))")).expect("the chained call pattern compiles")
 });
 
 /// Any other line break, with or without a backslash.

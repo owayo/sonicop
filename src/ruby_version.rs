@@ -266,7 +266,7 @@ struct Requirement {
 }
 
 static REQUIREMENT_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*(~>|>=|<=|>|<|=)?\s*(\d+(?:\.\d+){0,2})\s*$")
+    Regex::new(r"^(?-u:\s)*(~>|>=|<=|>|<|=)?(?-u:\s)*((?-u:\d)+(?:\.(?-u:\d)+){0,2})(?-u:\s)*$")
         .expect("the requirement pattern is a valid constant regex")
 });
 

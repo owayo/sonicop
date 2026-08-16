@@ -1889,6 +1889,25 @@ mod style {
         );
     }
 
+    /// Ruby's `\s` is the six ASCII characters, so the space upstream's magic-comment patterns
+    /// allow after the `#` is an ASCII one. Rust's `\s` is Unicode White_Space -- 25 characters --
+    /// and it read an ideographic space as a magic comment upstream does not recognise, so the file
+    /// looked like it already had the comment and the offense went missing.
+    ///
+    /// The ASCII spelling right below is the pair to it: that one *is* the magic comment, and the
+    /// only difference between the two is which space stands after the `#`.
+    #[test]
+    fn only_an_ascii_space_makes_a_magic_comment() {
+        expect_offense(
+            "Style/FrozenStringLiteralComment",
+            "#\u{3000}frozen_string_literal: true\n^ Missing frozen string literal comment.\nx = 1\n",
+        );
+        expect_no_offenses(
+            "Style/FrozenStringLiteralComment",
+            "#\tfrozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
     #[test]
     fn hash_syntax() {
         expect_offense(
@@ -14005,6 +14024,68 @@ mod layout_spacing_and_alignment {
         expect_no_offenses(COP, "[1].each { |a, b| a }\n");
     }
 
+    /// ラムダリテラルの丸括弧も「ブロックのパイプ」として扱う。
+    ///
+    /// 本家では `->(x) { }` も `block` ノード (`(block (lambda) (args ...) body)`) なので
+    /// `on_send` ではなく `on_block` が見る。`pipes` が読むのは
+    /// `[arguments.loc.begin, arguments.loc.end]` の 2 箇所だけで、ラムダではそれが丸括弧になる
+    /// ため、**メッセージは「block parameter」のまま**である。文法はラムダに専用のノードを与える
+    /// ので、`block` / `do_block` だけを回していると丸ごと見落とす (この cop の spec で 8 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec と `--only <cop> -A` の実測 (spec 29 ケース全一致)。
+    #[test]
+    fn a_lambda_literals_parentheses_are_its_pipes() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        expect_offense(
+            COP,
+            r"
+            ->( x, y) { puts x }
+               ^ Space before first block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->( x, y) { puts x }\n", "->(x, y) { puts x }\n");
+        expect_offense(
+            COP,
+            r"
+            ->(x, y  ) { puts x }
+                   ^^ Space after last block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->(x, y  ) { puts x }\n", "->(x, y) { puts x }\n");
+        // 3 種類が同時に出る形。1 回の -A で全部片付く。
+        expect_correction(
+            COP,
+            "->(  a,  b, c) { puts a }\n",
+            "->(a, b, c) { puts a }\n",
+        );
+        // 対照 1: 揃っていれば何も出ない。
+        expect_no_offenses(COP, "->(x, y) { puts x }\n");
+        // 対照 2: **丸括弧を書いていないラムダは対象外** (`loc.begin` が無いので `pipes?` が偽)。
+        expect_no_offenses(COP, "->x { puts x }\n");
+        expect_no_offenses(COP, "-> { puts 1 }\n");
+    }
+
+    /// `EnforcedStyleInsidePipes: space` でもラムダの丸括弧を同じ 2 箇所として読む。
+    ///
+    /// 期待値は本家 1.89.0 の spec (274 / 285 行付近) と `-A` の実測。
+    #[test]
+    fn the_space_style_also_reads_a_lambdas_parentheses() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        let space = |source: &str, corrected: &str| {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        };
+        space("->(x ) { puts x }\n", "->( x ) { puts x }\n");
+        space("->( x, y) { puts x }\n", "->( x, y ) { puts x }\n");
+        // 対照: この style では空白が空いている形が正しいので何も出ない。
+        CopCase::new(COP, "->( x, y ) { puts x }\n".to_owned(), Vec::new())
+            .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+            .run();
+    }
+
     /// 行末コメントの手前の空白。ヒアドキュメント本文中の `#` は数えない。
     #[test]
     fn space_before_comment() {
@@ -17965,6 +18046,31 @@ mod each_with_object {
 mod hash_transform {
     use super::*;
 
+    /// `transforming_body_expr.hash_type? && !braces?`: 波括弧の無いハッシュは、ブロックの
+    /// 本体そのものになるときに波括弧が要る。**文法は波括弧の無い形に `hash` の節を作らない**
+    /// ので、`hash` だけを見ると、この門が存在する理由そのものを外す。
+    #[test]
+    fn a_braceless_hash_body_gains_braces() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.to_h { |key, val| [key, value: val] }\n",
+            "{a: 1, b: 2}.transform_values { |val| { value: val } }\n",
+        );
+    }
+
+    /// 本家の `send` はぶら下がったブロックを含まない。`x.map { }.to_h { }` は
+    /// `(call (block (call _ :map) ..) :to_h)` に当たるので**報告される**。
+    /// そして `.to_h` にブロックが付いているときは `.to_h` を残す
+    /// (`strip_trailing_chars = 0`) — 消すとブロックがぶら下がる先を失う。
+    #[test]
+    fn a_block_on_to_h_keeps_the_selector() {
+        expect_correction(
+            "Style/HashTransformValues",
+            "{a: 1, b: 2}.map {|k, v| [k, foo(v)]}.to_h {|k, v| [v, k]}\n",
+            "{a: 1, b: 2}.transform_values {|v| foo(v)}.to_h {|k, v| [v, k]}\n",
+        );
+    }
+
     const KEYS: &str = "Style/HashTransformKeys";
     const VALUES: &str = "Style/HashTransformValues";
 
@@ -18312,6 +18418,34 @@ mod redundant_regexp_escape {
 /// 期待値は本家 1.89.0 の `--only Style/OneLineConditional` の実測。
 mod one_line_conditional {
     use super::*;
+
+    /// `%i[and or if]` は**ノードの種別**で、本家のパーサは `||` にも `or` を作る。
+    /// キーワードの綴りだけを見ると `a || b ? x : y` になり、三項が想定より強く結び付く。
+    #[test]
+    fn a_pipe_condition_is_the_same_or_as_the_keyword() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a || b then x else y end\n",
+            "(a || b) ? x : y\n",
+        );
+    }
+
+    /// `node.arguments? && !node.parenthesized_call?`: 引数が既に括弧の中にあるキーワードは、
+    /// 後ろから何も取らないので自前の括弧が要らない。`yield(2)` が `(yield(2))` になっていた。
+    #[test]
+    fn a_keyword_whose_arguments_are_parenthesized_needs_no_more() {
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield(2) end\n",
+            "a(0) ? puts(1) : yield(2)\n",
+        );
+        // 括弧が無ければ `:` を引数と読むので、こちらは包む。
+        expect_correction(
+            "Style/OneLineConditional",
+            "if a(0) then puts(1) else yield 2 end\n",
+            "a(0) ? puts(1) : (yield 2)\n",
+        );
+    }
 
     const COP: &str = "Style/OneLineConditional";
 
@@ -20381,6 +20515,30 @@ mod ternary_parentheses {
 mod sole_nested_conditional {
     use super::*;
 
+    /// `parenthesize_method?` は `node.call_type?` を尋ねる。ブロックを持つ呼び出しは本家では
+    /// `block` ノードなのでこの枝に入らず、**全体**が括弧に入る。文法はブロックを call の子に
+    /// するので、種別だけを見ると引数リストの枝に入って `ok?(bar do ... end)` になる。
+    #[test]
+    fn a_call_carrying_a_block_is_wrapped_whole() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if foo\n  if ok? bar do\n      do_something\n    end\n  end\nend\n",
+            "if foo && (ok? bar do\n      do_something\n    end)\n  end\n",
+        );
+    }
+
+    /// `range_with_surrounding_space(operator, whitespace: true)` の `whitespace` の段は
+    /// 改行の段の**後**に走るので、右辺が乗る行の字下げまで届く。改行で止めると字下げが落ちて
+    /// 節が桁 0 に移る。
+    #[test]
+    fn the_indentation_of_a_continued_clause_survives() {
+        expect_correction(
+            "Style/SoleNestedConditional",
+            "if baz &&\n   foo = bar\n  if quux\n    do_something\n  end\nend\n",
+            "if baz &&\n   (foo = bar) && quux\n    do_something\n  end\n",
+        );
+    }
+
     const COP: &str = "Style/SoleNestedConditional";
 
     #[test]
@@ -20589,6 +20747,61 @@ mod style_identical_conditional_branches {
     use super::*;
 
     const COP: &str = "Style/IdenticalConditionalBranches";
+
+    /// `identical_conditional_branches_spec.rb:132`.
+    ///
+    /// Hoisting an assignment above the condition that reads what it writes would change what the
+    /// condition sees. What the guard compares is the **receiver** on both sides -- `h[:key]` and
+    /// `h.x` are a `send` of `:[]` / `:x` upstream and reduce to `h` -- so what sits in between is
+    /// not part of the question. The port only knew the shape where a bare name is assigned.
+    #[test]
+    fn writing_through_the_receiver_the_condition_reads_is_left_alone() {
+        for (condition, assignment) in [
+            ("h[:key]", "h[:key] = foo"),
+            // The key need not match: both sides still reduce to `h`.
+            ("h[:other]", "h[:key] = foo"),
+            ("h.x", "h.x = foo"),
+            ("h", "h[:key] = foo"),
+        ] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "if {condition}\n  {assignment}\n  bar\nelse\n  {assignment}\n  baz\nend\n"
+                ),
+            );
+        }
+    }
+
+    /// The pair to the case above: a *different* receiver is hoistable, which is what makes the
+    /// receiver -- rather than the whole condition -- the thing being compared.
+    #[test]
+    fn writing_through_a_different_receiver_is_still_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if g[:key]
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              bar
+            else
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              baz
+            end
+            "#,
+        );
+    }
+
+    /// `identical_conditional_branches_spec.rb:739`, "does not raise any error when using empty
+    /// brace in the both parentheses".
+    ///
+    /// Upstream reads a branch's head through `begin.children.first`, so a group holding nothing
+    /// hands back `nil` and the check stops. The grammar keeps a node for the parentheses, so the
+    /// emptiness has to be asked about rather than falling out of the tree.
+    #[test]
+    fn branches_holding_only_empty_parentheses_are_not_reported() {
+        expect_no_offenses(COP, "if condition\n  ()\nelse\n  ()\nend\n");
+    }
 
     #[test]
     fn every_branch_that_shares_an_expression_is_reported() {
@@ -21310,6 +21523,41 @@ mod redundant_parentheses {
             COP,
             "x = (\n  <<-STRING\n    foo\n  STRING\n)\n",
             "x = <<-STRING\n    foo\n  STRING\n",
+        );
+    }
+
+    /// `redundant_parentheses_spec.rb:976`, "parens around a numblock body".
+    ///
+    /// An implicit block parameter is a local variable to upstream's parser, but nothing assigns
+    /// it, so the name table built from assignments cannot know it and it read as a method call.
+    #[test]
+    fn an_implicit_block_parameter_is_a_variable() {
+        for name in ["_1", "_2", "it"] {
+            expect_offense(
+                COP,
+                &format!(
+                    r#"
+            x do
+              ({name}; bar)
+              ^^^^^^^^^ Don't use parentheses around a variable.
+            end
+            "#,
+                )
+                .replace("^^^^^^^^^", &"^".repeat(name.len() + 7)),
+            );
+        }
+    }
+
+    /// The same names outside a block really are method calls, which is what makes the enclosing
+    /// block the whole of the question rather than the spelling of the name.
+    #[test]
+    fn an_implicit_block_parameter_outside_a_block_is_a_call() {
+        expect_offense(
+            COP,
+            r#"
+            (_1; bar)
+            ^^^^^^^^^ Don't use parentheses around a method call.
+            "#,
         );
     }
 
@@ -22629,6 +22877,20 @@ mod style_file_write {
 /// (検出 2 件 / 1 件・`-A` の結果ともバイト一致を確認済み)。
 mod style_in_pattern_then {
     use super::*;
+
+    /// 本家が報告するのは `node.loc.begin` = **パターンと本体の間**のトークン。本体の中の
+    /// `;` は文の区切りで、この cop の管轄ではない。`in b then c; d` は既に `then` を
+    /// 言っているので本家は黙る。
+    #[test]
+    fn a_semicolon_inside_the_body_is_not_the_separator() {
+        expect_no_offenses("Style/InPatternThen", "case a\nin b then c; d\nend\n");
+        // 本体の先頭が `;` のときだけ報告する。
+        expect_correction(
+            "Style/InPatternThen",
+            "case a\nin b; c\nend\n",
+            "case a\nin b then c\nend\n",
+        );
+    }
 
     /// 1 行に収まる `in` の `;` は ` then` になる。選択パターンはメッセージ側で
     /// ` | ` 区切りに整形される。
