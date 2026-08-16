@@ -11365,6 +11365,18 @@ mod hash_compare_by_identity {
             );
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = %w[a\\  b]\n");
             expect_no_offenses("Layout/SpaceInsideArrayPercentLiteral", "x = [a,  b]\n");
+            // 本家の `\S` は Ruby の `\s` の補集合なので垂直タブを含まない。`is_ascii_whitespace`
+            // は VT を空白から外すため、VT が来ると `\S` と読んで offense を出していた。
+            // **5 コーパスに VT は 1 バイトも無い**ので、この 2 件だけが番人になる。
+            // 期待値は本家 1.89.0 の実測 (どちらも 0 件)。
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo  \u{b}bar)\n",
+            );
+            expect_no_offenses(
+                "Layout/SpaceInsideArrayPercentLiteral",
+                "x = %w(foo\u{b}  bar)\n",
+            );
         }
 
         /// 1 つの `#{}` につき corrector は 1 回しか回らないので、2 件目の offense は

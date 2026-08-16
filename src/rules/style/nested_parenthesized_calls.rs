@@ -141,6 +141,9 @@ fn reads_as_binary_and(
 /// those sits next to a line continuation, so a byte comparison of autocorrected output cannot
 /// tell a working version from a broken one here. The tests next to this cop are the only guard,
 /// which is why they carry a case built by hand rather than one taken from a corpus.
+///
+/// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
+/// works. `style/parens.rs::orphaned_comma_start` carries the same note for the same reason.
 fn leading_space(context: &RuleContext<'_>, start: usize) -> usize {
     crate::rules::support::final_pos(context.source.text(), start, false, true, true, true)
 }
