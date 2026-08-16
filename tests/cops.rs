@@ -15624,6 +15624,19 @@ mod nested_parenthesized_calls {
         expect_correction(COP, "method1(method2 arg)\n", "method1(method2(arg))\n");
     }
 
+    /// 本家は `continuations: true` で行継続を空白ごと持っていく。段が無いと `\` が残り、
+    /// 置き換えの `(` がその後ろに落ちて `method1(method2 \(arg))` という Ruby でないものを書く。
+    #[test]
+    fn a_line_continuation_before_the_argument_goes_with_the_space() {
+        expect_correction(
+            COP,
+            "method1(method2 \\\n  arg)\n",
+            "method1(method2(arg))\n",
+        );
+        // 括弧の直前に継続があるだけの形も同じ経路を通る。
+        expect_correction(COP, "method1(method2 \\\narg)\n", "method1(method2(arg))\n");
+    }
+
     /// 既に括弧つきのもの、引数のないもの、演算子、既定の許可メソッドは対象外。
     #[test]
     fn what_the_cop_leaves_alone() {
@@ -20880,6 +20893,18 @@ mod redundant_parentheses {
     use super::*;
 
     const COP: &str = "Style/RedundantParentheses";
+
+    /// `ParenthesesCorrector` の主経路は本家の `remove_close_paren`、つまり
+    /// `range_with_surrounding_space(side: :left, newlines: newlines)` で、`continuations` は
+    /// 既定の `false` のまま。**行継続の `\` は残る。**
+    ///
+    /// `continuations: true` を持っているのは `parens_range` のほうで、これは
+    /// `handle_orphaned_comma` からしか呼ばれない別の範囲である。主経路にそれを当てると
+    /// `\` まで食べて本家より 2 バイト多く消す。期待値は本家 1.89.0 の `-A` の実測。
+    #[test]
+    fn the_line_continuation_before_the_closing_paren_stays() {
+        expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
+    }
 
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
