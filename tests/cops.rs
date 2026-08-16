@@ -36285,6 +36285,57 @@ mod begin_block_holds_siblings {
         );
     }
 
+    /// ここから 4 つは **`CONTAINERS` を次に誰かが触ったときの網**。上の 2 つ (`begin` の中で
+    /// 並べ替えが出る / `begin` の中の `private` が効く) が**同じモジュール内の陽性対照**なので、
+    /// この 4 つが 0 件であることは「観測されず 0」ではなく「守られて 0」と言える。
+    ///
+    /// 6 通りのうち `program` (ファイル最上位) は cop-style-a が別に持っている。
+    /// 期待値はすべて本家 1.89.0 の `--only Style/DocumentationMethod` の実測。
+    #[test]
+    fn a_bare_private_in_a_class_body_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  private\n\n  def foo\n    1\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_a_singleton_class_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  class << self\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    #[test]
+    fn a_private_inside_an_if_applies() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  if true\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// `rescue` を持つ `def` の後ろも兄弟の列が切れない (本家は 2 件報告する)。
+    #[test]
+    fn a_def_with_a_rescue_does_not_break_the_sibling_chain() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  def bar\n    1\n  rescue\n    2\n  end\n\n  def foo\n    1\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            2,
+        );
+    }
+
     /// 別の `begin` の中の `private` は外の定義に効かない (本家もそう読む。陰性対照)。
     #[test]
     fn a_private_in_another_begin_does_not_reach_outside_it() {
