@@ -759,6 +759,47 @@ mod lint {
         );
     }
 
+    /// キーの重複は**ハッシュ可能な鍵**で数える (`node_equality::equality_key`)。前方の全キーと
+    /// 構造比較する形は二次で、生成された表 1 個 (`ruby/ruby` の `unicode_normalize/tables.rb`、
+    /// pair 7,859 個) で **この cop だけで 22 秒**かかっていた。本家は `Duplication` mixin の
+    /// `group_by` で線形である。
+    ///
+    /// **鍵は `identical` と同じ同値関係でなければならない。** どちらかにずれると、過剰検出
+    /// (別のキーを同じ鍵にした) か見落とし (同じキーを別の鍵にした) になる。境界を 13 形測って
+    /// 本家と突き合わせたので、その全部をここに置く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Lint/DuplicateHashKey` の実測。
+    #[test]
+    fn the_hashable_key_keeps_the_same_equivalence_as_node_equality() {
+        let duplicate = |source: &str| {
+            // この cop は訂正を持たないので、`-A` を掛けてもソースは動かない。
+            let report = expect_correction("Lint/DuplicateHashKey", source, source);
+            let count = report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Lint/DuplicateHashKey")
+                .count();
+            assert_eq!(count, 1, "1 件の重複を数えるはず: {source:?}");
+        };
+        // 同じ鍵になる側。値の解決まで済ませてから比べるので、書き方は問わない。
+        duplicate("h = { ?a => 1, \"a\" => 2 }\n"); // 1 文字リテラルと文字列
+        duplicate("h = { :sym => 1, :\"sym\" => 2 }\n"); // 素のシンボルと引用符つき
+        duplicate("h = { 0x10 => 1, 16 => 2 }\n"); // 基数
+        duplicate("h = { -0.0 => 1, 0.0 => 2 }\n"); // ★ `-0.0 == 0.0` なので同じ鍵
+        duplicate("h = { A => 1, A => 2 }\n"); // 定数
+        duplicate("h = { [1, 2] => 1, [1, 2] => 2 }\n"); // 入れ子の配列
+        duplicate("h = { { a: 1 } => 1, { a: 1 } => 2 }\n"); // 入れ子のハッシュ
+        duplicate("h = { \"\\n\" => 1, \"\\x0a\" => 2 }\n"); // エスケープの解決
+        duplicate("h = { \"\\012\" => 1, \"\\n\" => 2 }\n"); // 8 進エスケープ
+        // 別の鍵になる側 (対照)。**この側が無いと、全部同じ鍵にする実装でも通ってしまう。**
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { 1 => 1, 1.0 => 2 }\n");
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { A::B => 1, B => 2 }\n");
+        expect_no_offenses(
+            "Lint/DuplicateHashKey",
+            "h = { \"a\" => 1, \"b\" => 2, :a => 3, 1 => 4, 1.0 => 5 }\n",
+        );
+    }
+
     /// 条件は `when` をまたいで数える。
     #[test]
     fn duplicate_case_condition_counts_across_when_branches() {
