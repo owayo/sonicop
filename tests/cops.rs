@@ -37189,29 +37189,41 @@ mod layout_block_end_newline_heredoc {
     }
 
     /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
-    /// 条件を落とすと逆にずれるので、境界の外側を固定する。
+    ///
+    /// **その字面は Ruby として通らない。**`}` が heredoc の本文より前に出るので、ブロックが
+    /// 閉じられない。`ruby -c` で確かめてある。
+    ///
+    /// ```text
+    /// 原本            test { / foo(<<~EOS) } / line one / line two / EOS      Syntax OK
+    /// 本家 -A         test { / foo(<<~EOS) / } / line one / line two / EOS    SyntaxError
+    /// sonicop         原本のまま
+    /// ```
+    ///
+    /// 安全網 (`src/engine.rs` の `withhold_unparsable`) が書き戻しを止める。**期待値を本家の
+    /// 字面に戻すと、有効な Ruby を壊す補正を仕様として焼き付けることになる。**`#41` で
+    /// 承認済みの方針で、`known_divergences.yml` にも同じ family が 3 つ登録されている。
+    ///
+    /// **本文が 1 行のときは壊れない** (`}` が終端子の後ろへ行く) ので、上の
+    /// `the_brace_moves_after_a_one_line_heredoc` は本家の字面のままである。**割れるのは
+    /// `dstr` の枝だけ。**
     #[test]
-    fn a_two_line_heredoc_keeps_the_brace_above_it() {
-        CopCase::new(
-            COP,
-            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
-            Vec::new(),
-        )
-        .without_offense_check()
-        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
-        .run();
+    fn a_two_line_heredoc_is_left_alone_because_upstreams_output_does_not_parse() {
+        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(source)
+            .run();
     }
 
-    /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。
+    /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。**同じく Ruby として通らない。**
+    ///
+    /// 上のケースと同じ機構なので、片方だけ直しても両方は動かない。
     #[test]
-    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
-        CopCase::new(
-            COP,
-            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
-            Vec::new(),
-        )
-        .without_offense_check()
-        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
-        .run();
+    fn an_interpolated_heredoc_is_left_alone_for_the_same_reason() {
+        let source = "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n";
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(source)
+            .run();
     }
 }
