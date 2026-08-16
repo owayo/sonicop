@@ -9111,6 +9111,95 @@ mod layout_indentation {
         .run();
     }
 
+    /// 本家の `rescue` / `ensure` ノードは**最後の**節の最後の文で終わる。
+    /// `begin a rescue b rescue c else d ensure e end` は
+    /// `(ensure (rescue a (resbody b) (resbody c) d) e)` になるので、本体をずらす補正は
+    /// **節のキーワード行を全部連れて動く**。
+    ///
+    /// 最初の節までしか届かない範囲でずらすと、2 本目の `rescue` や `else` / `ensure` は
+    /// 書かれたままの位置に残り、ファイルは本家より 2 桁ずれた形で落ち着く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力
+    /// (17 形測って全部一致。修正前は 10 形が食い違っていた)。
+    #[test]
+    fn every_clause_keyword_moves_with_the_body() {
+        // 2 本目の `rescue` も動く。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        // `else` も `ensure` も同じ。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nelse\n   puts 'c'\nensure\n    puts 'd'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  else\n    puts 'c'\n  ensure\n    \
+             puts 'd'\nend\n",
+        );
+        // `def` / `class` / ブロックの本体でも同じ (節は本体の器に付く)。
+        expect_correction(
+            WIDTH,
+            "def my_func\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "def my_func\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "class Foo\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "class Foo\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "foo do\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "foo do\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+    }
+
+    /// 動かないものの側。**`end` の行と、最後の節と `end` の間のコメントと、ヒアドキュメントの
+    /// 中身は動かない。** 本家のノード範囲がそこで閉じているからで、この 3 つを範囲に入れると
+    /// `end` は相対字下げが変わらず収束しなくなり、コメントとヒアドキュメントは本家と 2 桁ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_end_a_trailing_comment_and_a_heredoc_body_stay_put() {
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nensure\n puts 'c'\n# tail comment\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  ensure\n    puts 'c'\n# tail \
+             comment\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts(<<~X)\n   keep me\n X\nensure\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts(<<~X)\n   keep me\n X\n  ensure\n    \
+             puts 'c'\nend\n",
+        );
+    }
+
+    /// 本家 spec の `with begin/rescue/else/ensure/end` (1929 行付近) の入力そのまま。
+    /// 節が 4 つ並ぶので、範囲が最初の節で止まっていると 6 行ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    /// **spec に書かれている `expect_correction` の文面とは別の不動点**なので、そちらを
+    /// 写さないこと (spec のループと CLI の `-A` のループは同じ入力から別の形に着く)。
+    #[test]
+    fn the_spec_case_with_four_clauses() {
+        expect_correction(
+            WIDTH,
+            "def my_func\n  puts 'do something outside block'\n  begin\n  \
+             puts 'do something error prone'\n  rescue SomeException, SomeOther => e\n   \
+             puts 'wrongly indented error handling'\n  rescue\n   \
+             puts 'wrongly indented error handling'\n  else\n     \
+             puts 'wrongly indented normal case handling'\n  ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+            "def my_func\n  puts 'do something outside block'\n  begin\n    \
+             puts 'do something error prone'\n    rescue SomeException, SomeOther => e\n      \
+             puts 'wrongly indented error handling'\n    rescue\n      \
+             puts 'wrongly indented error handling'\n    else\n      \
+             puts 'wrongly indented normal case handling'\n    ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+        );
+    }
+
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
     /// 補正すると内側の行が二重にずれる。本家は内側の corrector を捨て、外側の
     /// ずれが効いた次のパスで入れ子でなくなってから直す
