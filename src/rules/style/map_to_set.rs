@@ -34,7 +34,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `range_with_surrounding_space(side: :left)`: the conversion goes with the blank in front
         // of it, so a chain written over two lines closes up.
-        let start = final_pos(context.source.text(), dot.start_byte(), false, true, false);
+        let start = final_pos(context.source.text(), dot.start_byte(), false, false, true, false);
         offenses.push(
             context
                 .offense(

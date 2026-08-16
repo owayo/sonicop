@@ -173,7 +173,7 @@ fn register(
             end: final_pos(
                 context.source.text(),
                 directive.range.end,
-                true,
+                true, false,
                 true,
                 false,
             ),

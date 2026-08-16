@@ -35,7 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut edits = Vec::new();
         let mut expression_before_body = open.start_byte();
         if let Some(arguments) = arguments.filter(|_| !on_beginning_line) {
-            let end = final_pos(text, arguments.end_byte(), true, false, false);
+            let end = final_pos(text, arguments.end_byte(), true, false, false, false);
             edits.push(Edit {
                 start: open.end_byte(),
                 end,

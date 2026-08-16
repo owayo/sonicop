@@ -230,6 +230,7 @@ fn register(
     let verification = Verification {
         verify_oversized: true,
         fold_string_concatenation: true,
+        ..Default::default()
     };
     let verified = verified_by_reparse(
         context,

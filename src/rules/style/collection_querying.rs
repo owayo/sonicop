@@ -47,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `removal_range`: everything from the comparison's own dot or operator, with the blank in
         // front of it.
         let removal =
-            final_pos(context.source.text(), dot.start, false, true, false)..node.end_byte();
+            final_pos(context.source.text(), dot.start, false, false, true, false)..node.end_byte();
         offenses.push(
             context
                 .offense(format!("Use `{replacement}` instead."), range)

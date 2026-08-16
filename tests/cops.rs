@@ -15624,6 +15624,19 @@ mod nested_parenthesized_calls {
         expect_correction(COP, "method1(method2 arg)\n", "method1(method2(arg))\n");
     }
 
+    /// 本家は `continuations: true` で行継続を空白ごと持っていく。段が無いと `\` が残り、
+    /// 置き換えの `(` がその後ろに落ちて `method1(method2 \(arg))` という Ruby でないものを書く。
+    #[test]
+    fn a_line_continuation_before_the_argument_goes_with_the_space() {
+        expect_correction(
+            COP,
+            "method1(method2 \\\n  arg)\n",
+            "method1(method2(arg))\n",
+        );
+        // 括弧の直前に継続があるだけの形も同じ経路を通る。
+        expect_correction(COP, "method1(method2 \\\narg)\n", "method1(method2(arg))\n");
+    }
+
     /// 既に括弧つきのもの、引数のないもの、演算子、既定の許可メソッドは対象外。
     #[test]
     fn what_the_cop_leaves_alone() {
@@ -20880,6 +20893,46 @@ mod redundant_parentheses {
     use super::*;
 
     const COP: &str = "Style/RedundantParentheses";
+
+    /// `ParenthesesCorrector` の主経路は本家の `remove_close_paren`、つまり
+    /// `range_with_surrounding_space(side: :left, newlines: newlines)` で、`continuations` は
+    /// 既定の `false` のまま。**行継続の `\` は残る。**
+    ///
+    /// `continuations: true` を持っているのは `parens_range` のほうで、これは
+    /// `handle_orphaned_comma` からしか呼ばれない別の範囲である。主経路にそれを当てると
+    /// `\` まで食べて本家より 2 バイト多く消す。期待値は本家 1.89.0 の `-A` の実測。
+    #[test]
+    fn the_line_continuation_before_the_closing_paren_stays() {
+        expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
+    }
+
+    /// `handle_orphaned_comma`: upstream removes a second range that contains the first, and its
+    /// `TreeRewriter` folds the pair. Handing the engine two overlapping edits instead lost the
+    /// whole offense, so this shape went unreported -- detection looked broken while the cause sat
+    /// in the corrector. Expectations are upstream 1.89.0's `-A`.
+    #[test]
+    fn a_closing_paren_alone_on_its_line_before_a_comma_is_still_reported() {
+        expect_correction(
+            COP,
+            "foo(\n  (bar\n  ),\n  baz\n)\n",
+            "foo(\n  bar,\n  baz\n)\n",
+        );
+        expect_correction(COP, "foo(a, (bar\n), b)\n", "foo(a, bar, b)\n");
+        // The parentheses as the *last* argument leave no comma behind, so the second range never
+        // appears and this shape kept working throughout.
+        expect_correction(COP, "foo(baz, (bar\n))\n", "foo(baz, bar)\n");
+    }
+
+    /// The `continuations: true` walk in `parens_range` only matters once the offense above is
+    /// reported. Without it the `\` is stranded in front of the comma and the result stops parsing.
+    #[test]
+    fn the_orphaned_comma_walk_takes_a_line_continuation_with_it() {
+        expect_correction(
+            COP,
+            "foo(\n  (bar \\\n  ),\n  baz\n)\n",
+            "foo(\n  bar,\n  baz\n)\n",
+        );
+    }
 
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
@@ -35265,6 +35318,112 @@ mod style_method_call_with_args_parentheses {
         CopCase::new(COP, "Foo(1)\n".to_owned(), Vec::new())
             .config("Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n  AllowParenthesesInCamelCaseMethod: true\n")
             .run();
+    }
+
+    /// 中身の無い括弧も外す。本家のパーサは空の引数リストにノードを作らないので、`foo()` と
+    /// `foo`、`yield()` と `yield` は同じ木になる。tree-sitter は前者に `argument_list` を
+    /// 作るため、外した後の木が元と一致せず報告できなかった。
+    #[test]
+    fn a_pair_of_parentheses_holding_nothing_comes_off_too() {
+        CopCase::annotated(
+            COP,
+            r"
+            def a
+              mail()
+                  ^^ Omit parentheses for method calls with arguments.
+            end
+            def b
+              Firm.new()
+                      ^^ Omit parentheses for method calls with arguments.
+            end
+            def c
+              yield()
+                   ^^ Omit parentheses for method calls with arguments.
+            end
+            ",
+        )
+        .config(OMIT)
+        .run();
+        // 訂正は `(` を空白に置き換えて `)` を消すので、行末に空白が 1 つ残る。
+        correction(
+            OMIT,
+            "def a
+  mail()
+end
+",
+            "def a
+  mail 
+end
+",
+        );
+        correction(
+            OMIT,
+            "def b
+  Firm.new()
+end
+",
+            "def b
+  Firm.new 
+end
+",
+        );
+        correction(
+            OMIT,
+            "def c
+  yield()
+end
+",
+            "def c
+  yield 
+end
+",
+        );
+        correction(
+            OMIT,
+            "def d
+  bar() do
+    1
+  end
+end
+",
+            "def d
+  bar  do
+    1
+  end
+end
+",
+        );
+    }
+
+    /// 名前を局所変数が持っているときだけは残る。括弧があるうちは呼び出しだが、外すと
+    /// その変数を読むだけになり、本家の再パースが別の木として弾く。
+    #[test]
+    fn empty_parentheses_stay_where_the_name_is_a_local_variable() {
+        for source in [
+            "def d
+  foo = 1
+  foo()
+end
+",
+            // 波括弧のブロックを持つ呼び出しと、引数を渡さない `super`。
+            "def e
+  bar() { 1 }
+end
+",
+            "def f
+  super()
+end
+",
+            // 連鎖の途中。
+            "def h
+  qux().to_s
+end
+",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(OMIT)
+                .run();
+        }
     }
 
     /// 括弧が行末を閉じている複数行の呼び出しは、空白ではなく行継続を置く。

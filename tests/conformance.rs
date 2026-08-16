@@ -27,6 +27,11 @@ use support::manifest::{Entry, Manifest};
 
 /// 本家の実出力を期待値としたケース一覧。ケース ID はマニフェストの
 /// 突き合わせキーなので、一度付けたら変えないこと。
+/// `EnforcedStyle: omit_parentheses`。既定は `require_parentheses` なので、
+/// 非既定の style を測るケースはこれを渡す。
+const OMIT_PARENTHESES: &str =
+    "Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n";
+
 fn catalogue() -> Vec<CopCase> {
     vec![
         // ---- Bundler ----
@@ -5415,6 +5420,28 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_method_call_with_args_parentheses")
         .correctable(true),
+        // `omit_parentheses` で、括弧を外すと Ruby として通らなくなる 2 つの形。本家は補正を
+        // 再パースして弾くので何も報告しない。tree-sitter は両方とも ERROR を作らずに受理する
+        // ため、移植版は「外せる」と判断して報告する (既知差分)。
+        //
+        // 規則 A: 右辺が括弧無し呼び出しの代入は、引数リストの中に裸で置けない。
+        //   assert_not_nil pool = handler.foo "x"   -> 構文エラー
+        CopCase::new(
+            "Style/MethodCallWithArgsParentheses",
+            "assert_not_nil pool = handler.foo(\"x\")\n".to_owned(),
+            Vec::new(),
+        )
+        .id("style_method_call_with_args_parentheses_omit_assignment_argument")
+        .config(OMIT_PARENTHESES),
+        // 規則 C: 多重代入の中の連鎖代入。
+        //   a, b = c = @app.call env   -> 構文エラー
+        CopCase::new(
+            "Style/MethodCallWithArgsParentheses",
+            "a, b = c = @app.call(env)\n".to_owned(),
+            Vec::new(),
+        )
+        .id("style_method_call_with_args_parentheses_omit_chained_masgn")
+        .config(OMIT_PARENTHESES),
         // 位置は定義全体。
         CopCase::annotated("Style/MultilineMethodSignature", "def foo(a,\n        b)\nend\n")
             .id("style_multiline_method_signature")

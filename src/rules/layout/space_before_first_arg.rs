@@ -50,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
-        let space = final_pos(text, first.start, false, true, false)..first.start;
+        let space = final_pos(text, first.start, false, false, true, false)..first.start;
         if text[space.clone()].chars().count() == 1 {
             continue;
         }

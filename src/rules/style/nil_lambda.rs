@@ -38,8 +38,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             == context.source.line_column(block.end_byte()).0
         {
             // `range_with_surrounding_space(body.source_range)`.
-            support::final_pos(text, body.start_byte(), false, true, false)
-                ..support::final_pos(text, body.end_byte(), true, true, false)
+            support::final_pos(text, body.start_byte(), false, false, true, false)
+                ..support::final_pos(text, body.end_byte(), true, false, true, false)
         } else {
             // `range_by_whole_lines(body.source_range, include_final_newline: true)`.
             whole_lines(body.byte_range(), context)

@@ -23,6 +23,27 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
     // The newline before `)` is kept where a comment sits above it and a chain follows it, which
     // would otherwise pull the chain into the comment.
     let newlines = !comment_above_close_paren(context, node);
+    // `remove_close_paren`: `range_with_surrounding_space(side: :left, newlines: newlines)`.
+    // `whitespace` and `continuations` both stay at their default of `false`, so the walk stops at
+    // a `\` that ends the line and leaves it standing. The `continuations: true` walk belongs to
+    // `parens_range`, which is a *different* range -- see `orphaned_comma_start` below.
+    let mut close_start = super::ranges::extended_left(text, close, newlines);
+    // `handle_orphaned_comma`: a comma left alone on its own line would not parse, so the
+    // whitespace before it goes as well.
+    //
+    // Upstream removes this as a *second* range, and it always contains the one above, so its
+    // `TreeRewriter` folds the pair into the wider removal. Handing two edits over separately
+    // loses the whole offense instead, and the place it goes is not the engine: this cop verifies
+    // its own correction by reparsing, and `apply_edits` walks the edits in order and refuses any
+    // that starts before the previous one ended. Two removals of the same span are the commonest
+    // way to trip that, since the walks above land on the same byte whenever no continuation sits
+    // between them. Widening the single edit reaches the same text and stays verifiable.
+    //
+    // The heredoc half of upstream's handling is left out -- nothing in the corpora reaches it,
+    // and it rewrites the comma rather than removing it.
+    if let Some(orphaned) = orphaned_comma_start(context, close) {
+        close_start = close_start.min(orphaned);
+    }
     let mut edits = vec![
         Edit {
             start: range.start,
@@ -31,23 +52,12 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
             safe: true,
         },
         Edit {
-            start: super::ranges::extended_left(text, close, newlines),
+            start: close_start,
             end: range.end,
             replacement: String::new(),
             safe: true,
         },
     ];
-    // `handle_orphaned_comma`: a comma left alone on its own line would not parse, so the
-    // whitespace before it goes as well. The heredoc half of upstream's handling is left out --
-    // nothing in the corpora reaches it, and it rewrites the comma rather than removing it.
-    if let Some(orphaned) = orphaned_comma_start(context, close) {
-        edits.push(Edit {
-            start: orphaned,
-            end: range.end,
-            replacement: String::new(),
-            safe: true,
-        });
-    }
     // `ternary_condition?`: `(a) ? b : c` needs the space the parenthesis used to provide.
     if is_ternary_condition_before_question_mark(context, node) {
         edits.push(Edit {
@@ -62,6 +72,18 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would
 /// leave the comma stranded begins.
+///
+/// Returning `Some` here used to add a *second* edit for the closing parenthesis, and since the
+/// two walks land on the same byte whenever no continuation sits between them, the pair was
+/// usually the same removal twice. `apply_edits` refuses an edit that starts before the previous
+/// one ended, so the reparse check this cop runs on its own correction failed and took the
+/// candidate with it -- the cop looked unable to detect the shape while the cause sat in the
+/// corrector. Folding the two into one edit above fixed that, and the `continuations` step below
+/// then started doing its work: it is what keeps the `\` from being left in front of the comma.
+///
+/// **No corpus reaches this.** Across the five corpora the two cops that correct through here fire
+/// 1,185 times and none of them is this shape, so a byte comparison of autocorrected output says
+/// nothing about the code below. The tests carry cases built by hand for that reason.
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();
@@ -72,13 +94,17 @@ fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize
         return None;
     }
     // `range_with_surrounding_space(side: :left, newlines: true, whitespace: true,
-    // continuations: true)`.
-    let bytes = context.source.text().as_bytes();
-    let mut start = close;
-    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
-        start -= 1;
-    }
-    Some(start)
+    // continuations: true)`. The `continuations` step is the one that matters: a `\` ending the
+    // line would otherwise be left behind once the whitespace around it goes, stranding the
+    // backslash in front of the comma and producing source that does not parse.
+    Some(crate::rules::support::final_pos(
+        context.source.text(),
+        close,
+        false,
+        true,
+        true,
+        true,
+    ))
 }
 
 /// `ternary_condition?(node) && next_char_is_question_mark?(node)`.

@@ -43,7 +43,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `empty_range_for_starting_point`: the blank line immediately before `start`, when the run of
 /// whitespace reaching back from it spans more than one line break.
 fn empty_range_before(context: &RuleContext<'_>, start: usize) -> Option<Range<usize>> {
-    let begin = final_pos(context.source.text(), start, false, true, true);
+    let begin = final_pos(context.source.text(), start, false, false, true, true);
     let first_line = context.source.line_column(begin).0;
     let last_line = context.source.line_column(start).0;
     (last_line.checked_sub(first_line)? > 1).then(|| context.source.line_range(last_line - 1))
