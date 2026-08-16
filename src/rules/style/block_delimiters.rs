@@ -181,7 +181,10 @@ impl Cop<'_, '_> {
                 };
                 // `node.parenthesized?`: the parenthesis has to be the call's own, not one that
                 // happens to open its first argument (`foo (a).b`).
-                if list.child(0).is_some_and(|first| !first.is_named() && first.kind_str() == "(") {
+                if list
+                    .child(0)
+                    .is_some_and(|first| !first.is_named() && first.kind_str() == "(")
+                {
                     return;
                 }
                 // `node.assignment_method?`.
@@ -276,11 +279,21 @@ impl Cop<'_, '_> {
             return false;
         };
         // `modifier_rescue?`: only a bare `expr rescue expr` may keep its braces.
-        let bare = clauses
-            .iter()
-            .filter(|child| child.kind_str() == "rescue")
-            .count()
-            == 1
+        //
+        // `return false if rescue_node.body.nil?` is the part that is easy to lose: a `rescue`
+        // with nothing in front of it (`foo do rescue; bar end`) protects no expression, so it is
+        // not the modifier form and the block has to stay `do ... end`. The protected part is not
+        // a child of the `rescue` node here -- it is whatever statements precede it -- so the
+        // question becomes "is the `rescue` the first thing in the body".
+        let protects_something = clauses
+            .first()
+            .is_some_and(|first| first.id() != rescue.id());
+        let bare = protects_something
+            && clauses
+                .iter()
+                .filter(|child| child.kind_str() == "rescue")
+                .count()
+                == 1
             && !clauses.iter().any(|child| child.kind_str() == "else")
             && rescue.field("exceptions").is_none()
             && rescue.field("variable").is_none();
@@ -293,14 +306,11 @@ impl Cop<'_, '_> {
         if block.braces {
             return false;
         }
-        block
-            .call
-            .field("arguments")
-            .is_some_and(|list| {
-                !list
-                    .child(0)
-                    .is_some_and(|first| !first.is_named() && first.kind_str() == "(")
-            })
+        block.call.field("arguments").is_some_and(|list| {
+            !list
+                .child(0)
+                .is_some_and(|first| !first.is_named() && first.kind_str() == "(")
+        })
     }
 
     fn autocorrect(&self, block: &Block<'_>) -> Vec<Edit> {
@@ -419,6 +429,15 @@ fn get_blocks(node: Node<'_>, out: &mut Vec<Range<usize>>) {
                 get_blocks(child, out);
             }
         }
+        // Upstream's `when :send, :csend` covers every operator spelling, because its parser
+        // writes them all as `send`. `puts [0] + [1,2,3].map { ... }, 1` reaches the block through
+        // the `+`, and walking only `call` leaves it visible to the cop -- which then offers to
+        // turn `{ }` into `do ... end` and change what the block binds to.
+        "binary" | "element_reference" | "unary" | "assignment" | "operator_assignment" => {
+            for child in super::nodes::children(node) {
+                get_blocks(child, out);
+            }
+        }
         _ => {}
     }
 }
@@ -446,8 +465,7 @@ fn end_of_chain(call: Node<'_>) -> Node<'_> {
 /// Whether the node is a call carrying a block, which is one `block` node upstream.
 fn is_block_bearing_call(node: Node<'_>) -> bool {
     node.kind_str() == "lambda"
-        || (matches!(node.kind_str(), "call" | "method_call")
-            && node.field("block").is_some())
+        || (matches!(node.kind_str(), "call" | "method_call") && node.field("block").is_some())
 }
 
 fn whitespace_at(text: &str, offset: usize) -> bool {

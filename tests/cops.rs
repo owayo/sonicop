@@ -9010,6 +9010,37 @@ mod block_delimiters {
 
     const COP: &str = "Style/BlockDelimiters";
 
+    /// 括弧の無い引数リストでは `{...}` と `do...end` が別のものに結び付くので、本家は
+    /// **引数の中に見えるブロックを全部無視する** (`on_send` から `get_blocks`)。
+    /// その `get_blocks` は `:send` を辿るが、本家のパーサは演算子も `send` にするので、
+    /// `[0] + [1,2,3].map { }` の `+` を越えてブロックに届く。文法は `binary` という
+    /// 別の節にするため、`call` だけを辿ると届かない。
+    #[test]
+    fn a_block_reached_through_an_operator_argument_is_left_alone() {
+        for source in [
+            "puts [0] + [1,2,3].map { |n|\n  n * n\n}, 1\n",
+            "puts [0] + [1,2,3].map {\n  _1 * _1\n}, 1\n",
+            "puts [0] + [1,2,3].map {\n  it * it\n}, 1\n",
+        ] {
+            expect_no_offenses(COP, source);
+        }
+    }
+
+    /// `modifier_rescue?` は「守っている式があること」を最初に尋ねる
+    /// (`return false if rescue_node.body.nil?`)。`do rescue; bar end` は前に何も無いので
+    /// 修飾子の形ではなく、`{ }` では書けない。守る式が無い `rescue` は文法では
+    /// 本体の先頭に来るので、そこで見分ける。
+    #[test]
+    fn a_rescue_with_nothing_in_front_of_it_keeps_do_end() {
+        expect_no_offenses(COP, "foo do rescue; bar end\n");
+        // 守る式があれば修飾子の形なので、こちらは 1 行ブロックとして報告される。
+        expect_correction(
+            COP,
+            "foo do bar rescue baz end\n",
+            "foo { bar rescue baz }\n",
+        );
+    }
+
     #[test]
     fn a_single_line_do_end_becomes_braces() {
         expect_offense(
