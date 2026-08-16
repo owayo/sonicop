@@ -8520,6 +8520,25 @@ mod literal_in_interpolation {
 
     const COP: &str = "Lint/LiteralInInterpolation";
 
+    /// `literal_in_interpolation_spec.rb:588`. `Lint/ArrayLiteralInRegexp` owns this shape.
+    ///
+    /// The guard was written for `array` alone, but `%w[]` and `%i[]` reach upstream as an `array`
+    /// too -- `array_type?` is true for all three -- while the grammar gives each its own kind.
+    #[test]
+    fn an_array_interpolated_into_a_regexp_belongs_to_another_cop() {
+        for literal in ["[1, 2]", "%w[a b c]", "%i[a b c]"] {
+            expect_no_offenses(COP, &format!("/#{{{literal}}}/\n"));
+        }
+        // Outside a regexp the same literals are still this cop's.
+        expect_offense(
+            COP,
+            r##"
+            x = "#{%w[a b c]}"
+                   ^^^^^^^^^ Literal interpolation detected.
+            "##,
+        );
+    }
+
     #[test]
     fn the_offense_covers_the_literal_not_the_interpolation() {
         expect_offense(
@@ -15587,6 +15606,26 @@ mod single_argument_dig {
     use super::*;
 
     const COP: &str = "Style/SingleArgumentDig";
+
+    /// `single_argument_dig_spec.rb:148`. A chain of `dig` calls belongs to `Style/DigChain`.
+    ///
+    /// `dig_chain_enabled?` is `config.cop_enabled?`, which is `for_cop(name).fetch('Enabled')` --
+    /// the value tested for truth. `Style/DigChain` ships as `Enabled: pending`, and `'pending'` is
+    /// truthy in Ruby, so the default configuration leaves the chain to it. Only a literal `false`
+    /// hands it back. Reading the value as a `bool` and defaulting to `false` when it will not
+    /// parse had that backwards, and the default configuration is what nearly everyone runs.
+    #[test]
+    fn a_chain_of_digs_is_left_to_the_neighbouring_cop() {
+        expect_no_offenses(COP, "data.dig(var1).dig(var2)\n");
+        // A single `dig` is still this cop's, chain cop or no chain cop.
+        expect_offense(
+            COP,
+            r#"
+            data.dig(var1)
+            ^^^^^^^^^^^^^^ Use `data[var1]` instead of `data.dig(var1)`.
+            "#,
+        );
+    }
 
     #[test]
     fn the_call_is_replaced_by_an_index() {
@@ -29307,6 +29346,26 @@ mod style_map_into_array {
     use super::*;
 
     const COP: &str = "Style/MapIntoArray";
+
+    /// `map_into_array_spec.rb:339`. `(send !{nil? self} :each)` names no argument, so the pattern
+    /// only matches an `each` that takes none. `StringIO#each(sep)` takes one and means something
+    /// else, and there is no `map` that would say the same thing.
+    #[test]
+    fn an_each_that_takes_arguments_is_not_a_map() {
+        expect_no_offenses(
+            COP,
+            "dest = []\nStringIO.new('foo:bar').each(':') { |e| dest << e }\n",
+        );
+        // The same shape without the argument is the one the cop is about.
+        expect_offense(
+            COP,
+            r#"
+            dest = []
+            [1, 2].each { |e| dest << e * 2 }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `map` instead of `each` to map elements into an array.
+            "#,
+        );
+    }
 
     /// 空配列を作って `each` で詰めるだけの形は `map` の戻り値そのもの。詰め先の代入も
     /// 直後の読みも消え、`map` の結果がその変数に入る。
