@@ -619,7 +619,7 @@ fn commented_out(prefix: &str) -> bool {
     prefix.starts_with('#')
         && prefix[1..]
             .bytes()
-            .all(|byte| matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c))
+            .all(crate::rules::support::is_ruby_space)
 }
 
 /// A `# rubocop:` comment, parsed the way `RuboCop::DirectiveComment` parses one.

@@ -17,6 +17,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::is_ruby_space;
 
 /// The node kinds carrying an operator RuboCop checks. `binary` stands in for `on_send`,
 /// `on_binary`, `on_and` and `on_or`, which all reduce to the same shape in tree-sitter.
@@ -531,10 +532,6 @@ fn wrapped_in_space(padded: &str) -> bool {
         }
     }
     false
-}
-
-fn is_ruby_space(byte: u8) -> bool {
-    matches!(byte, b' ' | b'\t' | b'\r' | b'\n' | 0x0b | 0x0c)
 }
 
 fn excess_leading_space(

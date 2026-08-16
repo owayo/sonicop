@@ -9,6 +9,7 @@ use crate::rules::RuleContext;
 use crate::rules::support::Interpolations;
 use crate::source::is_protected;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::is_ruby_space_char;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
 /// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
@@ -117,12 +118,6 @@ fn allow_cop_directives(context: &RuleContext<'_>) -> bool {
     }
 }
 
-/// Ruby's `\s`, which is ASCII-only. Using `char::is_whitespace` here would let a non-breaking
-/// space end a word that RuboCop keeps going through.
-fn is_ruby_space(character: char) -> bool {
-    matches!(character, ' ' | '\t' | '\r' | '\n' | '\u{b}' | '\u{c}')
-}
-
 fn indentation_difference(line: &str) -> usize {
     if !line.starts_with('\t') {
         return 0;
@@ -209,14 +204,14 @@ fn is_endless_method(node: Node<'_>) -> bool {
 fn marker_only(prefix: &str) -> bool {
     prefix
         .strip_prefix('#')
-        .is_some_and(|rest| rest.chars().all(is_ruby_space))
+        .is_some_and(|rest| rest.chars().all(is_ruby_space_char))
 }
 
 fn length_without_directive(line: &str) -> usize {
     DIRECTIVE
         .find(line)
         .map_or(line, |found| &line[..found.start()])
-        .trim_end_matches(is_ruby_space)
+        .trim_end_matches(is_ruby_space_char)
         .chars()
         .count()
 }
@@ -260,8 +255,8 @@ fn extended_end(line: &str, mut end: usize) -> usize {
         }
     }
     let rest = &line[end..];
-    if rest.starts_with(|character| !is_ruby_space(character)) {
-        end += rest.find(is_ruby_space).unwrap_or(rest.len());
+    if rest.starts_with(|character| !is_ruby_space_char(character)) {
+        end += rest.find(is_ruby_space_char).unwrap_or(rest.len());
     }
     end
 }

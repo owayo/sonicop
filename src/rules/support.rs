@@ -25,11 +25,24 @@ pub(crate) fn final_pos(
     });
     position = move_pos_str(text, position, forward, continuations, "\\\n");
     position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
-    // `/\s/` upstream, which is Ruby's and takes the vertical tab that Rust's
-    // `is_ascii_whitespace` leaves out.
-    move_pos(text, position, forward, whitespace, |byte| {
-        matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
-    })
+    move_pos(text, position, forward, whitespace, is_ruby_space)
+}
+
+/// `/\s/` as Ruby's regexp engine and its lexer (`ISSPACE`) define it: the six ASCII spacing
+/// characters and nothing else.
+///
+/// **Rust's `is_ascii_whitespace` is the same set minus the vertical tab**, so a walk written with it
+/// stops one character early in `%w[a\vb]` and in an indentation that begins with a `\v`. A
+/// no-break space is *not* in the set either way -- it is content, not spacing.
+pub(crate) const fn is_ruby_space(byte: u8) -> bool {
+    matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
+}
+
+/// The same set spelled for a `char`, which is what a walk over `chars()` needs. **The set itself is
+/// defined once**, in [`is_ruby_space`]: anything outside ASCII cannot be Ruby's `\s`, so a character
+/// that does not fit in a byte is not one.
+pub(crate) fn is_ruby_space_char(character: char) -> bool {
+    u8::try_from(character).is_ok_and(is_ruby_space)
 }
 
 /// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
