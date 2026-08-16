@@ -5,7 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::arguments;
+use crate::rules::send_node::{arguments, is_plain_send};
 use crate::rules::support::final_pos;
 
 /// `REPLACEMENTS`, keyed by the comparison and the number it compares against.
@@ -24,6 +24,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting_of::<bool>("AllCops", "ActiveSupportExtensionsEnabled")
         .unwrap_or(false);
     for node in context.nodes_of_any(&["binary", "call"]) {
+        // Upstream's `on_send` is never called for a `csend` node, and this cop does not alias
+        // `on_csend`, so `x&.foo` is not its business. The grammar has one kind for both.
+        if !is_plain_send(node, context) {
+            continue;
+        }
         let Some((receiver, method, argument, dot)) = comparison(node, context) else {
             continue;
         };
@@ -129,11 +134,15 @@ fn count_call<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Nod
     }
     let list = arguments(node);
     let matched = match node.field("block") {
-        // A block written on `count` has to take a parameter and hold a body, which is what the
-        // `_ _` of `(any_block ... _ _)` asks for.
-        Some(block) => {
-            list.is_empty() && block.field("parameters").is_some() && block.field("body").is_some()
-        }
+        // The `_ _` of `(any_block ... _ _)` stands for the block's parameters and its body, and
+        // `_` matches an absent one -- upstream reports `x.count {}.positive?` and
+        // `x.count { it.foo? }.positive?` just as it reports `x.count { |e| e.foo? }.positive?`.
+        // Requiring both fields to be present asks a stricter question than the pattern does, and
+        // `_1` / `it` write no parameter list at all.
+        //
+        // `any_block` is also why the spelling does not matter: upstream builds `block`, `numblock`
+        // and `itblock` for the three, and the pattern takes all of them.
+        Some(_) => list.is_empty(),
         None => match list.as_slice() {
             [] => true,
             [only] => only.first().kind_str() == "block_argument",

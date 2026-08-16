@@ -40,8 +40,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .setting_of("Layout/IndentationWidth", "Width")
             .unwrap_or(2),
     };
+    // `part_of_ignored_node?` / `ignore_node`: a parallel assignment written inside another one
+    // is left to the outer correction, which rewrites the whole thing anyway. Reporting both puts
+    // two overlapping rewrites on the same bytes.
+    let mut reported: Vec<std::ops::Range<usize>> = Vec::new();
     for node in context.nodes_of("assignment") {
+        let range = node.byte_range();
+        if reported
+            .iter()
+            .any(|outer| outer.start <= range.start && range.end <= outer.end)
+        {
+            continue;
+        }
+        let before = offenses.len();
         cop.on_masgn(node, offenses);
+        if offenses.len() != before {
+            reported.push(range);
+        }
     }
 }
 
@@ -65,7 +80,11 @@ impl Cop<'_, '_> {
         let Some(rhs) = node.field("right") else {
             return;
         };
-        // A `rescue` modifier binds tighter than the assignment, so the values are its body.
+        // A `rescue` modifier can sit on either side of the assignment, and upstream asks about
+        // both (`rhs.rescue_type?` and `node.parent&.rescue_type?`). With a *multiple* assignment
+        // the grammar puts the modifier outside, so looking only at the right-hand side leaves
+        // `a, b = 1, 2 rescue foo` to the generic correction -- which writes `b = 2 rescue foo`
+        // and quietly moves the guard onto one assignment instead of all of them.
         let (rhs, rescue_result) = match rhs.kind_str() {
             "rescue_modifier" => (
                 match rhs.field("body") {
@@ -74,7 +93,7 @@ impl Cop<'_, '_> {
                 },
                 rhs.field("handler"),
             ),
-            _ => (rhs, None),
+            _ => (rhs, wrapping_rescue(self.context, node)),
         };
         let lhs_elements = assignments(left);
         let rhs_elements = match RHS_LISTS.contains(&rhs.kind_str()) {
@@ -182,10 +201,7 @@ impl Cop<'_, '_> {
 
     /// `accesses?` for `obj.attr=`: the reader `obj.attr` written anywhere on the right.
     fn accesses_getter(&self, lhs: Node<'_>, rhs: Node<'_>) -> bool {
-        let (Some(receiver), Some(method)) = (
-            lhs.field("receiver"),
-            lhs.field("method"),
-        ) else {
+        let (Some(receiver), Some(method)) = (lhs.field("receiver"), lhs.field("method")) else {
             return false;
         };
         let receiver = self.source(receiver);
@@ -252,17 +268,36 @@ impl Cop<'_, '_> {
         }
         // `RescueCorrector`: the values were guarded, so the assignments need a `begin` to share.
         if let Some(result) = rescue_result {
-            let Some(rescue) = node.field("right") else {
-                return Vec::new();
+            // The modifier is written either inside the right-hand side or around the whole
+            // assignment, and the correction has to swallow whichever one holds the handler.
+            let end = match wrapping_rescue(self.context, node) {
+                Some(_) => node
+                    .parent_of(self.context)
+                    .map_or(node.end_byte(), |parent| parent.end_byte()),
+                None => match node.field("right") {
+                    Some(rescue) => rescue.end_byte(),
+                    None => return Vec::new(),
+                },
             };
-            return vec![Edit {
-                start: node.start_byte(),
-                end: rescue.end_byte(),
-                replacement: format!(
+            // `if rhs.parent.parent.parent&.def_type?`: a guarded assignment that is all a method
+            // holds needs no `begin` of its own -- the method body already is one. Writing one
+            // anyway indents the whole thing a level deeper than upstream does.
+            let replacement = match sole_statement_of_a_method(self.context, node) {
+                true => format!(
+                    "{}\nrescue\n{offset}{}",
+                    assignments.join(&format!("\n{offset}")),
+                    self.source(result)
+                ),
+                false => format!(
                     "begin\n{indentation}{}\n{offset}rescue\n{indentation}{}\n{offset}end",
                     assignments.join(&format!("\n{indentation}")),
                     self.source(result)
                 ),
+            };
+            return vec![Edit {
+                start: node.start_byte(),
+                end,
+                replacement,
                 safe: true,
             }];
         }
@@ -277,11 +312,7 @@ impl Cop<'_, '_> {
     /// `GenericCorrector#source`: an element of a `%w`/`%i` literal carries no delimiter of its
     /// own, so it has to be written back out as a quoted string or an inspected symbol.
     fn element_source(&self, node: Node<'_>) -> String {
-        let quoting = |array: Node<'_>| match self
-            .source(array)
-            .chars()
-            .nth(1)
-        {
+        let quoting = |array: Node<'_>| match self.source(array).chars().nth(1) {
             Some('W' | 'I') => Quoting::Double,
             _ => Quoting::Word,
         };
@@ -340,13 +371,69 @@ fn assignments<'t>(left: Node<'t>) -> Vec<Node<'t>> {
 }
 
 /// Whether the identifier stands for a value rather than for the name of a call.
+///
+/// `uses_var?` searches for `{({lvar ivar cvar gvar} %) (const _ %)}`, which are all **reads**. A
+/// name being written is an `lvasgn` upstream and matches nothing. The grammar spells the read and
+/// the write with the same `identifier`, so a name that only appears as an assignment target has
+/// to be taken out here -- otherwise `a, b = x, -> { a, b = x, y }` looks as though the lambda
+/// reads `a`, and the two assignments come out in the wrong order.
 fn reads_a_variable(node: Node<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    parent
+    if parent
         .field("method")
-        .is_none_or(|method| method.id() != node.id())
+        .is_some_and(|method| method.id() == node.id())
+    {
+        return false;
+    }
+    match parent.kind_str() {
+        "left_assignment_list" | "rest_assignment" => false,
+        "assignment" | "operator_assignment" => parent
+            .field("left")
+            .is_none_or(|left| left.id() != node.id()),
+        _ => true,
+    }
+}
+
+/// `rhs.parent.parent.parent&.def_type?`: the guarded assignment is all the method holds.
+///
+/// Upstream reaches the `def` in three steps because a body of one statement has no `begin` in its
+/// AST. The grammar always writes a `body_statement`, so the same question is "the wrapping rescue
+/// is the only statement of a method body".
+fn sole_statement_of_a_method(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let Some(rescue) = node.parent_of(context) else {
+        return false;
+    };
+    if rescue.kind_str() != "rescue_modifier" {
+        return false;
+    }
+    rescue.parent_of(context).is_some_and(|body| {
+        body.kind_str() == "body_statement"
+            && super::nodes::children(body).len() == 1
+            && body
+                .parent_of(context)
+                .is_some_and(|owner| matches!(owner.kind_str(), "method" | "singleton_method"))
+    })
+}
+
+/// `node.parent&.rescue_type?`: the handler of a `rescue` modifier written around the assignment.
+///
+/// A single assignment carries the modifier inside its right-hand side, but a multiple assignment
+/// carries it outside, because `rescue` binds looser than the comma. Upstream reaches both because
+/// its `RescueCorrector` asks about the parent as well.
+fn wrapping_rescue<'tree>(
+    context: &'tree RuleContext<'_>,
+    node: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let parent = node.parent_of(context)?;
+    if parent.kind_str() != "rescue_modifier" {
+        return None;
+    }
+    if parent.field("body")?.id() != node.id() {
+        return None;
+    }
+    parent.field("handler")
 }
 
 /// `quote`: a single-quoted string with the two characters that stay special escaped.
@@ -362,14 +449,12 @@ fn quote(value: &str) -> String {
 }
 
 /// `Symbol#inspect`: a plain name stays bare, anything else is quoted.
+///
+/// This was a third copy of the same question, and it answered it two ways wrong: it quoted with
+/// `'` where `Symbol#inspect` uses `"` (`%i(foo-bar)` came back as `:'foo-bar'` instead of
+/// `:"foo-bar"`), and it asked `char::is_alphanumeric`, which is Unicode-aware and so calls a name
+/// bare that Ruby would quote. `ruby_literal` holds the answer, including the spellings that are
+/// bare without being letters (`foo?` / `foo=` / `@x` / `$'` / operators).
 fn inspect_symbol(value: &str) -> String {
-    let plain = !value.is_empty()
-        && value
-            .chars()
-            .all(|character| character.is_alphanumeric() || character == '_')
-        && !value.starts_with(|character: char| character.is_ascii_digit());
-    match plain {
-        true => format!(":{value}"),
-        false => format!(":{}", super::literal::to_string_literal(value)),
-    }
+    crate::rules::ruby_literal::inspect_symbol(value)
 }

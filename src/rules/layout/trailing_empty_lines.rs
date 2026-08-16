@@ -7,6 +7,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if text.is_empty() {
         return;
     }
+    // `ends_in_end?`: **`__END__` があるファイルは丸ごと見送る。** その後ろは `DATA` が読む
+    // 素のテキストで、末尾の改行の数に意味があることがある。
+    //
+    // 本家の正規表現は `/\s*__END__/` で、`match?` に渡っていて錨が無い。`\s*` は 0 文字にも
+    // 当たるので、**実際には「ソースのどこかに `__END__` という並びがあるか」しか見ていない**
+    // (文字列リテラルの中でも当たる)。忠実に写すならこの形になる。
+    //
+    // `end_with_percent_blank_string?`: `%\n\n` で終わるファイルも見送る。`%` は
+    // パーセントリテラルの開き記号で、改行が本文の一部になりうる。
+    if text.contains("__END__") || text.ends_with("%\n\n") {
+        return;
+    }
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "final_newline".to_owned());
