@@ -36,7 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
 
-        let space_start = final_pos(text, left.start_byte(), false, true, false);
+        let space_start = final_pos(text, left.start_byte(), false, false, true, false);
         let used_space = space_start != left.start_byte();
         let empty = left.end_byte() == right.start_byte();
         let wanted_space = if empty {

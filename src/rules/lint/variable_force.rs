@@ -142,12 +142,22 @@ pub(in crate::rules) struct Analysis<'tree> {
     /// local from a receiverless call, and only the analysis knows which one the parser upstream
     /// would have built.
     lvars: HashSet<usize>,
+    /// The `foo()` calls whose name a local variable already holds. The parentheses make these
+    /// calls whatever the name resolves to, so nothing here is an `lvar` -- but writing the same
+    /// name without them would be one, which is the question a cop that drops parentheses asks.
+    shadowed_calls: HashSet<usize>,
 }
 
 impl<'tree> Analysis<'tree> {
     /// Whether the parser upstream would have built an `lvar` here rather than a receiverless call.
     pub(in crate::rules) fn is_variable_reference(&self, node: Node<'_>) -> bool {
         self.lvars.contains(&node.id())
+    }
+
+    /// Whether this `foo()` would stop being a call if its parentheses went away, because a local
+    /// variable of that name is in scope. Only the walk knows what is in scope at a given node.
+    pub(in crate::rules) fn shadows_a_local(&self, node: Node<'_>) -> bool {
+        self.shadowed_calls.contains(&node.id())
     }
 
     pub(in crate::rules) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
@@ -161,6 +171,7 @@ impl<'tree> Analysis<'tree> {
             heredocs: heredoc_bodies(root),
             scanned: HashSet::new(),
             lvars: HashSet::new(),
+            shadowed_calls: HashSet::new(),
         };
         force.push_scope(root, true);
         force.process_children(root);
@@ -169,6 +180,7 @@ impl<'tree> Analysis<'tree> {
             scopes: force.scopes,
             variables: force.variables,
             lvars: force.lvars,
+            shadowed_calls: force.shadowed_calls,
         }
     }
 }
@@ -207,6 +219,7 @@ struct Force<'tree, 'a> {
     /// Nodes already walked in an outer scope, which the scope they sit in must not walk again.
     scanned: HashSet<usize>,
     lvars: HashSet<usize>,
+    shadowed_calls: HashSet<usize>,
 }
 
 // ---------------------------------------------------------------------------
@@ -779,6 +792,9 @@ impl<'tree> Force<'tree, '_> {
         if self.binary_operator_on_a_local(node) {
             return;
         }
+        if self.name_is_taken_by_a_local(node) {
+            self.shadowed_calls.insert(node.id());
+        }
         if let Some(method) = node.field("method")
             && self.text(method) == "binding"
             && opaque_binding_argument(node)
@@ -802,6 +818,24 @@ impl<'tree> Force<'tree, '_> {
                 self.process_node(child);
             }
         }
+    }
+
+    /// Whether `foo()` is written where a local variable already holds the name `foo`.
+    ///
+    /// The empty parentheses make it a call either way, so no `lvar` is built here and the name is
+    /// not a read of the variable. Dropping them would leave a bare name, and that one _is_ the
+    /// variable -- which is why a cop that offers to drop them has to leave this call alone.
+    fn name_is_taken_by_a_local(&self, node: Node<'tree>) -> bool {
+        if node.field("receiver").is_some() {
+            return false;
+        }
+        let (Some(method), Some(arguments)) = (node.field("method"), node.field("arguments"))
+        else {
+            return false;
+        };
+        method.kind_str() == "identifier"
+            && arguments.named_child_count() == 0
+            && self.find_variable(self.text(method)).is_some()
     }
 
     /// Whether the call is really `local & expr` or `local * expr`. Ruby resolves the ambiguity by

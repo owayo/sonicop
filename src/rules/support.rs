@@ -16,16 +16,51 @@ pub(crate) fn final_pos(
     text: &str,
     position: usize,
     forward: bool,
+    continuations: bool,
     newlines: bool,
     whitespace: bool,
 ) -> usize {
     let mut position = move_pos(text, position, forward, true, |byte| {
         matches!(byte, b' ' | b'\t')
     });
+    position = move_pos_str(text, position, forward, continuations, "\\\n");
     position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
+    // `/\s/` upstream, which is Ruby's and takes the vertical tab that Rust's
+    // `is_ascii_whitespace` leaves out.
     move_pos(text, position, forward, whitespace, |byte| {
-        byte.is_ascii_whitespace()
+        matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
     })
+}
+
+/// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
+///
+/// The one caller wants `\` and a line break, which a class cannot express -- a backslash only ends
+/// the line when the break follows it, and eating it on its own would join two statements.
+fn move_pos_str(
+    text: &str,
+    mut position: usize,
+    forward: bool,
+    enabled: bool,
+    needle: &str,
+) -> usize {
+    if !enabled {
+        return position;
+    }
+    let width = needle.len();
+    loop {
+        let found = match forward {
+            true => text.get(position..position + width) == Some(needle),
+            false => position >= width && text.get(position - width..position) == Some(needle),
+        };
+        if !found {
+            return position;
+        }
+        position = if forward {
+            position + width
+        } else {
+            position - width
+        };
+    }
 }
 
 fn move_pos(
@@ -173,6 +208,16 @@ pub(crate) struct Verification {
     /// without changing the string it builds. Folding every concatenation to a canonical form is
     /// what lets the two compare equal.
     pub(crate) fold_string_concatenation: bool,
+    /// `foo()` and `foo` are one and the same node upstream: the parser builds nothing for an empty
+    /// argument list, and a receiverless call carrying only its name is spelled as a bare name.
+    /// The grammar here keeps the two apart -- `call` with an `argument_list` that has no children
+    /// on one side, a lone `identifier` on the other -- so a correction that drops nothing but a
+    /// pair of empty parentheses never compares equal without this.
+    ///
+    /// Upstream's parser tells `(send nil :foo)` from `(lvar :foo)` by remembering what it has seen
+    /// assigned, which a tree already built cannot. The caller that turns this on has to keep the
+    /// calls whose name a local variable holds out on its own.
+    pub(crate) fold_empty_call_parentheses: bool,
 }
 
 /// `ReparsedEquivalence#verified_by_reparse`: the items whose corrections leave a tree equal to the
@@ -321,10 +366,16 @@ fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
         return literal;
     }
     let mut children: Vec<Sexp> = Vec::new();
+    let mut dropped_parentheses = false;
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         // Comments are invisible to the tree upstream compares.
         if child.kind_str() == "comment" {
+            continue;
+        }
+        // So is the empty argument list of `foo()`, which upstream's parser never builds.
+        if verification.fold_empty_call_parentheses && empty_argument_list(child) {
+            dropped_parentheses = true;
             continue;
         }
         let normalized = normalized(child, text, verification);
@@ -346,6 +397,9 @@ fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
             children,
         };
     }
+    if dropped_parentheses && let Some(bare) = written_without_parentheses(node, &mut children) {
+        return bare;
+    }
     if !verification.fold_string_concatenation {
         let label = label_of(node, text, children.is_empty());
         return rotate_same_operator(Sexp { label, children });
@@ -356,6 +410,39 @@ fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
         _ => label_of(node, text, children.is_empty()),
     };
     fold_string_concatenation(rotate_same_operator(Sexp { label, children }))
+}
+
+/// Whether the node is the `()` of `foo()`, which upstream's parser leaves no node behind for.
+fn empty_argument_list(node: Node<'_>) -> bool {
+    node.kind_str() == "argument_list" && node.named_child_count() == 0
+}
+
+/// The label a bare `yield` carries, which is a leaf holding nothing but the keyword.
+const BARE_YIELD: &str = "yield yield";
+
+/// What a call whose empty parentheses were just dropped reads as, when dropping them leaves the
+/// spelling the source would have used without them.
+///
+/// `foo()` and `foo` reach upstream as one node, and so do `yield()` and `yield`. Here the first of
+/// each pair is a parent with an `argument_list` under it and the second is written with no node in
+/// between at all -- a lone `identifier`, a childless `yield` -- so the two only compare equal once
+/// the first is put in the shape of the second. A receiver or a block means something is still
+/// written around the name and the spellings stay apart.
+fn written_without_parentheses(node: Node<'_>, children: &mut Vec<Sexp>) -> Option<Sexp> {
+    match node.kind_str() {
+        "yield" if children.is_empty() => Some(Sexp {
+            label: BARE_YIELD.to_owned(),
+            children: Vec::new(),
+        }),
+        "call"
+            if children.len() == 1
+                && node.field("receiver").is_none()
+                && node.field("block").is_none() =>
+        {
+            children.pop()
+        }
+        _ => None,
+    }
 }
 
 /// The kinds whose contents upstream's parser reads as whitespace-separated words, one node each.
@@ -386,7 +473,7 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
             }
             continue;
         }
-        if character.is_ascii_whitespace() {
+        if separates_words(character) {
             if !word.is_empty() {
                 words.push(word_leaf(std::mem::take(&mut word)));
             }
@@ -401,6 +488,15 @@ fn word_array(node: Node<'_>, text: &str) -> Option<Sexp> {
         label: node.kind_str().to_owned(),
         children: words,
     })
+}
+
+/// Whether the character ends a word of a `%w` or `%i` literal.
+///
+/// Ruby's lexer asks `ISSPACE`, which is the six ASCII spacing characters and nothing else -- a
+/// no-break space is part of the word. `char::is_ascii_whitespace` is the same set minus the
+/// vertical tab, so spelling the six out is what matches (measured: `%w[a\vb]` is two words).
+fn separates_words(character: char) -> bool {
+    matches!(character, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
 }
 
 fn word_leaf(text: String) -> Sexp {

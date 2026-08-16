@@ -93,14 +93,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     continue;
                 };
                 edits.push(removal(
-                    final_pos(text, close.start_byte(), false, true, false)..close.end_byte(),
+                    final_pos(text, close.start_byte(), false, false, true, false)..close.end_byte(),
                 ));
             }
             // `remove_assignment`: the blank after it goes too, line break included.
             (None, Some(assignment)) => {
-                let end = final_pos(text, assignment.end_byte(), true, true, false);
+                let end = final_pos(text, assignment.end_byte(), true, false, true, false);
                 edits.push(removal(
-                    assignment.start_byte()..final_pos(text, end, true, false, false),
+                    assignment.start_byte()..final_pos(text, end, true, false, false, false),
                 ));
             }
             (None, None) => continue,
@@ -128,7 +128,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             && context.source.node_text(sibling) == variable.name
         {
             edits.push(removal(
-                final_pos(text, sibling.start_byte(), false, true, false)..sibling.end_byte(),
+                final_pos(text, sibling.start_byte(), false, false, true, false)..sibling.end_byte(),
             ));
         }
         edits.push(Edit {

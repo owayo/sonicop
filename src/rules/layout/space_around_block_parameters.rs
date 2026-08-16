@@ -96,7 +96,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             let start = argument.start_byte();
             no_space(
                 context,
-                final_pos(text, start, false, true, false)..start.saturating_sub(1),
+                final_pos(text, start, false, false, true, false)..start.saturating_sub(1),
                 "Extra space before",
                 offenses,
             );

@@ -39,8 +39,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut edits = vec![
             // `range_with_surrounding_space(node.loc.keyword, newlines: false)`.
             Edit {
-                start: final_pos(text, keyword.start_byte(), false, false, false),
-                end: final_pos(text, keyword.end_byte(), true, false, false),
+                start: final_pos(text, keyword.start_byte(), false, false, false, false),
+                end: final_pos(text, keyword.end_byte(), true, false, false, false),
                 replacement: String::new(),
                 safe: true,
             },
@@ -65,8 +65,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 }
                 if let Some(close) = super::conditional::token(block, &["}", "end"]) {
                     edits.push(Edit {
-                        start: final_pos(text, close.start_byte(), false, false, false),
-                        end: final_pos(text, close.end_byte(), true, false, false),
+                        start: final_pos(text, close.start_byte(), false, false, false, false),
+                        end: final_pos(text, close.end_byte(), true, false, false, false),
                         replacement: String::new(),
                         safe: true,
                     });

@@ -101,7 +101,7 @@ fn removal(context: &RuleContext<'_>, subject: Node<'_>) -> Option<std::ops::Ran
         term.start_byte()..position
     };
     // `range_with_surrounding_space(side: :right, newlines: false)`.
-    Some(range.start..final_pos(text, range.end, true, false, false))
+    Some(range.start..final_pos(text, range.end, true, false, false, false))
 }
 
 /// `node.parent.and_type?`: `&&` and `and`, which are one node type upstream.

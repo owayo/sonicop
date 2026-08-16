@@ -66,8 +66,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let range = if context.source.node_text(arguments).starts_with('(') {
             arguments.byte_range()
         } else {
-            support::final_pos(text, only.start_byte(), false, false, false)
-                ..support::final_pos(text, only.end_byte(), true, false, false)
+            support::final_pos(text, only.start_byte(), false, false, false, false)
+                ..support::final_pos(text, only.end_byte(), true, false, false, false)
         };
         offenses.push(
             context

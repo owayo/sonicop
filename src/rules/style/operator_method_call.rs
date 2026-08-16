@@ -76,10 +76,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // `ParenthesesCorrector.correct`: the argument's own parentheses go away.
             edits.push(remove(
                 list.start_byte()
-                    ..support::final_pos(text, list.start_byte() + 1, true, false, true),
+                    ..support::final_pos(text, list.start_byte() + 1, true, false, false, true),
             ));
             edits.push(remove(
-                support::final_pos(text, list.end_byte() - 1, false, true, false)..list.end_byte(),
+                support::final_pos(text, list.end_byte() - 1, false, false, true, false)..list.end_byte(),
             ));
             edits.push(insert(selector.end_byte(), " "));
             edits.push(insert(node.start_byte(), "("));
