@@ -16,6 +16,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         _ => "StandardError",
     };
     for node in context.nodes_of_any(&["class", "call"]) {
+        // `on_send` は `csend` に呼ばれない。`Class&.new(Exception)` は本家が構造的に見ないので、
+        // ここで落とさないと過剰検出になる。`class` の枝には関係しない。
+        if node.kind_str() == "call" && !crate::rules::send_node::is_plain_send(node, context) {
+            continue;
+        }
         let Some(parent_class) = exception_reference(node, context) else {
             continue;
         };

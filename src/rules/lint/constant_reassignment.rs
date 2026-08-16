@@ -263,6 +263,9 @@ fn is_literal(node: Node<'_>) -> bool {
 
 fn is_freeze_call(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     node.kind_str() == "call"
+        // `on_send` は `csend` に呼ばれない。`&.freeze` は本家からは freeze に見えないので、
+        // その中の代入は「凍った定数の中」として扱われない。
+        && crate::rules::send_node::is_plain_send(node, context)
         && node
             .field("method")
             .is_some_and(|method| context.source.node_text(method) == "freeze")

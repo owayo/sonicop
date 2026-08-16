@@ -10,6 +10,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(method) = node.field("method") else {
             continue;
         };
+        // `on_send` は `csend` に呼ばれない。`alias on_csend on_send` を書いていない cop は
+        // `x&.foo` を構造的に一切見ないので、ここで落とさないと過剰検出になる。
+        if !crate::rules::send_node::is_plain_send(node, context) {
+            continue;
+        }
         if !matches!(context.source.node_text(method), "to_enum" | "enum_for") {
             continue;
         }
