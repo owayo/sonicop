@@ -17318,6 +17318,24 @@ mod command_literal {
 mod double_negation {
     use super::*;
 
+    /// 本家のパターンは `(send (send _ :!) :!)` -- **2 段とも素の `send`**。文法は片方の `!`
+    /// を `unary`、もう片方を `call` と綴るので、`unary` だけを歩くと `foo.!.!` が丸ごと
+    /// 落ち、`call` を素の送信か問わずに拾うと `!foo&.!` (本家では `csend`) を過剰に報告する。
+    #[test]
+    fn both_levels_have_to_be_a_plain_send() {
+        expect_correction(COP, "!!foo\n", "!foo.nil?\n");
+        // 後置で書いても同じ `(send (send foo :!) :!)`。
+        // 本家の訂正は `foo.!..nil?` -- 妙な出力だが、本家がそう出す。
+        expect_correction(COP, "foo.!.!\n", "foo.!..nil?\n");
+        // 外側が前置の `!` なら、消えるのは前置のほう。
+        expect_correction(COP, "!foo.!\n", "foo.!.nil?\n");
+        // `&.` は `csend` なので、どちらの段に来ても当たらない。
+        expect_no_offenses(COP, "!foo&.!\n");
+        expect_no_offenses(COP, "foo.!&.!\n");
+        // 外側の綴りは `!` でなければならない (`loc.selector`)。
+        expect_no_offenses(COP, "not not foo\n");
+    }
+
     const COP: &str = "Style/DoubleNegation";
 
     #[test]
