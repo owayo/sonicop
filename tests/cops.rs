@@ -34698,6 +34698,29 @@ mod lint_unescaped_bracket_in_regexp {
 
     const COP: &str = "Lint/UnescapedBracketInRegexp";
 
+    /// A `]` that belongs to a `\c` control escape is not a bare bracket.
+    ///
+    /// The regexp scanner had no case for `\cX` / `\C-X`, so the escape came out two characters
+    /// long and **the character it was meant to take was left behind as a `literal` node of its
+    /// own**. This cop reads `literal` nodes, so the `]` of `\c]` was reported as unescaped --
+    /// a defect in the *escape* handling that surfaced as an offense about a *bracket*.
+    ///
+    /// The bare `]` below is the pair to it: without it, a scanner that simply stopped reporting
+    /// would pass this test too.
+    #[test]
+    fn a_bracket_that_names_a_control_escape_is_not_reported() {
+        expect_no_offenses(COP, "/abc\\c]123/\n");
+        expect_no_offenses(COP, "/abc\\C-]123/\n");
+        // The same bracket without the escape in front of it is still this cop's.
+        expect_offense(
+            COP,
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        );
+    }
+
     /// 位置は本体の先頭から数えた文字数。`/.../` でも `%r{...}` でも同じ数え方になる。
     #[test]
     fn a_bare_bracket_in_a_regexp_literal_is_reported() {
