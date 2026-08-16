@@ -17,9 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let body = match node.kind_str() {
             "call" => block_body_of_tracked_call(node, context),
             // `-> { ... }` reaches RuboCop as a call to `lambda` too, so its body is a body.
-            "lambda" => node
-                .field("body")
-                .and_then(|block| block.field("body")),
+            "lambda" => node.field("body").and_then(|block| block.field("body")),
             _ => node.field("body"),
         };
         let Some(body) = body else {
@@ -145,6 +143,14 @@ fn check_branch<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
     }
 }
 
+/// Named children of a statement list that are not statements of it.
+///
+/// A heredoc's body is the one that matters here: the grammar hangs it off the statement list
+/// beside the statement that opened it, so `return <<~SQL` leaves the body standing *after* the
+/// `return`. Counting it makes the `return` no longer the last statement, and the cop then never
+/// fires on a method that ends by returning a heredoc.
+const NOT_A_STATEMENT: &[&str] = &["comment", "empty_statement", "heredoc_body"];
+
 /// The tail of a statement sequence, including the exception-handling clauses it may carry.
 ///
 /// An `ensure` body is never in tail position -- RuboCop's `check_ensure_node` looks only at the
@@ -153,7 +159,7 @@ fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
     let children: Vec<Node<'tree>> = node
         .named_children(&mut cursor)
-        .filter(|child| child.kind_str() != "comment")
+        .filter(|child| !NOT_A_STATEMENT.contains(&child.kind_str()))
         .collect();
 
     let mut statements: Vec<Node<'tree>> = Vec::new();
@@ -215,7 +221,10 @@ fn return_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 }
 
 fn braceless_hash(arguments: &[Node<'_>]) -> bool {
-    !arguments.is_empty() && arguments.iter().all(|argument| argument.kind_str() == "pair")
+    !arguments.is_empty()
+        && arguments
+            .iter()
+            .all(|argument| argument.kind_str() == "pair")
 }
 
 /// Mirrors RuboCop's autocorrection: an argument-less `return` becomes `nil`,

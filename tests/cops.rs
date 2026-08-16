@@ -35683,3 +35683,61 @@ mod lint_assignment_in_condition_wrap {
         .run();
     }
 }
+
+/// `Style/RedundantReturn` が heredoc を返すメソッドを見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantReturn -A` の実出力。
+mod style_redundant_return_heredoc {
+    use super::*;
+
+    const COP: &str = "Style/RedundantReturn";
+
+    /// 文法は heredoc の本体を、それを開いた文の**隣**に置く。`return <<~SQL` だと
+    /// 本体が `return` の後ろに立つので、末尾の文を数えるときに本体を勘定すると
+    /// `return` が末尾でなくなり、cop がまったく発火しなくなっていた。
+    #[test]
+    fn a_returned_heredoc_is_still_the_last_statement() {
+        CopCase::new(
+            COP,
+            "def m\n  return <<~SQL\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  <<~SQL\n    select 1\n  SQL\nend\n")
+        .run();
+    }
+
+    /// `<<-` と `<<` も同じ。heredoc を引数に渡す形でも本体は隣に立つ。
+    #[test]
+    fn the_other_heredoc_forms_too() {
+        CopCase::new(
+            COP,
+            "def m\n  return <<-SQL\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  <<-SQL\n    select 1\n  SQL\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "def m\n  return foo(<<~SQL)\n    select 1\n  SQL\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  foo(<<~SQL)\n    select 1\n  SQL\nend\n")
+        .run();
+    }
+
+    /// heredoc が末尾でないときは今までどおり。
+    #[test]
+    fn a_heredoc_before_the_return_is_left_alone() {
+        CopCase::new(
+            COP,
+            "def m\n  a = <<~SQL\n    x\n  SQL\n  return a\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("def m\n  a = <<~SQL\n    x\n  SQL\n  a\nend\n")
+        .run();
+    }
+}
