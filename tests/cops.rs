@@ -35571,3 +35571,59 @@ mod naming_rescued_exceptions_variable_name_correction {
         .run();
     }
 }
+
+/// `Style/RedundantCondition` が `||` に畳んだ式を括弧で包むかどうか。
+///
+/// 期待値は本家 1.89.0 の `--only Style/RedundantCondition -A` の実出力。
+mod style_redundant_condition_parentheses {
+    use super::*;
+
+    const COP: &str = "Style/RedundantCondition";
+
+    /// `make_ternary_form` は `node.parent&.send_type?` のときだけ包む。文法はこの
+    /// 「send」を複数の節に散らしていて、うち 2 つは send ではない。論理演算子は
+    /// 本家では `and`/`or` の節で、代入が send なのは `[]=` と属性の書き手のときだけ。
+    fn corrects(source: &str, corrected: &str) {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected(corrected)
+            .run();
+    }
+
+    const BRANCHES: &str = "if a\n  a\nelse\n  b\nend\n";
+
+    /// `[]=` と属性の書き手は send なので包む。
+    #[test]
+    fn writing_through_a_send_wraps() {
+        corrects(&format!("h[k] = {BRANCHES}"), "h[k] = (a || b)\n");
+        corrects(&format!("o.attr = {BRANCHES}"), "o.attr = (a || b)\n");
+    }
+
+    /// ふつうの代入は send ではないので包まない。`&.` は `csend` で、
+    /// `send_type?` は偽になる。
+    #[test]
+    fn the_other_assignments_do_not() {
+        corrects(&format!("x = {BRANCHES}"), "x = a || b\n");
+        corrects(&format!("@x = {BRANCHES}"), "@x = a || b\n");
+        corrects(&format!("X = {BRANCHES}"), "X = a || b\n");
+        // 演算子代入は書き先によらず `op-asgn` で send ではない。
+        corrects(&format!("h[k] += {BRANCHES}"), "h[k] += a || b\n");
+        corrects(&format!("o&.attr = {BRANCHES}"), "o&.attr = a || b\n");
+    }
+
+    /// 演算子は本家では send だが、論理演算子だけは `and`/`or` の節になる。
+    #[test]
+    fn operators_wrap_except_the_logical_ones() {
+        corrects(&format!("z = 1 == {BRANCHES}"), "z = 1 == (a || b)\n");
+        corrects(&format!("z = 1 + {BRANCHES}"), "z = 1 + (a || b)\n");
+        corrects(&format!("z = c && {BRANCHES}"), "z = c && a || b\n");
+        corrects(&format!("z = c || {BRANCHES}"), "z = c || a || b\n");
+        corrects(&format!("z = c and {BRANCHES}"), "z = c and a || b\n");
+    }
+
+    /// 添字は `[]` の send。
+    #[test]
+    fn an_index_wraps() {
+        corrects("z = h[if a\n  a\nelse\n  b\nend]\n", "z = h[(a || b)]\n");
+    }
+}
