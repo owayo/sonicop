@@ -36150,3 +36150,57 @@ mod ruby_whitespace_is_not_unicode_whitespace {
         );
     }
 }
+
+/// `Layout/TrailingEmptyLines` が `__END__` を持つファイルを見送る件 (#56 の追加分)。
+///
+/// 本家は `ends_in_end?` と `end_with_percent_blank_string?` の 2 つの門で早期 return する。
+/// **`__END__` の後ろは `DATA` が読む素のテキストで、末尾の改行の数に意味があることがある。**
+/// 移植版はどちらの門も持たず、`-A` でその改行を削っていた。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/TrailingEmptyLines` の実出力 (spec:17 / spec:26)。
+mod layout_trailing_empty_lines_end_marker {
+    use super::*;
+
+    const COP: &str = "Layout/TrailingEmptyLines";
+
+    /// `__END__` があれば末尾の空行は数えない。
+    #[test]
+    fn a_file_with_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "x = 0\n\n__END__\n\n");
+    }
+
+    /// `__END__` だけのファイルも同じ。
+    #[test]
+    fn a_file_that_is_only_an_end_marker_is_left_alone() {
+        expect_no_offenses(COP, "__END__\n\n\n");
+    }
+
+    /// 本家の正規表現 `/\s*__END__/` は `match?` に錨なしで渡るので、**文字列の中の `__END__`
+    /// でも門が閉じる**。忠実に写した結果としてそうなることを固定する。
+    #[test]
+    fn the_marker_inside_a_string_also_closes_the_gate() {
+        expect_no_offenses(COP, "x = \"__END__\"\n\n\n");
+    }
+
+    /// `%\n\n` で終わるファイルも見送る (`end_with_percent_blank_string?`)。
+    #[test]
+    fn a_file_ending_in_a_percent_and_a_blank_line_is_left_alone() {
+        expect_no_offenses(COP, "x = %\n\n");
+    }
+
+    /// 門に当たらない普通のファイルは今までどおり報告する (陰性対照)。
+    #[test]
+    fn an_ordinary_trailing_blank_line_is_still_reported() {
+        let report = CopCase::new(COP, "x = 0\n\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            1,
+        );
+    }
+}
