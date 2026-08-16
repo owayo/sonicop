@@ -1326,6 +1326,27 @@ pub fn corrected_text(
 
 const MAX_CORRECTION_PASSES: usize = 200;
 
+/// What a pass's text is remembered by, so that the loop can tell it has come round again.
+///
+/// `Runner#check_for_infinite_loop` keeps `processed_source.checksum` rather than the text, and the
+/// difference shows on a file a cop keeps adding to. `Regexp.new("a\\d]b")` grows about 1.5x per
+/// pass under `Lint/UnescapedBracketInRegexp`, measured identical to upstream pass for pass, so
+/// holding every pass costs the sum of that series -- roughly three times the current text -- and
+/// comparing against every pass re-reads all of it. Neither form bounds the growth: that is
+/// upstream's defect, reproduced here rather than fixed.
+///
+/// The length rides along with the hash because it is free and makes a collision take two
+/// coincidences instead of one. A collision would report a loop that is not there, which is a
+/// worse failure than the one being avoided.
+type SourceDigest = (u64, usize);
+
+fn digest(text: &str) -> SourceDigest {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    text.hash(&mut hasher);
+    (hasher.finish(), text.len())
+}
+
 type OffenseKey = (usize, usize, &'static str, String, Severity);
 
 fn offense_key(offense: &Offense, source: &SourceFile) -> OffenseKey {
@@ -1479,7 +1500,7 @@ pub fn correct_file(
 
     let path = report.path.clone();
     let mut log = CorrectionLog::default();
-    let mut sources = vec![text.clone()];
+    let mut sources = vec![digest(&text)];
     let mut rewritten = false;
     // Every pass re-inspects the same file under the same configuration, so the plan is resolved
     // once for the whole fixed-point loop.
@@ -1511,7 +1532,8 @@ pub fn correct_file(
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
         // repeat tells us which pass the cycle closed on.
-        let repeated = sources.iter().position(|source| *source == corrected);
+        let corrected_digest = digest(&corrected);
+        let repeated = sources.iter().position(|seen| *seen == corrected_digest);
         if pass == MAX_CORRECTION_PASSES || repeated.is_some() {
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
             let root_cause = log.root_cause(loop_start);
@@ -1528,7 +1550,7 @@ pub fn correct_file(
             });
         }
 
-        sources.push(corrected.clone());
+        sources.push(corrected_digest);
         text = corrected;
         report = inspect_planned(
             path.clone(),
@@ -1555,7 +1577,7 @@ pub fn correct_until_stable(
     }
 }
 
-/// The bytes to write back for corrected source, in the encoding the file declares for itself.
+/// The bytes to write back for corrected source, in the encoding the file was read in.
 ///
 /// This is the one place Sonicop knowingly departs from RuboCop. RuboCop's runner ends in a plain
 /// `File.write`, so a corrected Shift_JIS file comes back out as UTF-8 while its magic comment still
@@ -1563,9 +1585,17 @@ pub fn correct_until_stable(
 /// data loss on purpose, which is further than drop-in compatibility reaches. The divergence is
 /// recorded in `tests/conformance/known_divergences.yml`.
 ///
+/// That protection only applies to a file the declaration was actually needed for.
+/// [`decoded_source`] reaches for the declared encoding only when the bytes are not valid UTF-8, so
+/// a UTF-8 file naming some other encoding was read as UTF-8 and has to go back out as UTF-8 --
+/// `decoded_as_declared` says which happened, and is only asked once a declaration is found.
+/// Encoding such a file to the label it names rewrites bytes no cop asked to change: rails'
+/// `1_currencies_have_symbols.rb` declares `ISO-8859-15` and holds a UTF-8 `€`, and turning those
+/// three bytes into `\xa4` changes what the program says as surely as editing the literal would.
+///
 /// `Err` when the correction cannot be represented in that encoding, so the caller leaves the file
 /// alone rather than writing a lossy approximation.
-fn output_bytes(contents: &str) -> Result<Vec<u8>> {
+fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> Result<Vec<u8>> {
     let Some(label) = encoding_declaration(contents) else {
         return Ok(contents.as_bytes().to_vec());
     };
@@ -1579,7 +1609,7 @@ fn output_bytes(contents: &str) -> Result<Vec<u8>> {
     let Some(encoding) = encoding_for_ruby_label(&label) else {
         return Ok(contents.as_bytes().to_vec());
     };
-    if encoding == encoding_rs::UTF_8 {
+    if encoding == encoding_rs::UTF_8 || !decoded_as_declared() {
         return Ok(contents.as_bytes().to_vec());
     }
     let (bytes, _, unmappable) = encoding.encode(contents);
@@ -1592,8 +1622,11 @@ fn output_bytes(contents: &str) -> Result<Vec<u8>> {
 }
 
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
-    let bytes = output_bytes(contents)
-        .with_context(|| format!("refusing to rewrite {}", path.display()))?;
+    // The file on disk is still the one that was read: the loop corrects in memory and writes once.
+    let bytes = output_bytes(contents, || {
+        fs::read(path).is_ok_and(|bytes| String::from_utf8(bytes).is_err())
+    })
+    .with_context(|| format!("refusing to rewrite {}", path.display()))?;
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
         .ok()
@@ -2106,7 +2139,7 @@ mod tests {
         // RuboCop would write UTF-8 here and leave the file claiming cp932, which no longer loads.
         let corrected = "# encoding: cp932\nx = '\u{65e5}\u{672c}'\n";
 
-        let bytes = output_bytes(corrected).unwrap();
+        let bytes = output_bytes(corrected, || true).unwrap();
 
         assert!(bytes.ends_with(b"x = '\x93\xfa\x96\x7b'\n"));
     }
@@ -2117,7 +2150,19 @@ mod tests {
         // very text the correction was meant to leave alone.
         let corrected = "# encoding: cp932\nx = '\u{1f363}'\n";
 
-        assert!(output_bytes(corrected).is_err());
+        assert!(output_bytes(corrected, || true).is_err());
+    }
+
+    #[test]
+    fn a_utf8_file_that_names_another_encoding_goes_back_out_unchanged() {
+        // rails' `1_currencies_have_symbols.rb`: the comment says ISO-8859-15, the bytes are UTF-8,
+        // and `decoded_source` read it as UTF-8. Encoding the `€` to `\xa4` on the way out would
+        // turn a three-character string into a one-character one -- a change no cop asked for.
+        let corrected = "# coding: ISO-8859-15\nx = '\u{20ac}'\n";
+
+        let bytes = output_bytes(corrected, || false).unwrap();
+
+        assert_eq!(bytes, corrected.as_bytes());
     }
 
     #[test]

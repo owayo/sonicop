@@ -34,27 +34,28 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
             // `private def foo`: the modifier and the definition are one line, and the `end` is
             // measured against whichever of the two the style names.
+            //
+            // Every other call falls through: the walk has to keep descending, since a call is
+            // what a block hangs off and a definition written inside one is still a definition.
             "call" => {
-                let Some(definition) = def_modifier(node) else {
-                    continue;
-                };
-                let Some(keyword) = definition.child(0) else {
-                    continue;
-                };
-                let (base, column) = match align_with_def {
-                    true => (
-                        keyword.byte_range(),
-                        character_column(context, definition.start_byte()),
-                    ),
-                    false => (
-                        node.start_byte()..keyword.end_byte(),
-                        character_column(context, node.start_byte()),
-                    ),
-                };
-                if let Some(offense) = check_definition(context, definition, base, column) {
-                    offenses.push(offense);
+                if let Some(definition) = def_modifier(node)
+                    && let Some(keyword) = definition.child(0)
+                {
+                    let (base, column) = match align_with_def {
+                        true => (
+                            keyword.byte_range(),
+                            character_column(context, definition.start_byte()),
+                        ),
+                        false => (
+                            node.start_byte()..keyword.end_byte(),
+                            character_column(context, node.start_byte()),
+                        ),
+                    };
+                    if let Some(offense) = check_definition(context, definition, base, column) {
+                        offenses.push(offense);
+                    }
+                    ignored.insert(definition.id());
                 }
-                ignored.insert(definition.id());
             }
             _ => {}
         }

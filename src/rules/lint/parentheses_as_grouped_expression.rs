@@ -2,8 +2,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::arguments;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::arguments;
 
 /// `OPERATOR_METHODS`, which are written with a space on either side by convention.
 const OPERATOR_METHODS: [&str; 29] = [
