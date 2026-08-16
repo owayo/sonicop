@@ -36040,3 +36040,39 @@ mod lint_void_blank_line_before {
         .run();
     }
 }
+
+/// `Style/NestedTernaryOperator` の `-A` が垂直タブを飲むこと (#52)。
+///
+/// 本家は `range_with_surrounding_space(range: range, whitespace: true)` を渡す。その段は Ruby の
+/// `/\s/` で、**垂直タブ (0x0b) を含む**。移植版は `is_ascii_whitespace` で歩いていたので VT を
+/// 残していた。
+///
+/// **5 コーパスに VT は 1 バイトも無いので、このテストが唯一の番人である。** 期待値は本家 1.89.0 の
+/// `--only Style/NestedTernaryOperator -A` の実出力。陰性対照は `is_ascii_whitespace` に戻すこと:
+/// そのとき出力は `x = if cond \u{b}` と VT を残す (main の binary で実測した)。
+mod style_nested_ternary_operator_vertical_tab {
+    use super::*;
+
+    const COP: &str = "Style/NestedTernaryOperator";
+
+    #[test]
+    fn the_vertical_tab_beside_the_question_mark_is_taken() {
+        CopCase::new(
+            COP,
+            "x = cond \u{b}? (a ? b : c) : d\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+        .run();
+    }
+
+    /// 空白だけのときも同じ (VT を足したことで普通の空白の扱いが変わっていないか)。
+    #[test]
+    fn a_plain_space_still_behaves_the_same() {
+        CopCase::new(COP, "x = cond ? (a ? b : c) : d\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .corrected("x = if cond\na ? b : c\nelse\nd\nend\n")
+            .run();
+    }
+}
