@@ -36230,3 +36230,79 @@ mod layout_trailing_empty_lines_end_marker {
         );
     }
 }
+
+/// `begin ... end` の中の文が互いに兄弟であること (#26 の節 K の 2 件目)。
+///
+/// `visibility.rs::CONTAINERS` に `begin` が無く、`siblings()` が `None` を返していた。上流の
+/// `left_siblings` は `kwbegin` の子を歩くので、**中に書いた文は互いに兄弟**である。
+/// 1 語の欠落で 3 cop が同時にずれていた。期待値は本家 1.89.0 の実出力。
+mod begin_block_holds_siblings {
+    use super::*;
+
+    /// `Layout/ClassStructure` が `begin` の中で並べ替えを作れていなかった (spec:169)。
+    #[test]
+    fn class_structure_reorders_inside_a_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    private def do_internal_work; end\n    \
+             public def do_something; end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    public def do_something; end\n    \
+             private def do_internal_work; end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 二重の `begin` でも同じ (spec:190)。
+    #[test]
+    fn class_structure_reorders_inside_a_nested_begin() {
+        CopCase::new(
+            "Layout/ClassStructure",
+            "class Foo\n  begin\n    begin\n      private def do_internal_work; end\n      \
+             public def do_something; end\n    end\n  end\nend\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected(
+            "class Foo\n  begin\n    begin\n      public def do_something; end\n      \
+             private def do_internal_work; end\n    end\n  end\nend\n",
+        )
+        .run();
+    }
+
+    /// 同じ `begin` の中の `private` は、その下の定義に効く。
+    /// **旧実装は `private` を見落として public と読み、`Style/DocumentationMethod` が過剰検出していた。**
+    #[test]
+    fn a_private_inside_the_same_begin_applies_to_the_definitions_below_it() {
+        expect_no_offenses(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n\n    def foo\n      1\n    end\n  end\nend\n",
+        );
+    }
+
+    /// 別の `begin` の中の `private` は外の定義に効かない (本家もそう読む。陰性対照)。
+    #[test]
+    fn a_private_in_another_begin_does_not_reach_outside_it() {
+        let report = CopCase::new(
+            "Style/DocumentationMethod",
+            "class Foo\n  begin\n    private\n  end\n\n  def foo\n    1\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Style/DocumentationMethod")
+                .count(),
+            1,
+            "begin の外の定義は public のまま",
+        );
+    }
+}
