@@ -73,12 +73,17 @@ pub(super) fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Edit> {
 /// `only_closing_paren_before_comma?` with `parens_range`: where the run of whitespace that would
 /// leave the comma stranded begins.
 ///
-/// This went unreached for a while, and not because the shape is rare: returning `Some` here used
-/// to add a *second* edit overlapping the one for the closing parenthesis, and the engine dropped
-/// the offense rather than merging the pair. The cop looked like it could not detect the shape
-/// while the cause sat in the corrector. Folding the two into one edit above fixed both, and the
-/// `continuations` step below then started doing its work -- it is what keeps the `\` from being
-/// left in front of the comma.
+/// Returning `Some` here used to add a *second* edit for the closing parenthesis, and since the
+/// two walks land on the same byte whenever no continuation sits between them, the pair was
+/// usually the same removal twice. `apply_edits` refuses an edit that starts before the previous
+/// one ended, so the reparse check this cop runs on its own correction failed and took the
+/// candidate with it -- the cop looked unable to detect the shape while the cause sat in the
+/// corrector. Folding the two into one edit above fixed that, and the `continuations` step below
+/// then started doing its work: it is what keeps the `\` from being left in front of the comma.
+///
+/// **No corpus reaches this.** Across the five corpora the two cops that correct through here fire
+/// 1,185 times and none of them is this shape, so a byte comparison of autocorrected output says
+/// nothing about the code below. The tests carry cases built by hand for that reason.
 fn orphaned_comma_start(context: &RuleContext<'_>, close: usize) -> Option<usize> {
     let line = context.source.line(context.source.line_column(close).0);
     let after_indent = line.trim_start();
