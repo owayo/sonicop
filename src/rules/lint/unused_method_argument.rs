@@ -1,9 +1,12 @@
 use tree_sitter::Node;
 
 use super::variable_force::{Analysis, Argument, Declaration, Scope, Variable};
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+
+use super::unused_arg_corrector::correction;
+use crate::rules::support::const_name;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_unused_keywords: bool = context
@@ -168,21 +171,6 @@ fn not_implemented(
 
 /// `Node#const_name`. A leading `::` names the same constant, so `::NotImplementedError` reads as
 /// `NotImplementedError`, while a namespace that is not itself a constant contributes nothing.
-fn const_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    let name = match node.kind_str() {
-        "constant" => return Some(context.source.node_text(node).to_owned()),
-        "scope_resolution" => context.source.node_text(node.field("name")?),
-        _ => return None,
-    };
-    match node.field("scope") {
-        Some(scope) => Some(format!(
-            "{}::{name}",
-            const_name(scope, context).unwrap_or_default()
-        )),
-        None => Some(name.to_owned()),
-    }
-}
-
 fn message(
     context: &RuleContext<'_>,
     analysis: &Analysis<'_>,
@@ -216,48 +204,3 @@ fn message(
     message
 }
 
-/// `UnusedArgCorrector`. A keyword argument cannot be renamed without renaming the keyword, and an
-/// unused block argument is surplus rather than misnamed, so it is deleted instead.
-fn correction(context: &RuleContext<'_>, variable: &Variable<'_>) -> Option<Edit> {
-    match variable.kind {
-        Declaration::Argument(Argument::Keyword) => None,
-        Declaration::Argument(Argument::Block) => {
-            let start = removal_start(context, variable.declaration.start_byte());
-            Some(Edit {
-                start,
-                end: variable.declaration.end_byte(),
-                replacement: String::new(),
-                safe: true,
-            })
-        }
-        // `corrector.replace(node.loc.name, "_#{variable_name}")`. Writing the whole name rather
-        // than inserting a `_` in front of it matters when another cop is rewriting the same
-        // argument in the same pass: a replacement of the same range clobbers and is deferred to
-        // the next pass, while an insertion at its edge slips out of the range and lands on the
-        // neighbour. The name node already excludes the leading `*` of a splat, which is what the
-        // `gsub(/\A\*+/, '')` there is for.
-        _ => {
-            let name = context.source.node_text(variable.name_node);
-            Some(Edit {
-                start: variable.name_node.start_byte(),
-                end: variable.name_node.end_byte(),
-                replacement: format!("_{name}"),
-                safe: true,
-            })
-        }
-    }
-}
-
-/// Walks back over the whitespace and then the comma that separated the argument from the one
-/// before it, so deleting the argument does not leave `(a, )` behind.
-fn removal_start(context: &RuleContext<'_>, start: usize) -> usize {
-    let text = context.source.text().as_bytes();
-    let mut cursor = start;
-    while cursor > 0 && (text[cursor - 1] == b' ' || text[cursor - 1] == b'\t') {
-        cursor -= 1;
-    }
-    if cursor > 0 && text[cursor - 1] == b',' {
-        cursor -= 1;
-    }
-    cursor
-}

@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 /// `VARIABLES`: the node kinds upstream reads a variable off of rather than a call.
 const VARIABLE_KINDS: &[&str] = &[
@@ -173,7 +174,7 @@ fn check_expressions(
         );
         let mut offense = context.offense(message, expression.byte_range());
         if correctable {
-            let mut edits = vec![remove(whole_lines(context, expression.byte_range()))];
+            let mut edits = vec![remove(support::whole_lines(expression.byte_range(), context))];
             let mut anchor = node.byte_range();
             if !inserted {
                 inserted = true;
@@ -332,13 +333,6 @@ fn is_assignment(node: Node<'_>) -> bool {
         "operator_assignment" => true,
         _ => false,
     }
-}
-
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(context: &RuleContext<'_>, range: Range<usize>) -> Range<usize> {
-    let first = context.source.line_column(range.start).0;
-    let last = context.source.line_column(range.end).0;
-    context.source.line_start(first)..context.source.line_range(last).end
 }
 
 fn remove(range: Range<usize>) -> Edit {

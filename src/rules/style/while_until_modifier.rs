@@ -9,9 +9,10 @@ use crate::rules::RuleContext;
 
 use super::comments::CommentIndex;
 use super::conditional::{
-    Body, UpstreamParent, body_of, descendants, first_line, last_line, token, upstream_parent,
+    Body, UpstreamParent, body_of, first_line, last_line, token, upstream_parent,
 };
 use super::line_length_help::LineLengthHelp;
+use super::statement_modifier::non_eligible_condition;
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Favor modifier `%<keyword>s` usage when having a single-line body.";
@@ -255,27 +256,6 @@ fn nonempty_line_count(source: &str) -> usize {
         .lines()
         .filter(|line| line.contains(|character: char| !character.is_whitespace()))
         .count()
-}
-
-/// `condition.each_node.any?(&:lvasgn_type?)`: a condition that binds a local cannot move behind
-/// the body that reads it.
-fn non_eligible_condition(condition: Node<'_>) -> bool {
-    descendants(condition).into_iter().any(|node| {
-        matches!(node.kind_str(), "assignment" | "operator_assignment")
-            && node.field("left").is_some_and(binds_local)
-    })
-}
-
-/// Whether the left-hand side of an assignment writes a local anywhere in it. A multiple
-/// assignment is one `masgn` upstream, but every name it writes is still an `lvasgn` beneath it.
-fn binds_local(left: Node<'_>) -> bool {
-    match left.kind_str() {
-        "identifier" => true,
-        "left_assignment_list" | "rest_assignment" | "destructured_left_assignment" => {
-            super::nodes::children(left).into_iter().any(binds_local)
-        }
-        _ => false,
-    }
 }
 
 /// `comment_disables_cop?`, whose `([^,],)*` only ever matches one-character names and so leaves a

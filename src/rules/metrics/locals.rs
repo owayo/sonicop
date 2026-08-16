@@ -18,6 +18,7 @@ use tree_sitter::Node;
 use super::fragments::Fragments;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::{scope_kind, spurious_assignment_list};
 use crate::source::SourceFile;
 
 pub(in crate::rules) struct Locals {
@@ -65,20 +66,6 @@ struct Walker<'a> {
     fragments: &'a Fragments,
     stack: Vec<Frame<'a>>,
     lvars: HashSet<usize>,
-}
-
-/// The node kinds that open a static scope, with the fields that are still evaluated outside it:
-/// the receiver of `def obj.name`, a superclass expression, the value of `class << expr`.
-fn scope_kind(kind: &str) -> Option<(bool, &'static [&'static str])> {
-    match kind {
-        "method" => Some((false, &[])),
-        "singleton_method" => Some((false, &["object"])),
-        "class" => Some((false, &["name", "superclass"])),
-        "module" => Some((false, &["name"])),
-        "singleton_class" => Some((false, &["value"])),
-        "block" | "do_block" | "lambda" => Some((true, &[])),
-        _ => None,
-    }
 }
 
 impl<'a> Walker<'a> {
@@ -485,38 +472,6 @@ pub(super) fn split_match_operator(source: &SourceFile, node: Node<'_>, right: N
 /// a `str`, `__LINE__` an `int` and `__ENCODING__` a `const`. None of them is a call.
 pub(super) fn is_keyword_literal(name: &str) -> bool {
     matches!(name, "__FILE__" | "__LINE__" | "__ENCODING__")
-}
-
-/// Node kinds that hold a comma-separated list of expressions. tree-sitter reads `foo(a, b = 1)`
-/// as a multiple assignment that swallowed `a`, which Ruby does not: only `b` is assigned.
-const COMMA_SEPARATED_LISTS: &[&str] = &[
-    "argument_list",
-    "array",
-    "splat_argument",
-    "optional_parameter",
-    "keyword_parameter",
-    "right_assignment_list",
-];
-
-/// Whether an assignment's target list is really the comma-separated list written around it.
-pub(super) fn spurious_assignment_list(list: Node<'_>) -> bool {
-    // A swallowed list runs on into the value, so `foo(a = 1, b = 2, c = 3)` nests one invented
-    // assignment inside the next and only the outermost one stands in the list itself.
-    let mut current = list.parent();
-    while let Some(node) = current {
-        let Some(parent) = node.parent() else {
-            return false;
-        };
-        if COMMA_SEPARATED_LISTS.contains(&parent.kind_str()) {
-            return true;
-        }
-        let continues = parent.kind_str() == "assignment"
-            && parent
-                .field("right")
-                .is_some_and(|right| right.id() == node.id());
-        current = continues.then_some(parent);
-    }
-    false
 }
 
 pub(super) fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {

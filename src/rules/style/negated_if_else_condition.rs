@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 /// `"else".len()` and `"end".len()`, the two keywords whose spans are fixed.
 const ELSE_LENGTH: usize = 4;
@@ -118,7 +119,7 @@ fn swap_branches(
         .is_none_or(|branch| super::nodes::children(branch).is_empty())
     {
         let keyword = alternative.start_byte()..alternative.start_byte() + ELSE_LENGTH;
-        return vec![replace(whole_lines(keyword, context), String::new())];
+        return vec![replace(support::whole_lines(keyword, context), String::new())];
     }
     let Some(condition) = node.field("condition") else {
         return Vec::new();
@@ -147,18 +148,6 @@ fn unwrap_parentheses<'tree>(node: Node<'tree>) -> Node<'tree> {
         }
     }
     current
-}
-
-/// `range_by_whole_lines(range, include_final_newline: true)`.
-fn whole_lines(range: std::ops::Range<usize>, context: &RuleContext<'_>) -> std::ops::Range<usize> {
-    let text = context.source.text();
-    let start = text[..range.start]
-        .rfind('\n')
-        .map_or(0, |offset| offset + 1);
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
-    start..end
 }
 
 fn replace(range: std::ops::Range<usize>, replacement: String) -> Edit {

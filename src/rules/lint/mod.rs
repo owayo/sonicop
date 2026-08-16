@@ -9,6 +9,7 @@ mod ambiguity;
 /// Reachable from `layout` too: `Layout/MultilineAssignmentLayout` has to tell a `block` from
 /// the `numblock` and `itblock` upstream builds for the same syntax.
 pub(crate) mod blocks;
+mod comments_help;
 mod conditions;
 mod cop_directives;
 mod exception_hierarchy;
@@ -39,6 +40,7 @@ mod regexp_source;
 mod regexp_tree;
 mod rescue_clause;
 mod statements;
+mod unused_arg_corrector;
 /// Reachable from the shared `RuleContext` too: the analysis is the same for every cop that
 /// asks about a local variable, so the context caches one run of it per file.
 pub(in crate::rules) mod variable_force;

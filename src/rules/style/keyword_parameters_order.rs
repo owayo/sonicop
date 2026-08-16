@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support;
 
 /// Parameter lists, whichever of the three shapes the grammar writes one in.
 const PARAMETER_LISTS: &[&str] = &["method_parameters", "block_parameters", "lambda_parameters"];
@@ -121,28 +122,14 @@ fn surrounding_space(
     range: std::ops::Range<usize>,
     context: &RuleContext<'_>,
 ) -> std::ops::Range<usize> {
-    let text = context.source.text().as_bytes();
-    let mut start = range.start;
-    while start > 0 && matches!(text[start - 1], b' ' | b'\t') {
-        start -= 1;
-    }
-    while start >= 2 && text[start - 1] == b'\n' && text[start - 2] == b'\\' {
-        start -= 2;
-    }
-    while start > 0 && text[start - 1] == b'\n' {
-        start -= 1;
-    }
-    let mut end = range.end;
-    while end < text.len() && matches!(text[end], b' ' | b'\t') {
-        end += 1;
-    }
-    while end + 1 < text.len() && text[end] == b'\\' && text[end + 1] == b'\n' {
-        end += 2;
-    }
-    while end < text.len() && text[end] == b'\n' {
-        end += 1;
-    }
-    start..end
+    support::range_with_surrounding_space(
+        range,
+        context.source.text(),
+        support::Side::Both,
+        true,
+        true,
+        false,
+    )
 }
 
 /// `range_with_surrounding_comma(range, :left)`.
