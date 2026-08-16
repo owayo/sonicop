@@ -20918,6 +20918,20 @@ mod redundant_parentheses {
         expect_correction(COP, "x = (bar \\\n)\n", "x = bar \\\n");
     }
 
+    /// `oneline_rescue_parentheses_required?`: a `case` holds its subject in `value`, not
+    /// `condition`, so a check written for one field alone reaches every other member of the
+    /// conditional family and misses these two. The `while` below passes either way, which is what
+    /// kept it hidden. Expectations are upstream 1.89.0's.
+    #[test]
+    fn a_one_line_rescue_keeps_its_parentheses_as_a_case_subject() {
+        expect_no_offenses(
+            COP,
+            "case (foo rescue bar)\nwhen foo\n  do_something\nend\n",
+        );
+        expect_no_offenses(COP, "case (foo rescue bar)\nin Integer\n  x\nend\n");
+        expect_no_offenses(COP, "while (foo rescue bar)\n  x\nend\n");
+    }
+
     /// `handle_orphaned_comma`: upstream removes a second range that contains the first, and its
     /// `TreeRewriter` folds the pair. Handing the engine two overlapping edits instead lost the
     /// whole offense, so this shape went unreported -- detection looked broken while the cause sat
