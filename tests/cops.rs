@@ -35741,3 +35741,66 @@ mod style_redundant_return_heredoc {
         .run();
     }
 }
+
+/// `Layout/ConditionPosition` が `elsif` を見落とす件。
+///
+/// 期待値は本家 1.89.0 の `--only Layout/ConditionPosition` / `-A` の実出力。
+/// 本家の spec (spec/rubocop/cop/layout/condition_position_spec.rb) から見つけた。
+/// **この cop は 5 コーパスで 1 件も発火しないので、コーパスからは出ない。**
+mod layout_condition_position_elsif {
+    use super::*;
+
+    const COP: &str = "Layout/ConditionPosition";
+
+    /// 本家のパーサは `elsif` にも `if` の節を作り、それが else 枝に入れ子になるので
+    /// `on_if` が走る。文法は `elsif` を別種別にするため、種別の列挙から漏れると
+    /// **`elsif` の下に書かれた条件についてこの cop がまるごと黙る。**
+    #[test]
+    fn a_condition_under_an_elsif_is_reported() {
+        expect_offense(
+            COP,
+            "if something\n  test\nelsif\n  something\n  ^^^^^^^^^ Place the condition on the \
+             same line as `elsif`.\n  test\nend\n",
+        );
+    }
+
+    /// 2 段の `elsif` でも両方報告する。
+    #[test]
+    fn every_elsif_is_reported() {
+        let report = CopCase::new(
+            COP,
+            "if a\n  b\nelsif\n  c\nelsif\n  d\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .inspect();
+        assert_eq!(
+            report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == COP)
+                .count(),
+            2,
+            "elsif が 2 つあるので 2 件のはず"
+        );
+    }
+
+    /// 条件が `elsif` と同じ行にあるなら報告しない。
+    #[test]
+    fn a_condition_on_the_elsif_line_is_left_alone() {
+        expect_no_offenses(COP, "if a\n  b\nelsif c\n  d\nend\n");
+    }
+
+    /// 補正は `elsif` の後ろへ条件を移して、元の行を消す。
+    #[test]
+    fn the_condition_moves_up_to_the_elsif() {
+        CopCase::new(
+            COP,
+            "if something\n  test\nelsif\n  something\n  test\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .corrected("if something\n  test\nelsif something\n  test\nend\n")
+        .run();
+    }
+}
