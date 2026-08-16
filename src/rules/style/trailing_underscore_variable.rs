@@ -27,6 +27,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             context,
             allow_named,
         };
+        // `(_, _, _,) = foo()`: the parentheses around the **whole** left-hand side are syntax and
+        // nothing more -- upstream's `mlhs` holds the three targets directly. The grammar puts a
+        // `destructured_left_assignment` in between, and taking it for a nested group loses the
+        // right-hand side to anchor against: the removal then stops at the closing parenthesis and
+        // leaves ` = foo()`, which is not Ruby.
+        //
+        // A group that is only *part* of the list (`a, (b, _) = foo`) is a nested `mlhs` upstream
+        // too, so only the sole-child case is unwrapped.
+        let left = match super::nodes::children(left).as_slice() {
+            [only] if only.kind_str() == "destructured_left_assignment" => *only,
+            _ => left,
+        };
         let mut ranges = Vec::new();
         cop.unneeded_ranges(Some(node), left, &mut ranges);
         let source = context.source.node_text(node);

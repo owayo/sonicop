@@ -144,14 +144,14 @@ pub(crate) struct RuleContext<'a> {
     fragments: OnceCell<Fragments>,
     /// Which identifiers the Metrics cops read as local variables, replayed once per file.
     metric_locals: OnceCell<Locals>,
-    /// Whether the run has any cop the configuration switches off, which is what an
-    /// `# rubocop:enable all` undoes.
+    /// The cops the run switches off through the configuration, which is what an `enable` directive
+    /// has to undo.
     ///
-    /// `Registry#disabled_names` is the list upstream walks, and only whether it is empty decides
-    /// the answer. It depends on the run's selection as well as the configuration -- `--only Foo`
-    /// leaves a registry of one cop, and that cop is enabled -- so the engine settles it once
-    /// instead of every cop working it out.
-    run_disables_a_cop: bool,
+    /// `Registry#disabled_names(config)` is the list, and it depends on the run's selection as much
+    /// as on the configuration: it walks the *mobilized* registry, so `--only Foo` leaves one
+    /// enabled cop in it and `--except` takes its cops out. The engine settles it once for the run
+    /// instead of every cop working it out from the configuration alone.
+    disabled_cops: &'a [&'static str],
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -188,13 +188,13 @@ impl<'a> RuleContext<'a> {
             variables: OnceCell::new(),
             fragments: OnceCell::new(),
             metric_locals: OnceCell::new(),
-            run_disables_a_cop: false,
+            disabled_cops: &[],
         }
     }
 
-    /// Records whether the run switches any cop off. See [`Self::run_disables_a_cop`].
-    pub(crate) fn with_disabled_cops(mut self, any: bool) -> Self {
-        self.run_disables_a_cop = any;
+    /// Records which cops the run switches off. See [`Self::disabled_cops`].
+    pub(crate) fn with_disabled_cops(mut self, names: &'a [&'static str]) -> Self {
+        self.disabled_cops = names;
         self
     }
 
@@ -269,10 +269,11 @@ impl<'a> RuleContext<'a> {
         self.config.rule_enabled(cop)
     }
 
-    /// Whether the run switches any cop off, which is what an `# rubocop:enable all` undoes even
-    /// when the file disabled nothing itself.
-    pub fn run_disables_a_cop(&self) -> bool {
-        self.run_disables_a_cop
+    /// `Registry#disabled_names(config)`: the cops the run switches off through the configuration.
+    /// An `# rubocop:enable` that names one of them has something to undo even when the file
+    /// disabled nothing itself.
+    pub fn disabled_cops(&self) -> &[&'static str] {
+        self.disabled_cops
     }
 
     /// The Ruby version the run analyzes as, which version-gated cops compare against.

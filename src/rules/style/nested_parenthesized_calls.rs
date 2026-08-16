@@ -147,6 +147,14 @@ fn reads_as_binary_and(
 ///
 /// A corpus run agreeing with upstream says only that nothing *else* broke. It does not say this
 /// works. `style/parens.rs::orphaned_comma_start` carries the same note for the same reason.
+///
+/// The two sites pay for a missing step differently, and it is worth knowing which one you are in
+/// before deciding how urgent a gap is. This cop does not reparse what it writes, so a step left
+/// out here reaches the user's file: that is exactly what happened in the release-critical case,
+/// where the walk stopped at the `\` and `-A` produced `foo \(bar)`. The cops that do reparse
+/// cannot corrupt anything -- the verification throws a bad correction away -- so the same
+/// omission surfaces there as an offense that is never reported, and reads like a detection bug
+/// with nothing wrong in the detection. Silent damage on one side, silent silence on the other.
 fn leading_space(context: &RuleContext<'_>, start: usize) -> usize {
     crate::rules::support::final_pos(context.source.text(), start, false, true, true, true)
 }

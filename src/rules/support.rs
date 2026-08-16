@@ -494,6 +494,7 @@ fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
             false => children.push(normalized),
         }
     }
+    attach_heredoc_bodies(&mut children);
     // The parser has no node for the file itself: a source holding one statement parses to that
     // statement, which is what a fragment cut out of a scope has to compare against.
     if matches!(node.kind_str(), "parenthesized_statements" | "program") {
@@ -519,6 +520,66 @@ fn normalized(node: Node<'_>, text: &str, verification: Verification) -> Sexp {
         _ => label_of(node, text, children.is_empty()),
     };
     fold_string_concatenation(rotate_same_operator(Sexp { label, children }))
+}
+
+/// The two nodes tree-sitter spells a heredoc with.
+const HEREDOC_OPENER: &str = "heredoc_beginning";
+const HEREDOC_BODY: &str = "heredoc_body";
+
+/// Whether a label names this kind, with or without the text a leaf carries.
+fn labelled(label: &str, kind: &str) -> bool {
+    label == kind
+        || label
+            .strip_prefix(kind)
+            .is_some_and(|rest| rest.starts_with(' '))
+}
+
+/// Puts each heredoc body back under the token that opened it.
+///
+/// tree-sitter spells a heredoc as two nodes -- the opening token where the value is written, and
+/// the body on the lines after the statement -- while upstream's parser builds a single `str` whose
+/// body lives in the source map. That difference is invisible until something is written *between*
+/// the two, and parentheses are exactly that: `(<<~X)` holds the opener and the body both, while
+/// `<<~X` holds only the opener. The group therefore has two children before the correction and one
+/// after, and a correction that is right to the byte gets rejected for changing the tree.
+///
+/// The bodies are written in the order their openers are, so they pair off in order. Anything left
+/// over -- an opener that sits outside the subtree its body landed in -- goes back on the end
+/// rather than being dropped, so its content stays in the comparison and a correction that rewrote
+/// a body is still caught.
+fn attach_heredoc_bodies(children: &mut Vec<Sexp>) {
+    if !children
+        .iter()
+        .any(|child| labelled(&child.label, HEREDOC_BODY))
+    {
+        return;
+    }
+    let mut bodies = Vec::new();
+    let mut index = 0;
+    while index < children.len() {
+        match labelled(&children[index].label, HEREDOC_BODY) {
+            true => bodies.push(children.remove(index)),
+            false => index += 1,
+        }
+    }
+    let mut bodies = bodies.into_iter();
+    adopt_heredoc_bodies(children, &mut bodies);
+    children.extend(bodies);
+}
+
+/// Hands the bodies to the openers below `children`, in the order both are written.
+fn adopt_heredoc_bodies(children: &mut [Sexp], bodies: &mut std::vec::IntoIter<Sexp>) {
+    for child in children {
+        if bodies.len() == 0 {
+            return;
+        }
+        // An opener that already took one is a body attached further down, not a second chance.
+        if labelled(&child.label, HEREDOC_OPENER) && child.children.is_empty() {
+            child.children.extend(bodies.next());
+            continue;
+        }
+        adopt_heredoc_bodies(&mut child.children, bodies);
+    }
 }
 
 /// Whether the node is the `()` of `foo()`, which upstream's parser leaves no node behind for.
@@ -1132,10 +1193,15 @@ pub(crate) fn expression_range(node: Node<'_>) -> Range<usize> {
 fn expression_end(node: Node<'_>) -> usize {
     let mut cursor = node.walk();
     let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
-    let Some(last) = children
-        .into_iter()
-        .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
-    else {
+    // A `;` between statements is a token here and nothing at all upstream, so an expression that
+    // happens to be followed by one would otherwise reach a byte further than upstream's node
+    // does. `if a; 1; elsif b; 2; end` reported the `elsif` branch one character too long.
+    let Some(last) = children.into_iter().rfind(|child| {
+        !matches!(
+            child.kind_str(),
+            "comment" | "heredoc_body" | ";" | "empty_statement"
+        )
+    }) else {
         return node.end_byte();
     };
     match last.is_named() {
