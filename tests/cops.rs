@@ -35928,7 +35928,8 @@ mod style_collection_compact_allowed_receivers {
     use super::*;
 
     const COP: &str = "Style/CollectionCompact";
-    const CONFIG: &str = "Style/CollectionCompact:\n  Enabled: true\n  AllowedReceivers:\n    - Foo::Bar\n";
+    const CONFIG: &str =
+        "Style/CollectionCompact:\n  Enabled: true\n  AllowedReceivers:\n    - Foo::Bar\n";
 
     /// `Foo::Bar.baz` の receiver_name は `Foo::Bar.baz` なので、`Foo::Bar` の許可には当たらない。
     #[test]
@@ -35955,10 +35956,14 @@ mod style_collection_compact_allowed_receivers {
     /// 定数そのものが receiver なら許可される。
     #[test]
     fn the_constant_itself_is_allowed() {
-        let report = CopCase::new(COP, "Foo::Bar.reject { |e| e.nil? }\n".to_owned(), Vec::new())
-            .config(CONFIG)
-            .without_offense_check()
-            .inspect();
+        let report = CopCase::new(
+            COP,
+            "Foo::Bar.reject { |e| e.nil? }\n".to_owned(),
+            Vec::new(),
+        )
+        .config(CONFIG)
+        .without_offense_check()
+        .inspect();
         assert_eq!(
             report
                 .offenses
