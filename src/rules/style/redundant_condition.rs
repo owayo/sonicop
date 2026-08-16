@@ -502,15 +502,56 @@ fn ternary_form(
     {
         form.push(')');
     }
-    // A conditional written as an argument keeps the `||` from spilling out of the call.
-    let wrapped = node.parent_of(context).is_some_and(|parent| {
-        matches!(parent.kind_str(), "argument_list")
-            || (parent.kind_str() == "call" && parent.field("receiver").is_some())
-    });
+    // `node.parent&.send_type?`: a conditional standing where a send takes an operand keeps the
+    // `||` from spilling out of it.
+    let wrapped = node
+        .parent_of(context)
+        .is_some_and(|parent| stands_in_a_send(context, parent));
     Some(match wrapped {
         true => format!("({form})"),
         false => form,
     })
+}
+
+/// Whether a node holding the conditional is one the parser would have built a `send` for.
+///
+/// The grammar spreads a send over several kinds, and two of those are not sends at all. A logical
+/// operator is an `and`/`or` node upstream rather than a call, and an assignment is a send only
+/// when it writes through `[]=` or an attribute writer -- `x = `, `@x = ` and `X = ` are their own
+/// kinds of assignment, and an operator assignment is an `op-asgn` whatever it writes to. Safe
+/// navigation answers to `csend_type?`, which `send_type?` is false for.
+fn stands_in_a_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    match node.kind_str() {
+        "argument_list" | "element_reference" => true,
+        "call" => node.field("receiver").is_some(),
+        "binary" => !matches!(
+            binary_operator(context, node),
+            Some("&&" | "||" | "and" | "or")
+        ),
+        "assignment" => node
+            .field("left")
+            .is_some_and(|left| match left.kind_str() {
+                "element_reference" => true,
+                "call" => !writes_through_safe_navigation(context, left),
+                _ => false,
+            }),
+        _ => false,
+    }
+}
+
+/// The operator token a binary expression is written with, which the grammar keeps unnamed.
+fn binary_operator<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    let operator = node
+        .children(&mut cursor)
+        .find(|child| !child.is_named() && !child.is_extra())?;
+    Some(context.source.node_text(operator))
+}
+
+fn writes_through_safe_navigation(context: &RuleContext<'_>, call: Node<'_>) -> bool {
+    let mut cursor = call.walk();
+    call.children(&mut cursor)
+        .any(|child| !child.is_named() && context.source.node_text(child) == "&.")
 }
 
 fn if_source(
@@ -539,10 +580,9 @@ fn if_source(
             if arguments(condition).is_empty() || is_parenthesized(context, condition) {
                 return condition_source.to_owned();
             }
-            let (Some(selector), Some(argument)) = (
-                condition.field("method"),
-                first_argument(condition),
-            ) else {
+            let (Some(selector), Some(argument)) =
+                (condition.field("method"), first_argument(condition))
+            else {
                 return condition_source.to_owned();
             };
             return format!(
@@ -639,9 +679,8 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `arithmetic_operation?`: one of the operators whose result is a new value.
 fn arithmetic_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     is_send(node)
-        && selector(context, node).is_some_and(|selector| {
-            matches!(selector, "+" | "-" | "*" | "/" | "%" | "**")
-        })
+        && selector(context, node)
+            .is_some_and(|selector| matches!(selector, "+" | "-" | "*" | "/" | "%" | "**"))
         && arguments(node).len() == 1
 }
 

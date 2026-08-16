@@ -31,8 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if name == preferred {
             continue;
         }
-        let variables = variables
-            .get_or_insert_with(|| context.variable_roles());
+        let variables = variables.get_or_insert_with(|| context.variable_roles());
         // `shadowed_variable_name?` asks whether the *configured* name is already read inside the
         // handler. Upstream passes a node where a name is expected, so the underscore prefix never
         // reaches this test.
@@ -46,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     format!("Use `{preferred}` instead of `{name}`."),
                     range.clone(),
                 )
-                .corrected_by(rename(context, variables, node, range, &name, &preferred)),
+                .corrected_by_all(rename(context, variables, node, range, &name, &preferred)),
         );
     }
 }
@@ -66,9 +65,7 @@ fn exception_variable<'tree>(
         }
         // `rescue => Foo::Bar` is a `casgn` whose name is only the last part, though the offense
         // still covers the whole path.
-        "scope_resolution" => context
-            .source
-            .node_text(target.field("name")?),
+        "scope_resolution" => context.source.node_text(target.field("name")?),
         _ => return None,
     };
     Some((target, name.to_owned()))
@@ -90,7 +87,7 @@ fn reads_name(
     found
 }
 
-/// One edit standing for the several replacements upstream makes: the variable itself, its reads
+/// The replacements upstream makes, one edit each: the variable itself, its reads
 /// inside the handler, and -- when the handler never reassigns it -- its reads in the statements
 /// that follow the `begin`/`end` it belongs to.
 fn rename(
@@ -100,7 +97,7 @@ fn rename(
     variable: Range<usize>,
     name: &str,
     preferred: &str,
-) -> Edit {
+) -> Vec<Edit> {
     let mut rewrite = Rewrite {
         context,
         variables,
@@ -120,25 +117,24 @@ fn rename(
             }
         }
     }
-    let start = variable.start;
-    let end = rewrite
+    // One edit per site, which is what `corrector.replace` is called for upstream. Collapsing them
+    // into a single edit spanning the first site to the last swallows everything written between
+    // them, and that span reaches well past this handler: the reads after the `begin`/`end` are
+    // renamed too, so a second `rescue` further down the file ends up inside it. Its own offence
+    // then clobbers against this one and is put off to the next pass, which leaves a handler whose
+    // body reads the new name while the variable still carries the old one -- and
+    // `Lint/UselessAssignment` deletes the `=> error` it now believes nothing reads.
+    let safe = context.setting("Safe").unwrap_or(true);
+    rewrite
         .sites
-        .last()
-        .map_or(variable.end, |(range, _)| range.end);
-    let mut replacement = String::new();
-    let mut cursor = start;
-    for (range, text) in &rewrite.sites {
-        replacement.push_str(context.source.slice(cursor..range.start));
-        replacement.push_str(text);
-        cursor = range.end;
-    }
-    replacement.push_str(context.source.slice(cursor..end));
-    Edit {
-        start,
-        end,
-        replacement,
-        safe: context.setting("Safe").unwrap_or(true),
-    }
+        .into_iter()
+        .map(|(range, replacement)| Edit {
+            start: range.start,
+            end: range.end,
+            replacement,
+            safe,
+        })
+        .collect()
 }
 
 struct Rewrite<'a, 'tree> {
@@ -182,7 +178,10 @@ impl Rewrite<'_, '_> {
             && self.context.source.node_text(key) == self.name
         {
             let mut cursor = node.walk();
-            if let Some(colon) = node.children(&mut cursor).find(|child| child.kind_str() == ":") {
+            if let Some(colon) = node
+                .children(&mut cursor)
+                .find(|child| child.kind_str() == ":")
+            {
                 let at = colon.end_byte();
                 self.sites.push((at..at, format!(" {}", self.preferred)));
             }
