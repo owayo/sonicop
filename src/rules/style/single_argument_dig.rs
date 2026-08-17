@@ -16,9 +16,16 @@ const IGNORED: &[&str] = &[
 ];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let chains = context
-        .setting_of::<bool>("Style/DigChain", "Enabled")
-        .unwrap_or(false);
+    // `dig_chain_enabled?` is `config.cop_enabled?('Style/DigChain')`, which is
+    // `for_cop(name).fetch('Enabled')` -- **the value itself, tested for truth**. `Style/DigChain`
+    // ships as `Enabled: pending`, and `'pending'` is truthy in Ruby, so upstream counts it as on
+    // and leaves the chain to it. Only a literal `false` turns it off.
+    //
+    // Reading this as a `bool` and defaulting to `false` therefore had it backwards: `pending`
+    // fails to parse as a bool, so the default config -- the one almost everyone runs -- took the
+    // chain as unhandled and reported it. `style/single_line_methods.rs` reads its neighbour the
+    // right way already; this is the same shape written the other way round.
+    let chains = context.setting_of::<bool>("Style/DigChain", "Enabled") != Some(false);
     let mut reported: Vec<usize> = Vec::new();
 
     for node in context.nodes_of("call") {
@@ -38,7 +45,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if IGNORED.contains(&argument.kind_str()) {
             continue;
         }
-        if chains && (is_dig(context, receiver) || node.parent_of(context).is_some_and(|parent| is_dig(context, parent)))
+        if chains
+            && (is_dig(context, receiver)
+                || node
+                    .parent_of(context)
+                    .is_some_and(|parent| is_dig(context, parent)))
         {
             continue;
         }
@@ -50,8 +61,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         );
         let offense = context.offense(message, node.byte_range());
         // `ignore_node`: only the outermost `dig` of a chain is rewritten.
-        let nested = std::iter::successors(node.parent_of(context), |current| current.parent_of(context))
-            .any(|ancestor| reported.contains(&ancestor.id()));
+        let nested = std::iter::successors(node.parent_of(context), |current| {
+            current.parent_of(context)
+        })
+        .any(|ancestor| reported.contains(&ancestor.id()));
         reported.push(node.id());
         offenses.push(match nested {
             true => offense,
@@ -65,10 +78,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn single_dig_argument<'tree>(
-    context: &RuleContext<'_>,
-    node: Node<'tree>,
-) -> Option<Node<'tree>> {
+fn single_dig_argument<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
     if node.field("block").is_some() {
         return None;
     }

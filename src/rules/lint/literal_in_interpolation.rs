@@ -60,15 +60,22 @@ fn last_statement<'tree>(interpolation: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = interpolation.walk();
     interpolation
         .named_children(&mut cursor)
-        .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body" | "empty_statement"))
+        .filter(|child| {
+            !matches!(
+                child.kind_str(),
+                "comment" | "heredoc_body" | "empty_statement"
+            )
+        })
         .last()
 }
 
 fn offending(literal: Node<'_>, interpolation: Node<'_>, context: &RuleContext<'_>) -> bool {
     prints_as_self(literal)
         && !(space_literal(literal, context) && ends_heredoc_line(literal, context))
-        // `Lint/ArrayLiteralInRegexp` has this one.
-        && !(literal.kind_str() == "array"
+        // `Lint/ArrayLiteralInRegexp` has this one. `%w[]` and `%i[]` are an `array` upstream just
+        // as `[]` is, so `array_type?` covers all three and the grammar's three kinds have to be
+        // named here.
+        && !(matches!(literal.kind_str(), "array" | "string_array" | "symbol_array")
             && interpolation
                 .parent_of(context)
                 .is_some_and(|parent| parent.kind_str() == "regex"))
@@ -339,7 +346,6 @@ fn symbol_name(node: Node<'_>, context: &RuleContext<'_>) -> String {
         _ => symbol_content(node, context).to_owned(),
     }
 }
-
 
 /// `escape_string_content`: what has to be written twice for the value to survive being put back
 /// inside the double-quoted string the interpolation was in.
