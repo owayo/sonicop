@@ -51,19 +51,35 @@ sonicop --force-default-config --format json
 
 ## Results
 
-| Corpus | Excess | Missing | Field differences |
-|---|---:|---:|---|
-| rubocop/rubocop | 0 | 0 | none |
-| rails/rails | 0 | 0 | none |
-| mastodon/mastodon | 0 | 0 | none |
-| Homebrew/brew | 263 | 997 | none |
-| ruby/ruby | 142 | 585 | 5 |
+The two kinds of difference are counted separately because they mean different things. A
+`Lint/Syntax` difference says the two disagree about whether a file parses, and everything else in
+that file follows from it; a difference in any other cop says the port reads the same tree and
+draws a different conclusion. Only the second is a defect in a cop.
 
-Three of the five agree offense for offense — RuboCop's own tree, Rails and Mastodon — with no
-excess, no shortfall and no metadata differences anywhere.
+| Corpus | Excess | Missing | of which `Lint/Syntax` | Other cops | Field differences |
+|---|---:|---:|---|---:|---|
+| rubocop/rubocop | 0 | 0 | — | 0 | correctable ×1 |
+| rails/rails | 0 | 0 | — | 0 | none |
+| mastodon/mastodon | 0 | 0 | — | 0 | none |
+| Homebrew/brew | 263 | 997 | **all of them** | **0** | none |
+| ruby/ruby | 142 | 585 | 117 missing, 44 excess | 92 | 5 |
 
-Homebrew's remaining difference is entirely `Lint/Syntax`; every other cop matches exactly. Much of
-ruby/ruby's is too, with 117 of the 585 missing and 44 of the 142 excess being `Lint/Syntax` itself,
+**No cop other than `Lint/Syntax` differs on four of the five corpora**, Homebrew included: across
+its 2,179 files and 49,920 offenses the two agree on every position, message, severity and
+correctability that is not a syntax diagnostic.
+
+Homebrew's 997 has a single cause, and it is not a parser bug on either side. Homebrew is a Ruby 4.0
+codebase — `Library/Homebrew/.ruby-version` says `4.0.6` — but that file sits below the directory the
+run starts from, and `TargetRubyVersion` is only inferred from the working directory's ancestors. Both
+tools therefore fall back to the default of 2.7 (RuboCop says so itself: `Using Ruby 2.7 parser`) and
+both call `dry_run:,` — a hash value omission, valid since 3.1 — a syntax error. **Run the same corpus
+at 3.1 and both report zero `Lint/Syntax`.** What is left is not disagreement about which files parse:
+the file sets are identical, 569 on each side, and the first diagnostic in each file lands at the same
+position. Only the second and later diagnostics diverge, because the two parsers recover from the
+error differently. Those are not chased; see *Known divergences*.
+
+Much of ruby/ruby's difference is the same shape,
+with 117 of the 585 missing and 44 of the 142 excess being `Lint/Syntax` itself,
 and the rest follows from it: a file the two disagree about is inspected by one tool and skipped by
 the other, so every offense in it lands on one side of the ledger. Counting that through, 635 of the
 727 differences sit in files one tool or the other calls a syntax error, and they are spread thinly
