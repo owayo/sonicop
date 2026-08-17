@@ -159,7 +159,9 @@ measured at, and the two ways a measurement of this kind can mislead you.
 
 Measured over all five conformance corpora. Both tools were given their own bundled default
 configuration (`--force-default-config`), so neither reads the project's `.rubocop.yml`, and on every
-corpus the two resolve **the same file list**.
+corpus the two resolve **the same number of files** — which is what these timings need, since it
+means neither side is inspecting less. Path-by-path equality is a stronger claim and is reported
+under *Conformance* above, where it covers four of the five.
 
 Both tools run their full default set — **the same 394 cops**, matched name for name — so neither
 side is restricted and the comparison is like-for-like as it stands. (394 is what is left of the 609
