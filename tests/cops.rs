@@ -12514,6 +12514,24 @@ mod layout_comments_and_indentation {
         .run();
     }
 
+    /// 空かどうかは `comment.text.strip` で決める。**`String#strip` は NUL と ASCII の 6 文字を
+    /// 落とし、no-break space は残す**ので、`#<NBSP>` は空のコメントではない。
+    ///
+    /// Rust の `trim` (Unicode の `White_Space` 全部) で読むと `#` だけになり、空と報告してしまう
+    /// (`whitespace_probe.py` の 132 形で 3 件)。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/EmptyComment -A` の実測。
+    #[test]
+    fn empty_comment_uses_rubys_own_strip_set() {
+        const COP: &str = "Layout/EmptyComment";
+        expect_no_offenses(COP, "#\u{a0}\nx = 1\n");
+        expect_no_offenses(COP, "#\u{3000}\nx = 1\n");
+        // ★ 縦タブと改ページは `strip` が落とすので、空の側に倒れる (行ごと消える)。
+        expect_correction(COP, "#\u{b}\nx = 1\n", "x = 1\n");
+        expect_correction(COP, "#\u{c}\nx = 1\n", "x = 1\n");
+        expect_correction(COP, "# \nx = 1\n", "x = 1\n");
+    }
+
     /// 閉じ括弧が行頭に無いときだけ報告する。直前がセミコロンなら見送る。
     #[test]
     fn block_end_newline() {
@@ -12897,6 +12915,28 @@ mod layout_punctuation_spacing {
         expect_no_offenses(COP, "#!/usr/bin/env ruby\nx = 1\n");
         // ヒアドキュメント本文の `#` は文法上コメントに見えるがコメントではない。
         expect_no_offenses(COP, "x = <<~MSG\n  a #{1}#b\nMSG\n");
+    }
+
+    /// `#` の次の 1 文字を見る `/\A(?!#\+\+|#--)(#+[^#\s=])/` の `\s` は **Ruby の `\s` = ASCII の
+    /// 6 文字**である。no-break space はそこに入らないので、`#<NBSP>comment` は「空白が無い」。
+    ///
+    /// `char::is_whitespace` (Unicode の `White_Space` 全部) で読むと、この形が静かになる
+    /// (`whitespace_probe.py` の 132 形で 8 件)。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/LeadingCommentSpace -A` の実測。
+    #[test]
+    fn leading_comment_space_uses_rubys_own_whitespace_set() {
+        const COP: &str = "Layout/LeadingCommentSpace";
+        expect_correction(COP, "#\u{a0}comment\nx = 1\n", "# \u{a0}comment\nx = 1\n");
+        expect_correction(
+            COP,
+            "#\u{3000}comment\nx = 1\n",
+            "# \u{3000}comment\nx = 1\n",
+        );
+        // ★ 縦タブと改ページは Ruby の `\s` に入るので、空白が有る側に倒れる (報告しない)。
+        expect_no_offenses(COP, "#\u{b}comment\nx = 1\n");
+        expect_no_offenses(COP, "#\u{c}comment\nx = 1\n");
+        expect_no_offenses(COP, "#\tcomment\nx = 1\n");
     }
 
     #[test]

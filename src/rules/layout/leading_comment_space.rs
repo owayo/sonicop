@@ -90,10 +90,12 @@ fn missing_space(body: &str) -> bool {
     if hashes == 0 {
         return false;
     }
-    body[hashes..]
-        .chars()
-        .next()
-        .is_some_and(|character| character != '=' && !character.is_whitespace())
+    body[hashes..].chars().next().is_some_and(|character| {
+        // `\s` in the character class is Ruby's, which is six ASCII characters. **A no-break space
+        // is not one of them**, so `#<NBSP>comment` is missing its space upstream. Reading the class
+        // as Rust's `char::is_whitespace` (all of `White_Space`) let that comment pass.
+        character != '=' && !crate::rules::support::is_ruby_space_char(character)
+    })
 }
 
 /// `#:` / `#[...]` / `#|`.
