@@ -111,9 +111,24 @@ Style/StringLiterals:
 ```
 
 The CLI accepts RuboCop's server/LSP/MCP, plugin, and cache flags to keep existing command lines
-parse-compatible. These flags are reported as compatibility no-ops when they request unsupported
-functionality. Sonicop does not currently provide server transports, Ruby plugin execution, cache
-reuse, custom Ruby cops, or cops outside the implemented set.
+parse-compatible. Sonicop does not provide server transports, Ruby plugin execution, cache reuse,
+custom Ruby cops, or cops outside the implemented set.
+
+Most of those flags say so. `--server`, `--no-server`, `--lsp`, `--mcp`, and `--plugin` each print
+a one-line notice on stderr. The cache flags print nothing, and only one of them is silent for a
+good reason:
+
+- `--cache=false` asks for no caching, which sonicop already satisfies, so silence is the correct
+  answer.
+- `--cache=true` asks for cache reuse, which sonicop does not provide, and it is silent anyway.
+
+Cop settings behave like the second case. A setting sonicop does not implement — for example
+`EnforcedShorthandSyntax` under `Style/HashSyntax` — is ignored without any warning, and so is a
+setting whose name is simply misspelled. **A run that reports no offenses is therefore not evidence
+that a setting took effect**, because an ignored setting and a clean file produce the same output.
+
+Cop *names* are checked: an unrecognised cop in a configuration file stops the run with an error.
+It is the settings inside a recognised cop that pass unvalidated.
 
 ### Conformance
 
