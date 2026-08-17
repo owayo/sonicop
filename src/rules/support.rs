@@ -105,6 +105,27 @@ pub(crate) fn is_ruby_space_char(character: char) -> bool {
     u8::try_from(character).is_ok_and(is_ruby_space)
 }
 
+/// `[[:blank:]]` as Ruby's regexp engine defines it: **horizontal space, and Unicode counts**.
+///
+/// This is the widest of the three sets and the only one that reaches past ASCII: a tab and every
+/// character in Unicode's `Zs` category, which is where a no-break space (U+00A0) and an ideographic
+/// space (U+3000) come in. The vertical ones stay out -- a line break is not blank -- so a run of
+/// them ends a line's trailing whitespace rather than extending it.
+///
+/// Rust's `char::is_whitespace` is `White_Space`, which is `Zs` plus the seven characters below, so
+/// taking those out lands exactly on `[[:blank:]]`. **`str::trim` and friends use the whole of
+/// `White_Space`**, which is why they cannot stand in for any of Ruby's three sets.
+///
+/// Only `Layout/TrailingWhitespace` reads this set upstream (three uses, all in that one cop). Reach
+/// for [`is_ruby_space`] when the original is `/\s/` and [`is_ruby_strippable`] when it is `strip`.
+pub(crate) fn is_ruby_blank(character: char) -> bool {
+    character.is_whitespace()
+        && !matches!(
+            character,
+            '\n' | '\r' | '\u{b}' | '\u{c}' | '\u{85}' | '\u{2028}' | '\u{2029}'
+        )
+}
+
 /// `move_pos_str`: the same walk over a fixed run of characters rather than a class.
 ///
 /// The one caller wants `\` and a line break, which a class cannot express -- a backslash only ends

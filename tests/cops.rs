@@ -341,6 +341,45 @@ mod layout {
         expect_correction("Layout/TrailingWhitespace", "x = 1  \n", "x = 1\n");
     }
 
+    /// 行末の空白は `/[[:blank:]]\z/` で数える。**Ruby の 3 つの空白集合のうち唯一 ASCII の外へ
+    /// 届くもの**で、タブと Unicode の `Zs` (no-break space U+00A0 / 全角空白 U+3000 など) が入り、
+    /// 縦方向 (改行・VT・FF) は入らない。
+    ///
+    /// `[' ', '\t']` で読んでいたので、**空白が Unicode だけの行は報告されていなかった**
+    /// (`whitespace_probe.py` の 132 形で 27 件)。逆に `str::trim` の集合 (`White_Space` 全部) に
+    /// すると VT / FF まで飲んで別のずれになる。
+    ///
+    /// 期待値は本家 1.89.0 の実測。**コード行の末尾に NBSP を置いた形は両者とも構文エラー**になる
+    /// ので、ここでは行全体が空白の形とコメントの末尾で測る (そこは Ruby が受ける)。
+    #[test]
+    fn trailing_whitespace_counts_unicode_horizontal_space() {
+        // コメントの末尾。`# a` の後ろの no-break space を消す。
+        expect_offense(
+            "Layout/TrailingWhitespace",
+            "# a\u{a0}\n   ^ Trailing whitespace detected.\nx = 1\n",
+        );
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "# a\u{a0}\nx = 1\n",
+            "# a\nx = 1\n",
+        );
+        // 行全体が Unicode の空白。**行頭に置くと識別子として読まれる**ので、判定はノードでは
+        // なく行の文字列で行う必要がある。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = 1\n\u{a0}\ny = 2\n",
+            "x = 1\n\ny = 2\n",
+        );
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = 1\n\u{3000}\ny = 2\n",
+            "x = 1\n\ny = 2\n",
+        );
+        // ★ 縦方向は `[[:blank:]]` ではない。VT / FF を飲む実装はここで落ちる。
+        expect_no_offenses("Layout/TrailingWhitespace", "# a\u{b}\nx = 1\n");
+        expect_no_offenses("Layout/TrailingWhitespace", "# a\u{c}\nx = 1\n");
+    }
+
     /// ヒアドキュメント内の行末空白は文字列の一部なので、消すとプログラムが変わる。
     /// 本家は「字下げとして剥がされる分」だけを消し、それ以外は補間で保存する。
     /// 期待値はすべて本家 1.89.0 の `-A` 実出力から取得。
