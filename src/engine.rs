@@ -1212,14 +1212,20 @@ mod trace {
     }
 
     /// The 1-based line and column of an offset, counted the way an offense is reported.
+    ///
+    /// Slices with `get` rather than `[..]`: the offsets this walks are the ones under suspicion
+    /// whenever the trace is worth reading, and an offset landing inside a multi-byte character
+    /// would panic exactly when it is being investigated. A malformed edit should print oddly, not
+    /// take the run down.
     fn position(source: &str, offset: usize) -> (usize, usize) {
-        let head = &source[..offset.min(source.len())];
+        let mut offset = offset.min(source.len());
+        while offset > 0 && !source.is_char_boundary(offset) {
+            offset -= 1;
+        }
+        let head = &source[..offset];
         let line = head.bytes().filter(|byte| *byte == b'\n').count() + 1;
         let start = head.rfind('\n').map_or(0, |index| index + 1);
-        (
-            line,
-            source[start..offset.min(source.len())].chars().count(),
-        )
+        (line, head[start..].chars().count())
     }
 
     pub(super) fn span(source: &str, start: usize, end: usize) -> String {
