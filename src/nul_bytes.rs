@@ -25,6 +25,22 @@ use std::ops::Range;
 
 use tree_sitter::{Node, Parser};
 
+/// The byte a NUL inside a comment is read as.
+///
+/// **Keeping the offsets is not enough; the character class has to survive too.** A space was used
+/// until 2026-08-17, and it made two cops disagree with RuboCop, because a space is `\s` and
+/// `[[:blank:]]` where Ruby's NUL is neither:
+///
+/// | source | what the space made of it | what RuboCop sees |
+/// |---|---|---|
+/// | `# TODO\0 fix it` | `# TODO ` -- a bare annotation keyword | `TODO\0`, which is not one |
+/// | `# frozen_string_literal: true\0` | matches the magic comment's `\s*$` | no magic comment |
+///
+/// `Style/CommentAnnotation` gained 2 offenses and `Style/FrozenStringLiteralComment` lost 43.
+/// `\x01` is the stand-in instead: one byte, not whitespace to any of the patterns, does not end a
+/// comment, and the grammar reads it (measured, both cops agree with upstream again).
+const STAND_IN: u8 = 0x01;
+
 /// The source as Ruby's lexer would have read it, or `None` when there is no NUL to account for --
 /// which is every ordinary file, so this costs one scan and nothing else.
 pub fn as_ruby_reads_it(text: &str) -> Option<String> {
@@ -68,11 +84,11 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
         let mut bytes = std::mem::take(&mut text).into_bytes();
         for byte in &mut bytes[offset..line_end] {
             if *byte == 0 {
-                *byte = b' ';
+                *byte = STAND_IN;
             }
         }
-        // A NUL and a space are both one byte, so every offset the caller holds still lands where it
-        // did and the text is still the UTF-8 it was.
+        // One byte replaced another, so every offset the caller holds still lands where it did and
+        // the text is still the UTF-8 it was.
         text = String::from_utf8(bytes).expect("a one-byte character replaced another");
         from = line_end;
         let Some(tree) = parse(&text) else {
@@ -131,8 +147,33 @@ mod tests {
 
         assert_eq!(
             as_ruby_reads_it(text).as_deref(),
-            Some("# comment   with nul\nx = 1\n")
+            Some("# comment \u{1} with nul\nx = 1\n")
         );
+    }
+
+    /// **The stand-in must not be whitespace.** A space is `\s` and `[[:blank:]]`; Ruby's NUL is
+    /// neither, and two cops read the difference -- `# TODO\0 fix it` became a bare `TODO`
+    /// annotation, and `# frozen_string_literal: true\0` began matching the magic comment's
+    /// `\s*$`, which took the comment away from `Style/FrozenStringLiteralComment` (43 offenses)
+    /// and handed it to `Layout/TrailingWhitespace`.
+    #[test]
+    fn the_stand_in_is_not_whitespace() {
+        for text in [
+            "# TODO\u{0} fix it\nx = 1\n",
+            "# frozen_string_literal: true\u{0}\nx = 1\n",
+        ] {
+            let read = as_ruby_reads_it(text).expect("the source holds a NUL");
+            assert!(
+                read.contains('\u{1}'),
+                "the NUL has to become the stand-in, not whitespace: {read:?}"
+            );
+            assert_eq!(
+                read.matches(' ').count(),
+                text.matches(' ').count(),
+                "no space may be added: {read:?}"
+            );
+            assert_eq!(read.len(), text.len(), "one byte replaced another");
+        }
     }
 
     /// **Ruby keeps a NUL written inside a literal as a character of the string**, and the grammar
@@ -165,7 +206,7 @@ mod tests {
 
         assert_eq!(
             as_ruby_reads_it(text).as_deref(),
-            Some("x = \"a\u{0}b\"\n# c   d\ny = 1")
+            Some("x = \"a\u{0}b\"\n# c \u{1} d\ny = 1")
         );
     }
 
