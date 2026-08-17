@@ -2499,22 +2499,36 @@ mod syntax {
         CopCase::new("Lint/Syntax", source, expected).target_ruby("2.7")
     }
 
-    /// The hint names the version the parser was pinned to, so a case below 2.7 cannot reuse
+    /// The hint names the version the parser was pinned to, so a case away from 2.7 cannot reuse
     /// `unexpected`.
-    fn unexpected_at_2_6(line: usize, column: usize, length: usize, token: &str) -> Annotation {
+    fn unexpected_at(
+        version: &str,
+        line: usize,
+        column: usize,
+        length: usize,
+        token: &str,
+    ) -> Annotation {
         Annotation::new(
             line,
             column,
             length,
             format!(
-                "unexpected token {token}\n(Using Ruby 2.6 parser; configure using \
+                "unexpected token {token}\n(Using Ruby {version} parser; configure using \
                  `TargetRubyVersion` parameter, under `AllCops`)"
             ),
         )
     }
 
+    fn unexpected_at_2_6(line: usize, column: usize, length: usize, token: &str) -> Annotation {
+        unexpected_at("2.6", line, column, length, token)
+    }
+
     fn at_2_6(source: &str, expected: Vec<Annotation>) -> CopCase {
         CopCase::new("Lint/Syntax", source, expected).target_ruby("2.6")
+    }
+
+    fn at_3_0(source: &str, expected: Vec<Annotation>) -> CopCase {
+        CopCase::new("Lint/Syntax", source, expected).target_ruby("3.0")
     }
 
     fn accepted(source: &str, version: &str) -> CopCase {
@@ -2549,6 +2563,70 @@ mod syntax {
         )
         .run();
         accepted("foo in [a]\n", "2.7").run();
+    }
+
+    /// **1 件目だけを出し、2 件目以降は追わない (`#57` の案 A)。**
+    ///
+    /// 本家は節キーワードを全部報告したあと、**入れ子に応じた位置の余剰な `end`** を出す
+    /// (top-level なら case 自身、`def` の中なら def の `end`、2 重に入れ子なら**いちばん外側**、
+    /// そして `def` の中の `else` は `else without rescue is useless` という別の診断になる)。
+    /// **規則ではなく本家のパーサの状態機械そのもの**なので、モデル化しない。
+    ///
+    /// これは Homebrew に引いたのと同じ線である — **両者が同じく構文エラーと呼ぶファイルの中で、
+    /// 2 件目以降の診断は追わない。**1 件目は実測で確定していて、**そのファイルで他の cop を
+    /// 止める**という肝心な働きはそれだけで得られる。
+    ///
+    /// 実測 (本家 1.89.0、2.6): `case a / in [x] / 1 / end` → 2:1 kIN と 4:1 kEND の 2 件。
+    #[test]
+    fn pattern_matching_needs_ruby_2_7() {
+        at_2_6(
+            "case a\nin [x]\n  1\nend\nbaz\n",
+            vec![unexpected_at_2_6(2, 1, 2, "kIN")],
+        )
+        .run();
+        accepted("case a\nin [x]\n  1\nend\n", "2.7").run();
+    }
+
+    /// 飛ばすのは**その `case` の中だけ**である。本家は 2 つ目の `case` も報告するので、
+    /// 回復の範囲を広く取りすぎると 2 つ目が消える。
+    ///
+    /// 実測 (2.6): 2:1 kIN / 4:1 kEND / 6:1 kIN / 8:1 kEND の 4 件。
+    #[test]
+    fn a_second_case_is_reported_on_its_own() {
+        at_2_6(
+            "case a\nin [x]\n  1\nend\ncase b\nin [y]\n  2\nend\n",
+            vec![
+                unexpected_at_2_6(2, 1, 2, "kIN"),
+                unexpected_at_2_6(6, 1, 2, "kIN"),
+            ],
+        )
+        .run();
+    }
+
+    /// **ピンで式を書けるのは 3.1 から**で、変数を指すだけの `^x` はパターンマッチと同い年。
+    /// 本家が blame するのは `^` ではなく**その次の `(`** である。
+    ///
+    /// 実測 (3.0): `case a / in ^(1 + 1) / 1 / end` → 2:5 tLPAREN と 4:1 kEND の 2 件。
+    #[test]
+    fn an_expression_pin_needs_ruby_3_1() {
+        at_3_0(
+            "case a\nin ^(1 + 1)\n  1\nend\nbaz\n",
+            vec![unexpected_at("3.0", 2, 5, 1, "tLPAREN")],
+        )
+        .run();
+        accepted("case a\nin ^(1 + 1)\n  1\nend\n", "3.1").run();
+        accepted("case a\nin ^x\n  1\nend\n", "3.0").run();
+    }
+
+    /// 1 行の `in` にはあとに続く節も `end` も無いので、**ここでは本家も 1 件しか出さない** —
+    /// 上の 2 つと違って何も withhold していない。
+    #[test]
+    fn a_one_line_expression_pin_is_the_whole_report() {
+        at_3_0(
+            "a in ^(1 + 1)\nbaz\n",
+            vec![unexpected_at("3.0", 1, 7, 1, "tLPAREN")],
+        )
+        .run();
     }
 
     /// `**nil` は **`nil` のほうが**報告される (`**` ではない)。定義は生き残るので、

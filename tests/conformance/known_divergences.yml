@@ -92,6 +92,35 @@ autocorrect_divergences:
     reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
 
 blind_spots:
+  # --- 構文エラーになったファイルの中の、2 件目以降の Lint/Syntax (#57・2026-08-17) ---
+  # **両者が同じく構文エラーと呼ぶファイルの中では、1 件目より後ろの診断を追わない。**
+  # 線はここに 1 本だけ引く。下の 2 つは同じ族なので、同じ扱いにする。
+  #
+  #   1. 実コーパスの残差
+  #      Homebrew/brew 2,183 ファイルで Lint/Syntax が missing 999 / excess 266。
+  #      **Lint/Syntax 以外は missing 0 / excess 0** (約 5 万 offense、multiset で照合)。
+  #      Lint/Syntax を持つファイルの集合は 569 対 569 で完全一致し、食い違うのは
+  #      その中の 2 件目以降の位置だけ。1 件目は一致する。
+  #      569 が構文エラーになるのは、Ruby 4.0 のコードベース (Library/Homebrew/.ruby-version
+  #      = 4.0.6) を既定の 2.7 で測っているため。3.1 で測ると両者 0 件になる。
+  #
+  #   2. 版のゲート (case/in と 式のピン `^(expr)`)
+  #      本家は節キーワードを全部報告したあと、入れ子に応じた位置の余剰な `end` を出す。
+  #      top-level なら case 自身、`def` の中なら def の `end`、2 重の入れ子ならいちばん外側。
+  #      さらに `def` の中の `else` は `else without rescue is useless` になり、
+  #      「予期しないトークン」ですらない。**規則ではなくパーサの状態機械そのもの**なので
+  #      モデル化しない。1 件目だけを出す (tests/cops.rs の syntax mod を参照)。
+  #
+  # **1 件目を出すことに意味がある**のは、それでファイルが構文エラーになり
+  # **他の cop が 1 つも走らなくなる**からである。失われていた最大のものはそれで、
+  # 診断の件数ではない。
+  - corpus: Homebrew/brew ほか、構文エラーを含む全コーパス
+    not_covered: 両者が構文エラーと呼ぶファイルの中の、2 件目以降の Lint/Syntax の位置
+    consequence: 件数と位置が食い違う (Homebrew で missing 999 / excess 266)。1 件目と「そのファイルを検査しない」ことは一致する
+    note: >-
+      2 つのパーサ (whitequark/parser と tree-sitter) が同じ壊れた入力から違う回復をする。
+      追うには本家のパーサの状態機械を再実装することになる。**Lint/Syntax 以外の
+      過剰検出・見落としは 0 件**なので、cop の適合性そのものには影響しない。
   - corpus: 全コーパス
     not_covered: 既定以外の設定値 (EnforcedStyle の非既定値・CountAsOne・Max の変更など)
     consequence: 設定分岐は tests/cops.rs の手書きケースでしか通らず、実プロジェクトの .rubocop.yml で差分が出得る

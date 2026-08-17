@@ -14,12 +14,14 @@ use crate::rules::node_ext::NodeExt;
 /// all of them, which is why every one of these has to be gated by hand.
 const BEGINLESS_RANGE_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ARGUMENT_FORWARDING_SINCE: RubyVersion = RubyVersion::new(2, 7);
+const PATTERN_MATCHING_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ONE_LINE_PATTERN_MATCH_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const KEYWORD_ARGUMENT_REJECTION_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ENDLESS_METHOD_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const RIGHTWARD_ASSIGNMENT_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const FIND_PATTERN_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const HASH_VALUE_OMISSION_SINCE: RubyVersion = RubyVersion::new(3, 1);
+const EXPRESSION_PIN_SINCE: RubyVersion = RubyVersion::new(3, 1);
 const ANONYMOUS_BLOCK_FORWARDING_SINCE: RubyVersion = RubyVersion::new(3, 1);
 const ANONYMOUS_REST_FORWARDING_SINCE: RubyVersion = RubyVersion::new(3, 2);
 const COMMAND_ARGUMENT_STATEMENTS_SINCE: RubyVersion = RubyVersion::new(3, 3);
@@ -181,6 +183,9 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
                 lost_its_definition = true;
                 method_body_recovery(node, context, out);
             }
+        } else if gate.first_only {
+            // The rest of what upstream reports here is a known divergence, so nothing about how
+            // the file resumes is claimed either.
         } else if let Some(statement) = statement_closing_its_body(node) {
             resumed_at = Some(statement.end_byte().max(resumed_at.unwrap_or(0)));
         }
@@ -258,6 +263,9 @@ struct Gate {
     /// a later use nor the end of the input is ever reached.
     abandons_file: bool,
     legacy_forwarding: bool,
+    /// Set when upstream reports **more** after this one and the shape of those further
+    /// diagnostics is not modelled here. Only this one is emitted; see `first_only()`.
+    first_only: bool,
 }
 
 impl Gate {
@@ -270,6 +278,7 @@ impl Gate {
             in_method_body: false,
             abandons_file: false,
             legacy_forwarding: false,
+            first_only: false,
         }
     }
 
@@ -290,6 +299,27 @@ impl Gate {
 
     fn legacy_forwarding(mut self) -> Self {
         self.legacy_forwarding = true;
+        self
+    }
+
+    /// **Report the first diagnostic and stop.**
+    ///
+    /// Upstream reports one or two more after this one, at a position that depends on what the
+    /// `case` was written inside of: its own `end` at the top level, the enclosing `def`'s or
+    /// `begin`'s `end` when nested (the `case`'s own `end` and any statement between are eaten),
+    /// the **outermost** `end` when nested twice -- and inside a method an `else` becomes
+    /// `else without rescue is useless`, which is not an unexpected-token diagnostic at all.
+    /// Reproducing that is reproducing the parser's state machine.
+    ///
+    /// **The line drawn here is the one drawn for Homebrew**: in a file both sides call a syntax
+    /// error, the diagnostics after the first are not chased (`#57`). The first one is measured and
+    /// exact, and it is what makes the file unparsable so that no other cop runs on it -- which is
+    /// the whole of what was missing.
+    /// The caller pairs this with `recovers_through` over the construct the error was found in:
+    /// a second `case` further down the file **is** reported (measured), so the region skipped has
+    /// to stop at the first one's `end`.
+    fn first_only(mut self) -> Self {
+        self.first_only = true;
         self
     }
 }
@@ -336,6 +366,46 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
                 "unexpected token tEQL".to_owned(),
                 equals.byte_range(),
             ))
+        }
+        // `case a / in Integer / ... / end`. Upstream reports every clause keyword and then a
+        // surplus `end` whose position depends on the nesting, so only the first is claimed --
+        // see `Gate::first_only`. A second `case` further down the file is reported on its own.
+        "case_match" => {
+            let clause = direct_children(node)
+                .into_iter()
+                .find(|child| child.kind_str() == "in_clause")?;
+            let keyword = direct_children(clause)
+                .into_iter()
+                .find(|child| !child.is_named() && child.kind_str() == "in")?;
+            Some(
+                Gate::new(
+                    PATTERN_MATCHING_SINCE,
+                    "unexpected token kIN".to_owned(),
+                    keyword.byte_range(),
+                )
+                .first_only()
+                .recovers_through(node.end_byte()),
+            )
+        }
+        // `in ^(1 + 1)`. Pinning a **variable** has been allowed since pattern matching itself;
+        // 3.1 is when the pin was allowed to hold an expression, and the parser blames the `(`
+        // rather than the `^`.
+        "expression_reference_pattern" => {
+            let paren = direct_children(node)
+                .into_iter()
+                .find(|child| !child.is_named() && child.kind_str() == "(")?;
+            let owner = ancestor_matching(node, |ancestor| ancestor.kind_str() == "case_match");
+            let gate = Gate::new(
+                EXPRESSION_PIN_SINCE,
+                "unexpected token tLPAREN".to_owned(),
+                paren.byte_range(),
+            );
+            Some(match owner {
+                // A one-line `a in ^(1 + 1)` is the whole of what upstream reports, so nothing is
+                // withheld there and the statement is where the parser resumes.
+                None => gate.recovers_through(enclosing_statement(node).unwrap_or(node).end_byte()),
+                Some(case) => gate.first_only().recovers_through(case.end_byte()),
+            })
         }
         // `42 in Integer`. The parser stops at the keyword and picks the next statement up after
         // the one it was in, so this reports once and nothing else changes -- measured with a
