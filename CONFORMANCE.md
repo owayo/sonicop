@@ -78,7 +78,8 @@ as such.
 its 2,179 files and 49,920 offenses the two agree on every position, message, severity and
 correctability that is not a syntax diagnostic.
 
-Homebrew's 997 has a single cause, and it is not a parser bug on either side. Homebrew is a Ruby 4.0
+Homebrew's 1,260 differences — 997 missing and 263 excess — share one cause, and it is not a parser
+bug on either side. Homebrew is a Ruby 4.0
 codebase — `Library/Homebrew/.ruby-version` says `4.0.6` — but that file sits below the directory the
 run starts from, and `TargetRubyVersion` is only inferred from the working directory's ancestors. Both
 tools therefore fall back to the default of 2.7 (RuboCop says so itself: `Using Ruby 2.7 parser`) and
@@ -86,7 +87,12 @@ both call `dry_run:,` — a hash value omission, valid since 3.1 — a syntax er
 at 3.1 and both report zero `Lint/Syntax`.** What is left is not disagreement about which files parse:
 the file sets are identical, 569 on each side, and the first diagnostic in each file lands at the same
 position. Only the second and later diagnostics diverge, because the two parsers recover from the
-error differently. Those are not chased; see *Known divergences*.
+error differently — which is what puts offenses on both sides of the ledger rather than only on
+RuboCop's. Those are not chased; see *Known divergences*.
+
+What is checked here is that every one of the 1,260 is a `Lint/Syntax` offense, in both directions.
+What is not checked is which recovery produced which diagnostic: the 263 Sonicop reports and RuboCop
+does not have not been read one by one. They are accounted for as a class, not individually.
 
 Much of ruby/ruby's difference is the same shape,
 with 117 of the 585 missing and 44 of the 142 excess being `Lint/Syntax` itself,
