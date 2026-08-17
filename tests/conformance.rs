@@ -6105,6 +6105,23 @@ fn catalogue() -> Vec<CopCase> {
         )
         .id("style_empty_literal")
         .correctable(true),
+        // 既知差分 `style-empty-literal-safe-navigation-argument`。**訂正だけが割れる**ので、
+        // 期待する offense は本家と同じ 1 件である。
+        //
+        // `corrected` に書くのは **本家の出力**であって、移植版の出力ではない。ケースは
+        // 「本家がどう振る舞うか」を持ち、移植版がそこからどう外れるかを
+        // `known_divergences.yml` が持つ、という分担になっている。ここに移植版の側を書くと
+        // 差分が発生せず、マニフェストの登録が「もう直っている」と判定されて落ちる。
+        CopCase::annotated(
+            "Style/EmptyLiteral",
+            r#"
+            recv&.foo Hash.new
+                      ^^^^^^^^ Use hash literal `{}` instead of `Hash.new`.
+            "#,
+        )
+        .id("style_empty_literal_safe_navigation_argument")
+        .corrected("recv&.foo {}\n")
+        .correctable(true),
         CopCase::annotated(
             "Style/CommentAnnotation",
             r#"

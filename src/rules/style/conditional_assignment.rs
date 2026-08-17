@@ -5,9 +5,9 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
 use crate::rules::support;
-use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Use the return of the conditional for variable assignment and comparison.";
 const ASSIGN_TO_CONDITION_MSG: &str = "Assign variables inside of conditionals.";
@@ -131,10 +131,7 @@ impl Cop<'_, '_> {
         if node.kind_str() == "conditional" {
             return Some(Conditional {
                 node,
-                branches: vec![
-                    node.field("consequence")?,
-                    node.field("alternative")?,
-                ],
+                branches: vec![node.field("consequence")?, node.field("alternative")?],
                 ternary: true,
                 case_like: false,
             });
@@ -271,9 +268,19 @@ impl Cop<'_, '_> {
                     }
                     "call" => {
                         let method = left.field("method")?;
-                        let receiver = left
-                            .field("receiver")
-                            .map_or_else(String::new, text);
+                        // `a&.b = 1` is a `csend` upstream, and this cop defines `on_send` without
+                        // an `on_csend`, so upstream never visits it. `csend` is a *type of its
+                        // own*, not a flavour of `send`: `send_type?` answers false for it. The
+                        // grammar spells both as a `call` with different operators, so the
+                        // distinction has to be made here or the cop reports what upstream is
+                        // silent about.
+                        if left
+                            .field("operator")
+                            .is_some_and(|operator| self.context.source.node_text(operator) == "&.")
+                        {
+                            return None;
+                        }
+                        let receiver = left.field("receiver").map_or_else(String::new, text);
                         (Kind::Send, format!("{receiver}.{} = ", text(method)))
                     }
                     _ => return None,
@@ -329,9 +336,7 @@ impl Cop<'_, '_> {
                 }
                 let arguments = send_node::arguments(node);
                 let value = arguments.last()?.first();
-                let receiver = node
-                    .field("receiver")
-                    .map_or_else(String::new, text);
+                let receiver = node.field("receiver").map_or_else(String::new, text);
                 // `lhs_for_send`: a setter is written with an `=`, and every other operator with
                 // the name it was called by.
                 let lhs = match name.ends_with('=') && !COMPARISON_OPERATORS.contains(&name) {
@@ -455,10 +460,9 @@ impl Cop<'_, '_> {
             };
             // `assignment_rhs_exist?`: a target of a multiple assignment or a `rescue => e` has no
             // right-hand side of its own.
-            if node
-                .parent_of(self.context)
-                .is_some_and(|parent| matches!(parent.kind_str(), "left_assignment_list" | "rescue"))
-            {
+            if node.parent_of(self.context).is_some_and(|parent| {
+                matches!(parent.kind_str(), "left_assignment_list" | "rescue")
+            }) {
                 continue;
             }
             let value = strip_parentheses(assignment.value);
@@ -550,13 +554,10 @@ fn raw_branches<'t>(node: Node<'t>) -> Vec<Node<'t>> {
             .into_iter()
             .filter(|child| matches!(child.kind_str(), "when" | "in_clause" | "else"))
             .collect(),
-        _ => [
-            node.field("consequence"),
-            node.field("alternative"),
-        ]
-        .into_iter()
-        .flatten()
-        .collect(),
+        _ => [node.field("consequence"), node.field("alternative")]
+            .into_iter()
+            .flatten()
+            .collect(),
     }
 }
 

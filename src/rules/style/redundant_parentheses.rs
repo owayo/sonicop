@@ -397,10 +397,21 @@ fn like_method_argument_parentheses(
 ) -> bool {
     // A setter call takes the assigned value as its only argument, is never written with
     // parentheses, and is named after no operator -- `a[0] = (x)` is `:[]=`, which is one.
+    // `a&.b = (x)` is a `csend` upstream, and this guard opens with
+    // `node.type?(:send, :super, :yield)` -- **`:csend` is not in that list**. So upstream does
+    // *not* treat the parentheses as the call's own and goes on to report them, while `a.b = (x)`
+    // is left alone.
+    //
+    // Note the direction. This is an *exclusion*: upstream forgetting `csend` here makes upstream
+    // report **more**, so mirroring `send` and `csend` as one kind costs a detection rather than
+    // adding a false one. The same omission on an *inclusion* list (a cop with `on_send` and no
+    // `on_csend`) does the opposite -- see `style/conditional_assignment.rs`, which had to start
+    // ignoring `&.` for the same underlying reason.
     if is_setter_assignment(parent) {
-        return parent
-            .field("left")
-            .is_some_and(|left| left.kind_str() == "call")
+        return !is_safe_navigation(context, parent)
+            && parent
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "call")
             && parent
                 .field("right")
                 .is_some_and(|right| right.id() == node.id());
@@ -554,8 +565,14 @@ fn find_offense_message(
         {
             return None;
         }
+        // `ALLOWED_NODE_TYPES.include?(begin_node.parent&.type)`, where the constant is the literal
+        // list `%i[or send splat kwsplat]`. It spells `send` on its own, so **`csend` is not in
+        // it** -- unlike the `call_type?` tests elsewhere in this cop, which mean both. Reading
+        // this one as `call_type?` is what lost `a&.b = (c && d)`: the list is consulted to
+        // *suppress*, so folding `csend` into `send` here silences a real offense instead of
+        // adding a false one.
         if parent_node(context, node).is_some_and(|parent| {
-            is_call(context, parent)
+            (is_call(context, parent) && !is_safe_navigation(context, parent))
                 || is_or(context, parent)
                 || ALLOWED_PARENT_KINDS.contains(&parent.kind_str())
         }) {
@@ -832,6 +849,25 @@ fn is_setter_assignment(node: Node<'_>) -> bool {
         && node
             .field("left")
             .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
+}
+
+/// Whether the node is a `csend` upstream rather than a `send`.
+///
+/// The grammar spells `a.b` and `a&.b` as the same `call` node, told apart only by the operator,
+/// and a setter puts that call on an assignment's left. Upstream keeps them as two node types, and
+/// most of this cop's tests are `call_type?`, which covers both -- so the distinction only has to
+/// be drawn where upstream names `:send` on its own.
+fn is_safe_navigation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let call = match node.kind_str() {
+        "assignment" => node.field("left"),
+        _ => Some(node),
+    };
+    call.is_some_and(|call| {
+        call.kind_str() == "call"
+            && call
+                .field("operator")
+                .is_some_and(|operator| context.source.node_text(operator) == "&.")
+    })
 }
 
 /// `SendNode#receiver`: the operand the grammar names differently for each shape a call takes.
