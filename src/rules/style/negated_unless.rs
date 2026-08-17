@@ -23,9 +23,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(negated) = super::negated_while::single_negative(context, condition) else {
             continue;
         };
-        let Some(operand) = negated.field("operand") else {
-            continue;
-        };
         let Some(keyword) = super::conditional::token(node, &["unless"]) else {
             continue;
         };
@@ -43,9 +40,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         safe: true,
                     },
                     Edit {
-                        start: negated.start_byte(),
-                        end: negated.end_byte(),
-                        replacement: context.source.node_text(operand).to_owned(),
+                        start: negated.node.start_byte(),
+                        end: negated.node.end_byte(),
+                        replacement: context.source.node_text(negated.operand).to_owned(),
                         safe: true,
                     },
                 ]),

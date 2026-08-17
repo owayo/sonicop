@@ -37392,3 +37392,57 @@ mod layout_block_end_newline_heredoc {
             .run();
     }
 }
+
+/// `(send _ :!)` は文法では 2 通りに綴られる -- `!x` は `unary`、`x.!` は `call`。
+///
+/// 本家の述語 (`negation_method?` / `prefix_bang?`) は AST の上にあるので両方に当たるが、
+/// 移植版は 15 箇所で別々に書き直していて、どれも `unary` しか見ていなかった。**不足の
+/// 向き** (後置を否定と読まない) と**過剰の向き** (内側の後置が見えず `!x.!` を単一の否定と
+/// 読む) の両方が出る。`&.` は本家では `csend` なので、どちらの段でも当たらない。
+mod negation_spellings {
+    use super::*;
+
+    #[test]
+    fn the_conditional_cops_read_both_spellings() {
+        expect_correction(
+            "Style/NegatedIf",
+            "if x.!\n  foo\nend\n",
+            "unless x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedIf", "if !x.!\n  foo\nend\n");
+        expect_no_offenses("Style/NegatedIf", "if x&.!\n  foo\nend\n");
+
+        expect_correction(
+            "Style/NegatedUnless",
+            "unless x.!\n  foo\nend\n",
+            "if x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedUnless", "unless !x.!\n  foo\nend\n");
+
+        expect_correction(
+            "Style/NegatedWhile",
+            "while x.!\n  foo\nend\n",
+            "until x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedWhile", "while !x.!\n  foo\nend\n");
+    }
+
+    #[test]
+    fn the_branch_and_condition_cops_read_both_spellings() {
+        expect_correction(
+            "Style/NegatedIfElseCondition",
+            "if x.!\n  foo\nelse\n  bar\nend\n",
+            "if x\n  bar\nelse\n  foo\nend\n",
+        );
+        // 後置の `!` は**検出だけ**が本家と一致する。本家の訂正は `foo if x.` -- 構文エラー
+        // なので、こちらは安全網が訂正を丸ごと落として offense だけを報告する。直す前は
+        // `foo if x.!` という**意味が反転した valid なコード**を出していた。
+        expect_offense(
+            "Style/InvertibleUnlessCondition",
+            r#"
+            foo unless x.!
+            ^^^^^^^^^^^^^^ Prefer `if x` over `unless x.!`.
+            "#,
+        );
+    }
+}

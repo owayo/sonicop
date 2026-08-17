@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::is_plain_send;
+use crate::rules::send_node;
 
 const MSG: &str = "Avoid the use of double negation (`!!`).";
 
@@ -44,11 +44,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(selector) = bang(context, node) else {
             continue;
         };
-        let operand = match node.kind_str() {
-            "unary" => node.field("operand"),
-            _ => node.field("receiver"),
-        };
-        if !operand.is_some_and(|operand| is_negation(context, operand)) {
+        // `(send (send _ :!) :!)`: the inner one may be `not x`, whose selector is not `!`.
+        let inner = send_node::negation(node, context)
+            .and_then(|found| send_node::negation(found.operand, context));
+        if inner.is_none() {
             continue;
         }
         if allowed_in_returns && allowed_in_returns_here(context, node) {
@@ -78,35 +77,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `node.prefix_bang?`: the `!` this cop reports on, whichever way it was written.
-///
-/// `not not x` is the same `(send (send _ :!) :!)` upstream, but `loc.selector` is `not`, so the
-/// outer one has to be spelled `!`. A `&.!` is a `csend`, which the pattern does not match at all.
+/// `node.prefix_bang?`: the `!` this cop reports on, which `not not x` is not.
 fn bang<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option<Node<'tree>> {
-    let selector = match node.kind_str() {
-        "unary" => node.field("operator")?,
-        "call" => node
-            .field("method")
-            .filter(|_| is_plain_send(node, context))?,
-        _ => return None,
-    };
-    (context.source.node_text(selector) == "!").then_some(selector)
-}
-
-/// `(send _ :!)`, which `not x` and `x.!` are as much as `!x` -- but `x&.!` is not.
-fn is_negation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    match node.kind_str() {
-        "unary" => node
-            .field("operator")
-            .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not")),
-        "call" => {
-            is_plain_send(node, context)
-                && node
-                    .field("method")
-                    .is_some_and(|method| context.source.node_text(method) == "!")
-        }
-        _ => false,
-    }
+    send_node::bang(node, context).map(|found| found.selector)
 }
 
 /// `allowed_in_returns?`: the value the enclosing method hands back may be spelled this way.

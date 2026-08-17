@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 use crate::rules::support;
 
 /// `"else".len()` and `"end".len()`, the two keywords whose spans are fixed.
@@ -59,32 +60,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `negation_method?`: whether the node is `!x`.
-///
-/// Upstream's parser builds the same `(send x :!)` for `!x` and for `not x`, so a pattern written
-/// for the operator matches the keyword too. The grammar keeps the spelling, and reading only `!`
-/// is the cop going quiet on every `if not x`.
-fn is_negation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    node.kind_str() == "unary"
-        && node
-            .field("operator")
-            .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"))
-}
 
 /// `correct_negated_condition`: what the condition says once the negation is taken out.
 fn inverted_condition(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
-    match node.kind_str() {
-        "unary" => {
-            if !is_negation(node, context) {
-                return None;
-            }
-            let operand = node.field("operand")?;
-            // `double_negation?`: `!!x` is a way of casting to a boolean, not a negation to undo.
-            if is_negation(operand, context) {
-                return None;
-            }
-            Some(context.source.node_text(operand).to_owned())
+    // `negation_method?` is on the AST, so `!x`, `not x` and `x.!` are all the same node
+    // upstream. Reading only the `unary` spelling left the cop silent on `if x.!`.
+    if let Some(found) = send_node::negation(node, context) {
+        // `double_negation?`: `!!x` is a way of casting to a boolean, not a negation to undo.
+        if send_node::negation(found.operand, context).is_some() {
+            return None;
         }
+        return Some(context.source.node_text(found.operand).to_owned());
+    }
+    match node.kind_str() {
         // `NEGATED_EQUALITY_METHODS`.
         "binary" => {
             let inverted = match context.source.node_text(node.field("operator")?) {

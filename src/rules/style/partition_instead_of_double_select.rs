@@ -319,16 +319,9 @@ fn negated_body(
     let (Some(body), Some(other)) = (body, other) else {
         return false;
     };
-    if body.kind_str() != "unary" {
-        return false;
-    }
-    let negation = body
-        .field("operator")
-        .is_some_and(|operator| matches!(context.source.node_text(operator), "!" | "not"));
-    negation
-        && body
-            .field("operand")
-            .is_some_and(|operand| identical(operand, other, context))
+    // `(send X :!)`: the grammar spells it `unary` for `!x` and `call` for `x.!`.
+    send_node::negation(body, context)
+        .is_some_and(|found| identical(found.operand, other, context))
 }
 
 /// `build_partition_call`: the same call with its selector swapped for `partition`.

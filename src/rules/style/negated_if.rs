@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
@@ -27,9 +28,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(negation) = single_negative(context, condition) else {
             continue;
         };
-        let Some(operand) = negation.field("operand") else {
-            continue;
-        };
         let Some(keyword) = super::conditional::token(node, &["if"]) else {
             continue;
         };
@@ -47,9 +45,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         safe: true,
                     },
                     Edit {
-                        start: negation.start_byte(),
-                        end: negation.end_byte(),
-                        replacement: context.source.node_text(operand).to_owned(),
+                        start: negation.node.start_byte(),
+                        end: negation.node.end_byte(),
+                        replacement: context.source.node_text(negation.operand).to_owned(),
                         safe: true,
                     },
                 ]),
@@ -62,30 +60,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn single_negative<'tree>(
     context: &RuleContext<'_>,
     condition: Node<'tree>,
-) -> Option<Node<'tree>> {
+) -> Option<send_node::Negation<'tree>> {
     let mut current = condition;
     // `condition = condition.children.last while condition.begin_type?`, with `(begin)` -- an
     // empty condition -- excluded before the loop even starts.
     while current.kind_str() == "parenthesized_statements" {
         current = *super::nodes::children(current).last()?;
     }
-    if current.kind_str() != "unary" {
+    let found = send_node::negation(current, context)?;
+    // `!(send _ :!)`: `!!x` negates a negation and is left alone. **The inner one may be written
+    // `x.!`**, which is the same `(send _ :!)` upstream.
+    if send_node::negation(found.operand, context).is_some() {
         return None;
     }
-    let operator = current.field("operator")?;
-    if !matches!(context.source.node_text(operator), "!" | "not") {
-        return None;
-    }
-    let operand = current.field("operand")?;
-    // `!(send _ :!)`: `!!x` negates a negation and is left alone.
-    if operand.kind_str() == "unary"
-        && operand
-            .field("operator")
-            .is_some_and(|inner| matches!(context.source.node_text(inner), "!" | "not"))
-    {
-        return None;
-    }
-    Some(current)
+    Some(found)
 }
 
 fn has_else(node: Node<'_>) -> bool {
