@@ -95,9 +95,14 @@ pub(super) fn scan<'tree>(
 
 impl Ambiguity<'_> {
     /// `add_parentheses`: the space that opened the argument list becomes the `(`.
+    ///
+    /// **`args_end` is the end of the arguments, which is not the end of the call.** Upstream's
+    /// `send` stops at the last argument and holds any `do ... end` in a separate node above it,
+    /// while this grammar keeps the block inside the `call`. Closing at the call would put the
+    /// `)` after the `end` and write `p(/pattern/ do ... end)`, which Ruby rejects.
     pub(super) fn parenthesize(&self, context: &RuleContext<'_>) -> Vec<Edit> {
         let opening = self.arguments.start_byte() - 1;
-        let closing = self.owner.end_byte();
+        let closing = self.arguments.end_byte();
         let _ = context;
         vec![
             Edit {

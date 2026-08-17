@@ -93,7 +93,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     continue;
                 };
                 edits.push(removal(
-                    final_pos(text, close.start_byte(), false, false, true, false)..close.end_byte(),
+                    final_pos(text, close.start_byte(), false, false, true, false)
+                        ..close.end_byte(),
                 ));
             }
             // `remove_assignment`: the blank after it goes too, line break included.
@@ -128,7 +129,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             && context.source.node_text(sibling) == variable.name
         {
             edits.push(removal(
-                final_pos(text, sibling.start_byte(), false, false, true, false)..sibling.end_byte(),
+                final_pos(text, sibling.start_byte(), false, false, true, false)
+                    ..sibling.end_byte(),
             ));
         }
         edits.push(Edit {
@@ -171,6 +173,12 @@ fn each_block_with_push<'tree>(
     // `!{nil? self}`: a receiverless `each` and `self.each` are not what the cop is about.
     let receiver = node.field("receiver")?;
     if receiver.kind_str() == "self" {
+        return None;
+    }
+    // `(send !{nil? self} :each)` names no argument, so a pattern with no argument slots only
+    // matches a call that has none. `StringIO#each(sep)` and friends take one and mean something
+    // else, and there is no `map` that would say the same thing.
+    if !arguments(node).is_empty() {
         return None;
     }
     let block = node.field("block")?;

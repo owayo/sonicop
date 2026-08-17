@@ -16,14 +16,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "no_space".to_owned());
     let text = context.source.text();
 
-    for node in context.nodes_of_any(&["block", "do_block"]) {
-        let Some(parameters) = node
-            .field("parameters")
-            .filter(|parameters| parameters.kind_str() == "block_parameters")
-        else {
+    // A lambda literal is a `block` node upstream as well (`(block (lambda) (args ...) body)`), so
+    // `on_block` sees `->( x, y) { }` and reports its parentheses under the same messages as a
+    // block's pipes. The grammar gives the literal a node of its own, so it has to be walked here
+    // too -- leaving it out was 8 missed offenses in the cop's own spec.
+    for node in context.nodes_of_any(&["block", "do_block", "lambda"]) {
+        let Some(parameters) = node.field("parameters").filter(|parameters| {
+            matches!(
+                parameters.kind_str(),
+                "block_parameters" | "lambda_parameters"
+            )
+        }) else {
             continue;
         };
-        let (Some(open), Some(close)) = pipes(parameters) else {
+        let (Some(open), Some(close)) = delimiters(parameters) else {
             continue;
         };
         let arguments = block_arguments(parameters);
@@ -142,15 +148,32 @@ fn insert(offset: usize) -> Edit {
     }
 }
 
-fn pipes<'tree>(parameters: Node<'tree>) -> (Option<Node<'tree>>, Option<Node<'tree>>) {
+/// `pipes`: `[arguments.loc.begin, arguments.loc.end]`.
+///
+/// **A lambda's parameter list is delimited by parentheses, and upstream reads the same two
+/// locations for it** -- `->( x, y)` is reported as "Space before first block parameter" exactly as
+/// `{ | x, y| }` is. A list written without them (`->x { }`, `{ x }`) has neither location, which is
+/// what `pipes?` stops the cop on.
+fn delimiters<'tree>(parameters: Node<'tree>) -> (Option<Node<'tree>>, Option<Node<'tree>>) {
+    let (opening, closing) = match parameters.kind_str() {
+        "lambda_parameters" => ("(", ")"),
+        _ => ("|", "|"),
+    };
     let mut cursor = parameters.walk();
-    let bars: Vec<Node<'tree>> = parameters
-        .children(&mut cursor)
-        .filter(|child| child.kind_str() == "|")
-        .collect();
-    match bars.len() {
-        0 | 1 => (None, None),
-        _ => (bars.first().copied(), bars.last().copied()),
+    let children: Vec<Node<'tree>> = parameters.children(&mut cursor).collect();
+    let open = children
+        .iter()
+        .find(|child| child.kind_str() == opening)
+        .copied();
+    let close = children
+        .iter()
+        .rev()
+        .find(|child| child.kind_str() == closing)
+        .copied();
+    match (open, close) {
+        // One `|` is not a pair, and neither is a `(` the parser recovered without its `)`.
+        (Some(open), Some(close)) if open.id() != close.id() => (Some(open), Some(close)),
+        _ => (None, None),
     }
 }
 
@@ -185,8 +208,16 @@ fn last_end_inside_pipes(text: &str, parameters: Node<'_>, last: Node<'_>) -> us
 }
 
 /// `block.body.source_range.begin_pos`: where the first statement of the block starts.
+///
+/// A lambda literal's `body` field is the brace block itself rather than its statements, so that
+/// one takes a further step in. Upstream reads `arguments.parent.body`, and the parent of a
+/// lambda's argument list is the same `block` node a brace block has.
 fn body_start(node: Node<'_>) -> Option<usize> {
     let body = node.field("body")?;
+    let body = match body.kind_str() {
+        "block" | "do_block" => body.field("body")?,
+        _ => body,
+    };
     body_statements(body)
         .first()
         .map(tree_sitter::Node::start_byte)

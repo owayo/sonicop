@@ -10,8 +10,8 @@ use super::support::{
     line_indentation, string_interiors,
 };
 use crate::diagnostic::Offense;
-use crate::rules::{RuleContext, push_named_children};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::{RuleContext, push_named_children};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
@@ -223,9 +223,7 @@ impl Checker<'_, '_> {
     }
 
     fn on_while(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let (Some(keyword), Some(condition)) =
-            (node.child(0), node.field("condition"))
-        else {
+        let (Some(keyword), Some(condition)) = (node.child(0), node.field("condition")) else {
             return;
         };
         // `single_line_condition?`: the condition opens on the keyword's own line.
@@ -234,11 +232,7 @@ impl Checker<'_, '_> {
         {
             return;
         }
-        self.check_container(
-            node.byte_range(),
-            node.field("body"),
-            offenses,
-        );
+        self.check_container(node.byte_range(), node.field("body"), offenses);
     }
 
     fn on_case(&mut self, node: Node<'_>, branch_kind: &str, offenses: &mut Vec<Offense>) {
@@ -285,7 +279,10 @@ impl Checker<'_, '_> {
         let (Some(open), Some(close)) = (node.child(0), last_child(node)) else {
             return;
         };
-        if open.kind_str() != "(" || close.kind_str() != ")" || !self.begins_its_line(close.start_byte()) {
+        if open.kind_str() != "("
+            || close.kind_str() != ")"
+            || !self.begins_its_line(close.start_byte())
+        {
             return;
         }
         // `opening_line_start`: the first non-blank column of the line the parenthesis is on.
@@ -480,16 +477,21 @@ impl Checker<'_, '_> {
                 || keyword.map(|node| node.start_byte()),
                 |first| Some(first.start_byte()),
             )?;
-            // Upstream's body here is the `rescue` node, which stops at the last statement of
-            // the last clause. The grammar's container reaches past it to the `end` keyword, and
-            // shifting that line moves the very thing the indentation is measured against -- the
-            // offence then never resolves and the body marches to column one.
-            let last = super::support::body_statements(container)
-                .last()
-                .map_or(container.end_byte(), |node| node.end_byte());
-            let last = child_of_kind(container, "rescue")
-                .or_else(|| child_of_kind(container, "ensure"))
-                .map_or(last, |clause| clause.end_byte().max(last));
+            // Upstream's body here is the `rescue` or `ensure` node, and it reaches to the end of
+            // the **last** clause: `begin a rescue b rescue c else d ensure e end` parses as
+            // `(ensure (rescue a (resbody b) (resbody c) d) e)`, whose range closes after `e`.
+            // Shifting it moves every clause keyword with it, which is why upstream's `-A` indents
+            // `rescue` / `else` / `ensure` along with the body.
+            //
+            // **Reaching only to the first clause leaves the rest where they were written.** A
+            // second `rescue`, an `else` and an `ensure` then kept their own indentation while the
+            // body moved, and the file settled two columns away from upstream's.
+            //
+            // The `end` keyword stays out of the range. The grammar's container reaches past the
+            // last clause to it, and shifting that line moves the very thing the indentation is
+            // measured against -- the offence then never resolves and the body marches to column
+            // one.
+            let last = content_end(container).unwrap_or_else(|| container.end_byte());
             return Some(Body {
                 start,
                 range: start..last,
@@ -636,6 +638,45 @@ fn body_container<'tree>(owner: Node<'tree>) -> Option<Node<'tree>> {
     owner
         .named_children(&mut cursor)
         .find(|child| matches!(child.kind_str(), "body_statement" | "block_body" | "do"))
+}
+
+/// Where the code a container holds ends, which is where upstream's node for it closes.
+///
+/// The grammar keeps three things inside the container that upstream's parser leaves out of the
+/// node: the `begin` and `end` keywords, a comment written after the last statement, and a
+/// heredoc's text (upstream's range holds the `<<~X` marker, and the text is protected from
+/// shifting separately). **A line past this point must not move** -- `end` because the indentation
+/// is measured against it, a trailing comment because upstream leaves it where it is.
+///
+/// The clause and body wrappers are walked through rather than measured, since a comment can sit
+/// at the end of any of them.
+fn content_end(node: Node<'_>) -> Option<usize> {
+    const WRAPPERS: &[&str] = &[
+        "rescue",
+        "else",
+        "ensure",
+        "then",
+        "do",
+        "body_statement",
+        "block_body",
+    ];
+    let mut cursor = node.walk();
+    let mut end: Option<usize> = None;
+    for child in node.children(&mut cursor) {
+        if matches!(
+            child.kind_str(),
+            "begin" | "end" | "comment" | "heredoc_body"
+        ) {
+            continue;
+        }
+        let reach = if WRAPPERS.contains(&child.kind_str()) {
+            content_end(child).unwrap_or_else(|| child.end_byte())
+        } else {
+            child.end_byte()
+        };
+        end = Some(end.map_or(reach, |current| current.max(reach)));
+    }
+    end
 }
 
 fn child_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {

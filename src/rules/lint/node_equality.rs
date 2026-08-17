@@ -51,6 +51,112 @@ pub(crate) fn identical(left: Node<'_>, right: Node<'_>, context: &RuleContext<'
         )
 }
 
+/// A key two nodes share exactly when [`identical`] calls them equal.
+///
+/// **This is the same equivalence relation, written so that it can be hashed.** `identical` answers
+/// one pair at a time, so a cop looking for a repeat among *n* nodes asks it n(n-1)/2 times, and
+/// each answer walks two subtrees. Upstream never does that: its `Duplication` mixin puts the
+/// collection through `group_by`, which is linear because a `Node` is hashable there. A single
+/// generated table in `ruby/ruby` holds 7,859 pairs in one literal -- 30 million structural
+/// comparisons, and `Lint/DuplicateHashKey` alone took longer on that file than every other cop
+/// together.
+///
+/// The two must stay in step. Every branch below mirrors one in `identical`, in the same order:
+/// the resolved literal value first (so `?a` and `"a"` share a key), then the node kind, then the
+/// heredoc's text, then the source text of a leaf, then the unnamed tokens and the named children
+/// with their fields.
+///
+/// **Bytes rather than a `String`**: a literal's value is a byte string, and Ruby lets a source
+/// file hold bytes that are not UTF-8.
+pub(crate) fn equality_key(node: Node<'_>, context: &RuleContext<'_>) -> Vec<u8> {
+    let mut key = Vec::new();
+    write_key(node, context, &mut key);
+    key
+}
+
+fn write_key(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<u8>) {
+    if let Some(value) = literal(node, context) {
+        match value {
+            Literal::Text(bytes) => {
+                out.push(b't');
+                out.extend(bytes);
+            }
+            Literal::Symbol(bytes) => {
+                out.push(b's');
+                out.extend(bytes);
+            }
+            Literal::Integer(value) => {
+                out.push(b'i');
+                out.extend(value.to_string().into_bytes());
+            }
+            Literal::Float(value) => {
+                out.push(b'f');
+                // `identical` compares floats with `==`, and **`-0.0 == 0.0`**. Adding zero folds
+                // the sign away so both land on one key; `to_bits` alone would give them two.
+                out.extend((value + 0.0).to_bits().to_string().into_bytes());
+            }
+        }
+        // A literal is never equal to a node that is not one, and the tag byte is what keeps the
+        // two spaces apart -- every key below opens with `N`.
+        out.push(0);
+        return;
+    }
+    out.push(b'N');
+    out.extend(node.kind_str().as_bytes());
+    out.push(0);
+    if node.kind_str() == "heredoc_beginning" {
+        write_heredoc_key(node, context, out);
+        return;
+    }
+    let children = named_children_with_fields(node);
+    if children.is_empty() {
+        out.push(b'T');
+        out.extend(context.source.node_text(node).as_bytes());
+        return;
+    }
+    out.extend(operator_text(node, context).into_bytes());
+    out.push(b'(');
+    for (field, child) in children {
+        out.extend(field.unwrap_or("").as_bytes());
+        out.push(b':');
+        write_key(child, context, out);
+        out.push(b',');
+    }
+    out.push(b')');
+}
+
+/// `same_heredoc` as a key: the runs of text verbatim and the interpolations structurally, with the
+/// opener's own line cut off the first run.
+///
+/// The opener without a body is the one corner where `identical` is not an equivalence relation --
+/// it falls back to comparing the openers' text, which can call a bodyless opener equal to one that
+/// has a body while their bodies differ. A key cannot express that, so a bodyless opener is keyed by
+/// its text under a tag of its own and never merges with a body-bearing one. **Only a source the
+/// grammar could not finish reading produces one.**
+fn write_heredoc_key(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<u8>) {
+    let Some(body) = crate::rules::send_node::heredoc_body(node, context) else {
+        out.push(b'o');
+        out.extend(context.source.node_text(node).as_bytes());
+        return;
+    };
+    out.push(b'H');
+    for (index, part) in heredoc_parts(body).into_iter().enumerate() {
+        out.extend(part.kind_str().as_bytes());
+        out.push(0);
+        if part.kind_str() == "heredoc_content" {
+            let text = context.source.node_text(part);
+            let text = match index {
+                0 => text.split_once('\n').map_or(text, |(_, rest)| rest),
+                _ => text,
+            };
+            out.extend(text.as_bytes());
+        } else {
+            write_key(part, context, out);
+        }
+        out.push(1);
+    }
+}
+
 /// The named children, each with the field it sits under.
 ///
 /// The field is what a missing child is told from a present one by: `10..` and `..10` both hold one

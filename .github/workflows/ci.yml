@@ -59,6 +59,10 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4"
-      - run: cargo test --all-targets --locked
+      # `--no-fail-fast` は上の matrix の `fail-fast: false` とは別のもの。matrix 側は OS の
+      # ジョブどうしが互いを打ち切らないという意味で、cargo 側は test binary どうしが互いを
+      # 打ち切らないという意味。片方だけだと、Windows で lib の 1 件が落ちた時点で
+      # tests/cops.rs が走らず、「失敗 1 件」が「少なくとも 1 件」の意味になる。
+      - run: cargo test --all-targets --locked --no-fail-fast
       # find_binary のパス解決は OS 差が出るところなので、Windows / macOS でも回す。
       - run: rake test:ruby

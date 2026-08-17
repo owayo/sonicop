@@ -16,18 +16,18 @@ const MSG: &str = "Missing gem description comment.";
 
 /// `RESTRICTIVE_VERSION_PATTERN`.
 static RESTRICTIVE_VERSION: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(?:<|~>|\d|=)").expect("the restriction pattern compiles"));
+    LazyLock::new(|| Regex::new(r"^(?-u:\s)*(?:<|~>|(?-u:\d)|=)").expect("the restriction pattern compiles"));
 
 /// `MAGIC_COMMENT_RE`, which `Comment::Associator` steps over before it starts associating.
 static MAGIC_COMMENT: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^#\s*(-\*-|)\s*(frozen_string_literal|warn_indent|warn_past_scope):.*$")
+    Regex::new(r"^#(?-u:\s)*(-\*-|)(?-u:\s)*(frozen_string_literal|warn_indent|warn_past_scope):.*$")
         .expect("the magic comment pattern compiles")
 });
 
 /// `Buffer::ENCODING_RE`.
 static ENCODING: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"[\s#](en)?coding\s*[:=]\s*((utf8-mac)|([A-Za-z0-9_-]+?)(-unix|-dos|-mac)|([A-Za-z0-9_-]+))",
+        r"[[:space:]#](en)?coding(?-u:\s)*[:=](?-u:\s)*((utf8-mac)|([A-Za-z0-9_-]+?)(-unix|-dos|-mac)|([A-Za-z0-9_-]+))",
     )
     .expect("the encoding comment pattern compiles")
 });

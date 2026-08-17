@@ -54,6 +54,9 @@ pub struct CopCase {
     /// `--only` と併用できないので、この cop のケースだけ偽にして、選択を
     /// 「他の実装済み cop を全部 `--except` する」形で表す。
     pub uses_only: bool,
+    /// 安全網 (`#41`) を切るか。**本家の出力そのものが `ruby -c` を通らないケース専用。**
+    /// 既定は偽 = 安全網は働く。
+    pub skip_syntax_guard: bool,
     /// `(start_line, start_column, last_line, last_column)` の期待。
     pub locations: Option<Vec<(usize, usize, usize, usize)>>,
     /// `location.length` の期待。本家は文字数で出す。
@@ -77,6 +80,7 @@ impl CopCase {
             correctable: None,
             cop_names: None,
             uses_only: true,
+            skip_syntax_guard: false,
             locations: None,
             lengths: None,
             correct_mode: CorrectMode::All,
@@ -180,6 +184,18 @@ impl CopCase {
         self
     }
 
+    /// Turns off the guard that refuses a correction leaving the file unparsable (`#41`).
+    ///
+    /// **Use this when upstream's own output does not parse.** The case then measures the cop --
+    /// "is this correction the same as upstream's" -- and stops measuring the engine's separate
+    /// decision about whether to write the file at all. **Write the reason in the test**, with
+    /// the `ruby -c` verdict on upstream's expected text, so the next reader does not have to
+    /// rediscover that upstream is the one breaking it.
+    pub fn without_syntax_guard(mut self) -> Self {
+        self.skip_syntax_guard = true;
+        self
+    }
+
     /// `--only` を使わずに cop を絞る。本家が `--only` と併用を拒む
     /// `Lint/RedundantCopDisableDirective` 専用。
     pub fn without_only(mut self) -> Self {
@@ -267,12 +283,14 @@ impl CopCase {
                     .map(ToOwned::to_owned)
                     .collect(),
                 correcting,
+                skip_syntax_guard: self.skip_syntax_guard,
                 ..Selection::default()
             };
         }
         Selection {
             only: self.only.clone(),
             correcting,
+            skip_syntax_guard: self.skip_syntax_guard,
             ..Selection::default()
         }
     }
@@ -469,7 +487,31 @@ impl CopCase {
             ),
             offense_list(&verification.expected, &[]),
             offense_list(&verification.actual, &verification.cop_names),
-        )
+        ) + &self.guard_hint(verification)
+    }
+
+    /// A line pointing at the guard when the correction simply did not happen.
+    ///
+    /// **`#41` withholds a correction whose result does not parse.** From here that looks
+    /// identical to a cop that lost its corrector, and the expected text -- taken from upstream --
+    /// looks like the right answer. It is not always: upstream writes text Ruby rejects in a
+    /// handful of places, and the guard is what stops us from copying that.
+    ///
+    /// This cost three people an evening on `Layout/BlockEndNewline` with a heredoc. One line
+    /// here is cheaper than the next person rediscovering it.
+    fn guard_hint(&self, verification: &Verification) -> String {
+        let withheld = verification.divergences.iter().any(|divergence| {
+            divergence.kind == Kind::Correction && divergence.sonicop == self.source
+        });
+        if !withheld {
+            return String::new();
+        }
+        "\n--- ヒント ---\n  \
+         **補正が起きず、出力が原本のままです。**安全網 (#41) が発火した可能性があります。\n  \
+         期待値が本当に妥当な Ruby かを `ruby -c` で確かめてください。本家が構文エラーを\n  \
+         書く箇所があり、そこでは移植版が書き戻しを止めます。\n  \
+         cop の訂正だけを測りたいなら `.without_syntax_guard()` を付けてください。\n"
+            .to_owned()
     }
 }
 

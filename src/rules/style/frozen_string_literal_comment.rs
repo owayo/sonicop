@@ -131,7 +131,7 @@ fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
 
 fn is_utf8_encoding_comment(line: &str) -> bool {
     static PATTERN: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-        regex::Regex::new(r"#.*coding\s?[:=]\s?(?:UTF|utf)-8")
+        regex::Regex::new(r"#.*coding(?-u:\s)?[:=](?-u:\s)?(?:UTF|utf)-8")
             .expect("encoding comment pattern must compile")
     });
     PATTERN.is_match(line)

@@ -759,6 +759,47 @@ mod lint {
         );
     }
 
+    /// キーの重複は**ハッシュ可能な鍵**で数える (`node_equality::equality_key`)。前方の全キーと
+    /// 構造比較する形は二次で、生成された表 1 個 (`ruby/ruby` の `unicode_normalize/tables.rb`、
+    /// pair 7,859 個) で **この cop だけで 22 秒**かかっていた。本家は `Duplication` mixin の
+    /// `group_by` で線形である。
+    ///
+    /// **鍵は `identical` と同じ同値関係でなければならない。** どちらかにずれると、過剰検出
+    /// (別のキーを同じ鍵にした) か見落とし (同じキーを別の鍵にした) になる。境界を 13 形測って
+    /// 本家と突き合わせたので、その全部をここに置く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Lint/DuplicateHashKey` の実測。
+    #[test]
+    fn the_hashable_key_keeps_the_same_equivalence_as_node_equality() {
+        let duplicate = |source: &str| {
+            // この cop は訂正を持たないので、`-A` を掛けてもソースは動かない。
+            let report = expect_correction("Lint/DuplicateHashKey", source, source);
+            let count = report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Lint/DuplicateHashKey")
+                .count();
+            assert_eq!(count, 1, "1 件の重複を数えるはず: {source:?}");
+        };
+        // 同じ鍵になる側。値の解決まで済ませてから比べるので、書き方は問わない。
+        duplicate("h = { ?a => 1, \"a\" => 2 }\n"); // 1 文字リテラルと文字列
+        duplicate("h = { :sym => 1, :\"sym\" => 2 }\n"); // 素のシンボルと引用符つき
+        duplicate("h = { 0x10 => 1, 16 => 2 }\n"); // 基数
+        duplicate("h = { -0.0 => 1, 0.0 => 2 }\n"); // ★ `-0.0 == 0.0` なので同じ鍵
+        duplicate("h = { A => 1, A => 2 }\n"); // 定数
+        duplicate("h = { [1, 2] => 1, [1, 2] => 2 }\n"); // 入れ子の配列
+        duplicate("h = { { a: 1 } => 1, { a: 1 } => 2 }\n"); // 入れ子のハッシュ
+        duplicate("h = { \"\\n\" => 1, \"\\x0a\" => 2 }\n"); // エスケープの解決
+        duplicate("h = { \"\\012\" => 1, \"\\n\" => 2 }\n"); // 8 進エスケープ
+        // 別の鍵になる側 (対照)。**この側が無いと、全部同じ鍵にする実装でも通ってしまう。**
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { 1 => 1, 1.0 => 2 }\n");
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { A::B => 1, B => 2 }\n");
+        expect_no_offenses(
+            "Lint/DuplicateHashKey",
+            "h = { \"a\" => 1, \"b\" => 2, :a => 3, 1 => 4, 1.0 => 5 }\n",
+        );
+    }
+
     /// 条件は `when` をまたいで数える。
     #[test]
     fn duplicate_case_condition_counts_across_when_branches() {
@@ -1886,6 +1927,25 @@ mod style {
         expect_no_offenses(
             "Style/FrozenStringLiteralComment",
             "# frozen_string_literal: true\n\nx = 1\n",
+        );
+    }
+
+    /// Ruby's `\s` is the six ASCII characters, so the space upstream's magic-comment patterns
+    /// allow after the `#` is an ASCII one. Rust's `\s` is Unicode White_Space -- 25 characters --
+    /// and it read an ideographic space as a magic comment upstream does not recognise, so the file
+    /// looked like it already had the comment and the offense went missing.
+    ///
+    /// The ASCII spelling right below is the pair to it: that one *is* the magic comment, and the
+    /// only difference between the two is which space stands after the `#`.
+    #[test]
+    fn only_an_ascii_space_makes_a_magic_comment() {
+        expect_offense(
+            "Style/FrozenStringLiteralComment",
+            "#\u{3000}frozen_string_literal: true\n^ Missing frozen string literal comment.\nx = 1\n",
+        );
+        expect_no_offenses(
+            "Style/FrozenStringLiteralComment",
+            "#\tfrozen_string_literal: true\n\nx = 1\n",
         );
     }
 
@@ -8553,6 +8613,25 @@ mod literal_in_interpolation {
 
     const COP: &str = "Lint/LiteralInInterpolation";
 
+    /// `literal_in_interpolation_spec.rb:588`. `Lint/ArrayLiteralInRegexp` owns this shape.
+    ///
+    /// The guard was written for `array` alone, but `%w[]` and `%i[]` reach upstream as an `array`
+    /// too -- `array_type?` is true for all three -- while the grammar gives each its own kind.
+    #[test]
+    fn an_array_interpolated_into_a_regexp_belongs_to_another_cop() {
+        for literal in ["[1, 2]", "%w[a b c]", "%i[a b c]"] {
+            expect_no_offenses(COP, &format!("/#{{{literal}}}/\n"));
+        }
+        // Outside a regexp the same literals are still this cop's.
+        expect_offense(
+            COP,
+            r##"
+            x = "#{%w[a b c]}"
+                   ^^^^^^^^^ Literal interpolation detected.
+            "##,
+        );
+    }
+
     #[test]
     fn the_offense_covers_the_literal_not_the_interpolation() {
         expect_offense(
@@ -9161,6 +9240,95 @@ mod layout_indentation {
         .without_offense_check()
         .corrected("def c\n  begin\n    d\n  rescue\n    nil\n  end\nend\n")
         .run();
+    }
+
+    /// 本家の `rescue` / `ensure` ノードは**最後の**節の最後の文で終わる。
+    /// `begin a rescue b rescue c else d ensure e end` は
+    /// `(ensure (rescue a (resbody b) (resbody c) d) e)` になるので、本体をずらす補正は
+    /// **節のキーワード行を全部連れて動く**。
+    ///
+    /// 最初の節までしか届かない範囲でずらすと、2 本目の `rescue` や `else` / `ensure` は
+    /// 書かれたままの位置に残り、ファイルは本家より 2 桁ずれた形で落ち着く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力
+    /// (17 形測って全部一致。修正前は 10 形が食い違っていた)。
+    #[test]
+    fn every_clause_keyword_moves_with_the_body() {
+        // 2 本目の `rescue` も動く。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        // `else` も `ensure` も同じ。
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nelse\n   puts 'c'\nensure\n    puts 'd'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  else\n    puts 'c'\n  ensure\n    \
+             puts 'd'\nend\n",
+        );
+        // `def` / `class` / ブロックの本体でも同じ (節は本体の器に付く)。
+        expect_correction(
+            WIDTH,
+            "def my_func\nputs 'a'\nrescue Foo\n puts 'b'\nrescue\n puts 'c'\nend\n",
+            "def my_func\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  rescue\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "class Foo\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "class Foo\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "foo do\nputs 'a'\nrescue Foo\n puts 'b'\nensure\n puts 'c'\nend\n",
+            "foo do\n  puts 'a'\n  rescue Foo\n    puts 'b'\n  ensure\n    puts 'c'\nend\n",
+        );
+    }
+
+    /// 動かないものの側。**`end` の行と、最後の節と `end` の間のコメントと、ヒアドキュメントの
+    /// 中身は動かない。** 本家のノード範囲がそこで閉じているからで、この 3 つを範囲に入れると
+    /// `end` は相対字下げが変わらず収束しなくなり、コメントとヒアドキュメントは本家と 2 桁ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    #[test]
+    fn the_end_a_trailing_comment_and_a_heredoc_body_stay_put() {
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts 'b'\nensure\n puts 'c'\n# tail comment\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts 'b'\n  ensure\n    puts 'c'\n# tail \
+             comment\nend\n",
+        );
+        expect_correction(
+            WIDTH,
+            "begin\nputs 'a'\nrescue\n puts(<<~X)\n   keep me\n X\nensure\n puts 'c'\nend\n",
+            "begin\n  puts 'a'\n  rescue\n    puts(<<~X)\n   keep me\n X\n  ensure\n    \
+             puts 'c'\nend\n",
+        );
+    }
+
+    /// 本家 spec の `with begin/rescue/else/ensure/end` (1929 行付近) の入力そのまま。
+    /// 節が 4 つ並ぶので、範囲が最初の節で止まっていると 6 行ずれる。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Layout/IndentationWidth -A` の実出力。
+    /// **spec に書かれている `expect_correction` の文面とは別の不動点**なので、そちらを
+    /// 写さないこと (spec のループと CLI の `-A` のループは同じ入力から別の形に着く)。
+    #[test]
+    fn the_spec_case_with_four_clauses() {
+        expect_correction(
+            WIDTH,
+            "def my_func\n  puts 'do something outside block'\n  begin\n  \
+             puts 'do something error prone'\n  rescue SomeException, SomeOther => e\n   \
+             puts 'wrongly indented error handling'\n  rescue\n   \
+             puts 'wrongly indented error handling'\n  else\n     \
+             puts 'wrongly indented normal case handling'\n  ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+            "def my_func\n  puts 'do something outside block'\n  begin\n    \
+             puts 'do something error prone'\n    rescue SomeException, SomeOther => e\n      \
+             puts 'wrongly indented error handling'\n    rescue\n      \
+             puts 'wrongly indented error handling'\n    else\n      \
+             puts 'wrongly indented normal case handling'\n    ensure\n      \
+             puts 'wrongly indented common handling'\n  end\nend\n",
+        );
     }
 
     /// 補正はノードがまたぐ全行を一律にずらすので、入れ子になった 2 件が両方
@@ -13404,6 +13572,103 @@ mod lint_late_additions {
         expect_no_offenses("Lint/SafeNavigationChain", "foo&.bar.to_s\n");
     }
 
+    /// **The two comparisons upstream makes against a ternary are not the same kind.** The
+    /// condition is compared structurally (`parent.condition == safe_nav`) and only the branch by
+    /// identity, because the `&.` in the branch is a different node that happens to be written the
+    /// same way. Comparing the condition by identity too matches neither branch, which reported
+    /// this line where upstream stays quiet.
+    #[test]
+    fn safe_navigation_chain_accepts_the_branch_its_condition_already_guarded() {
+        expect_no_offenses(
+            "Lint/SafeNavigationChain",
+            "foo&.bar ? foo&.bar - 1 : baz\n",
+        );
+    }
+
+    /// The `else` branch is reported but left alone: reaching it means the condition was falsy, so
+    /// extending the chain there would change what the line evaluates to.
+    #[test]
+    fn safe_navigation_chain_reports_the_else_branch_without_correcting_it() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            foo&.bar ? baz : foo&.bar - 1
+                                     ^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .correctable(false)
+        .corrected("foo&.bar ? baz : foo&.bar - 1\n")
+        .run();
+    }
+
+    /// **An index being assigned to is one `[]=` send upstream and two nodes in this grammar.** The
+    /// correction has to take in the right-hand side, or it rewrites the call and leaves the
+    /// `= baz` behind as `x&.foo&.[]=(bar, baz) = baz`.
+    #[test]
+    fn safe_navigation_chain_folds_the_assigned_value_into_the_bracket_call() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar] = baz
+                  ^^^^^^^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .corrected("x&.foo&.[]=(bar, baz)\n")
+        .run();
+    }
+
+    /// `x&.foo[bar] += 1` stays two sends upstream -- `[]=` over the `[]` the cop reports -- so the
+    /// value is not folded in and the correction stops at the brackets.
+    #[test]
+    fn safe_navigation_chain_leaves_an_operator_assignment_at_the_brackets() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar] += 1
+                  ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .without_syntax_guard()
+        .corrected("x&.foo&.[](bar) += 1\n")
+        .run();
+    }
+
+    /// A target of a multiple assignment is a `[]=` send that stops at the brackets, because the
+    /// value it is handed belongs to the assignment rather than to this call.
+    ///
+    /// **`ruby -c` rejects both sides here**: upstream writes `x&.foo&.[]=(bar), y = 1, 2`, which
+    /// assigns to a method call. The guard is off so that the case measures the cop against
+    /// upstream; with it on, the engine keeps the file and upstream is the one breaking it.
+    #[test]
+    fn safe_navigation_chain_stops_at_the_brackets_in_a_multiple_assignment() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar], y = 1, 2
+                  ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .without_syntax_guard()
+        .corrected("x&.foo&.[]=(bar), y = 1, 2\n")
+        .run();
+    }
+
+    /// tree-sitter writes the `foo(a, b = 1)` it cannot read as a multiple assignment that swallowed
+    /// the arguments before the one being assigned to. The index inside such an invented list is
+    /// being read, so the correction must not turn it into `[]=`.
+    #[test]
+    fn safe_navigation_chain_reads_an_index_inside_an_invented_assignment_list() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            foo(x&.bar[baz], c = 1)
+                      ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .corrected("foo(x&.bar&.[](baz), c = 1)\n")
+        .run();
+    }
+
     #[test]
     fn safe_navigation_consistency_asks_for_the_operator_the_group_already_uses() {
         CopCase::annotated(
@@ -13914,6 +14179,68 @@ mod layout_spacing_and_alignment {
         );
         expect_correction(COP, "[2].each { |b|b }\n", "[2].each { |b| b }\n");
         expect_no_offenses(COP, "[1].each { |a, b| a }\n");
+    }
+
+    /// ラムダリテラルの丸括弧も「ブロックのパイプ」として扱う。
+    ///
+    /// 本家では `->(x) { }` も `block` ノード (`(block (lambda) (args ...) body)`) なので
+    /// `on_send` ではなく `on_block` が見る。`pipes` が読むのは
+    /// `[arguments.loc.begin, arguments.loc.end]` の 2 箇所だけで、ラムダではそれが丸括弧になる
+    /// ため、**メッセージは「block parameter」のまま**である。文法はラムダに専用のノードを与える
+    /// ので、`block` / `do_block` だけを回していると丸ごと見落とす (この cop の spec で 8 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec と `--only <cop> -A` の実測 (spec 29 ケース全一致)。
+    #[test]
+    fn a_lambda_literals_parentheses_are_its_pipes() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        expect_offense(
+            COP,
+            r"
+            ->( x, y) { puts x }
+               ^ Space before first block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->( x, y) { puts x }\n", "->(x, y) { puts x }\n");
+        expect_offense(
+            COP,
+            r"
+            ->(x, y  ) { puts x }
+                   ^^ Space after last block parameter detected.
+            ",
+        );
+        expect_correction(COP, "->(x, y  ) { puts x }\n", "->(x, y) { puts x }\n");
+        // 3 種類が同時に出る形。1 回の -A で全部片付く。
+        expect_correction(
+            COP,
+            "->(  a,  b, c) { puts a }\n",
+            "->(a, b, c) { puts a }\n",
+        );
+        // 対照 1: 揃っていれば何も出ない。
+        expect_no_offenses(COP, "->(x, y) { puts x }\n");
+        // 対照 2: **丸括弧を書いていないラムダは対象外** (`loc.begin` が無いので `pipes?` が偽)。
+        expect_no_offenses(COP, "->x { puts x }\n");
+        expect_no_offenses(COP, "-> { puts 1 }\n");
+    }
+
+    /// `EnforcedStyleInsidePipes: space` でもラムダの丸括弧を同じ 2 箇所として読む。
+    ///
+    /// 期待値は本家 1.89.0 の spec (274 / 285 行付近) と `-A` の実測。
+    #[test]
+    fn the_space_style_also_reads_a_lambdas_parentheses() {
+        const COP: &str = "Layout/SpaceAroundBlockParameters";
+        let space = |source: &str, corrected: &str| {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+                .without_offense_check()
+                .corrected(corrected)
+                .run();
+        };
+        space("->(x ) { puts x }\n", "->( x ) { puts x }\n");
+        space("->( x, y) { puts x }\n", "->( x, y ) { puts x }\n");
+        // 対照: この style では空白が空いている形が正しいので何も出ない。
+        CopCase::new(COP, "->( x, y ) { puts x }\n".to_owned(), Vec::new())
+            .config("Layout/SpaceAroundBlockParameters:\n  EnforcedStyleInsidePipes: space\n")
+            .run();
     }
 
     /// 行末コメントの手前の空白。ヒアドキュメント本文中の `#` は数えない。
@@ -14890,6 +15217,57 @@ mod lint_late_additions_two {
         expect_no_offenses("Lint/AmbiguousRegexpLiteral", "foo / re / 1\n");
     }
 
+    /// **`args_end` closes after the last argument, not after the call.** Upstream's `send` node
+    /// stops at `/pattern/` and keeps the `do ... end` in a `block` node above it; this grammar
+    /// keeps the block inside the `call`. Closing at the call wrote `p(/pattern/ do ... end)`,
+    /// which Ruby rejects, and the guard then withheld the whole file.
+    #[test]
+    fn ambiguous_regexp_literal_closes_before_a_block() {
+        CopCase::annotated(
+            "Lint/AmbiguousRegexpLiteral",
+            r#"
+            p /pattern/ do
+              ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+              p /pattern/
+                ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+            end
+            "#,
+        )
+        .corrected("p(/pattern/) do\n  p(/pattern/)\nend\n")
+        .run();
+    }
+
+    /// The same closing position with more than one argument: the `)` follows the last of them and
+    /// the block keeps its parameters.
+    #[test]
+    fn ambiguous_regexp_literal_closes_after_the_last_argument() {
+        CopCase::annotated(
+            "Lint/AmbiguousRegexpLiteral",
+            r#"
+            p /pattern/, foo do |arg|
+              ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+            end
+            "#,
+        )
+        .corrected("p(/pattern/, foo) do |arg|\nend\n")
+        .run();
+    }
+
+    /// `Lint/AmbiguousOperator` shares `add_parentheses`, so it closed in the wrong place too.
+    #[test]
+    fn ambiguous_operator_closes_before_a_block() {
+        CopCase::annotated(
+            "Lint/AmbiguousOperator",
+            r#"
+            do_something *foo do |x|
+                         ^ Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.
+            end
+            "#,
+        )
+        .corrected("do_something(*foo) do |x|\nend\n")
+        .run();
+    }
+
     /// `# rubocop:disable all` はこの cop 自身も止めるので、報告は残らない。
     #[test]
     fn missing_cop_enable_directive_ignores_a_blanket_disable() {
@@ -15671,6 +16049,26 @@ mod single_argument_dig {
     use super::*;
 
     const COP: &str = "Style/SingleArgumentDig";
+
+    /// `single_argument_dig_spec.rb:148`. A chain of `dig` calls belongs to `Style/DigChain`.
+    ///
+    /// `dig_chain_enabled?` is `config.cop_enabled?`, which is `for_cop(name).fetch('Enabled')` --
+    /// the value tested for truth. `Style/DigChain` ships as `Enabled: pending`, and `'pending'` is
+    /// truthy in Ruby, so the default configuration leaves the chain to it. Only a literal `false`
+    /// hands it back. Reading the value as a `bool` and defaulting to `false` when it will not
+    /// parse had that backwards, and the default configuration is what nearly everyone runs.
+    #[test]
+    fn a_chain_of_digs_is_left_to_the_neighbouring_cop() {
+        expect_no_offenses(COP, "data.dig(var1).dig(var2)\n");
+        // A single `dig` is still this cop's, chain cop or no chain cop.
+        expect_offense(
+            COP,
+            r#"
+            data.dig(var1)
+            ^^^^^^^^^^^^^^ Use `data[var1]` instead of `data.dig(var1)`.
+            "#,
+        );
+    }
 
     #[test]
     fn the_call_is_replaced_by_an_index() {
@@ -16543,6 +16941,65 @@ mod layout_block_alignment {
         .config("Layout/BlockAlignment:\n  EnforcedStyleAlignWith: start_of_line\n")
         .corrected(concat!("foo.bar\n", "  .each do\n", "    baz\n", "end\n"))
         .run();
+    }
+
+    /// 単項演算子を前に置いた呼び出しでは、**`end` が揃う相手は演算子から始まる式**である。
+    ///
+    /// `~xyz { }` は本家の parser では `(send (block ...) :~)` で、ブロックを receiver に持つ
+    /// send になる。`block_end_align_target?` の `(send equal?(%1) !:[] ...)` がそれに当たるので
+    /// 歩みは演算子まで出て、メッセージも `~xyz { |x|` とその桁 (13) を名指しする。
+    /// 文法は `unary` ノードにするので、`call` の receiver だけを見ていると 1 桁内側
+    /// (`xyz { |x|` の 14) で止まり、**揃っている形を過剰検出し、文言も変わっていた**
+    /// (この cop の spec で 6 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec (612 / 643 / 674 行付近) と `-A` の実測。
+    #[test]
+    fn a_unary_operator_becomes_the_alignment_target() {
+        // 揃っている形。演算子の桁 (13) に `}` が来ているので何も出ない。
+        for operator in ["~", "!", "-"] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "def abc\n  @abc ||= A[{operator}xyz {{ |x|\n               x\n             \
+                     }}.flatten]\nend\n"
+                ),
+            );
+        }
+        // ずれている形。文言は演算子から始まる式を名指しする。
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[~xyz { |x|
+                           x
+                                    }.flatten]
+                                    ^ `}` at 4, 24 is not aligned with `~xyz { |x|` at 2, 13 or `@abc ||= A[~xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n                        \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[!xyz { |x|
+                           x
+            }.flatten]
+            ^ `}` at 4, 0 is not aligned with `!xyz { |x|` at 2, 13 or `@abc ||= A[!xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n                  \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
     }
 }
 
@@ -20663,6 +21120,61 @@ mod style_identical_conditional_branches {
 
     const COP: &str = "Style/IdenticalConditionalBranches";
 
+    /// `identical_conditional_branches_spec.rb:132`.
+    ///
+    /// Hoisting an assignment above the condition that reads what it writes would change what the
+    /// condition sees. What the guard compares is the **receiver** on both sides -- `h[:key]` and
+    /// `h.x` are a `send` of `:[]` / `:x` upstream and reduce to `h` -- so what sits in between is
+    /// not part of the question. The port only knew the shape where a bare name is assigned.
+    #[test]
+    fn writing_through_the_receiver_the_condition_reads_is_left_alone() {
+        for (condition, assignment) in [
+            ("h[:key]", "h[:key] = foo"),
+            // The key need not match: both sides still reduce to `h`.
+            ("h[:other]", "h[:key] = foo"),
+            ("h.x", "h.x = foo"),
+            ("h", "h[:key] = foo"),
+        ] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "if {condition}\n  {assignment}\n  bar\nelse\n  {assignment}\n  baz\nend\n"
+                ),
+            );
+        }
+    }
+
+    /// The pair to the case above: a *different* receiver is hoistable, which is what makes the
+    /// receiver -- rather than the whole condition -- the thing being compared.
+    #[test]
+    fn writing_through_a_different_receiver_is_still_reported() {
+        expect_offense(
+            COP,
+            r#"
+            if g[:key]
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              bar
+            else
+              h[:key] = foo
+              ^^^^^^^^^^^^^ Move `h[:key] = foo` out of the conditional.
+              baz
+            end
+            "#,
+        );
+    }
+
+    /// `identical_conditional_branches_spec.rb:739`, "does not raise any error when using empty
+    /// brace in the both parentheses".
+    ///
+    /// Upstream reads a branch's head through `begin.children.first`, so a group holding nothing
+    /// hands back `nil` and the check stops. The grammar keeps a node for the parentheses, so the
+    /// emptiness has to be asked about rather than falling out of the tree.
+    #[test]
+    fn branches_holding_only_empty_parentheses_are_not_reported() {
+        expect_no_offenses(COP, "if condition\n  ()\nelse\n  ()\nend\n");
+    }
+
     #[test]
     fn every_branch_that_shares_an_expression_is_reported() {
         expect_offense(
@@ -21386,6 +21898,41 @@ mod redundant_parentheses {
         );
     }
 
+    /// `redundant_parentheses_spec.rb:976`, "parens around a numblock body".
+    ///
+    /// An implicit block parameter is a local variable to upstream's parser, but nothing assigns
+    /// it, so the name table built from assignments cannot know it and it read as a method call.
+    #[test]
+    fn an_implicit_block_parameter_is_a_variable() {
+        for name in ["_1", "_2", "it"] {
+            expect_offense(
+                COP,
+                &format!(
+                    r#"
+            x do
+              ({name}; bar)
+              ^^^^^^^^^ Don't use parentheses around a variable.
+            end
+            "#,
+                )
+                .replace("^^^^^^^^^", &"^".repeat(name.len() + 7)),
+            );
+        }
+    }
+
+    /// The same names outside a block really are method calls, which is what makes the enclosing
+    /// block the whole of the question rather than the spelling of the name.
+    #[test]
+    fn an_implicit_block_parameter_outside_a_block_is_a_call() {
+        expect_offense(
+            COP,
+            r#"
+            (_1; bar)
+            ^^^^^^^^^ Don't use parentheses around a method call.
+            "#,
+        );
+    }
+
     #[test]
     fn the_message_names_what_the_parentheses_hold() {
         expect_offense(
@@ -21562,6 +22109,84 @@ mod lint_redundant_cop_enable_directive_removal_range {
             COP,
             "x = 1\n# rubocop:enable Style/For   \n  y = 2\n",
             "x = 1\n  y = 2\n",
+        );
+    }
+}
+
+/// 括弧つきの `super(...)` は文法では `call` ノードだが、本家では `send` ではない。
+///
+/// 本家の parser は `super` / `zsuper` / `yield` をそれぞれ別のノード種別にするので、
+/// `on_send` (と `alias on_csend on_send`) しか持たない cop は `super(...)` を**一度も見ない**。
+/// 文法は括弧つきの `super(...)` を `call` に書くため、`call` を回す移植版は素通しにすると
+/// 本家が触らない行を動かす。
+///
+/// 期待値は本家 1.89.0 を `--only <cop>` と `-A` で走らせた実測。`super(...)` を置ける文法上の
+/// 位置を 34 形作って全 cop で突き合わせ (`super_probe.py`)、**5 形で食い違っていた**。
+/// 4 cop が該当し、いずれも「本家は 0 件、移植版が報告して `-A` で 8 桁ずらす」形だった。
+///
+/// **どのケースにも普通の呼び出しの対照を置く。** `super` を外すだけで本家も報告するので、
+/// 「cop を丸ごと黙らせた」実装がテストを通り抜けない。
+mod super_is_not_a_send {
+    use super::*;
+
+    /// 引数の配列は `super(` からではなく素の配列として測る (`on_send` の枝に入らない)。
+    #[test]
+    fn an_array_argument_of_super_is_measured_as_a_plain_array() {
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super([\n    1,\n    2\n  ])\nend\n",
+        );
+        expect_no_offenses(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  super(%w[\n    a\n    b\n  ])\nend\n",
+        );
+        // 対照: 普通の呼び出しなら本家も報告して、括弧の位置から測り直す。
+        expect_correction(
+            "Layout/FirstArrayElementIndentation",
+            "def m\n  foo([\n    1,\n    2\n  ])\nend\n",
+            "def m\n  foo([\n        1,\n    2\n      ])\nend\n",
+        );
+    }
+
+    /// ハッシュも同じ (`Layout/FirstHashElementIndentation` は配列側の兄弟)。
+    #[test]
+    fn a_hash_argument_of_super_is_measured_as_a_plain_hash() {
+        expect_no_offenses(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  super({\n    a: 1,\n    b: 2\n  })\nend\n",
+        );
+        expect_correction(
+            "Layout/FirstHashElementIndentation",
+            "def m\n  foo({\n    a: 1,\n    b: 2\n  })\nend\n",
+            "def m\n  foo({\n        a: 1,\n    b: 2\n      })\nend\n",
+        );
+    }
+
+    /// 引数の間の空行は `super` では残る。`on_send` / `on_csend` しかないので届かない。
+    #[test]
+    fn a_blank_line_between_supers_arguments_stays() {
+        expect_no_offenses(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  super(a,\n\n    b)\nend\n",
+        );
+        expect_correction(
+            "Layout/EmptyLinesAroundArguments",
+            "def m\n  foo(a,\n\n    b)\nend\n",
+            "def m\n  foo(a,\n    b)\nend\n",
+        );
+    }
+
+    /// 閉じ括弧の字下げも同じ。`on_send` / `on_csend` / `on_begin` / `on_def` に `super` は無い。
+    #[test]
+    fn the_closing_parenthesis_of_super_is_left_where_it_was_written() {
+        expect_no_offenses(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  super(<<~X\n    hi\n  X\n  )\nend\n",
+        );
+        expect_correction(
+            "Layout/ClosingParenthesisIndentation",
+            "def m\n  foo(<<~X\n    hi\n  X\n  )\nend\n",
+            "def m\n  foo(<<~X\n    hi\n  X\n     )\nend\n",
         );
     }
 }
@@ -29664,6 +30289,26 @@ mod style_map_into_array {
 
     const COP: &str = "Style/MapIntoArray";
 
+    /// `map_into_array_spec.rb:339`. `(send !{nil? self} :each)` names no argument, so the pattern
+    /// only matches an `each` that takes none. `StringIO#each(sep)` takes one and means something
+    /// else, and there is no `map` that would say the same thing.
+    #[test]
+    fn an_each_that_takes_arguments_is_not_a_map() {
+        expect_no_offenses(
+            COP,
+            "dest = []\nStringIO.new('foo:bar').each(':') { |e| dest << e }\n",
+        );
+        // The same shape without the argument is the one the cop is about.
+        expect_offense(
+            COP,
+            r#"
+            dest = []
+            [1, 2].each { |e| dest << e * 2 }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `map` instead of `each` to map elements into an array.
+            "#,
+        );
+    }
+
     /// 空配列を作って `each` で詰めるだけの形は `map` の戻り値そのもの。詰め先の代入も
     /// 直後の読みも消え、`map` の結果がその変数に入る。
     #[test]
@@ -34395,6 +35040,29 @@ mod lint_unescaped_bracket_in_regexp {
 
     const COP: &str = "Lint/UnescapedBracketInRegexp";
 
+    /// A `]` that belongs to a `\c` control escape is not a bare bracket.
+    ///
+    /// The regexp scanner had no case for `\cX` / `\C-X`, so the escape came out two characters
+    /// long and **the character it was meant to take was left behind as a `literal` node of its
+    /// own**. This cop reads `literal` nodes, so the `]` of `\c]` was reported as unescaped --
+    /// a defect in the *escape* handling that surfaced as an offense about a *bracket*.
+    ///
+    /// The bare `]` below is the pair to it: without it, a scanner that simply stopped reporting
+    /// would pass this test too.
+    #[test]
+    fn a_bracket_that_names_a_control_escape_is_not_reported() {
+        expect_no_offenses(COP, "/abc\\c]123/\n");
+        expect_no_offenses(COP, "/abc\\C-]123/\n");
+        // The same bracket without the escape in front of it is still this cop's.
+        expect_offense(
+            COP,
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        );
+    }
+
     /// 位置は本体の先頭から数えた文字数。`/.../` でも `%r{...}` でも同じ数え方になる。
     #[test]
     fn a_bare_bracket_in_a_regexp_literal_is_reported() {
@@ -37376,7 +38044,9 @@ mod layout_block_end_newline_heredoc {
     /// ★ 本文が 2 行なら本家は `}` を上に置く (`dstr` なので別の枝)。**spec には無い形。**
     ///
     /// **その字面は Ruby として通らない。**`}` が heredoc の本文より前に出るので、ブロックが
-    /// 閉じられない。`ruby -c` で確かめてある。
+    /// 閉じられない。`ruby -c` で確かめてある。**だから `without_syntax_guard()` を付ける** —
+    /// このケースが測るのは「訂正が本家と一致するか」で、書き出すかどうかは engine の別の
+    /// 判断だから (`#41`)。付けないと安全網が発火して原本が返り、cop のバグに見える。
     ///
     /// ```text
     /// 原本            test { / foo(<<~EOS) } / line one / line two / EOS      Syntax OK
@@ -37392,20 +38062,42 @@ mod layout_block_end_newline_heredoc {
     /// `the_brace_moves_after_a_one_line_heredoc` は本家の字面のままである。**割れるのは
     /// `dstr` の枝だけ。**
     #[test]
-    fn a_two_line_heredoc_is_left_alone_because_upstreams_output_does_not_parse() {
-        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
-        CopCase::new(COP, source.to_owned(), Vec::new())
-            .without_offense_check()
-            .corrected(source)
-            .run();
+    fn a_two_line_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    line one\n    line two\n  EOS\n")
+        .run();
     }
 
     /// ★ 補間があるときも本家は `}` を上に置く (`dstr`)。**同じく Ruby として通らない。**
     ///
     /// 上のケースと同じ機構なので、片方だけ直しても両方は動かない。
     #[test]
-    fn an_interpolated_heredoc_is_left_alone_for_the_same_reason() {
-        let source = "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n";
+    fn an_interpolated_heredoc_keeps_the_brace_above_it() {
+        CopCase::new(
+            COP,
+            "test {\n  foo(<<~EOS) }\n    #{x}\n  EOS\n".to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected("test {\n  foo(<<~EOS)\n}\n    #{x}\n  EOS\n")
+        .run();
+    }
+
+    /// ★ 上の 2 件を「安全網を切って」測っているので、**切らないほうも 1 件測る。**
+    ///
+    /// 上の 2 件は cop の層 (訂正が本家と一致するか) を見ている。こちらは engine の層
+    /// (そのテキストを書き出すか) を見る。**分けたぶん、両方に検査が要る** — 片方だけだと、
+    /// 安全網が丸ごと消えても上の 2 件は通り続ける。
+    #[test]
+    fn the_guard_keeps_the_file_when_that_correction_would_not_parse() {
+        let source = "test {\n  foo(<<~EOS) }\n    line one\n    line two\n  EOS\n";
         CopCase::new(COP, source.to_owned(), Vec::new())
             .without_offense_check()
             .corrected(source)

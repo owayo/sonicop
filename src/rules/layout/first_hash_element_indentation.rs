@@ -29,6 +29,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut claimed: HashSet<usize> = HashSet::new();
     if !fixed_arguments {
         for call in context.nodes_of("call") {
+            // `on_hash` / `on_send` / `on_csend` and **no `on_super`**: a hash inside `super(...)` is
+            // measured as a plain hash (the loop below), not from the keyword's `(`. Treating the
+            // keyword as a send indented the pairs eight columns to the right of upstream's.
+            if crate::rules::send_node::is_super_call(call) {
+                continue;
+            }
             for (hash, parenthesis) in argument_literals(context, call, &["hash"]) {
                 if claimed.insert(hash.id()) {
                     inspect(context, &style, width, hash, Some(parenthesis), offenses);
@@ -146,10 +152,7 @@ fn check_first(
     );
     // A pair whose value opens on a later line is moved by its first line alone, so that the
     // value's own lines keep the indentation they were given.
-    let span = match (
-        first.field("key"),
-        first.field("value"),
-    ) {
+    let span = match (first.field("key"), first.field("value")) {
         (Some(key), Some(value)) if value.start_position().row > key.start_position().row => {
             line_span(context, first.start_byte())
         }

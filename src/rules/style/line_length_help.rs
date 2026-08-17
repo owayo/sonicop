@@ -213,7 +213,7 @@ fn extended_end(line: &str, mut end: usize) -> usize {
 static DIRECTIVE: LazyLock<Regex> = LazyLock::new(|| {
     // Only where the directive begins matters here, so the cop list that may follow is left out.
     // Longest mode first, so `disable-next` is not read as `disable`.
-    Regex::new(r"#\s*rubocop\s*:\s*(?:disable-next|todo-next|disable|enable|todo|push|pop)\b")
+    Regex::new(r"#(?-u:\s)*rubocop(?-u:\s)*:(?-u:\s)*(?:disable-next|todo-next|disable|enable|todo|push|pop)(?-u:\b)")
         .unwrap()
 });
 
@@ -232,7 +232,7 @@ static URI: LazyLock<Regex> = LazyLock::new(|| {
     let segment = format!(r"{pchar}*(?:;{pchar}*)*");
     let abs_path = format!(r"/{segment}(?:/{segment})*");
     Regex::new(&format!(
-        r"(?:https?):(?:{uric_no_slash}{uric}*|(?:(?://(?:(?:(?:{userinfo}@)?(?:{host}(?::\d*)?))?|{reg_name}))?(?:{abs_path})?)(?:\?{uric}*)?)(?:\#{uric}*)?"
+        r"(?:https?):(?:{uric_no_slash}{uric}*|(?:(?://(?:(?:(?:{userinfo}@)?(?:{host}(?::(?-u:\d)*)?))?|{reg_name}))?(?:{abs_path})?)(?:\?{uric}*)?)(?:\#{uric}*)?"
     ))
     .unwrap()
 });

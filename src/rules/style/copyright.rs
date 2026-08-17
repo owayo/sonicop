@@ -9,7 +9,7 @@ use crate::rules::node_ext::NodeExt;
 /// `/\A(?:\\A|\^)?#(?:\\s[*+?]?|\s)*/`, the comment marker `notice_regexp` takes off the configured
 /// notice before compiling it.
 static COMMENT_PREFIX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\A(?:\\A|\^)?#(?:\\s[*+?]?|\s)*").unwrap());
+    LazyLock::new(|| Regex::new(r"\A(?:\\A|\^)?#(?:\\s[*+?]?|(?-u:\s))*").unwrap());
 
 /// `/\A# */`, which each comment loses before it joins the notice being built.
 static LEADING_HASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A# *").unwrap());
