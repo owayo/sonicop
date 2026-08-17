@@ -18,6 +18,13 @@ const COUNTING_METHODS: &[&str] = &["count", "size", "length"];
 /// `minimum_target_ruby_version 2.7`.
 const MINIMUM_VERSION: RubyVersion = RubyVersion::new(2, 7);
 
+/// The version that made `it` a block parameter rather than a receiverless call.
+///
+/// **The gate belongs on the parser's reading, not on the cop's opinion.** Below it, upstream's
+/// parser gives `array.group_by { it }` a plain `block` whose body is `(send nil :it)`, so the
+/// `itblock` patterns match nothing and the cop stays quiet whatever it thinks of the code.
+const IT_VERSION: RubyVersion = RubyVersion::new(3, 4);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM_VERSION {
         return;
@@ -229,6 +236,9 @@ fn single_parameter(context: &RuleContext<'_>, block: Node<'_>) -> Option<String
 
 /// Which implicit name the body reads. `_1` is the one a `numblock` has, `it` an `itblock`.
 fn implicit_name(context: &RuleContext<'_>, block: Node<'_>) -> String {
+    if context.target_ruby_version() < IT_VERSION {
+        return "_1".to_owned();
+    }
     let mut stack: Vec<Node<'_>> = block.field("body").into_iter().collect();
     while let Some(node) = stack.pop() {
         if node.kind_str() == "identifier" && context.source.node_text(node) == "it" {

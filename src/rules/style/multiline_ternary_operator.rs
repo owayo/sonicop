@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
 
 const MSG_IF: &str = "Avoid multi-line ternary operators, use `if` or `unless` instead.";
@@ -142,6 +143,17 @@ fn single_line_wanted(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             let name = context.source.node_text(method);
             !(name.ends_with('=') && !COMPARISON_OPERATORS.contains(&name))
         }
+        // `a.foo = x` is `(send a :foo= x)` upstream and `a&.foo = x` is `(csend a :foo= x)`;
+        // the grammar writes both as an `assignment` whose left is a `call`.
+        //
+        // **The two answer differently.** `SINGLE_LINE_TYPES` holds both `send` and `csend`, but
+        // `use_assignment_method?` is `node.send_type? && node.assignment_method?` -- and
+        // `send_type?` is false for a `csend`. So the safe-navigation form is never excused as an
+        // assignment method and asks for the single-line message, while the plain one does not.
+        "assignment" => parent
+            .field("left")
+            .filter(|left| left.kind_str() == "call" && left.field("receiver").is_some())
+            .is_some_and(|left| !send_node::is_plain_send(left, context)),
         _ => false,
     }
 }

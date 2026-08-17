@@ -18422,6 +18422,26 @@ mod each_with_object {
 
     const COP: &str = "Style/EachWithObject";
 
+    /// `n.assignment?` は `ASSIGNMENTS` -- `op_asgn` / `or_asgn` / `and_asgn` も含む。
+    /// 文法はそれを `operator_assignment` と綴るので、`assignment` だけを見ると
+    /// **累算器を代入し直す fold** に `each_with_object` を勧めてしまう (別物になる)。
+    #[test]
+    fn a_fold_that_reassigns_its_accumulator_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo += item\n  memo\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo ||= {}\n  memo\nend\n",
+        );
+        // 素の代入も同じ (直す前から見えていた側)。
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo = {}\n  memo\nend\n",
+        );
+    }
+
     #[test]
     fn a_fold_that_hands_its_accumulator_back_is_an_each_with_object() {
         expect_offense(
@@ -38268,6 +38288,83 @@ mod negation_spellings {
             foo unless x.!
             ^^^^^^^^^^^^^^ Prefer `if x` over `unless x.!`.
             "#,
+        );
+    }
+}
+
+/// `Style/TallyMethod` が `it` を Ruby の版で分ける。
+///
+/// 3.4 より前の本家のパーサは `array.group_by { it }` を「引数の無いブロックの中の
+/// レシーバ無し呼び出し」として読むので、`itblock` のパターンは 1 つも当たらない。
+/// **ゲートはパーサの読みに掛かっていて、cop の意見には掛かっていない。**
+mod tally_method_it_version {
+    use super::*;
+
+    const COP: &str = "Style/TallyMethod";
+
+    #[test]
+    fn it_is_a_block_parameter_only_from_3_4() {
+        for source in [
+            "array.group_by { it }.transform_values(&:count)\n",
+            "array.group_by(&:itself).transform_values { it.count }\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.3")
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            array.group_by { it }.transform_values(&:count)
+                  ^^^^^^^^ Use `tally` instead of `group_by` and `transform_values`.
+            ",
+        )
+        .target_ruby("3.4")
+        .run();
+    }
+}
+
+/// `a.foo = x` は本家では `(send a :foo= x)`、`a&.foo = x` は `(csend a :foo= x)`。
+/// **文法はどちらも `assignment` (左辺が `call`) と綴るが、本家の答えは違う。**
+mod safe_navigation_attribute_assignment {
+    use super::*;
+
+    /// `SINGLE_LINE_TYPES` は `send` と `csend` の両方を含むが、
+    /// `use_assignment_method?` は `node.send_type? && node.assignment_method?` で、
+    /// **`send_type?` は `csend` に対して偽**。だから `&.` の形だけが
+    /// 「代入メソッド」として除外されず、単一行の文言を求める。
+    #[test]
+    fn the_ternary_message_differs_between_the_two_spellings() {
+        expect_offense(
+            "Style/MultilineTernaryOperator",
+            r"
+            recv&.a = cond ?
+                      ^^^^^^ Avoid multi-line ternary operators, use single-line instead.
+              b : c
+            ",
+        );
+        expect_offense(
+            "Style/MultilineTernaryOperator",
+            r"
+            recv.a = cond ?
+                     ^^^^^^ Avoid multi-line ternary operators, use `if` or `unless` instead.
+              b : c
+            ",
+        );
+    }
+
+    /// `branches_have_method?` は `send` を見る。`&.` は `csend` なので当たらない。
+    #[test]
+    fn a_safe_navigation_write_is_not_the_method_call_the_cop_looks_for() {
+        expect_no_offenses(
+            "Style/RedundantCondition",
+            "if foo\n  recv&.value = foo\nelse\n  recv&.value = 'bar'\nend\n",
+        );
+        // 素の `.` なら当たる。
+        expect_correction(
+            "Style/RedundantCondition",
+            "if foo\n  recv.value = foo\nelse\n  recv.value = 'bar'\nend\n",
+            "recv.value = foo || 'bar'\n",
         );
     }
 }
