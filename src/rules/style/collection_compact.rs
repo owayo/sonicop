@@ -130,14 +130,10 @@ fn matches(
     };
     // `select` inverts the test with a `!`, and `reject` does not.
     let tested = if SELECT_METHODS.contains(&name) {
-        if statement.kind_str() != "unary"
-            || statement
-                .child(0)
-                .is_none_or(|operator| operator.kind_str() != "!")
-        {
-            return false;
-        }
-        match statement.field("operand") {
+        // `(call (call $(lvar _) :nil?) :!)`: 本家の `call` は `send` と `csend` の両方を指す
+        // ので、`!x.nil?` にも `x&.nil?&.!` にも当たる。文法は前者を `unary`、後者を
+        // `call` (method が `!`) に割るため、`unary` だけを見ると `&.!` の形が丸ごと落ちる。
+        match negated(*statement, context) {
             Some(operand) => operand,
             None => return false,
         }
@@ -165,6 +161,16 @@ fn matches(
             "it" => context.target_ruby_version() >= RubyVersion::new(3, 4),
             _ => false,
         },
+    }
+}
+
+/// `(call X :!)`: what a negation was applied to, whichever way the `!` was written.
+fn negated<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+    match node.kind_str() {
+        "unary" => (node.child(0)?.kind_str() == "!").then(|| node.field("operand"))?,
+        "call" => (context.source.node_text(node.field("method")?) == "!")
+            .then(|| node.field("receiver"))?,
+        _ => None,
     }
 }
 

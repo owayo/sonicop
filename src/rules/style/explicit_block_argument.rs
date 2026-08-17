@@ -41,12 +41,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             replacement: String::new(),
             safe: true,
         }];
-        edits.extend(add_block_argument(
-            context,
-            target.arguments,
-            target.send_end,
-            &name,
-        ));
+        // `build_new_arguments_for_zsuper`: 裸の `super` は引数を全部そのまま渡す形なので、
+        // `(&block)` を足すと**渡す引数が block だけになる**。本家は def の引数を書き出して
+        // から `&block` を足す。意味が変わる補正なので、ここを飛ばすと `-A` が別の
+        // プログラムを作る。
+        match zsuper_arguments(context, target.node, definition) {
+            Some(arguments) => edits.push(Edit {
+                start: target.send_end,
+                end: target.send_end,
+                replacement: format!("({arguments}, &{name})"),
+                safe: true,
+            }),
+            None => edits.extend(add_block_argument(
+                context,
+                target.arguments,
+                target.send_end,
+                &name,
+            )),
+        }
         if named.insert(definition.id()) {
             edits.extend(add_block_argument(
                 context,
@@ -165,6 +177,41 @@ fn block_name(context: &RuleContext<'_>, definition: Node<'_>) -> String {
 }
 
 /// `add_block_argument`: the parameter list gains `&block`, however it was written.
+/// `node.zsuper_type?` と `build_new_arguments_for_zsuper`: 引数を書かない `super` の、
+/// 本家が書き出す引数の並び。`super(...)` と書いてあるものは対象外。
+///
+/// 文法は括弧の無い `super` を `call` の `method` に置くので、`method` の節が `super` で
+/// 引数リートが無いことが「zsuper」の条件になる。
+fn zsuper_arguments(
+    context: &RuleContext<'_>,
+    call: Node<'_>,
+    definition: Node<'_>,
+) -> Option<String> {
+    if call.kind_str() != "call" || call.field("arguments").is_some() {
+        return None;
+    }
+    if call.field("method")?.kind_str() != "super" {
+        return None;
+    }
+    let parameters = super::nodes::children(definition.field("parameters")?);
+    let written: Vec<String> = parameters
+        .into_iter()
+        .map(|parameter| match parameter.kind_str() {
+            // `arg.optarg_type? ? arg.node_parts[0] : arg.source`: 既定値を落とすのは
+            // **位置引数だけ**。キーワード引数は書かれたまま渡さないと、`super(a, c)` が
+            // 宣言されていない位置引数になってしまう (`c: 2` は `c: 2` のまま渡る)。
+            "optional_parameter" => parameter
+                .field("name")
+                .map_or_else(
+                    || context.source.node_text(parameter).to_owned(),
+                    |name| context.source.node_text(name).to_owned(),
+                ),
+            _ => context.source.node_text(parameter).to_owned(),
+        })
+        .collect();
+    (!written.is_empty()).then(|| written.join(", "))
+}
+
 fn add_block_argument(
     context: &RuleContext<'_>,
     list: Option<Node<'_>>,

@@ -93,6 +93,61 @@ pub(crate) fn is_plain_send(call: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_none_or(|operator| context.source.node_text(operator) != "&.")
 }
 
+/// A negation, as upstream's `negation_method?` reads one: `(send _ :!)`.
+///
+/// **The grammar spells the same node two ways.** `!x` and `not x` are a `unary`; `x.!` is a
+/// `call` whose method is `!`. Upstream has one predicate for all three, so a cop that walks only
+/// `unary` is silent on `x.!` -- and, worse, treats `!x.!` as a *single* negation, because the
+/// inner one is invisible to it. Both directions were live in 7 Style cops on 2026-08-17.
+///
+/// `x&.!` is a `csend` upstream, which `on_send` never reaches, so a `&.` is not a negation here.
+pub(crate) struct Negation<'tree> {
+    /// The whole negation, which is the node upstream's pattern matched.
+    ///
+    /// **Callers are given this rather than re-deriving it**: the operand lives under `operand`
+    /// for one spelling and `receiver` for the other, and every place that reached for the field
+    /// itself picked one and went silent on the other.
+    pub(crate) node: Node<'tree>,
+    /// The `!` or `not` that was written, which is upstream's `loc.selector`.
+    pub(crate) selector: Node<'tree>,
+    /// What was negated, which is upstream's receiver.
+    pub(crate) operand: Node<'tree>,
+}
+
+/// `negation_method?`: `receiver && method_name == :!`, so `not x` counts as much as `!x`.
+pub(crate) fn negation<'tree>(
+    node: Node<'tree>,
+    context: &RuleContext<'_>,
+) -> Option<Negation<'tree>> {
+    match node.kind_str() {
+        "unary" => {
+            let selector = node.field("operator")?;
+            matches!(context.source.node_text(selector), "!" | "not").then_some(Negation {
+                node,
+                selector,
+                operand: node.field("operand")?,
+            })
+        }
+        "call" if is_plain_send(node, context) => {
+            let selector = node.field("method")?;
+            (context.source.node_text(selector) == "!").then_some(Negation {
+                node,
+                selector,
+                operand: node.field("receiver")?,
+            })
+        }
+        _ => None,
+    }
+}
+
+/// `prefix_bang?`: a negation whose selector was written `!`, so `not x` is left out.
+///
+/// The name is upstream's and is misleading -- `x.!` satisfies it too, because the test is on the
+/// selector's text and not on where it sits.
+pub(crate) fn bang<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Negation<'tree>> {
+    negation(node, context).filter(|found| context.source.node_text(found.selector) == "!")
+}
+
 /// Whether the `call` is the keyword `super` rather than a method call.
 ///
 /// **The grammar writes `super(a)` as a `call` whose `method` is the keyword**, while upstream's

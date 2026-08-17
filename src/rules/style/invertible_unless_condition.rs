@@ -61,10 +61,10 @@ fn invertible(
             [only] => invertible(*only, inverses, context),
             _ => false,
         },
-        // `!x` is a `send` of `:!` upstream.
-        "unary" => node
-            .field("operator")
-            .is_some_and(|operator| context.source.node_text(operator) == "!"),
+        // `node.method?(:!)`: the grammar spells the same `(send _ :!)` as a `unary` for `!x`
+        // and as a `call` for `x.!`. The `call` arm below only consults `inverse_methods`, which
+        // has no entry for `!`, so without this the postfix spelling is invisible.
+        _ if send_node::bang(node, context).is_some() => true,
         "binary" => {
             let Some(operator) = node
                 .field("operator")
@@ -106,10 +106,12 @@ fn preferred_condition(
             [only] => format!("({})", preferred_condition(*only, inverses, context)),
             _ => context.source.node_text(node).to_owned(),
         },
-        // `node.method?(:!)` answers with the receiver alone.
-        "unary" => node.field("operand").map_or_else(String::new, |operand| {
-            context.source.node_text(operand).to_owned()
-        }),
+        // `return receiver_source if node.method?(:!)`: the receiver alone, whichever way the
+        // `!` was written.
+        _ if send_node::bang(node, context).is_some() => send_node::bang(node, context)
+            .map_or_else(String::new, |found| {
+                context.source.node_text(found.operand).to_owned()
+            }),
         "binary" => {
             let operator = node
                 .field("operator")
@@ -200,12 +202,17 @@ fn invert(
                 invert(*only, inverses, context, edits);
             }
         }
-        // `corrector.remove(node.loc.selector)`: the `!` goes away.
-        "unary" => {
-            if let Some(operator) = node.field("operator") {
+        // `corrector.remove(node.loc.selector)`: the `!` goes away, whichever way it was
+        // written. **The postfix spelling has to be here too.** Leaving `x.!` alone while the
+        // keyword still flipped turned `foo unless x.!` into `foo if x.!` -- valid Ruby that says
+        // the opposite. (Upstream removes only the `!` and leaves `foo if x.`, which is a syntax
+        // error; the reparse guard then drops the whole correction, and the offense is reported
+        // without one. That is the safe half of the same behaviour.)
+        _ if send_node::bang(node, context).is_some() => {
+            if let Some(found) = send_node::bang(node, context) {
                 edits.push(Edit {
-                    start: operator.start_byte(),
-                    end: operator.end_byte(),
+                    start: found.selector.start_byte(),
+                    end: found.selector.end_byte(),
                     replacement: String::new(),
                     safe: true,
                 });
