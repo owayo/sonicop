@@ -1,6 +1,6 @@
 # RuboCop conformance
 
-Snapshot date: 2026-08-14
+Snapshot date: per row — see the `Measured` column of *Results*
 Reference: RuboCop 1.89.0 on Ruby 4.0.6
 Configuration: RuboCop 1.89.0 built-in defaults (`--force-default-config`) on both sides
 
@@ -56,13 +56,19 @@ The two kinds of difference are counted separately because they mean different t
 that file follows from it; a difference in any other cop says the port reads the same tree and
 draws a different conclusion. Only the second is a defect in a cop.
 
-| Corpus | Excess | Missing | of which `Lint/Syntax` | Other cops | Field differences |
-|---|---:|---:|---|---:|---|
-| rubocop/rubocop | 0 | 0 | — | 0 | correctable ×1 |
-| rails/rails | 0 | 0 | — | 0 | none |
-| mastodon/mastodon | 0 | 0 | — | 0 | none |
-| Homebrew/brew | 263 | 997 | **all of them** | **0** | none |
-| ruby/ruby | 142 | 585 | 117 missing, 44 excess | 92 | 5 |
+| Corpus | Excess | Missing | of which `Lint/Syntax` | Other cops | Field differences | Measured |
+|---|---:|---:|---|---:|---|---|
+| rubocop/rubocop | 0 | 0 | — | 0 | correctable ×1 | 2026-08-17 |
+| rails/rails | 0 | 0 | — | 0 | none | 2026-08-17 |
+| mastodon/mastodon | 0 | 0 | — | 0 | none | 2026-08-17 |
+| Homebrew/brew | 263 | 997 | **all of them** | **0** | none | 2026-08-17 |
+| ruby/ruby | 142 | 585 | 117 missing, 44 excess | 92 | 5 | 2026-08-16 |
+
+The last column is per row on purpose. A single date at the top of the file would say the five were
+measured together, and they were not: the first four are re-measured on every release, ruby/ruby is
+not — it is the one corpus whose reference cannot be produced in a single run (see above), so it is
+re-measured deliberately rather than routinely. Its row is the older of the two and should be read
+as such.
 
 **No cop other than `Lint/Syntax` differs on four of the five corpora**, Homebrew included: across
 its 2,179 files and 49,920 offenses the two agree on every position, message, severity and
