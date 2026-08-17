@@ -30,6 +30,7 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       The upstream configuration, taken verbatim at v1.89.0. It is the sole
       source of truth for which cops exist and what their defaults are.
       Regenerate: scripts/sync_default_yml.sh 1.89.0
+      Full text also kept at licenses/RUBOCOP.txt
 
 Ruby on Rails -- https://github.com/rails/rails -- MIT
   Copyright (c) David Heinemeier Hansson
@@ -49,7 +50,7 @@ Ruby -- https://github.com/ruby/ruby -- 2-clause BSDL
 Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
   Copyright (c) 2009-present, Homebrew contributors
 
-  The three projects above contribute to one file:
+  Rails, Ruby and Homebrew contribute to one file, together with RuboCop:
 
   tests/fixtures/regexp_trees.jsonl
       Every distinct regular-expression literal appearing in those projects'
@@ -62,6 +63,12 @@ Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
       repository is MIT; the two are not obviously compatible, so it is left
       out rather than reasoned about. Only permissively licensed corpora are
       used, and dropping mastodon cost 218 of 10,966 patterns.
+
+tree-sitter-ruby -- https://github.com/owayo/tree-sitter-ruby -- MIT
+  Copyright (c) 2016 Rob Rix and contributors
+
+  Linked as a dependency (see Cargo.toml). sonicop uses a fork; the grammar
+  itself is derived from the original. Full text: licenses/TREE_SITTER_RUBY.txt
 
 ================================================================================
 MIT License -- applies to RuboCop and to Ruby on Rails
