@@ -6562,10 +6562,40 @@ fn matches_rubocop() {
                 indent(&support::manifest::suggest(&case, &verdict.unknown)),
             ));
         }
+        for entry in verdict.reversed {
+            regressions.push(format!(
+                "■ {} [{}] は ★ ケースの向きが逆です。{} からは消さないでください\n    \
+                 ケースの期待値が、本家ではなく **sonicop の出力** と一致しています。\n    \
+                 ケースは本家の振る舞いを持ち、マニフェストが sonicop の外れを持ちます。\n    \
+                 本家: {}\n    sonicop(登録時): {} ← ケースにこちらが書かれています",
+                entry.case_id,
+                entry.kind,
+                support::manifest::DEFAULT_PATH,
+                entry.upstream,
+                entry.sonicop
+            ));
+        }
         for entry in verdict.resolved {
+            // 「差分が出ていない」理由は 2 つある。(b) の自動判定は `kind: correction` にしか
+            // 効かないので、**この登録がどちらの扱いを受けたかを毎回書く。**射程を書かないと、
+            // 次の人が判定していない kind の登録を「判別子があるから安全」と読んで消す。
+            let checked = match entry.kind == "correction" {
+                true => "※ (b) は自動判定済み (kind: correction)。向きは逆ではありません。",
+                false => {
+                    "※ ★ (b) は自動判定していません。自動判定は kind: correction のみで、\n      \
+                          この登録は違います。ケースの期待値が上下どちらと一致するかを目で確かめてください。"
+                }
+            };
             stale.push(format!(
-                "■ {} [{}] は直っています。{} から消してください\n    本家: {}\n    sonicop(登録時): {}",
-                entry.case_id, entry.kind, support::manifest::DEFAULT_PATH, entry.upstream, entry.sonicop
+                "■ {} [{}] の差分が出ていません。{} から消す **前に** どちらか確かめてください\n    \
+                 (a) 本当に直った                     → 消してよい\n    \
+                 (b) ケースが sonicop の側を写している → ★ 消してはいけない (向きが逆)\n    \
+                 本家: {}\n    sonicop(登録時): {}\n    {checked}",
+                entry.case_id,
+                entry.kind,
+                support::manifest::DEFAULT_PATH,
+                entry.upstream,
+                entry.sonicop,
             ));
         }
     }
