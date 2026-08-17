@@ -239,6 +239,18 @@ fn reverses_upstream_and_sonicop(case: &CopCase, entry: &Entry) -> bool {
         .as_deref()
         .is_some_and(|expected| expected == entry.sonicop)
 }
+/// 実行結果から差分エントリの YAML を組み立てる。
+///
+/// **マニフェストを自動で書き換えることは意図的にしていない。**差分はバグの
+/// 記録なので、増えるときは人間が中身を見るべきだから。出力を見て、説明を
+/// 付けてから手で取り込む。
+pub fn suggest(case: &CopCase, divergences: &[Divergence]) -> String {
+    let entries: Vec<Entry> = divergences
+        .iter()
+        .map(|divergence| Entry::from_divergence(case, divergence, "TODO: 差分の説明を書く"))
+        .collect();
+    serde_yaml_ng::to_string(&entries).unwrap_or_else(|error| format!("# 書き出せない: {error}"))
+}
 
 #[cfg(test)]
 mod reversal_guard {
@@ -305,17 +317,4 @@ mod reversal_guard {
             &entry
         ));
     }
-}
-
-/// 実行結果から差分エントリの YAML を組み立てる。
-///
-/// **マニフェストを自動で書き換えることは意図的にしていない。**差分はバグの
-/// 記録なので、増えるときは人間が中身を見るべきだから。出力を見て、説明を
-/// 付けてから手で取り込む。
-pub fn suggest(case: &CopCase, divergences: &[Divergence]) -> String {
-    let entries: Vec<Entry> = divergences
-        .iter()
-        .map(|divergence| Entry::from_divergence(case, divergence, "TODO: 差分の説明を書く"))
-        .collect();
-    serde_yaml_ng::to_string(&entries).unwrap_or_else(|error| format!("# 書き出せない: {error}"))
 }
