@@ -53,8 +53,12 @@ fn follows(context: &RuleContext<'_>, previous: &Range<usize>, next: &Range<usiz
 }
 
 /// `comment_text`: the comment's own text, with its trailing blanks taken off.
+///
+/// `String#strip` takes off NUL and the six ASCII whitespace characters and **leaves a no-break
+/// space where it is**, so `#\u{a0}` is not an empty comment upstream. Rust's `trim` takes the whole
+/// of `White_Space`, which turned that comment into a bare `#` and reported it as empty.
 fn stripped<'a>(context: &'a RuleContext<'_>, comment: &Range<usize>) -> &'a str {
-    context.source.text()[comment.clone()].trim()
+    context.source.text()[comment.clone()].trim_matches(crate::rules::support::is_ruby_strippable)
 }
 
 /// `/\A(#\n)+\z/`, or `/\A(#+\n)+\z/` once border comments are no longer allowed.

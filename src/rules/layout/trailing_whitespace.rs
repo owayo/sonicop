@@ -13,7 +13,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let range = context.source.line_range(line_number);
         let line = &text[range.clone()];
         let content_end = line.trim_end_matches(['\r', '\n']).len();
-        let trimmed_end = line[..content_end].trim_end_matches([' ', '\t']).len();
+        // `/[[:blank:]]\z/` and `sub(/[[:blank:]]+\z/, '')`: **the widest of Ruby's three whitespace
+        // sets, and the only one that reaches past ASCII.** A line ending in a no-break space or an
+        // ideographic space carries trailing whitespace upstream, and reading the run as `[' ', '\t']`
+        // left those lines unreported. (A line that *begins* with one parses as an identifier, so the
+        // judgement has to be made on the line's text rather than on a node.)
+        let trimmed_end = line[..content_end]
+            .trim_end_matches(crate::rules::support::is_ruby_blank)
+            .len();
         if trimmed_end == content_end {
             continue;
         }
