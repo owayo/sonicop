@@ -293,6 +293,14 @@ current list of what these corpora never exercise; the main ones are non-default
 values, extension plugins, and Windows line endings. Cops that never fire contribute nothing to a
 match count, and their silence is indistinguishable from agreement.
 
+That limit is not hypothetical, and one instance is now measured. `Style/HashSyntax` defaults
+`EnforcedShorthandSyntax` to `either`, under which neither tool reports anything; the port
+implements none of the other four values, so half the cop is missing. Both the corpus runs and a
+sweep of RuboCop's own specs report agreement for it, because both run at the default. A cop can be
+half absent and still match everywhere the default reaches. Where a cop's behaviour is selected by
+configuration, this document covers the default branch only — the others are neither measured nor
+claimed.
+
 The 215 cops RuboCop ships switched off are a limit of a different kind. They are implemented, but a
 default run never reaches them, so the corpus numbers above say nothing about them. What stands
 behind those is a separate measurement: the same corpora linted with all 609 cops switched on, on
