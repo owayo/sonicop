@@ -1,0 +1,22 @@
+# tests/fixtures/regexp_trees.jsonl の出所
+#
+# JSONL 本体にはコメントを書けないので、出所をこのファイルに置く。
+# 本体の 1 行目をヘッダにすると「1 行目だけ意味が違う」形になり、
+# head / grep / concat で切った瞬間に出所が黙って消えるため。
+#
+# 抽出したもの: 各 .rb ファイルに現れる ★ 正規表現リテラルのみ
+# 生成コマンド:
+#   ruby scripts/dump_regexp_trees.rb \
+#     ~/tmp/source/rubocop_rubocop ~/tmp/source/rails_rails \
+#     ~/tmp/source/ruby_ruby ~/tmp/source/Homebrew_brew \
+#     > tests/fixtures/regexp_trees.jsonl
+#
+# ★ mastodon_mastodon は AGPL-3.0 なので入れない (#70)。
+#   このリポジトリは MIT なので、permissive な 4 本だけを使う。
+#   帰属は NOTICE に書く。
+#
+# 使ったコーパス:
+#   rubocop_rubocop    76431cc   (.rb 1,749 ファイル)
+#   rails_rails        97d7f93   (.rb 3,446 ファイル)
+#   ruby_ruby          cfb2ed7   (.rb 7,404 ファイル)
+#   Homebrew_brew      6c0fcdc   (.rb 2,179 ファイル)

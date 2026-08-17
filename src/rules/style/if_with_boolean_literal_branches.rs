@@ -5,6 +5,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
 
 /// `RuboCop::AST::Node::COMPARISON_OPERATORS`.
@@ -142,6 +143,12 @@ fn returns_boolean(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>
 
 /// `assume_boolean_value?`: a comparison, a predicate, or a doubled `!`.
 fn assume_boolean(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> bool {
+    // `double_negative?` is `(send (send _ :!) :!)`, and each `!` may be written either way.
+    // Checking this before the `call` arm matters: `x.!.!` is a `call` whose method is `!`, which
+    // the arm below would otherwise read as a predicate-looking method name.
+    if let Some(found) = send_node::bang(node, context) {
+        return send_node::bang(found.operand, context).is_some();
+    }
     match node.kind_str() {
         "binary" => {
             let operator = context.source.node_text(match node.field("operator") {
@@ -160,17 +167,6 @@ fn assume_boolean(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>)
                 return false;
             }
             COMPARISON_OPERATORS.contains(&name) || name.ends_with('?')
-        }
-        // `(send (send _ :!) :!)`.
-        "unary" => {
-            node.child(0)
-                .is_some_and(|operator| operator.kind_str() == "!")
-                && node.field("operand").is_some_and(|operand| {
-                    operand.kind_str() == "unary"
-                        && operand
-                            .child(0)
-                            .is_some_and(|operator| operator.kind_str() == "!")
-                })
         }
         _ => false,
     }

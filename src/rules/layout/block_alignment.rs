@@ -415,6 +415,11 @@ fn is_align_target(context: &RuleContext<'_>, parent: Node<'_>, node: Node<'_>) 
         // `(send equal?(%1) !:[] ...)`: a call written on the block, `foo.bar do end.baz`. An
         // index read is `:[]` and so excluded, which `element_reference` stands for.
         "call" => parent.field("receiver") == Some(node),
+        // The same pattern, for the operators the parser also files as sends whose receiver is the
+        // node: `~xyz { }` is `(send (block ...) :~)`. **The `end` lines up with the operator, not
+        // with the method name** -- upstream's message names `~xyz { |x|` and its column, so a block
+        // written under one has to keep walking out to the operator.
+        "unary" => parent.field("operand") == Some(node),
         _ => false,
     }
 }

@@ -759,6 +759,47 @@ mod lint {
         );
     }
 
+    /// キーの重複は**ハッシュ可能な鍵**で数える (`node_equality::equality_key`)。前方の全キーと
+    /// 構造比較する形は二次で、生成された表 1 個 (`ruby/ruby` の `unicode_normalize/tables.rb`、
+    /// pair 7,859 個) で **この cop だけで 22 秒**かかっていた。本家は `Duplication` mixin の
+    /// `group_by` で線形である。
+    ///
+    /// **鍵は `identical` と同じ同値関係でなければならない。** どちらかにずれると、過剰検出
+    /// (別のキーを同じ鍵にした) か見落とし (同じキーを別の鍵にした) になる。境界を 13 形測って
+    /// 本家と突き合わせたので、その全部をここに置く。
+    ///
+    /// 期待値は本家 1.89.0 の `--only Lint/DuplicateHashKey` の実測。
+    #[test]
+    fn the_hashable_key_keeps_the_same_equivalence_as_node_equality() {
+        let duplicate = |source: &str| {
+            // この cop は訂正を持たないので、`-A` を掛けてもソースは動かない。
+            let report = expect_correction("Lint/DuplicateHashKey", source, source);
+            let count = report
+                .offenses
+                .iter()
+                .filter(|offense| offense.cop_name == "Lint/DuplicateHashKey")
+                .count();
+            assert_eq!(count, 1, "1 件の重複を数えるはず: {source:?}");
+        };
+        // 同じ鍵になる側。値の解決まで済ませてから比べるので、書き方は問わない。
+        duplicate("h = { ?a => 1, \"a\" => 2 }\n"); // 1 文字リテラルと文字列
+        duplicate("h = { :sym => 1, :\"sym\" => 2 }\n"); // 素のシンボルと引用符つき
+        duplicate("h = { 0x10 => 1, 16 => 2 }\n"); // 基数
+        duplicate("h = { -0.0 => 1, 0.0 => 2 }\n"); // ★ `-0.0 == 0.0` なので同じ鍵
+        duplicate("h = { A => 1, A => 2 }\n"); // 定数
+        duplicate("h = { [1, 2] => 1, [1, 2] => 2 }\n"); // 入れ子の配列
+        duplicate("h = { { a: 1 } => 1, { a: 1 } => 2 }\n"); // 入れ子のハッシュ
+        duplicate("h = { \"\\n\" => 1, \"\\x0a\" => 2 }\n"); // エスケープの解決
+        duplicate("h = { \"\\012\" => 1, \"\\n\" => 2 }\n"); // 8 進エスケープ
+        // 別の鍵になる側 (対照)。**この側が無いと、全部同じ鍵にする実装でも通ってしまう。**
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { 1 => 1, 1.0 => 2 }\n");
+        expect_no_offenses("Lint/DuplicateHashKey", "h = { A::B => 1, B => 2 }\n");
+        expect_no_offenses(
+            "Lint/DuplicateHashKey",
+            "h = { \"a\" => 1, \"b\" => 2, :a => 3, 1 => 4, 1.0 => 5 }\n",
+        );
+    }
+
     /// 条件は `when` をまたいで数える。
     #[test]
     fn duplicate_case_condition_counts_across_when_branches() {
@@ -8704,6 +8745,25 @@ mod literal_in_interpolation {
 
     const COP: &str = "Lint/LiteralInInterpolation";
 
+    /// `literal_in_interpolation_spec.rb:588`. `Lint/ArrayLiteralInRegexp` owns this shape.
+    ///
+    /// The guard was written for `array` alone, but `%w[]` and `%i[]` reach upstream as an `array`
+    /// too -- `array_type?` is true for all three -- while the grammar gives each its own kind.
+    #[test]
+    fn an_array_interpolated_into_a_regexp_belongs_to_another_cop() {
+        for literal in ["[1, 2]", "%w[a b c]", "%i[a b c]"] {
+            expect_no_offenses(COP, &format!("/#{{{literal}}}/\n"));
+        }
+        // Outside a regexp the same literals are still this cop's.
+        expect_offense(
+            COP,
+            r##"
+            x = "#{%w[a b c]}"
+                   ^^^^^^^^^ Literal interpolation detected.
+            "##,
+        );
+    }
+
     #[test]
     fn the_offense_covers_the_literal_not_the_interpolation() {
         expect_offense(
@@ -16122,6 +16182,26 @@ mod single_argument_dig {
 
     const COP: &str = "Style/SingleArgumentDig";
 
+    /// `single_argument_dig_spec.rb:148`. A chain of `dig` calls belongs to `Style/DigChain`.
+    ///
+    /// `dig_chain_enabled?` is `config.cop_enabled?`, which is `for_cop(name).fetch('Enabled')` --
+    /// the value tested for truth. `Style/DigChain` ships as `Enabled: pending`, and `'pending'` is
+    /// truthy in Ruby, so the default configuration leaves the chain to it. Only a literal `false`
+    /// hands it back. Reading the value as a `bool` and defaulting to `false` when it will not
+    /// parse had that backwards, and the default configuration is what nearly everyone runs.
+    #[test]
+    fn a_chain_of_digs_is_left_to_the_neighbouring_cop() {
+        expect_no_offenses(COP, "data.dig(var1).dig(var2)\n");
+        // A single `dig` is still this cop's, chain cop or no chain cop.
+        expect_offense(
+            COP,
+            r#"
+            data.dig(var1)
+            ^^^^^^^^^^^^^^ Use `data[var1]` instead of `data.dig(var1)`.
+            "#,
+        );
+    }
+
     #[test]
     fn the_call_is_replaced_by_an_index() {
         expect_correction(COP, "[1, 2, 3].dig(0)\n", "[1, 2, 3][0]\n");
@@ -16994,6 +17074,65 @@ mod layout_block_alignment {
         .corrected(concat!("foo.bar\n", "  .each do\n", "    baz\n", "end\n"))
         .run();
     }
+
+    /// 単項演算子を前に置いた呼び出しでは、**`end` が揃う相手は演算子から始まる式**である。
+    ///
+    /// `~xyz { }` は本家の parser では `(send (block ...) :~)` で、ブロックを receiver に持つ
+    /// send になる。`block_end_align_target?` の `(send equal?(%1) !:[] ...)` がそれに当たるので
+    /// 歩みは演算子まで出て、メッセージも `~xyz { |x|` とその桁 (13) を名指しする。
+    /// 文法は `unary` ノードにするので、`call` の receiver だけを見ていると 1 桁内側
+    /// (`xyz { |x|` の 14) で止まり、**揃っている形を過剰検出し、文言も変わっていた**
+    /// (この cop の spec で 6 件)。
+    ///
+    /// 期待値は本家 1.89.0 の spec (612 / 643 / 674 行付近) と `-A` の実測。
+    #[test]
+    fn a_unary_operator_becomes_the_alignment_target() {
+        // 揃っている形。演算子の桁 (13) に `}` が来ているので何も出ない。
+        for operator in ["~", "!", "-"] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "def abc\n  @abc ||= A[{operator}xyz {{ |x|\n               x\n             \
+                     }}.flatten]\nend\n"
+                ),
+            );
+        }
+        // ずれている形。文言は演算子から始まる式を名指しする。
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[~xyz { |x|
+                           x
+                                    }.flatten]
+                                    ^ `}` at 4, 24 is not aligned with `~xyz { |x|` at 2, 13 or `@abc ||= A[~xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n                        \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[~xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
+        expect_offense(
+            COP,
+            r"
+            def abc
+              @abc ||= A[!xyz { |x|
+                           x
+            }.flatten]
+            ^ `}` at 4, 0 is not aligned with `!xyz { |x|` at 2, 13 or `@abc ||= A[!xyz { |x|` at 2, 2.
+            end
+            ",
+        );
+        expect_correction(
+            COP,
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n                  \
+             }.flatten]\nend\n",
+            "def abc\n  @abc ||= A[-xyz { |x|\n               x\n  }.flatten]\nend\n",
+        );
+    }
 }
 
 /// Style 部門の追加分 (前半)。
@@ -17767,6 +17906,24 @@ mod command_literal {
 /// 期待値は本家 1.89.0 の `--only Style/DoubleNegation` と `-A` の実測。
 mod double_negation {
     use super::*;
+
+    /// 本家のパターンは `(send (send _ :!) :!)` -- **2 段とも素の `send`**。文法は片方の `!`
+    /// を `unary`、もう片方を `call` と綴るので、`unary` だけを歩くと `foo.!.!` が丸ごと
+    /// 落ち、`call` を素の送信か問わずに拾うと `!foo&.!` (本家では `csend`) を過剰に報告する。
+    #[test]
+    fn both_levels_have_to_be_a_plain_send() {
+        expect_correction(COP, "!!foo\n", "!foo.nil?\n");
+        // 後置で書いても同じ `(send (send foo :!) :!)`。
+        // 本家の訂正は `foo.!..nil?` -- 妙な出力だが、本家がそう出す。
+        expect_correction(COP, "foo.!.!\n", "foo.!..nil?\n");
+        // 外側が前置の `!` なら、消えるのは前置のほう。
+        expect_correction(COP, "!foo.!\n", "foo.!.nil?\n");
+        // `&.` は `csend` なので、どちらの段に来ても当たらない。
+        expect_no_offenses(COP, "!foo&.!\n");
+        expect_no_offenses(COP, "foo.!&.!\n");
+        // 外側の綴りは `!` でなければならない (`loc.selector`)。
+        expect_no_offenses(COP, "not not foo\n");
+    }
 
     const COP: &str = "Style/DoubleNegation";
 
@@ -18617,6 +18774,30 @@ mod explicit_block_argument {
 
     const COP: &str = "Style/ExplicitBlockArgument";
 
+    /// 本家は `super` に渡す引数を**定義の側から組み立てる**。`zsuper` は書かれていない引数を
+    /// 暗黙に持つノードなので、`&block` を足すとその暗黙が消え、明示的に書き直すしかない。
+    #[test]
+    fn a_bare_super_gains_the_arguments_it_was_passing_implicitly() {
+        expect_correction(
+            COP,
+            "def foo(a, b)\n  super { yield }\nend\n",
+            "def foo(a, b, &block)\n  super(a, b, &block)\nend\n",
+        );
+        // 既定値つきの**位置**引数だけが名前になる。キーワード引数が `c` になると、
+        // 宣言されていない位置引数を渡すことになる。
+        expect_correction(
+            COP,
+            "def foo(a, b = 1, c: 2)\n  super { yield }\nend\n",
+            "def foo(a, b = 1, c: 2, &block)\n  super(a, b, c: 2, &block)\nend\n",
+        );
+        // 括弧つきの `super` は引数が書かれているので、組み立て直さない。
+        expect_correction(
+            COP,
+            "def foo(a)\n  super(a) { yield }\nend\n",
+            "def foo(a, &block)\n  super(a, &block)\nend\n",
+        );
+    }
+
     #[test]
     fn a_block_that_only_yields_becomes_a_block_argument() {
         expect_correction(
@@ -18797,6 +18978,29 @@ mod redundant_condition {
     use super::*;
 
     const COP: &str = "Style/RedundantCondition";
+
+    /// `test.bar = foo` は本家では `(send test :bar= foo)` -- **代入ではなく送信**である
+    /// (本家の `asgn_type?` は属性代入を含まない)。文法はこれを `assignment` と綴るので、
+    /// `call` だけを見ていると両枝が同じ属性に書く形を落とす。
+    #[test]
+    fn an_attribute_assignment_counts_as_a_method_call() {
+        expect_correction(
+            COP,
+            "if foo\n  test.bar = foo\nelse\n  test.bar = 'baz'\nend\n",
+            "test.bar = foo || 'baz'\n",
+        );
+        // 受け手が違えば同じ問いではない。
+        expect_no_offenses(COP, "if foo\n  a.bar = foo\nelse\n  b.bar = 'baz'\nend\n");
+        // 書き先が違えば同じ問いではない。
+        expect_no_offenses(COP, "if foo\n  a.bar = foo\nelse\n  a.baz = 'baz'\nend\n");
+    }
+
+    /// 単一行に畳めるかは**書かれたとおりの `else`** で決まる。正規化した姿で測ると、
+    /// 元が複数行の `else` を 1 行の三項に畳んでしまう。
+    #[test]
+    fn the_else_branch_is_measured_as_written() {
+        expect_correction(COP, "if b\n  b\nelse\n  c\nend\n", "b || c\n");
+    }
 
     #[test]
     fn a_branch_that_repeats_the_condition_becomes_a_double_pipe() {
@@ -23314,6 +23518,15 @@ mod style_collection_compact {
     use super::*;
 
     const COP: &str = "Style/CollectionCompact";
+
+    /// `!` は前置演算子としても `&.!` としても書ける。文法は前者を `unary`、後者を
+    /// `call` にするので、**片方だけを見ると `&.` の側が落ちる**。
+    #[test]
+    fn negation_is_read_through_both_spellings() {
+        expect_correction(COP, "array.select { |e| !e.nil? }\n", "array.compact\n");
+        expect_correction(COP, "array.select { |e| e.nil?.! }\n", "array.compact\n");
+        expect_correction(COP, "array.select { |e| e.nil?&.! }\n", "array.compact\n");
+    }
 
     /// `reject`・`select`・`filter`・`grep_v` のどれもが `compact` になり、破壊版は
     /// `compact!` になる。
@@ -30188,6 +30401,26 @@ mod style_map_into_array {
 
     const COP: &str = "Style/MapIntoArray";
 
+    /// `map_into_array_spec.rb:339`. `(send !{nil? self} :each)` names no argument, so the pattern
+    /// only matches an `each` that takes none. `StringIO#each(sep)` takes one and means something
+    /// else, and there is no `map` that would say the same thing.
+    #[test]
+    fn an_each_that_takes_arguments_is_not_a_map() {
+        expect_no_offenses(
+            COP,
+            "dest = []\nStringIO.new('foo:bar').each(':') { |e| dest << e }\n",
+        );
+        // The same shape without the argument is the one the cop is about.
+        expect_offense(
+            COP,
+            r#"
+            dest = []
+            [1, 2].each { |e| dest << e * 2 }
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `map` instead of `each` to map elements into an array.
+            "#,
+        );
+    }
+
     /// 空配列を作って `each` で詰めるだけの形は `map` の戻り値そのもの。詰め先の代入も
     /// 直後の読みも消え、`map` の結果がその変数に入る。
     #[test]
@@ -34919,6 +35152,29 @@ mod lint_unescaped_bracket_in_regexp {
 
     const COP: &str = "Lint/UnescapedBracketInRegexp";
 
+    /// A `]` that belongs to a `\c` control escape is not a bare bracket.
+    ///
+    /// The regexp scanner had no case for `\cX` / `\C-X`, so the escape came out two characters
+    /// long and **the character it was meant to take was left behind as a `literal` node of its
+    /// own**. This cop reads `literal` nodes, so the `]` of `\c]` was reported as unescaped --
+    /// a defect in the *escape* handling that surfaced as an offense about a *bracket*.
+    ///
+    /// The bare `]` below is the pair to it: without it, a scanner that simply stopped reporting
+    /// would pass this test too.
+    #[test]
+    fn a_bracket_that_names_a_control_escape_is_not_reported() {
+        expect_no_offenses(COP, "/abc\\c]123/\n");
+        expect_no_offenses(COP, "/abc\\C-]123/\n");
+        // The same bracket without the escape in front of it is still this cop's.
+        expect_offense(
+            COP,
+            r"
+            /abc]123/
+                ^ Regular expression has `]` without escape.
+            ",
+        );
+    }
+
     /// 位置は本体の先頭から数えた文字数。`/.../` でも `%r{...}` でも同じ数え方になる。
     #[test]
     fn a_bare_bracket_in_a_regexp_literal_is_reported() {
@@ -37958,5 +38214,59 @@ mod layout_block_end_newline_heredoc {
             .without_offense_check()
             .corrected(source)
             .run();
+    }
+}
+
+/// `(send _ :!)` は文法では 2 通りに綴られる -- `!x` は `unary`、`x.!` は `call`。
+///
+/// 本家の述語 (`negation_method?` / `prefix_bang?`) は AST の上にあるので両方に当たるが、
+/// 移植版は 15 箇所で別々に書き直していて、どれも `unary` しか見ていなかった。**不足の
+/// 向き** (後置を否定と読まない) と**過剰の向き** (内側の後置が見えず `!x.!` を単一の否定と
+/// 読む) の両方が出る。`&.` は本家では `csend` なので、どちらの段でも当たらない。
+mod negation_spellings {
+    use super::*;
+
+    #[test]
+    fn the_conditional_cops_read_both_spellings() {
+        expect_correction(
+            "Style/NegatedIf",
+            "if x.!\n  foo\nend\n",
+            "unless x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedIf", "if !x.!\n  foo\nend\n");
+        expect_no_offenses("Style/NegatedIf", "if x&.!\n  foo\nend\n");
+
+        expect_correction(
+            "Style/NegatedUnless",
+            "unless x.!\n  foo\nend\n",
+            "if x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedUnless", "unless !x.!\n  foo\nend\n");
+
+        expect_correction(
+            "Style/NegatedWhile",
+            "while x.!\n  foo\nend\n",
+            "until x\n  foo\nend\n",
+        );
+        expect_no_offenses("Style/NegatedWhile", "while !x.!\n  foo\nend\n");
+    }
+
+    #[test]
+    fn the_branch_and_condition_cops_read_both_spellings() {
+        expect_correction(
+            "Style/NegatedIfElseCondition",
+            "if x.!\n  foo\nelse\n  bar\nend\n",
+            "if x\n  bar\nelse\n  foo\nend\n",
+        );
+        // 後置の `!` は**検出だけ**が本家と一致する。本家の訂正は `foo if x.` -- 構文エラー
+        // なので、こちらは安全網が訂正を丸ごと落として offense だけを報告する。直す前は
+        // `foo if x.!` という**意味が反転した valid なコード**を出していた。
+        expect_offense(
+            "Style/InvertibleUnlessCondition",
+            r#"
+            foo unless x.!
+            ^^^^^^^^^^^^^^ Prefer `if x` over `unless x.!`.
+            "#,
+        );
     }
 }
