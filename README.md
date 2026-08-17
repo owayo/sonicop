@@ -41,6 +41,10 @@ sonicop --show-cops
 ```
 
 **All 609 RuboCop 1.89 cops are implemented**, matched name for name against the upstream registry.
+That is a claim about the registry, not about every configuration: `Style/HashSyntax` is present and
+matches everywhere its default reaches, yet none of the four non-default values of its
+`EnforcedShorthandSyntax` are implemented. **A cop can be half absent and still match everywhere the
+default reaches** — see *Limits* in [CONFORMANCE.md](CONFORMANCE.md).
 That includes the 159 shipped as `Enabled: pending` and the 56 shipped as `Enabled: false`, which a
 default run does not reach on either side — name them with `--only` or switch them on in a
 configuration, exactly as with RuboCop. Unknown cop names still fail validation unless
@@ -124,8 +128,11 @@ column, length, message, severity and correctability.
 
 Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,760) and
 Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
-match exactly on all five. What remains is concentrated in `Lint/Syntax`, where RuboCop's LALR
-parser recovers from an error and emits diagnostics a tree-sitter parse cannot reconstruct.
+match exactly on all five. What remains is concentrated in `Lint/Syntax`. Most of it is RuboCop's
+LALR parser recovering from an error and emitting diagnostics a tree-sitter parse cannot
+reconstruct — that direction accounts for the shortfall. **The excess is a separate question and has
+not been investigated**; on Homebrew all 263 of it is `Lint/Syntax` too, but what Sonicop calls a
+syntax error there and RuboCop does not is unexamined.
 Autocorrect is byte-identical on RuboCop's own tree and on Mastodon, the two corpora held as a hard
 line: a change that breaks byte equality there is a regression, not a new known divergence.
 
@@ -139,7 +146,9 @@ configuration (`--force-default-config`), so neither reads the project's `.ruboc
 corpus the two resolve **the same file list**.
 
 Both tools run their full default set — **the same 394 cops**, matched name for name — so neither
-side is restricted and the comparison is like-for-like as it stands. Times are the fastest of two
+side is restricted and the comparison is like-for-like as it stands. (394 is what is left of the 609
+once the 159 RuboCop ships as `Enabled: pending` and the 56 it ships as `Enabled: false` are set
+aside; a default run reaches neither group on either side.) Times are the fastest of two
 warmed runs.
 
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
@@ -158,7 +167,8 @@ else the machine was doing. Single-process measures the engines; parallel measur
 how well each one's scheduling happens to fit that tree on that run.
 
 The speed is not bought by skipping work: over those same 394 cops the two agree on **every offense**
-on RuboCop's own tree and on Mastodon, and autocorrect there is byte-identical.
+on RuboCop's own tree, on Rails and on Mastodon — 188,812 offenses with nothing on either side of the
+ledger — and autocorrect is byte-identical on the first and the last.
 
 Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
