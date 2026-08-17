@@ -39,8 +39,11 @@ pub struct CopCase {
     pub source: String,
     /// 期待する offense の集合。`None` は集合を検証しない (correction だけ見る)。
     pub expected: Option<Vec<Annotation>>,
-    /// `.rubocop.yml` 相当。`AllCops/TargetRubyVersion` はハーネスが上書きする。
+    /// `.rubocop.yml` 相当。**`AllCops/TargetRubyVersion` をここに書いても消える** --
+    /// ハーネスは下の [`CopCase::target_ruby`] の値で上書きするので、版を変えたいときは
+    /// このフィールドではなく `.target_ruby("3.1")` を使う。
     pub config_yaml: Option<String>,
+    /// 検査に使う `TargetRubyVersion`。`config_yaml` の同名の設定より優先される。
     pub target_ruby: String,
     /// autocorrect 後の期待ソース。
     pub corrected: Option<String>,

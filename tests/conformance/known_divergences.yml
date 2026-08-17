@@ -27,6 +27,18 @@
 #   本家の出力が有効な Ruby   → ★ 番人が間違っている。番人を直す。ここに登録しない
 #   本家の出力が無効な Ruby   → ★ 番人が正しい。本家に合わせると壊れる。ここに登録する
 #
+# ■ 「本家に合わせない」の 2 種類目 — 出力は valid だが意味が変わる
+#
+# 上の分け方は「訂正後が Ruby として通るか」で決まる。**通るのに合わせられない形が
+# もう 1 種類ある。** 番人は構文しか見ないので、この種類は番人を素通りする。
+#
+#   本家の出力が ★ 無効な Ruby        → 安全網が止める。忠実に写しても disk には届かない → 寄せる
+#   本家の出力が ★ valid だが意味が違う → 安全網は通す。忠実に写すと黙って壊れる     → ★ 寄せない
+#
+# **2 つは対処が逆なので、同じ節にまとめない。** 前者は「本家に合わせたうえで番人が守る」、
+# 後者は「本家に合わせないことそのものが判断」である。後者を前者と同じ枠に入れると、
+# 次に読む人が「安全網があるから大丈夫」と読んでしまう。安全網はこの種類を守らない。
+#
 # 実例 (どちらも 2026-08-17):
 #
 #   Style/RedundantParentheses の heredoc 配列
@@ -382,6 +394,46 @@ blind_spots:
 # 見つからないうちは、構造差を抱える理由がない。
 
 divergences:
+  # --- Style/EmptyLiteral ---
+  # ★ 「本家に合わせない」の 2 種類目 (出力は valid だが意味が変わる)。冒頭の節を参照。
+  #
+  # 本家 `style/empty_literal.rb:100`:
+  #
+  #     def first_argument_unparenthesized?(node)
+  #       parent = node.parent
+  #       return false unless parent && %i[send super zsuper].include?(parent.type)
+  #
+  # `%i[send super zsuper]` に `csend` が無いので、`recv&.foo Hash.new` では偽になり、
+  # 本家は括弧を付けずに置き換える。実測 (2026-08-17、本家 1.89.0 の `-A`):
+  #
+  #     recv.foo  Hash.new   本家 → recv.foo({})    移植 → recv.foo({})    一致
+  #     recv&.foo Hash.new   本家 → recv&.foo {}    移植 → recv&.foo({})   ★差
+  #
+  # **`recv&.foo {}` は構文としては通るが、意味が変わる。** 呼び出しの後ろの `{}` は
+  # 空ハッシュではなくブロックとして解釈される。`#41` の安全網は「valid か」しか見ないので
+  # この形を止めない。**利用者は黙って別の動作をするコードを受け取る。**
+  #
+  # 本家のバグと判断した根拠は、本家自身が `.` では正しく `&.` でだけ間違えること。
+  # 設計上の選択なら両方が同じ形になるはずで、そうなっていない。
+  #
+  # ★ **この「本家のバグ」判定は second opinion を取っていない。** 私たちの手順では
+  # 別プロバイダ (`ai-second-opinion` / codex) に判定させることになっているが、
+  # 2026-08-17 時点で codex エージェントが使えず、team-lead の判断だけで決めた。
+  # **後から見直せるように、取っていないことをここに残す。**
+  - cop: Style/EmptyLiteral
+    case: style_empty_literal_safe_navigation_argument
+    kind: correction
+    # `|-` ではなく `|`。`Kind::Correction` の差分は**訂正後のソース全体**なので末尾の改行まで
+    # 含み、`judge()` は文字列を完全一致で突き合わせる。`|-` は末尾の改行を削るため一致しない。
+    upstream: |
+      recv&.foo {}
+    sonicop: |
+      recv&.foo({})
+    note: >-
+      本家は `%i[send super zsuper]` に csend を書いていないため、`&.` の呼び出しでだけ
+      括弧を付けずに置き換える。出力は valid な Ruby だが `{}` がブロックとして解釈され、
+      意味が変わる。本家自身が `.` では括弧を付けるので見落としと判断し、寄せない。
+      **second opinion 未取得** (codex が使えず team-lead の判断のみ)。
   # --- Style/MethodCallWithArgsParentheses (EnforcedStyle: omit_parentheses) ---
   # tree-sitter は Ruby の command call の文法制約を持たない。括弧を外した結果が Ruby として
   # 通らない形でも ERROR ノードを作らずに受理するので、再パース検証 (`accepts_more_than_ruby`)

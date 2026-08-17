@@ -22017,6 +22017,28 @@ mod style_conditional_assignment {
             "bar = if foo\n  [1, 2]\nelse\n  3\n      end\n",
         );
     }
+
+    /// `recv&.bar = 1` は本家では `csend` で、この cop は `on_send` を定義して `on_csend` を
+    /// 定義していない。**`csend` は `send` の一種ではなく別の種別**で、`send_type?` は false を
+    /// 返す — つまり本家はこの形を一度も訪れない。文法は `.` も `&.` も同じ `call` と綴るので、
+    /// 演算子を見ないと本家が黙っている形を報告してしまう。
+    ///
+    /// 列挙が**包含側** (`on_send` があり `on_csend` が無い) なので、抜けは過剰検出になる。
+    /// 同じ抜けでも**除外側**の列挙 (`Style/RedundantParentheses` の
+    /// `type?(:send, :super, :yield)` と `ALLOWED_NODE_TYPES`) では向きが逆で、見落としになる。
+    ///
+    /// `.` の側を残してあるのは陰性対照。これが 0 件に落ちたら直しすぎである。
+    #[test]
+    fn a_safe_navigation_setter_is_never_visited_upstream() {
+        expect_no_offenses(COP, "if foo\n  recv&.bar = 1\nelse\n  recv&.bar = 3\nend\n");
+        expect_no_offenses(COP, "foo ? recv&.bar = 1 : recv&.bar = 2\n");
+        // 陰性対照: `.` の側は本家も報告し、訂正まで一致する。
+        expect_correction(
+            COP,
+            "if foo\n  recv.bar = 1\nelse\n  recv.bar = 3\nend\n",
+            "recv.bar = if foo\n  1\nelse\n  3\n           end\n",
+        );
+    }
 }
 
 /// `Style/RedundantParentheses`: 意味を持たない括弧は外す。
@@ -22276,6 +22298,42 @@ mod redundant_parentheses {
                            ^^^ Don't use parentheses around a literal.
             "#,
         );
+    }
+
+    /// 本家がこの cop の中で `csend` を落としている箇所は 2 つあり、**どちらも除外側の列挙**
+    /// なので、抜けの向きは見落としになる。`.` と `&.` を同じものとして読むと本家が報告する形が
+    /// 黙る。
+    ///
+    ///   * `like_method_argument_parentheses?` の `node.type?(:send, :super, :yield)`
+    ///   * `ALLOWED_NODE_TYPES = %i[or send splat kwsplat]`
+    ///
+    /// 後者が独立した 2 つ目である点が要る。前者だけ直すと `(foo)` は動いて `(foo && bar)` は
+    /// 動かないまま残り、しかも「直した」と言えてしまう。この cop の他の判定はどれも
+    /// `call_type?` (= `send` と `csend` の両方) なので、区別が要るのはこの 2 箇所だけである。
+    ///
+    /// `.` の側を並べてあるのは陰性対照。
+    #[test]
+    fn a_safe_navigation_setter_keeps_no_parentheses_of_its_own() {
+        // `ALLOWED_NODE_TYPES` 側。`&&` は親が `send` なら黙り、`csend` なら報告される。
+        expect_correction(
+            COP,
+            "recv&.var = (foo && bar)\n",
+            "recv&.var = foo && bar\n",
+        );
+        expect_correction(
+            COP,
+            "recv&.var = (foo || bar)\n",
+            "recv&.var = foo || bar\n",
+        );
+        expect_no_offenses(COP, "recv.var = (foo && bar)\n");
+        expect_no_offenses(COP, "recv.var = (foo || bar)\n");
+        // `like_method_argument_parentheses?` 側。
+        expect_correction(COP, "recv&.var = (foo)\n", "recv&.var = foo\n");
+        expect_correction(COP, "recv&.var = (1)\n", "recv&.var = 1\n");
+        expect_no_offenses(COP, "recv.var = (foo)\n");
+        expect_no_offenses(COP, "recv.var = (1)\n");
+        // 添字への代入は本家でも `send :[]=` のままで、`&.` の綴りを持たない。
+        expect_no_offenses(COP, "recv[0] = (foo && bar)\n");
     }
 }
 
