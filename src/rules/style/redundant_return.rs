@@ -47,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     message,
                     node.start_byte()..node.start_byte() + "return".len(),
                 )
-                .corrected_by(redundant_return_edit(
+                .corrected_by_all(redundant_return_edits(
                     context,
                     node,
                     &arguments,
@@ -231,31 +231,58 @@ fn braceless_hash(arguments: &[Node<'_>]) -> bool {
 /// multiple values gain `[]`, a braceless hash gains `{}`, a leading splat is
 /// unwrapped, and the keyword plus its trailing space goes away. Dropping the
 /// keyword alone would leave `return a, b` as the syntax error `a, b`.
-fn redundant_return_edit(
+/// The corrector calls upstream makes, one Edit each.
+///
+/// Upstream emits **up to four** -- `insert_before` / `insert_after` for the brackets or braces,
+/// a `replace` for a splat, and a `remove` for the keyword. Folding them into one Edit that spans
+/// the whole `return` makes this cop swallow every other cop's correction inside that span: the
+/// engine drops the inner ones and defers them to the next pass. That is survivable on its own,
+/// but it stops being survivable as soon as two offenses have to agree with each other.
+fn redundant_return_edits(
     context: &RuleContext<'_>,
     node: Node<'_>,
     arguments: &[Node<'_>],
     multiple_values: bool,
-) -> Edit {
+) -> Vec<Edit> {
+    // `correct_without_arguments`: `corrector.replace(return_node, 'nil')`.
     let (Some(first), Some(last)) = (arguments.first(), arguments.last()) else {
-        return Edit {
+        return vec![Edit {
             start: node.start_byte(),
             end: node.end_byte(),
             replacement: "nil".to_owned(),
             safe: true,
-        };
+        }];
     };
     let wrapper = if multiple_values {
-        Some(('[', ']'))
+        Some(("[", "]"))
     } else if braceless_hash(arguments) {
-        Some(('{', '}'))
+        Some(("{", "}"))
     } else {
         None
     };
-    let splat = arguments
-        .iter()
-        .any(|argument| argument.kind_str() == "splat_argument");
+    let splat = first.kind_str() == "splat_argument";
 
+    let mut edits = Vec::new();
+    // `add_brackets` / `add_braces` open at the first argument -- **the same byte the splat's
+    // `replace` starts at**, and `apply_edits` refuses an insertion there. Upstream's corrector
+    // allows the pair, so the two are folded into one replacement to keep the same output.
+    let opening = wrapper.map(|(open, _)| open).unwrap_or("");
+    if splat {
+        let text = context.source.node_text(*first);
+        edits.push(Edit {
+            start: first.start_byte(),
+            end: first.end_byte(),
+            replacement: format!("{opening}{}", text.strip_prefix('*').unwrap_or(text)),
+            safe: true,
+        });
+    } else if let Some((open, _)) = wrapper {
+        edits.push(insert(first.start_byte(), open));
+    }
+    if let Some((_, close)) = wrapper {
+        edits.push(insert(last.end_byte(), close));
+    }
+
+    // `corrector.remove(range_with_surrounding_space(return_node.loc.keyword, side: :right))`.
     let text = context.source.node_text(node);
     let keyword_end = node.start_byte() + "return".len();
     let whitespace_end = keyword_end
@@ -263,37 +290,20 @@ fn redundant_return_edit(
             .bytes()
             .take_while(|byte| matches!(byte, b' ' | b'\t'))
             .count();
-    if wrapper.is_none() && !splat {
-        return Edit {
-            start: node.start_byte(),
-            end: whitespace_end,
-            replacement: String::new(),
-            safe: true,
-        };
-    }
-
-    // Rebuilt rather than spliced so that text the arguments do not cover -
-    // `return(1, 2)`'s parentheses - survives verbatim.
-    let mut replacement = String::new();
-    replacement.push_str(context.source.slice(whitespace_end..first.start_byte()));
-    if let Some((open, _)) = wrapper {
-        replacement.push(open);
-    }
-    let first_text = context.source.node_text(*first);
-    replacement.push_str(if splat {
-        first_text.strip_prefix('*').unwrap_or(first_text)
-    } else {
-        first_text
-    });
-    replacement.push_str(context.source.slice(first.end_byte()..last.end_byte()));
-    if let Some((_, close)) = wrapper {
-        replacement.push(close);
-    }
-    replacement.push_str(context.source.slice(last.end_byte()..node.end_byte()));
-    Edit {
+    edits.push(Edit {
         start: node.start_byte(),
-        end: node.end_byte(),
-        replacement,
+        end: whitespace_end,
+        replacement: String::new(),
+        safe: true,
+    });
+    edits
+}
+
+fn insert(at: usize, text: &str) -> Edit {
+    Edit {
+        start: at,
+        end: at,
+        replacement: text.to_owned(),
         safe: true,
     }
 }
