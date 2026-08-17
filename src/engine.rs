@@ -1227,6 +1227,26 @@ mod trace {
         let (last_line, last_column) = position(source, end);
         format!("{first_line}:{first_column}-{last_line}:{last_column}")
     }
+
+    /// Names a cop whose own edits cannot stand together, under `SONICOP_TRACE_OVERLAP`.
+    ///
+    /// The cop-side guard only covers the four cops that reparse their own correction; this end sees
+    /// every cop, because every offense's edits pass through the correction tree. See
+    /// [`crate::rules::support::report_overlap`] for what the stages mean.
+    pub(super) fn overlap(report: &super::FileReport, index: usize, stage: &str) {
+        if !crate::rules::support::overlap_trace_enabled() {
+            return;
+        }
+        let offense = &report.offenses[index];
+        let (line, column) = report.source.line_column(offense.start);
+        crate::rules::support::report_overlap(
+            offense.cop_name,
+            &report.path.display().to_string(),
+            line,
+            column,
+            stage,
+        );
+    }
 }
 
 /// Which cops a correction pass takes edits from.
@@ -1338,6 +1358,9 @@ pub fn corrected_text(
                 if trace::enabled() {
                     eprintln!("      ★ この offense の中で衝突");
                 }
+                // The guard that names a corrector written twice over. Reaching it from here covers
+                // every cop; the cop-side path only sees the four that reparse their own correction.
+                trace::overlap(report, index, "offense-tree");
                 continue;
             };
             if offense.children.is_empty() {
@@ -1347,6 +1370,7 @@ pub fn corrected_text(
                 if trace::enabled() {
                     eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
                 }
+                trace::overlap(report, index, "cop-tree");
                 continue;
             };
             cop = merged;
