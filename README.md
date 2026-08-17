@@ -143,8 +143,8 @@ column, length, message, severity and correctability.
 
 Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,760) and
 Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
-match exactly — paths, not just counts — on those three and on Homebrew; ruby/ruby's lists have never
-been compared path by path. What remains is concentrated in `Lint/Syntax`. Most of it is RuboCop's
+match exactly on all five — paths, not just counts, compared as sets. What remains is concentrated in
+`Lint/Syntax`. Most of it is RuboCop's
 LALR parser recovering from an error and emitting diagnostics a tree-sitter parse cannot
 reconstruct — that direction accounts for the shortfall. **The excess is a separate question and has
 not been investigated**; on Homebrew all 263 of it is `Lint/Syntax` too, but what Sonicop calls a
@@ -160,8 +160,8 @@ measured at, and the two ways a measurement of this kind can mislead you.
 Measured over all five conformance corpora. Both tools were given their own bundled default
 configuration (`--force-default-config`), so neither reads the project's `.rubocop.yml`, and on every
 corpus the two resolve **the same number of files** — which is what these timings need, since it
-means neither side is inspecting less. Path-by-path equality is a stronger claim and is reported
-under *Conformance* above, where it covers four of the five.
+means neither side is inspecting less. Path-by-path equality is a stronger claim, established under
+*Conformance* above for all five, but on the pinned corpus revisions rather than on these timing runs.
 
 Both tools run their full default set — **the same 394 cops**, matched name for name — so neither
 side is restricted and the comparison is like-for-like as it stands. (394 is what is left of the 609
