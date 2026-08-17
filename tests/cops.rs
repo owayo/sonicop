@@ -17832,6 +17832,26 @@ mod each_with_object {
 
     const COP: &str = "Style/EachWithObject";
 
+    /// `n.assignment?` は `ASSIGNMENTS` -- `op_asgn` / `or_asgn` / `and_asgn` も含む。
+    /// 文法はそれを `operator_assignment` と綴るので、`assignment` だけを見ると
+    /// **累算器を代入し直す fold** に `each_with_object` を勧めてしまう (別物になる)。
+    #[test]
+    fn a_fold_that_reassigns_its_accumulator_is_left_alone() {
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo += item\n  memo\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo ||= {}\n  memo\nend\n",
+        );
+        // 素の代入も同じ (直す前から見えていた側)。
+        expect_no_offenses(
+            COP,
+            "r = [1, 2, 3].reduce({}) do |memo, item|\n  memo = {}\n  memo\nend\n",
+        );
+    }
+
     #[test]
     fn a_fold_that_hands_its_accumulator_back_is_an_each_with_object() {
         expect_offense(
@@ -37444,5 +37464,37 @@ mod negation_spellings {
             ^^^^^^^^^^^^^^ Prefer `if x` over `unless x.!`.
             "#,
         );
+    }
+}
+
+/// `Style/TallyMethod` が `it` を Ruby の版で分ける。
+///
+/// 3.4 より前の本家のパーサは `array.group_by { it }` を「引数の無いブロックの中の
+/// レシーバ無し呼び出し」として読むので、`itblock` のパターンは 1 つも当たらない。
+/// **ゲートはパーサの読みに掛かっていて、cop の意見には掛かっていない。**
+mod tally_method_it_version {
+    use super::*;
+
+    const COP: &str = "Style/TallyMethod";
+
+    #[test]
+    fn it_is_a_block_parameter_only_from_3_4() {
+        for source in [
+            "array.group_by { it }.transform_values(&:count)\n",
+            "array.group_by(&:itself).transform_values { it.count }\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .target_ruby("3.3")
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r"
+            array.group_by { it }.transform_values(&:count)
+                  ^^^^^^^^ Use `tally` instead of `group_by` and `transform_values`.
+            ",
+        )
+        .target_ruby("3.4")
+        .run();
     }
 }

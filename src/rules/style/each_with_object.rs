@@ -179,7 +179,11 @@ fn return_value<'tree>(body: Node<'tree>) -> Option<Node<'tree>> {
 /// filling one in.
 fn assigns(context: &RuleContext<'_>, body: Node<'_>, name: &str) -> bool {
     send_node::any_descendant(body, &mut |node| {
-        node.kind_str() == "assignment"
+        // `n.assignment?` is `ASSIGNMENTS`, which holds `op_asgn` / `or_asgn` / `and_asgn` next to
+        // the plain ones. The grammar spells those as `operator_assignment`, so reading only
+        // `assignment` let `memo += x` through and the cop offered `each_with_object` for a fold
+        // that reassigns its accumulator -- which does not do the same thing.
+        matches!(node.kind_str(), "assignment" | "operator_assignment")
             && node.field("left").is_some_and(|left| {
                 left.kind_str() == "identifier" && context.source.node_text(left) == name
             })
