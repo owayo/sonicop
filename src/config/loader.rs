@@ -11,7 +11,17 @@ pub(super) fn find_config(start: &Path) -> Option<PathBuf> {
         if candidate.is_file() {
             return fs::canonicalize(candidate).ok();
         }
-        if project_root.as_deref().is_none_or(|root| directory == root) {
+        // `break if dir == stop_dir || dir == FileFinder.root_level`
+        //
+        // **`stop_dir` が無いことは「止まらない」であって「止まる」ではない。**
+        // 上流の `find_project_dotfile` は `find_file_upwards(DOTFILE, target_dir, project_root)`
+        // で、`project_root` が nil のときは何とも一致しないので**ファイルシステムの根まで
+        // 昇る**。ここを `is_none_or` で書いていたため、Gemfile の無い木では最初の 1 段で
+        // 止まり、**`.rubocop.yml` がリポジトリ直下・コードが `lib/` という標準の配置で
+        // 設定が 1 つも効かなかった。**
+        //
+        // `ancestors()` は根で終わるので、`root_level` の側は自然に満たされる。
+        if project_root.as_deref() == Some(directory) {
             break;
         }
     }
