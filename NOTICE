@@ -1,7 +1,146 @@
-Sonicop includes and adapts configuration data from RuboCop 1.89.0.
-RuboCop is Copyright (c) 2012-26 Bozhidar Batsov and contributors,
-licensed under the MIT License. See licenses/RUBOCOP.txt.
+NOTICE
 
-Sonicop links to owayo/tree-sitter-ruby, derived from tree-sitter-ruby.
-tree-sitter-ruby is Copyright (c) 2016 Rob Rix and contributors,
-licensed under the MIT License. See licenses/TREE_SITTER_RUBY.txt.
+sonicop is distributed under the MIT License (see LICENSE). It also carries
+material generated from, or copied verbatim out of, the projects listed below.
+Each is redistributed under its own licence, reproduced in full at the end of
+this file.
+
+This file is an inventory as much as an attribution: it records **what is taken,
+from where, and how to regenerate it**. Keeping it current is what makes the
+licence position checkable rather than remembered.
+
+  **Adding anything derived from another project means adding it here in the
+  same change.** This file was written only after a routine attempt to list what
+  we vendor turned up a corpus nobody had recorded -- the inventory found it,
+  not the attribution. An entry that is added late is an entry that was, for a
+  while, undocumented in a public repository.
+
+  Known to be coming: tests/fixtures/upstream_spec_cases.jsonl, which will hold
+  input text from RuboCop's specs. It is deliberately **not** listed yet -- this
+  file describes what is here now, not what is planned.
+
+================================================================================
+WHAT IS TAKEN
+================================================================================
+
+RuboCop -- https://github.com/rubocop/rubocop -- MIT
+  Copyright (c) 2012-26 Bozhidar Batsov
+
+  config/default.yml
+      The upstream configuration, taken verbatim at v1.89.0. It is the sole
+      source of truth for which cops exist and what their defaults are.
+      Regenerate: scripts/sync_default_yml.sh 1.89.0
+
+Ruby on Rails -- https://github.com/rails/rails -- MIT
+  Copyright (c) David Heinemeier Hansson
+
+Ruby -- https://github.com/ruby/ruby -- 2-clause BSDL
+  Copyright (C) 1993-2013 Yukihiro Matsumoto
+
+  Ruby is dual-licensed. Its COPYING offers a choice:
+
+      "You can redistribute it and/or modify it under either the terms of the
+       2-clause BSDL (see the file BSDL), or the conditions below"
+
+  **sonicop takes the 2-clause BSDL**, reproduced below. This is written down
+  because the alternative -- saying nothing -- leaves the next reader to work
+  out why the longer Ruby License is absent.
+
+Homebrew -- https://github.com/Homebrew/brew -- BSD 2-Clause
+  Copyright (c) 2009-present, Homebrew contributors
+
+  The three projects above contribute to one file:
+
+  tests/fixtures/regexp_trees.jsonl
+      Every distinct regular-expression literal appearing in those projects'
+      Ruby sources, paired with the tree the `regexp_parser` gem builds for it.
+      It is the differential check for this port's own regexp scanner.
+      Corpora, commit hashes and the regeneration command are recorded in
+      tests/fixtures/regexp_trees.PROVENANCE.
+
+      Note: mastodon is **not** among the corpora. It is AGPL-3.0, and this
+      repository is MIT; the two are not obviously compatible, so it is left
+      out rather than reasoned about. Only permissively licensed corpora are
+      used, and dropping mastodon cost 218 of 10,966 patterns.
+
+================================================================================
+MIT License -- applies to RuboCop and to Ruby on Rails
+================================================================================
+
+Copyright (c) 2012-26 Bozhidar Batsov
+Copyright (c) David Heinemeier Hansson
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+================================================================================
+2-clause BSDL -- applies to Ruby
+================================================================================
+
+Copyright (C) 1993-2013 Yukihiro Matsumoto. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+================================================================================
+BSD 2-Clause License -- applies to Homebrew
+================================================================================
+
+BSD 2-Clause License
+
+Copyright (c) 2009-present, Homebrew contributors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
