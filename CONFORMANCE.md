@@ -30,7 +30,11 @@ sequence in UTF-8` on it — and `test/ruby/test_file_exhaustive.rb` holds an of
 not valid UTF-8, which stops the JSON formatter from emitting a document. The comparison for that
 corpus therefore covers 7,464 of its 7,466 files.
 
-The **target file lists match exactly** on all five — not just the counts but the paths. That is
+The **target file lists match exactly** — not just the counts but the paths, compared as sets — on
+rubocop/rubocop (1,765), rails/rails (3,551), mastodon/mastodon (3,290) and Homebrew/brew (2,179).
+ruby/ruby is not covered by that check: it is not in the pinned tree the check reads from, so its
+lists have never been compared path by path. Counts alone would not settle it — a set that loses one
+file and gains another keeps its count. That is
 worth stating separately because file discovery is where a port silently diverges first: RuboCop
 never reads `.gitignore`, applies a shebang test only to extensionless files, descends through
 directory symlinks, and treats a hidden path by its *first* component rather than by any dot in it.

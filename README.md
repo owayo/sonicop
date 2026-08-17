@@ -128,7 +128,8 @@ column, length, message, severity and correctability.
 
 Three of the five match **exactly**: RuboCop's own tree (5,766 offenses), Rails (167,760) and
 Mastodon (15,286), with no excess, no shortfall and no metadata differences. The target file lists
-match exactly on all five. What remains is concentrated in `Lint/Syntax`. Most of it is RuboCop's
+match exactly — paths, not just counts — on those three and on Homebrew; ruby/ruby's lists have never
+been compared path by path. What remains is concentrated in `Lint/Syntax`. Most of it is RuboCop's
 LALR parser recovering from an error and emitting diagnostics a tree-sitter parse cannot
 reconstruct — that direction accounts for the shortfall. **The excess is a separate question and has
 not been investigated**; on Homebrew all 263 of it is `Lint/Syntax` too, but what Sonicop calls a
