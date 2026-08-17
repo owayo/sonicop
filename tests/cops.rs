@@ -38190,3 +38190,48 @@ mod tally_method_it_version {
         .run();
     }
 }
+
+/// `a.foo = x` は本家では `(send a :foo= x)`、`a&.foo = x` は `(csend a :foo= x)`。
+/// **文法はどちらも `assignment` (左辺が `call`) と綴るが、本家の答えは違う。**
+mod safe_navigation_attribute_assignment {
+    use super::*;
+
+    /// `SINGLE_LINE_TYPES` は `send` と `csend` の両方を含むが、
+    /// `use_assignment_method?` は `node.send_type? && node.assignment_method?` で、
+    /// **`send_type?` は `csend` に対して偽**。だから `&.` の形だけが
+    /// 「代入メソッド」として除外されず、単一行の文言を求める。
+    #[test]
+    fn the_ternary_message_differs_between_the_two_spellings() {
+        expect_offense(
+            "Style/MultilineTernaryOperator",
+            r"
+            recv&.a = cond ?
+                      ^^^^^^ Avoid multi-line ternary operators, use single-line instead.
+              b : c
+            ",
+        );
+        expect_offense(
+            "Style/MultilineTernaryOperator",
+            r"
+            recv.a = cond ?
+                     ^^^^^^ Avoid multi-line ternary operators, use `if` or `unless` instead.
+              b : c
+            ",
+        );
+    }
+
+    /// `branches_have_method?` は `send` を見る。`&.` は `csend` なので当たらない。
+    #[test]
+    fn a_safe_navigation_write_is_not_the_method_call_the_cop_looks_for() {
+        expect_no_offenses(
+            "Style/RedundantCondition",
+            "if foo\n  recv&.value = foo\nelse\n  recv&.value = 'bar'\nend\n",
+        );
+        // 素の `.` なら当たる。
+        expect_correction(
+            "Style/RedundantCondition",
+            "if foo\n  recv.value = foo\nelse\n  recv.value = 'bar'\nend\n",
+            "recv.value = foo || 'bar'\n",
+        );
+    }
+}

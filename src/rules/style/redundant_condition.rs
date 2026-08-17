@@ -214,7 +214,7 @@ fn synonymous(
     if if_branch.kind_str() == "element_reference" {
         return false;
     }
-    first_argument(if_branch)
+    first_argument(if_branch, context)
         .is_some_and(|(_, range)| context.source.slice(range) == condition_source)
 }
 
@@ -287,20 +287,20 @@ fn branches_have_method(
     ) else {
         return false;
     };
-    single_argument_method(first)
-        && single_argument_method(second)
+    single_argument_method(first, context)
+        && single_argument_method(second, context)
         && selector(context, first) == selector(context, second)
         && receiver(context, first) == receiver(context, second)
 }
 
-fn single_argument_method(node: Node<'_>) -> bool {
-    if !is_send(node) {
+fn single_argument_method(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if !is_send(node, context) {
         return false;
     }
-    let Some((argument, _)) = first_argument(node) else {
+    let Some((argument, _)) = first_argument(node, context) else {
         return false;
     };
-    if arguments(node).len() != 1 {
+    if arguments(node, context).len() != 1 {
         return false;
     }
     // `argument_with_operator?`: a splat, a block pass and a `**` inside a brace-less hash all
@@ -310,7 +310,7 @@ fn single_argument_method(node: Node<'_>) -> bool {
 
 /// Whether upstream's parser would have built a `send` here. An operator written between two
 /// operands is one there, however much the grammar spells it as a `binary`.
-fn is_send(node: Node<'_>) -> bool {
+fn is_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     match node.kind_str() {
         "call" => node.field("block").is_none(),
         "binary" => true,
@@ -318,25 +318,36 @@ fn is_send(node: Node<'_>) -> bool {
         // grammar spells it as an assignment whose left is a call. Leaving it out makes the cop
         // silent on `if foo / test.bar = foo / else / test.bar = 'baz' / end`, which upstream
         // reports through `branches_have_method?` (its `asgn_type?` deliberately excludes it).
-        "assignment" => attribute_assignment(node).is_some(),
+        "assignment" => attribute_assignment(node, context).is_some(),
         _ => false,
     }
 }
 
 /// The call an attribute assignment writes through, when that is what the node is.
-fn attribute_assignment<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+fn attribute_assignment<'tree>(
+    node: Node<'tree>,
+    context: &RuleContext<'_>,
+) -> Option<Node<'tree>> {
     if node.kind_str() != "assignment" {
         return None;
     }
     let left = node.field("left")?;
-    (left.kind_str() == "call" && left.field("receiver").is_some()).then_some(left)
+    // `a&.foo = 1` is a `csend` upstream, which `on_send` never reaches -- so it is not one of
+    // these however much it looks like one here.
+    (left.kind_str() == "call"
+        && left.field("receiver").is_some()
+        && crate::rules::send_node::is_plain_send(left, context))
+    .then_some(left)
 }
 
 /// A call's arguments grouped the way upstream's parser does: a trailing run of `key: value` pairs
 /// is one `hash` argument there, however many pairs were written.
-fn arguments<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Range<usize>)> {
+fn arguments<'tree>(
+    node: Node<'tree>,
+    context: &RuleContext<'_>,
+) -> Vec<(Node<'tree>, Range<usize>)> {
     // The value an attribute assignment writes is upstream's only argument to `foo=`.
-    if attribute_assignment(node).is_some() {
+    if attribute_assignment(node, context).is_some() {
         return node
             .field("right")
             .map(|right| vec![(right, right.byte_range())])
@@ -371,12 +382,15 @@ fn arguments<'tree>(node: Node<'tree>) -> Vec<(Node<'tree>, Range<usize>)> {
     out
 }
 
-fn first_argument<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, Range<usize>)> {
-    arguments(node).first().cloned()
+fn first_argument<'tree>(
+    node: Node<'tree>,
+    context: &RuleContext<'_>,
+) -> Option<(Node<'tree>, Range<usize>)> {
+    arguments(node, context).first().cloned()
 }
 
 fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    if let Some(call) = attribute_assignment(node) {
+    if let Some(call) = attribute_assignment(node, context) {
         // The selector upstream sees is `foo=`, but only the name is written; comparing the two
         // branches by the bare name answers the same question.
         return call
@@ -392,7 +406,7 @@ fn selector<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str>
 }
 
 fn receiver<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    if let Some(call) = attribute_assignment(node) {
+    if let Some(call) = attribute_assignment(node, context) {
         return call
             .field("receiver")
             .map(|receiver| context.source.node_text(receiver));
@@ -606,18 +620,18 @@ fn if_source(
             && let (Some(receiver), Some(selector), Some((_, argument))) = (
                 receiver(context, node),
                 selector(context, node),
-                first_argument(node),
+                first_argument(node, context),
             )
         {
             return format!("{receiver} {selector} ({}", context.source.slice(argument));
         }
         if node.kind_str() == "true" {
             let condition_source = context.source.node_text(condition);
-            if arguments(condition).is_empty() || is_parenthesized(context, condition) {
+            if arguments(condition, context).is_empty() || is_parenthesized(context, condition) {
                 return condition_source.to_owned();
             }
             let (Some(selector), Some(argument)) =
-                (condition.field("method"), first_argument(condition))
+                (condition.field("method"), first_argument(condition, context))
             else {
                 return condition_source.to_owned();
             };
@@ -646,17 +660,17 @@ fn else_source(
     let Some(node) = else_branch.node else {
         return source.to_owned();
     };
-    if arithmetic && let Some((_, argument)) = first_argument(node) {
+    if arithmetic && let Some((_, argument)) = first_argument(node, context) {
         return format!("{})", context.source.slice(argument));
     }
-    if with_method && let Some((argument, range)) = first_argument(node) {
+    if with_method && let Some((argument, range)) = first_argument(node, context) {
         return wrapped_argument(context, argument, context.source.slice(range));
     }
     if requires_parentheses(context, node) {
         return format!("({source})");
     }
     if node.kind_str() == "call"
-        && !arguments(node).is_empty()
+        && !arguments(node, context).is_empty()
         && !is_parenthesized(context, node)
         && node
             .field("method")
@@ -668,7 +682,7 @@ fn else_source(
         return format!(
             "{}({})",
             context.source.node_text(selector),
-            arguments(node)
+            arguments(node, context)
                 .into_iter()
                 .map(|(_, range)| context.source.slice(range))
                 .collect::<Vec<_>>()
@@ -714,10 +728,10 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// `arithmetic_operation?`: one of the operators whose result is a new value.
 fn arithmetic_operation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    is_send(node)
+    is_send(node, context)
         && selector(context, node)
             .is_some_and(|selector| matches!(selector, "+" | "-" | "*" | "/" | "%" | "**"))
-        && arguments(node).len() == 1
+        && arguments(node, context).len() == 1
 }
 
 fn is_parenthesized(context: &RuleContext<'_>, node: Node<'_>) -> bool {
