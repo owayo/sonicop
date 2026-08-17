@@ -38504,3 +38504,107 @@ mod safe_navigation_attribute_assignment {
         );
     }
 }
+
+/// `Style/RedundantReturn` の訂正が、本家の corrector 呼び出しと 1 対 1 であること (`#31`)。
+///
+/// **字面だけでは捕まらない。**1 つの Edit に畳んでも `-A` の出力は同じで、
+/// 違うのは「その Edit が `return ...` 式まるごとを覆う」ことだけ。覆われた範囲に
+/// 別の cop の訂正が入ると、engine がそれを落として次のパスへ回す (飲み込み)。
+/// だから **Edit の件数とレンジそのもの**を見る。
+mod redundant_return_edit_shape {
+    use super::*;
+
+    const COP: &str = "Style/RedundantReturn";
+
+    fn edits(source: &str) -> Vec<(usize, usize, String)> {
+        CopCase::new(COP, source.to_owned(), Vec::new())
+            .without_offense_check()
+            .inspect()
+            .offenses
+            .iter()
+            .flat_map(|offense| offense.corrections.iter())
+            .map(|edit| (edit.start, edit.end, edit.replacement.clone()))
+            .collect()
+    }
+
+    /// `corrector.remove(range_with_surrounding_space(keyword, side: :right))` の 1 回だけ。
+    /// **`return` とその後ろの空白しか覆わない**ので、引数の中にある別の cop の訂正を
+    /// 飲み込まない。
+    #[test]
+    fn a_plain_return_removes_only_the_keyword() {
+        let source = "def m\n  return 'x'\nend\n";
+        let at = source.find("return").expect("return が無い");
+        assert_eq!(
+            edits(source),
+            vec![(at, at + "return ".len(), String::new())],
+            "`return ` の削除 1 件だけのはず"
+        );
+    }
+
+    /// `add_brackets` = `insert_before(children.first, '[')` + `insert_after(children.last, ']')`、
+    /// そのあと keyword の削除。**3 件**。
+    #[test]
+    fn multiple_values_are_three_edits_not_one() {
+        let source = "def m\n  return 'x', 'y'\nend\n";
+        let at = source.find("return").expect("return が無い");
+        let first = source.find("'x'").expect("第 1 引数が無い");
+        let last_end = source.find("'y'").expect("第 2 引数が無い") + "'y'".len();
+        assert_eq!(
+            edits(source),
+            vec![
+                (first, first, "[".to_owned()),
+                (last_end, last_end, "]".to_owned()),
+                (at, at + "return ".len(), String::new()),
+            ],
+            "本家は insert_before / insert_after / remove の 3 回を呼ぶ"
+        );
+    }
+
+    /// `hash_without_braces?` のときは `{` `}`。位置は最初の pair と最後の pair。
+    #[test]
+    fn a_braceless_hash_gains_braces_as_two_inserts() {
+        let source = "def m\n  return a: 1, b: 2\nend\n";
+        let at = source.find("return").expect("return が無い");
+        let first = source.find("a: 1").expect("最初の pair が無い");
+        let last_end = source.find("b: 2").expect("最後の pair が無い") + "b: 2".len();
+        assert_eq!(
+            edits(source),
+            vec![
+                (first, first, "{".to_owned()),
+                (last_end, last_end, "}".to_owned()),
+                (at, at + "return ".len(), String::new()),
+            ],
+        );
+    }
+
+    /// **`[` の挿入と splat の `replace` は同じ位置で始まる。**`apply_edits` は
+    /// 「置換の開始と同じ位置への挿入」を拒むので、そこだけ 1 つの置換に畳む。
+    /// 畳まないと訂正が丸ごと落ちて offense だけが残る (`#50` 機構 3)。
+    #[test]
+    fn a_splat_folds_the_opening_bracket_into_its_replacement() {
+        let source = "def m\n  return *a, b\nend\n";
+        let at = source.find("return").expect("return が無い");
+        let first = source.find("*a").expect("splat が無い");
+        let last_end = source.find(", b").expect("第 2 引数が無い") + ", b".len();
+        assert_eq!(
+            edits(source),
+            vec![
+                (first, first + "*a".len(), "[a".to_owned()),
+                (last_end, last_end, "]".to_owned()),
+                (at, at + "return ".len(), String::new()),
+            ],
+            "`[` を別の挿入にすると apply_edits が両方を落とす"
+        );
+    }
+
+    /// `correct_without_arguments` は `replace(return_node, 'nil')` の 1 回。
+    #[test]
+    fn a_bare_return_becomes_nil_in_one_replace() {
+        let source = "def m\n  foo\n  return\nend\n";
+        let at = source.rfind("return").expect("return が無い");
+        assert_eq!(
+            edits(source),
+            vec![(at, at + "return".len(), "nil".to_owned())],
+        );
+    }
+}
