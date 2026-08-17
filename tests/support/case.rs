@@ -184,8 +184,6 @@ impl CopCase {
         self
     }
 
-    /// `--only` を使わずに cop を絞る。本家が `--only` と併用を拒む
-    /// `Lint/RedundantCopDisableDirective` 専用。
     /// Turns off the guard that refuses a correction leaving the file unparsable (`#41`).
     ///
     /// **Use this when upstream's own output does not parse.** The case then measures the cop --
@@ -198,6 +196,8 @@ impl CopCase {
         self
     }
 
+    /// `--only` を使わずに cop を絞る。本家が `--only` と併用を拒む
+    /// `Lint/RedundantCopDisableDirective` 専用。
     pub fn without_only(mut self) -> Self {
         self.uses_only = false;
         self

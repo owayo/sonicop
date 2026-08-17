@@ -2240,20 +2240,23 @@ mod tests {
     /// guarded run from an unguarded one by looking at the command. This pins the default here so
     /// that turning it off has to be a deliberate edit to a test, not a forgotten variable.
     ///
-    /// `Lint/SafeNavigationChain` reads the `-` of `foo&.bar - 1` as another link in the chain and
-    /// writes `foo&.bar&. - 1`, which Ruby rejects. Measured with `ruby -c`, not assumed.
+    /// `Lint/SafeNavigationChain` rewrites `x&.foo[bar] += 1` as `x&.foo&.[](bar) += 1`, which
+    /// assigns to a method call and does not parse. Measured with `ruby -c`, not assumed.
     ///
-    /// ## ★ If this test fails with "the source must come back untouched", read this first
+    /// ## ★ The fixture is chosen so that fixing a cop cannot break this test
     ///
-    /// **The likely cause is that the cop was fixed, not that the guard broke.** This test needs
-    /// one correction that produces text Ruby rejects, and such corrections are meant to be fixed.
-    /// The first version used `foo:bar => 1` with `Style/HashSyntax`; that cop was fixed hours
-    /// later and the test started failing because the correction became valid.
+    /// Two earlier fixtures were bugs of ours, and both were fixed within hours -- `foo:bar => 1`
+    /// through `Style/HashSyntax`, then `foo&.bar ? foo&.bar - 1 : baz` through this same cop --
+    /// each time leaving this test failing with "the source must come back untouched" for a reason
+    /// that had nothing to do with the guard.
     ///
-    /// **Do not delete it. Swap the input for another case that still breaks.** The list lives in
-    /// `#41` ("the cases the guard stopped"). Whichever you pick, **check it first**: with
-    /// `SONICOP_NO_SYNTAX_GUARD=1` the output must fail `ruby -c`. Two candidates were tried for
-    /// this swap and both had already been fixed, so the check is not a formality.
+    /// **This one is upstream's output too.** RuboCop 1.89.0 writes the same unparsable line for
+    /// the same input, so reproducing it is what compatibility requires and no one will "fix" it
+    /// here. If upstream ever changes, the port follows and this fixture is reconsidered then.
+    ///
+    /// **If it does fail, do not delete it -- swap in another case that still breaks**, and check
+    /// the candidate first: with `SONICOP_NO_SYNTAX_GUARD=1` its output must fail `ruby -c`. The
+    /// list lives in `#41` ("the cases the guard stopped").
     ///
     /// The whole default selection is used, not `only`. Under `--only <cop>` the guard does not
     /// fire here, so narrowing would make this pass without testing anything.
@@ -2262,7 +2265,7 @@ mod tests {
         let directory = tempdir().unwrap();
         let config = Config::load(None, directory.path()).unwrap();
         let selection = Selection::default();
-        let original = "foo&.bar ? foo&.bar - 1 : baz\n";
+        let original = "x&.foo[bar] += 1\n";
         let report = inspect_source(
             directory.path().join("example.rb"),
             original.to_owned(),

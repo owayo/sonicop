@@ -13512,6 +13512,103 @@ mod lint_late_additions {
         expect_no_offenses("Lint/SafeNavigationChain", "foo&.bar.to_s\n");
     }
 
+    /// **The two comparisons upstream makes against a ternary are not the same kind.** The
+    /// condition is compared structurally (`parent.condition == safe_nav`) and only the branch by
+    /// identity, because the `&.` in the branch is a different node that happens to be written the
+    /// same way. Comparing the condition by identity too matches neither branch, which reported
+    /// this line where upstream stays quiet.
+    #[test]
+    fn safe_navigation_chain_accepts_the_branch_its_condition_already_guarded() {
+        expect_no_offenses(
+            "Lint/SafeNavigationChain",
+            "foo&.bar ? foo&.bar - 1 : baz\n",
+        );
+    }
+
+    /// The `else` branch is reported but left alone: reaching it means the condition was falsy, so
+    /// extending the chain there would change what the line evaluates to.
+    #[test]
+    fn safe_navigation_chain_reports_the_else_branch_without_correcting_it() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            foo&.bar ? baz : foo&.bar - 1
+                                     ^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .correctable(false)
+        .corrected("foo&.bar ? baz : foo&.bar - 1\n")
+        .run();
+    }
+
+    /// **An index being assigned to is one `[]=` send upstream and two nodes in this grammar.** The
+    /// correction has to take in the right-hand side, or it rewrites the call and leaves the
+    /// `= baz` behind as `x&.foo&.[]=(bar, baz) = baz`.
+    #[test]
+    fn safe_navigation_chain_folds_the_assigned_value_into_the_bracket_call() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar] = baz
+                  ^^^^^^^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .corrected("x&.foo&.[]=(bar, baz)\n")
+        .run();
+    }
+
+    /// `x&.foo[bar] += 1` stays two sends upstream -- `[]=` over the `[]` the cop reports -- so the
+    /// value is not folded in and the correction stops at the brackets.
+    #[test]
+    fn safe_navigation_chain_leaves_an_operator_assignment_at_the_brackets() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar] += 1
+                  ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .without_syntax_guard()
+        .corrected("x&.foo&.[](bar) += 1\n")
+        .run();
+    }
+
+    /// A target of a multiple assignment is a `[]=` send that stops at the brackets, because the
+    /// value it is handed belongs to the assignment rather than to this call.
+    ///
+    /// **`ruby -c` rejects both sides here**: upstream writes `x&.foo&.[]=(bar), y = 1, 2`, which
+    /// assigns to a method call. The guard is off so that the case measures the cop against
+    /// upstream; with it on, the engine keeps the file and upstream is the one breaking it.
+    #[test]
+    fn safe_navigation_chain_stops_at_the_brackets_in_a_multiple_assignment() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            x&.foo[bar], y = 1, 2
+                  ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .without_syntax_guard()
+        .corrected("x&.foo&.[]=(bar), y = 1, 2\n")
+        .run();
+    }
+
+    /// tree-sitter writes the `foo(a, b = 1)` it cannot read as a multiple assignment that swallowed
+    /// the arguments before the one being assigned to. The index inside such an invented list is
+    /// being read, so the correction must not turn it into `[]=`.
+    #[test]
+    fn safe_navigation_chain_reads_an_index_inside_an_invented_assignment_list() {
+        CopCase::annotated(
+            "Lint/SafeNavigationChain",
+            r#"
+            foo(x&.bar[baz], c = 1)
+                      ^^^^^ Do not chain ordinary method call after safe navigation operator.
+            "#,
+        )
+        .corrected("foo(x&.bar&.[](baz), c = 1)\n")
+        .run();
+    }
+
     #[test]
     fn safe_navigation_consistency_asks_for_the_operator_the_group_already_uses() {
         CopCase::annotated(
@@ -15058,6 +15155,57 @@ mod lint_late_additions_two {
     #[test]
     fn ambiguous_regexp_literal_accepts_a_division() {
         expect_no_offenses("Lint/AmbiguousRegexpLiteral", "foo / re / 1\n");
+    }
+
+    /// **`args_end` closes after the last argument, not after the call.** Upstream's `send` node
+    /// stops at `/pattern/` and keeps the `do ... end` in a `block` node above it; this grammar
+    /// keeps the block inside the `call`. Closing at the call wrote `p(/pattern/ do ... end)`,
+    /// which Ruby rejects, and the guard then withheld the whole file.
+    #[test]
+    fn ambiguous_regexp_literal_closes_before_a_block() {
+        CopCase::annotated(
+            "Lint/AmbiguousRegexpLiteral",
+            r#"
+            p /pattern/ do
+              ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+              p /pattern/
+                ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+            end
+            "#,
+        )
+        .corrected("p(/pattern/) do\n  p(/pattern/)\nend\n")
+        .run();
+    }
+
+    /// The same closing position with more than one argument: the `)` follows the last of them and
+    /// the block keeps its parameters.
+    #[test]
+    fn ambiguous_regexp_literal_closes_after_the_last_argument() {
+        CopCase::annotated(
+            "Lint/AmbiguousRegexpLiteral",
+            r#"
+            p /pattern/, foo do |arg|
+              ^ Ambiguous regexp literal. Parenthesize the method arguments if it's surely a regexp literal, or add a whitespace to the right of the `/` if it should be a division.
+            end
+            "#,
+        )
+        .corrected("p(/pattern/, foo) do |arg|\nend\n")
+        .run();
+    }
+
+    /// `Lint/AmbiguousOperator` shares `add_parentheses`, so it closed in the wrong place too.
+    #[test]
+    fn ambiguous_operator_closes_before_a_block() {
+        CopCase::annotated(
+            "Lint/AmbiguousOperator",
+            r#"
+            do_something *foo do |x|
+                         ^ Ambiguous splat operator. Parenthesize the method arguments if it's surely a splat operator, or add a whitespace to the right of the `*` if it should be a multiplication.
+            end
+            "#,
+        )
+        .corrected("do_something(*foo) do |x|\nend\n")
+        .run();
     }
 
     /// `# rubocop:disable all` はこの cop 自身も止めるので、報告は残らない。

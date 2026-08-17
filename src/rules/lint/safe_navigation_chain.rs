@@ -8,6 +8,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{arguments, is_plain_send, named_children};
 
 use super::nil_methods::nil_methods;
+use super::node_equality;
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Do not chain ordinary method call after safe navigation operator.";
@@ -46,8 +47,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         if allowed.contains(&chain.method)
             || PLUS_MINUS_METHODS.contains(&chain.method.as_str())
-            || !requires_safe_navigation(node, context)
-            || ternary_branch(node, chain.safe_navigation, context) == Some(Branch::If)
+            || !requires_safe_navigation(chain.node, context)
+            || ternary_branch(chain.node, chain.safe_navigation, context) == Some(Branch::If)
         {
             continue;
         }
@@ -55,10 +56,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .dot
             .clone()
             .map_or_else(|| chain.safe_navigation.end_byte(), |dot| dot.start);
-        let range = start..node.end_byte();
+        // `node.source_range.end`: **the send upstream reports, not the node the loop is on.** For
+        // `x&.foo[bar] = baz` those differ -- upstream's send covers the assignment, so the range
+        // reaches past `= baz` and the rewrite replaces it. Ending at the reference instead leaves
+        // the old `= baz` behind and writes `x&.foo&.[]=(bar, baz) = baz`.
+        let range = start..chain.node.end_byte();
         let offense = context.offense(MSG, range.clone());
         offenses.push(
-            if ternary_branch(node, chain.safe_navigation, context) == Some(Branch::Else) {
+            if ternary_branch(chain.node, chain.safe_navigation, context) == Some(Branch::Else) {
                 offense
             } else {
                 offense.corrected_by_all(autocorrect(&chain, &range, context))
@@ -69,19 +74,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `bad_method?`: a plain send whose receiver safe-navigates, directly, through a block, or through
 /// a `(...)` the parser keeps as a `begin`.
-fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Chain<'tree>> {
+fn read_chain<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Chain<'tree>> {
     let (receiver, method, dot, given) = match node.kind_str() {
         "call" => {
             if !is_plain_send(node, context) {
                 return None;
             }
-            let method = context
-                .source
-                .node_text(node.field("method")?)
-                .to_owned();
-            let dot = node
-                .field("operator")
-                .map(|operator| operator.byte_range());
+            let method = context.source.node_text(node.field("method")?).to_owned();
+            let dot = node.field("operator").map(|operator| operator.byte_range());
             (
                 node.field("receiver")?,
                 method,
@@ -100,12 +100,7 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
                 return None;
             }
             let right = node.field("right")?;
-            (
-                node.field("left")?,
-                method,
-                None,
-                vec![right.byte_range()],
-            )
+            (node.field("left")?, method, None, vec![right.byte_range()])
         }
         "unary" => {
             let operator = node.field("operator")?;
@@ -119,12 +114,7 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
                 "+" => "+@".to_owned(),
                 other => other.to_owned(),
             };
-            (
-                node.field("operand")?,
-                method,
-                None,
-                Vec::new(),
-            )
+            (node.field("operand")?, method, None, Vec::new())
         }
         _ => {
             let children = named_children(node);
@@ -137,6 +127,32 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
         }
     };
     let safe_navigation = safe_navigation_of(receiver, context)?;
+    // **An index being written to is one `[]=` send upstream and two nodes here.** The grammar
+    // splits the assignment off the reference, so reading the reference alone rewrites the call
+    // but leaves the `= baz` that upstream had folded into it.
+    match index_target(node, context) {
+        Some(IndexTarget::Assignment(assignment)) => {
+            let mut arguments = given;
+            arguments.push(assignment.field("right")?.byte_range());
+            return Some(Chain {
+                node: assignment,
+                safe_navigation,
+                method: "[]=".to_owned(),
+                dot,
+                arguments,
+            });
+        }
+        Some(IndexTarget::Target) => {
+            return Some(Chain {
+                node,
+                safe_navigation,
+                method: "[]=".to_owned(),
+                dot,
+                arguments: given,
+            });
+        }
+        None => {}
+    }
     Some(Chain {
         node,
         safe_navigation,
@@ -144,6 +160,41 @@ fn read_chain<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Cha
         dot,
         arguments: given,
     })
+}
+
+/// How an index reference is being written to, when it is.
+enum IndexTarget<'tree> {
+    /// `x&.foo[bar] = baz`: one send whose range and arguments both take in the right-hand side,
+    /// so the correction is `x&.foo&.[]=(bar, baz)`.
+    Assignment(Node<'tree>),
+    /// `x&.foo[bar], y = 1, 2`: a `[]=` send that stops at the reference, because the value it is
+    /// given belongs to the multiple assignment rather than to this send.
+    Target,
+}
+
+/// The `[]=` send upstream reads an index reference as, when the reference is being assigned to.
+fn index_target<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> Option<IndexTarget<'tree>> {
+    if node.kind_str() != "element_reference" {
+        return None;
+    }
+    let parent = node.parent_of(context)?;
+    match parent.kind_str() {
+        // `x&.foo[bar] += 1` stays two sends upstream -- `[]=` over `[]` -- and the cop reports the
+        // read, so only the plain assignment collapses into one send here.
+        "assignment" => parent
+            .field("left")
+            .filter(|left| left.id() == node.id())
+            .map(|_| IndexTarget::Assignment(parent)),
+        // A list the grammar invented for `foo(a[b], c = 1)` is not a multiple assignment, and the
+        // reference inside it is being read.
+        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
+            (!crate::rules::support::spurious_assignment_list(parent)).then_some(IndexTarget::Target)
+        }
+        _ => None,
+    }
 }
 
 /// The `csend` the receiver is, holds as its block's call, or wraps in parentheses.
@@ -228,11 +279,19 @@ fn ternary_branch(
     if parent.kind_str() != "conditional" {
         return None;
     }
+    // **The two checks upstream makes here are not the same kind of comparison.**
+    //
+    //   parent.condition == safe_nav        Node#== -- structural
+    //   node.equal?(parent.if_branch)       identity
+    //
+    // The safe navigation in the branch is a *different node* that happens to be written the same
+    // way as the one in the condition, so comparing it by identity never matches and neither
+    // branch is ever recognised. `foo&.bar ? foo&.bar - 1 : baz` was reported where upstream says
+    // nothing, and the `else` side was corrected where upstream only reports.
     let condition = parent.field("condition")?;
-    if condition.id() != safe_navigation.id() {
+    if !node_equality::identical(condition, safe_navigation, context) {
         return None;
     }
-    let _ = context;
     if parent
         .field("consequence")
         .is_some_and(|branch| branch.id() == node.id())
@@ -287,7 +346,8 @@ fn autocorrect(chain: &Chain<'_>, range: &Range<usize>, context: &RuleContext<'_
 /// parent would bind the rewritten call the wrong way.
 fn requires_parentheses(chain: &Chain<'_>, context: &RuleContext<'_>) -> bool {
     let parent = chain.node.parent_of(context);
-    if chain.dot.is_none() && parent.is_some_and(|parent| matches!(parent.kind_str(), "array" | "pair"))
+    if chain.dot.is_none()
+        && parent.is_some_and(|parent| matches!(parent.kind_str(), "array" | "pair"))
     {
         return true;
     }
@@ -295,12 +355,10 @@ fn requires_parentheses(chain: &Chain<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     }
     parent.is_some_and(|parent| match parent.kind_str() {
-        "binary" => parent
-            .field("operator")
-            .is_some_and(|operator| {
-                let text = context.source.node_text(operator);
-                matches!(text, "&&" | "and" | "||" | "or") || COMPARISON_METHODS.contains(&text)
-            }),
+        "binary" => parent.field("operator").is_some_and(|operator| {
+            let text = context.source.node_text(operator);
+            matches!(text, "&&" | "and" | "||" | "or") || COMPARISON_METHODS.contains(&text)
+        }),
         _ => false,
     })
 }
