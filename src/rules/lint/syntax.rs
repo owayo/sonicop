@@ -14,6 +14,8 @@ use crate::rules::node_ext::NodeExt;
 /// all of them, which is why every one of these has to be gated by hand.
 const BEGINLESS_RANGE_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ARGUMENT_FORWARDING_SINCE: RubyVersion = RubyVersion::new(2, 7);
+const ONE_LINE_PATTERN_MATCH_SINCE: RubyVersion = RubyVersion::new(2, 7);
+const KEYWORD_ARGUMENT_REJECTION_SINCE: RubyVersion = RubyVersion::new(2, 7);
 const ENDLESS_METHOD_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const RIGHTWARD_ASSIGNMENT_SINCE: RubyVersion = RubyVersion::new(3, 0);
 const FIND_PATTERN_SINCE: RubyVersion = RubyVersion::new(3, 0);
@@ -333,6 +335,31 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
                 ENDLESS_METHOD_SINCE,
                 "unexpected token tEQL".to_owned(),
                 equals.byte_range(),
+            ))
+        }
+        // `42 in Integer`. The parser stops at the keyword and picks the next statement up after
+        // the one it was in, so this reports once and nothing else changes -- measured with a
+        // following statement both at the top level and inside a method body.
+        "test_pattern" => {
+            let keyword = direct_children(node)
+                .into_iter()
+                .find(|child| !child.is_named() && child.kind_str() == "in")?;
+            Some(Gate::new(
+                ONE_LINE_PATTERN_MATCH_SINCE,
+                "unexpected token kIN".to_owned(),
+                keyword.byte_range(),
+            ))
+        }
+        // `def a(**nil)`. The parser blames the `nil`, not the `**` in front of it, and the
+        // definition survives: two of them in one file report twice.
+        "hash_splat_nil" => {
+            let keyword = direct_children(node)
+                .into_iter()
+                .find(|child| child.kind_str() == "nil")?;
+            Some(Gate::new(
+                KEYWORD_ARGUMENT_REJECTION_SINCE,
+                "unexpected token kNIL".to_owned(),
+                keyword.byte_range(),
             ))
         }
         // The parser stops at the arrow, so the pattern written after it is never read.

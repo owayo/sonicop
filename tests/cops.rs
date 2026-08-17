@@ -2499,6 +2499,24 @@ mod syntax {
         CopCase::new("Lint/Syntax", source, expected).target_ruby("2.7")
     }
 
+    /// The hint names the version the parser was pinned to, so a case below 2.7 cannot reuse
+    /// `unexpected`.
+    fn unexpected_at_2_6(line: usize, column: usize, length: usize, token: &str) -> Annotation {
+        Annotation::new(
+            line,
+            column,
+            length,
+            format!(
+                "unexpected token {token}\n(Using Ruby 2.6 parser; configure using \
+                 `TargetRubyVersion` parameter, under `AllCops`)"
+            ),
+        )
+    }
+
+    fn at_2_6(source: &str, expected: Vec<Annotation>) -> CopCase {
+        CopCase::new("Lint/Syntax", source, expected).target_ruby("2.6")
+    }
+
     fn accepted(source: &str, version: &str) -> CopCase {
         CopCase::new("Lint/Syntax", source, Vec::new()).target_ruby(version)
     }
@@ -2512,6 +2530,42 @@ mod syntax {
         )
         .run();
         accepted("def type = :brew\n", "3.0").run();
+    }
+
+    /// 1 行パターンマッチはキーワードで止まり、**その文の次から読み直される**ので、
+    /// 報告は 1 件で後ろの文はそのまま検査される。
+    ///
+    /// 実測: `foo in [a]` → 2:5 kIN (1 件) / メソッドの中でも 1 件だけ
+    #[test]
+    fn a_one_line_pattern_match_needs_ruby_2_7() {
+        at_2_6(
+            "x = 1\nfoo in [a]\nbaz\n",
+            vec![unexpected_at_2_6(2, 5, 2, "kIN")],
+        )
+        .run();
+        at_2_6(
+            "def m\n  foo in [a]\n  bar\nend\nbaz\n",
+            vec![unexpected_at_2_6(2, 7, 2, "kIN")],
+        )
+        .run();
+        accepted("foo in [a]\n", "2.7").run();
+    }
+
+    /// `**nil` は **`nil` のほうが**報告される (`**` ではない)。定義は生き残るので、
+    /// 2 つ書けば 2 件出る。
+    ///
+    /// 実測: `def a(**nil)` → 1:9 kNIL / 2 つ目の `def b(**nil)` → 3:9 kNIL
+    #[test]
+    fn a_keyword_argument_rejection_needs_ruby_2_7() {
+        at_2_6(
+            "def a(**nil)\nend\ndef b(**nil)\nend\nbaz\n",
+            vec![
+                unexpected_at_2_6(1, 9, 3, "kNIL"),
+                unexpected_at_2_6(3, 9, 3, "kNIL"),
+            ],
+        )
+        .run();
+        accepted("def a(**nil)\nend\n", "2.7").run();
     }
 
     /// 通常のメソッドの `=` は setter 名や省略可能引数の一部なので、endless
