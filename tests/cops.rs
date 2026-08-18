@@ -193,6 +193,52 @@ mod layout {
 
     /// URI と修飾名の免除は「上限より前で始まり、行末で終わる」ことが条件で、
     /// 行末で終わらないものは超過部分の**直後**から報告される。`]` を巻き込んだ
+    /// `String#chomp` は `\r\n` を **1 つの行末**として落とす。`\n` だけを落とすと `\r` が
+    /// 1 桁として残り、CRLF ファイルの 120 桁の行がすべて 1 桁超過に見える。そこから出た
+    /// offense が `Style/BlockDelimiters` を連れてきて、`-A` が **本家が 1 バイトも触らない
+    /// ファイルの `{ }` を `do end` に書き換えた**。
+    ///
+    /// ★ 既存 5 コーパスに CRLF を含む `.rb` は 1 ファイルも無く、6 本目を足して初めて出た。
+    /// 期待値は本家 1.89.0 の実測。
+    #[test]
+    fn line_length_chomps_crlf_as_one_line_ending() {
+        let long_120 = format!("x = {}", "a".repeat(116));
+        assert_eq!(long_120.chars().count(), 120, "前提: 120 桁であること");
+        // 陽性: 120 桁 + CRLF は超過ではない
+        expect_no_offenses("Layout/LineLength", &format!("{long_120}\r\n"));
+        // ★ 対照 1: LF なら元から通っていた。落ちたら別の原因
+        expect_no_offenses("Layout/LineLength", &format!("{long_120}\n"));
+        // ★ 対照 2: 121 桁 + CRLF は超過。落ちたら \r ごと桁数を捨てている
+        let long_121 = format!("x = {}", "a".repeat(117));
+        assert_eq!(long_121.chars().count(), 121);
+        expect_offense(
+            "Layout/LineLength",
+            &format!("{long_121}\n{}^ Line is too long. [121/120]\n", " ".repeat(120)),
+        );
+        // ★ 対照 3: 単独の `\r` も chomp は落とす
+        expect_no_offenses("Layout/LineLength", &format!("{long_120}\r"));
+    }
+
+    /// `\r\n` は 1 つの行末なので、改行を飛ばす歩みは `\r` から始めないと止まる。
+    /// 止まると行末の演算子が「右に空白が無い」ものとして見え、CRLF ファイルで
+    /// **35 件の過剰検出**になった。
+    #[test]
+    fn space_around_operators_treats_crlf_as_a_line_ending() {
+        // 陽性: `=` の直後が行末。改行の前に空白は要らない
+        expect_no_offenses("Layout/SpaceAroundOperators", "@h[:k] =\r\n  1\r\n");
+        // ★ 対照 1: LF なら元から通っていた
+        expect_no_offenses("Layout/SpaceAroundOperators", "@h[:k] =\n  1\n");
+        // ★ 対照 2: 本当に空白が無い形は CRLF でも報告する。落ちたら直しすぎ
+        expect_offense(
+            "Layout/SpaceAroundOperators",
+            "x=1\r\n  ^ Surrounding space missing for operator `=`.\n",
+        );
+        expect_offense(
+            "Layout/SpaceAroundOperators",
+            "x=1\n  ^ Surrounding space missing for operator `=`.\n",
+        );
+    }
+
     /// YARD リンクは `URI.parse` が弾くので URI 扱いされず、上限の位置から始まる。
     /// cop ディレクティブのある行はディレクティブを除いた長さで測り直す。
     ///
