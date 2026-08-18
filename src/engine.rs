@@ -282,89 +282,8 @@ fn inspect_planned(
             )
         })
     });
-    let mut offenses = Vec::new();
-
-    // RuboCop's `Commissioner#investigate` walks the syntax tree only for a source that parses;
-    // otherwise it calls `on_other_file`, which `Lint/Syntax` alone implements. A file that does
-    // not parse therefore reports its syntax errors and nothing else, however the run selected its
-    // cops -- including when `Lint/Syntax` is itself excluded from the file and reports nothing.
-    let syntax_rule = syntax_rule();
-    let mut syntax_offenses = Vec::new();
-    let syntax_severity = plan
-        .entries
-        .iter()
-        .find(|planned| planned.rule.name == syntax_rule.name)
-        .map_or(syntax_rule.severity, |planned| planned.severity);
-    crate::profile::phase(crate::profile::Phase::Syntax, || {
-        (syntax_rule.check)(
-            &RuleContext::new(
-                &source,
-                &ast,
-                config,
-                syntax_rule,
-                syntax_severity,
-                selection.correcting,
-            ),
-            &mut syntax_offenses,
-        );
-    });
-    let valid_syntax = syntax_offenses.is_empty();
-
-    // One context for every cop of the file. Beyond saving the construction, it is what lets the
-    // analyses a cop asks for -- `VariableForce` above all -- be computed once and reused by the
-    // cops that follow, the way upstream's commissioner runs one force for the whole team.
-    let mut context = RuleContext::new(
-        &source,
-        &ast,
-        config,
-        syntax_rule,
-        syntax_severity,
-        selection.correcting,
-    )
-    // `registry.disabled_names(config)`: the cops the run switches off, which is what an
-    // `# rubocop:enable` has to undo. The standby list is that set already.
-    .with_disabled_cops(&plan.standby_names);
-    for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
-        let rule = planned.rule;
-        // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
-        // `Exclude` does not, which is how a `Bundler` cop stays off everything but a Gemfile.
-        if !config.rule_included(rule.name, source.path())
-            || config.rule_excluded(rule.name, source.path())
-        {
-            continue;
-        }
-        if rule.name == syntax_rule.name {
-            offenses.append(&mut syntax_offenses);
-            continue;
-        }
-        // The directive cop reads what every other cop found, so it cannot run in the same pass.
-        if rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE {
-            continue;
-        }
-        if !valid_syntax {
-            continue;
-        }
-        context.inspecting_with(rule, planned.severity);
-        let start = offenses.len();
-        crate::profile::rule(planned.index, || (rule.check)(&context, &mut offenses));
-        // The cop's name comes from the registry through `RuleContext`, so a mismatch here means
-        // an offense was built outside `context.offense` and would be attributed to a cop that
-        // never ran -- directives and severity overrides would both consult the wrong entry.
-        debug_assert!(
-            offenses[start..]
-                .iter()
-                .all(|offense| offense.cop_name == rule.name),
-            "{} reported an offense under another cop's name",
-            rule.name
-        );
-        if !planned.safe_autocorrect {
-            for offense in &mut offenses[start..] {
-                for correction in &mut offense.corrections {
-                    correction.safe = false;
-                }
-            }
-        }
-    }
+    let (mut offenses, valid_syntax) =
+        inspect_registered_rules(&source, &ast, config, selection, plan, &opted_in);
 
     // `Runner#add_redundant_disables`, which happens once the inspection loop is done and is
     // handed the offenses as they were found -- the ones a directive suppressed included, since a
@@ -428,6 +347,104 @@ fn inspect_planned(
         source,
         offenses,
     })
+}
+
+/// Runs the syntax cop and every ordinary cop selected for one file.
+///
+/// The directive-review cop is deliberately excluded: it needs the complete offense list this
+/// function returns and is therefore run by [`inspect_planned`] afterwards.
+fn inspect_registered_rules<'a>(
+    source: &'a SourceFile,
+    ast: &'a AstIndex<'a>,
+    config: &'a Config,
+    selection: &Selection,
+    plan: &'a RulePlan,
+    opted_in: &[&'a PlannedRule],
+) -> (Vec<Offense>, bool) {
+    // RuboCop's `Commissioner#investigate` walks the syntax tree only for a source that parses;
+    // otherwise it calls `on_other_file`, which `Lint/Syntax` alone implements. A file that does
+    // not parse therefore reports its syntax errors and nothing else, however the run selected its
+    // cops -- including when `Lint/Syntax` is itself excluded from the file and reports nothing.
+    let syntax_rule = syntax_rule();
+    let mut syntax_offenses = Vec::new();
+    let syntax_severity = plan
+        .entries
+        .iter()
+        .find(|planned| planned.rule.name == syntax_rule.name)
+        .map_or(syntax_rule.severity, |planned| planned.severity);
+    crate::profile::phase(crate::profile::Phase::Syntax, || {
+        (syntax_rule.check)(
+            &RuleContext::new(
+                source,
+                ast,
+                config,
+                syntax_rule,
+                syntax_severity,
+                selection.correcting,
+            ),
+            &mut syntax_offenses,
+        );
+    });
+    let valid_syntax = syntax_offenses.is_empty();
+    let mut offenses = Vec::new();
+
+    // One context for every cop of the file. Beyond saving the construction, it is what lets the
+    // analyses a cop asks for -- `VariableForce` above all -- be computed once and reused by the
+    // cops that follow, the way upstream's commissioner runs one force for the whole team.
+    let mut context = RuleContext::new(
+        source,
+        ast,
+        config,
+        syntax_rule,
+        syntax_severity,
+        selection.correcting,
+    )
+    // `registry.disabled_names(config)`: the cops the run switches off, which is what an
+    // `# rubocop:enable` has to undo. The standby list is that set already.
+    .with_disabled_cops(&plan.standby_names);
+    for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
+        let rule = planned.rule;
+        // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
+        // `Exclude` does not, which is how a `Bundler` cop stays off everything but a Gemfile.
+        if !config.rule_included(rule.name, source.path())
+            || config.rule_excluded(rule.name, source.path())
+        {
+            continue;
+        }
+        if rule.name == syntax_rule.name {
+            offenses.append(&mut syntax_offenses);
+            continue;
+        }
+        // The directive cop reads what every other cop found, so it cannot run in the same pass.
+        if rule.name == REDUNDANT_COP_DISABLE_DIRECTIVE {
+            continue;
+        }
+        if !valid_syntax {
+            continue;
+        }
+        context.inspecting_with(rule, planned.severity);
+        let start = offenses.len();
+        crate::profile::rule(planned.index, || (rule.check)(&context, &mut offenses));
+        // The cop's name comes from the registry through `RuleContext`, so a mismatch here means
+        // an offense was built outside `context.offense` and would be attributed to a cop that
+        // never ran -- directives and severity overrides would both consult the wrong entry.
+        debug_assert!(
+            offenses[start..]
+                .iter()
+                .all(|offense| offense.cop_name == rule.name),
+            "{} reported an offense under another cop's name",
+            rule.name
+        );
+        if !planned.safe_autocorrect {
+            for offense in &mut offenses[start..] {
+                for correction in &mut offense.corrections {
+                    correction.safe = false;
+                }
+            }
+        }
+    }
+
+    (offenses, valid_syntax)
 }
 
 pub fn inspect_files(
@@ -1350,22 +1367,7 @@ pub fn corrected_text(
     }
     let source = report.source.text();
 
-    // An offense is corrected whole or not at all: its edits are one rewrite the cop asked for, and
-    // applying half of them would leave source the cop never intended to produce.
-    let mut candidates: Vec<usize> = report
-        .offenses
-        .iter()
-        .enumerate()
-        .filter(|(_, offense)| {
-            correcting.takes(offense.cop_name)
-                && !offense.corrections.is_empty()
-                && (mode == CorrectMode::All || offense.corrections.iter().all(|edit| edit.safe))
-                && edits_are_addressable(offense, source)
-        })
-        .map(|(index, _)| index)
-        .collect();
-    // Offenses arrive ordered by position; a stable sort by cop leaves them that way within a cop.
-    candidates.sort_by_key(|index| cop_merge_order(report.offenses[*index].cop_name));
+    let candidates = correction_candidates(report, mode, correcting, source);
 
     let mut run = Action::root();
     // Offenses whose own cop accepted their edits. RuboCop stamps an offense corrected while the
@@ -1395,52 +1397,7 @@ pub fn corrected_text(
             eprintln!("  {cop_name}{}", if skipped { "  (skip 済み)" } else { "" });
         }
 
-        // The cop's own corrector. An offense that cannot be placed in it is the cop error RuboCop
-        // reports and steps over, so it costs that offense alone.
-        let mut cop = Action::root();
-        let mut placed = Vec::new();
-        for &index in group {
-            if trace::enabled() {
-                for edit in &report.offenses[index].corrections {
-                    eprintln!(
-                        "      {:16} {:?}",
-                        trace::span(source, edit.start, edit.end),
-                        edit.replacement
-                    );
-                }
-            }
-            // `combine` rather than `combine_children`: it is the entry point that drops an edit
-            // asking for nothing at all, the way `Corrector#replace` and friends do.
-            let anchor = anchor_range(&report.offenses[index], source);
-            let offense = report.offenses[index]
-                .corrections
-                .iter()
-                .try_fold(Action::root(), |tree, edit| {
-                    tree.combine(&Action::from_edit(edit, anchor))
-                });
-            let Ok(offense) = offense else {
-                if trace::enabled() {
-                    eprintln!("      ★ この offense の中で衝突");
-                }
-                // The guard that names a corrector written twice over. Reaching it from here covers
-                // every cop; the cop-side path only sees the four that reparse their own correction.
-                trace::overlap(report, index, "offense-tree");
-                continue;
-            };
-            if offense.children.is_empty() {
-                continue;
-            }
-            let Ok(merged) = cop.clone().combine_children(&offense.children) else {
-                if trace::enabled() {
-                    eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
-                }
-                trace::overlap(report, index, "cop-tree");
-                continue;
-            };
-            cop = merged;
-            placed.push(index);
-            trace_edits(cop_name, &report.offenses[index], source);
-        }
+        let (cop, placed) = build_cop_corrector(report, group, source);
 
         if cop.children.is_empty() {
             continue;
@@ -1484,6 +1441,86 @@ pub fn corrected_text(
         }
     }
     (run.rewrite(source), applied)
+}
+
+fn correction_candidates(
+    report: &FileReport,
+    mode: CorrectMode,
+    correcting: Correcting,
+    source: &str,
+) -> Vec<usize> {
+    // An offense is corrected whole or not at all: its edits are one rewrite the cop asked for, and
+    // applying half of them would leave source the cop never intended to produce.
+    let mut candidates: Vec<usize> = report
+        .offenses
+        .iter()
+        .enumerate()
+        .filter(|(_, offense)| {
+            correcting.takes(offense.cop_name)
+                && !offense.corrections.is_empty()
+                && (mode == CorrectMode::All || offense.corrections.iter().all(|edit| edit.safe))
+                && edits_are_addressable(offense, source)
+        })
+        .map(|(index, _)| index)
+        .collect();
+    // Offenses arrive ordered by position; a stable sort by cop leaves them that way within a cop.
+    candidates.sort_by_key(|index| cop_merge_order(report.offenses[*index].cop_name));
+    candidates
+}
+
+/// Builds one cop's corrector and returns the offenses whose edits it accepted.
+fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (Action, Vec<usize>) {
+    // An offense that cannot be placed is the cop error RuboCop reports and steps over, so it costs
+    // that offense alone rather than discarding the rest of the cop's corrections.
+    let mut cop = Action::root();
+    let mut placed = Vec::new();
+    for &index in group {
+        if trace::enabled() {
+            for edit in &report.offenses[index].corrections {
+                eprintln!(
+                    "      {:16} {:?}",
+                    trace::span(source, edit.start, edit.end),
+                    edit.replacement
+                );
+            }
+        }
+        // `combine` rather than `combine_children`: it is the entry point that drops an edit asking
+        // for nothing at all, the way `Corrector#replace` and friends do.
+        let anchor = anchor_range(&report.offenses[index], source);
+        let offense = report.offenses[index]
+            .corrections
+            .iter()
+            .try_fold(Action::root(), |tree, edit| {
+                tree.combine(&Action::from_edit(edit, anchor))
+            });
+        let Ok(offense) = offense else {
+            if trace::enabled() {
+                eprintln!("      ★ この offense の中で衝突");
+            }
+            // The guard that names a corrector written twice over. Reaching it from here covers
+            // every cop; the cop-side path only sees the four that reparse their own correction.
+            trace::overlap(report, index, "offense-tree");
+            continue;
+        };
+        if offense.children.is_empty() {
+            continue;
+        }
+        let Ok(merged) = cop.clone().combine_children(&offense.children) else {
+            if trace::enabled() {
+                eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
+            }
+            trace::overlap(report, index, "cop-tree");
+            continue;
+        };
+        cop = merged;
+        placed.push(index);
+        trace_edits(
+            report.offenses[index].cop_name,
+            &report.offenses[index],
+            source,
+        );
+    }
+    (cop, placed)
 }
 
 /// 一時的ではない計装。`SONICOP_TRACE_EDITS` が立っているときだけ、1 パスの中で

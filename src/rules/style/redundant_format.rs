@@ -48,8 +48,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             && let [value] = only.parts()
             && matches!(
                 value.kind_str(),
-                "string" | "chained_string" | "constant" | "scope_resolution"
-                    | "heredoc_beginning"
+                "string" | "chained_string" | "constant" | "scope_resolution" | "heredoc_beginning"
             )
             && !string_with_format_sequence(*value, context)
         {
@@ -235,7 +234,11 @@ fn mixes_numbered_and_unnumbered(found: &[Sequence]) -> bool {
             continue;
         }
         if is_variable_width(sequence) {
-            match sequence.width.strip_prefix('*').is_some_and(has_argument_number) {
+            match sequence
+                .width
+                .strip_prefix('*')
+                .is_some_and(has_argument_number)
+            {
                 true => numbered = true,
                 false => sequential = true,
             }
@@ -339,7 +342,9 @@ fn as_integer(value: &Value) -> Option<i128> {
     match value {
         Value::Integer(number) => Some(*number),
         // `Integer(Rational(3, 4))` is 0: it truncates just as `Integer(0.75)` does.
-        Value::Rational(numerator, denominator) if *denominator != 0 => Some(numerator / denominator),
+        Value::Rational(numerator, denominator) if *denominator != 0 => {
+            Some(numerator / denominator)
+        }
         Value::Float(number) => Some(number.trunc() as i128),
         // `Integer('0x10')` is 16: the prefixes count, which a plain parse would refuse.
         Value::Text(text) => parse_integer(text.trim()),
@@ -486,7 +491,9 @@ fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
             symbol_name(node, context).map(|name| Value::Text(name.to_owned()))
         }
         // `?a`, which the parser resolves into the one-character string it stands for.
-        "character" => Some(Value::Text(crate::rules::ruby_literal::character_value(text))),
+        "character" => Some(Value::Text(crate::rules::ruby_literal::character_value(
+            text,
+        ))),
         "rational" => rational_value(text).map(|(num, den)| Value::Rational(num, den)),
         // `rational_number?` and `complex_number?`: the two shapes upstream reads as one number even
         // though the parser keeps them as calls.
@@ -520,10 +527,8 @@ fn computed_number(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
             if denominator == 0 {
                 return None;
             }
-            let divisor = greatest_common_divisor(
-                numerator.unsigned_abs(),
-                denominator.unsigned_abs(),
-            );
+            let divisor =
+                greatest_common_divisor(numerator.unsigned_abs(), denominator.unsigned_abs());
             let divisor = i128::try_from(divisor.max(1)).ok()?;
             Some(Value::Computed(Box::new(Value::Rational(
                 numerator / divisor,
@@ -688,55 +693,25 @@ fn render(sequence: &Sequence, value: &Value, width: Option<isize>) -> Option<St
                     digits.insert(0, '0');
                 }
             }
-            let sign = match (
-                number < 0,
-                sequence.flags.contains('+'),
-                sequence.flags.contains(' '),
-            ) {
-                (true, _, _) => "-",
-                (false, true, _) => "+",
-                (false, false, true) => " ",
-                _ => "",
-            };
             // `0` pads between the sign and the digits, and a precision turns the flag off.
-            if sequence.flags.contains('0')
-                && !sequence.flags.contains('-')
-                && precision.is_none()
-                && let Some(width) = width
-                && width > 0
-            {
-                let width = width as usize;
-                while sign.len() + digits.len() < width {
-                    digits.insert(0, '0');
-                }
-            }
-            format!("{sign}{digits}")
+            render_signed_number(
+                digits,
+                number < 0,
+                &sequence.flags,
+                width,
+                precision.is_none(),
+            )
         }
         'f' => {
             let number = as_float(value)?;
             let precision = precision.unwrap_or(6);
-            let mut text = format!("{:.*}", precision, number.abs());
-            let sign = match (
+            render_signed_number(
+                format!("{:.*}", precision, number.abs()),
                 number.is_sign_negative(),
-                sequence.flags.contains('+'),
-                sequence.flags.contains(' '),
-            ) {
-                (true, _, _) => "-",
-                (false, true, _) => "+",
-                (false, false, true) => " ",
-                _ => "",
-            };
-            if sequence.flags.contains('0')
-                && !sequence.flags.contains('-')
-                && let Some(width) = width
-                && width > 0
-            {
-                let width = width as usize;
-                while sign.len() + text.len() < width {
-                    text.insert(0, '0');
-                }
-            }
-            format!("{sign}{text}")
+                &sequence.flags,
+                width,
+                true,
+            )
         }
         _ => return None,
     };
@@ -756,6 +731,37 @@ fn render(sequence: &Sequence, value: &Value, width: Option<isize>) -> Option<St
         true => format!("{body}{padding}"),
         false => format!("{padding}{body}"),
     })
+}
+
+fn render_signed_number(
+    mut magnitude: String,
+    negative: bool,
+    flags: &str,
+    width: Option<isize>,
+    allow_zero_padding: bool,
+) -> String {
+    let sign = numeric_sign(negative, flags);
+    if allow_zero_padding
+        && flags.contains('0')
+        && !flags.contains('-')
+        && let Some(width) = width
+        && width > 0
+    {
+        let width = width as usize;
+        while sign.len() + magnitude.len() < width {
+            magnitude.insert(0, '0');
+        }
+    }
+    format!("{sign}{magnitude}")
+}
+
+fn numeric_sign(negative: bool, flags: &str) -> &'static str {
+    match (negative, flags.contains('+'), flags.contains(' ')) {
+        (true, _, _) => "-",
+        (false, true, _) => "+",
+        (false, false, true) => " ",
+        _ => "",
+    }
 }
 
 /// `value.to_s`.
