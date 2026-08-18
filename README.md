@@ -171,13 +171,13 @@ warmed runs.
 
 | Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|
-| rubocop/rubocop | 1,765 | 11.49 s | **3.45 s** | 42.49 s | **16.39 s** |
-| mastodon/mastodon | 3,290 | 27.26 s | **6.03 s** | 42.07 s | **19.53 s** |
-| Homebrew/brew | 2,179 | 20.37 s | **5.36 s** | 45.08 s | **16.03 s** |
-| rails/rails | 3,551 | 45.89 s | **18.96 s** | 99.56 s | **44.61 s** |
-| ruby/ruby | 7,466 | 117.79 s | **54.97 s** | 215.87 s | **100.62 s** |
+| rubocop/rubocop | 1,765 | 12.71 s | **4.59 s** | 42.74 s | **13.75 s** |
+| mastodon/mastodon | 3,290 | 29.95 s | **6.48 s** | 37.60 s | **15.88 s** |
+| Homebrew/brew | 2,179 | 18.20 s | **4.31 s** | 38.72 s | **11.67 s** |
+| rails/rails | 3,551 | 52.55 s | **16.88 s** | 162.55 s | **63.97 s** |
+| ruby/ruby | 7,466 | 132.17 s | **43.10 s** | 199.78 s | **76.07 s** |
 
-The gap is 2.1x to 4.5x in parallel and 2.1x to 2.8x single-process, so no single corpus summarizes
+The gap is 2.8x to 4.6x in parallel and 2.4x to 3.3x single-process, so no single corpus summarizes
 it. **Read the single-process column and treat the parallel one as indicative.** Measuring the same
 two binaries three times over a day put the single-process figures within 16% of each other every
 time, while the parallel ratio on RuboCop's own tree moved between 3.3x and 9.2x purely with what
@@ -204,8 +204,11 @@ sonicop --force-default-config --format quiet
 ```
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-The one-minute load average was 3.6 when the run started and 9.6 when it finished — the machine was
-in use, not idle. Both tools ran under the same conditions, so the ratios hold, but the absolute
+The one-minute load average was 4.0 when the run started and 3.1 when it finished — the machine was
+in use, not idle. RuboCop's own tree was re-measured on its own afterwards, at load 3.7 rising to 4.0,
+because the first pass over it ran while a release build was still finishing and its numbers came out
+60% high; a row measured under a different load cannot sit in the same table as the others. Both tools
+ran under the same conditions, so the ratios hold, but the absolute
 seconds are not a floor: expect better on a quiet machine. Anything competing for cores inflates
 both sides, and not by the same factor on each, which is what makes the parallel column move as much
 as it does. If the absolute numbers matter to you, measure on an idle machine and record the load
