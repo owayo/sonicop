@@ -4,6 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::send_node;
 use crate::rules::send_node::named_children;
 
 use super::literals::{is_basic_literal, is_falsey_literal, is_literal, is_truthy_literal};
@@ -85,6 +86,10 @@ fn literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 const HANDLED: &[&str] = &[
     "binary",
     "unary",
+    // `x.!` is the same `(send _ :!)` upstream reaches through `on_send`, but the grammar writes
+    // it as a `call`. Without it here the negation entry is never reached for that spelling, and
+    // `if 1.!` / `while 1.!` / `until 1.!` / `1.! ? a : b` / `s if 1.!` all go unreported.
+    "call",
     "if",
     "elsif",
     "unless",
@@ -109,7 +114,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(HANDLED) {
         match node.kind_str() {
             "binary" => check_operator_keyword(node, context, offenses),
-            "unary" => check_negation(node, context, offenses),
+            "unary" | "call" => check_negation(node, context, offenses),
             "while" | "while_modifier" => check_loop(node, true, context, offenses),
             "until" | "until_modifier" => check_loop(node, false, context, offenses),
             "case" => check_case(node, context, offenses),
@@ -168,35 +173,30 @@ fn check_operator_keyword(node: Node<'_>, context: &RuleContext<'_>, offenses: &
 }
 
 /// `on_send` with `RESTRICT_ON_SEND = [:!]`: what a negation is applied to is a condition too.
+///
+/// **The entry uses `negation_method?`, not `prefix_bang?`.** That is why `if not 1` is reported
+/// here while `check_node` -- the recursive half -- leaves it alone: the two halves of this cop ask
+/// different questions, and answering both with one predicate loses a form either way.
 fn check_negation(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    if node
-        .field("operator")
-        .is_none_or(|operator| !matches!(context.source.node_text(operator), "!" | "not"))
-    {
-        return;
-    }
-    let Some(operand) = node.field("operand") else {
+    let Some(found) = send_node::negation(node, context) else {
         return;
     };
-    if literal(operand, context) {
-        offenses.push(report(operand.byte_range(), context));
+    if literal(found.operand, context) {
+        offenses.push(report(found.operand.byte_range(), context));
         return;
     }
-    check_node(operand, context, offenses);
+    check_node(found.operand, context, offenses);
 }
 
 /// `check_node`: the shapes whose operands are conditions in their own right.
 fn check_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    // **`prefix_bang?` here, `negation_method?` at the entry.** `not` is excluded on this side, so
+    // widening both to the same predicate reports an operand upstream never looks at.
+    if let Some(found) = send_node::bang(node, context) {
+        handle_node(found.operand, context, offenses);
+        return;
+    }
     match node.kind_str() {
-        "unary"
-            if node
-                .field("operator")
-                .is_some_and(|operator| context.source.node_text(operator) == "!") =>
-        {
-            if let Some(operand) = node.field("operand") {
-                handle_node(operand, context, offenses);
-            }
-        }
         "binary"
             if node
                 .field("operator")

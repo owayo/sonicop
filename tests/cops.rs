@@ -37253,6 +37253,82 @@ mod lint_literal_as_condition_modifier {
     }
 }
 
+/// `Lint/LiteralAsCondition` が否定を読む 2 つの経路。
+///
+/// 期待値は本家 1.89.0 の `--only Lint/LiteralAsCondition -f emacs` の実出力
+/// (TargetRubyVersion 3.4、1 ファイル 8 位置)。
+mod lint_literal_as_condition_negation {
+    use super::*;
+
+    const COP: &str = "Lint/LiteralAsCondition";
+    const MSG: &str = "Literal `1` appeared as a condition.";
+
+    fn at(line: usize, column: usize, length: usize) -> Annotation {
+        Annotation::new(line, column, length, MSG.to_owned())
+    }
+
+    /// **`x.!` は文法では `call`、`!x` と `not x` は `unary`。**上流はどちらも
+    /// `(send _ :!)` なので `on_send` の 1 つの入口から入るが、移植版は `unary` しか
+    /// 歩いていなかった。**容れ物ごとに落ちるのではなく、入口 1 つで 5 形が落ちていた。**
+    ///
+    /// 実測: 本家 8 件 / 移植版 3 件 → 直して 8 件 (位置まで一致)。
+    #[test]
+    fn a_postfix_bang_is_a_negation_in_every_container() {
+        CopCase::new(
+            COP,
+            "if 1.!\n  x\nend\n\
+             if !1\n  y\nend\n\
+             if not 1\n  w\nend\n\
+             while 1.!\n  v\nend\n\
+             if !(1)\n  q\nend\n\
+             until 1.!\n  r\nend\n\
+             x = 1.! ? a : b\n\
+             s if 1.!\n"
+                .to_owned(),
+            vec![
+                at(1, 4, 1),
+                at(4, 5, 1),
+                at(7, 8, 1),
+                at(10, 7, 1),
+                at(13, 6, 1),
+                at(16, 7, 1),
+                at(19, 5, 1),
+                at(20, 6, 1),
+            ],
+        )
+        .target_ruby("3.4")
+        .run();
+    }
+
+    /// **`&.` は上流も黙る。**`on_send` は `csend` に来ないので、共有ヘルパも
+    /// `is_plain_send` でそこを外している。
+    #[test]
+    fn a_safe_navigating_bang_is_left_alone() {
+        expect_no_offenses(COP, "if 1&.!\n  z\nend\n");
+    }
+
+    /// **入口と再帰の内側で、上流は違う述語を使う。**
+    ///
+    /// ```text
+    /// on_send    negation_method?   not を含む   → negation()
+    /// check_node prefix_bang?       not を除く   → bang()
+    /// ```
+    ///
+    /// 両方を広いほうに寄せると、上流が見ない被演算子まで報告する。`if not 1` が
+    /// 報告されるのは入口の側で、`!!1` のような入れ子は内側の側である。
+    #[test]
+    fn the_two_halves_ask_different_questions() {
+        // 入口は `not` を含む。
+        CopCase::new(COP, "if not 1\n  a\nend\n".to_owned(), vec![at(1, 8, 1)])
+            .target_ruby("3.4")
+            .run();
+        // 内側も `!` の入れ子は辿る。
+        CopCase::new(COP, "if !!1\n  a\nend\n".to_owned(), vec![at(1, 6, 1)])
+            .target_ruby("3.4")
+            .run();
+    }
+}
+
 /// `Lint/UnusedBlockArgument` の補正の作り方。
 ///
 /// 期待値は本家 1.89.0 の `--only Lint/UnusedBlockArgument,Style/Lambda -A` の実出力。
