@@ -104,6 +104,36 @@ autocorrect_divergences:
     reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
 
 blind_spots:
+  # --- CRLF 改行 (2026-08-18) ---
+  # **既存 5 コーパスに CRLF を含む `.rb` は 0 ファイル。`tests/` の cop テストにも本家 spec にも
+  # 1 つも無い。**3 つの独立した検査が揃って同じ形を欠いていたので、CRLF の欠陥は 1 件も
+  # 測られていなかった。`#79` (既定でしか届かない設定値) と同型で、掃引を足しても届かない。
+  #
+  # 埋め方は「コーパスを増やす」ではなく **`scripts/crlf_probe.sh` で既存の入力に形を作る**。
+  # これで見つかって直したもの (計 249 件):
+  #   Layout/LineLength              `\r` を桁数に数え、120 桁の行が超過に見えた。
+  #                                 `-A` が `{ }` を `do end` に書き換えた
+  #   Layout/SpaceAroundOperators    35 件。行末の演算子が「右に空白なし」に見えた
+  #   Lint/LiteralInInterpolation    24 件。heredoc 行末の `#{' '}` が行末と判定されない
+  #   Layout/EmptyLinesAround*      222 件。空行を空行と認識しない
+  #   Style/CommentAnnotation         3 件。`# FIXME\r` が「キーワード + 何か」に見えた
+  # 直しは `support::chomp` に 20 箇所を寄せた。個別に書くと必ずどこかが漏れる。
+  #
+  # --- ★ Style/RedundantParentheses は本家側の取りこぼし (合わせない) ---
+  # CRLF では本家がこの cop を報告しない。移植版は報告する (rails を CRLF 化して 119 件)。
+  # 本家はこの cop だけ `ReparsedEquivalence#verified_by_reparse` を通し、訂正後を再パースして
+  # AST が等価か確かめる。CRLF ではその判定が通らない。
+  #
+  # ★ 本家自身の正規化 (`normalize_reparsed_ast` = 子が 1 つの begin を畳む) を通した等価判定は
+  # **LF `true` / CRLF `true`** — 訂正は意味を変えない。実挙動でも括弧の有無で結果は変わらない。
+  # **報告して訂正するのが正しいので、本家に合わせて黙らせてはいけない。**
+  #
+  # ★ 判別子の注意: `Ripper.sexp` の比較は使えない。**Ripper は括弧を構文木に残す**ので LF 版でも
+  # 非等価になり「意味が変わった」と誤読する。本家と同じ parser gem + 上の正規化で比べること。
+  #
+  # (mixin を include する他の 5 cop は `verified_by_reparse` を実際には呼んでいないので、
+  #  この形は 1 cop だけに出る。「同じ mixin だから同じ挙動」と読まないこと。)
+  #
   # --- 構文エラーになったファイルの中の、2 件目以降の Lint/Syntax (#57・2026-08-17) ---
   # **両者が同じく構文エラーと呼ぶファイルの中では、1 件目より後ろの診断を追わない。**
   # 線はここに 1 本だけ引く。下の 2 つは同じ族なので、同じ扱いにする。
@@ -394,33 +424,6 @@ blind_spots:
 # 見つからないうちは、構造差を抱える理由がない。
 
 divergences:
-  # --- Style/RedundantParentheses (CRLF) ---
-  # ★ 「本家に合わせない」の 3 種類目 — **本家が取りこぼしている**側。
-  #
-  # CRLF 改行のファイルで、本家は `Style/RedundantParentheses` を報告しない。移植版は報告する。
-  # 例: `@x ||= (g(1) || h)` を CRLF で書くと、本家 0 件 / 移植版 1 件 (rails を CRLF 化して 119 件)。
-  #
-  # 機構: 本家はこの cop だけ `ReparsedEquivalence#verified_by_reparse` を通し、**訂正後を
-  # 再パースして AST が等価か確かめ、等価でなければ報告しない**。CRLF ではその判定が通らない。
-  # (mixin を include する他の 5 cop は実際には呼んでいないので、この形は 1 cop だけに出る。)
-  #
-  # ★ どちらが正しいか。本家自身の正規化 (`normalize_reparsed_ast` = 子が 1 つの begin を畳む) を
-  # 通した等価判定は **LF `true` / CRLF `true`** — つまり訂正は意味を変えない。実挙動でも
-  # 括弧の有無で結果は変わらない (どちらも同じ値を返す)。**報告して訂正するのが正しい。**
-  #
-  # ★ したがって本家に合わせて黙らせてはいけない。合わせると報告すべきものを落とす。
-  # ★ 判別子の注意: `Ripper.sexp` の比較は使えない。**Ripper は括弧を構文木に残す**ので、
-  # LF 版でも非等価になり「意味が変わった」と誤読する。本家と同じ parser gem + 正規化で比べること。
-  #
-  # 見つけ方: `scripts/crlf_probe.sh` (既存コーパスを CRLF 化して全 cop で突き合わせる)。
-  # 既存 5 コーパスに CRLF を含む `.rb` は 0 ファイルなので、形を作らないと出ない。
-  - cop: Style/RedundantParentheses
-    corpus: rails_rails (CRLF 化)
-    upstream: (検出なし)
-    sonicop: |-
-      2 つ以上の子を持つ begin を `||=` の右辺に置いた形などで報告する
-      (rails を CRLF 化して 119 件)
-
   # --- Style/EmptyLiteral ---
   # ★ 「本家に合わせない」の 2 種類目 (出力は valid だが意味が変わる)。冒頭の節を参照。
   #
