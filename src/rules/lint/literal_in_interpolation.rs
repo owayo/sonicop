@@ -144,7 +144,10 @@ fn ends_heredoc_line(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     }
     let (line, _) = context.source.line_column(node.end_byte());
-    let text = context.source.line(line).trim_end_matches('\n');
+    // **`\r\n` is one line ending.** Leaving the `\r` in put the interpolation one column short of
+    // the line's end, so `#{' '}` written at the end of a heredoc line stopped being recognised as
+    // ending it and the offense upstream withholds came out. 24 lines of one CRLF corpus.
+    let text = crate::rules::support::chomp(context.source.line(line));
     let (_, column) = context.source.line_column(node.end_byte());
     text.chars().count() == column
 }
