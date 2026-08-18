@@ -213,7 +213,10 @@ mod layout {
         assert_eq!(long_121.chars().count(), 121);
         expect_offense(
             "Layout/LineLength",
-            &format!("{long_121}\n{}^ Line is too long. [121/120]\n", " ".repeat(120)),
+            &format!(
+                "{long_121}\n{}^ Line is too long. [121/120]\n",
+                " ".repeat(120)
+            ),
         );
         // ★ 対照 3: 単独の `\r` も chomp は落とす
         expect_no_offenses("Layout/LineLength", &format!("{long_120}\r"));
@@ -231,11 +234,11 @@ mod layout {
         // ★ 対照 2: 本当に空白が無い形は CRLF でも報告する。落ちたら直しすぎ
         expect_offense(
             "Layout/SpaceAroundOperators",
-            "x=1\r\n  ^ Surrounding space missing for operator `=`.\n",
+            "x=1\r\n ^ Surrounding space missing for operator `=`.\n",
         );
         expect_offense(
             "Layout/SpaceAroundOperators",
-            "x=1\n  ^ Surrounding space missing for operator `=`.\n",
+            "x=1\n ^ Surrounding space missing for operator `=`.\n",
         );
     }
 
