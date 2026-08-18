@@ -405,7 +405,7 @@ mod layout {
         // ★ 対照 2: 宣言があっても ASCII の空白は拾う。これが落ちたら cop ごと死んでいる。
         expect_offense(
             "Layout/TrailingWhitespace",
-            "# encoding: ASCII-8BIT\nx = 1 # \n             ^ Trailing whitespace detected.\n",
+            "# encoding: ASCII-8BIT\nx = 1 # \n       ^ Trailing whitespace detected.\n",
         );
         // ★ 対照 3: 宣言が無い UTF-8 では Zs を拾い続ける (退行させていないこと)。
         expect_correction(
