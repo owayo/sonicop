@@ -24,7 +24,14 @@ pub(crate) fn final_pos(
         matches!(byte, b' ' | b'\t')
     });
     position = move_pos_str(text, position, forward, continuations, "\\\n");
-    position = move_pos(text, position, forward, newlines, |byte| byte == b'\n');
+    // **`\r\n` is one line ending, so the `\r` belongs to this step and not to the whitespace one.**
+    // Stopping at the `\r` left an operator at the end of a CRLF line looking unspaced on its right,
+    // and `Layout/SpaceAroundOperators` reported 35 lines of one corpus that upstream leaves alone.
+    // None of the five older corpora holds a single CRLF `.rb`, so nothing measured this until a
+    // sixth was added.
+    position = move_pos(text, position, forward, newlines, |byte| {
+        matches!(byte, b'\n' | b'\r')
+    });
     move_pos(text, position, forward, whitespace, is_ruby_space)
 }
 
@@ -81,6 +88,21 @@ pub(crate) fn range_with_surrounding_space(
 /// **Rust's `is_ascii_whitespace` is the same set minus the vertical tab**, so a walk written with it
 /// stops one character early in `%w[a\vb]` and in an indentation that begins with a `\v`. A
 /// no-break space is *not* in the set either way -- it is content, not spacing.
+/// A line with its ending taken off, the way `String#chomp` does it.
+///
+/// **`\r\n` is one line ending and a lone `\r` is another**, so stripping only `\n` leaves the `\r`
+/// to be counted as a column and to be read as a character before the line break. Both showed up on
+/// 2026-08-18 in a CRLF corpus: `Layout/LineLength` called every 120-column line one too long, and
+/// `Layout/SpaceAroundOperators` saw an operator at the end of a line as unspaced on its right.
+/// **None of the five older corpora holds a single CRLF `.rb`**, so nothing measured either until a
+/// sixth was added.
+pub(crate) fn chomp(line: &str) -> &str {
+    line.strip_suffix("\r\n")
+        .or_else(|| line.strip_suffix('\n'))
+        .or_else(|| line.strip_suffix('\r'))
+        .unwrap_or(line)
+}
+
 pub(crate) const fn is_ruby_space(byte: u8) -> bool {
     matches!(byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }

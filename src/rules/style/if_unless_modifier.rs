@@ -411,7 +411,7 @@ impl Cop<'_, '_> {
     fn code_after(&self, conditional: &Conditional<'_>) -> Option<String> {
         let end = conditional.end?;
         let line = self.context.source.line(last_line(end));
-        let line = line.strip_suffix('\n').unwrap_or(line);
+        let line = crate::rules::support::chomp(line);
         let column = end.end_position().column;
         let code: String = line.chars().skip(column).collect();
         (!code.is_empty()).then_some(code)
@@ -431,7 +431,7 @@ impl Cop<'_, '_> {
         let line = self.context.source.line(number);
         !self
             .length
-            .acceptable_line_length(line.strip_suffix('\n').unwrap_or(line), number)
+            .acceptable_line_length(crate::rules::support::chomp(line), number)
     }
 
     /// `multiline_inside_collection?`: two multi-line conditionals sharing a line inside one
@@ -556,7 +556,7 @@ impl Cop<'_, '_> {
         let line = self.context.source.line(first_line(conditional.node));
         // `processed_source.lines` holds the line without its newline, and both lengths here are
         // character counts.
-        let length = line.strip_suffix('\n').unwrap_or(line).chars().count();
+        let length = crate::rules::support::chomp(line).chars().count();
         let comment_length = self.context.source.text()[comment.clone()].chars().count();
         length.saturating_sub(comment_length) <= max && max <= length
     }

@@ -36,8 +36,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for line_number in 1..=context.source.line_count().min(data_line.saturating_sub(1)) {
         let raw = context.source.line(line_number);
-        // RuboCop chomps only the newline, so a CRLF file counts its `\r` as one more character.
-        let line = raw.strip_suffix('\n').unwrap_or(raw);
+        // **`String#chomp` takes off `\r\n` as one line ending, and a lone `\r` as well.** Counting
+        // the `\r` made every 120-column line of a CRLF file one column too long, and the offense
+        // that followed pulled `Style/BlockDelimiters` in behind it: `-A` rewrote `{ }` to
+        // `do end` in files upstream left untouched. A CRLF file is not a file of longer lines.
+        let line = crate::rules::support::chomp(raw);
         let indent = indentation_difference(line);
         let length = line.chars().count() + indent;
         let line_start = context.source.line_start(line_number);
@@ -924,7 +927,7 @@ fn is_super_call(node: Node<'_>) -> bool {
 
 fn line_char_count(context: &RuleContext<'_>, line: usize) -> usize {
     let raw = context.source.line(line);
-    raw.strip_suffix('\n').unwrap_or(raw).chars().count()
+    crate::rules::support::chomp(raw).chars().count()
 }
 
 fn call_parenthesized(node: Node<'_>, context: &RuleContext<'_>) -> bool {
