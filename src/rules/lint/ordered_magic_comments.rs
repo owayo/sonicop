@@ -58,7 +58,7 @@ fn magic_comment_lines(context: &RuleContext<'_>) -> (Option<usize>, Option<usiz
 fn line_range(line_number: usize, context: &RuleContext<'_>) -> std::ops::Range<usize> {
     let range = context.source.line_range(line_number);
     let text = context.source.slice(range.clone());
-    let stripped = text.strip_suffix('\n').unwrap_or(text);
+    let stripped = crate::rules::support::chomp(text);
     let stripped = stripped.strip_suffix('\r').unwrap_or(stripped);
     range.start..range.start + stripped.len()
 }

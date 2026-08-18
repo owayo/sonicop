@@ -71,7 +71,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn source_line<'a>(context: &'a RuleContext<'_>, offset: usize) -> &'a str {
     let line = context.source.line_column(offset).0;
     let text = context.source.line(line);
-    text.strip_suffix('\n').unwrap_or(text)
+    crate::rules::support::chomp(text)
 }
 
 /// `indent_level`: `source_line[/\A */].length`, which counts spaces only.

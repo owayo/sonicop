@@ -283,7 +283,7 @@ fn line_head(context: &RuleContext<'_>, line: usize) -> std::ops::Range<usize> {
 
 fn is_blank(context: &RuleContext<'_>, line: usize) -> bool {
     line <= context.source.line_count()
-        && context.source.line(line).trim_end_matches('\n').is_empty()
+        && crate::rules::support::chomp(context.source.line(line)).is_empty()
 }
 
 fn is_comment_line(context: &RuleContext<'_>, line: usize) -> bool {

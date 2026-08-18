@@ -14,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for comment in context.comment_ranges() {
         let number = context.source.line_column(comment.start).0;
         let raw = context.source.line(number);
-        let line = raw.strip_suffix('\n').unwrap_or(raw);
+        let line = crate::rules::support::chomp(raw);
         let body = &text[comment.clone()];
         if !offensive(line, body) {
             continue;

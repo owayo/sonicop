@@ -97,7 +97,7 @@ fn regexp_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'
 /// that does. The source includes the delimiters, and `/` is one of the literal characters.
 fn deterministic(source: &str) -> bool {
     // `\Z` lets a single trailing newline through.
-    let source = source.strip_suffix('\n').unwrap_or(source);
+    let source = crate::rules::support::chomp(source);
     if source.is_empty() {
         return false;
     }

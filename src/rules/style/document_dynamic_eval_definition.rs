@@ -148,7 +148,7 @@ fn merge_adjacent(lines: impl Iterator<Item = (usize, String)>) -> Vec<String> {
 
 /// `BLOCK_COMMENT_REGEXP`: `/^\s*#(?!{)/`, which only bites at the start of the line.
 fn strip_comment_marker(line: &str) -> Option<String> {
-    let trimmed = line.trim_end_matches('\n');
+    let trimmed = crate::rules::support::chomp(line);
     let rest = trimmed.trim_start();
     let marker = rest.strip_prefix('#')?;
     if marker.starts_with('{') {

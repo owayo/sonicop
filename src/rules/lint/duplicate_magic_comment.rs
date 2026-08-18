@@ -43,7 +43,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn line_range(line_number: usize, context: &RuleContext<'_>) -> Range<usize> {
     let range = context.source.line_range(line_number);
     let text = context.source.slice(range.clone());
-    let stripped = text.strip_suffix('\n').unwrap_or(text);
+    let stripped = crate::rules::support::chomp(text);
     let stripped = stripped.strip_suffix('\r').unwrap_or(stripped);
     range.start..range.start + stripped.len()
 }

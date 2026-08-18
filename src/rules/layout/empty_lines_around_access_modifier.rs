@@ -176,7 +176,7 @@ fn corrections(
 ) -> Vec<Edit> {
     let start = context.source.line_start(line);
     let text = context.source.text();
-    let end = start + context.source.line(line).trim_end_matches('\n').len();
+    let end = start + crate::rules::support::chomp(context.source.line(line)).len();
     let mut edits = Vec::new();
     if !before && should_insert_line_before(node) {
         edits.push(Edit {

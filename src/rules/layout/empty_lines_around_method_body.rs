@@ -54,12 +54,7 @@ fn check_endless(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<O
     if body.start_position().row < assignment_line + 1 {
         return;
     }
-    if !context
-        .source
-        .line(assignment_line + 1)
-        .trim_end_matches('\n')
-        .is_empty()
-    {
+    if !crate::rules::support::chomp(context.source.line(assignment_line + 1)).is_empty() {
         return;
     }
     let start = context.source.line_start(assignment_line + 1);

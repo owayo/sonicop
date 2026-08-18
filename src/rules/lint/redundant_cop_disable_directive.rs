@@ -419,7 +419,7 @@ fn ends_its_line(source: &SourceFile, range: &Range<usize>) -> bool {
     // `Buffer#source_line` hands back the line without its newline, so the run of trailing
     // whitespace the comparison looks for stops before it.
     let text = source.line(line);
-    let text = text.strip_suffix('\n').unwrap_or(text);
+    let text = crate::rules::support::chomp(text);
     let trimmed = text.trim_end_matches([' ', '\t', '\r', '\x0b', '\x0c']);
     source.line_start(line) + trimmed.len() == range.end
 }

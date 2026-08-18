@@ -203,7 +203,7 @@ fn closing<'tree>(hash: Node<'tree>) -> Option<Node<'tree>> {
 fn line_span(context: &RuleContext<'_>, offset: usize) -> std::ops::Range<usize> {
     let line = context.source.line_column(offset).0;
     let start = context.source.line_start(line);
-    start..start + context.source.line(line).trim_end_matches('\n').len()
+    start..start + crate::rules::support::chomp(context.source.line(line)).len()
 }
 
 fn base_description(kind: IndentBase) -> &'static str {

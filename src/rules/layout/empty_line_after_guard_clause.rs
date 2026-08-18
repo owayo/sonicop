@@ -131,7 +131,7 @@ fn insertion(context: &RuleContext<'_>, range: Range<usize>) -> (Edit, Range<usi
 
 fn line_end(context: &RuleContext<'_>, line: usize) -> usize {
     let range = context.source.line_range(line);
-    range.start + context.source.line(line).trim_end_matches('\n').len()
+    range.start + crate::rules::support::chomp(context.source.line(line)).len()
 }
 
 /// `next_line_empty_or_allowed_directive_comment?`.

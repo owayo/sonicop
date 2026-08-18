@@ -69,7 +69,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The `no_space` style rejects any blank at all; the `space` style rejects none and two or more,
 /// which is what its `((?<!\s)|\s{2,})\\$` says.
 fn offensive_spacing(line: &str, no_space: bool) -> Option<&str> {
-    let content = line.strip_suffix('\n').unwrap_or(line);
+    let content = crate::rules::support::chomp(line);
     let content = content.strip_suffix('\r').unwrap_or(content);
     let before = content.strip_suffix('\\')?;
     let blanks = before.len() - before.trim_end_matches([' ', '\t']).len();

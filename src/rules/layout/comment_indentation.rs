@@ -113,7 +113,7 @@ fn line_after_comment<'a>(context: &'a RuleContext<'_>, line: usize) -> Option<&
     (line + 1..=context.source.line_count())
         .map(|line| {
             let text = context.source.line(line);
-            text.strip_suffix('\n').unwrap_or(text)
+            crate::rules::support::chomp(text)
         })
         .find(|text| !text.trim().is_empty())
 }

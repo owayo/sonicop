@@ -233,7 +233,7 @@ fn compute_do_source_line_column(
     // `Range#source_line` drops the line feed and keeps a carriage return, which is what ends up
     // in the message.
     let text = context.source.line(line);
-    let text = text.strip_suffix('\n').unwrap_or(text);
+    let text = crate::rules::support::chomp(text);
     let indentation = text
         .chars()
         .position(|character| !character.is_whitespace())? as i64;

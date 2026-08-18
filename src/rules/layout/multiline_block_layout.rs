@@ -107,7 +107,7 @@ fn line_break_necessary(
     let pipes = if first_line.ends_with("|\n") { 1 } else { 3 };
     let needed = character_column(context, start)
         + pipes
-        + first_line.trim_end_matches('\n').chars().count() as i64
+        + crate::rules::support::chomp(first_line).chars().count() as i64
         + argument_string(context, arguments).chars().count() as i64;
     needed > maximum
 }

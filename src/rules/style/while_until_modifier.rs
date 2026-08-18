@@ -244,7 +244,7 @@ impl Cop<'_, '_> {
     /// `code_after`: whatever follows the `end` on its line, which the modifier form has to keep.
     fn code_after(&self, loop_node: &Loop<'_>) -> Option<String> {
         let line = self.context.source.line(last_line(loop_node.end));
-        let line = line.strip_suffix('\n').unwrap_or(line);
+        let line = crate::rules::support::chomp(line);
         let column = loop_node.end.end_position().column;
         let code: String = line.chars().skip(column).collect();
         (!code.is_empty()).then_some(code)

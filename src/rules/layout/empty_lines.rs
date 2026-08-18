@@ -50,7 +50,7 @@ fn previous_and_current_lines_empty(context: &RuleContext<'_>, line: usize) -> b
 
 fn is_empty_line(context: &RuleContext<'_>, line: usize) -> bool {
     let text = context.source.line(line);
-    text.strip_suffix('\n').unwrap_or(text).is_empty()
+    crate::rules::support::chomp(text).is_empty()
 }
 
 /// The lines `processed_source.tokens` covers.

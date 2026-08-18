@@ -72,7 +72,7 @@ impl<'src> Alignment<'src> {
         let lines: Vec<&str> = (1..=source.line_count())
             .map(|line| {
                 let text = source.line(line);
-                text.strip_suffix('\n').unwrap_or(text)
+                crate::rules::support::chomp(text)
             })
             .collect();
         let indents = lines
