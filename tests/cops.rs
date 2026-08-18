@@ -234,7 +234,7 @@ mod layout {
         // ★ 対照 2: キーワードの後に文字があれば CRLF でも報告する。落ちたら直しすぎ
         expect_offense(
             "Style/CommentAnnotation",
-            "# FIXME make better\r\n  ^^^^^ Annotation keywords like `FIXME` should be all upper case, followed by a colon, and a space, then a note describing the problem.\nx = 1\r\n",
+            "# FIXME make better\r\n  ^^^^^^ Annotation keywords like `FIXME` should be all upper case, followed by a colon, and a space, then a note describing the problem.\nx = 1\r\n",
         );
         // ★ 対照 3: コロンつきは CRLF でも正しい形として通す
         expect_no_offenses("Style/CommentAnnotation", "# FIXME: ok\r\nx = 1\r\n");
