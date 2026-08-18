@@ -390,80 +390,16 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         return Ok(0);
     }
 
-    let mut only = csv(cli.only.as_deref());
-    if cli.lint {
-        only.push("Lint".to_owned());
-    }
-    if cli.fix_layout {
-        only.push("Layout".to_owned());
-    }
-    validate_selection(&only, "--only", &config)?;
-    let except = csv(cli.except.as_deref());
-    validate_selection(&except, "--except", &config)?;
-    let selection = Selection {
-        only,
-        except,
-        disable_all: cli.disable_all_cops,
-        enable_all: cli.enable_all_cops,
-        enable_pending: cli.enable_pending_cops,
-        disable_pending: cli.disable_pending_cops,
-        safe_only: cli.safe,
-        ignore_disable_comments: cli.ignore_disable_comments,
-        display_suppressed: cli.display_suppressed,
-        correcting: cli.correct_mode() != CorrectMode::None,
-        // **No flag turns this on from the command line.** The guard is switched off for tests
-        // only, and even then per case; a run reaches the environment variable or nothing.
-        skip_syntax_guard: false,
-    };
     let correct_mode = cli.correct_mode();
+    let selection = build_selection(&cli, &config, correct_mode)?;
     if !cli.list_target_files {
         warn_unimplemented_enabled(&config, &selection);
     }
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
-    let mut reports = if let Some(stdin_path) = &cli.stdin {
-        if !cli.paths.is_empty() {
-            bail!(
-                "--stdin requires exactly one path supplied as its argument and no file arguments"
-            );
-        }
-        let mut text = String::new();
-        io::stdin()
-            .read_to_string(&mut text)
-            .context("failed to read UTF-8 source from stdin")?;
-        let target_config = configs.for_path(stdin_path)?;
-        vec![inspect_source(
-            stdin_path.clone(),
-            text,
-            &target_config,
-            &selection,
-        )?]
-    } else {
-        let mut targets = discover_targets_with_store(
-            &cli.paths,
-            &cwd,
-            &configs,
-            cli.force_exclusion,
-            cli.only_recognized_file_types,
-        )?;
-        if cli.list_target_files {
-            for path in targets {
-                println!("{}", smart_path(&path, &cwd));
-            }
-            return Ok(0);
-        }
-        if cli.fail_fast {
-            targets.sort_by_key(|path| {
-                std::cmp::Reverse(
-                    fs::metadata(path)
-                        .and_then(|metadata| metadata.modified())
-                        .ok(),
-                )
-            });
-            inspect_fail_fast(&targets, &configs, &selection)?
-        } else {
-            inspect_files_with_store(&targets, &configs, &selection, parallel)?
-        }
+    let mut reports = match inspect_inputs(&cli, &cwd, &configs, &selection, parallel)? {
+        Inspection::Reports(reports) => reports,
+        Inspection::ListedTargets => return Ok(0),
     };
 
     if cli.debug {
@@ -479,40 +415,16 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         );
     }
 
-    let mut corrected_count = 0;
-    let mut stdin_corrected = None;
-    let mut run_errors = 0;
-    let mut corrected_reports = Vec::with_capacity(reports.len());
-    for report in reports {
-        let path = report.path.clone();
-        let target_config = configs.for_path(&path)?;
-        let outcome = correct_file(report, correct_mode, &target_config, &selection)?;
-        corrected_count += outcome.corrected_count;
-        if let Some(message) = outcome.infinite_loop {
-            // RuboCop keeps the run going and still writes what it managed to correct.
-            eprintln!("{message}");
-            run_errors += 1;
-        }
-        // Not an offense: the file on disk parses, so a reader told to look for a syntax error
-        // would find none. It is an autocorrect failure, and it has to reach the exit code --
-        // a `-A` run that silently declined to correct must not look like a clean one to CI.
-        if let Some(message) = outcome.rollback {
-            eprintln!("{message}");
-            run_errors += 1;
-        }
-        if outcome.rewritten {
-            if cli.stdin.is_some() {
-                stdin_corrected = Some(outcome.text);
-            } else {
-                write_corrected(&path, &outcome.text)?;
-            }
-        }
-        corrected_reports.push(outcome.report);
-    }
+    let CorrectionRun {
+        reports: corrected_reports,
+        corrected_count,
+        stdin_corrected,
+        had_errors,
+    } = apply_corrections(reports, &cli, &configs, correct_mode, &selection)?;
     reports = corrected_reports;
 
     // A file RuboCop could not finish counts as a failed run even when nothing else offended.
-    let failing = fail_level.failing(&reports) || run_errors > 0;
+    let failing = fail_level.failing(&reports) || had_errors;
 
     if let Some(corrected) = stdin_corrected {
         print!("{corrected}");
@@ -533,6 +445,143 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 
     Ok(i32::from(failing))
+}
+
+fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Result<Selection> {
+    let mut only = csv(cli.only.as_deref());
+    if cli.lint {
+        only.push("Lint".to_owned());
+    }
+    if cli.fix_layout {
+        only.push("Layout".to_owned());
+    }
+    validate_selection(&only, "--only", config)?;
+
+    let except = csv(cli.except.as_deref());
+    validate_selection(&except, "--except", config)?;
+
+    Ok(Selection {
+        only,
+        except,
+        disable_all: cli.disable_all_cops,
+        enable_all: cli.enable_all_cops,
+        enable_pending: cli.enable_pending_cops,
+        disable_pending: cli.disable_pending_cops,
+        safe_only: cli.safe,
+        ignore_disable_comments: cli.ignore_disable_comments,
+        display_suppressed: cli.display_suppressed,
+        correcting: correct_mode != CorrectMode::None,
+        // **No flag turns this on from the command line.** The guard is switched off for tests
+        // only, and even then per case; a run reaches the environment variable or nothing.
+        skip_syntax_guard: false,
+    })
+}
+
+enum Inspection {
+    Reports(Vec<FileReport>),
+    ListedTargets,
+}
+
+fn inspect_inputs(
+    cli: &Cli,
+    cwd: &Path,
+    configs: &ConfigStore,
+    selection: &Selection,
+    parallel: bool,
+) -> Result<Inspection> {
+    let Some(stdin_path) = &cli.stdin else {
+        let mut targets = discover_targets_with_store(
+            &cli.paths,
+            cwd,
+            configs,
+            cli.force_exclusion,
+            cli.only_recognized_file_types,
+        )?;
+        if cli.list_target_files {
+            for path in targets {
+                println!("{}", smart_path(&path, cwd));
+            }
+            return Ok(Inspection::ListedTargets);
+        }
+        let reports = if cli.fail_fast {
+            targets.sort_by_key(|path| {
+                std::cmp::Reverse(
+                    fs::metadata(path)
+                        .and_then(|metadata| metadata.modified())
+                        .ok(),
+                )
+            });
+            inspect_fail_fast(&targets, configs, selection)?
+        } else {
+            inspect_files_with_store(&targets, configs, selection, parallel)?
+        };
+        return Ok(Inspection::Reports(reports));
+    };
+
+    if !cli.paths.is_empty() {
+        bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
+    }
+    let mut text = String::new();
+    io::stdin()
+        .read_to_string(&mut text)
+        .context("failed to read UTF-8 source from stdin")?;
+    let target_config = configs.for_path(stdin_path)?;
+    let report = inspect_source(stdin_path.clone(), text, &target_config, selection)?;
+    Ok(Inspection::Reports(vec![report]))
+}
+
+struct CorrectionRun {
+    reports: Vec<FileReport>,
+    corrected_count: usize,
+    stdin_corrected: Option<String>,
+    had_errors: bool,
+}
+
+fn apply_corrections(
+    reports: Vec<FileReport>,
+    cli: &Cli,
+    configs: &ConfigStore,
+    correct_mode: CorrectMode,
+    selection: &Selection,
+) -> Result<CorrectionRun> {
+    let mut corrected_count = 0;
+    let mut stdin_corrected = None;
+    let mut had_errors = false;
+    let mut corrected_reports = Vec::with_capacity(reports.len());
+
+    for report in reports {
+        let path = report.path.clone();
+        let target_config = configs.for_path(&path)?;
+        let outcome = correct_file(report, correct_mode, &target_config, selection)?;
+        corrected_count += outcome.corrected_count;
+        if let Some(message) = outcome.infinite_loop {
+            // RuboCop keeps the run going and still writes what it managed to correct.
+            eprintln!("{message}");
+            had_errors = true;
+        }
+        // Not an offense: the file on disk parses, so a reader told to look for a syntax error
+        // would find none. It is an autocorrect failure, and it has to reach the exit code --
+        // a `-A` run that silently declined to correct must not look like a clean one to CI.
+        if let Some(message) = outcome.rollback {
+            eprintln!("{message}");
+            had_errors = true;
+        }
+        if outcome.rewritten {
+            if cli.stdin.is_some() {
+                stdin_corrected = Some(outcome.text);
+            } else {
+                write_corrected(&path, &outcome.text)?;
+            }
+        }
+        corrected_reports.push(outcome.report);
+    }
+
+    Ok(CorrectionRun {
+        reports: corrected_reports,
+        corrected_count,
+        stdin_corrected,
+        had_errors,
+    })
 }
 
 /// RuboCop's `--fail-level` accepts a severity plus the pseudo level `autocorrect`, which changes
