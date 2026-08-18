@@ -7998,6 +7998,119 @@ mod layout_blank_lines {
             ),
         );
     }
+
+    /// 挿入が掛かる範囲は報告した `end` ではなく**条件文の全行**。本家は
+    /// `insert_after(range_by_whole_lines(node.source_range), "\n")` を呼ぶ。
+    ///
+    /// この範囲は本文には出ないが、他の cop の置換との**親子の向き**を決める。
+    /// `Style/IfUnlessModifier` は同じ条件文をまるごと置換するので、全行なら挿入が
+    /// 親になって両方残り、`end` だけなら挿入が子になって「置換が挿入を飲み込む」
+    /// 形 = 本家が raise する衝突になり、置換した cop がファイル内の訂正を全部失う。
+    #[test]
+    fn the_insertion_hangs_off_the_whole_lines_of_the_clause() {
+        let source = concat!("def foo\n", "  return if a\n", "  bar\n", "end\n");
+        let report = CopCase::new(GUARD, source, Vec::new()).inspect();
+        let offense = &report.offenses[0];
+        // 報告は `return if a` の範囲のまま (`end` を持たない guard clause なので節全体)。
+        assert_eq!((offense.start, offense.end), (10, 21));
+        // 挿入が掛かるのは行頭から行末まで。字下げの 2 文字を含む。
+        assert_eq!(offense.correction_anchor, Some((8, 21)));
+
+        let with_end = concat!(
+            "def foo\n",
+            "  if a\n",
+            "    raise\n",
+            "  end\n",
+            "  bar\n",
+            "end\n",
+        );
+        let report = CopCase::new(GUARD, with_end, Vec::new()).inspect();
+        let offense = &report.offenses[0];
+        // 報告は `end` の 3 文字だけ。
+        assert_eq!((offense.start, offense.end), (27, 30));
+        // 挿入は `if` の行頭から `end` の行末まで。★ 報告した範囲とは別物。
+        assert_eq!(offense.correction_anchor, Some((8, 30)));
+    }
+
+    /// `Style/IfUnlessModifier` が同じ条件文を畳もうとする形。**本家は畳み込みを残す。**
+    ///
+    /// rails の `activerecord/.../schema_definitions.rb` を 4 cop / 22 行まで縮めたもの。
+    /// パス 1 の内訳 (本家の corrector をそのまま書き出して突き合わせた):
+    ///
+    /// ```text
+    /// Layout/EmptyLineAfterGuardClause  取り込み
+    /// Layout/LineLength                 取り込み
+    /// Style/GuardClause                 ★ 丸ごと捨てた (長い行を割る挿入が、消す範囲の中に入る)
+    /// Style/IfUnlessModifier            取り込み
+    /// ```
+    ///
+    /// `Style/GuardClause` が落ちるのは `Layout/LineLength` の側の衝突で、両者に共通。
+    /// **分かれるのは最後の 1 本**で、挿入を `end` に掛けていると
+    /// `Style/IfUnlessModifier` もここで落ち、次のパスで `Style/GuardClause` が
+    /// `if index` を取って `return unless index` になってしまう。
+    #[test]
+    fn a_folded_conditional_survives_the_blank_line_the_guard_clause_asked_for() {
+        CopCase::new(
+            GUARD,
+            concat!(
+                "def add(table_name, connection)\n",
+                "  if index\n",
+                "    connection.add_index(table_name, column_names)\n",
+                "  end\n",
+                "end\n",
+                "\n",
+                "def create_column_definition(name, options)\n",
+                "  if @columns_hash[name].primary_key?\n",
+                "    raise ArgumentError, 'you cannot redefine the primary key column; to define a custom primary key, pass id false to create_table'\n",
+                "  else\n",
+                "    raise ArgumentError, 'you cannot define an already defined column'\n",
+                "  end\n",
+                "end\n",
+                "\n",
+                "def references(options)\n",
+                "  if options[:primary_key]\n",
+                "    if options[:null]\n",
+                "      raise ArgumentError, 'primary keys cannot be NULL'\n",
+                "    end\n",
+                "    options[:null] = false\n",
+                "  end\n",
+                "end\n",
+            ),
+            Vec::new(),
+        )
+        .cops(&[
+            GUARD,
+            "Layout/LineLength",
+            "Style/GuardClause",
+            "Style/IfUnlessModifier",
+        ])
+        .without_offense_check()
+        .corrected(concat!(
+            "def add(table_name, connection)\n",
+            // ★ 本家はここを畳み込みの形で残す。`return unless index` になったら退行。
+            "  connection.add_index(table_name, column_names) if index\n",
+            "end\n",
+            "\n",
+            "def create_column_definition(name, options)\n",
+            "  raise ArgumentError, 'you cannot define an already defined column' unless @columns_hash[name].primary_key?\n",
+            "\n",
+            "    raise ArgumentError, \n",
+            "'you cannot redefine the primary key column; to define a custom primary key, pass id false to create_table'\n",
+            "  \n",
+            "    \n",
+            "  \n",
+            "end\n",
+            "\n",
+            "def references(options)\n",
+            "  return unless options[:primary_key]\n",
+            "    raise ArgumentError, 'primary keys cannot be NULL' if options[:null]\n",
+            "\n",
+            "    options[:null] = false\n",
+            "  \n",
+            "end\n",
+        ))
+        .run();
+    }
 }
 
 /// `Lint/ConstantDefinitionInBlock`。本家の判定は「ブロック本体の文として直接書かれて

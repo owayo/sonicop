@@ -74,10 +74,13 @@ fn inspect<'tree>(
             return;
         }
         let terminator = terminator_range(context, body);
+        // `range_by_whole_lines(node.loc.heredoc_body)`: the body's own lines, not the statement's.
+        let (edit, anchor) = insertion(context, body.byte_range());
         offenses.push(
             context
                 .offense(MESSAGE, terminator.clone())
-                .corrected_by(insertion(context, body.end_byte())),
+                .corrected_by(edit)
+                .corrections_anchored_at(anchor),
         );
         return;
     }
@@ -86,27 +89,44 @@ fn inspect<'tree>(
         return;
     }
     let range = end_keyword(node).map_or_else(|| node.byte_range(), |keyword| keyword.byte_range());
+    let (edit, anchor) = insertion(context, node.byte_range());
     offenses.push(
         context
             .offense(MESSAGE, range)
-            .corrected_by(insertion(context, node.end_byte())),
+            .corrected_by(edit)
+            .corrections_anchored_at(anchor),
     );
 }
 
 /// `corrector.insert_after(range_by_whole_lines(...), "\n")`, stepping over a directive comment on
 /// the line that follows.
-fn insertion(context: &RuleContext<'_>, end: usize) -> Edit {
-    let line = context.source.line_column(end).0;
-    let mut offset = line_end(context, line);
-    if let Some(comment) = allowed_directive_comment(context, line + 1) {
-        offset = comment.end;
+///
+/// The second half of the pair is the range upstream hands `insert_after`, which is **not** the
+/// `end` keyword the offense is reported on: it is the whole lines of the conditional. Which of the
+/// two is recorded decides where the insertion sits in the correction tree, and the two fall on
+/// opposite sides of `Style/IfUnlessModifier`'s replacement of the same conditional -- the
+/// whole-lines range contains it, so the two merge, while the `end` keyword is contained by it and
+/// reads as an insertion the replacement swallows. That swallowing is the one RuboCop raises on, and
+/// it costs the clobbering cop every correction it asked for in the file. Measured on
+/// `rails/activerecord/.../schema_definitions.rb`, where recording the keyword sent
+/// `Style/IfUnlessModifier` away and left `Style/GuardClause`'s form in its place.
+fn insertion(context: &RuleContext<'_>, range: Range<usize>) -> (Edit, Range<usize>) {
+    let first_line = context.source.line_column(range.start).0;
+    let last_line = context.source.line_column(range.end).0;
+    let mut anchor = context.source.line_range(first_line).start..line_end(context, last_line);
+    if let Some(comment) = allowed_directive_comment(context, last_line + 1) {
+        anchor = comment;
     }
-    Edit {
-        start: offset,
-        end: offset,
-        replacement: "\n".to_owned(),
-        safe: true,
-    }
+    let offset = anchor.end;
+    (
+        Edit {
+            start: offset,
+            end: offset,
+            replacement: "\n".to_owned(),
+            safe: true,
+        },
+        anchor,
+    )
 }
 
 fn line_end(context: &RuleContext<'_>, line: usize) -> usize {

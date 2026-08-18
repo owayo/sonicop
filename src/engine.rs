@@ -1255,6 +1255,64 @@ fn anchor_range(offense: &Offense, source: &str) -> (usize, usize) {
     }
 }
 
+/// Writes the corrector of every cop of one pass, and what the merge did with it, to stderr under
+/// `SONICOP_TRACE_CORRECTORS`.
+///
+/// The output is the same shape upstream's correctors can be dumped in -- one line per scheduled
+/// edit, `line:column-line:column` then the replacement -- so that the two can be read side by side.
+/// Comparing text alone cannot say *why* a pass landed where it did: a cop whose corrections are
+/// discarded whole still reports every offense as corrected, so the report is identical either way.
+mod trace {
+    pub(super) fn enabled() -> bool {
+        static ENABLED: std::sync::LazyLock<bool> =
+            std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_CORRECTORS").is_some());
+        *ENABLED
+    }
+
+    /// The 1-based line and column of an offset, counted the way an offense is reported.
+    ///
+    /// Slices with `get` rather than `[..]`: the offsets this walks are the ones under suspicion
+    /// whenever the trace is worth reading, and an offset landing inside a multi-byte character
+    /// would panic exactly when it is being investigated. A malformed edit should print oddly, not
+    /// take the run down.
+    fn position(source: &str, offset: usize) -> (usize, usize) {
+        let mut offset = offset.min(source.len());
+        while offset > 0 && !source.is_char_boundary(offset) {
+            offset -= 1;
+        }
+        let head = &source[..offset];
+        let line = head.bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let start = head.rfind('\n').map_or(0, |index| index + 1);
+        (line, head[start..].chars().count())
+    }
+
+    pub(super) fn span(source: &str, start: usize, end: usize) -> String {
+        let (first_line, first_column) = position(source, start);
+        let (last_line, last_column) = position(source, end);
+        format!("{first_line}:{first_column}-{last_line}:{last_column}")
+    }
+
+    /// Names a cop whose own edits cannot stand together, under `SONICOP_TRACE_OVERLAP`.
+    ///
+    /// The cop-side guard only covers the four cops that reparse their own correction; this end sees
+    /// every cop, because every offense's edits pass through the correction tree. See
+    /// [`crate::rules::support::report_overlap`] for what the stages mean.
+    pub(super) fn overlap(report: &super::FileReport, index: usize, stage: &str) {
+        if !crate::rules::support::overlap_trace_enabled() {
+            return;
+        }
+        let offense = &report.offenses[index];
+        let (line, column) = report.source.line_column(offense.start);
+        crate::rules::support::report_overlap(
+            offense.cop_name,
+            &report.path.display().to_string(),
+            line,
+            column,
+            stage,
+        );
+    }
+}
+
 /// Which cops a correction pass takes edits from.
 ///
 /// RuboCop runs the cop that reads directives on a team of its own, after the inspection loop has
@@ -1320,6 +1378,9 @@ pub fn corrected_text(
     // `Team#each_corrector`'s skip set. See [`autocorrect_incompatible_with`].
     let mut skips: HashSet<&'static str> = HashSet::new();
     let mut rest = candidates.as_slice();
+    if trace::enabled() {
+        eprintln!("=== cop ごとの corrector (マージ順)");
+    }
     while let Some(&first) = rest.first() {
         let cop_name = report.offenses[first].cop_name;
         let taken = rest
@@ -1330,12 +1391,24 @@ pub fn corrected_text(
         rest = remainder;
 
         let skipped = skips.contains(cop_name);
+        if trace::enabled() {
+            eprintln!("  {cop_name}{}", if skipped { "  (skip 済み)" } else { "" });
+        }
 
         // The cop's own corrector. An offense that cannot be placed in it is the cop error RuboCop
         // reports and steps over, so it costs that offense alone.
         let mut cop = Action::root();
         let mut placed = Vec::new();
         for &index in group {
+            if trace::enabled() {
+                for edit in &report.offenses[index].corrections {
+                    eprintln!(
+                        "      {:16} {:?}",
+                        trace::span(source, edit.start, edit.end),
+                        edit.replacement
+                    );
+                }
+            }
             // `combine` rather than `combine_children`: it is the entry point that drops an edit
             // asking for nothing at all, the way `Corrector#replace` and friends do.
             let anchor = anchor_range(&report.offenses[index], source);
@@ -1345,11 +1418,23 @@ pub fn corrected_text(
                 .try_fold(Action::root(), |tree, edit| {
                     tree.combine(&Action::from_edit(edit, anchor))
                 });
-            let Ok(offense) = offense else { continue };
+            let Ok(offense) = offense else {
+                if trace::enabled() {
+                    eprintln!("      ★ この offense の中で衝突");
+                }
+                // The guard that names a corrector written twice over. Reaching it from here covers
+                // every cop; the cop-side path only sees the four that reparse their own correction.
+                trace::overlap(report, index, "offense-tree");
+                continue;
+            };
             if offense.children.is_empty() {
                 continue;
             }
             let Ok(merged) = cop.clone().combine_children(&offense.children) else {
+                if trace::enabled() {
+                    eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
+                }
+                trace::overlap(report, index, "cop-tree");
                 continue;
             };
             cop = merged;
@@ -1378,8 +1463,16 @@ pub fn corrected_text(
                 run = merged;
                 applied += placed.len();
                 trace_outcome("apply", cop_name);
+                if trace::enabled() {
+                    eprintln!("    取り込み");
+                }
             }
-            Err(_) => trace_outcome("clash", cop_name),
+            Err(_) => {
+                trace_outcome("clash", cop_name);
+                if trace::enabled() {
+                    eprintln!("    ★ 丸ごと捨てた");
+                }
+            }
         }
     }
 
@@ -2070,6 +2163,69 @@ mod tests {
                 ]
             ),
             "abcdAefBghij"
+        );
+    }
+
+    /// The range a cop hands `insert_after` -- not the offset the text lands at -- decides whether
+    /// another cop's replacement of the same construct swallows the insertion or wraps around it.
+    ///
+    /// `Layout/EmptyLineAfterGuardClause` is the pair that measures it: it reports the `end` keyword
+    /// but inserts after `range_by_whole_lines(node.source_range)`, and `Style/IfUnlessModifier`
+    /// replaces exactly that conditional. On the whole lines the insertion is the *parent* of the
+    /// replacement and both land; on the keyword it is a *child* of it, which is the
+    /// `swallowed_insertions` clobbering -- and that costs `Style/IfUnlessModifier` every correction
+    /// it asked for in the file, so a different cop's form wins the node in a later pass. Measured on
+    /// rails' `activerecord/.../schema_definitions.rb`.
+    #[test]
+    fn the_range_an_insertion_hangs_off_decides_who_survives() {
+        let source = "if a\n  raise\nend\nb\n";
+        // `end` is 13..16; the whole lines of the conditional are 0..16; the blank line lands at 16.
+        let insertion = |anchor: std::ops::Range<usize>| {
+            Offense::new(
+                "Layout/EmptyLineAfterGuardClause",
+                Severity::Convention,
+                "test",
+                13,
+                16,
+            )
+            .corrected_by(Edit {
+                start: 16,
+                end: 16,
+                replacement: "\n".to_owned(),
+                safe: true,
+            })
+            .corrections_anchored_at(anchor)
+        };
+        let fold = || {
+            Offense::new(
+                "Style/IfUnlessModifier",
+                Severity::Convention,
+                "test",
+                0,
+                16,
+            )
+            .corrected_by(Edit {
+                start: 0,
+                end: 16,
+                replacement: "raise if a".to_owned(),
+                safe: true,
+            })
+        };
+        let run = |offenses: Vec<Offense>| {
+            let mut report = FileReport {
+                path: "test.rb".into(),
+                source: SourceFile::new("test.rb", source.to_owned()),
+                offenses,
+            };
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0
+        };
+
+        assert_eq!(run(vec![insertion(0..16), fold()]), "raise if a\n\nb\n");
+        // The negative control: anchored on the keyword the fold is swallowed and dropped whole, so
+        // the conditional keeps its written form and only the blank line lands.
+        assert_eq!(
+            run(vec![insertion(13..16), fold()]),
+            "if a\n  raise\nend\n\nb\n"
         );
     }
 

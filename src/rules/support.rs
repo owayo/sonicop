@@ -217,11 +217,12 @@ pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bo
 /// and the offense it loses never reaches the output to be noticed.
 ///
 /// Set `SONICOP_TRACE_OVERLAP=1` to list them.
+///
+/// This path only sees the cops that verify their own correction by reparsing it -- four of the 609.
+/// The engine reports the same thing for every cop from the other end, where an offense's edits are
+/// folded into the correction tree ([`report_overlap`]); the `stage` field says which end named it.
 fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize) {
-    /// Read once. Every offense of every cop on this path would otherwise pay for the lookup.
-    static ENABLED: std::sync::LazyLock<bool> =
-        std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_OVERLAP").is_some());
-    if !*ENABLED {
+    if !overlap_trace_enabled() {
         return;
     }
     let mut ordered: Vec<&Edit> = edits.iter().collect();
@@ -230,17 +231,40 @@ fn trace_overlapping_edits(context: &RuleContext<'_>, edits: &[Edit], at: usize)
     for edit in ordered {
         if edit.start < cursor {
             let (line, column) = context.source.line_column(at);
-            eprintln!(
-                "[overlap]\t{}\t{}:{}:{}",
+            report_overlap(
                 context.rule.name,
-                context.source.path().display(),
+                &context.source.path().display().to_string(),
                 line,
-                column
+                column,
+                "reparse-gate",
             );
             return;
         }
         cursor = edit.end;
     }
+}
+
+/// Read once. Every offense of every cop on these paths would otherwise pay for the lookup.
+pub(crate) fn overlap_trace_enabled() -> bool {
+    static ENABLED: std::sync::LazyLock<bool> =
+        std::sync::LazyLock::new(|| std::env::var_os("SONICOP_TRACE_OVERLAP").is_some());
+    *ENABLED
+}
+
+/// One line naming a cop whose own edits cannot stand together.
+///
+/// `stage` says which end noticed, because the two do not cover the same thing:
+///
+/// * `reparse-gate` -- [`apply_edits`] refused the set while the cop was checking that its own
+///   correction still parses. Only the four cops behind that gate reach it.
+/// * `offense-tree` -- the engine could not fold one offense's edits into a correction tree. Every
+///   cop reaches this one, and it is strictly the worse condition: the tree accepts overlaps that
+///   `apply_edits` refuses (two insertions at one offset merge), so a failure here is a corrector
+///   written twice over rather than a policy call.
+/// * `cop-tree` -- two offenses of the same cop collide. RuboCop reports that as the cop error it
+///   steps over, so it is not by itself a defect, but a cop appearing here often is worth reading.
+pub(crate) fn report_overlap(cop_name: &str, path: &str, line: usize, column: usize, stage: &str) {
+    eprintln!("[overlap]\t{cop_name}\t{path}:{line}:{column}\t{stage}");
 }
 
 /// The source with every edit applied, or `None` when two of them overlap.
