@@ -9,18 +9,29 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let heredocs = heredocs(context);
     let text = context.source.text();
 
+    // `/[[:blank:]]\z/` and `sub(/[[:blank:]]+\z/, '')`: **the widest of Ruby's three whitespace
+    // sets, and the only one that reaches past ASCII.** A line ending in a no-break space or an
+    // ideographic space carries trailing whitespace upstream, and reading the run as `[' ', '\t']`
+    // left those lines unreported. (A line that *begins* with one parses as an identifier, so the
+    // judgement has to be made on the line's text rather than on a node.)
+    //
+    // **On a source that declares itself binary the set collapses back to ASCII.** `[[:blank:]]`
+    // names Unicode's `Zs`, and an `ASCII-8BIT` string holds no Unicode characters for it to
+    // name -- Ruby matches only tab and space there. The decoder maps each byte of such a file to
+    // one `char` so that columns count bytes, which hands this cop U+00A0 for byte `0xA0`: the
+    // tail of `à`, `Р` or `ภ` written in a comment. Reading that as a no-break space reported 35
+    // lines of `ruby/ruby`'s `test/ruby/test_transcode.rb` that upstream leaves alone, and the
+    // correction **deleted the byte**, leaving a lone `0xC3` where a character had been. The file
+    // still parsed, so nothing downstream noticed.
+    let blank: fn(char) -> bool = match crate::engine::declared_literal_encoding(text) {
+        crate::engine::LiteralEncoding::Binary => |character| matches!(character, ' ' | '\t'),
+        _ => crate::rules::support::is_ruby_blank,
+    };
     for line_number in 1..=context.source.line_count() {
         let range = context.source.line_range(line_number);
         let line = &text[range.clone()];
         let content_end = line.trim_end_matches(['\r', '\n']).len();
-        // `/[[:blank:]]\z/` and `sub(/[[:blank:]]+\z/, '')`: **the widest of Ruby's three whitespace
-        // sets, and the only one that reaches past ASCII.** A line ending in a no-break space or an
-        // ideographic space carries trailing whitespace upstream, and reading the run as `[' ', '\t']`
-        // left those lines unreported. (A line that *begins* with one parses as an identifier, so the
-        // judgement has to be made on the line's text rather than on a node.)
-        let trimmed_end = line[..content_end]
-            .trim_end_matches(crate::rules::support::is_ruby_blank)
-            .len();
+        let trimmed_end = line[..content_end].trim_end_matches(blank).len();
         if trimmed_end == content_end {
             continue;
         }

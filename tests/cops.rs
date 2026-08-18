@@ -380,6 +380,41 @@ mod layout {
         expect_no_offenses("Layout/TrailingWhitespace", "# a\u{c}\nx = 1\n");
     }
 
+    /// `[[:blank:]]` は Unicode の `Zs` を指すが、**`ASCII-8BIT` を宣言したソースには
+    /// `Zs` が名前を付ける相手が無い** -- Ruby はそこでは tab と space しか拾わない。
+    /// 復号器は列がバイトを数えるよう 1 バイトを 1 `char` に写すので、`à` / `Р` / `ภ` の
+    /// 末尾バイト `0xA0` が U+00A0 として届く。それを no-break space と読むと
+    /// `ruby/ruby` の `test/ruby/test_transcode.rb` で本家 0 件に対し 35 件を報告し、
+    /// **訂正がそのバイトを削って `0xC3` だけを残した**。壊れても構文は通るので気づけない。
+    /// v26.8.109 で出荷した退行。期待値は本家 1.89.0 の実出力。
+    #[test]
+    fn trailing_whitespace_on_a_binary_source_is_ascii_only() {
+        // 陽性: 宣言つきで行末が `à` (C3 A0)。**本家は 0 件**。
+        expect_no_offenses(
+            "Layout/TrailingWhitespace",
+            "# encoding: ASCII-8BIT\nx = 1 # \u{c3}\u{a0}\n",
+        );
+        // 本物の no-break space (C2 A0) も、binary では 2 バイトの並びで空白ではない。
+        expect_no_offenses(
+            "Layout/TrailingWhitespace",
+            "# encoding: ASCII-8BIT\nx = 1 #\u{c2}\u{a0}\n",
+        );
+        // ★ 対照 1: 宣言が無ければ同じバイト列は UTF-8 の `à` 1 文字で、やはり 0 件。
+        //   これが落ちたら「宣言を見ている」ではなく「常に ASCII に落ちている」ことになる。
+        expect_no_offenses("Layout/TrailingWhitespace", "x = 1 # \u{e0}\n");
+        // ★ 対照 2: 宣言があっても ASCII の空白は拾う。これが落ちたら cop ごと死んでいる。
+        expect_offense(
+            "Layout/TrailingWhitespace",
+            "# encoding: ASCII-8BIT\nx = 1 # \n             ^ Trailing whitespace detected.\n",
+        );
+        // ★ 対照 3: 宣言が無い UTF-8 では Zs を拾い続ける (退行させていないこと)。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "# a\u{a0}\nx = 1\n",
+            "# a\nx = 1\n",
+        );
+    }
+
     /// ヒアドキュメント内の行末空白は文字列の一部なので、消すとプログラムが変わる。
     /// 本家は「字下げとして剥がされる分」だけを消し、それ以外は補間で保存する。
     /// 期待値はすべて本家 1.89.0 の `-A` 実出力から取得。
