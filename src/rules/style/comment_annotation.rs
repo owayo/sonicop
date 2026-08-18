@@ -19,7 +19,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !first_of_block && !trails_code(context, line) {
             continue;
         }
-        let text = context.source.slice(range.clone());
+        // **A comment's range runs to the line break, and on a CRLF file that leaves the `\r`.**
+        // The regexp then reads it as the character after the keyword, so `# FIXME` alone looked
+        // like `# FIXME` *plus something*, and the cop asked for the colon a bare keyword does not
+        // need. 3 lines of one CRLF corpus.
+        let text = crate::rules::support::chomp(context.source.slice(range.clone()));
         let Some(annotation) = Annotation::read(pattern, text) else {
             continue;
         };
