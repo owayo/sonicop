@@ -222,6 +222,24 @@ mod layout {
         expect_no_offenses("Layout/LineLength", &format!("{long_120}\r"));
     }
 
+    /// コメントの範囲は行末まで伸びるので、CRLF では `\r` が残る。正規表現はそれを
+    /// キーワードの次の文字として読むため、`# FIXME` だけの行が「キーワード + 何か」に見え、
+    /// 裸のキーワードには要らないコロンを求めた。CRLF コーパスで 3 件。
+    #[test]
+    fn comment_annotation_chomps_crlf_before_matching() {
+        // 陽性: 裸のキーワード + CRLF は報告しない
+        expect_no_offenses("Style/CommentAnnotation", "# FIXME\r\nx = 1\r\n");
+        // ★ 対照 1: LF なら元から通っていた。落ちたら別の原因
+        expect_no_offenses("Style/CommentAnnotation", "# FIXME\nx = 1\n");
+        // ★ 対照 2: キーワードの後に文字があれば CRLF でも報告する。落ちたら直しすぎ
+        expect_offense(
+            "Style/CommentAnnotation",
+            "# FIXME make better\r\n  ^^^^^ Annotation keywords like `FIXME` should be all upper case, followed by a colon, and a space, then a note describing the problem.\nx = 1\r\n",
+        );
+        // ★ 対照 3: コロンつきは CRLF でも正しい形として通す
+        expect_no_offenses("Style/CommentAnnotation", "# FIXME: ok\r\nx = 1\r\n");
+    }
+
     /// `\r\n` は 1 つの行末なので、改行を飛ばす歩みは `\r` から始めないと止まる。
     /// 止まると行末の演算子が「右に空白が無い」ものとして見え、CRLF ファイルで
     /// **35 件の過剰検出**になった。
