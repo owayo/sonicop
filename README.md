@@ -146,9 +146,12 @@ Mastodon (15,286), with no excess, no shortfall and no metadata differences. The
 match exactly on all five — paths, not just counts, compared as sets. What remains is concentrated in
 `Lint/Syntax`. Most of it is RuboCop's
 LALR parser recovering from an error and emitting diagnostics a tree-sitter parse cannot
-reconstruct — that direction accounts for the shortfall. **The excess is a separate question and has
-not been investigated**; on Homebrew all 263 of it is `Lint/Syntax` too, but what Sonicop calls a
-syntax error there and RuboCop does not is unexamined.
+reconstruct, and the resulting position differences go in both directions. On Homebrew all 997
+missing and 263 excess positions are `Lint/Syntax`, but the **sets of files rejected as syntax
+errors are exactly the same: 569 versus 569**, with no file rejected only by Sonicop. The 263 excess
+positions occur in 135 shared syntax-error files and every one follows a diagnostic at a position
+shared by both tools, so they are recovery-position differences rather than a separate acceptance
+bug. At Ruby 3.1, which supports the syntax used there, both tools report zero `Lint/Syntax` offenses.
 Autocorrect is byte-identical on RuboCop's own tree and on Mastodon, the two corpora held as a hard
 line: a change that breaks byte equality there is a regression, not a new known divergence.
 

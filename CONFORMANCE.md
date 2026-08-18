@@ -55,17 +55,18 @@ sonicop --force-default-config --format json
 
 ## Results
 
-The two kinds of difference are counted separately because they mean different things. A
-`Lint/Syntax` difference says the two disagree about whether a file parses, and everything else in
-that file follows from it; a difference in any other cop says the port reads the same tree and
-draws a different conclusion. Only the second is a defect in a cop.
+Three kinds of difference are counted separately because they mean different things. The set of
+files with a fatal `Lint/Syntax` offense says whether the parsers disagree about accepting a file.
+`Lint/Syntax` positions inside a file both already rejected measure diagnostic recovery, not file
+acceptance. A difference in any other cop says the port reads the same tree and draws a different
+conclusion. Only the last category is a defect in a cop.
 
 | Corpus | Excess | Missing | of which `Lint/Syntax` | Other cops | Field differences | Measured |
 |---|---:|---:|---|---:|---|---|
 | rubocop/rubocop | 0 | 0 | — | 0 | correctable ×1 | 2026-08-17 |
 | rails/rails | 0 | 0 | — | 0 | none | 2026-08-17 |
 | mastodon/mastodon | 0 | 0 | — | 0 | none | 2026-08-17 |
-| Homebrew/brew | 263 | 997 | **all of them** | **0** | none | 2026-08-17 |
+| Homebrew/brew | 263 | 997 | **all of them** | **0** | none | 2026-08-18 |
 | ruby/ruby | 142 | 585 | 117 missing, 44 excess | 92 | 5 | 2026-08-16 |
 
 The last column is per row on purpose. A single date at the top of the file would say the five were
@@ -85,14 +86,19 @@ run starts from, and `TargetRubyVersion` is only inferred from the working direc
 tools therefore fall back to the default of 2.7 (RuboCop says so itself: `Using Ruby 2.7 parser`) and
 both call `dry_run:,` — a hash value omission, valid since 3.1 — a syntax error. **Run the same corpus
 at 3.1 and both report zero `Lint/Syntax`.** What is left is not disagreement about which files parse:
-the file sets are identical, 569 on each side, and the first diagnostic in each file lands at the same
-position. Only the second and later diagnostics diverge, because the two parsers recover from the
-error differently — which is what puts offenses on both sides of the ledger rather than only on
-RuboCop's. Those are not chased; see *Known divergences*.
+the file sets are identical, 569 on each side, with no file unique to either parser. The two parsers
+recover differently after encountering invalid syntax, which puts diagnostic positions on both sides
+of the ledger rather than only on RuboCop's.
 
-What is checked here is that every one of the 1,260 is a `Lint/Syntax` offense, in both directions.
-What is not checked is which recovery produced which diagnostic: the 263 Sonicop reports and RuboCop
-does not have not been read one by one. They are accounted for as a class, not individually.
+All 263 Sonicop-only positions were classified mechanically, not inferred from their cop name. They
+occur in 135 of those shared syntax-error files, and every one follows a `Lint/Syntax` position that
+both tools reported in the same file. Their messages are 113 end-of-input (`$end`), 86 right
+parentheses (`tRPAREN`), 53 commas (`tCOMMA`), seven `end` keywords (`kEND`), two equals signs
+(`tEQL`), one `when` (`kWHEN`) and one identifier (`tIDENTIFIER`). Thus the former “excess” is not a
+set of valid files rejected only by Sonicop; it is the other direction of the same diagnostic-recovery
+divergence as the 997 RuboCop-only positions. Suppressing every diagnostic after Sonicop's first one
+would make the excess zero, but would also discard 1,998 positions that already match and increase the
+missing side from 997 to 2,995. That is not a conformance fix. See *Known divergences*.
 
 Much of ruby/ruby's difference is the same shape,
 with 117 of the 585 missing and 44 of the 142 excess being `Lint/Syntax` itself,
@@ -181,10 +187,10 @@ but no longer reproduces fails the test, and so does one that appears without be
 ### Error recovery after a syntax error
 
 RuboCop parses with `parser`, an LALR parser that recovers from an error and keeps going, emitting
-further diagnostics from the recovered state. Sonicop parses with tree-sitter, which does not model
-that recovery, so the follow-on diagnostics cannot be reproduced. On Homebrew this accounts for the
-997 missing `Lint/Syntax` offenses: `class definition in method body`, `dynamic constant assignment`,
-`cannot assign to a keyword`, and repeated `unexpected token` inside one multi-line hash.
+further diagnostics from the recovered state. Sonicop parses with tree-sitter and reaches different
+recovery states. On Homebrew this produces 997 RuboCop-only and 263 Sonicop-only `Lint/Syntax`
+positions: examples on the RuboCop side include `class definition in method body`, `dynamic constant
+assignment`, `cannot assign to a keyword`, and repeated `unexpected token` inside one multi-line hash.
 
 What the divergence does not change is **which** files are held to be unparseable, and that is what
 decides whether a file is inspected at all: RuboCop runs no cop other than `Lint/Syntax` on a file
@@ -198,9 +204,10 @@ programs, one of which is English prose that happens to parse as Ruby — where 
 error and `parser` does not. Those five hold 465 of that corpus's 773 differences.
 
 Within Homebrew's 569 files the agreement is partial, as recovery cannot be reproduced: 499 report the
-same first diagnostic (position and message), and 222 report an identical list end to end. The 277
-files in between are the divergence in its purest form — the two agree on where the file first goes
-wrong and part company on what follows. The 70
+same first diagnostic (position and message), and 222 report an identical list end to end. In all 569,
+Sonicop's earliest source-position diagnostic is also present in RuboCop's output. The 277 files in
+between are the divergence in its purest form — the two agree on at least one error position and part
+company as recovery proceeds. The 70
 files whose first diagnostic differs follow one shape — an endless method definition (`def to_s =
 to_str`, valid from Ruby 3.0, rejected by the default `TargetRubyVersion: 2.7`) leaves `parser`'s
 method context open, so the enclosing `class` emits `class definition in method body` when it is

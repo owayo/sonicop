@@ -4,10 +4,11 @@
 # 「移植版が本家と同じ指摘を、同じ位置・同じ severity・同じ文言で出すか」が
 # 唯一の受け入れ基準なので、それを機械的に測るためのハーネス。
 # 両者の `--format json` を jq で正規化し、
-#   - 移植版だけが出した offense = 誤検出 (false positive)
-#   - 本家だけが出した offense   = 検出漏れ (false negative)
+#   - 共有構文エラーファイル内の Lint/Syntax = パーサ診断位置の差
+#   - それ以外で移植版だけが出した offense = 誤検出 (false positive)
+#   - それ以外で本家だけが出した offense   = 検出漏れ (false negative)
 #   - 位置は一致するがメッセージが違う = 文言差分
-# の 3 つに分類する。
+# に分類する。構文エラーの受理判定は offense 位置とは別にファイル集合で比較する。
 set -euo pipefail
 
 # このリポジトリに Gemfile は無いので、既定は bundler 越しではなく素の rubocop。
@@ -41,9 +42,9 @@ usage() {
       --cop NAME            指定 cop / department だけを比較 (--only を両者に付与)
       --force-default-config
                             両者でプロジェクト設定を無視して既定設定を使う
-      --exclude-unparsable  本家が fatal を出したファイルを比較から除外する
-                            (本家はそのファイルで他の cop を報告しないため、
-                             含めたままだと候補側の offense が誤検出に化ける)
+      --exclude-unparsable  どちらかが Lint/Syntax fatal を出したファイルを比較から除外する
+                            (どちらかが Lint/Syntax fatal を出したファイルを offense
+                             比較から除外する。構文エラーファイル集合の差は別に報告する)
       --quiet               サマリのみ表示
   -h, --help                このヘルプを表示
 
@@ -95,6 +96,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --force-default-config)
       FORCE_DEFAULT_CONFIG=1
+      shift
+      ;;
+    --exclude-unparsable)
+      EXCLUDE_UNPARSABLE=1
       shift
       ;;
     --)
@@ -192,14 +197,35 @@ normalize() {
 normalize "$OUT_DIR/reference.json" >"$OUT_DIR/reference.tsv"
 normalize "$OUT_DIR/candidate.json" >"$OUT_DIR/candidate.tsv"
 
-# 参照側が fatal を出したファイルでは、本家は syntax offense だけを報告して残りの cop を
-# 全部止める。候補側は検査を続けるため、その差がまるごと誤検出として数えられ、
-# cop の不具合と読み違える。件数は常に出し、除外するかは呼び出し側に選ばせる。
-jq -r '[.files[]? | select(.offenses[]?.severity == "fatal") | .path] | unique | .[]' \
-  "$OUT_DIR/reference.json" >"$OUT_DIR/unparsable.paths"
+# `Lint/Syntax` の位置差と「どちらがそのファイルを構文エラー扱いしたか」は別の量である。
+# 同じファイルを両者とも拒否していても、回復後の 2 件目以降はパーサ固有の位置に分かれる。
+# その位置を一律に false positive / false negative と呼ぶと、候補だけが有効なファイルを
+# 拒否したように読めるため、まず fatal の**ファイル集合**を独立に比較する。
+fatal_syntax_paths() {
+  jq -r '
+    .files[]?
+    | select(any(.offenses[]?; .cop_name == "Lint/Syntax" and .severity == "fatal"))
+    | .path
+  ' "$1" | LC_ALL=C sort -u
+}
+
+fatal_syntax_paths "$OUT_DIR/reference.json" >"$OUT_DIR/reference-unparsable.paths"
+fatal_syntax_paths "$OUT_DIR/candidate.json" >"$OUT_DIR/candidate-unparsable.paths"
+comm -12 "$OUT_DIR/reference-unparsable.paths" "$OUT_DIR/candidate-unparsable.paths" \
+  >"$OUT_DIR/shared-unparsable.paths"
+comm -23 "$OUT_DIR/reference-unparsable.paths" "$OUT_DIR/candidate-unparsable.paths" \
+  >"$OUT_DIR/reference-only-unparsable.paths"
+comm -13 "$OUT_DIR/reference-unparsable.paths" "$OUT_DIR/candidate-unparsable.paths" \
+  >"$OUT_DIR/candidate-only-unparsable.paths"
+cat "$OUT_DIR/reference-unparsable.paths" "$OUT_DIR/candidate-unparsable.paths" \
+  | LC_ALL=C sort -u >"$OUT_DIR/unparsable.paths"
+
+reference_unparsable_count=$(wc -l <"$OUT_DIR/reference-unparsable.paths" | tr -d ' ')
+candidate_unparsable_count=$(wc -l <"$OUT_DIR/candidate-unparsable.paths" | tr -d ' ')
+shared_unparsable_count=$(wc -l <"$OUT_DIR/shared-unparsable.paths" | tr -d ' ')
+reference_only_unparsable_count=$(wc -l <"$OUT_DIR/reference-only-unparsable.paths" | tr -d ' ')
+candidate_only_unparsable_count=$(wc -l <"$OUT_DIR/candidate-only-unparsable.paths" | tr -d ' ')
 unparsable_count=$(wc -l <"$OUT_DIR/unparsable.paths" | tr -d ' ')
-ref_before=$(wc -l <"$OUT_DIR/reference.tsv" | tr -d ' ')
-cand_before=$(wc -l <"$OUT_DIR/candidate.tsv" | tr -d ' ')
 
 # 空の第 1 引数だと awk の NR==FNR が第 2 ファイルにも当たって全行落ちるため、
 # 除外対象があるときだけ通す。
@@ -215,9 +241,55 @@ fi
 cut -f1-4 "$OUT_DIR/reference.tsv" | sort -u >"$OUT_DIR/reference.keys"
 cut -f1-4 "$OUT_DIR/candidate.tsv" | sort -u >"$OUT_DIR/candidate.keys"
 
-comm -13 "$OUT_DIR/reference.keys" "$OUT_DIR/candidate.keys" >"$OUT_DIR/false_positives.tsv"
-comm -23 "$OUT_DIR/reference.keys" "$OUT_DIR/candidate.keys" >"$OUT_DIR/false_negatives.tsv"
+comm -13 "$OUT_DIR/reference.keys" "$OUT_DIR/candidate.keys" >"$OUT_DIR/candidate_only.tsv"
+comm -23 "$OUT_DIR/reference.keys" "$OUT_DIR/candidate.keys" >"$OUT_DIR/reference_only.tsv"
 comm -12 "$OUT_DIR/reference.keys" "$OUT_DIR/candidate.keys" >"$OUT_DIR/matched.keys"
+
+# 共有の構文エラーファイル内にある Lint/Syntax の位置差は、ファイル判定の
+# false positive / false negative ではなく、パーサ診断位置の差として分ける。
+# FILENAME で入力を判別するため、共有集合が空でも awk の NR==FNR 空入力罠を踏まない。
+: >"$OUT_DIR/false_positives.tsv"
+: >"$OUT_DIR/syntax_recovery_candidate_only.tsv"
+awk -F'\t' \
+  -v actionable="$OUT_DIR/false_positives.tsv" \
+  -v recovery="$OUT_DIR/syntax_recovery_candidate_only.tsv" '
+  FILENAME == ARGV[1] { shared[$0] = 1; next }
+  ($1 in shared) && $2 == "Lint/Syntax" { print > recovery; next }
+  { print > actionable }
+' "$OUT_DIR/shared-unparsable.paths" "$OUT_DIR/candidate_only.tsv"
+
+: >"$OUT_DIR/false_negatives.tsv"
+: >"$OUT_DIR/syntax_recovery_reference_only.tsv"
+awk -F'\t' \
+  -v actionable="$OUT_DIR/false_negatives.tsv" \
+  -v recovery="$OUT_DIR/syntax_recovery_reference_only.tsv" '
+  FILENAME == ARGV[1] { shared[$0] = 1; next }
+  ($1 in shared) && $2 == "Lint/Syntax" { print > recovery; next }
+  { print > actionable }
+' "$OUT_DIR/shared-unparsable.paths" "$OUT_DIR/reference_only.tsv"
+
+# Sonicop-only の位置が共通診断より後ろなら、「有効なファイルを候補だけが拒否した」のでは
+# なく、両者がエラーを認識した後の診断分岐だと機械的に確認できる。README に載せる
+# Homebrew の 263 件は、この分類で全件が after-shared、without-earlier-shared が 0 になる。
+: >"$OUT_DIR/syntax_recovery_candidate_after_shared.tsv"
+: >"$OUT_DIR/syntax_recovery_candidate_without_earlier_shared.tsv"
+awk -F'\t' \
+  -v after="$OUT_DIR/syntax_recovery_candidate_after_shared.tsv" \
+  -v unexplained="$OUT_DIR/syntax_recovery_candidate_without_earlier_shared.tsv" '
+  FILENAME == ARGV[1] {
+    if ($2 != "Lint/Syntax") next
+    if (!($1 in line) || $3 + 0 < line[$1] || ($3 + 0 == line[$1] && $4 + 0 < column[$1])) {
+      line[$1] = $3 + 0
+      column[$1] = $4 + 0
+    }
+    next
+  }
+  ($1 in line) && ($3 + 0 > line[$1] || ($3 + 0 == line[$1] && $4 + 0 > column[$1])) {
+    print > after
+    next
+  }
+  { print > unexplained }
+' "$OUT_DIR/matched.keys" "$OUT_DIR/syntax_recovery_candidate_only.tsv"
 
 # 位置が一致したものだけを対象に、severity / correctable / message の食い違いを拾う。
 # join は複合キーにタブを含められず直積になるため、awk の連想配列で突き合わせる。
@@ -242,15 +314,29 @@ ref_count=$(wc -l <"$OUT_DIR/reference.keys" | tr -d ' ')
 cand_count=$(wc -l <"$OUT_DIR/candidate.keys" | tr -d ' ')
 fp_count=$(wc -l <"$OUT_DIR/false_positives.tsv" | tr -d ' ')
 fn_count=$(wc -l <"$OUT_DIR/false_negatives.tsv" | tr -d ' ')
+candidate_only_count=$(wc -l <"$OUT_DIR/candidate_only.tsv" | tr -d ' ')
+reference_only_count=$(wc -l <"$OUT_DIR/reference_only.tsv" | tr -d ' ')
+candidate_recovery_count=$(wc -l <"$OUT_DIR/syntax_recovery_candidate_only.tsv" | tr -d ' ')
+reference_recovery_count=$(wc -l <"$OUT_DIR/syntax_recovery_reference_only.tsv" | tr -d ' ')
+candidate_after_shared_count=$(wc -l <"$OUT_DIR/syntax_recovery_candidate_after_shared.tsv" | tr -d ' ')
+candidate_without_earlier_shared_count=$(wc -l <"$OUT_DIR/syntax_recovery_candidate_without_earlier_shared.tsv" | tr -d ' ')
 match_count=$(wc -l <"$OUT_DIR/matched.keys" | tr -d ' ')
 msg_count=$(wc -l <"$OUT_DIR/message_diff.tsv" | tr -d ' ')
 
 printf '\n=== conformance summary ===\n'
+printf 'syntax-error files : reference=%s candidate=%s shared=%s\n' \
+  "$reference_unparsable_count" "$candidate_unparsable_count" "$shared_unparsable_count"
+printf 'syntax file diff   : candidate-only=%s reference-only=%s\n' \
+  "$candidate_only_unparsable_count" "$reference_only_unparsable_count"
 printf 'reference offenses : %s\n' "$ref_count"
 printf 'candidate offenses : %s\n' "$cand_count"
 printf 'matched (位置一致) : %s\n' "$match_count"
-printf 'false positives    : %s  (移植版だけが出した)\n' "$fp_count"
-printf 'false negatives    : %s  (本家だけが出した)\n' "$fn_count"
+printf 'candidate-only pos : %s  (actionable=%s / shared syntax files=%s)\n' \
+  "$candidate_only_count" "$fp_count" "$candidate_recovery_count"
+printf 'reference-only pos : %s  (actionable=%s / shared syntax files=%s)\n' \
+  "$reference_only_count" "$fn_count" "$reference_recovery_count"
+printf 'candidate recovery : after-shared=%s / without-earlier-shared=%s\n' \
+  "$candidate_after_shared_count" "$candidate_without_earlier_shared_count"
 printf 'message/severity 差: %s\n' "$msg_count"
 if [ "$ref_count" -gt 0 ]; then
   printf 'recall             : %s%%\n' "$((match_count * 100 / ref_count))"
@@ -268,7 +354,9 @@ if [ "$QUIET" -eq 0 ]; then
   fi
 fi
 
-if [ "$fp_count" -eq 0 ] && [ "$fn_count" -eq 0 ] && [ "$msg_count" -eq 0 ]; then
+if [ "$candidate_only_count" -eq 0 ] && [ "$reference_only_count" -eq 0 ] \
+  && [ "$msg_count" -eq 0 ] && [ "$candidate_only_unparsable_count" -eq 0 ] \
+  && [ "$reference_only_unparsable_count" -eq 0 ]; then
   printf '\n完全一致\n'
   exit 0
 fi
