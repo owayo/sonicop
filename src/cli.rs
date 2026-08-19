@@ -238,9 +238,11 @@ impl Cli {
 }
 
 pub fn run() -> i32 {
-    crate::profile::set_enabled(std::env::var_os("SONICOP_PROFILE").is_some());
+    // Sized from the registry: a fixed table silently drops every cop past its end.
+    let names: Vec<&'static str> = crate::rules::rule_names().collect();
+    crate::profile::set_enabled(std::env::var_os("SONICOP_PROFILE").is_some(), names.len());
     let code = run_inner();
-    crate::profile::report(&crate::rules::rule_names().collect::<Vec<_>>());
+    crate::profile::report(&names);
     code
 }
 

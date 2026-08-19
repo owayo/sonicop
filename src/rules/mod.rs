@@ -325,12 +325,27 @@ impl<'a> RuleContext<'a> {
     /// The named nodes of any of `kinds`, in source order. The kinds are indexed separately, so
     /// their positions have to be merged to put the nodes back in the order a cop that scans the
     /// whole file would have seen them in.
+    ///
+    /// A single kind is by far the common case and is handed straight through: the per-kind lists
+    /// are already in source order, so there is nothing to merge and nothing to allocate.
     pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'a>> + '_ {
-        let mut indices: Vec<u32> = kinds
-            .iter()
-            .flat_map(|kind| self.ast.of_kind(kind))
-            .collect();
-        indices.sort_unstable();
+        let indices: Vec<u32> = match kinds {
+            [only] => self.ast.slice_of_kind(only).to_vec(),
+            _ => {
+                // One allocation of the right size. `collect` from a `flat_map` cannot see the
+                // total ahead of time and grows the vector as it goes.
+                let total: usize = kinds
+                    .iter()
+                    .map(|kind| self.ast.slice_of_kind(kind).len())
+                    .sum();
+                let mut indices = Vec::with_capacity(total);
+                for kind in kinds {
+                    indices.extend_from_slice(self.ast.slice_of_kind(kind));
+                }
+                indices.sort_unstable();
+                indices
+            }
+        };
         indices.into_iter().map(|index| self.ast.named_node(index))
     }
 
@@ -372,13 +387,41 @@ const PROTECTED_LITERAL_KINDS: &[&str] = &[
     "bare_string",
 ];
 
+/// FNV-1a over the node kind names.
+///
+/// The keys are tree-sitter's kind strings -- short, ASCII, and looked up once per cop per file,
+/// which is hundreds of thousands of times in a run. SipHash's resistance to collision attacks
+/// buys nothing against a fixed set of names the grammar chose, and its setup costs more than the
+/// hash of a ten-character string.
+#[derive(Default)]
+pub(crate) struct KindHasher(u64);
+
+impl std::hash::Hasher for KindHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+        const PRIME: u64 = 0x0000_0100_0000_01b3;
+        let mut hash = if self.0 == 0 { OFFSET } else { self.0 };
+        for byte in bytes {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(PRIME);
+        }
+        self.0 = hash;
+    }
+}
+
+type KindMap = HashMap<&'static str, Vec<u32>, std::hash::BuildHasherDefault<KindHasher>>;
+
 pub(crate) struct AstIndex<'tree> {
     root: Node<'tree>,
     nodes: Vec<Node<'tree>>,
     named_nodes: Vec<Node<'tree>>,
     /// Positions in `named_nodes` grouped by node kind, each list in source order. Indices rather
     /// than nodes because a `Node` is eight times the size of the `u32` that finds it.
-    by_kind: HashMap<&'static str, Vec<u32>>,
+    by_kind: KindMap,
     protected_ranges: Vec<Range<usize>>,
     heredoc_ranges: Vec<Range<usize>>,
     comment_ranges: Vec<Range<usize>>,
@@ -404,7 +447,7 @@ impl<'tree> AstIndex<'tree> {
             root,
             nodes: Vec::new(),
             named_nodes: Vec::new(),
-            by_kind: HashMap::new(),
+            by_kind: KindMap::default(),
             protected_ranges: Vec::new(),
             heredoc_ranges: Vec::new(),
             comment_ranges: Vec::new(),
@@ -422,11 +465,12 @@ impl<'tree> AstIndex<'tree> {
     }
 
     fn of_kind(&self, kind: &str) -> impl Iterator<Item = u32> + '_ {
-        self.by_kind
-            .get(kind)
-            .map_or(&[][..], Vec::as_slice)
-            .iter()
-            .copied()
+        self.slice_of_kind(kind).iter().copied()
+    }
+
+    /// The positions for one kind, in source order.
+    fn slice_of_kind(&self, kind: &str) -> &[u32] {
+        self.by_kind.get(kind).map_or(&[][..], Vec::as_slice)
     }
 
     fn named_node(&self, index: u32) -> Node<'tree> {

@@ -232,6 +232,25 @@ impl Config {
         self.includes.is_empty() || self.includes.matches_includes(path, &self.path_base)
     }
 
+    /// `Config#allowed_camel_case_file?`: a gemspec may use dashes to spell a namespace, and a file
+    /// that only reaches the run through an `Include` pattern written with capitals -- `Rakefile`,
+    /// `Gemfile` -- is named after that pattern rather than after Ruby's conventions.
+    ///
+    /// This belongs to the configuration rather than to `Naming/FileName`, exactly as upstream has
+    /// it, and the reason is not only tidiness: the cop is put to every file in the run, so
+    /// answering it from the cop meant re-reading `AllCops.Include` and recompiling its globs once
+    /// per file. Measured on rubocop/rubocop, that was 1.0 of the run's 19.0 seconds of cop time.
+    pub fn allowed_camel_case_file(&self, path: &Path) -> bool {
+        if path
+            .extension()
+            .is_some_and(|extension| extension == "gemspec")
+        {
+            return true;
+        }
+        self.includes
+            .matches_uppercase_includes(path, &self.path_base)
+    }
+
     fn top_level_hidden(&self, path: &Path) -> bool {
         paths::project_relative(path, &self.path_base).is_some_and(|relative| {
             relative

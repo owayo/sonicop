@@ -1,7 +1,5 @@
-use std::path::Path;
 use std::sync::LazyLock;
 
-use globset::Glob;
 use regex::Regex;
 
 use super::support::{ruby_regex, ruby_regex_to_s};
@@ -15,7 +13,7 @@ static SNAKE_CASE: LazyLock<Regex> =
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let path = context.source.path();
-    if allowed_camel_case_file(context, path) {
+    if context.config.allowed_camel_case_file(path) {
         return;
     }
     let Some(basename) = path.file_name().and_then(|name| name.to_str()) else {
@@ -57,42 +55,4 @@ fn filename_good(basename: &str, pattern: &Regex) -> bool {
     };
     let stem = stem.replacen('+', "_", 1);
     pattern.is_match(&stem)
-}
-
-/// `allowed_camel_case_file?`: a gemspec may use dashes to spell a namespace, and a file that only
-/// reaches the run through an `Include` pattern written with capitals -- `Rakefile`, `Gemfile` --
-/// is named after that pattern rather than after Ruby's conventions.
-fn allowed_camel_case_file(context: &RuleContext<'_>, path: &Path) -> bool {
-    if path
-        .extension()
-        .is_some_and(|extension| extension == "gemspec")
-    {
-        return true;
-    }
-    let Some(includes) = context.setting_of::<Vec<String>>("AllCops", "Include") else {
-        return false;
-    };
-    let candidates: Vec<String> = [
-        path.to_str().map(str::to_owned),
-        path.file_name()
-            .and_then(|name| name.to_str())
-            .map(str::to_owned),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    includes
-        .iter()
-        .filter(|pattern| {
-            pattern
-                .chars()
-                .any(|character| character.is_ascii_uppercase())
-        })
-        .filter_map(|pattern| Glob::new(pattern).ok())
-        .any(|glob| {
-            let matcher = glob.compile_matcher();
-            candidates
-                .iter()
-                .any(|candidate| matcher.is_match(candidate))
-        })
 }

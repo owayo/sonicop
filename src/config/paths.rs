@@ -73,6 +73,9 @@ struct CompiledPattern {
     /// The pattern's dot-prefixed segments, such as `.git` in `.git/**/*`, compiled on their own so
     /// they can be asked whether they reach a hidden part of a path.
     dot_segments: Vec<GlobMatcher>,
+    /// `/[A-Z]/.match?(pattern)`: whether the pattern names a file by a capitalised name of its
+    /// own, which is what `allowed_camel_case_file?` selects on.
+    has_uppercase: bool,
 }
 
 impl PathPatterns {
@@ -97,6 +100,18 @@ impl PathPatterns {
     }
 
     pub(super) fn matches_includes(&self, path: &Path, root: &Path) -> bool {
+        self.matches_includes_inner(path, root, false)
+    }
+
+    /// `file_to_include?(file) { |pattern| /[A-Z]/.match?(pattern.to_s) }`: the same walk over the
+    /// `Include` list, restricted to the patterns written with a capital. A file that only reaches
+    /// the run through one of those -- `Rakefile`, `Gemfile` -- is named after the pattern rather
+    /// than after Ruby's conventions, so `Naming/FileName` lets it be.
+    pub(super) fn matches_uppercase_includes(&self, path: &Path, root: &Path) -> bool {
+        self.matches_includes_inner(path, root, true)
+    }
+
+    fn matches_includes_inner(&self, path: &Path, root: &Path, uppercase_only: bool) -> bool {
         if self.patterns.is_empty() {
             return false;
         }
@@ -119,6 +134,9 @@ impl PathPatterns {
             .collect();
         let hidden_file = file.starts_with('.');
         self.patterns.iter().any(|pattern| {
+            if uppercase_only && !pattern.has_uppercase {
+                return false;
+            }
             if !hidden_directories
                 .iter()
                 .all(|part| pattern.reaches_hidden(part))
@@ -170,6 +188,9 @@ impl CompiledPattern {
                 .filter_map(|segment| Glob::new(segment).ok())
                 .map(|glob| glob.compile_matcher())
                 .collect(),
+            has_uppercase: pattern
+                .chars()
+                .any(|character| character.is_ascii_uppercase()),
         })
     }
 

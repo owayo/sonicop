@@ -6,22 +6,77 @@
 //! run rather than a sampling profiler, which attributes a shared helper to whoever called it last.
 //!
 //! Off, this costs one relaxed load per cop invocation.
+//!
+//! **The tally is per thread.** An earlier version added into one shared table of atomics, and the
+//! cost of that dwarfed what it was measuring: neighbouring cops share a cache line (eight `u64`s
+//! to sixty-four bytes), so eight workers running eight different cops still fought over the same
+//! lines. It reported 44.4 seconds of cop time on a run whose whole wall clock was 3.7 seconds,
+//! and an optimisation that halved the reported figure moved the wall clock not at all. A counter
+//! only its own thread writes needs no read-modify-write at all -- a relaxed load, an add and a
+//! relaxed store -- and the lines stay in the core that owns them.
+//!
+//! The table is also sized from the registry rather than to a round number. It was 512 slots
+//! against 609 cops, so ninety-seven of them were silently dropped: `index >= SLOTS` returned
+//! early, and the report neither showed them nor said they were missing.
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
-/// Room for every cop the registry can hold; the tables are indexed by a cop's position in it.
-const SLOTS: usize = 512;
+/// How many cops the registry holds, which is how wide each thread's table is.
+static SLOTS: AtomicUsize = AtomicUsize::new(0);
 
-#[allow(clippy::declare_interior_mutable_const)]
-const ZERO: AtomicU64 = AtomicU64::new(0);
+/// One thread's tally. Only the thread that owns it writes to it, so the atomics are here to make
+/// the read at report time defined rather than to synchronise anything.
+struct Counters {
+    rule_nanos: Box<[AtomicU64]>,
+    rule_calls: Box<[AtomicU64]>,
+    phase_nanos: Box<[AtomicU64]>,
+    phase_calls: Box<[AtomicU64]>,
+    /// Invocations whose cop index was past the end of the table. Should stay zero; if it does
+    /// not, the report says so rather than quietly leaving the work out.
+    dropped: AtomicU64,
+}
 
-static RULE_NANOS: [AtomicU64; SLOTS] = [ZERO; SLOTS];
-static RULE_CALLS: [AtomicU64; SLOTS] = [ZERO; SLOTS];
-static PHASE_NANOS: [AtomicU64; Phase::COUNT] = [ZERO; Phase::COUNT];
-static PHASE_CALLS: [AtomicU64; Phase::COUNT] = [ZERO; Phase::COUNT];
+impl Counters {
+    fn new(slots: usize) -> Self {
+        let zeros = |count: usize| {
+            (0..count)
+                .map(|_| AtomicU64::new(0))
+                .collect::<Vec<_>>()
+                .into_boxed_slice()
+        };
+        Self {
+            rule_nanos: zeros(slots),
+            rule_calls: zeros(slots),
+            phase_nanos: zeros(Phase::COUNT),
+            phase_calls: zeros(Phase::COUNT),
+            dropped: AtomicU64::new(0),
+        }
+    }
+}
+
+/// Every thread's table, so the report can add them up. Taken once per thread, not per call.
+static REGISTRY: Mutex<Vec<Arc<Counters>>> = Mutex::new(Vec::new());
+
+thread_local! {
+    static LOCAL: Arc<Counters> = {
+        let counters = Arc::new(Counters::new(SLOTS.load(Ordering::Relaxed)));
+        if let Ok(mut registry) = REGISTRY.lock() {
+            registry.push(Arc::clone(&counters));
+        }
+        counters
+    };
+}
+
+/// Adds to a counter only this thread writes. A plain load-add-store, not a locked
+/// read-modify-write -- see the note at the top of the file.
+#[inline]
+fn bump(counter: &AtomicU64, amount: u64) {
+    counter.store(counter.load(Ordering::Relaxed) + amount, Ordering::Relaxed);
+}
 
 /// The parts of a run that are not one cop's work.
 #[derive(Clone, Copy)]
@@ -40,7 +95,9 @@ impl Phase {
         ["read", "parse", "index", "syntax", "directives", "sort"];
 }
 
-pub(crate) fn set_enabled(on: bool) {
+/// Switches profiling on and sizes the tables to the registry.
+pub(crate) fn set_enabled(on: bool, slots: usize) {
+    SLOTS.store(slots, Ordering::Relaxed);
     ENABLED.store(on, Ordering::Relaxed);
 }
 
@@ -53,13 +110,19 @@ pub(crate) fn enabled() -> bool {
 /// branch on whether profiling is on.
 #[inline]
 pub(crate) fn rule<T>(index: usize, body: impl FnOnce() -> T) -> T {
-    if !enabled() || index >= SLOTS {
+    if !enabled() {
         return body();
     }
     let started = Instant::now();
     let value = body();
-    RULE_NANOS[index].fetch_add(started.elapsed().as_nanos() as u64, Ordering::Relaxed);
-    RULE_CALLS[index].fetch_add(1, Ordering::Relaxed);
+    let elapsed = started.elapsed().as_nanos() as u64;
+    LOCAL.with(|counters| match counters.rule_nanos.get(index) {
+        Some(nanos) => {
+            bump(nanos, elapsed);
+            bump(&counters.rule_calls[index], 1);
+        }
+        None => bump(&counters.dropped, 1),
+    });
     value
 }
 
@@ -70,9 +133,44 @@ pub(crate) fn phase<T>(phase: Phase, body: impl FnOnce() -> T) -> T {
     }
     let started = Instant::now();
     let value = body();
-    PHASE_NANOS[phase as usize].fetch_add(started.elapsed().as_nanos() as u64, Ordering::Relaxed);
-    PHASE_CALLS[phase as usize].fetch_add(1, Ordering::Relaxed);
+    let elapsed = started.elapsed().as_nanos() as u64;
+    LOCAL.with(|counters| {
+        bump(&counters.phase_nanos[phase as usize], elapsed);
+        bump(&counters.phase_calls[phase as usize], 1);
+    });
     value
+}
+
+/// The tallies of every thread, added together.
+fn totals(slots: usize) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>, u64) {
+    let mut rule_nanos = vec![0u64; slots];
+    let mut rule_calls = vec![0u64; slots];
+    let mut phase_nanos = vec![0u64; Phase::COUNT];
+    let mut phase_calls = vec![0u64; Phase::COUNT];
+    let mut dropped = 0;
+    let Ok(registry) = REGISTRY.lock() else {
+        return (rule_nanos, rule_calls, phase_nanos, phase_calls, dropped);
+    };
+    for counters in registry.iter() {
+        for (index, total) in rule_nanos.iter_mut().enumerate() {
+            if let Some(value) = counters.rule_nanos.get(index) {
+                *total += value.load(Ordering::Relaxed);
+            }
+        }
+        for (index, total) in rule_calls.iter_mut().enumerate() {
+            if let Some(value) = counters.rule_calls.get(index) {
+                *total += value.load(Ordering::Relaxed);
+            }
+        }
+        for (index, total) in phase_nanos.iter_mut().enumerate() {
+            *total += counters.phase_nanos[index].load(Ordering::Relaxed);
+        }
+        for (index, total) in phase_calls.iter_mut().enumerate() {
+            *total += counters.phase_calls[index].load(Ordering::Relaxed);
+        }
+        dropped += counters.dropped.load(Ordering::Relaxed);
+    }
+    (rule_nanos, rule_calls, phase_nanos, phase_calls, dropped)
 }
 
 /// Writes the tally to stderr, slowest cop first.
@@ -80,15 +178,17 @@ pub(crate) fn report(names: &[&'static str]) {
     if !enabled() {
         return;
     }
+    let slots = SLOTS.load(Ordering::Relaxed).max(names.len());
+    let (rule_nanos, rule_calls, phase_nanos, phase_calls, dropped) = totals(slots);
+
     let mut rows: Vec<(&str, u64, u64)> = names
         .iter()
         .enumerate()
-        .take(SLOTS)
         .map(|(index, name)| {
             (
                 *name,
-                RULE_NANOS[index].load(Ordering::Relaxed),
-                RULE_CALLS[index].load(Ordering::Relaxed),
+                rule_nanos.get(index).copied().unwrap_or(0),
+                rule_calls.get(index).copied().unwrap_or(0),
             )
         })
         .filter(|(_, nanos, calls)| *nanos > 0 || *calls > 0)
@@ -96,11 +196,20 @@ pub(crate) fn report(names: &[&'static str]) {
     rows.sort_by_key(|(_, nanos, _)| std::cmp::Reverse(*nanos));
     let total: u64 = rows.iter().map(|(_, nanos, _)| nanos).sum();
     let calls: u64 = rows.iter().map(|(_, _, calls)| calls).sum();
+    let threads = REGISTRY.lock().map_or(0, |registry| registry.len());
 
     eprintln!("--- sonicop profile ---");
+    eprintln!(
+        "{} cops in the registry, {} of them reached, tallied across {threads} thread(s)",
+        names.len(),
+        rows.len()
+    );
+    if dropped > 0 {
+        eprintln!("WARNING: {dropped} invocation(s) had no slot and were not counted");
+    }
     for (index, name) in Phase::NAMES.iter().enumerate() {
-        let nanos = PHASE_NANOS[index].load(Ordering::Relaxed);
-        let count = PHASE_CALLS[index].load(Ordering::Relaxed);
+        let nanos = phase_nanos[index];
+        let count = phase_calls[index];
         if count == 0 {
             continue;
         }
@@ -110,8 +219,10 @@ pub(crate) fn report(names: &[&'static str]) {
             nanos as f64 / count as f64 / 1e3
         );
     }
+    // The sum is CPU time over every worker, not elapsed time. Dividing it by the core count is
+    // the closest it comes to a wall-clock figure, and even that ignores what the phases cost.
     eprintln!(
-        "cops total {:.3} s over {calls} invocations ({:.1} us each)",
+        "cops total {:.3} s of CPU over {calls} invocations ({:.1} us each)",
         total as f64 / 1e9,
         total as f64 / calls.max(1) as f64 / 1e3
     );
