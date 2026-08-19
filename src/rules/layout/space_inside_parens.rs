@@ -37,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `processed_source.sorted_tokens`, and the sort is load-bearing rather than defensive: the
     // stream puts a heredoc's body where its opener stands, so `foo(<<~A, bar)` hands over the
     // body before the comma and a pair taken off it would span the file backwards.
-    let mut stream = tokens(context);
+    let mut stream = tokens(context).to_vec();
     stream.sort_by_key(|token| token.range.start);
     for pair in stream.windows(2) {
         let (first, second) = (&pair[0], &pair[1]);

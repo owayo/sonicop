@@ -144,6 +144,9 @@ pub(crate) struct RuleContext<'a> {
     fragments: OnceCell<Fragments>,
     /// Which identifiers the Metrics cops read as local variables, replayed once per file.
     metric_locals: OnceCell<Locals>,
+    /// The lexer token stream reconstructed from the tree, shared by the Layout and Style cops
+    /// that inspect neighbouring tokens rather than syntax nodes.
+    layout_tokens: OnceCell<Vec<layout::tokens::Token>>,
     /// The cops the run switches off through the configuration, which is what an `enable` directive
     /// has to undo.
     ///
@@ -188,6 +191,7 @@ impl<'a> RuleContext<'a> {
             variables: OnceCell::new(),
             fragments: OnceCell::new(),
             metric_locals: OnceCell::new(),
+            layout_tokens: OnceCell::new(),
             disabled_cops: &[],
         }
     }
@@ -233,6 +237,13 @@ impl<'a> RuleContext<'a> {
     pub(in crate::rules) fn metric_locals(&self) -> &Locals {
         self.metric_locals
             .get_or_init(|| Locals::new(self, self.fragments()))
+    }
+
+    /// RuboCop's lexer token stream for this file, reconstructed at most once however many cops
+    /// inspect it.
+    pub(in crate::rules) fn layout_tokens(&self) -> &[layout::tokens::Token] {
+        self.layout_tokens
+            .get_or_init(|| layout::tokens::build(self))
     }
 }
 

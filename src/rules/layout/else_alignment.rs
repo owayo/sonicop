@@ -10,7 +10,7 @@ use super::support::{
     start_line_range,
 };
 use crate::diagnostic::Offense;
-use crate::rules::{RuleContext, push_named_children};
+use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 /// The node kinds upstream's parser calls an `if`.
@@ -35,12 +35,25 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ignored: HashSet::new(),
         reported: HashSet::new(),
     };
-    // A pre-order walk puts the handlers in the order upstream's commissioner calls them, which is
-    // what decides whether an `elsif` is reached with the base of its `if` or on its own.
-    let mut stack = vec![context.root_node()];
-    while let Some(node) = stack.pop() {
+    // The kind index is already in pre-order, which preserves the commissioner order that decides
+    // whether an `elsif` is reached with the base of its `if` or on its own. Walking every node
+    // also inspected every node's children just to discover whether it owned a rescue clause.
+    for node in context.nodes_of_any(&[
+        "if",
+        "unless",
+        "elsif",
+        "case",
+        "case_match",
+        "assignment",
+        "operator_assignment",
+        "call",
+    ]) {
         checker.visit(node, offenses);
-        push_named_children(node, &mut stack);
+    }
+    for rescue in context.nodes_of("rescue") {
+        if let Some(container) = rescue.parent_of(context) {
+            checker.on_rescue(container, offenses);
+        }
     }
 }
 
@@ -60,11 +73,6 @@ impl Checker<'_, '_> {
             "case_match" => self.on_case(node, "in_clause", offenses),
             "assignment" | "operator_assignment" | "call" => self.check_assignment(node, offenses),
             _ => {}
-        }
-        // `on_rescue` sees the node a body with `rescue` clauses is folded into, which the grammar
-        // spells as the clauses sitting beside the statements.
-        if child_of_kind(node, "rescue").is_some() {
-            self.on_rescue(node, offenses);
         }
     }
 

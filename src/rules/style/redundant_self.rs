@@ -14,8 +14,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 const MSG: &str = "Redundant `self` detected.";
 
@@ -157,6 +157,11 @@ const CONDITIONALS: &[&str] = &[
 type Scope = Rc<RefCell<Vec<String>>>;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    // Without an explicit `self` token no send can be reported. Building the scope table is a
+    // whole-file operation, so avoid it for the common file that has no candidate at all.
+    if context.nodes_of("self").next().is_none() {
+        return;
+    }
     let mut cop = Cop {
         context,
         allowed: HashSet::new(),
@@ -245,10 +250,7 @@ impl<'tree> Cop<'_, 'tree> {
     }
 
     fn on_assignment(&mut self, node: Node<'tree>) {
-        let (Some(left), Some(right)) = (
-            node.field("left"),
-            node.field("right"),
-        ) else {
+        let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
             return;
         };
         match left.kind_str() {

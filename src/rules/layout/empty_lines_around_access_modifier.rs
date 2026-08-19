@@ -3,12 +3,18 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
-use crate::rules::{RuleContext, walk_named};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::{RuleContext, walk_named};
 
 const MODIFIERS: [&str; 4] = ["public", "protected", "private", "module_function"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if !MODIFIERS
+        .iter()
+        .any(|modifier| context.source.text().contains(modifier))
+    {
+        return;
+    }
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "around".to_owned());
@@ -338,10 +344,7 @@ fn is_class_constructor(text: &str, block: Node<'_>) -> bool {
     let Some(call) = block.parent() else {
         return false;
     };
-    let (Some(receiver), Some(method)) = (
-        call.field("receiver"),
-        call.field("method"),
-    ) else {
+    let (Some(receiver), Some(method)) = (call.field("receiver"), call.field("method")) else {
         return false;
     };
     let mut receiver = receiver;

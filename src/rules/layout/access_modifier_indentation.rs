@@ -10,6 +10,12 @@ use crate::rules::node_ext::NodeExt;
 const MODIFIERS: [&str; 4] = ["public", "protected", "private", "module_function"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if !MODIFIERS
+        .iter()
+        .any(|modifier| context.source.text().contains(modifier))
+    {
+        return;
+    }
     let outdent = context.setting::<String>("EnforcedStyle").as_deref() == Some("outdent");
     let width: i64 = context
         .setting::<i64>("IndentationWidth")
@@ -73,9 +79,7 @@ fn is_bare_access_modifier(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     match node.kind_str() {
         "identifier" => MODIFIERS.contains(&&context.source.text()[node.byte_range()]),
         "call" => {
-            if node.field("receiver").is_some()
-                || node.field("block").is_some()
-            {
+            if node.field("receiver").is_some() || node.field("block").is_some() {
                 return false;
             }
             let Some(method) = node.field("method") else {

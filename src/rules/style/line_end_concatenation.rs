@@ -18,7 +18,7 @@ const QUOTE_DELIMITERS: [&str; 2] = ["'", "\""];
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let tokens = tokens(context);
     for index in 0..tokens.len() {
-        let Some(operator) = check_token_set(context, &tokens, index) else {
+        let Some(operator) = check_token_set(context, tokens, index) else {
             continue;
         };
         let text = context.source.slice(tokens[operator].range.clone());

@@ -6,10 +6,10 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::support::Interpolations;
-use crate::source::is_protected;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::support::Interpolations;
 use crate::rules::support::is_ruby_space_char;
+use crate::source::is_protected;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
 /// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
@@ -22,10 +22,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_heredoc: bool = context.setting("AllowHeredoc").unwrap_or(true);
     let allow_uri: bool = context.setting("AllowURI").unwrap_or(true);
     let allow_qualified_name: bool = context.setting("AllowQualifiedName").unwrap_or(true);
-    let allow_directives = allow_cop_directives(context);
-    let break_edits = line_break_edits(context, max);
-    let directive_lines = directive_lines(context);
-    let endless_method_lines = endless_method_lines(context);
 
     // RuboCop drops the `__END__` line and the data section behind it from the lines it walks, so
     // a long line down there is not a long line of code.
@@ -33,8 +29,32 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .nodes_of("uninterpreted")
         .next()
         .map_or(usize::MAX, |node| node.start_position().row + 1);
+    let last_line = context.source.line_count().min(data_line.saturating_sub(1));
 
-    for line_number in 1..=context.source.line_count().min(data_line.saturating_sub(1)) {
+    // Building autocorrections walks a large part of the AST. Most files have no line over the
+    // limit, so first answer the one condition under which any of that work can be observed.
+    let has_candidate = (1..=last_line).any(|line_number| {
+        let raw = context.source.line(line_number);
+        let line = crate::rules::support::chomp(raw);
+        let length = line.chars().count() + indentation_difference(line);
+        length > max
+            && !(line_number == 1 && line.starts_with("#!"))
+            && !(allow_heredoc
+                && context.in_heredoc(
+                    context.source.line_start(line_number)
+                        ..context.source.line_start(line_number) + line.len(),
+                ))
+    });
+    if !has_candidate {
+        return;
+    }
+
+    let allow_directives = allow_cop_directives(context);
+    let break_edits = line_break_edits(context, max);
+    let directive_lines = directive_lines(context);
+    let endless_method_lines = endless_method_lines(context);
+
+    for line_number in 1..=last_line {
         let raw = context.source.line(line_number);
         // **`String#chomp` takes off `\r\n` as one line ending, and a lone `\r` as well.** Counting
         // the `\r` made every 120-column line of a CRLF file one column too long, and the offense

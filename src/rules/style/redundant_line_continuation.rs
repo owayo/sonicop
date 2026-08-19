@@ -6,7 +6,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::layout::tokens::{TokenKind, tokens};
+use crate::rules::layout::tokens::{Token, TokenKind, tokens};
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant line continuation.";
@@ -102,7 +102,7 @@ fn within_comment(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
 /// `implicit_string_concatenation?`: two string literals written one under the other, which the
 /// continuation is what joins.
 fn implicit_string_concatenation(context: &RuleContext<'_>, range: &Range<usize>) -> bool {
-    let stream = tokens(context);
+    let stream: &[Token] = tokens(context);
     let line = context.source.line_column(range.start).0;
     let before = stream.iter().rfind(|token| token.range.end <= range.start);
     let ends = before.is_some_and(|token| {

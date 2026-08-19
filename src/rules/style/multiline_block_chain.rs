@@ -2,14 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::send_range;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::send_range;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for call in context.nodes_of("call") {
-        if call.field("block").is_none() {
+    for block in context.nodes_of_any(&["block", "do_block"]) {
+        let Some(call) = block.parent().filter(|parent| parent.kind_str() == "call") else {
             continue;
-        }
+        };
         let send = send_range(call, context);
         // `node.send_node.each_node(:call)`, which stops at the first chained block it finds.
         let Some(closing) = super::conditional::descendants(call)
@@ -52,9 +52,7 @@ fn receiver_of<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<No
         "element_reference" => node.field("object"),
         "unary" => node.field("operand"),
         "binary" => {
-            let operator = context
-                .source
-                .node_text(node.field("operator")?);
+            let operator = context.source.node_text(node.field("operator")?);
             super::nodes::is_operator_method(operator)
                 .then(|| node.field("left"))
                 .flatten()

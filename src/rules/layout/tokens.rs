@@ -64,6 +64,7 @@ pub(crate) enum TokenKind {
     Other,
 }
 
+#[derive(Clone)]
 pub(crate) struct Token {
     pub range: Range<usize>,
     /// 1-based line of the token's first character, `Token#line`.
@@ -106,7 +107,11 @@ const LITERALS: [&str; 9] = [
     "symbol_array",
 ];
 
-pub(crate) fn tokens(context: &RuleContext<'_>) -> Vec<Token> {
+pub(crate) fn tokens<'context>(context: &'context RuleContext<'_>) -> &'context [Token] {
+    context.layout_tokens()
+}
+
+pub(in crate::rules) fn build(context: &RuleContext<'_>) -> Vec<Token> {
     let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
     let mut builder = Builder {
         context,

@@ -26,7 +26,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     };
     // Everything after the last token -- the text below an `__END__`, above all -- is not lexed and
     // so is never looked at.
-    let last_line = tokens(context)
+    let stream = tokens(context);
+    let last_line = stream
         .last()
         .map_or(context.source.line_count(), |token| token.line);
     let ignored = ignored_ranges(context);

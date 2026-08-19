@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         return;
     }
     let settings = Settings::read(context);
-    let stream = tokens(context);
+    let stream: &[Token] = tokens(context);
     let aligned_comments = aligned_comment_lines(context);
     // Only a file that actually pads a token pays for the line and operator bookkeeping.
     let alignment = OnceCell::new();
@@ -253,10 +253,7 @@ fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
             continue;
         }
         for element in elements {
-            let (Some(key), Some(value)) = (
-                element.field("key"),
-                element.field("value"),
-            ) else {
+            let (Some(key), Some(value)) = (element.field("key"), element.field("value")) else {
                 continue;
             };
             ranges.push(key.end_byte()..value.start_byte());

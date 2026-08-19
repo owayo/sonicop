@@ -13,6 +13,11 @@ use crate::rules::node_ext::NodeExt;
 const FORMAT_METHODS: &[&str] = &["format", "sprintf", "printf"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    // Every sequence this cop can report starts with `%`. Avoid collecting and splitting every
+    // string literal in files that cannot possibly contain one.
+    if !context.source.text().contains('%') {
+        return;
+    }
     let style = parse_style(
         context
             .setting::<String>("EnforcedStyle")
@@ -203,7 +208,10 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     if parent.kind_str() != "argument_list" {
         return false;
     }
-    let Some(call) = parent.parent_of(context).filter(|call| call.kind_str() == "call") else {
+    let Some(call) = parent
+        .parent_of(context)
+        .filter(|call| call.kind_str() == "call")
+    else {
         return false;
     };
     let named = call
@@ -220,8 +228,10 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 fn enclosing_typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut current = node.parent_of(context);
     while let Some(parent) = current {
-        if matches!(parent.kind_str(), "chained_string" | "string" | "heredoc_body")
-            && typical_context(context, parent)
+        if matches!(
+            parent.kind_str(),
+            "chained_string" | "string" | "heredoc_body"
+        ) && typical_context(context, parent)
         {
             return true;
         }

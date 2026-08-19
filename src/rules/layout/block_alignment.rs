@@ -39,7 +39,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         Some("start_of_line") => Style::StartOfLine,
         _ => Style::Either,
     };
-    let mut stream = None;
     for braces in context.nodes_of_any(&["block", "do_block"]) {
         // The `block` node upstream's parser builds spans the call as well, so it is the call --
         // or, for `-> {}`, the lambda -- that stands in for it here.
@@ -54,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             node,
             braces,
         };
-        if let Some(offense) = check_block_alignment(&block, style, &mut stream) {
+        if let Some(offense) = check_block_alignment(&block, style) {
             offenses.push(offense);
         }
     }
@@ -115,11 +114,7 @@ impl<'tree> Block<'_, 'tree> {
 }
 
 /// `check_block_alignment`.
-fn check_block_alignment(
-    block: &Block<'_, '_>,
-    style: Style,
-    stream: &mut Option<Vec<Token>>,
-) -> Option<Offense> {
+fn check_block_alignment(block: &Block<'_, '_>, style: Style) -> Option<Offense> {
     let context = block.context;
     let end = block.closing()?;
     if !begins_its_line(context, end.start_byte()) {
@@ -133,7 +128,7 @@ fn check_block_alignment(
     if column_of(context, start.start) == end_column && style != Style::StartOfBlock {
         return None;
     }
-    let anchor = compute_do_source_line_column(block, style, end_column, stream)?;
+    let anchor = compute_do_source_line_column(block, style, end_column)?;
 
     let preferred = match style {
         Style::StartOfBlock => anchor.clone(),
@@ -224,11 +219,10 @@ fn compute_do_source_line_column(
     block: &Block<'_, '_>,
     style: Style,
     end_column: i64,
-    stream: &mut Option<Vec<Token>>,
 ) -> Option<SourceLineColumn> {
     let context = block.context;
     let opening = block.opening()?;
-    let anchor = do_line_anchor(block, opening, stream);
+    let anchor = do_line_anchor(block, opening);
     let line = context.source.line_column(anchor).0;
     // `Range#source_line` drops the line feed and keeps a carriage return, which is what ends up
     // in the message.
@@ -263,12 +257,8 @@ fn compute_do_source_line_column(
 }
 
 /// `do_line_anchor_loc`: the offset whose line the second alignment target is read off.
-fn do_line_anchor(
-    block: &Block<'_, '_>,
-    opening: Node<'_>,
-    stream: &mut Option<Vec<Token>>,
-) -> usize {
-    if !do_line_begins_inside_argument(block, opening, stream) {
+fn do_line_anchor(block: &Block<'_, '_>, opening: Node<'_>) -> usize {
+    if !do_line_begins_inside_argument(block, opening) {
         return opening.start_byte();
     }
     block
@@ -278,11 +268,7 @@ fn do_line_anchor(
 
 /// `do_line_begins_inside_argument?`: the `do` sits on a line that opened inside one of the call's
 /// arguments, with a bracket still unclosed in front of it.
-fn do_line_begins_inside_argument(
-    block: &Block<'_, '_>,
-    opening: Node<'_>,
-    stream: &mut Option<Vec<Token>>,
-) -> bool {
+fn do_line_begins_inside_argument(block: &Block<'_, '_>, opening: Node<'_>) -> bool {
     let context = block.context;
     let line = context.source.line_column(opening.start_byte()).0;
     let text = context.source.line(line);
@@ -290,7 +276,7 @@ fn do_line_begins_inside_argument(
         return false;
     };
     let first = context.source.line_start(line) + offset;
-    let tokens = stream.get_or_insert_with(|| tokens(context));
+    let tokens = tokens(context);
     if !inside_brackets(tokens, block.node.start_byte(), first) {
         return false;
     }

@@ -7,6 +7,9 @@ use super::string_literals::{
 };
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if context.nodes_of("interpolation").next().is_none() {
+        return;
+    }
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "single_quotes".to_owned());

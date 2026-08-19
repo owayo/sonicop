@@ -12,8 +12,8 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::access_modifier::{in_macro_scope, send_name, statements};
 use crate::rules::lint::locals::LocalVariables;
-use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 const GROUP_STYLE_MESSAGE: &str = "should not be inlined in method definitions.";
 const INLINE_STYLE_MESSAGE: &str = "should be inlined in method definitions.";
@@ -38,6 +38,12 @@ const STATEMENT_LISTS: [&str; 6] = [
 ];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if !MODIFIERS
+        .iter()
+        .any(|modifier| context.source.text().contains(modifier))
+    {
+        return;
+    }
     let group = context
         .setting::<String>("EnforcedStyle")
         .is_none_or(|style| style == "group");
