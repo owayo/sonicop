@@ -84,11 +84,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 reported.push((space_before(text, right.start_byte()), "Do not use"));
             }
         } else {
+            // `space_offense(node, token, :none, ...)`: the offense sits on the bracket itself
+            // rather than in the gap the correction fills, so it keeps the bracket's column and
+            // its one character of length.
             if !extra_space_after(text, left.end_byte()) {
-                reported.push((left.end_byte()..left.end_byte(), "Use"));
+                reported.push((left.byte_range(), "Use"));
             }
             if !extra_space_before(text, right.start_byte()) {
-                reported.push((right.start_byte()..right.start_byte(), "Use"));
+                reported.push((right.byte_range(), "Use"));
             }
         }
         // Upstream corrects the node from the first offense it reports and calls `ignore_node`, so

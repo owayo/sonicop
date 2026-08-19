@@ -164,16 +164,17 @@ impl Reporter<'_, '_> {
         offenses: &mut Vec<Offense>,
     ) {
         let text = self.context.source.text();
+        // `space_offense(node, token, :none, ...)`: the offense sits on the bracket itself, not in
+        // the gap the correction fills. Reporting the empty range after `[` would name the column
+        // one past the bracket and give the offense no length.
         if !start_ok && !extra_space_after(text, left) {
-            let offset = left.end_byte();
-            self.report(node, offset..offset, SPACE_COMMAND, offenses);
+            self.report(node, left.byte_range(), SPACE_COMMAND, offenses);
         }
         let Some(right) = right else { return };
         if end_ok || extra_space_before(text, right) {
             return;
         }
-        let offset = right.start_byte();
-        self.report(node, offset..offset, SPACE_COMMAND, offenses);
+        self.report(node, right.byte_range(), SPACE_COMMAND, offenses);
     }
 
     /// `compact_offenses`: successive brackets are pushed together, and every other bracket wants

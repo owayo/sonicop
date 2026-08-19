@@ -200,7 +200,15 @@ impl Config {
     }
 
     pub fn cop_value<T: DeserializeOwned>(&self, name: &str, key: &str) -> Option<T> {
-        serde_yaml_ng::from_value(self.cop_raw_value(name, key)?.clone()).ok()
+        // Deserialized from the borrowed value rather than a clone of it. Every cop reads its
+        // settings once per file, so a clone here is one deep copy of the value per cop per file
+        // -- and the values are not all small: `Lint/Debugger`'s method list is a nested map.
+        //
+        // Measured 2026-08-19: this cuts the profiler's per-cop CPU total from 44.4s to 17.7s on
+        // rubocop/rubocop, but an A/B of the two binaries showed **no wall-clock difference**
+        // outside the noise. The saving is real and the copy was pointless, so it stays -- but it
+        // is not what the run is waiting on.
+        T::deserialize(self.cop_raw_value(name, key)?).ok()
     }
 
     pub fn all_cops_value<T: DeserializeOwned>(&self, key: &str) -> Option<T> {

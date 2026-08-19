@@ -318,17 +318,70 @@ fn inside_brackets(tokens: &[Token], from: usize, to: usize) -> bool {
     depth > 0
 }
 
+/// What the walk out of the block stopped on.
+///
+/// A call that carries a block of its own is one node to the grammar and two to upstream's
+/// parser -- a `send`, and the `block` wrapped around it. The walk can only ever reach the
+/// `send`: `block_end_align_target?` does not accept a `block`, so the step after it always
+/// stops. Keeping the distinction here is what makes `foo.map do end.to_h.reject { }` line its
+/// `end` up with `foo`, the start of the `send`, rather than with whatever encloses the chain.
+enum AlignTarget<'tree> {
+    /// A node the grammar and the parser agree on.
+    Node(Node<'tree>),
+    /// A call with a block, reduced to the `send` upstream would have stopped on.
+    Send(Node<'tree>),
+}
+
+impl<'tree> AlignTarget<'tree> {
+    fn node(&self) -> Node<'tree> {
+        match *self {
+            Self::Node(node) | Self::Send(node) => node,
+        }
+    }
+
+    /// The source range upstream reads off the node it stopped on.
+    fn range(&self, context: &RuleContext<'_>) -> Range<usize> {
+        match *self {
+            Self::Node(node) => find_lhs_node(context, node),
+            Self::Send(call) => send_range(context, call),
+        }
+    }
+}
+
+/// `node.send_node.source_range` for a call the walk stopped on: the call without its block.
+fn send_range(context: &RuleContext<'_>, call: Node<'_>) -> Range<usize> {
+    let Some(braces) = call.field("block") else {
+        return call.byte_range();
+    };
+    let start = call.start_byte();
+    let head = &context.source.text()[start..braces.start_byte()];
+    start..(start + head.trim_end().len())
+}
+
 /// `start_for_block_node`: the expression the `end` belongs to, reduced to its left-hand side.
 fn start_for_block_node(block: &Block<'_, '_>) -> Range<usize> {
-    find_lhs_node(block.context, block_end_align_target(block))
+    block_end_align_target(block).range(block.context)
 }
 
 /// `start_for_line_node`: the outermost expression that still begins on the align target's line.
 fn start_for_line_node(block: &Block<'_, '_>) -> Range<usize> {
-    let target = block_end_align_target(block);
     let context = block.context;
-    let line = context.source.line_column(target.start_byte()).0;
-    let outermost = parser_ancestors(target)
+    let target = block_end_align_target(block);
+    let base = target.range(context);
+    let line = context.source.line_column(base.start).0;
+    let mut ancestors = parser_ancestors(target.node());
+    if let AlignTarget::Send(call) = target {
+        // The `block` upstream wraps around the `send` is its first ancestor. The grammar has the
+        // two as one node, so it has to be put back before the chain reads the same.
+        ancestors.insert(
+            0,
+            Ancestor {
+                range: call.byte_range(),
+                node: Some(call),
+            },
+        );
+    }
+    let outermost = ancestors
         .into_iter()
         .rev()
         .find(|ancestor| context.source.line_column(ancestor.range.start).0 == line);
@@ -337,7 +390,7 @@ fn start_for_line_node(block: &Block<'_, '_>) -> Range<usize> {
             Some(node) => find_lhs_node(context, node),
             None => ancestor.range,
         },
-        None => find_lhs_node(context, target),
+        None => base,
     }
 }
 
@@ -373,15 +426,20 @@ fn is_multiple_assignment(node: Node<'_>) -> bool {
 
 /// `block_end_align_target`: walk out of the block for as long as the enclosing expression owns
 /// the block's `end`, and stop at the first one that does not.
-fn block_end_align_target<'tree>(block: &Block<'_, 'tree>) -> Node<'tree> {
+fn block_end_align_target<'tree>(block: &Block<'_, 'tree>) -> AlignTarget<'tree> {
     let mut current = block.node;
     while let Some(parent) = current.parent() {
         if !is_align_target(block.context, parent, current) {
-            return current;
+            return AlignTarget::Node(current);
+        }
+        if parent.kind_str() == "call" && parent.field("block").is_some() {
+            // Upstream reaches this call's `send` and stops at the `block` above it. See
+            // `AlignTarget`.
+            return AlignTarget::Send(parent);
         }
         current = parent;
     }
-    current
+    AlignTarget::Node(current)
 }
 
 /// `end_align_target?` inverted: whether the parent takes the block's `end` over.

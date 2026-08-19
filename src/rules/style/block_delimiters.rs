@@ -26,6 +26,32 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .setting::<String>("EnforcedStyle")
             .unwrap_or_else(|| "line_count_based".to_owned()),
         braces_required_methods: context.setting("BracesRequiredMethods").unwrap_or_default(),
+        functional_methods: context.setting("FunctionalMethods").unwrap_or_else(|| {
+            ["let", "let!", "subject", "watch"]
+                .iter()
+                .map(|name| (*name).to_owned())
+                .collect()
+        }),
+        procedural_methods: context.setting("ProceduralMethods").unwrap_or_else(|| {
+            [
+                "benchmark",
+                "bm",
+                "bmbm",
+                "create",
+                "each_with_object",
+                "measure",
+                "new",
+                "realtime",
+                "tap",
+                "with_object",
+            ]
+            .iter()
+            .map(|name| (*name).to_owned())
+            .collect()
+        }),
+        procedural_oneliners_may_have_braces: context
+            .setting("AllowBracesOnProceduralOneLiners")
+            .unwrap_or(false),
         allowed_methods: context.setting("AllowedMethods").unwrap_or_else(|| {
             ["lambda", "proc", "it"]
                 .iter()
@@ -84,6 +110,12 @@ struct Cop<'a, 'tree> {
     braces_required_methods: Vec<String>,
     allowed_methods: Vec<String>,
     allowed_patterns: Vec<regex::Regex>,
+    /// `FunctionalMethods`: the ones whose block always yields a value, so braces suit them.
+    functional_methods: Vec<String>,
+    /// `ProceduralMethods`: the ones whose block is run for its effect, so `do ... end` suits.
+    procedural_methods: Vec<String>,
+    /// `AllowBracesOnProceduralOneLiners`.
+    procedural_oneliners_may_have_braces: bool,
 }
 
 /// One block: its delimiters, the call it hangs off, and the body between them.
@@ -252,9 +284,87 @@ impl Cop<'_, '_> {
                 },
                 false => block.braces,
             },
+            "semantic" => self.semantic_block_style(block),
             // `line_count_based_block_style?`.
             _ => block.multiline != block.braces,
         }
+    }
+
+    /// `semantic_block_style?`: braces mark a block whose value is used, `do ... end` one that is
+    /// run for its effect. Which one a block is comes from the method it hangs off and from where
+    /// the block itself sits -- a block whose result nothing reads is procedural whatever it does.
+    fn semantic_block_style(&self, block: &Block<'_>) -> bool {
+        if block.braces {
+            self.functional_methods.contains(&block.method)
+                || self.functional_block(block)
+                || (self.procedural_oneliners_may_have_braces && !block.multiline)
+        } else {
+            self.procedural_methods.contains(&block.method) || !self.return_value_used(block.call)
+        }
+    }
+
+    /// `functional_block?`.
+    fn functional_block(&self, block: &Block<'_>) -> bool {
+        self.return_value_used(block.call) || self.return_value_of_scope(block.call)
+    }
+
+    /// `return_value_used?`: the block feeds an assignment or another call.
+    ///
+    /// The node walked from is upstream's `block`, which the grammar spells as the call the braces
+    /// hang off, so the parent chain reads the same from there.
+    fn return_value_used(&self, node: Node<'_>) -> bool {
+        let Some(parent) = node.parent_of(self.context) else {
+            return false;
+        };
+        match parent.kind_str() {
+            // `node.parent.begin_type?`: parentheses around the block, which pass the question on.
+            "parenthesized_statements" => self.return_value_used(parent),
+            "assignment" | "operator_assignment" => true,
+            // `call_type?`: the block is the receiver of, or an argument to, another call.
+            "call" | "method_call" => true,
+            _ => false,
+        }
+    }
+
+    /// `return_value_of_scope?`: the block sits where a value is read off -- a condition, an
+    /// operand, an element, or the last expression of whatever encloses it.
+    fn return_value_of_scope(&self, node: Node<'_>) -> bool {
+        let Some(parent) = node.parent_of(self.context) else {
+            return false;
+        };
+        if matches!(
+            parent.kind_str(),
+            "if" | "unless"
+                | "if_modifier"
+                | "unless_modifier"
+                | "while"
+                | "until"
+                | "while_modifier"
+                | "until_modifier"
+                | "case"
+                | "case_match"
+                | "ternary"
+                | "array"
+                | "range"
+        ) {
+            return true;
+        }
+        // `operator_keyword?`: `and`, `or`, `not`.
+        if parent.kind_str() == "binary"
+            && parent.field("operator").is_some_and(|operator| {
+                LOGICAL_OPERATORS.contains(&&self.context.source.text()[operator.byte_range()])
+            })
+        {
+            return true;
+        }
+        if parent.kind_str() == "unary" {
+            return true;
+        }
+        // `parent.children.last == node`: the block is the last thing the parent holds, so its
+        // value is the parent's.
+        super::nodes::children(parent)
+            .last()
+            .is_some_and(|last| last.id() == node.id())
     }
 
     fn braces_required_method(&self, method: &str) -> bool {

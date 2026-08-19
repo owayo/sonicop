@@ -18,64 +18,461 @@ static PLAIN_SYMBOL: LazyLock<Regex> =
 /// The quoted form only became a legal hash key in Ruby 2.2.
 const QUOTED_KEY_SINCE: RubyVersion = RubyVersion::new(2, 2);
 
+/// `EnforcedShorthandSyntax`: what to do about Ruby 3.1's `{ foo: }`, which is a separate axis
+/// from `EnforcedStyle` and reaches the same pairs.
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum Shorthand {
+    Either,
+    Always,
+    Never,
+    Consistent,
+    EitherConsistent,
+}
+
+/// Value omission is Ruby 3.1 syntax. Below that every pair is left alone, whatever the setting
+/// says, because the shorter form would not parse.
+const OMISSION_SINCE: RubyVersion = RubyVersion::new(3, 1);
+
+const MSG_19: &str = "Use the new Ruby 1.9 hash syntax.";
+const MSG_HASH_ROCKETS: &str = "Use hash rockets syntax.";
+const MSG_NO_MIXED_KEYS: &str = "Don't mix styles in the same hash.";
+const OMIT_MSG: &str = "Omit the hash value.";
+const EXPLICIT_MSG: &str = "Include the hash value.";
+const MIX_PREFIX: &str = "Do not mix explicit and implicit hash values.";
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    check_shorthand(context, offenses);
+    check_syntax(context, offenses);
+}
+
+fn check_syntax(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "ruby19".to_owned());
-    if style != "ruby19" && style != "ruby19_no_mixed_keys" {
-        return;
-    }
     let quoted_keys_allowed = context.target_ruby_version() >= QUOTED_KEY_SINCE;
 
-    for node in context.nodes_of("pair") {
-        let Some(operator) = hash_rocket(node, context) else {
-            continue;
+    for pairs in hash_groups(context) {
+        // `sym_indices?`: a hash is left in the old syntax unless every one of its keys can take
+        // the new one, so that one rocket that has to stay does not leave the hash written in two
+        // styles at once.
+        let sym_indices = pairs
+            .iter()
+            .all(|pair| word_symbol_pair(*pair, context, quoted_keys_allowed));
+        // Which delimiter the style rejects, and what it says about it. `check(pairs, delim, msg)`
+        // upstream.
+        let (reject_colon, message) = match style.as_str() {
+            "hash_rockets" => (true, MSG_HASH_ROCKETS),
+            "ruby19_no_mixed_keys" if sym_indices => (false, MSG_19),
+            "ruby19_no_mixed_keys" => (true, MSG_NO_MIXED_KEYS),
+            "no_mixed_keys" if sym_indices => {
+                // `pairs.first.inverse_delimiter`: whichever way the hash opens, the others have
+                // to follow, so what is rejected is the opposite of the first pair's delimiter.
+                let first_colon = pair_delimiter(context, pairs[0]).is_some_and(|(_, colon)| colon);
+                (!first_colon, MSG_NO_MIXED_KEYS)
+            }
+            "no_mixed_keys" => (true, MSG_NO_MIXED_KEYS),
+            _ if !sym_indices => continue,
+            _ => (false, MSG_19),
         };
-        // A hash is left alone unless every one of its keys can take the new syntax, so that one
-        // rocket that has to stay does not leave the hash written in two styles at once.
-        if !every_key_takes_the_new_syntax(node, context, quoted_keys_allowed) {
-            continue;
-        }
 
-        let start = node.start_byte();
-        // The opening brace is written **into** the rewrite rather than inserted beside it. An
-        // insertion at the byte the rewrite starts at is a second edit at the same position, and
-        // `apply_edits` refuses a pair like that -- silently, so the cop reads as having declined
-        // to correct at all.
-        let wrapping = returned_bare_hash(node, context);
-        let opening = if wrapping.is_some() { "{" } else { "" };
-        // `argument_without_space?`: `foo:bar => 1` has no space between the selector and the hash,
-        // and the old syntax did not need one. `foo` + `bar: 1` runs the two together into
-        // `foobar: 1`, which is a different program (and here not a program at all).
-        let spacing = if argument_without_space(node, context) {
-            " "
-        } else {
-            ""
-        };
-        let mut edits = vec![Edit {
-            start,
-            end: whitespace_end(context, operator.end),
-            replacement: format!("{spacing}{opening}{}: ", key_name(node, context)),
-            safe: true,
-        }];
-        // `corrector.wrap(hash_node, '{', '}')`: `return key: value` is not valid Ruby, so a bare
-        // hash handed to `return` has to gain braces as it changes syntax. Upstream does this once
-        // per hash, on its first pair. Without it the correction turns working code into a syntax
-        // error -- and the reparse guard cannot see it, because each pair is a separate offense.
-        if let Some((_, close)) = wrapping {
-            edits.push(Edit {
-                start: close,
-                end: close,
-                replacement: "}".to_owned(),
+        for &node in &pairs {
+            let Some((operator, is_colon)) = pair_delimiter(context, node) else {
+                continue;
+            };
+            if is_colon != reject_colon {
+                continue;
+            }
+            if is_colon {
+                offenses.push(
+                    context
+                        .offense(message, node.start_byte()..operator.end)
+                        .corrected_by_all(rocket_edits(context, node, &operator)),
+                );
+                continue;
+            }
+
+            let start = node.start_byte();
+            // The opening brace is written **into** the rewrite rather than inserted beside it. An
+            // insertion at the byte the rewrite starts at is a second edit at the same position,
+            // and `apply_edits` refuses a pair like that -- silently, so the cop reads as having
+            // declined to correct at all.
+            let wrapping = returned_bare_hash(node, context);
+            let opening = if wrapping.is_some() { "{" } else { "" };
+            // `argument_without_space?`: `foo:bar => 1` has no space between the selector and the
+            // hash, and the old syntax did not need one. `foo` + `bar: 1` runs the two together
+            // into `foobar: 1`, which is a different program (and here not a program at all).
+            let spacing = if argument_without_space(node, context) {
+                " "
+            } else {
+                ""
+            };
+            let mut edits = vec![Edit {
+                start,
+                end: whitespace_end(context, operator.end),
+                replacement: format!("{spacing}{opening}{}: ", key_name(node, context)),
                 safe: true,
-            });
+            }];
+            // `corrector.wrap(hash_node, '{', '}')`: `return key: value` is not valid Ruby, so a
+            // bare hash handed to `return` has to gain braces as it changes syntax. Upstream does
+            // this once per hash, on its first pair. Without it the correction turns working code
+            // into a syntax error -- and the reparse guard cannot see it, because each pair is a
+            // separate offense.
+            if let Some((_, close)) = wrapping {
+                edits.push(Edit {
+                    start: close,
+                    end: close,
+                    replacement: "}".to_owned(),
+                    safe: true,
+                });
+            }
+            offenses.push(
+                context
+                    .offense(message, start..operator.end)
+                    .corrected_by_all(edits),
+            );
         }
-        offenses.push(
-            context
-                .offense("Use the new Ruby 1.9 hash syntax.", start..operator.end)
-                .corrected_by_all(edits),
+    }
+}
+
+/// `autocorrect_hash_rockets`: the key gains the `:` the symbol literal needs and the rocket that
+/// replaces the colon, and the colon itself goes with the space around it.
+fn rocket_edits(
+    context: &RuleContext<'_>,
+    pair: Node<'_>,
+    operator: &std::ops::Range<usize>,
+) -> Vec<Edit> {
+    let Some(key) = pair.field("key") else {
+        return Vec::new();
+    };
+    let key_source = context.source.node_text(key);
+    let mut replacement = format!(":{key_source} => ");
+    // `key_with_hash_rocket += pair_node.key.source if pair_node.value_omission?`: the old syntax
+    // has no short form, so the value the colon left out has to be written back.
+    if pair.field("value").is_none() {
+        replacement.push_str(key_source);
+    }
+    vec![
+        Edit {
+            start: key.start_byte(),
+            end: key.end_byte(),
+            replacement,
+            safe: true,
+        },
+        Edit {
+            start: operator.start,
+            end: whitespace_end(context, operator.end),
+            replacement: String::new(),
+            safe: true,
+        },
+    ]
+}
+
+/// The pair's delimiter: its span, and whether it is the colon of the new syntax.
+fn pair_delimiter(
+    context: &RuleContext<'_>,
+    pair: Node<'_>,
+) -> Option<(std::ops::Range<usize>, bool)> {
+    let key = pair.field("key")?;
+    let after = key.end_byte();
+    let text = context.source.text();
+    let end = pair
+        .field("value")
+        .map_or(pair.end_byte(), |v| v.start_byte());
+    let between = text.get(after..end)?;
+    if let Some(offset) = between.find("=>") {
+        return Some((after + offset..after + offset + "=>".len(), false));
+    }
+    let offset = between.find(':')?;
+    Some((after + offset..after + offset + 1, true))
+}
+
+/// `HashShorthandSyntax`: the value-omission axis.
+///
+/// `always` and `never` read one pair at a time -- omit every value that can go, or write every
+/// one back. `consistent` and `either_consistent` read the hash instead, because what they forbid
+/// is the mixture: a hash whose pairs are not all written the same way is reported on the pairs
+/// that break the majority, and which side that is depends on whether some value in the hash
+/// *cannot* be omitted.
+fn check_shorthand(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let shorthand = match context
+        .setting::<String>("EnforcedShorthandSyntax")
+        .as_deref()
+    {
+        Some("always") => Shorthand::Always,
+        Some("never") => Shorthand::Never,
+        Some("consistent") => Shorthand::Consistent,
+        Some("either_consistent") => Shorthand::EitherConsistent,
+        _ => Shorthand::Either,
+    };
+    if shorthand == Shorthand::Either || context.target_ruby_version() < OMISSION_SINCE {
+        return;
+    }
+    match shorthand {
+        Shorthand::Always | Shorthand::Never => {
+            for pair in context.nodes_of("pair") {
+                if !in_hash_literal(pair, context) {
+                    continue;
+                }
+                on_pair(context, pair, shorthand, offenses);
+            }
+        }
+        _ => {
+            for pairs in hash_groups(context) {
+                mixed_shorthand(context, &pairs, shorthand, offenses);
+            }
+        }
+    }
+}
+
+/// `on_pair` under `always` and `never`.
+fn on_pair(
+    context: &RuleContext<'_>,
+    pair: Node<'_>,
+    shorthand: Shorthand,
+    offenses: &mut Vec<Offense>,
+) {
+    let Some(key) = pair.field("key") else {
+        return;
+    };
+    let key_source = context.source.node_text(key);
+    if shorthand == Shorthand::Always {
+        if omits_value(pair) || require_hash_value(context, pair) {
+            return;
+        }
+        register_shorthand(context, pair, OMIT_MSG, format!("{key_source}:"), offenses);
+    } else {
+        if !omits_value(pair) {
+            return;
+        }
+        register_shorthand(
+            context,
+            pair,
+            EXPLICIT_MSG,
+            format!("{key_source}: {key_source}"),
+            offenses,
         );
     }
+}
+
+/// `on_hash_for_mixed_shorthand` and the two checks it dispatches to.
+fn mixed_shorthand(
+    context: &RuleContext<'_>,
+    pairs: &[Node<'_>],
+    shorthand: Shorthand,
+    offenses: &mut Vec<Offense>,
+) {
+    // `breakdown_value_types_of_hash`.
+    let (mut omitted, mut needed, mut omittable) = (Vec::new(), Vec::new(), Vec::new());
+    for &pair in pairs {
+        if omits_value(pair) {
+            omitted.push(pair);
+        } else if require_hash_value(context, pair) {
+            needed.push(pair);
+        } else {
+            omittable.push(pair);
+        }
+    }
+    let kinds = usize::from(!omitted.is_empty())
+        + usize::from(!needed.is_empty())
+        + usize::from(!omittable.is_empty());
+
+    if kinds > 1 {
+        // `mixed_shorthand_syntax_check`: a hash holding a value that cannot go is written out in
+        // full, and one where every value could go is written short.
+        let (targets, message) = if needed.is_empty() {
+            (&omittable, format!("{MIX_PREFIX} {OMIT_MSG}"))
+        } else {
+            (&omitted, format!("{MIX_PREFIX} {EXPLICIT_MSG}"))
+        };
+        let omit = needed.is_empty();
+        for &pair in targets {
+            let Some(key) = pair.field("key") else {
+                continue;
+            };
+            let key_source = context.source.node_text(key);
+            let replacement = if omit {
+                format!("{key_source}:")
+            } else {
+                format!("{key_source}: {key_source}")
+            };
+            register_shorthand(context, pair, &message, replacement, offenses);
+        }
+        return;
+    }
+
+    // `no_mixed_shorthand_syntax_check`.
+    if !needed.is_empty() {
+        return;
+    }
+    // `ignore_explicit_omissible_hash_shorthand_syntax?`: under `either_consistent` a hash whose
+    // values could all be omitted is consistent as it stands, so writing them out is accepted.
+    if shorthand == Shorthand::EitherConsistent && omitted.is_empty() {
+        return;
+    }
+    for &pair in &omittable {
+        let Some(key) = pair.field("key") else {
+            continue;
+        };
+        let key_source = context.source.node_text(key);
+        register_shorthand(context, pair, OMIT_MSG, format!("{key_source}:"), offenses);
+    }
+}
+
+/// `register_offense`: the offense sits on the value -- and on a pair that has none, on the key
+/// the parser puts the implicit value's range over.
+fn register_shorthand(
+    context: &RuleContext<'_>,
+    pair: Node<'_>,
+    message: impl Into<String>,
+    replacement: String,
+    offenses: &mut Vec<Offense>,
+) {
+    let range = match pair.field("value") {
+        Some(value) => value.byte_range(),
+        None => match pair.field("key") {
+            Some(key) => key.byte_range(),
+            None => pair.byte_range(),
+        },
+    };
+    offenses.push(context.offense(message.into(), range).corrected_by(Edit {
+        start: pair.start_byte(),
+        end: pair.end_byte(),
+        replacement,
+        safe: true,
+    }));
+}
+
+/// `node.value_omission?`.
+fn omits_value(pair: Node<'_>) -> bool {
+    pair.field("value").is_none()
+}
+
+/// `!pair_node.parent.hash_type?` inverted. A braceless hash has its pairs sitting in the argument
+/// list, where upstream's parser still builds a `hash` around them; a hash *pattern* does not.
+fn in_hash_literal(pair: Node<'_>, context: &RuleContext<'_>) -> bool {
+    pair.parent_of(context)
+        .is_some_and(|parent| matches!(parent.kind_str(), "hash" | "argument_list"))
+}
+
+/// The pairs of each hash in the file, in source order.
+fn hash_groups<'tree>(context: &'tree RuleContext<'_>) -> Vec<Vec<Node<'tree>>> {
+    let mut groups: Vec<(usize, Vec<Node<'tree>>)> = Vec::new();
+    for pair in context.nodes_of("pair") {
+        let Some(parent) = pair.parent_of(context) else {
+            continue;
+        };
+        if !matches!(parent.kind_str(), "hash" | "argument_list") {
+            continue;
+        }
+        match groups.iter_mut().find(|(id, _)| *id == parent.id()) {
+            Some((_, list)) => list.push(pair),
+            None => groups.push((parent.id(), vec![pair])),
+        }
+    }
+    groups.into_iter().map(|(_, list)| list).collect()
+}
+
+/// `require_hash_value?`: whether the value has to stay written out.
+fn require_hash_value(context: &RuleContext<'_>, pair: Node<'_>) -> bool {
+    let Some(key) = pair.field("key") else {
+        return true;
+    };
+    if !is_symbol_key(key) || require_hash_value_around_hash_literal(context, pair) {
+        return true;
+    }
+    let Some(value) = pair.field("value") else {
+        return true;
+    };
+    // `hash_value.type?(:send, :lvar)`: only a bare name can be the value the key stands in for.
+    if !matches!(value.kind_str(), "identifier" | "call") {
+        return true;
+    }
+    let key_source = context.source.node_text(key);
+    // A key ending in `!` or `?` cannot be shortened: `{ foo?: }` is not a method call on the
+    // omitted side.
+    key_source != context.source.node_text(value)
+        || key_source.ends_with('!')
+        || key_source.ends_with('?')
+}
+
+/// `node.key.sym_type?`. A key written before a colon is a symbol whatever it looks like.
+fn is_symbol_key(key: Node<'_>) -> bool {
+    matches!(
+        key.kind_str(),
+        "hash_key_symbol" | "simple_symbol" | "delimited_symbol"
+    )
+}
+
+/// `require_hash_value_for_around_hash_literal?`: a braceless hash handed to a call written
+/// without parentheses, inside a modifier form, keeps its values -- omitting one there changes
+/// where the parser thinks the argument list ends.
+fn require_hash_value_around_hash_literal(context: &RuleContext<'_>, pair: Node<'_>) -> bool {
+    let Some(parent) = pair.parent_of(context) else {
+        return false;
+    };
+    // `!node.parent.braces?`: a hash written with braces is delimited already.
+    if parent.kind_str() != "argument_list" {
+        return false;
+    }
+    let Some(dispatch) = ancestor_method_dispatch(context, parent) else {
+        return false;
+    };
+    // `use_element_of_hash_literal_as_receiver?`: `{ value: }.do_something` is fine.
+    if dispatch.field("receiver") == Some(parent) {
+        return false;
+    }
+    if is_parenthesized_call(context, dispatch) {
+        return false;
+    }
+    // `use_modifier_form_without_parenthesized_method_call?`.
+    let mut current = dispatch;
+    while let Some(ancestor) = current.parent_of(context) {
+        if is_modifier_form(ancestor, context) {
+            return true;
+        }
+        current = ancestor;
+    }
+    false
+}
+
+/// `find_ancestor_method_dispatch_node`: the call the hash is an argument of, unless that "call"
+/// is an index read.
+fn ancestor_method_dispatch<'tree>(
+    context: &'tree RuleContext<'_>,
+    list: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let ancestor = list.parent_of(context)?;
+    if !matches!(
+        ancestor.kind_str(),
+        "call" | "super" | "yield" | "method_call"
+    ) {
+        return None;
+    }
+    // `brackets?`: `foo[bar: 1]` is not a dispatch the omission can confuse.
+    let method = ancestor
+        .field("method")
+        .map(|node| context.source.node_text(node));
+    if matches!(method, Some("[]" | "[]=")) {
+        return None;
+    }
+    Some(ancestor)
+}
+
+fn is_parenthesized_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.field("arguments")
+        .is_some_and(|list| context.source.node_text(list).starts_with('('))
+}
+
+/// `modifier_form?`: a trailing `if`, `unless`, `while`, `until` or `rescue`.
+fn is_modifier_form(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if !matches!(
+        node.kind_str(),
+        "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier" | "rescue_modifier"
+    ) {
+        return false;
+    }
+    let _ = context;
+    true
 }
 
 /// `hash_node.parent&.return_type? && !hash_node.braces?`: the span of a braceless hash written
@@ -138,27 +535,6 @@ fn key_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
         .field("key")
         .map_or("", |key| context.source.node_text(key));
     text.strip_prefix(':').unwrap_or(text)
-}
-
-/// `sym_indices?`: whether every key of the hash this pair belongs to is a symbol the new syntax
-/// can spell.
-fn every_key_takes_the_new_syntax(
-    node: Node<'_>,
-    context: &RuleContext<'_>,
-    quoted_keys_allowed: bool,
-) -> bool {
-    let Some(container) = node.parent_of(context) else {
-        return false;
-    };
-    let mut cursor = container.walk();
-    let pairs: Vec<Node<'_>> = container
-        .named_children(&mut cursor)
-        .filter(|child| child.kind_str() == "pair")
-        .collect();
-    !pairs.is_empty()
-        && pairs
-            .iter()
-            .all(|pair| word_symbol_pair(*pair, context, quoted_keys_allowed))
 }
 
 /// `word_symbol_pair?`: a symbol key whose name the new syntax accepts.

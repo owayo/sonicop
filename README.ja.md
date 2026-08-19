@@ -32,22 +32,55 @@ CI へ最小限の変更で導入できます。
 
 ## 主な機能
 
-Bundler、Gemspec、Layout、Lint、Metrics、Migration、Naming、Security、Style の各部門の Cop を実装しています。
-一覧はバイナリ自身が正本です。
+Bundler、Gemspec、Layout、Lint、Metrics、Migration、Naming、Security、Style の各デパートメントの
+Cop を実装しています。一覧はバイナリ自身が正本です。
 
 ```bash
 # 認識済み Cop と実装状況の一覧
 sonicop --show-cops
 ```
 
-**RuboCop 1.89 の全 609 Cop を実装しています。** 本家のレジストリと名前まで一致しており、
-ただしこれは**レジストリについての主張**であって、すべての設定についての主張ではありません。
-`Style/HashSyntax` は存在し既定の届く範囲では一致しますが、`EnforcedShorthandSyntax` の
-既定以外の 4 つの値はいずれも未実装です。**Cop は半分欠けたまま、既定の届く範囲では
-一致し続けられます** — [CONFORMANCE.md](CONFORMANCE.md) の *Limits* を参照してください。
+**RuboCop 1.89 の全 609 Cop を実装しています。** 本家のレジストリと名前まで一致しています。
 `Enabled: pending` の 159 個と `Enabled: false` の 56 個も含みます。この 215 個は本家でも
-既定の実行では走らないので、`--only` で名指しするか設定で有効にしてください。本家にも
-存在しない Cop 名だけをエラーにし、必要なら `--ignore-unrecognized-cops` で続行できます。
+既定の実行では走らないので、`--only` で名指しするか設定で有効にしてください。本家に存在しない
+Cop 名を書いた場合だけエラーで止まります（`--ignore-unrecognized-cops` で続行できます）。
+
+### Cop 別の一致状況
+
+全 609 Cop を両者で有効にし、rubocop/rubocop・mastodon/mastodon・rails/rails・Homebrew/brew の
+4 プロジェクト計 10,792 ファイルで比較した結果です。**完全一致**とは、その Cop の offense が
+位置・メッセージ・重大度・修正可否まで 1 件残らず一致し、どちらにも余りがないことを指します。
+
+<!-- conformance:start -->
+| デパートメント | Cop 数 | 検証済み | 完全一致 | 相違 |
+|---|---:|---:|---:|---:|
+| Bundler | 7 | 3 | **3 ✓** | 0 |
+| Gemspec | 10 | 4 | **4 ✓** | 0 |
+| Layout | 100 | 84 | **84 ✓** | 0 |
+| Lint | 157 | 80 | 78 | 2 |
+| Metrics | 10 | 10 | **10 ✓** | 0 |
+| Migration | 1 | 0 | 0 | 0 |
+| Naming | 19 | 19 | **19 ✓** | 0 |
+| Security | 7 | 6 | **6 ✓** | 0 |
+| Style | 298 | 234 | 232 | 2 |
+| **合計** | **609** | **440** | **436 (99.1%)** | **4** |
+<!-- conformance:end -->
+
+**先に読むべきは「検証済み」の列です。** このコーパスで一度も発火しなかった Cop は、
+沈黙が一致と見分けられないため、一致にも相違にも数えていません。発火しなかった 169 個は
+測定の外にあり、合格したわけではありません。割合を 609 ではなく 440 で割っているのはそのためです。
+
+相違した 4 つは `Lint/Syntax`（1,275 箇所。すべて Homebrew のもので、構文エラーからの回復手順が
+2 つのパーサで異なることによる差です。**どのファイルを構文エラーと判定するかは完全に一致**します）、
+`Style/EmptyElse`（42）、`Style/DisableCopsWithinSourceCodeDirective`（3）、
+`Lint/InterpolationCheck`（2）です。
+
+設定値については別に測っています。既定値でしか一致しない Cop は半分しか実装していないのと
+同じだからです。`Enforced*` 系の設定を持つ 111 Cop すべてを**既定以外の値**に倒して同じコーパスを
+流すと、**622,317 件の offense のうち 99.99% が一致**し、発火した 96 Cop のうち 84 個が完全一致です。
+残る 12 Cop はいずれも 60 件未満で、内訳は [CONFORMANCE.md](CONFORMANCE.md) にあります。
+
+どちらの表も `scripts/conformance_table.rb` で再現できます。
 
 ## インストール
 
@@ -70,7 +103,7 @@ cargo install --git https://github.com/owayo/sonicop
 # 現在のプロジェクトを検査
 sonicop
 
-# Cop／部門を選択
+# Cop／デパートメントを指定
 sonicop --only Layout,Style/StringLiterals app spec
 
 # 安全な自動修正／全自動修正
@@ -119,11 +152,11 @@ Cop は実行しません。
 - `--cache=true` はキャッシュ再利用を求めるものですが、sonicop はこれを提供しておらず、
   それでも無言です。
 
-Cop の設定値も後者と同じ挙動です。sonicop が実装していない設定値 — たとえば
-`Style/HashSyntax` の `EnforcedShorthandSyntax` — は**警告なしに無視されます**。
-名前を綴り間違えた設定値も同様に無視されます。つまり
+Cop の設定値も後者と同じ挙動です。sonicop が実装していない設定値は**警告なしに無視されます**。
+名前を綴り間違えた設定値も同様です。つまり
 **offense が 0 件であることは、その設定が効いた証拠にはなりません**。
 無視された設定値と、違反の無いファイルが、同じ出力になるためです。
+どの設定値まで検証済みかは上の *Cop 別の一致状況* を参照してください。
 
 Cop の*名前*は検査されます。設定ファイルに未知の Cop 名があれば、実行はエラーで止まります。
 素通りするのは、既知の Cop の中の設定値です。
@@ -222,8 +255,8 @@ make gem     # source gem
 
 ### Cop の追加
 
-Cop は `src/rules/<部門>/<cop>.rs` の 1 ファイルで、公開するのは `check(context, offenses)` の
-1 関数だけです。登録は部門の `mod.rs` に 1 行を足します。
+Cop は `src/rules/<デパートメント>/<cop>.rs` の 1 ファイルで、公開するのは
+`check(context, offenses)` の 1 関数だけです。登録はデパートメントの `mod.rs` に 1 行を足します。
 
 ```rust
 department_rules! {

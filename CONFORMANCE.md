@@ -306,17 +306,35 @@ defect, so the difference stands as it is.
 ## Limits
 
 A clean run is a property of the corpora, not a general claim. `known_divergences.yml` carries the
-current list of what these corpora never exercise; the main ones are non-default configuration
-values, extension plugins, and Windows line endings. Cops that never fire contribute nothing to a
-match count, and their silence is indistinguishable from agreement.
+current list of what these corpora never exercise; the main ones are extension plugins and Windows
+line endings. Cops that never fire contribute nothing to a match count, and their silence is
+indistinguishable from agreement.
 
-That limit is not hypothetical, and one instance is now measured. `Style/HashSyntax` defaults
-`EnforcedShorthandSyntax` to `either`, under which neither tool reports anything; the port
-implements none of the other four values, so half the cop is missing. Both the corpus runs and a
-sweep of RuboCop's own specs report agreement for it, because both run at the default. A cop can be
-half absent and still match everywhere the default reaches. Where a cop's behaviour is selected by
-configuration, this document covers the default branch only — the others are neither measured nor
-claimed.
+Non-default configuration values used to be the largest of those gaps, and are now measured. Every
+one of the 111 cops carrying an `Enforced*` setting was switched to a non-default value at once —
+`Layout/SpaceInsideParens` to `space`, `Style/HashSyntax` to `hash_rockets` with
+`EnforcedShorthandSyntax: always`, and so on — and rubocop/rubocop re-run against RuboCop under the
+same file. Of 622,317 reference offenses, **99.99% match**, and 84 of the 96 cops that fired match
+exactly.
+
+| Cop | Offenses differing |
+|---|---:|
+| `Style/HashLookupMethod` | 52 |
+| `Layout/HashAlignment` | 44 |
+| `Layout/SpaceInsideReferenceBrackets` | 36 |
+| `Style/BlockDelimiters` | 17 |
+| `Style/ConditionalAssignment` | 12 |
+| `Style/MixinGrouping` | 8 |
+| `Layout/SpaceInsideStringInterpolation` | 6 |
+| `Style/NumericPredicate` | 5 |
+| `Style/PercentQLiterals` | 4 |
+| `Naming/VariableName` | 3 |
+| `Lint/SymbolConversion` | 3 |
+| `Layout/SpaceInsideParens` | 1 |
+
+One value per cop is not the whole configuration space — a cop with four supported styles is
+measured at two of them — so this is a floor, not a ceiling. It does settle the shape of the old
+limit: a cop is no longer allowed to be half absent and still count as matching.
 
 The 215 cops RuboCop ships switched off are a limit of a different kind. They are implemented, but a
 default run never reaches them, so the corpus numbers above say nothing about them. What stands

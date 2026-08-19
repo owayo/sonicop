@@ -54,9 +54,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .as_deref()
         == Some("with_fixed_indentation");
 
+    // `EnforcedLastArgumentHashStyle`: the hash a call takes as its last argument is aligned
+    // against the call rather than against itself, so three of the four settings leave it alone.
+    let last_argument_style = context
+        .setting::<String>("EnforcedLastArgumentHashStyle")
+        .unwrap_or_else(|| "always_inspect".to_owned());
+
     for literal in hash_literals(context) {
         let hash = Hash::new(context, &literal);
         if hash.first_pair().is_none() || hash.single_line() {
+            continue;
+        }
+        if ignored_last_argument(&literal, context, &last_argument_style) {
             continue;
         }
         if fixed_indentation && hash.starts_beside_its_call(&literal) {
@@ -146,8 +155,7 @@ impl Element {
         let value = if kwsplat {
             Some(node.byte_range())
         } else {
-            node.field("value")
-                .map(|value| value.byte_range())
+            node.field("value").map(|value| value.byte_range())
         };
         Self {
             id: node.id(),
@@ -196,7 +204,9 @@ impl Hash {
         Self {
             first_line: context.source.line_column(first.start_byte()).0,
             last_line: context.source.line_column(last.end_byte()).0,
-            parent_kind: first.parent_of(context).map_or("", |parent| parent.kind_str()),
+            parent_kind: first
+                .parent_of(context)
+                .map_or("", |parent| parent.kind_str()),
             starts_beside: starts_beside_its_call(context, first, &elements),
             elements,
         }
@@ -253,13 +263,12 @@ impl Hash {
         let mut deltas: HashMap<(Style, usize), Deltas> = HashMap::new();
         let mut kwsplats: Vec<(usize, Deltas)> = Vec::new();
 
-        let note =
-            |order: &mut Vec<Style>, by_style: &mut HashMap<Style, Vec<usize>>, style| {
-                if !order.contains(&style) {
-                    order.push(style);
-                }
-                by_style.entry(style).or_default();
-            };
+        let note = |order: &mut Vec<Style>, by_style: &mut HashMap<Style, Vec<usize>>, style| {
+            if !order.contains(&style) {
+                order.push(style);
+            }
+            by_style.entry(style).or_default();
+        };
 
         for style in self.alignment_for(first, rockets, colons) {
             note(&mut order, &mut by_style, style);
@@ -590,4 +599,58 @@ fn starts_beside_its_call(
     let anchor_first = context.source.line_column(anchor.start_byte()).0;
     let anchor_last = context.source.line_column(anchor.end_byte()).0;
     anchor_first == pair.start.line || anchor_last == pair.start.line
+}
+
+/// `on_send` and `ignore_hash_argument?`: whether this literal is the hash a call takes last, and
+/// the setting says to leave it be.
+///
+/// Upstream reaches the call and marks the hash with `ignore_node`; here the literal is asked
+/// which call, if any, it is the last argument of. A braced hash is a node of its own, so the walk
+/// starts one level higher for it than for a brace-less run of pairs.
+fn ignored_last_argument(elements: &[Node<'_>], context: &RuleContext<'_>, style: &str) -> bool {
+    if style == "always_inspect" {
+        return false;
+    }
+    let (Some(first), Some(final_element)) = (elements.first(), elements.last()) else {
+        return false;
+    };
+    let Some(parent) = first.parent_of(context) else {
+        return false;
+    };
+    let (list, hash_node, braces) = match parent.kind_str() {
+        "hash" => (parent.parent_of(context), Some(parent), true),
+        "argument_list" | "element_reference" => (Some(parent), None, false),
+        _ => return false,
+    };
+    let Some(list) = list else { return false };
+    let wanted = hash_node.unwrap_or(*final_element);
+    // `node.last_argument`. A comment is a node here and nothing at all upstream.
+    let is_last_argument = match list.kind_str() {
+        // `on_send`, `on_csend`, `on_super` and `on_yield`: an array literal is none of them.
+        "argument_list" | "element_reference" => {
+            let mut cursor = list.walk();
+            list.named_children(&mut cursor)
+                .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
+                .last()
+                .is_some_and(|node| node.id() == wanted.id())
+        }
+        // `x.foo = { … }` and `x[k] = { … }` are `send :foo=` and `send :[]=` to upstream's
+        // parser, so the hash is the call's last argument there. The grammar files both as
+        // assignments, which is why the walk has to look through one.
+        "assignment" => {
+            list.field("left")
+                .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
+                && list.field("right") == Some(wanted)
+        }
+        _ => false,
+    };
+    if !is_last_argument {
+        return false;
+    }
+    match style {
+        "always_ignore" => true,
+        "ignore_explicit" => braces,
+        "ignore_implicit" => !braces,
+        _ => false,
+    }
 }

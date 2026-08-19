@@ -1,106 +1,189 @@
-use std::collections::HashSet;
+//! `Layout/SpaceInsideParens`.
+//!
+//! `EnforcedStyle` picks between three readings of the space just inside a round bracket:
+//! `no_space` forbids it, `space` requires it, and `compact` requires it except between two
+//! brackets that sit next to each other.
+//!
+//! Upstream walks the lexer's token stream in neighbouring pairs rather than the syntax tree, and
+//! this follows it, because the pair is what decides the case. A `(` whose partner is the very
+//! next token is an empty pair and takes no space under any style; a pair split across two lines
+//! has no space to speak of; and a pair whose second half is a comment is a line break in
+//! disguise. Reading the source for brackets instead would also have to keep percent literals
+//! out by hand -- `%w(a b)` holds no bracket the lexer ever saw -- and the token stream settles
+//! that by construction.
+
 use std::ops::Range;
 
-use super::support::{whitespace_after, whitespace_before};
+use super::tokens::{Token, TokenKind, tokens};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::source::is_protected;
+
+const MSG: &str = "Space inside parentheses detected.";
+const MSG_SPACE: &str = "No space inside parentheses detected.";
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum Style {
+    NoSpace,
+    Space,
+    Compact,
+}
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let ranges = context.protected_ranges();
-    let text = context.source.text();
-    let bytes = text.as_bytes();
-    let percent_literal_parens = percent_literal_parens(text, ranges);
-    for index in 0..bytes.len() {
-        if is_protected(index, ranges) || percent_literal_parens.contains(&index) {
-            continue;
-        }
-        match bytes[index] {
-            b'(' => {
-                let spaces = whitespace_after(text, index + 1);
-                // RuboCop compares two neighbouring tokens, so the space only counts when a
-                // token follows it on the same line. A line break ends the line and a comment
-                // means one follows, and neither leaves anything to report. An empty pair of
-                // parentheses is reported here, from its opening side, and skipped at the
-                // closing one so that the pair yields a single offense.
-                let followed_by_a_token = !matches!(
-                    bytes.get(spaces.end),
-                    None | Some(b'\r' | b'\n') | Some(b'#')
-                );
-                if !spaces.is_empty() && followed_by_a_token {
-                    offenses.push(paren_space_offense(context, spaces));
+    let style = match context.setting::<String>("EnforcedStyle").as_deref() {
+        Some("space") => Style::Space,
+        Some("compact") => Style::Compact,
+        _ => Style::NoSpace,
+    };
+    // `processed_source.sorted_tokens`, and the sort is load-bearing rather than defensive: the
+    // stream puts a heredoc's body where its opener stands, so `foo(<<~A, bar)` hands over the
+    // body before the comma and a pair taken off it would span the file backwards.
+    let mut stream = tokens(context);
+    stream.sort_by_key(|token| token.range.start);
+    for pair in stream.windows(2) {
+        let (first, second) = (&pair[0], &pair[1]);
+        match style {
+            Style::NoSpace => correct_extraneous_space(context, first, second, offenses),
+            Style::Space => {
+                correct_extraneous_space_in_empty_parens(context, first, second, offenses);
+                correct_missing_space(context, first, second, offenses);
+            }
+            Style::Compact => {
+                correct_extraneous_space_in_empty_parens(context, first, second, offenses);
+                if consecutive_parens(first, second) {
+                    correct_extraneous_space_between_consecutive_parens(
+                        context, first, second, offenses,
+                    );
+                } else {
+                    correct_missing_space(context, first, second, offenses);
                 }
             }
-            b')' => {
-                let spaces = whitespace_before(text, index);
-                let starts_after_line_break =
-                    spaces.start > 0 && matches!(bytes[spaces.start - 1], b'\r' | b'\n');
-                if !spaces.is_empty()
-                    && !starts_after_line_break
-                    && bytes.get(spaces.start.wrapping_sub(1)) != Some(&b'(')
-                {
-                    offenses.push(paren_space_offense(context, spaces));
-                }
-            }
-            _ => {}
         }
     }
 }
 
-fn percent_literal_parens(text: &str, protected: &[Range<usize>]) -> HashSet<usize> {
-    let bytes = text.as_bytes();
-    let mut parens = HashSet::new();
-    let mut index = 0;
-    while index < bytes.len() {
-        if bytes[index] != b'%' || is_protected(index, protected) {
-            index += 1;
-            continue;
-        }
-        let opening = if bytes.get(index + 1) == Some(&b'(') {
-            index + 1
-        } else if bytes.get(index + 1).is_some_and(u8::is_ascii_alphabetic)
-            && bytes.get(index + 2) == Some(&b'(')
-        {
-            index + 2
-        } else {
-            index += 1;
-            continue;
-        };
-
-        let mut depth = 1;
-        let mut cursor = opening + 1;
-        while cursor < bytes.len() {
-            if bytes[cursor] == b'\\' {
-                cursor = (cursor + 2).min(bytes.len());
-                continue;
-            }
-            match bytes[cursor] {
-                b'(' => depth += 1,
-                b')' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        parens.insert(opening);
-                        parens.insert(cursor);
-                        index = cursor;
-                        break;
-                    }
-                }
-                _ => {}
-            }
-            cursor += 1;
-        }
-        index += 1;
+/// `correct_extraneous_space`: the `no_space` style, where any gap inside a bracket is reported.
+fn correct_extraneous_space(
+    context: &RuleContext<'_>,
+    first: &Token,
+    second: &Token,
+    offenses: &mut Vec<Offense>,
+) {
+    if !parens(first, second) || second.is_comment() {
+        return;
     }
-    parens
+    if first.line != second.line || !space_after(context, first) {
+        return;
+    }
+    offenses.push(removal(context, first.range.end..second.range.start));
 }
 
-fn paren_space_offense(context: &RuleContext<'_>, spaces: Range<usize>) -> Offense {
+/// `correct_extraneous_space_between_consecutive_parens`: under `compact`, `( (` and `) )` close
+/// up, but only when a single space separates them.
+fn correct_extraneous_space_between_consecutive_parens(
+    context: &RuleContext<'_>,
+    first: &Token,
+    second: &Token,
+    offenses: &mut Vec<Offense>,
+) {
+    let range = first.range.end..second.range.start;
+    if &context.source.text()[range.clone()] != " " {
+        return;
+    }
+    offenses.push(removal(context, range));
+}
+
+/// `correct_extraneous_space_in_empty_parens`: an empty pair takes no space under any style that
+/// asks for one.
+fn correct_extraneous_space_in_empty_parens(
+    context: &RuleContext<'_>,
+    first: &Token,
+    second: &Token,
+    offenses: &mut Vec<Offense>,
+) {
+    if first.kind != TokenKind::LeftParenthesis || second.kind != TokenKind::RightParenthesis {
+        return;
+    }
+    if empty_parens(context, first, second) {
+        return;
+    }
+    offenses.push(removal(context, first.range.end..second.range.start));
+}
+
+/// `correct_missing_space`: the space `space` and `compact` require, reported on the character it
+/// should precede.
+fn correct_missing_space(
+    context: &RuleContext<'_>,
+    first: &Token,
+    second: &Token,
+    offenses: &mut Vec<Offense>,
+) {
+    if can_be_ignored(context, first, second) {
+        return;
+    }
+    let range = if first.kind == TokenKind::LeftParenthesis {
+        // `range_between(token2.begin_pos, token2.begin_pos + 1)`: upstream counts in characters,
+        // so the range is the second token's first character rather than its first byte.
+        let width = context.source.text()[second.range.clone()]
+            .chars()
+            .next()
+            .map_or(0, char::len_utf8);
+        second.range.start..(second.range.start + width)
+    } else if second.kind == TokenKind::RightParenthesis {
+        second.range.clone()
+    } else {
+        return;
+    };
+    offenses.push(
+        context
+            .offense(MSG_SPACE, range.clone())
+            .corrected_by(Edit {
+                start: range.start,
+                end: range.start,
+                replacement: " ".to_owned(),
+                safe: true,
+            }),
+    );
+}
+
+/// `can_be_ignored?`.
+fn can_be_ignored(context: &RuleContext<'_>, first: &Token, second: &Token) -> bool {
+    if !parens(first, second) || empty_parens(context, first, second) || second.is_comment() {
+        return true;
+    }
+    first.line != second.line || space_after(context, first)
+}
+
+/// `parens?`: the pair touches the inside of a bracket from one side or the other.
+fn parens(first: &Token, second: &Token) -> bool {
+    first.kind == TokenKind::LeftParenthesis || second.kind == TokenKind::RightParenthesis
+}
+
+/// `left_parens?` or `right_parens?`: two brackets facing the same way, which `compact` closes up.
+fn consecutive_parens(first: &Token, second: &Token) -> bool {
+    (first.kind == TokenKind::LeftParenthesis && second.kind == TokenKind::LeftParenthesis)
+        || (first.kind == TokenKind::RightParenthesis && second.kind == TokenKind::RightParenthesis)
+}
+
+/// `range_between(token1.begin_pos, token2.end_pos).source == '()'`.
+fn empty_parens(context: &RuleContext<'_>, first: &Token, second: &Token) -> bool {
+    &context.source.text()[first.range.start..second.range.end] == "()"
+}
+
+/// `Token#space_after?`.
+fn space_after(context: &RuleContext<'_>, token: &Token) -> bool {
     context
-        .offense("Space inside parentheses detected.", spaces.clone())
-        .corrected_by(Edit {
-            start: spaces.start,
-            end: spaces.end,
-            replacement: String::new(),
-            safe: true,
-        })
+        .source
+        .text()
+        .as_bytes()
+        .get(token.range.end)
+        .is_some_and(u8::is_ascii_whitespace)
+}
+
+fn removal(context: &RuleContext<'_>, range: Range<usize>) -> Offense {
+    context.offense(MSG, range.clone()).corrected_by(Edit {
+        start: range.start,
+        end: range.end,
+        replacement: String::new(),
+        safe: true,
+    })
 }

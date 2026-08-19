@@ -41,14 +41,50 @@ sonicop --show-cops
 ```
 
 **All 609 RuboCop 1.89 cops are implemented**, matched name for name against the upstream registry.
-That is a claim about the registry, not about every configuration: `Style/HashSyntax` is present and
-matches everywhere its default reaches, yet none of the four non-default values of its
-`EnforcedShorthandSyntax` are implemented. **A cop can be half absent and still match everywhere the
-default reaches** — see *Limits* in [CONFORMANCE.md](CONFORMANCE.md).
 That includes the 159 shipped as `Enabled: pending` and the 56 shipped as `Enabled: false`, which a
 default run does not reach on either side — name them with `--only` or switch them on in a
 configuration, exactly as with RuboCop. Unknown cop names still fail validation unless
 `--ignore-unrecognized-cops` is supplied.
+
+### Cop conformance
+
+All 609 cops switched on, on both sides, over four projects — rubocop/rubocop, mastodon/mastodon,
+rails/rails and Homebrew/brew, 10,792 files between them. A cop counts as an **exact match** only
+when its offenses agree completely: every position, message, severity and correctable flag, with
+nothing extra on either side.
+
+<!-- conformance:start -->
+| Department | Cops | Exercised | Exact match | Diverging |
+|---|---:|---:|---:|---:|
+| Bundler | 7 | 3 | **3 ✓** | 0 |
+| Gemspec | 10 | 4 | **4 ✓** | 0 |
+| Layout | 100 | 84 | **84 ✓** | 0 |
+| Lint | 157 | 80 | 78 | 2 |
+| Metrics | 10 | 10 | **10 ✓** | 0 |
+| Migration | 1 | 0 | 0 | 0 |
+| Naming | 19 | 19 | **19 ✓** | 0 |
+| Security | 7 | 6 | **6 ✓** | 0 |
+| Style | 298 | 234 | 232 | 2 |
+| **Total** | **609** | **440** | **436 (99.1%)** | **4** |
+<!-- conformance:end -->
+
+**Read the *Exercised* column first.** A cop these corpora never made fire contributes nothing
+either way — its silence is indistinguishable from agreement — so the 169 that did not fire are
+outside the measurement rather than passing it. That is why the percentage is taken over 440 and
+not over 609.
+
+The four that diverge: `Lint/Syntax` (1,275 positions, all of them Homebrew's — the two parsers
+recover differently after a syntax error, and **the set of files each calls unparseable is
+identical**), `Style/EmptyElse` (42), `Style/DisableCopsWithinSourceCodeDirective` (3) and
+`Lint/InterpolationCheck` (2).
+
+Configuration is measured separately, because a cop that only matches at its default value is half
+a cop. Every one of the 111 cops carrying an `Enforced*` setting was switched to a **non-default**
+value at once and the corpus re-run: **99.99% of 622,317 offenses match**, with 84 of the 96 cops
+that fired matching exactly. The residue is 12 cops, none over 60 offenses; the list is in
+[CONFORMANCE.md](CONFORMANCE.md).
+
+Reproduce either table with `scripts/conformance_table.rb`.
 
 ## Installation
 
@@ -126,10 +162,10 @@ good reason:
   answer.
 - `--cache=true` asks for cache reuse, which sonicop does not provide, and it is silent anyway.
 
-Cop settings behave like the second case. A setting sonicop does not implement — for example
-`EnforcedShorthandSyntax` under `Style/HashSyntax` — is ignored without any warning, and so is a
-setting whose name is simply misspelled. **A run that reports no offenses is therefore not evidence
-that a setting took effect**, because an ignored setting and a clean file produce the same output.
+Cop settings behave like the second case. A setting sonicop does not implement is ignored without
+any warning, and so is a setting whose name is simply misspelled. **A run that reports no offenses
+is therefore not evidence that a setting took effect**, because an ignored setting and a clean file
+produce the same output. *Cop conformance* above says which values have been measured.
 
 Cop *names* are checked: an unrecognised cop in a configuration file stops the run with an error.
 It is the settings inside a recognised cop that pass unvalidated.

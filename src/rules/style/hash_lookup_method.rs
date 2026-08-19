@@ -75,6 +75,12 @@ fn bracket_offense(
 
 /// `offense_for_fetch?`: a one-argument `[]`, in either of the two spellings the grammar has for it.
 fn fetch_offense(node: Node<'_>, context: &RuleContext<'_>) -> Option<Offense> {
+    // `node.method?(:[])`: written on the left of an assignment the same brackets are `[]=`, which
+    // `fetch` has no counterpart for. The grammar spells both as an `element_reference`, so the
+    // parent has to be asked which one this is.
+    if is_assignment_target(node, context) {
+        return None;
+    }
     let (key, selector_start, safe_navigation) = match node.kind_str() {
         "element_reference" => {
             let object = node.field("object")?;
@@ -141,4 +147,21 @@ fn receiver_name(receiver: Node<'_>, context: &RuleContext<'_>) -> String {
         };
     }
     context.source.node_text(receiver).to_owned()
+}
+
+/// Whether the node stands on the left of an assignment, where its brackets mean `[]=`.
+///
+/// Only a plain assignment counts. `x[k] += 1` is `(op-asgn (send x :[] k) :+ 1)` upstream -- the
+/// read is a `send :[]` of its own, and the cop reports it -- while `x[k] = 1` is a single
+/// `send :[]=` with no read in it at all. A multiple assignment writes through `[]=` as well, so
+/// its target list is excluded too.
+fn is_assignment_target(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let Some(parent) = node.parent_of(context) else {
+        return false;
+    };
+    match parent.kind_str() {
+        "assignment" => parent.field("left") == Some(node),
+        "left_assignment_list" | "rest_assignment" => true,
+        _ => false,
+    }
 }

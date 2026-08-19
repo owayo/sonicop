@@ -36,9 +36,27 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if methods.is_empty() && requires.is_empty() {
         return;
     }
-    let locals = LocalVariables::new(context);
+    // The selector each configured entry point ends in. Every `call` and every `identifier` in the
+    // file reaches this cop, and the full check builds the dotted name a chain spells -- one
+    // `String` per node. Comparing the last segment first costs a `str` comparison and rejects
+    // everything that was never a candidate, which on ordinary code is all of it.
+    let tails: Vec<&str> = methods
+        .iter()
+        .map(|name| name.rsplit('.').next().unwrap_or(name))
+        .collect();
+    // `LocalVariables` walks the file to find what each bare name means, which is only needed once
+    // a name has matched.
+    let mut locals: Option<LocalVariables<'_, '_>> = None;
     for node in context.nodes_of_any(&["call", "identifier"]) {
-        if node.kind_str() == "identifier" && !is_receiverless_name(node, &locals) {
+        if !selector_could_match(node, &tails, !requires.is_empty(), context) {
+            continue;
+        }
+        if node.kind_str() == "identifier"
+            && !is_receiverless_name(
+                node,
+                locals.get_or_insert_with(|| LocalVariables::new(context)),
+            )
+        {
             continue;
         }
         if node.kind_str() == "call" && !is_plain_send(node, context) {
@@ -96,6 +114,24 @@ fn is_receiverless_name(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool
     ) && !locals.is_lvar(node)
 }
 
+/// Whether the name this node ends in could belong to a configured entry point at all. A `require`
+/// is kept as well, since `DebuggerRequires` matches on the argument rather than on the selector.
+fn selector_could_match(
+    node: Node<'_>,
+    tails: &[&str],
+    has_requires: bool,
+    context: &RuleContext<'_>,
+) -> bool {
+    let selector = match node.kind_str() {
+        "identifier" => context.source.node_text(node),
+        _ => match node.field("method") {
+            Some(method) => context.source.node_text(method),
+            None => return false,
+        },
+    };
+    (has_requires && selector == "require") || tails.contains(&selector)
+}
+
 /// `debugger_method?`: the chained name the call spells is one of the configured entry points.
 fn is_debugger_method(node: Node<'_>, methods: &[String], context: &RuleContext<'_>) -> bool {
     let Some(name) = chained_method_name(node, context) else {
@@ -109,10 +145,7 @@ fn chained_method_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<Stri
     if node.kind_str() == "identifier" {
         return Some(context.source.node_text(node).to_owned());
     }
-    let mut name = context
-        .source
-        .node_text(node.field("method")?)
-        .to_owned();
+    let mut name = context.source.node_text(node.field("method")?).to_owned();
     let mut receiver = node.field("receiver");
     while let Some(current) = receiver {
         let part = match current.kind_str() {
