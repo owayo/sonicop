@@ -320,8 +320,15 @@ impl Cop<'_, '_> {
             // `node.parent.begin_type?`: parentheses around the block, which pass the question on.
             "parenthesized_statements" => self.return_value_used(parent),
             "assignment" | "operator_assignment" => true,
-            // `call_type?`: the block is the receiver of, or an argument to, another call.
-            "call" | "method_call" => true,
+            // `call_type?`: Parser folds arguments, indexing and non-keyword operators into
+            // `send` nodes. tree-sitter keeps the argument-list wrapper and operator forms.
+            "call" | "method_call" | "argument_list" | "element_reference" | "unary" => true,
+            // Ordinary operators are `send` nodes to Parser, while `&&` / `||` / `and` / `or`
+            // remain keyword operators. The latter make braces functional through
+            // `return_value_of_scope?`, but do not make a `do...end` block's value directly used.
+            "binary" => parent.field("operator").is_some_and(|operator| {
+                !LOGICAL_OPERATORS.contains(&self.context.source.node_text(operator))
+            }),
             _ => false,
         }
     }
@@ -335,6 +342,7 @@ impl Cop<'_, '_> {
         if matches!(
             parent.kind_str(),
             "if" | "unless"
+                | "elsif"
                 | "if_modifier"
                 | "unless_modifier"
                 | "while"
@@ -343,7 +351,7 @@ impl Cop<'_, '_> {
                 | "until_modifier"
                 | "case"
                 | "case_match"
-                | "ternary"
+                | "conditional"
                 | "array"
                 | "range"
         ) {
@@ -362,7 +370,20 @@ impl Cop<'_, '_> {
         }
         // `parent.children.last == node`: the block is the last thing the parent holds, so its
         // value is the parent's.
-        super::nodes::children(parent)
+        let children = super::nodes::children(parent);
+        // Parser represents a method-level rescue as a `rescue` whose protected body is a
+        // separate `begin`. tree-sitter appends the rescue clauses to one `body_statement`; the
+        // last expression before the first clause is the value of that virtual begin.
+        let value_children = match parent.kind_str() {
+            "body_statement" => {
+                &children[..children
+                    .iter()
+                    .position(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
+                    .unwrap_or(children.len())]
+            }
+            _ => children.as_slice(),
+        };
+        value_children
             .last()
             .is_some_and(|last| last.id() == node.id())
     }

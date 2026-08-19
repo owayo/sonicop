@@ -78,7 +78,7 @@ impl Cop<'_, '_> {
             self.context
                 .nodes_of_any(&["if", "unless", "conditional", "case", "case_match"])
         {
-            let Some(conditional) = self.conditional(node) else {
+            let Some(conditional) = self.conditional(node, false) else {
                 continue;
             };
             // `allowed_ternary?`.
@@ -106,7 +106,11 @@ impl Cop<'_, '_> {
     }
 
     /// The branches of a conditional that has an `else`, which is the only shape this cop reads.
-    fn conditional<'t>(&self, node: Node<'t>) -> Option<Conditional<'t>> {
+    fn conditional<'t>(
+        &self,
+        node: Node<'t>,
+        allow_elsif_without_else: bool,
+    ) -> Option<Conditional<'t>> {
         if matches!(node.kind_str(), "case" | "case_match") {
             let children = super::nodes::children(node);
             let otherwise = children.iter().find(|child| child.kind_str() == "else")?;
@@ -141,7 +145,18 @@ impl Cop<'_, '_> {
         let mut alternative = node.field("alternative")?;
         while alternative.kind_str() == "elsif" {
             branches.push(branch(alternative.field("consequence"))?);
-            alternative = alternative.field("alternative")?;
+            let Some(next) = alternative.field("alternative") else {
+                // Parser exposes the final `elsif` itself as the top `if`'s else branch even when
+                // there is no explicit `else`. That is enough for `assignment.else_branch` and
+                // the corrector moves the assignment into every branch that actually exists.
+                return allow_elsif_without_else.then_some(Conditional {
+                    node,
+                    branches,
+                    ternary: false,
+                    case_like: false,
+                });
+            };
+            alternative = next;
         }
         branches.push(branch(Some(alternative))?);
         Some(Conditional {
@@ -455,6 +470,14 @@ impl Cop<'_, '_> {
             self.context
                 .nodes_of_any(&["assignment", "operator_assignment", "binary", "call"])
         {
+            // Every variable-assignment callback asks `part_of_ignored_node?`. An enclosing
+            // assignment calls `ignore_node` before checking whether its RHS is a conditional,
+            // so assignments inside a memoization block or a constant-assigned class are silent.
+            if matches!(node.kind_str(), "assignment" | "operator_assignment")
+                && self.ignored_by_outer_assignment(node)
+            {
+                continue;
+            }
             let Some(assignment) = self.classify(node) else {
                 continue;
             };
@@ -466,9 +489,14 @@ impl Cop<'_, '_> {
                 continue;
             }
             let value = strip_parentheses(assignment.value);
-            let Some(conditional) = self.conditional(value) else {
+            let Some(conditional) = self.conditional(value, true) else {
                 continue;
             };
+            // RuboCop 1.89's ternary corrector produces an unparsable rewrite for a multiple
+            // assignment (`cond ? a, b = x : a, b = y`), and its reparse guard suppresses it.
+            if conditional.ternary && assignment.kind == Kind::Masgn {
+                continue;
+            }
             if conditional.ternary && !self.include_ternary {
                 continue;
             }
@@ -488,6 +516,21 @@ impl Cop<'_, '_> {
                     .corrected_by_all(edits),
             );
         }
+    }
+
+    fn ignored_by_outer_assignment(&self, node: Node<'_>) -> bool {
+        let mut ancestor = node.parent_of(self.context);
+        while let Some(parent) = ancestor {
+            if self.classify(parent).is_some()
+                && !parent.parent_of(self.context).is_some_and(|owner| {
+                    matches!(owner.kind_str(), "left_assignment_list" | "rescue")
+                })
+            {
+                return true;
+            }
+            ancestor = parent.parent_of(self.context);
+        }
+        false
     }
 
     /// `move_assignment_inside_condition`: the assignment is written again in each branch.
@@ -523,6 +566,32 @@ impl Cop<'_, '_> {
                 replacement: String::new(),
                 safe: true,
             });
+        }
+        // `remove_whitespace_in_branches`: once `lhs = ` is removed from in front of the
+        // conditional, every following line moves left by that prefix's width. This covers branch
+        // bodies as well as `elsif` / `else` / `end`, including nested expressions on later lines.
+        let assignment_column = self.context.source.line_column(node.start_byte()).1;
+        let condition_column = self.context.source.line_column(value.start_byte()).1;
+        let shift = condition_column.saturating_sub(assignment_column);
+        if shift > 0 && !conditional.ternary {
+            let text = self.context.source.text();
+            let mut line_start = value.start_byte();
+            while let Some(newline) = text[line_start..value.end_byte()].find('\n') {
+                line_start += newline + 1;
+                let removable = text.as_bytes()
+                    [line_start..value.end_byte().min(line_start + shift)]
+                    .iter()
+                    .take_while(|byte| matches!(byte, b' ' | b'\t'))
+                    .count();
+                if removable == shift {
+                    edits.push(Edit {
+                        start: line_start,
+                        end: line_start + shift,
+                        replacement: String::new(),
+                        safe: true,
+                    });
+                }
+            }
         }
         for branch in &conditional.branches {
             let statement = tail(*branch);

@@ -160,7 +160,24 @@ fn is_assignment_target(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     };
     match parent.kind_str() {
-        "assignment" => parent.field("left") == Some(node),
+        // The grammar also spells `value[index] =~ /pattern/` as an `assignment`: `=` is the
+        // assignment token and `~ /pattern/` its unary right side. With no whitespace between
+        // those two characters Ruby reads the pair as the match operator, so the brackets remain
+        // a `send :[]` upstream and must not be mistaken for an `[]=` target.
+        "assignment" => {
+            if parent.field("left") != Some(node) {
+                return false;
+            }
+            let match_operator = parent.field("right").is_some_and(|right| {
+                right.kind_str() == "unary"
+                    && right
+                        .field("operator")
+                        .is_some_and(|operator| context.source.node_text(operator) == "~")
+                    && right.start_byte() > 0
+                    && context.source.text().as_bytes()[right.start_byte() - 1] == b'='
+            });
+            !match_operator
+        }
         "left_assignment_list" | "rest_assignment" => true,
         _ => false,
     }

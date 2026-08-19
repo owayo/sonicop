@@ -4,6 +4,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let predicate_style = context
@@ -86,7 +87,13 @@ fn predicate<'tree>(
     context: &RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str)> {
-    if node.kind_str() != "call" || node.field("arguments").is_some() {
+    // Upstream dispatches `on_send` but does not alias it to `on_csend`: a predicate reached
+    // through `&.` is deliberately outside this cop even though the grammar calls both forms a
+    // `call`.
+    if node.kind_str() != "call"
+        || !send_node::is_plain_send(node, context)
+        || node.field("arguments").is_some()
+    {
         return None;
     }
     let receiver = node.field("receiver")?;
@@ -174,11 +181,9 @@ fn parenthesized_source(context: &RuleContext<'_>, node: Node<'_>) -> String {
 fn require_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     match node.kind_str() {
         // `&&` and `||` are not sends upstream, so they are not binary operations either.
-        "binary" => node
-            .field("operator")
-            .is_some_and(|operator| {
-                super::nodes::is_operator_method(context.source.node_text(operator))
-            }),
+        "binary" => node.field("operator").is_some_and(|operator| {
+            super::nodes::is_operator_method(context.source.node_text(operator))
+        }),
         // `a[b]` is a call to `:[]`, and its `loc.begin` is a bracket rather than a parenthesis.
         "element_reference" => true,
         "call" => {

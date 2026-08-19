@@ -361,6 +361,15 @@ mod layout {
         );
         expect_no_offenses("Layout/SpaceInsideParens", "puts(1)\n");
         expect_correction("Layout/SpaceInsideParens", "puts( 1)\n", "puts(1)\n");
+        CopCase::new(
+            "Layout/SpaceInsideParens",
+            "return (line..line) unless statement\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Layout/SpaceInsideParens:\n  EnforcedStyle: space\n")
+        .without_offense_check()
+        .corrected("return ( line..line ) unless statement\n")
+        .run();
     }
 
     #[test]
@@ -1987,6 +1996,15 @@ mod naming {
             puts bazQux
             "#,
         );
+        CopCase::annotated(
+            "Naming/VariableName",
+            r#"
+            [1].map { _1 }
+                      ^^ Use camelCase for variable names.
+            "#,
+        )
+        .config("Naming/VariableName:\n  EnforcedStyle: camelCase\n")
+        .run();
     }
 
     /// インスタンス変数とクラス変数は代入だけが対象。グローバル変数は
@@ -9599,6 +9617,34 @@ mod block_delimiters {
         expect_no_offenses(COP, "lambda do |x| x end\n");
         expect_no_offenses(COP, "foo bar do |x|\n  x\nend\n");
     }
+
+    /// Parser が `send` に畳む引数・演算子と、rescue 前の仮想 `begin` を semantic 判定へ戻す。
+    #[test]
+    fn semantic_style_tracks_where_the_block_value_is_consumed() {
+        let config = "Style/BlockDelimiters:\n  EnforcedStyle: semantic\n";
+        for source in [
+            "wrap(items.reject { |item| skip?(item) }, fallback)\n",
+            "def count(lines)\n  lines.count { |line| keep?(line) } + 2\nend\n",
+            "value = ready? ? items.reject { |item| skip?(item) } : items\n",
+            "def any?(items)\n  items.any? { |item| ready?(item) }\nrescue Error\n  false\nend\n",
+            "result = items.find do |item|\n  ready?(item)\nend || fallback\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(config)
+                .run();
+        }
+        CopCase::annotated(
+            COP,
+            r#"
+            wrap(items.map do |item|
+                           ^^ Prefer `{...}` over `do...end` for functional blocks.
+              item.name
+            end)
+            "#,
+        )
+        .config(config)
+        .run();
+    }
 }
 
 /// 字下げ系。期待値は本家 1.89.0 の `--only <cop>` の実出力から取った。
@@ -12150,6 +12196,26 @@ mod hash_compare_by_identity {
             expect_no_offenses(COP, "q = \"#{ }\"\n");
             // 複数行の `#{}` は対象外。
             expect_no_offenses(COP, "q = \"#{ a +\n  b }\"\n");
+
+            // heredoc 内の `#` を grammar が comment と誤認しても、後続の実補間は検査する。
+            CopCase::new(
+                COP,
+                r"expect_correction(<<~RUBY)
+  #{ left }#\#{literal}#{right}
+RUBY
+"
+                .to_owned(),
+                Vec::new(),
+            )
+            .config("Layout/SpaceInsideStringInterpolation:\n  EnforcedStyle: space\n")
+            .without_offense_check()
+            .corrected(
+                r"expect_correction(<<~RUBY)
+  #{ left }#\#{literal}#{ right }
+RUBY
+",
+            )
+            .run();
         }
 
         /// 既定は中に空白 1 つ、空のブレースだけは空白なし。空白の「過剰」は
@@ -12689,6 +12755,9 @@ mod numeric_predicate {
         .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
         .corrected("a = !(foo < 0)\n")
         .run();
+        CopCase::new(COP, "a = foo&.zero?\n".to_owned(), Vec::new())
+            .config("Style/NumericPredicate:\n  EnforcedStyle: comparison\n")
+            .run();
     }
 }
 /// `Style/RescueStandardError`: 既定では例外クラスを省いた `rescue` を報告する。
@@ -13740,6 +13809,13 @@ mod style_formatting {
         expect_correction("Style/PercentQLiterals", "b = %Q(hi)\n", "b = %q(hi)\n");
         // `%q` と `%Q` で意味が変わる本文は残す。
         expect_no_offenses("Style/PercentQLiterals", "b = %Q(a\\nb)\n");
+        CopCase::new(
+            "Style/PercentQLiterals",
+            "b = %q(\"#{sparta}\")\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/PercentQLiterals:\n  EnforcedStyle: upper_case_q\n")
+        .run();
         expect_correction("Style/RedundantCapitalW", "d = %W[a b]\n", "d = %w[a b]\n");
         expect_no_offenses("Style/RedundantCapitalW", "e = %W[a #\u{7b}b}]\n");
         expect_correction("Style/RedundantPercentQ", "c = %q(hi)\n", "c = 'hi'\n");
@@ -21482,6 +21558,17 @@ mod style_mixin_grouping {
             "class Foo\n  prepend Z\n  prepend Y\n  prepend X\nend\n",
         );
     }
+
+    #[test]
+    fn singleton_class_mixins_are_not_class_callbacks() {
+        CopCase::new(
+            COP,
+            "class Foo\n  class << self\n    include A\n    include B\n  end\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/MixinGrouping:\n  EnforcedStyle: grouped\n")
+        .run();
+    }
 }
 
 /// `Style/InverseMethods` — 反転メソッドがあるなら否定しない。
@@ -22196,6 +22283,7 @@ mod style_conditional_assignment {
         expect_no_offenses(COP, "if foo\n  bar = 1\nelse\n  baz = 2\nend\n");
         // `else` が無ければ値の無い分岐が残る。
         expect_no_offenses(COP, "if foo\n  bar = 1\nend\n");
+        expect_no_offenses(COP, "if foo\n  bar = 1\nelsif baz\n  bar = 2\nend\n");
         // `SingleLineConditionsOnly` の既定では、複数文の分岐があると対象外。
         expect_no_offenses(COP, "if foo\n  bar = 1\n  baz = 2\nelse\n  bar = 3\nend\n");
         // 分岐の末尾が代入でなければ対象外。
@@ -22253,6 +22341,29 @@ mod style_conditional_assignment {
             "if foo\n  recv.bar = 1\nelse\n  recv.bar = 3\nend\n",
             "recv.bar = if foo\n  1\nelse\n  3\n           end\n",
         );
+    }
+
+    #[test]
+    fn assign_inside_condition_matches_ignored_nodes_and_elsif_without_else() {
+        let config = "Style/ConditionalAssignment:\n  EnforcedStyle: assign_inside_condition\n";
+        for source in [
+            "@memo = Hash.new do\n  value = ready? ? one : two\nend\n",
+            "left, right = ready? ? pair : :disabled\n",
+        ] {
+            CopCase::new(COP, source.to_owned(), Vec::new())
+                .config(config)
+                .run();
+        }
+        CopCase::new(
+            COP,
+            "value = if one?\n          one\n        elsif two?\n          two\n        end\n"
+                .to_owned(),
+            Vec::new(),
+        )
+        .config(config)
+        .without_offense_check()
+        .corrected("if one?\n  value = one\nelsif two?\n  value = two\nend\n")
+        .run();
     }
 }
 
@@ -27108,6 +27219,15 @@ mod style_hash_lookup_method {
                 "Style/HashLookupMethod:\n  EnforcedStyle: fetch\n  AllowedReceivers:\n    - Foo.bar\n",
             )
             .run();
+        CopCase::new(
+            COP,
+            "x = source[range.line - 1] =~ /\\S/\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/HashLookupMethod:\n  EnforcedStyle: fetch\n")
+        .without_offense_check()
+        .corrected("x = source.fetch(range.line - 1) =~ /\\S/\n")
+        .run();
     }
 }
 
@@ -34037,6 +34157,15 @@ mod lint_symbol_conversion {
         )
         .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
         .corrected("x = :foo=\n")
+        .run();
+        CopCase::new(
+            COP,
+            "expect(x).to eq('==': :!=, any?: :none?, foo: :bar)\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Lint/SymbolConversion:\n  EnforcedStyle: consistent\n")
+        .without_offense_check()
+        .corrected("expect(x).to eq('==': :!=, \"any?\": :none?, \"foo\": :bar)\n")
         .run();
     }
 

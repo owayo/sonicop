@@ -109,10 +109,17 @@ struct Scope<'a> {
 
 impl Scope<'_> {
     fn new(isolated: bool) -> Self {
-        Self {
-            isolated,
-            names: HashSet::new(),
-        }
+        // `_1` through `_9` are implicit local parameters in every block scope. The parser emits
+        // ordinary `lvar` nodes for their reads, but tree-sitter has no parameter node to seed the
+        // scope replay from, so predeclare them at the point where that implicit scope opens.
+        const NUMBERED_PARAMETERS: [&str; 9] =
+            ["_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9"];
+        let names = if isolated {
+            HashSet::new()
+        } else {
+            NUMBERED_PARAMETERS.into_iter().collect()
+        };
+        Self { isolated, names }
     }
 }
 

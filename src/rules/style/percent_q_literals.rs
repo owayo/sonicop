@@ -31,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let delimiters = [literal.opening, closing_of(context, &literal)];
         let single = super::literal::decode(body, super::literal::Quoting::Single, &delimiters);
         let double = super::literal::decode(body, super::literal::Quoting::Double, &delimiters);
-        if single.value != double.value {
+        if single.value != double.value || (!lower_case && has_active_interpolation(body)) {
             continue;
         }
         let text = context.source.node_text(node);
@@ -58,6 +58,26 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .corrections_anchored_at(node.byte_range()),
         );
     }
+}
+
+/// Whether changing a single-quoted percent literal to `%Q` would turn text into interpolation.
+/// An even run of backslashes leaves `#` active; an odd run escapes it (and the value comparison
+/// above separately catches the backslash whose meaning changes in that case).
+fn has_active_interpolation(body: &str) -> bool {
+    let bytes = body.as_bytes();
+    for index in 0..bytes.len().saturating_sub(1) {
+        if bytes[index] != b'#' || !matches!(bytes[index + 1], b'{' | b'$' | b'@') {
+            continue;
+        }
+        let mut slash = index;
+        while slash > 0 && bytes[slash - 1] == b'\\' {
+            slash -= 1;
+        }
+        if (index - slash) % 2 == 0 {
+            return true;
+        }
+    }
+    false
 }
 
 fn closing_of(context: &RuleContext<'_>, literal: &super::percent::PercentLiteral) -> char {

@@ -353,6 +353,10 @@ fn opens_a_command_argument(node: Node<'_>) -> bool {
     group
         .parent()
         .filter(|list| list.kind_str() == "argument_list")
-        .and_then(|list| list.child(0))
-        .is_some_and(|first| first == group)
+        .filter(|list| list.child(0) == Some(group))
+        // `foo (value)` is the ambiguous command-argument spelling and uses `tLPAREN_ARG`.
+        // Keywords such as `return (value)` also own an argument list in this grammar, but Ruby's
+        // lexer gives their opening bracket the ordinary `tLPAREN2` token this cop must inspect.
+        .and_then(|list| list.parent())
+        .is_some_and(|parent| parent.kind_str() == "call")
 }

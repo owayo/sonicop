@@ -20,6 +20,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         for node in context.nodes_of("hash") {
             inconsistent_keys(context, offenses, node, &mut ignored);
         }
+        // `foo(a: 1, b: 2)` contains one `hash` argument upstream, but tree-sitter leaves its
+        // pairs directly under the argument list. `on_hash` therefore has a second structural
+        // spelling here even though no braces were written.
+        for list in context.nodes_of("argument_list") {
+            let keys: Vec<Node<'_>> = named_children(list)
+                .into_iter()
+                .filter(|child| child.kind_str() == "pair")
+                .filter_map(|pair| pair.field("key"))
+                .filter(|key| literal_symbol_value(*key, context).is_some())
+                .collect();
+            correct_inconsistent_keys(context, offenses, keys, &mut ignored);
+        }
     }
     for node in context.nodes_of_any(&[
         "simple_symbol",
@@ -149,6 +161,15 @@ fn inconsistent_keys(
         .filter_map(|pair| pair.field("key"))
         .filter(|key| literal_symbol_value(*key, context).is_some())
         .collect();
+    correct_inconsistent_keys(context, offenses, keys, ignored);
+}
+
+fn correct_inconsistent_keys(
+    context: &RuleContext<'_>,
+    offenses: &mut Vec<Offense>,
+    keys: Vec<Node<'_>>,
+    ignored: &mut Vec<usize>,
+) {
     let needs_quotes = |key: &Node<'_>| {
         literal_symbol_value(*key, context).is_some_and(|value| {
             let inspected = symbol_inspect(&value);
