@@ -80,9 +80,9 @@ identical**), `Style/EmptyElse` (42), `Style/DisableCopsWithinSourceCodeDirectiv
 
 Configuration is measured separately, because a cop that only matches at its default value is half
 a cop. Every one of the 111 cops carrying an `Enforced*` setting was switched to a **non-default**
-value at once and the corpus re-run: **99.99% of 622,317 offenses match**, with 84 of the 96 cops
-that fired matching exactly. The residue is 12 cops, none over 60 offenses; the list is in
-[CONFORMANCE.md](CONFORMANCE.md).
+value at once and the corpus re-run: **99.995% of 622,317 offenses match**, with 85 of the 96 cops
+that fired matching exactly. The residue is 10 cops of at most 17 offenses each, plus one where
+RuboCop crashes and sonicop does not; the list is in [CONFORMANCE.md](CONFORMANCE.md).
 
 Reproduce either table with `scripts/conformance_table.rb`.
 

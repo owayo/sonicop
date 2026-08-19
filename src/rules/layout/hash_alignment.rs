@@ -642,6 +642,17 @@ fn ignored_last_argument(elements: &[Node<'_>], context: &RuleContext<'_>, style
                 .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
                 && list.field("right") == Some(wanted)
         }
+        // `a << { … }`: an operator method is a send too, and the hash is its only argument.
+        // `&&`, `||`, `and` and `or` are not sends -- upstream builds `and`/`or` nodes for them --
+        // so a hash to the right of one is nobody's argument.
+        "binary" => {
+            list.field("operator").is_some_and(|operator| {
+                !matches!(
+                    &context.source.text()[operator.byte_range()],
+                    "&&" | "||" | "and" | "or"
+                )
+            }) && list.field("right") == Some(wanted)
+        }
         _ => false,
     };
     if !is_last_argument {

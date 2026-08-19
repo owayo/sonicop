@@ -317,20 +317,28 @@ one of the 111 cops carrying an `Enforced*` setting was switched to a non-defaul
 same file. Of 622,317 reference offenses, **99.99% match**, and 84 of the 96 cops that fired match
 exactly.
 
-| Cop | Offenses differing |
-|---|---:|
-| `Style/HashLookupMethod` | 52 |
-| `Layout/HashAlignment` | 44 |
-| `Layout/SpaceInsideReferenceBrackets` | 36 |
-| `Style/BlockDelimiters` | 17 |
-| `Style/ConditionalAssignment` | 12 |
-| `Style/MixinGrouping` | 8 |
-| `Layout/SpaceInsideStringInterpolation` | 6 |
-| `Style/NumericPredicate` | 5 |
-| `Style/PercentQLiterals` | 4 |
-| `Naming/VariableName` | 3 |
-| `Lint/SymbolConversion` | 3 |
-| `Layout/SpaceInsideParens` | 1 |
+| Cop | Offenses differing | |
+|---|---:|---|
+| `Layout/HashAlignment` | 35 | **RuboCop's own bug**, see below |
+| `Style/BlockDelimiters` | 17 | |
+| `Style/ConditionalAssignment` | 12 | |
+| `Style/MixinGrouping` | 8 | |
+| `Layout/SpaceInsideStringInterpolation` | 6 | |
+| `Style/NumericPredicate` | 5 | |
+| `Style/PercentQLiterals` | 4 | |
+| `Naming/VariableName` | 3 | |
+| `Lint/SymbolConversion` | 3 | |
+| `Layout/SpaceInsideParens` | 1 | |
+
+`Layout/HashAlignment`'s 35 are not a defect here. Under `EnforcedHashRocketStyle: separator`
+RuboCop raises `Parser::ClobberingError` on `spec/rubocop/config_loader_spec.rb` — three times, at
+`1111:35`, `1130:38` and `1217:35` — and reports nothing for the hashes it crashed on. Sonicop
+inspects them and reports. Every one of the 35 sits in that file between lines 1114 and 1234.
+Reproduce with:
+
+```bash
+rubocop -c <variants.yml> --only Layout/HashAlignment -d spec/rubocop/config_loader_spec.rb
+```
 
 One value per cop is not the whole configuration space — a cop with four supported styles is
 measured at two of them — so this is a floor, not a ceiling. It does settle the shape of the old

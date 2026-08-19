@@ -26,7 +26,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 parent.kind_str() == "assignment" && parent.field("left") == Some(node)
             })
             .unwrap_or(node);
-        let (Some(left), Some(right)) = brackets(node) else {
+        let is_setter = send.id() != node.id();
+        let Some((left, right)) = left_ref_bracket(node, is_setter, context) else {
             continue;
         };
         let inner = left.end_byte()..right.start_byte();
@@ -134,6 +135,64 @@ fn corrections(text: &str, style: &str, left: &Node<'_>, right: &Node<'_>) -> Ve
         }
     }
     edits
+}
+
+/// `left_ref_bracket` and the `closing_bracket` that answers it: which pair of brackets this send
+/// is held to.
+///
+/// Upstream picks out of `tokens_within(node)` -- every token the send spans, children included --
+/// rather than out of the node's own brackets, and then applies a rule that usually sends it back
+/// to the *first* pair:
+///
+/// ```ruby
+/// a['x'].b['y']   # the outer send spans both pairs; the token before `['y']` is `b`, not `]`,
+///                 # so it reports on `['x']` -- which the inner send reported already.
+/// a['x']['y']     # the token before `['y']` is `]`, so the outer send reports on its own pair.
+/// ```
+///
+/// The effect is that a pair reached through a method call is reported once, not twice, and the
+/// *outer* pair of such a chain is never reported at all. Reading each node's own brackets instead
+/// reports every pair, which is 36 offenses too many on rubocop/rubocop under `EnforcedStyle:
+/// space`.
+fn left_ref_bracket<'tree>(
+    node: Node<'tree>,
+    is_setter: bool,
+    context: &RuleContext<'_>,
+) -> Option<(Node<'tree>, Node<'tree>)> {
+    let opens = index_brackets(node);
+    let last = *opens.last()?;
+    // `previous_token(current_token).right_bracket?`: what stands immediately before the bracket.
+    let closes_a_bracket = context.source.text()[..last.start_byte()]
+        .trim_end()
+        .ends_with(']');
+    let chosen = if is_setter || !closes_a_bracket {
+        *opens.first()?
+    } else {
+        last
+    };
+    let close = chosen
+        .parent()
+        .and_then(|parent| brackets(parent).1)
+        .or_else(|| brackets(node).1)?;
+    Some((chosen, close))
+}
+
+/// Every index bracket the node spans, in source order. An array literal's `[` is a different
+/// token type upstream (`tLBRACK` against `tLBRACK2`) and is not one of these.
+fn index_brackets<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut opens = Vec::new();
+    let mut stack = vec![node];
+    while let Some(current) = stack.pop() {
+        if current.kind_str() == "element_reference"
+            && let Some(open) = brackets(current).0
+        {
+            opens.push(open);
+        }
+        let mut cursor = current.walk();
+        stack.extend(current.children(&mut cursor));
+    }
+    opens.sort_by_key(tree_sitter::Node::start_byte);
+    opens
 }
 
 /// The index's own brackets. Nested and chained ones belong to child nodes, which is what
