@@ -11,8 +11,9 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, NO_SYNTAX_GUARD, Selection, correct_file, discover_targets_with_store,
-    inspect_files_with_store, inspect_source, is_mandatory_cop, offense_count, write_corrected,
+    CorrectMode, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
+    discover_targets_with_store, inspect_files_with_store_cached, inspect_source, is_mandatory_cop,
+    offense_count, write_corrected,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -394,12 +395,24 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
 
     let correct_mode = cli.correct_mode();
     let selection = build_selection(&cli, &config, correct_mode)?;
+    let result_cache = result_cache(&cli, &cwd, &selection, &config)?;
     if !cli.list_target_files {
         warn_unimplemented_enabled(&config, &selection);
     }
 
     let parallel = !cli.no_parallel && (cli.parallel || cli.stdin.is_none());
-    let mut reports = match inspect_inputs(&cli, &cwd, &configs, &selection, parallel)? {
+    let inspection = inspect_inputs(
+        &cli,
+        &cwd,
+        &configs,
+        &selection,
+        parallel,
+        result_cache.as_ref(),
+    )?;
+    if let Some(cache) = &result_cache {
+        cache.prune();
+    }
+    let mut reports = match inspection {
         Inspection::Reports(reports) => reports,
         Inspection::ListedTargets => return Ok(0),
     };
@@ -479,6 +492,47 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
     })
 }
 
+fn result_cache(
+    cli: &Cli,
+    cwd: &Path,
+    selection: &Selection,
+    config: &Config,
+) -> Result<Option<ResultCache>> {
+    let enabled = cli.cache.as_deref() != Some("false")
+        && !selection.correcting
+        && cli.stdin.is_none()
+        && !cli.profile
+        && !cli.memory
+        && std::env::var_os("SONICOP_PROFILE").is_none();
+    if !enabled {
+        return Ok(None);
+    }
+    let root = cli
+        .cache_root
+        .clone()
+        .unwrap_or_else(|| default_cache_root(cwd));
+    let max_files = config.all_cops_value("MaxFilesInCache").unwrap_or(20_000);
+    if max_files == 0 {
+        return Ok(None);
+    }
+    ResultCache::new(root, selection, max_files).map(Some)
+}
+
+fn default_cache_root(cwd: &Path) -> PathBuf {
+    if let Some(root) = std::env::var_os("XDG_CACHE_HOME") {
+        return PathBuf::from(root).join("sonicop");
+    }
+    if cfg!(target_os = "macos")
+        && let Some(home) = std::env::var_os("HOME")
+    {
+        return PathBuf::from(home).join("Library/Caches/sonicop");
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        return PathBuf::from(home).join(".cache/sonicop");
+    }
+    cwd.join(".sonicop-cache")
+}
+
 enum Inspection {
     Reports(Vec<FileReport>),
     ListedTargets,
@@ -490,6 +544,7 @@ fn inspect_inputs(
     configs: &ConfigStore,
     selection: &Selection,
     parallel: bool,
+    cache: Option<&ResultCache>,
 ) -> Result<Inspection> {
     let Some(stdin_path) = &cli.stdin else {
         let mut targets = discover_targets_with_store(
@@ -513,9 +568,9 @@ fn inspect_inputs(
                         .ok(),
                 )
             });
-            inspect_fail_fast(&targets, configs, selection)?
+            inspect_fail_fast(&targets, configs, selection, cache)?
         } else {
-            inspect_files_with_store(&targets, configs, selection, parallel)?
+            inspect_files_with_store_cached(&targets, configs, selection, parallel, cache)?
         };
         return Ok(Inspection::Reports(reports));
     };
@@ -745,11 +800,17 @@ fn inspect_fail_fast(
     paths: &[PathBuf],
     configs: &ConfigStore,
     selection: &Selection,
+    cache: Option<&ResultCache>,
 ) -> Result<Vec<FileReport>> {
     let mut reports = Vec::new();
     for path in paths {
-        let mut inspected =
-            inspect_files_with_store(std::slice::from_ref(path), configs, selection, false)?;
+        let mut inspected = inspect_files_with_store_cached(
+            std::slice::from_ref(path),
+            configs,
+            selection,
+            false,
+            cache,
+        )?;
         let has_offense = inspected
             .first()
             .is_some_and(|report| !report.offenses.is_empty());

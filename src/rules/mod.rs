@@ -7,7 +7,6 @@ use tree_sitter::Node;
 use crate::rules::lint::variable_force::Analysis;
 use crate::rules::metrics::fragments::Fragments;
 use crate::rules::metrics::locals::Locals;
-use crate::rules::naming::support::Variables;
 
 use crate::config::Config;
 use crate::diagnostic::{Offense, Severity};
@@ -135,10 +134,6 @@ pub(crate) struct RuleContext<'a> {
     /// The context is reused across every cop of a file for this reason; see
     /// [`Self::inspecting_with`].
     analysis: OnceCell<Analysis<'a>>,
-    /// The Naming department's own reading of which names are variables, run at most once per
-    /// file. Five cops ask for it, and like [`Self::variable_analysis`] it depends on nothing but
-    /// the tree and the source.
-    variables: OnceCell<Variables>,
     /// The code the grammar swallowed, recovered once per file. The three complexity cops each
     /// used to recover it for themselves.
     fragments: OnceCell<Fragments>,
@@ -188,7 +183,6 @@ impl<'a> RuleContext<'a> {
             correcting,
             directive_review: None,
             analysis: OnceCell::new(),
-            variables: OnceCell::new(),
             fragments: OnceCell::new(),
             metric_locals: OnceCell::new(),
             layout_tokens: OnceCell::new(),
@@ -220,12 +214,6 @@ impl<'a> RuleContext<'a> {
     pub(in crate::rules) fn variable_analysis(&self) -> &Analysis<'a> {
         self.analysis
             .get_or_init(|| Analysis::run(self.ast.root, self.source))
-    }
-
-    /// Which names in the file are variables, as the Naming cops read them.
-    pub(in crate::rules) fn variable_roles(&self) -> &Variables {
-        self.variables
-            .get_or_init(|| Variables::resolve(self.ast.root, self.source))
     }
 
     /// The code the grammar read as something other than code, recovered once per file.

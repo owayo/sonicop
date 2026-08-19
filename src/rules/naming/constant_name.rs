@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tree_sitter::Node;
 
-use super::support::{Variables, last_named_child};
+use super::support::last_named_child;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
@@ -15,17 +15,16 @@ static SCREAMING_SNAKE_CASE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[0-9\p{Uppercase}_]+$").unwrap());
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let variables = context.variable_roles();
     // `rescue => Foo` and `for Foo in bar` are `casgn` nodes upstream just as much as `Foo = bar`
     // is, and neither carries a value, so neither can be excused by what it was assigned.
     for node in context.nodes_of("exception_variable") {
         if let Some(target) = node.named_child(0) {
-            report(context, offenses, target, None, variables);
+            report(context, offenses, target, None);
         }
     }
     for node in context.nodes_of("for") {
         if let Some(target) = node.field("pattern") {
-            report(context, offenses, target, None, variables);
+            report(context, offenses, target, None);
         }
     }
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
@@ -45,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // The grammar swallowed the items written before the assignment; only the last of them
             // is really assigned to, and it keeps the value on the right.
             if let Some(target) = last_named_child(left) {
-                report(context, offenses, target, value, variables);
+                report(context, offenses, target, value);
             }
         } else if left.kind_str() == "left_assignment_list" {
             // Every target of a multiple assignment is a casgn without an expression, so none of
@@ -53,10 +52,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             let mut targets = Vec::new();
             collect_targets(left, &mut targets);
             for target in targets {
-                report(context, offenses, target, None, variables);
+                report(context, offenses, target, None);
             }
         } else {
-            report(context, offenses, left, value, variables);
+            report(context, offenses, left, value);
         }
     }
 }
@@ -66,12 +65,11 @@ fn report(
     offenses: &mut Vec<Offense>,
     target: Node<'_>,
     value: Option<Node<'_>>,
-    variables: &Variables,
 ) {
     let Some(name_node) = constant_name(target) else {
         return;
     };
-    if allowed_assignment(value, variables) {
+    if allowed_assignment(value, context) {
         return;
     }
     if SCREAMING_SNAKE_CASE.is_match(context.source.node_text(name_node)) {
@@ -110,11 +108,11 @@ fn collect_targets<'tree>(node: Node<'tree>, targets: &mut Vec<Node<'tree>>) {
 /// The shapes `allowed_assignment?` lets through. RuboCop only judges a constant's spelling once
 /// it can tell the value is not a class or module, because `SomeClass = SomeOtherClass` is a
 /// perfectly good CamelCase constant.
-fn allowed_assignment(value: Option<Node<'_>>, variables: &Variables) -> bool {
+fn allowed_assignment(value: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
     let Some(value) = value else {
         return false;
     };
-    match value_kind(value, variables) {
+    match value_kind(value, context) {
         Value::ClassLike => true,
         Value::Call { receiver } => receiver.is_none_or(|receiver| !literal_receiver(receiver)),
         Value::Conditional => branches(value).into_iter().any(is_constant),
@@ -133,7 +131,7 @@ enum Value<'tree> {
     Other,
 }
 
-fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
+fn value_kind<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Value<'tree> {
     match node.kind_str() {
         "constant" => Value::ClassLike,
         "scope_resolution" => match node.field("name") {
@@ -155,7 +153,7 @@ fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
         },
         // A bare identifier is a receiverless call unless the parser resolved it to a local.
         "identifier" => {
-            if variables.is_reference(node) {
+            if context.variable_analysis().is_reference(node) {
                 Value::Other
             } else {
                 Value::Call { receiver: None }
@@ -171,9 +169,7 @@ fn value_kind<'tree>(node: Node<'tree>, variables: &Variables) -> Value<'tree> {
         "unary" => match operator(node) {
             Some("defined?") => Value::Other,
             // A signed number reaches the parser as one numeric literal, not a call to `-@`.
-            Some("-" | "+") if node.field("operand").is_some_and(numeric) => {
-                Value::Other
-            }
+            Some("-" | "+") if node.field("operand").is_some_and(numeric) => Value::Other,
             _ => Value::Call {
                 receiver: node.field("operand"),
             },
@@ -227,7 +223,10 @@ fn is_literal(node: Node<'_>) -> bool {
 }
 
 fn numeric(node: Node<'_>) -> bool {
-    matches!(node.kind_str(), "integer" | "float" | "rational" | "complex")
+    matches!(
+        node.kind_str(),
+        "integer" | "float" | "rational" | "complex"
+    )
 }
 
 fn is_constant(node: Node<'_>) -> bool {

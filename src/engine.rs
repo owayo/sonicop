@@ -8,6 +8,7 @@ use std::sync::{Arc, OnceLock};
 use anyhow::{Context, Result, bail};
 use ignore::WalkBuilder;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
 use tree_sitter::Parser;
 
@@ -26,7 +27,7 @@ pub enum CorrectMode {
     All,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct Selection {
     pub only: Vec<String>,
     pub except: Vec<String>,
@@ -55,6 +56,208 @@ pub struct Selection {
     /// The environment variable does the same thing but reaches the whole process, so it cannot
     /// be used by a harness that runs cases in parallel. **This is the per-case form.**
     pub skip_syntax_guard: bool,
+}
+
+const RESULT_CACHE_SCHEMA: u32 = 1;
+
+/// Persistent reports for unchanged files.
+///
+/// A cache identity includes the executable bytes, not only the package version. Development
+/// builds often keep the same version while their rules change; keying on the binary prevents a
+/// freshly rebuilt linter from accepting reports produced by older code.
+pub(crate) struct ResultCache {
+    root: PathBuf,
+    identity: blake3::Hash,
+    max_files: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CachedReport {
+    schema: u32,
+    offenses: Vec<CachedOffense>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CachedOffense {
+    cop_name: String,
+    severity: String,
+    message: String,
+    start: usize,
+    end: usize,
+    correctable: bool,
+    suppressed: bool,
+    justification: Option<String>,
+}
+
+impl ResultCache {
+    pub(crate) fn new(root: PathBuf, selection: &Selection, max_files: usize) -> Result<Self> {
+        let mut identity = blake3::Hasher::new();
+        hash_part(&mut identity, b"sonicop-result-cache");
+        hash_part(&mut identity, &RESULT_CACHE_SCHEMA.to_le_bytes());
+        hash_part(&mut identity, crate::VERSION.as_bytes());
+        hash_part(
+            &mut identity,
+            &serde_json::to_vec(selection).context("failed to fingerprint the cop selection")?,
+        );
+        if let Ok(executable) = std::env::current_exe()
+            && let Ok(bytes) = fs::read(executable)
+        {
+            hash_part(&mut identity, &bytes);
+        }
+        Ok(Self {
+            root,
+            identity: identity.finalize(),
+            max_files,
+        })
+    }
+
+    fn key(&self, path: &Path, text: &str, config: &Config) -> Option<blake3::Hash> {
+        // A NUL can make Ruby stop reading before the physical end of the file. It is rare and
+        // preserving both lengths in the cache buys less than keeping this path unambiguous.
+        if text.as_bytes().contains(&0) {
+            return None;
+        }
+        let path = path.to_str()?;
+        let config = config.cache_key_material().ok()?;
+        let mut key = blake3::Hasher::new();
+        hash_part(&mut key, self.identity.as_bytes());
+        hash_part(&mut key, path.as_bytes());
+        hash_part(&mut key, &config);
+        hash_part(&mut key, text.as_bytes());
+        Some(key.finalize())
+    }
+
+    pub(crate) fn load(&self, path: &Path, text: &str, config: &Config) -> Option<FileReport> {
+        let key = self.key(path, text, config)?;
+        let bytes = fs::read(self.path(key)).ok()?;
+        let cached: CachedReport = serde_json::from_slice(&bytes).ok()?;
+        if cached.schema != RESULT_CACHE_SCHEMA {
+            return None;
+        }
+        let source = SourceFile::new(path.to_path_buf(), text.to_owned());
+        let mut offenses = Vec::with_capacity(cached.offenses.len());
+        for cached in cached.offenses {
+            let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
+            let severity = Severity::parse(&cached.severity)?;
+            let mut offense =
+                Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
+            offense.correctable = cached.correctable;
+            offense.suppressed = cached.suppressed;
+            offense.justification = cached.justification;
+            offenses.push(offense);
+        }
+        Some(FileReport {
+            path: path.to_path_buf(),
+            source,
+            offenses,
+        })
+    }
+
+    pub(crate) fn store(&self, report: &FileReport, config: &Config) {
+        let Some(key) = self.key(&report.path, report.source.text(), config) else {
+            return;
+        };
+        if self.max_files == 0 {
+            return;
+        }
+        let cached = CachedReport {
+            schema: RESULT_CACHE_SCHEMA,
+            offenses: report
+                .offenses
+                .iter()
+                .map(|offense| CachedOffense {
+                    cop_name: offense.cop_name.to_owned(),
+                    severity: offense.severity.as_str().to_owned(),
+                    message: offense.message.clone(),
+                    start: offense.start,
+                    end: offense.end,
+                    correctable: offense.correctable,
+                    suppressed: offense.suppressed,
+                    justification: offense.justification.clone(),
+                })
+                .collect(),
+        };
+        let destination = self.path(key);
+        let Some(parent) = destination.parent().map(Path::to_path_buf) else {
+            return;
+        };
+        if fs::create_dir_all(&parent).is_err() {
+            return;
+        }
+        let Ok(mut temporary) = NamedTempFile::new_in(&parent) else {
+            return;
+        };
+        if serde_json::to_writer(temporary.as_file_mut(), &cached).is_err()
+            || temporary.as_file_mut().flush().is_err()
+        {
+            return;
+        }
+        let _ = temporary.persist(destination);
+    }
+
+    fn path(&self, key: blake3::Hash) -> PathBuf {
+        let key = key.to_hex();
+        self.root.join(&key[..2]).join(format!("{key}.json"))
+    }
+
+    /// Enforces RuboCop's `AllCops/MaxFilesInCache` after a run, instead of scanning the cache
+    /// after every file a parallel run writes. Only the two-level hash layout owned by Sonicop is
+    /// eligible for removal, even when the user points `--cache-root` at a shared directory.
+    pub(crate) fn prune(&self) {
+        let Ok(shards) = fs::read_dir(&self.root) else {
+            return;
+        };
+        let paths = shards
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                let name = entry.file_name();
+                entry.file_type().is_ok_and(|kind| kind.is_dir())
+                    && name.len() == 2
+                    && name
+                        .to_str()
+                        .is_some_and(|name| name.bytes().all(|byte| byte.is_ascii_hexdigit()))
+            })
+            .filter_map(|shard| fs::read_dir(shard.path()).ok())
+            .flatten()
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| {
+                let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
+                    return false;
+                };
+                path.extension().and_then(|extension| extension.to_str()) == Some("json")
+                    && stem.len() == 64
+                    && stem.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    && path
+                        .parent()
+                        .and_then(Path::file_name)
+                        .and_then(|name| name.to_str())
+                        == Some(&stem[..2])
+            })
+            .collect::<Vec<_>>();
+        if paths.len() <= self.max_files {
+            return;
+        }
+        let mut entries = paths
+            .into_iter()
+            .map(|path| {
+                let modified = fs::metadata(&path)
+                    .and_then(|metadata| metadata.modified())
+                    .ok();
+                (modified, path)
+            })
+            .collect::<Vec<_>>();
+        entries.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+        let excess = entries.len() - self.max_files;
+        for (_, path) in entries.into_iter().take(excess) {
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
+fn hash_part(hasher: &mut blake3::Hasher, bytes: &[u8]) {
+    hasher.update(&(bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
 }
 
 /// RuboCop refuses to let syntax checking be turned off, so the cop stays on no matter how it is
@@ -463,6 +666,16 @@ pub fn inspect_files_with_store(
     selection: &Selection,
     parallel: bool,
 ) -> Result<Vec<FileReport>> {
+    inspect_files_with_store_cached(paths, configs, selection, parallel, None)
+}
+
+pub(crate) fn inspect_files_with_store_cached(
+    paths: &[PathBuf],
+    configs: &ConfigStore,
+    selection: &Selection,
+    parallel: bool,
+    cache: Option<&ResultCache>,
+) -> Result<Vec<FileReport>> {
     // Most runs resolve every file to the store's root configuration, so the plan for it is worth
     // building once. A file that a nested `.rubocop.yml` gives a different configuration falls back
     // to building its own, which costs no more than resolving the cops inline would have.
@@ -474,16 +687,23 @@ pub fn inspect_files_with_store(
                 Decoded::Undecodable(message) => return Ok(undecodable_report(path, &message)),
             };
         let config = configs.for_path(path)?;
+        if let Some(report) = cache.and_then(|cache| cache.load(path, &text, &config)) {
+            return Ok(report);
+        }
         let own_plan = (!std::ptr::eq(Arc::as_ptr(&config), configs.root()))
             .then(|| RulePlan::build(&config, selection));
-        inspect_planned(
+        let report = inspect_planned(
             path.clone(),
             text,
             &config,
             selection,
             own_plan.as_ref().unwrap_or(&root_plan),
             true,
-        )
+        )?;
+        if let Some(cache) = cache {
+            cache.store(&report, &config);
+        }
+        Ok(report)
     };
     // Collecting every outcome rather than short-circuiting keeps the surfaced error the first one
     // in path order instead of whichever thread rayon happened to finish first.
@@ -2010,8 +2230,8 @@ mod tests {
     use crate::source::SourceFile;
 
     use super::{
-        CorrectMode, Correcting, Selection, correct_file, corrected_text, discover_targets,
-        inspect_files, inspect_source,
+        CorrectMode, Correcting, ResultCache, Selection, correct_file, corrected_text,
+        discover_targets, inspect_files, inspect_source,
     };
 
     /// One cop's corrections: the cop's name, then an offense per inner slice, then the edits that
@@ -2020,6 +2240,64 @@ mod tests {
         &'static str,
         &'static [&'static [(usize, usize, &'static str)]],
     );
+
+    #[test]
+    fn result_cache_round_trips_reports_and_rejects_changed_source() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let cache = ResultCache::new(directory.path().join("cache"), &selection, 100).unwrap();
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+
+        cache.store(&report, &config);
+        let cached = cache.load(&path, source, &config).unwrap();
+
+        assert_eq!(cached.source.text(), report.source.text());
+        assert_eq!(cached.offenses.len(), 1);
+        assert_eq!(cached.offenses[0].cop_name, report.offenses[0].cop_name);
+        assert_eq!(cached.offenses[0].message, report.offenses[0].message);
+        assert_eq!(
+            cached.offenses[0].location(&cached.source).line,
+            report.offenses[0].location(&report.source).line
+        );
+        assert!(cached.offenses[0].is_correctable());
+        assert!(cache.load(&path, "x = 1\n", &config).is_none());
+    }
+
+    #[test]
+    fn result_cache_prunes_to_the_configured_file_limit() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let cache = ResultCache::new(directory.path().join("cache"), &selection, 1).unwrap();
+        let paths = [
+            directory.path().join("first.rb"),
+            directory.path().join("second.rb"),
+        ];
+        for path in &paths {
+            let report =
+                inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
+            cache.store(&report, &config);
+        }
+
+        cache.prune();
+
+        assert_eq!(
+            paths
+                .iter()
+                .filter(|path| cache.load(path, "x = 1  \n", &config).is_some())
+                .count(),
+            1
+        );
+    }
 
     /// Runs `corrected_text` over synthetic offenses, so that the composition rules can be pinned
     /// against `Parser::Source::TreeRewriter` without a cop in the way. The cops are named so that

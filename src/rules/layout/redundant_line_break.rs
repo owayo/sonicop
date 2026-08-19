@@ -299,7 +299,7 @@ fn spine_has_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
     // A bare name that is no local variable is a call on `self`, which the grammar writes as a plain
     // identifier.
-    node.kind_str() == "identifier" && !context.variable_roles().names_a_local(node)
+    node.kind_str() == "identifier" && !context.variable_analysis().names_a_local(node)
 }
 
 /// `convertible_block?`: whether the block written on the call is one the ascent reaches, which asks

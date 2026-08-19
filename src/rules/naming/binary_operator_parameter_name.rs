@@ -1,8 +1,9 @@
 use tree_sitter::Node;
 
-use super::support::{ParameterKind, Variables, parameters};
+use super::support::{ParameterKind, parameters};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::lint::variable_force::Analysis;
 use crate::rules::node_ext::NodeExt;
 
 /// `EXCLUDED`: operators whose sole parameter is not the other operand. Indexing takes a key,
@@ -38,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if text == "other" || text == "_other" {
             continue;
         }
-        let variables = variables.get_or_insert_with(|| context.variable_roles());
+        let variables = variables.get_or_insert_with(|| context.variable_analysis());
         offenses.push(
             context
                 .offense(
@@ -59,7 +60,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// one and is put off to the next pass.
 fn rename(
     context: &RuleContext<'_>,
-    variables: &Variables,
+    variables: &Analysis<'_>,
     definition: Node<'_>,
     parameter: Node<'_>,
 ) -> Vec<Edit> {

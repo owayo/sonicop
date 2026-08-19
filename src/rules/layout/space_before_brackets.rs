@@ -46,7 +46,7 @@ fn index_gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usize, usize)
                 return None;
             }
             let method = node.field("method")?;
-            if !context.variable_roles().names_a_local(method) {
+            if !context.variable_analysis().names_a_local(method) {
                 return None;
             }
             let arguments = node.field("arguments")?;

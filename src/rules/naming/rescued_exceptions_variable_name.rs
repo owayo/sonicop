@@ -2,9 +2,10 @@ use std::ops::Range;
 
 use tree_sitter::Node;
 
-use super::support::{Variables, last_named_child};
+use super::support::last_named_child;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::lint::variable_force::Analysis;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::spurious_assignment_list;
 
@@ -32,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if name == preferred {
             continue;
         }
-        let variables = variables.get_or_insert_with(|| context.variable_roles());
+        let variables = variables.get_or_insert_with(|| context.variable_analysis());
         // `shadowed_variable_name?` asks whether the *configured* name is already read inside the
         // handler. Upstream passes a node where a name is expected, so the underscore prefix never
         // reaches this test.
@@ -74,7 +75,7 @@ fn exception_variable<'tree>(
 
 fn reads_name(
     context: &RuleContext<'_>,
-    variables: &Variables,
+    variables: &Analysis<'_>,
     node: Node<'_>,
     name: &str,
 ) -> bool {
@@ -93,7 +94,7 @@ fn reads_name(
 /// that follow the `begin`/`end` it belongs to.
 fn rename(
     context: &RuleContext<'_>,
-    variables: &Variables,
+    variables: &Analysis<'_>,
     node: Node<'_>,
     variable: Range<usize>,
     name: &str,
@@ -140,7 +141,7 @@ fn rename(
 
 struct Rewrite<'a, 'tree> {
     context: &'a RuleContext<'tree>,
-    variables: &'a Variables,
+    variables: &'a Analysis<'a>,
     name: &'a str,
     preferred: &'a str,
     sites: Vec<(Range<usize>, String)>,

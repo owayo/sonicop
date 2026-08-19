@@ -143,10 +143,21 @@ pub(in crate::rules) struct Analysis<'tree> {
     /// local from a receiverless call, and only the analysis knows which one the parser upstream
     /// would have built.
     lvars: HashSet<usize>,
+    /// The references Naming handlers see. This includes implicit numbered block parameters,
+    /// which are local-variable reads but are not declarations VariableForce reports.
+    naming_references: HashSet<usize>,
     /// The `foo()` calls whose name a local variable already holds. The parentheses make these
     /// calls whatever the name resolves to, so nothing here is an `lvar` -- but writing the same
     /// name without them would be one, which is the question a cop that drops parentheses asks.
     shadowed_calls: HashSet<usize>,
+    /// Receiverless call-name nodes whose spelling is already held by a local variable. Unlike
+    /// `shadowed_calls`, this also records calls with arguments for syntax recovery such as
+    /// `collection [0]`.
+    local_method_names: HashSet<usize>,
+    /// The identifier nodes that RuboCop dispatches as variable definitions. Pattern bindings and
+    /// explicit block-local variables deliberately stay out: upstream names them `match_var` and
+    /// `shadowarg`, neither of which the Naming cops handle.
+    naming_definitions: HashSet<usize>,
 }
 
 impl<'tree> Analysis<'tree> {
@@ -161,6 +172,38 @@ impl<'tree> Analysis<'tree> {
         self.shadowed_calls.contains(&node.id())
     }
 
+    pub(in crate::rules) fn names_a_local(&self, node: Node<'_>) -> bool {
+        self.local_method_names.contains(&node.id())
+    }
+
+    /// Whether the Naming cops see this node as a variable read or definition.
+    pub(in crate::rules) fn is_naming_variable(&self, node: Node<'_>) -> bool {
+        self.is_naming_definition(node) || self.naming_references.contains(&node.id())
+    }
+
+    pub(in crate::rules) fn is_variable(&self, node: Node<'_>) -> bool {
+        self.is_naming_variable(node)
+    }
+
+    pub(in crate::rules) fn is_reference(&self, node: Node<'_>) -> bool {
+        self.naming_references.contains(&node.id())
+    }
+
+    /// Whether the parser would dispatch this node to a Naming variable-definition handler.
+    pub(in crate::rules) fn is_naming_definition(&self, node: Node<'_>) -> bool {
+        if node.kind_str() == "identifier" {
+            return self.naming_definitions.contains(&node.id());
+        }
+        matches!(
+            node.kind_str(),
+            "instance_variable" | "class_variable" | "global_variable"
+        ) && structural_definition(node)
+    }
+
+    pub(in crate::rules) fn is_definition(&self, node: Node<'_>) -> bool {
+        self.is_naming_definition(node)
+    }
+
     pub(in crate::rules) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
         let mut force = Force {
             source,
@@ -172,7 +215,10 @@ impl<'tree> Analysis<'tree> {
             heredocs: heredoc_bodies(root),
             scanned: HashSet::new(),
             lvars: HashSet::new(),
+            naming_references: HashSet::new(),
             shadowed_calls: HashSet::new(),
+            local_method_names: HashSet::new(),
+            naming_definitions: HashSet::new(),
         };
         force.push_scope(root, true);
         force.process_children(root);
@@ -181,7 +227,10 @@ impl<'tree> Analysis<'tree> {
             scopes: force.scopes,
             variables: force.variables,
             lvars: force.lvars,
+            naming_references: force.naming_references,
             shadowed_calls: force.shadowed_calls,
+            local_method_names: force.local_method_names,
+            naming_definitions: force.naming_definitions,
         }
     }
 }
@@ -220,7 +269,10 @@ struct Force<'tree, 'a> {
     /// Nodes already walked in an outer scope, which the scope they sit in must not walk again.
     scanned: HashSet<usize>,
     lvars: HashSet<usize>,
+    naming_references: HashSet<usize>,
     shadowed_calls: HashSet<usize>,
+    local_method_names: HashSet<usize>,
+    naming_definitions: HashSet<usize>,
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +292,34 @@ fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
         return false;
     };
     operator.end_byte() == right.start_byte() && source.node_text(right).starts_with('~')
+}
+
+/// Whether a non-local variable node is written in a position RuboCop dispatches as a variable
+/// definition. Local identifiers are recorded during the force walk, but instance, class and
+/// global variables do not participate in local-variable resolution and are cheaper to classify
+/// directly from their parent.
+fn structural_definition(node: Node<'_>) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind_str() {
+        "assignment" | "operator_assignment" => parent
+            .field("left")
+            .is_some_and(|left| left.id() == node.id()),
+        "left_assignment_list" if spurious_assignment_list(parent) => {
+            let mut cursor = parent.walk();
+            parent
+                .named_children(&mut cursor)
+                .last()
+                .is_some_and(|last| last.id() == node.id())
+        }
+        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => true,
+        "for" => parent
+            .field("pattern")
+            .is_some_and(|pattern| pattern.id() == node.id()),
+        "exception_variable" => true,
+        _ => false,
+    }
 }
 
 /// What an assignment really stores. When the grammar swallowed the neighbouring items of a
@@ -275,12 +355,29 @@ pub(super) fn scope_nodes<'tree>(scope: &Scope<'tree>) -> Vec<Node<'tree>> {
 }
 
 fn scan_scope<'tree>(node: Node<'tree>, scope_node: Node<'tree>, nodes: &mut Vec<Node<'tree>>) {
-    for child in named_children(node) {
+    let mut cursor = node.walk();
+    if !cursor.goto_first_child() {
+        return;
+    }
+    loop {
+        let child = cursor.node();
+        if !child.is_named() {
+            if !cursor.goto_next_sibling() {
+                break;
+            }
+            continue;
+        }
         if !owned_by_scope(child, node, scope_node) {
+            if !cursor.goto_next_sibling() {
+                break;
+            }
             continue;
         }
         nodes.push(child);
         scan_scope(child, scope_node, nodes);
+        if !cursor.goto_next_sibling() {
+            break;
+        }
     }
 }
 
@@ -368,9 +465,17 @@ impl<'tree> Force<'tree, '_> {
     }
 
     fn process_children(&mut self, node: Node<'tree>) {
-        for child in named_children(node) {
-            if !self.scanned.contains(&child.id()) {
+        let mut cursor = node.walk();
+        if !cursor.goto_first_child() {
+            return;
+        }
+        loop {
+            let child = cursor.node();
+            if child.is_named() && !self.scanned.contains(&child.id()) {
                 self.process_node(child);
+            }
+            if !cursor.goto_next_sibling() {
+                break;
             }
         }
     }
@@ -469,6 +574,9 @@ impl<'tree> Force<'tree, '_> {
         name_node: Node<'tree>,
         kind: Declaration,
     ) {
+        if matches!(kind, Declaration::Argument(_)) {
+            self.naming_definitions.insert(name_node.id());
+        }
         let index = self.variables.len();
         let frame = self.stack.last_mut().expect("scope stack is never empty");
         self.variables.push(Variable {
@@ -515,6 +623,9 @@ impl<'tree> Force<'tree, '_> {
         value: Option<Node<'tree>>,
         kind: AssignmentKind,
     ) {
+        if kind == AssignmentKind::Plain {
+            self.naming_definitions.insert(name.id());
+        }
         self.capture_if_needed(variable);
         let branch = self.branch_of(node);
         let captured = self.variables[variable].captured_by_block;
@@ -738,13 +849,25 @@ impl<'tree> Force<'tree, '_> {
         let name = self.text(node);
         if let Some(variable) = self.find_variable(name) {
             self.lvars.insert(node.id());
+            self.naming_references.insert(node.id());
             self.reference(variable, node);
+        } else if implicit_numbered_parameter(name)
+            && self.stack.last().is_some_and(|frame| frame.block)
+        {
+            self.naming_references.insert(node.id());
         } else if name == "binding" {
             self.reference_everything(node);
         }
     }
 
     fn process_call(&mut self, node: Node<'tree>) {
+        if node.field("receiver").is_none()
+            && let Some(method) = node.field("method")
+            && method.kind_str() == "identifier"
+            && self.find_variable(self.text(method)).is_some()
+        {
+            self.local_method_names.insert(method.id());
+        }
         if self.binary_operator_on_a_local(node) {
             return;
         }
@@ -1276,6 +1399,10 @@ impl<'tree> Force<'tree, '_> {
             None => false,
         }
     }
+}
+
+fn implicit_numbered_parameter(name: &str) -> bool {
+    matches!(name.as_bytes(), [b'_', b'1'..=b'9'])
 }
 
 // ---------------------------------------------------------------------------

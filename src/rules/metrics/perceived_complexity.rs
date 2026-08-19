@@ -99,9 +99,7 @@ fn simple_pattern(clause: Node<'_>) -> bool {
     if clause.field("guard").is_some() {
         return false;
     }
-    clause
-        .field("pattern")
-        .is_some_and(is_literal_or_constant)
+    clause.field("pattern").is_some_and(is_literal_or_constant)
 }
 
 /// `Node#literal?` or `Node#const_type?`, for the node types a pattern can hold.

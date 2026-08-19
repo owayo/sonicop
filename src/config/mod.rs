@@ -47,6 +47,22 @@ pub struct Config {
 }
 
 impl Config {
+    /// Stable input to the on-disk result cache. The merged raw configuration determines cop
+    /// behaviour, while the resolved paths and Ruby version cover behaviour derived from where
+    /// the configuration was loaded and from the surrounding project.
+    pub(crate) fn cache_key_material(&self) -> Result<Vec<u8>> {
+        serde_json::to_vec(&(
+            &self.raw,
+            self.path_base.to_string_lossy(),
+            self.cwd.to_string_lossy(),
+            self.config_path
+                .as_deref()
+                .map(|path| path.to_string_lossy()),
+            self.target_ruby.version.to_string(),
+        ))
+        .context("failed to fingerprint the resolved configuration")
+    }
+
     pub fn load(explicit: Option<&Path>, cwd: &Path) -> Result<Self> {
         Self::load_with_options(explicit, cwd, false)
     }

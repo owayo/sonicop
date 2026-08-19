@@ -137,8 +137,18 @@ impl<'a> Walk<'a> {
     }
 
     fn children<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
-        for child in named_children(node) {
-            self.visit(child, sink);
+        let mut cursor = node.walk();
+        if !cursor.goto_first_child() {
+            return;
+        }
+        loop {
+            let child = cursor.node();
+            if child.is_named() {
+                self.visit(child, sink);
+            }
+            if !cursor.goto_next_sibling() {
+                break;
+            }
         }
     }
 

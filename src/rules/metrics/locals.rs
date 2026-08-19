@@ -94,8 +94,18 @@ impl<'a> Walker<'a> {
     }
 
     fn visit_children(&mut self, node: Node<'_>) {
-        for child in named_children(node) {
-            self.visit(child);
+        let mut cursor = node.walk();
+        if !cursor.goto_first_child() {
+            return;
+        }
+        loop {
+            let child = cursor.node();
+            if child.is_named() {
+                self.visit(child);
+            }
+            if !cursor.goto_next_sibling() {
+                break;
+            }
         }
     }
 

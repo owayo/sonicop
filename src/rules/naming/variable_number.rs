@@ -5,8 +5,8 @@ use regex::Regex;
 use tree_sitter::Node;
 
 use super::support::{
-    PARAMETER_LISTS, ParameterKind, bound_parameters, class_emitter_method,
-    quoted_content, ruby_regex,
+    PARAMETER_LISTS, ParameterKind, bound_parameters, class_emitter_method, quoted_content,
+    ruby_regex,
 };
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
@@ -44,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
     }
 
-    let variables = context.variable_roles();
+    let variables = context.variable_analysis();
     for node in context.nodes_of_any(&[
         "identifier",
         "instance_variable",
@@ -160,8 +160,7 @@ fn collect_symbols<'tree>(
             // builds no symbol at all.
             "hash_key_symbol" => {
                 let bare_pattern = node.parent_of(context).is_some_and(|parent| {
-                    parent.kind_str() == "keyword_pattern"
-                        && parent.field("value").is_none()
+                    parent.kind_str() == "keyword_pattern" && parent.field("value").is_none()
                 });
                 if !bare_pattern {
                     push(node.byte_range(), context.source.node_text(node).to_owned());
