@@ -498,12 +498,16 @@ fn result_cache(
     selection: &Selection,
     config: &Config,
 ) -> Result<Option<ResultCache>> {
+    // Profiling reports what inspecting the files costs, so it serves cached reports to nobody --
+    // unless the run asks for the cache in as many words, which is how the cost of a cache *hit*
+    // gets measured at all.
+    let profiling = std::env::var_os("SONICOP_PROFILE").is_some();
     let enabled = cli.cache.as_deref() != Some("false")
         && !selection.correcting
         && cli.stdin.is_none()
         && !cli.profile
         && !cli.memory
-        && std::env::var_os("SONICOP_PROFILE").is_none();
+        && (!profiling || cli.cache.as_deref() == Some("true"));
     if !enabled {
         return Ok(None);
     }

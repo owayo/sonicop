@@ -128,28 +128,32 @@ impl ResultCache {
     }
 
     pub(crate) fn load(&self, path: &Path, text: &str, config: &Config) -> Option<FileReport> {
-        let key = self.key(path, text, config)?;
-        let bytes = fs::read(self.path(key)).ok()?;
-        let cached: CachedReport = serde_json::from_slice(&bytes).ok()?;
-        if cached.schema != RESULT_CACHE_SCHEMA {
-            return None;
-        }
-        let source = SourceFile::new(path.to_path_buf(), text.to_owned());
-        let mut offenses = Vec::with_capacity(cached.offenses.len());
-        for cached in cached.offenses {
-            let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
-            let severity = Severity::parse(&cached.severity)?;
-            let mut offense =
-                Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
-            offense.correctable = cached.correctable;
-            offense.suppressed = cached.suppressed;
-            offense.justification = cached.justification;
-            offenses.push(offense);
-        }
-        Some(FileReport {
-            path: path.to_path_buf(),
-            source,
-            offenses,
+        let key = crate::profile::phase(crate::profile::Phase::CacheKey, || {
+            self.key(path, text, config)
+        })?;
+        crate::profile::phase(crate::profile::Phase::CacheLoad, || {
+            let bytes = fs::read(self.path(key)).ok()?;
+            let cached: CachedReport = serde_json::from_slice(&bytes).ok()?;
+            if cached.schema != RESULT_CACHE_SCHEMA {
+                return None;
+            }
+            let source = SourceFile::new(path.to_path_buf(), text.to_owned());
+            let mut offenses = Vec::with_capacity(cached.offenses.len());
+            for cached in cached.offenses {
+                let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
+                let severity = Severity::parse(&cached.severity)?;
+                let mut offense =
+                    Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
+                offense.correctable = cached.correctable;
+                offense.suppressed = cached.suppressed;
+                offense.justification = cached.justification;
+                offenses.push(offense);
+            }
+            Some(FileReport {
+                path: path.to_path_buf(),
+                source,
+                offenses,
+            })
         })
     }
 

@@ -97,10 +97,14 @@ pub(crate) enum Phase {
     PathMatch,
     /// Reading a shebang from an extension-less file.
     Shebang,
+    /// Hashing a file's text and configuration into a result-cache key.
+    CacheKey,
+    /// Reading a cached report back and turning it into offenses.
+    CacheLoad,
 }
 
 impl Phase {
-    const COUNT: usize = 11;
+    const COUNT: usize = 13;
     const NAMES: [&'static str; Self::COUNT] = [
         "read",
         "parse",
@@ -113,6 +117,8 @@ impl Phase {
         "config_lookup",
         "path_match",
         "shebang",
+        "cache_key",
+        "cache_load",
     ];
 }
 

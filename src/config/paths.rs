@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use globset::{Glob, GlobMatcher, GlobSet, GlobSetBuilder};
 use serde_yaml_ng::{Mapping, Value};
@@ -338,6 +339,23 @@ pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
     if let Ok(relative) = strip_verbatim(path).strip_prefix(strip_verbatim(root)) {
         return Some(relative.to_path_buf());
     }
+    // A path spelled relative to the working directory -- which is every path a run started with
+    // `sonicop .` walks -- shares no text with an absolute root, so both comparisons above miss and
+    // the file falls through to `canonicalize`. That is two syscalls per question and three
+    // questions per file, which cost more than inspecting the file did. Joining the working
+    // directory answers the same question without asking the filesystem anything; `Components`
+    // drops the `.` segments a walk introduces, and a `..` it cannot settle still reaches the
+    // canonical form below.
+    if path.is_relative() {
+        if let Some(joined) = working_directory().map(|cwd| cwd.join(path)) {
+            if let Ok(relative) = joined.strip_prefix(root) {
+                return Some(relative.to_path_buf());
+            }
+            if let Ok(relative) = strip_verbatim(&joined).strip_prefix(strip_verbatim(root)) {
+                return Some(relative.to_path_buf());
+            }
+        }
+    }
     let resolved = fs::canonicalize(path).ok()?;
     let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     resolved
@@ -349,6 +367,15 @@ pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
                 .ok()
         })
         .map(Path::to_path_buf)
+}
+
+/// The working directory, asked of the kernel once.
+///
+/// Nothing in the program changes it, and `project_relative` needs it for every file a relative
+/// argument expands to, so the answer is kept rather than fetched again.
+fn working_directory() -> Option<&'static Path> {
+    static CWD: OnceLock<Option<PathBuf>> = OnceLock::new();
+    CWD.get_or_init(|| std::env::current_dir().ok()).as_deref()
 }
 
 /// Drops Windows' `\\?\` extended-length marker so that two spellings of one path can be compared.
@@ -514,6 +541,24 @@ mod tests {
         );
     }
 
+    /// `sonicop .` が渡すのは `./lib/a.rb` のような相対パスで、絶対のルートとは文字列が
+    /// 重ならない。作業ディレクトリを継ぎ足して解決できなければ、ファイルごとに
+    /// `canonicalize` へ落ちて探索が検査より高くつく。存在しないパスで確かめているのは、
+    /// 継ぎ足しで答えが出たことを `canonicalize` の成功と取り違えないため。
+    #[test]
+    fn a_relative_path_resolves_against_the_working_directory() {
+        let cwd = std::env::current_dir().unwrap();
+        assert_eq!(
+            project_relative(Path::new("nowhere/lib/a.rb"), &cwd.join("nowhere")),
+            Some(PathBuf::from("lib/a.rb"))
+        );
+        // 走査が挟む `.` は `Components` が落とすので、綴りの違いは結果に出ない。
+        assert_eq!(
+            project_relative(Path::new("./nowhere/lib/a.rb"), &cwd.join("nowhere")),
+            Some(PathBuf::from("lib/a.rb"))
+        );
+    }
+
     /// プロジェクト外は None のままでなければ、相対パターンが外部へ届いてしまう。
     #[test]
     fn a_path_outside_the_root_has_no_project_relative_form() {
@@ -628,6 +673,25 @@ mod tests {
                         compiled.matches_any(path, root),
                         matches_any_reference(path, root, &selected),
                         "excludes {path:?} against {selected:?}"
+                    );
+                    // Selecting on `has_uppercase` has to mean the same thing as handing the
+                    // matcher only the patterns written with a capital in the first place. The two
+                    // reach the question by different routes -- one filters a compiled set, the
+                    // other compiles a filtered list -- so they are worth holding against each
+                    // other for every window.
+                    let capitals: Vec<String> = selected
+                        .iter()
+                        .filter(|pattern| {
+                            pattern
+                                .chars()
+                                .any(|character| character.is_ascii_uppercase())
+                        })
+                        .cloned()
+                        .collect();
+                    assert_eq!(
+                        compiled.matches_uppercase_includes(path, root),
+                        PathPatterns::compile(&capitals).matches_includes(path, root),
+                        "uppercase includes {path:?} against {selected:?}"
                     );
                 }
             }
