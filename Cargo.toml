@@ -36,6 +36,9 @@ ureq = { version = "3.4", default-features = false, features = ["native-tls"] }
 [dev-dependencies]
 assert_cmd = "2.2.2"
 
+[build-dependencies]
+blake3 = "1.8"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

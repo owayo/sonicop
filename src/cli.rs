@@ -519,7 +519,7 @@ fn result_cache(
     if max_files == 0 {
         return Ok(None);
     }
-    ResultCache::new(root, selection, max_files).map(Some)
+    ResultCache::new(root, config.path_base(), selection, max_files).map(Some)
 }
 
 fn default_cache_root(cwd: &Path) -> PathBuf {
@@ -563,6 +563,9 @@ fn inspect_inputs(
                 println!("{}", smart_path(&path, cwd));
             }
             return Ok(Inspection::ListedTargets);
+        }
+        if let Some(cache) = cache {
+            cache.prepare(targets.len());
         }
         let reports = if cli.fail_fast {
             targets.sort_by_key(|path| {

@@ -156,6 +156,15 @@ impl Config {
         &self.cwd
     }
 
+    /// Project boundary used by the result cache.
+    ///
+    /// RuboCop resolves every configured path against this directory. Keeping it in the cache
+    /// identity prevents unrelated projects that happen to use the same cop selection from
+    /// accumulating in one ever-growing index.
+    pub(crate) fn path_base(&self) -> &Path {
+        &self.path_base
+    }
+
     pub fn config_path(&self) -> Option<&Path> {
         self.config_path.as_deref()
     }

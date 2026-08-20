@@ -63,20 +63,34 @@ pub struct Selection {
 /// read at all.
 const RESULT_CACHE_SCHEMA: u32 = 3;
 const RESULT_CACHE_INDEX_SCHEMA: u32 = 1;
+const RESULT_CACHE_INDEX_SUMMARY_SCHEMA: u32 = 1;
 const RESULT_CACHE_INDEX_PREFIX: &str = "sonicop-result-cache-";
 const RESULT_CACHE_LOCK_FILE: &str = ".sonicop-result-cache.lock";
+/// Upper bound on index JSON decoded per requested target. Loading more than this is generally
+/// slower than inspecting the targets, especially for editor and changed-file runs. A small
+/// index remains useful even for one target; a project-wide run naturally earns a larger budget.
+const RESULT_CACHE_INDEX_BYTES_PER_TARGET: u64 = 128 * 1024;
+/// Baseline disk budget shared by all project/selection indexes under one cache root. An active
+/// index larger than this remains usable, but then it becomes the whole budget and older sessions
+/// are discarded.
+const RESULT_CACHE_ROOT_MAX_BYTES: u64 = 128 * 1024 * 1024;
 
 /// Persistent reports for unchanged files.
 ///
-/// A cache identity includes the executable bytes, not only the package version. Development
-/// builds often keep the same version while their rules change; keying on the binary prevents a
-/// freshly rebuilt linter from accepting reports produced by older code.
+/// A cache identity includes the build fingerprint, not only the package version. Development
+/// builds often keep the same version while their rules change; keying on every build input
+/// prevents a freshly rebuilt linter from accepting reports produced by older code without making
+/// each process read and hash its entire executable.
 pub(crate) struct ResultCache {
     root: PathBuf,
     index_path: PathBuf,
     identity: blake3::Hash,
     max_files: usize,
-    entries: RwLock<HashMap<String, IndexedReport>>,
+    /// `None` until [`ResultCache::prepare`] decides that the index is economical for this run.
+    /// It stays `None` when a narrow run would have to decode a disproportionally large index;
+    /// both reads and writes then become no-ops so shutdown cannot reintroduce the same cost.
+    entries: RwLock<Option<HashMap<String, IndexedReport>>>,
+    prepared: OnceLock<bool>,
     dirty_keys: Mutex<HashSet<String>>,
 }
 
@@ -106,6 +120,12 @@ struct IndexedReport {
 struct CacheIndex {
     schema: u32,
     entries: HashMap<String, IndexedReport>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CacheIndexSummary {
+    schema: u32,
+    entries: usize,
 }
 
 impl CachedReport {
@@ -174,36 +194,60 @@ struct CachedOffense {
 }
 
 impl ResultCache {
-    pub(crate) fn new(root: PathBuf, selection: &Selection, max_files: usize) -> Result<Self> {
+    pub(crate) fn new(
+        root: PathBuf,
+        path_base: &Path,
+        selection: &Selection,
+        max_files: usize,
+    ) -> Result<Self> {
         let mut identity = blake3::Hasher::new();
         hash_part(&mut identity, b"sonicop-result-cache");
         hash_part(&mut identity, &RESULT_CACHE_SCHEMA.to_le_bytes());
         hash_part(&mut identity, crate::VERSION.as_bytes());
+        hash_part(&mut identity, env!("SONICOP_BUILD_FINGERPRINT").as_bytes());
+        hash_part(&mut identity, path_base.as_os_str().as_encoded_bytes());
         hash_part(
             &mut identity,
             &serde_json::to_vec(selection).context("failed to fingerprint the cop selection")?,
         );
-        if let Ok(executable) = std::env::current_exe()
-            && let Ok(bytes) = fs::read(executable)
-        {
-            hash_part(&mut identity, &bytes);
-        }
         let identity = identity.finalize();
         let index_path = root.join(format!(
             "{RESULT_CACHE_INDEX_PREFIX}{}.index",
             identity.to_hex()
         ));
-        let entries = crate::profile::phase(crate::profile::Phase::CacheLoad, || {
-            load_cache_index(&index_path).entries
-        });
         Ok(Self {
             root,
             index_path,
             identity,
             max_files,
-            entries: RwLock::new(entries),
+            entries: RwLock::new(None),
+            prepared: OnceLock::new(),
             dirty_keys: Mutex::new(HashSet::new()),
         })
+    }
+
+    /// Loads the session index only when its size is proportionate to the number of targets.
+    ///
+    /// This is deliberately separate from [`ResultCache::new`]: target discovery has not happened
+    /// when the CLI constructs the cache. A skipped index is also kept read-only for the run. If
+    /// `prune` merged even one new report at shutdown it would have to decode the large index that
+    /// this method avoided at startup, merely moving the latency to the other end of the command.
+    pub(crate) fn prepare(&self, target_count: usize) {
+        if self.prepared.get().is_some() {
+            return;
+        }
+        let load = should_load_cache_index(&self.index_path, target_count);
+        if load {
+            let entries = crate::profile::phase(crate::profile::Phase::CacheLoad, || {
+                load_cache_index(&self.index_path).entries
+            });
+            let Ok(mut slot) = self.entries.write() else {
+                let _ = self.prepared.set(false);
+                return;
+            };
+            *slot = Some(entries);
+        }
+        let _ = self.prepared.set(load);
     }
 
     /// Where a file's report lives, which depends on the file's name and the configuration but not
@@ -241,11 +285,15 @@ impl ResultCache {
     ///
     /// The caller has not read the file at this point, and a `Fresh` answer means it never has to.
     pub(crate) fn load(&self, path: &Path, config: &Config) -> Option<Cached> {
+        if self.prepared.get() != Some(&true) {
+            return None;
+        }
         let key = crate::profile::phase(crate::profile::Phase::CacheKey, || {
             self.key(path, config).map(|key| key.to_hex().to_string())
         })?;
         crate::profile::phase(crate::profile::Phase::CacheLoad, || {
-            let cached = self.entries.read().ok()?.get(&key)?.report.clone();
+            let entries = self.entries.read().ok()?;
+            let cached = entries.as_ref()?.get(&key)?.report.clone();
             if cached.schema != RESULT_CACHE_SCHEMA {
                 return None;
             }
@@ -260,6 +308,9 @@ impl ResultCache {
     }
 
     pub(crate) fn store(&self, report: &FileReport, config: &Config) {
+        if self.prepared.get() != Some(&true) {
+            return;
+        }
         let text = report.source.text();
         // A NUL can make Ruby stop reading before the physical end of the file. It is rare and
         // preserving both lengths in the cache buys less than keeping this path unambiguous.
@@ -302,7 +353,10 @@ impl ResultCache {
                 .collect(),
         };
         let key = key.to_hex().to_string();
-        let Ok(mut entries) = self.entries.write() else {
+        let Ok(mut entries_guard) = self.entries.write() else {
+            return;
+        };
+        let Some(entries) = entries_guard.as_mut() else {
             return;
         };
         entries.insert(
@@ -312,7 +366,7 @@ impl ResultCache {
                 report: cached,
             },
         );
-        drop(entries);
+        drop(entries_guard);
         let Ok(mut dirty_keys) = self.dirty_keys.lock() else {
             return;
         };
@@ -329,7 +383,10 @@ impl ResultCache {
             Err(_) => return,
         };
         let local_len = match self.entries.read() {
-            Ok(entries) => entries.len(),
+            Ok(entries) => match entries.as_ref() {
+                Some(entries) => entries.len(),
+                None => return,
+            },
             Err(_) => return,
         };
         if dirty_keys.is_empty() && local_len <= self.max_files {
@@ -355,6 +412,9 @@ impl ResultCache {
         let mut index = load_cache_index(&self.index_path);
         index.schema = RESULT_CACHE_INDEX_SCHEMA;
         if let Ok(entries) = self.entries.read() {
+            let Some(entries) = entries.as_ref() else {
+                return;
+            };
             for key in &dirty_keys {
                 if let Some(entry) = entries.get(key) {
                     index.entries.insert(key.clone(), entry.clone());
@@ -371,7 +431,9 @@ impl ResultCache {
             return;
         }
 
-        if let Ok(mut entries) = self.entries.write() {
+        if let Ok(mut entries) = self.entries.write()
+            && let Some(entries) = entries.as_mut()
+        {
             for key in &evicted {
                 entries.remove(key);
             }
@@ -397,6 +459,18 @@ fn empty_cache_index() -> CacheIndex {
         schema: RESULT_CACHE_INDEX_SCHEMA,
         entries: HashMap::new(),
     }
+}
+
+fn should_load_cache_index(path: &Path, target_count: usize) -> bool {
+    if target_count == 0 {
+        return false;
+    }
+    let Ok(metadata) = fs::metadata(path) else {
+        // A new session starts empty, so even a one-file run should be allowed to populate it.
+        return true;
+    };
+    let budget = (target_count as u64).saturating_mul(RESULT_CACHE_INDEX_BYTES_PER_TARGET);
+    metadata.len() <= budget
 }
 
 fn load_cache_index(path: &Path) -> CacheIndex {
@@ -434,12 +508,44 @@ fn persist_cache_index(path: &Path, index: &CacheIndex) -> bool {
     if temporary.persist(path).is_err() {
         return false;
     }
+    let summary = CacheIndexSummary {
+        schema: RESULT_CACHE_INDEX_SUMMARY_SCHEMA,
+        entries: index.entries.len(),
+    };
+    let Ok(mut temporary) = NamedTempFile::new_in(parent) else {
+        return false;
+    };
+    if serde_json::to_writer(temporary.as_file_mut(), &summary).is_err()
+        || temporary.as_file_mut().flush().is_err()
+        || temporary.as_file().sync_all().is_err()
+        || temporary.persist(cache_index_summary_path(path)).is_err()
+    {
+        return false;
+    }
     // The index itself is already synced above. Syncing the directory where the platform permits
     // it also makes the rename durable across a sudden power loss.
     if let Ok(directory) = fs::File::open(parent) {
         let _ = directory.sync_all();
     }
     true
+}
+
+fn cache_index_summary_path(path: &Path) -> PathBuf {
+    let mut summary = path.as_os_str().to_owned();
+    summary.push(".summary");
+    PathBuf::from(summary)
+}
+
+fn load_cache_index_summary(path: &Path) -> Option<usize> {
+    let bytes = fs::read(cache_index_summary_path(path)).ok()?;
+    let summary = serde_json::from_slice::<CacheIndexSummary>(&bytes).ok()?;
+    (summary.schema == RESULT_CACHE_INDEX_SUMMARY_SCHEMA).then_some(summary.entries)
+}
+
+fn remove_cache_index(path: &Path) -> bool {
+    let removed = fs::remove_file(path).is_ok();
+    let _ = fs::remove_file(cache_index_summary_path(path));
+    removed
 }
 
 fn cache_clock() -> u64 {
@@ -486,40 +592,58 @@ fn is_owned_cache_index(path: &Path) -> bool {
     hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-/// Keeps `MaxFilesInCache` as a global entry budget even though incompatible selections and
-/// executables live in separate indexes. Whole old sessions are discarded, so startup still reads
-/// exactly one index rather than opening every historical session.
+/// Keeps `MaxFilesInCache` and a byte ceiling as global budgets even though projects, selections,
+/// and executables live in separate indexes. Whole old sessions are discarded, so startup still
+/// reads exactly one index rather than opening every historical session.
+///
+/// Entry counts come from tiny sidecars. Reading every old index to count it would make a narrow
+/// run pay the JSON-decoding cost that [`ResultCache::prepare`] deliberately avoided. Indexes made
+/// before sidecars existed are unreachable after this binary change and are removed without being
+/// decoded.
 fn evict_old_cache_indexes(root: &Path, current: &Path, max_files: usize) {
     let Ok(indexes) = fs::read_dir(root) else {
         return;
     };
-    let mut total = 0usize;
+    let mut total_entries = 0usize;
+    let mut total_bytes = 0u64;
+    let mut current_bytes = 0u64;
     let mut old = Vec::new();
     for entry in indexes.filter_map(Result::ok) {
         let path = entry.path();
         if !entry.file_type().is_ok_and(|kind| kind.is_file()) || !is_owned_cache_index(&path) {
             continue;
         }
-        let count = load_cache_index(&path).entries.len();
-        total = total.saturating_add(count);
-        if path != current {
-            let modified = entry
-                .metadata()
-                .and_then(|metadata| metadata.modified())
+        let Some(count) = load_cache_index_summary(&path) else {
+            if path != current {
+                remove_cache_index(&path);
+            }
+            continue;
+        };
+        let metadata = entry.metadata().ok();
+        let size = metadata.as_ref().map_or(0, fs::Metadata::len);
+        total_entries = total_entries.saturating_add(count);
+        total_bytes = total_bytes.saturating_add(size);
+        if path == current {
+            current_bytes = size;
+        } else {
+            let modified = metadata
+                .and_then(|metadata| metadata.modified().ok())
                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-            old.push((modified, path, count));
+            old.push((modified, path, count, size));
         }
     }
-    if total <= max_files {
+    let byte_budget = RESULT_CACHE_ROOT_MAX_BYTES.max(current_bytes);
+    if total_entries <= max_files && total_bytes <= byte_budget {
         return;
     }
     old.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
-    for (_, path, count) in old {
-        if total <= max_files {
+    for (_, path, count, size) in old {
+        if total_entries <= max_files && total_bytes <= byte_budget {
             break;
         }
-        if fs::remove_file(path).is_ok() {
-            total = total.saturating_sub(count);
+        if remove_cache_index(&path) {
+            total_entries = total_entries.saturating_sub(count);
+            total_bytes = total_bytes.saturating_sub(size);
         }
     }
 }
@@ -2603,7 +2727,14 @@ mod tests {
             only: vec!["Layout/TrailingWhitespace".to_owned()],
             ..Selection::default()
         };
-        let cache = ResultCache::new(directory.path().join("cache"), &selection, 100).unwrap();
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            100,
+        )
+        .unwrap();
+        cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
 
         cache.store(&report, &config);
@@ -2649,7 +2780,14 @@ mod tests {
             only: vec!["Layout/TrailingWhitespace".to_owned()],
             ..Selection::default()
         };
-        let cache = ResultCache::new(directory.path().join("cache"), &selection, 100).unwrap();
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            100,
+        )
+        .unwrap();
+        cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
         cache.store(&report, &config);
 
@@ -2676,11 +2814,18 @@ mod tests {
             only: vec!["Layout/TrailingWhitespace".to_owned()],
             ..Selection::default()
         };
-        let cache = ResultCache::new(directory.path().join("cache"), &selection, 1).unwrap();
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            1,
+        )
+        .unwrap();
         let paths = [
             directory.path().join("first.rb"),
             directory.path().join("second.rb"),
         ];
+        cache.prepare(paths.len());
         for path in &paths {
             // 保存側が更新時刻と大きさを記録するので、報告の相手は実在していなければならない。
             fs::write(path, "x = 1  \n").unwrap();
@@ -2713,18 +2858,76 @@ mod tests {
             ..Selection::default()
         };
 
-        let cache = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let cache = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
+        cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
         cache.store(&report, &config);
         cache.prune();
         assert!(cache.index_path.is_file());
         drop(cache);
 
-        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        let reloaded = ResultCache::new(root, config.path_base(), &selection, 100).unwrap();
+        reloaded.prepare(1);
         let Some(Cached::Fresh(report)) = reloaded.load(&path, &config) else {
             panic!("a report should survive an index reload");
         };
         assert_eq!(report.offenses.len(), 1);
+    }
+
+    #[test]
+    fn result_cache_identity_is_scoped_to_the_project_path_base() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let first_project = directory.path().join("first");
+        let second_project = directory.path().join("second");
+        fs::create_dir_all(&first_project).unwrap();
+        fs::create_dir_all(&second_project).unwrap();
+        let first_config = Config::load(None, &first_project).unwrap();
+        let second_config = Config::load(None, &second_project).unwrap();
+        let selection = Selection::default();
+
+        let first =
+            ResultCache::new(root.clone(), first_config.path_base(), &selection, 100).unwrap();
+        let second = ResultCache::new(root, second_config.path_base(), &selection, 100).unwrap();
+
+        assert_ne!(first.identity, second.identity);
+        assert_ne!(first.index_path, second.index_path);
+    }
+
+    #[test]
+    fn oversized_result_cache_index_is_bypassed_for_a_narrow_run() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let path = directory.path().join("example.rb");
+        let source = "x = 1\n";
+        fs::write(&path, source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let cache = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
+        fs::create_dir_all(&root).unwrap();
+        fs::File::create(&cache.index_path)
+            .unwrap()
+            .set_len(super::RESULT_CACHE_INDEX_BYTES_PER_TARGET + 1)
+            .unwrap();
+        let original_len = fs::metadata(&cache.index_path).unwrap().len();
+
+        cache.prepare(1);
+        assert_eq!(cache.prepared.get(), Some(&false));
+        assert!(cache.load(&path, &config).is_none());
+        cache.store(
+            &FileReport {
+                path,
+                source: SourceFile::new(directory.path().join("example.rb"), source.to_owned()),
+                offenses: Vec::new(),
+            },
+            &config,
+        );
+        cache.prune();
+        assert_eq!(fs::metadata(&cache.index_path).unwrap().len(), original_len);
+
+        let wider = ResultCache::new(root, config.path_base(), &selection, 100).unwrap();
+        wider.prepare(2);
+        assert_eq!(wider.prepared.get(), Some(&true));
     }
 
     #[test]
@@ -2736,8 +2939,10 @@ mod tests {
             only: vec!["Layout/TrailingWhitespace".to_owned()],
             ..Selection::default()
         };
-        let first = ResultCache::new(root.clone(), &selection, 100).unwrap();
-        let second = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let first = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
+        let second = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
+        first.prepare(2);
+        second.prepare(2);
         let paths = [
             directory.path().join("first.rb"),
             directory.path().join("second.rb"),
@@ -2751,7 +2956,8 @@ mod tests {
 
         first.prune();
         second.prune();
-        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        let reloaded = ResultCache::new(root, config.path_base(), &selection, 100).unwrap();
+        reloaded.prepare(2);
         assert!(
             paths
                 .iter()
@@ -2772,18 +2978,20 @@ mod tests {
             ..Selection::default()
         };
 
-        let empty = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let empty = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
         fs::create_dir_all(&root).unwrap();
         fs::write(&empty.index_path, b"{unfinished").unwrap();
         drop(empty);
-        let rebuilt = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let rebuilt = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
+        rebuilt.prepare(1);
         assert!(rebuilt.load(&path, &config).is_none());
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
         rebuilt.store(&report, &config);
         rebuilt.prune();
         drop(rebuilt);
 
-        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        let reloaded = ResultCache::new(root, config.path_base(), &selection, 100).unwrap();
+        reloaded.prepare(1);
         assert!(matches!(
             reloaded.load(&path, &config),
             Some(Cached::Fresh(_))
@@ -2807,24 +3015,70 @@ mod tests {
             ..Selection::default()
         };
 
-        let first = ResultCache::new(root.clone(), &first_selection, 1).unwrap();
+        let first =
+            ResultCache::new(root.clone(), config.path_base(), &first_selection, 1).unwrap();
+        first.prepare(1);
         let report =
             inspect_source(path.clone(), source.to_owned(), &config, &first_selection).unwrap();
         first.store(&report, &config);
         first.prune();
         drop(first);
 
-        let second = ResultCache::new(root.clone(), &second_selection, 1).unwrap();
+        let second =
+            ResultCache::new(root.clone(), config.path_base(), &second_selection, 1).unwrap();
+        second.prepare(1);
         let report =
             inspect_source(path.clone(), source.to_owned(), &config, &second_selection).unwrap();
         second.store(&report, &config);
         second.prune();
         drop(second);
 
-        let first = ResultCache::new(root.clone(), &first_selection, 1).unwrap();
-        let second = ResultCache::new(root, &second_selection, 1).unwrap();
+        let first =
+            ResultCache::new(root.clone(), config.path_base(), &first_selection, 1).unwrap();
+        let second = ResultCache::new(root, config.path_base(), &second_selection, 1).unwrap();
+        first.prepare(1);
+        second.prepare(1);
         assert!(first.load(&path, &config).is_none());
         assert!(second.load(&path, &config).is_some());
+    }
+
+    #[test]
+    fn result_cache_root_has_a_size_budget_across_session_indexes() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        fs::create_dir_all(&root).unwrap();
+        let old = root.join(format!(
+            "{}{}.index",
+            super::RESULT_CACHE_INDEX_PREFIX,
+            "a".repeat(64)
+        ));
+        let current = root.join(format!(
+            "{}{}.index",
+            super::RESULT_CACHE_INDEX_PREFIX,
+            "b".repeat(64)
+        ));
+        fs::File::create(&old)
+            .unwrap()
+            .set_len(super::RESULT_CACHE_ROOT_MAX_BYTES)
+            .unwrap();
+        fs::write(&current, b"{}").unwrap();
+        for path in [&old, &current] {
+            let summary = super::CacheIndexSummary {
+                schema: super::RESULT_CACHE_INDEX_SUMMARY_SCHEMA,
+                entries: 1,
+            };
+            fs::write(
+                super::cache_index_summary_path(path),
+                serde_json::to_vec(&summary).unwrap(),
+            )
+            .unwrap();
+        }
+
+        super::evict_old_cache_indexes(&root, &current, usize::MAX);
+
+        assert!(!old.exists());
+        assert!(!super::cache_index_summary_path(&old).exists());
+        assert!(current.exists());
     }
 
     /// Runs `corrected_text` over synthetic offenses, so that the composition rules can be pinned
