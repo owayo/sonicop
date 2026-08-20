@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
-use std::fs;
+use std::collections::{HashMap, HashSet};
+use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use anyhow::{Context, Result, bail};
 use ignore::WalkBuilder;
@@ -58,9 +58,13 @@ pub struct Selection {
     pub skip_syntax_guard: bool,
 }
 
-/// 2: entries are keyed by path rather than by text, and carry the file's stat, the text's digest
-/// and each offense's frozen location so an unchanged file need not be read at all.
-const RESULT_CACHE_SCHEMA: u32 = 2;
+/// 3: one session index holds every path-keyed report in memory. Reports still carry the file's
+/// stat, the text's digest, and each offense's frozen location so an unchanged file need not be
+/// read at all.
+const RESULT_CACHE_SCHEMA: u32 = 3;
+const RESULT_CACHE_INDEX_SCHEMA: u32 = 1;
+const RESULT_CACHE_INDEX_PREFIX: &str = "sonicop-result-cache-";
+const RESULT_CACHE_LOCK_FILE: &str = ".sonicop-result-cache.lock";
 
 /// Persistent reports for unchanged files.
 ///
@@ -69,11 +73,14 @@ const RESULT_CACHE_SCHEMA: u32 = 2;
 /// freshly rebuilt linter from accepting reports produced by older code.
 pub(crate) struct ResultCache {
     root: PathBuf,
+    index_path: PathBuf,
     identity: blake3::Hash,
     max_files: usize,
+    entries: RwLock<HashMap<String, IndexedReport>>,
+    dirty_keys: Mutex<HashSet<String>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct CachedReport {
     schema: u32,
     /// What the file measured when the report was made. A run that finds both unchanged serves the
@@ -85,6 +92,20 @@ pub(crate) struct CachedReport {
     /// not -- a checkout that restores a file, a formatter that rewrites it byte for byte.
     text: [u8; 32],
     offenses: Vec<CachedOffense>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct IndexedReport {
+    /// Wall-clock time at which this report was produced. It is used only to choose an entry when
+    /// `MaxFilesInCache` requires eviction; cache validity never depends on it.
+    cached_at: u64,
+    report: CachedReport,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+struct CacheIndex {
+    schema: u32,
+    entries: HashMap<String, IndexedReport>,
 }
 
 impl CachedReport {
@@ -135,7 +156,7 @@ pub(crate) enum Cached {
     Stale(CachedReport),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct CachedOffense {
     cop_name: String,
     severity: String,
@@ -167,10 +188,21 @@ impl ResultCache {
         {
             hash_part(&mut identity, &bytes);
         }
+        let identity = identity.finalize();
+        let index_path = root.join(format!(
+            "{RESULT_CACHE_INDEX_PREFIX}{}.index",
+            identity.to_hex()
+        ));
+        let entries = crate::profile::phase(crate::profile::Phase::CacheLoad, || {
+            load_cache_index(&index_path).entries
+        });
         Ok(Self {
             root,
-            identity: identity.finalize(),
+            index_path,
+            identity,
             max_files,
+            entries: RwLock::new(entries),
+            dirty_keys: Mutex::new(HashSet::new()),
         })
     }
 
@@ -209,11 +241,11 @@ impl ResultCache {
     ///
     /// The caller has not read the file at this point, and a `Fresh` answer means it never has to.
     pub(crate) fn load(&self, path: &Path, config: &Config) -> Option<Cached> {
-        let key =
-            crate::profile::phase(crate::profile::Phase::CacheKey, || self.key(path, config))?;
+        let key = crate::profile::phase(crate::profile::Phase::CacheKey, || {
+            self.key(path, config).map(|key| key.to_hex().to_string())
+        })?;
         crate::profile::phase(crate::profile::Phase::CacheLoad, || {
-            let bytes = fs::read(self.path(key)).ok()?;
-            let cached: CachedReport = serde_json::from_slice(&bytes).ok()?;
+            let cached = self.entries.read().ok()?.get(&key)?.report.clone();
             if cached.schema != RESULT_CACHE_SCHEMA {
                 return None;
             }
@@ -269,81 +301,265 @@ impl ResultCache {
                 })
                 .collect(),
         };
-        let destination = self.path(key);
-        let Some(parent) = destination.parent().map(Path::to_path_buf) else {
+        let key = key.to_hex().to_string();
+        let Ok(mut entries) = self.entries.write() else {
             return;
         };
-        if fs::create_dir_all(&parent).is_err() {
-            return;
-        }
-        let Ok(mut temporary) = NamedTempFile::new_in(&parent) else {
+        entries.insert(
+            key.clone(),
+            IndexedReport {
+                cached_at: cache_clock(),
+                report: cached,
+            },
+        );
+        drop(entries);
+        let Ok(mut dirty_keys) = self.dirty_keys.lock() else {
             return;
         };
-        if serde_json::to_writer(temporary.as_file_mut(), &cached).is_err()
-            || temporary.as_file_mut().flush().is_err()
-        {
-            return;
-        }
-        let _ = temporary.persist(destination);
+        dirty_keys.insert(key);
     }
 
-    fn path(&self, key: blake3::Hash) -> PathBuf {
-        let key = key.to_hex();
-        self.root.join(&key[..2]).join(format!("{key}.json"))
-    }
-
-    /// Enforces RuboCop's `AllCops/MaxFilesInCache` after a run, instead of scanning the cache
-    /// after every file a parallel run writes. Only the two-level hash layout owned by Sonicop is
-    /// eligible for removal, even when the user points `--cache-root` at a shared directory.
+    /// Persists reports once after the parallel inspection and enforces
+    /// `AllCops/MaxFilesInCache`. A process lock and merge keep concurrent Sonicop runs from
+    /// replacing one another's entries; the final temp-file rename keeps a killed writer from
+    /// corrupting the previous index.
     pub(crate) fn prune(&self) {
-        let Ok(shards) = fs::read_dir(&self.root) else {
+        let dirty_keys = match self.dirty_keys.lock() {
+            Ok(keys) => keys.iter().cloned().collect::<Vec<_>>(),
+            Err(_) => return,
+        };
+        let local_len = match self.entries.read() {
+            Ok(entries) => entries.len(),
+            Err(_) => return,
+        };
+        if dirty_keys.is_empty() && local_len <= self.max_files {
+            return;
+        }
+        if fs::create_dir_all(&self.root).is_err() {
+            return;
+        }
+        let lock_path = self.root.join(RESULT_CACHE_LOCK_FILE);
+        let Ok(lock) = OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .read(true)
+            .write(true)
+            .open(lock_path)
+        else {
             return;
         };
-        let paths = shards
-            .filter_map(Result::ok)
-            .filter(|entry| {
-                let name = entry.file_name();
-                entry.file_type().is_ok_and(|kind| kind.is_dir())
-                    && name.len() == 2
-                    && name
-                        .to_str()
-                        .is_some_and(|name| name.bytes().all(|byte| byte.is_ascii_hexdigit()))
-            })
-            .filter_map(|shard| fs::read_dir(shard.path()).ok())
-            .flatten()
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .filter(|path| {
-                let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
-                    return false;
-                };
-                path.extension().and_then(|extension| extension.to_str()) == Some("json")
-                    && stem.len() == 64
-                    && stem.bytes().all(|byte| byte.is_ascii_hexdigit())
-                    && path
-                        .parent()
-                        .and_then(Path::file_name)
-                        .and_then(|name| name.to_str())
-                        == Some(&stem[..2])
-            })
-            .collect::<Vec<_>>();
-        if paths.len() <= self.max_files {
+        if fs2::FileExt::lock_exclusive(&lock).is_err() {
             return;
         }
-        let mut entries = paths
-            .into_iter()
-            .map(|path| {
-                let modified = fs::metadata(&path)
-                    .and_then(|metadata| metadata.modified())
-                    .ok();
-                (modified, path)
-            })
-            .collect::<Vec<_>>();
-        entries.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
-        let excess = entries.len() - self.max_files;
-        for (_, path) in entries.into_iter().take(excess) {
-            let _ = fs::remove_file(path);
+
+        let mut index = load_cache_index(&self.index_path);
+        index.schema = RESULT_CACHE_INDEX_SCHEMA;
+        if let Ok(entries) = self.entries.read() {
+            for key in &dirty_keys {
+                if let Some(entry) = entries.get(key) {
+                    index.entries.insert(key.clone(), entry.clone());
+                }
+            }
+        } else {
+            return;
         }
+        let evicted = prune_cache_entries(&mut index.entries, self.max_files);
+        if dirty_keys.is_empty() && evicted.is_empty() {
+            return;
+        }
+        if !persist_cache_index(&self.index_path, &index) {
+            return;
+        }
+
+        if let Ok(mut entries) = self.entries.write() {
+            for key in &evicted {
+                entries.remove(key);
+            }
+        }
+        if let Ok(mut keys) = self.dirty_keys.lock() {
+            for key in &dirty_keys {
+                keys.remove(key);
+            }
+        }
+        evict_old_cache_indexes(&self.root, &self.index_path, self.max_files);
+        remove_legacy_cache_entries(&self.root);
+    }
+}
+
+impl Drop for ResultCache {
+    fn drop(&mut self) {
+        self.prune();
+    }
+}
+
+fn empty_cache_index() -> CacheIndex {
+    CacheIndex {
+        schema: RESULT_CACHE_INDEX_SCHEMA,
+        entries: HashMap::new(),
+    }
+}
+
+fn load_cache_index(path: &Path) -> CacheIndex {
+    let Ok(bytes) = fs::read(path) else {
+        return empty_cache_index();
+    };
+    let Ok(mut index) = serde_json::from_slice::<CacheIndex>(&bytes) else {
+        return empty_cache_index();
+    };
+    if index.schema != RESULT_CACHE_INDEX_SCHEMA {
+        return empty_cache_index();
+    }
+    index
+        .entries
+        .retain(|_, entry| entry.report.schema == RESULT_CACHE_SCHEMA);
+    index
+}
+
+fn persist_cache_index(path: &Path, index: &CacheIndex) -> bool {
+    let Some(parent) = path.parent() else {
+        return false;
+    };
+    if fs::create_dir_all(parent).is_err() {
+        return false;
+    }
+    let Ok(mut temporary) = NamedTempFile::new_in(parent) else {
+        return false;
+    };
+    if serde_json::to_writer(temporary.as_file_mut(), index).is_err()
+        || temporary.as_file_mut().flush().is_err()
+        || temporary.as_file().sync_all().is_err()
+    {
+        return false;
+    }
+    if temporary.persist(path).is_err() {
+        return false;
+    }
+    // The index itself is already synced above. Syncing the directory where the platform permits
+    // it also makes the rename durable across a sudden power loss.
+    if let Ok(directory) = fs::File::open(parent) {
+        let _ = directory.sync_all();
+    }
+    true
+}
+
+fn cache_clock() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos().min(u64::MAX as u128) as u64)
+        .unwrap_or(0)
+}
+
+fn prune_cache_entries(
+    entries: &mut HashMap<String, IndexedReport>,
+    max_files: usize,
+) -> Vec<String> {
+    if entries.len() <= max_files {
+        return Vec::new();
+    }
+    let mut oldest = entries
+        .iter()
+        .map(|(key, entry)| (entry.cached_at, key.clone()))
+        .collect::<Vec<_>>();
+    oldest.sort_unstable();
+    let excess = entries.len() - max_files;
+    let evicted = oldest
+        .into_iter()
+        .take(excess)
+        .map(|(_, key)| key)
+        .collect::<Vec<_>>();
+    for key in &evicted {
+        entries.remove(key);
+    }
+    evicted
+}
+
+fn is_owned_cache_index(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let Some(hash) = name
+        .strip_prefix(RESULT_CACHE_INDEX_PREFIX)
+        .and_then(|name| name.strip_suffix(".index"))
+    else {
+        return false;
+    };
+    hash.len() == 64 && hash.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Keeps `MaxFilesInCache` as a global entry budget even though incompatible selections and
+/// executables live in separate indexes. Whole old sessions are discarded, so startup still reads
+/// exactly one index rather than opening every historical session.
+fn evict_old_cache_indexes(root: &Path, current: &Path, max_files: usize) {
+    let Ok(indexes) = fs::read_dir(root) else {
+        return;
+    };
+    let mut total = 0usize;
+    let mut old = Vec::new();
+    for entry in indexes.filter_map(Result::ok) {
+        let path = entry.path();
+        if !entry.file_type().is_ok_and(|kind| kind.is_file()) || !is_owned_cache_index(&path) {
+            continue;
+        }
+        let count = load_cache_index(&path).entries.len();
+        total = total.saturating_add(count);
+        if path != current {
+            let modified = entry
+                .metadata()
+                .and_then(|metadata| metadata.modified())
+                .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+            old.push((modified, path, count));
+        }
+    }
+    if total <= max_files {
+        return;
+    }
+    old.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    for (_, path, count) in old {
+        if total <= max_files {
+            break;
+        }
+        if fs::remove_file(path).is_ok() {
+            total = total.saturating_sub(count);
+        }
+    }
+}
+
+/// Removes only files matching Sonicop's former `<hash-prefix>/<hash>.json` layout. A custom
+/// `--cache-root` may be shared, so unrelated files and non-empty directories are never removed.
+fn remove_legacy_cache_entries(root: &Path) {
+    let Ok(shards) = fs::read_dir(root) else {
+        return;
+    };
+    for shard in shards.filter_map(Result::ok).filter(|entry| {
+        let name = entry.file_name();
+        entry.file_type().is_ok_and(|kind| kind.is_dir())
+            && name.len() == 2
+            && name
+                .to_str()
+                .is_some_and(|name| name.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    }) {
+        let Ok(files) = fs::read_dir(shard.path()) else {
+            continue;
+        };
+        for entry in files.filter_map(Result::ok) {
+            let path = entry.path();
+            let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
+                continue;
+            };
+            if entry.file_type().is_ok_and(|kind| kind.is_file())
+                && path.extension().and_then(|extension| extension.to_str()) == Some("json")
+                && stem.len() == 64
+                && stem.bytes().all(|byte| byte.is_ascii_hexdigit())
+                && path
+                    .parent()
+                    .and_then(Path::file_name)
+                    .and_then(|name| name.to_str())
+                    == Some(&stem[..2])
+            {
+                let _ = fs::remove_file(path);
+            }
+        }
+        let _ = fs::remove_dir(shard.path());
     }
 }
 
@@ -2482,6 +2698,133 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn result_cache_persists_and_reloads_one_index() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+
+        let cache = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+        cache.store(&report, &config);
+        cache.prune();
+        assert!(cache.index_path.is_file());
+        drop(cache);
+
+        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        let Some(Cached::Fresh(report)) = reloaded.load(&path, &config) else {
+            panic!("a report should survive an index reload");
+        };
+        assert_eq!(report.offenses.len(), 1);
+    }
+
+    #[test]
+    fn concurrent_result_caches_merge_their_updates() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let first = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let second = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        let paths = [
+            directory.path().join("first.rb"),
+            directory.path().join("second.rb"),
+        ];
+        for (cache, path) in [(&first, &paths[0]), (&second, &paths[1])] {
+            fs::write(path, "x = 1  \n").unwrap();
+            let report =
+                inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
+            cache.store(&report, &config);
+        }
+
+        first.prune();
+        second.prune();
+        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        assert!(
+            paths
+                .iter()
+                .all(|path| reloaded.load(path, &config).is_some())
+        );
+    }
+
+    #[test]
+    fn malformed_result_cache_index_is_rebuilt_without_becoming_a_hit() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+
+        let empty = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        fs::create_dir_all(&root).unwrap();
+        fs::write(&empty.index_path, b"{unfinished").unwrap();
+        drop(empty);
+        let rebuilt = ResultCache::new(root.clone(), &selection, 100).unwrap();
+        assert!(rebuilt.load(&path, &config).is_none());
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+        rebuilt.store(&report, &config);
+        rebuilt.prune();
+        drop(rebuilt);
+
+        let reloaded = ResultCache::new(root, &selection, 100).unwrap();
+        assert!(matches!(
+            reloaded.load(&path, &config),
+            Some(Cached::Fresh(_))
+        ));
+    }
+
+    #[test]
+    fn result_cache_file_limit_is_shared_across_session_indexes() {
+        let directory = tempdir().unwrap();
+        let root = directory.path().join("cache");
+        let config = Config::load(None, directory.path()).unwrap();
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
+        let first_selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let second_selection = Selection {
+            only: vec!["Layout/TrailingEmptyLines".to_owned()],
+            ..Selection::default()
+        };
+
+        let first = ResultCache::new(root.clone(), &first_selection, 1).unwrap();
+        let report =
+            inspect_source(path.clone(), source.to_owned(), &config, &first_selection).unwrap();
+        first.store(&report, &config);
+        first.prune();
+        drop(first);
+
+        let second = ResultCache::new(root.clone(), &second_selection, 1).unwrap();
+        let report =
+            inspect_source(path.clone(), source.to_owned(), &config, &second_selection).unwrap();
+        second.store(&report, &config);
+        second.prune();
+        drop(second);
+
+        let first = ResultCache::new(root.clone(), &first_selection, 1).unwrap();
+        let second = ResultCache::new(root, &second_selection, 1).unwrap();
+        assert!(first.load(&path, &config).is_none());
+        assert!(second.load(&path, &config).is_some());
     }
 
     /// Runs `corrected_text` over synthetic offenses, so that the composition rules can be pinned

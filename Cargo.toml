@@ -19,6 +19,7 @@ anyhow = "1.0.104"
 blake3 = "1.8"
 clap = { version = "4.6.5", features = ["derive", "wrap_help"] }
 encoding_rs = "0.8.35"
+fs2 = "0.4.3"
 globset = "0.4.19"
 ignore = "0.4.32"
 rayon = "1.12.0"
