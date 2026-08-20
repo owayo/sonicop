@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::Range;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::source::SourceFile;
 
@@ -253,7 +253,7 @@ fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
     text[start..end].chars().count()
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Location {
     pub start_line: usize,
     pub start_column: usize,

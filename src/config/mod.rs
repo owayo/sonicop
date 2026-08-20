@@ -7,6 +7,7 @@ mod store;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, OnceLock};
 
 use anyhow::{Context, Result, bail};
 use serde::de::DeserializeOwned;
@@ -44,23 +45,37 @@ pub struct Config {
     includes: PathPatterns,
     excludes: HashMap<String, PathPatterns>,
     cop_includes: HashMap<String, PathPatterns>,
+    /// The result cache's digest of this configuration, folded on first use.
+    ///
+    /// Nothing here changes after the configuration is built, and every file in a run mixes the
+    /// digest into its own cache key -- so serializing the merged configuration again per file, all
+    /// several hundred kilobytes of it once the default set is in, cost a cached run more than
+    /// reading the files did. The `Arc` is what lets a cloned `Config` share the answer instead of
+    /// working it out again.
+    cache_digest: Arc<OnceLock<Option<[u8; 32]>>>,
 }
 
 impl Config {
-    /// Stable input to the on-disk result cache. The merged raw configuration determines cop
-    /// behaviour, while the resolved paths and Ruby version cover behaviour derived from where
-    /// the configuration was loaded and from the surrounding project.
-    pub(crate) fn cache_key_material(&self) -> Result<Vec<u8>> {
-        serde_json::to_vec(&(
-            &self.raw,
-            self.path_base.to_string_lossy(),
-            self.cwd.to_string_lossy(),
-            self.config_path
-                .as_deref()
-                .map(|path| path.to_string_lossy()),
-            self.target_ruby.version.to_string(),
-        ))
-        .context("failed to fingerprint the resolved configuration")
+    /// Stable digest of the on-disk result cache's view of this configuration. The merged raw
+    /// configuration determines cop behaviour, while the resolved paths and Ruby version cover
+    /// behaviour derived from where the configuration was loaded and from the surrounding project.
+    pub(crate) fn cache_digest(&self) -> Result<&[u8; 32]> {
+        self.cache_digest
+            .get_or_init(|| {
+                let material = serde_json::to_vec(&(
+                    &self.raw,
+                    self.path_base.to_string_lossy(),
+                    self.cwd.to_string_lossy(),
+                    self.config_path
+                        .as_deref()
+                        .map(|path| path.to_string_lossy()),
+                    self.target_ruby.version.to_string(),
+                ))
+                .ok()?;
+                Some(*blake3::hash(&material).as_bytes())
+            })
+            .as_ref()
+            .context("failed to fingerprint the resolved configuration")
     }
 
     pub fn load(explicit: Option<&Path>, cwd: &Path) -> Result<Self> {
@@ -133,6 +148,7 @@ impl Config {
             includes,
             excludes,
             cop_includes,
+            cache_digest: Arc::new(OnceLock::new()),
         })
     }
 

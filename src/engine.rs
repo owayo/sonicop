@@ -14,7 +14,7 @@ use tree_sitter::Parser;
 
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
-use crate::diagnostic::{FileReport, Offense, Severity};
+use crate::diagnostic::{FileReport, Location, Offense, OffenseSnapshot, Severity};
 use crate::directives::{CommentConfig, CopRegistry, DirectiveState};
 use crate::magic_comment::MagicComment;
 use crate::rules::{AstIndex, DirectiveReview, Rule, RuleContext, rules};
@@ -58,7 +58,9 @@ pub struct Selection {
     pub skip_syntax_guard: bool,
 }
 
-const RESULT_CACHE_SCHEMA: u32 = 1;
+/// 2: entries are keyed by path rather than by text, and carry the file's stat, the text's digest
+/// and each offense's frozen location so an unchanged file need not be read at all.
+const RESULT_CACHE_SCHEMA: u32 = 2;
 
 /// Persistent reports for unchanged files.
 ///
@@ -72,9 +74,65 @@ pub(crate) struct ResultCache {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CachedReport {
+pub(crate) struct CachedReport {
     schema: u32,
+    /// What the file measured when the report was made. A run that finds both unchanged serves the
+    /// report without opening the file, which is the whole point of keying on the path rather than
+    /// on the text.
+    size: u64,
+    modified: Option<(u64, u32)>,
+    /// The digest of the text the report was made from, for when the stat moved but the text did
+    /// not -- a checkout that restores a file, a formatter that rewrites it byte for byte.
+    text: [u8; 32],
     offenses: Vec<CachedOffense>,
+}
+
+impl CachedReport {
+    /// Whether `text` is what this report was made from.
+    fn matches(&self, text: &str) -> bool {
+        self.text == *blake3::hash(text.as_bytes()).as_bytes()
+    }
+
+    /// The report as the rest of the program expects it.
+    ///
+    /// `text` is what the file holds, when the caller happens to have read it. Without it the
+    /// report carries an empty [`SourceFile`]: every offense restored here has its location frozen,
+    /// and both [`Offense::location`] and [`Offense::source_line`] answer from that rather than from
+    /// the source, so nothing downstream asks the empty text a question. Autocorrect is the one
+    /// caller that needs the real text, and it never reaches the cache -- a correcting run does not
+    /// consult it.
+    fn into_report(self, path: PathBuf, text: Option<&str>) -> Option<FileReport> {
+        let source = SourceFile::new(path.clone(), text.unwrap_or_default().to_owned());
+        let mut offenses = Vec::with_capacity(self.offenses.len());
+        for cached in self.offenses {
+            let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
+            let severity = Severity::parse(&cached.severity)?;
+            let mut offense =
+                Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
+            offense.correctable = cached.correctable;
+            offense.suppressed = cached.suppressed;
+            offense.justification = cached.justification;
+            offense.snapshot = Some(OffenseSnapshot {
+                location: cached.location,
+                source_line: cached.source_line,
+            });
+            offenses.push(offense);
+        }
+        Some(FileReport {
+            path,
+            source,
+            offenses,
+        })
+    }
+}
+
+/// What a lookup in the result cache found.
+pub(crate) enum Cached {
+    /// The file has not moved since the report was made; nothing else needs checking.
+    Fresh(FileReport),
+    /// The file's size or modification time moved. The report still stands if the text hashes to
+    /// what it was made from, which the caller can only settle once it has read the file.
+    Stale(CachedReport),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -87,6 +145,11 @@ struct CachedOffense {
     correctable: bool,
     suppressed: bool,
     justification: Option<String>,
+    /// Where the offense sits, resolved while the text was still at hand. A run served from a stat
+    /// match never reads the file, so the byte offsets above cannot be turned into a position any
+    /// more -- the frozen location is what the formatters get.
+    location: Location,
+    source_line: String,
 }
 
 impl ResultCache {
@@ -111,61 +174,82 @@ impl ResultCache {
         })
     }
 
-    fn key(&self, path: &Path, text: &str, config: &Config) -> Option<blake3::Hash> {
-        // A NUL can make Ruby stop reading before the physical end of the file. It is rare and
-        // preserving both lengths in the cache buys less than keeping this path unambiguous.
-        if text.as_bytes().contains(&0) {
-            return None;
-        }
+    /// Where a file's report lives, which depends on the file's name and the configuration but not
+    /// on its contents.
+    ///
+    /// Keying on the text instead would mean hashing every file before its report could even be
+    /// looked for -- and worse, reading every file to have something to hash. The entry carries the
+    /// text's digest so a stale one is still recognized; what the path key buys is the chance to
+    /// recognize a *fresh* one from the directory entry alone.
+    fn key(&self, path: &Path, config: &Config) -> Option<blake3::Hash> {
         let path = path.to_str()?;
-        let config = config.cache_key_material().ok()?;
+        let config = config.cache_digest().ok()?;
         let mut key = blake3::Hasher::new();
         hash_part(&mut key, self.identity.as_bytes());
         hash_part(&mut key, path.as_bytes());
-        hash_part(&mut key, &config);
-        hash_part(&mut key, text.as_bytes());
+        hash_part(&mut key, config);
         Some(key.finalize())
     }
 
-    pub(crate) fn load(&self, path: &Path, text: &str, config: &Config) -> Option<FileReport> {
-        let key = crate::profile::phase(crate::profile::Phase::CacheKey, || {
-            self.key(path, text, config)
-        })?;
+    /// The file's size and modification time, as the cache records them.
+    ///
+    /// A modification time the platform will not give us leaves `None`, which never compares equal
+    /// to a stored one, so such a file simply falls through to the digest.
+    fn stat(metadata: &fs::Metadata) -> (u64, Option<(u64, u32)>) {
+        let modified = metadata
+            .modified()
+            .ok()
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|since| (since.as_secs(), since.subsec_nanos()));
+        (metadata.len(), modified)
+    }
+
+    /// The stored report for `path`, if there is one, together with what still has to be checked
+    /// before it can be trusted.
+    ///
+    /// The caller has not read the file at this point, and a `Fresh` answer means it never has to.
+    pub(crate) fn load(&self, path: &Path, config: &Config) -> Option<Cached> {
+        let key =
+            crate::profile::phase(crate::profile::Phase::CacheKey, || self.key(path, config))?;
         crate::profile::phase(crate::profile::Phase::CacheLoad, || {
             let bytes = fs::read(self.path(key)).ok()?;
             let cached: CachedReport = serde_json::from_slice(&bytes).ok()?;
             if cached.schema != RESULT_CACHE_SCHEMA {
                 return None;
             }
-            let source = SourceFile::new(path.to_path_buf(), text.to_owned());
-            let mut offenses = Vec::with_capacity(cached.offenses.len());
-            for cached in cached.offenses {
-                let cop_name = rules().find(|rule| rule.name == cached.cop_name)?.name;
-                let severity = Severity::parse(&cached.severity)?;
-                let mut offense =
-                    Offense::new(cop_name, severity, cached.message, cached.start, cached.end);
-                offense.correctable = cached.correctable;
-                offense.suppressed = cached.suppressed;
-                offense.justification = cached.justification;
-                offenses.push(offense);
+            let (size, modified) = fs::metadata(path).ok().as_ref().map(Self::stat)?;
+            // A missing modification time never matches a stored one, so such a file always goes on
+            // to be read and digested rather than being trusted on its size alone.
+            if cached.size == size && modified.is_some() && cached.modified == modified {
+                return Some(Cached::Fresh(cached.into_report(path.to_path_buf(), None)?));
             }
-            Some(FileReport {
-                path: path.to_path_buf(),
-                source,
-                offenses,
-            })
+            Some(Cached::Stale(cached))
         })
     }
 
     pub(crate) fn store(&self, report: &FileReport, config: &Config) {
-        let Some(key) = self.key(&report.path, report.source.text(), config) else {
+        let text = report.source.text();
+        // A NUL can make Ruby stop reading before the physical end of the file. It is rare and
+        // preserving both lengths in the cache buys less than keeping this path unambiguous.
+        if text.as_bytes().contains(&0) {
+            return;
+        }
+        let Some(key) = self.key(&report.path, config) else {
             return;
         };
         if self.max_files == 0 {
             return;
         }
+        // Taken after the file was read, so a rewrite that lands between the two leaves a stat the
+        // next run will not accept, and the digest settles it from there.
+        let Ok((size, modified)) = fs::metadata(&report.path).as_ref().map(Self::stat) else {
+            return;
+        };
         let cached = CachedReport {
             schema: RESULT_CACHE_SCHEMA,
+            size,
+            modified,
+            text: *blake3::hash(text.as_bytes()).as_bytes(),
             offenses: report
                 .offenses
                 .iter()
@@ -178,6 +262,10 @@ impl ResultCache {
                     correctable: offense.correctable,
                     suppressed: offense.suppressed,
                     justification: offense.justification.clone(),
+                    // Resolved here, where the text is still at hand, because a run served from a
+                    // stat match has no text to resolve it against.
+                    location: offense.location(&report.source),
+                    source_line: offense.source_line(&report.source).to_owned(),
                 })
                 .collect(),
         };
@@ -685,13 +773,23 @@ pub(crate) fn inspect_files_with_store_cached(
     // to building its own, which costs no more than resolving the cops inline would have.
     let root_plan = RulePlan::build(configs.root(), selection);
     let inspect = |path: &PathBuf| -> Result<FileReport> {
+        let config = configs.for_path(path)?;
+        // Asked before the file is read, because the answer decides whether it has to be. A cached
+        // report whose file has not moved stands on the directory entry alone.
+        let stale = match cache.and_then(|cache| cache.load(path, &config)) {
+            Some(Cached::Fresh(report)) => return Ok(report),
+            Some(Cached::Stale(cached)) => Some(cached),
+            None => None,
+        };
         let text =
             match crate::profile::phase(crate::profile::Phase::Read, || decoded_source(path))? {
                 Decoded::Text(text) => text,
                 Decoded::Undecodable(message) => return Ok(undecodable_report(path, &message)),
             };
-        let config = configs.for_path(path)?;
-        if let Some(report) = cache.and_then(|cache| cache.load(path, &text, &config)) {
+        if let Some(cached) = stale
+            && cached.matches(&text)
+            && let Some(report) = cached.into_report(path.clone(), Some(&text))
+        {
             return Ok(report);
         }
         let own_plan = (!std::ptr::eq(Arc::as_ptr(&config), configs.root()))
@@ -990,11 +1088,8 @@ pub fn discover_targets_with_store(
             // versionless link is inspected under both paths.
             .follow_links(true);
         let mut walker = builder.build();
-        loop {
-            let Some(entry) = crate::profile::phase(crate::profile::Phase::Walk, || walker.next())
-            else {
-                break;
-            };
+        while let Some(entry) = crate::profile::phase(crate::profile::Phase::Walk, || walker.next())
+        {
             // RuboCop globs the tree and keeps whatever `FileTest.file?` accepts, so an entry it
             // cannot resolve -- a symlink that closes a cycle, or one whose target is gone -- drops
             // out silently instead of failing the run.
@@ -2260,9 +2355,11 @@ pub fn offense_count(reports: &[FileReport], fail_level: Severity) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use tempfile::tempdir;
 
-    use super::{Decoded, decoded_source, output_bytes};
+    use super::{Cached, Decoded, decoded_source, output_bytes};
     use crate::config::Config;
     use crate::diagnostic::{Edit, FileReport, Offense, Severity};
     use crate::source::SourceFile;
@@ -2284,6 +2381,7 @@ mod tests {
         let directory = tempdir().unwrap();
         let path = directory.path().join("example.rb");
         let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
         let config = Config::load(None, directory.path()).unwrap();
         let selection = Selection {
             only: vec!["Layout/TrailingWhitespace".to_owned()],
@@ -2293,9 +2391,13 @@ mod tests {
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
 
         cache.store(&report, &config);
-        let cached = cache.load(&path, source, &config).unwrap();
+        // 置いたままのファイルなので stat が一致し、中身を読まずに報告が返る。
+        let Some(Cached::Fresh(cached)) = cache.load(&path, &config) else {
+            panic!("an untouched file should be served from its stat alone");
+        };
 
-        assert_eq!(cached.source.text(), report.source.text());
+        // 読んでいないのだから本文は無い。位置と行はすべて凍結側から来ている。
+        assert!(cached.source.text().is_empty());
         assert_eq!(cached.offenses.len(), 1);
         assert_eq!(cached.offenses[0].cop_name, report.offenses[0].cop_name);
         assert_eq!(cached.offenses[0].message, report.offenses[0].message);
@@ -2303,8 +2405,51 @@ mod tests {
             cached.offenses[0].location(&cached.source).line,
             report.offenses[0].location(&report.source).line
         );
+        assert_eq!(
+            cached.offenses[0].source_line(&cached.source),
+            report.offenses[0].source_line(&report.source)
+        );
         assert!(cached.offenses[0].is_correctable());
-        assert!(cache.load(&path, "x = 1\n", &config).is_none());
+
+        // 中身が変われば stat も digest も合わず、報告は使えない。
+        fs::write(&path, "x = 1\n").unwrap();
+        match cache.load(&path, &config) {
+            Some(Cached::Fresh(_)) => panic!("a rewritten file must not pass as fresh"),
+            Some(Cached::Stale(cached)) => assert!(!cached.matches("x = 1\n")),
+            None => {}
+        }
+    }
+
+    /// 触っただけで中身が同じなら、stat が動いても報告は生き残らなければならない。
+    /// 内容の digest を持たずに stat だけで判定していると、ここでキャッシュを捨ててしまう。
+    #[test]
+    fn result_cache_survives_a_rewrite_that_changes_nothing() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let cache = ResultCache::new(directory.path().join("cache"), &selection, 100).unwrap();
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+        cache.store(&report, &config);
+
+        fs::write(&path, source).unwrap();
+
+        match cache.load(&path, &config) {
+            // 更新時刻の分解能が足りず stat が動かないことはある。それでも結果は同じ。
+            Some(Cached::Fresh(cached)) => assert_eq!(cached.offenses.len(), 1),
+            Some(Cached::Stale(cached)) => {
+                assert!(cached.matches(source));
+                let restored = cached.into_report(path.clone(), Some(source)).unwrap();
+                assert_eq!(restored.offenses.len(), 1);
+                assert_eq!(restored.offenses[0].cop_name, report.offenses[0].cop_name);
+            }
+            None => panic!("a rewrite that changes nothing must not lose the report"),
+        }
     }
 
     #[test]
@@ -2321,6 +2466,8 @@ mod tests {
             directory.path().join("second.rb"),
         ];
         for path in &paths {
+            // 保存側が更新時刻と大きさを記録するので、報告の相手は実在していなければならない。
+            fs::write(path, "x = 1  \n").unwrap();
             let report =
                 inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
             cache.store(&report, &config);
@@ -2331,7 +2478,7 @@ mod tests {
         assert_eq!(
             paths
                 .iter()
-                .filter(|path| cache.load(path, "x = 1  \n", &config).is_some())
+                .filter(|path| cache.load(path, &config).is_some())
                 .count(),
             1
         );
