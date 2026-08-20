@@ -918,6 +918,14 @@ pub fn discover_targets(
     )
 }
 
+/// What the `Include`/`Exclude` lists alone can say about a walked path. Only `AskShebang` costs a
+/// read, and it is reached solely by an extension-less file no pattern claims.
+enum Verdict {
+    Keep,
+    Drop,
+    AskShebang,
+}
+
 pub fn discover_targets_with_store(
     arguments: &[PathBuf],
     cwd: &Path,
@@ -962,7 +970,9 @@ pub fn discover_targets_with_store(
         builder
             .filter_entry(move |entry| {
                 !entry.file_type().is_some_and(|kind| kind.is_dir())
-                    || !pruned.directory_excluded(entry.path())
+                    || crate::profile::phase(crate::profile::Phase::DirFilter, || {
+                        !pruned.directory_excluded(entry.path())
+                    })
             })
             .hidden(false)
             .parents(false)
@@ -975,7 +985,12 @@ pub fn discover_targets_with_store(
             // would revisit an ancestor, so a vendored gem reachable under both its real name and a
             // versionless link is inspected under both paths.
             .follow_links(true);
-        for entry in builder.build() {
+        let mut walker = builder.build();
+        loop {
+            let Some(entry) = crate::profile::phase(crate::profile::Phase::Walk, || walker.next())
+            else {
+                break;
+            };
             // RuboCop globs the tree and keeps whatever `FileTest.file?` accepts, so an entry it
             // cannot resolve -- a symlink that closes a cycle, or one whose target is gone -- drops
             // out silently instead of failing the run.
@@ -986,11 +1001,30 @@ pub fn discover_targets_with_store(
             if !entry.file_type().is_some_and(|kind| kind.is_file()) {
                 continue;
             }
-            let config = configs.for_path(path)?;
-            let included = config.path_included(path);
-            if config.path_excluded(path)
-                || (!included && (config.path_hidden(path) || !has_ruby_shebang(path)))
-            {
+            let config = crate::profile::phase(crate::profile::Phase::ConfigLookup, || {
+                configs.for_path(path)
+            })?;
+            let verdict = crate::profile::phase(crate::profile::Phase::PathMatch, || {
+                let included = config.path_included(path);
+                if config.path_excluded(path) {
+                    return Verdict::Drop;
+                }
+                if included {
+                    return Verdict::Keep;
+                }
+                if config.path_hidden(path) {
+                    return Verdict::Drop;
+                }
+                Verdict::AskShebang
+            });
+            let keep = match verdict {
+                Verdict::Keep => true,
+                Verdict::Drop => false,
+                Verdict::AskShebang => {
+                    crate::profile::phase(crate::profile::Phase::Shebang, || has_ruby_shebang(path))
+                }
+            };
+            if !keep {
                 continue;
             }
             walked.push(normalized_target_path(path));

@@ -1,8 +1,9 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use globset::{Glob, GlobMatcher};
+use globset::{Glob, GlobMatcher, GlobSet, GlobSetBuilder};
 use serde_yaml_ng::{Mapping, Value};
 
 pub(super) fn compile_excludes(raw: &Value) -> HashMap<String, PathPatterns> {
@@ -58,6 +59,87 @@ pub(super) struct PathPatterns {
     /// degrading into "no list configured".
     configured: usize,
     patterns: Vec<CompiledPattern>,
+    /// Every pattern, asked in one go.
+    all: PatternSet,
+    /// The patterns written with a capital, which is the subset
+    /// `matches_uppercase_includes` walks.
+    uppercase: PatternSet,
+}
+
+/// One list of globs folded into `globset`'s set form so a path can be tested against all of them
+/// at once.
+///
+/// `globset` sorts a set into literal, basename, extension and prefix tables and only falls back to
+/// a regex for the patterns none of those cover, so asking the 46 default `Include` globs together
+/// costs about what asking one of them separately did. Walking `patterns` one at a time is kept for
+/// the cases the sets cannot answer -- a hidden path, where each glob has its own say about whether
+/// it reaches the dot -- so the sets are an accelerator, never the authority.
+#[derive(Clone, Debug, Default)]
+struct PatternSet {
+    /// Matched against the project-relative path.
+    full: GlobSet,
+    /// The separator-free patterns, matched against the basename as well.
+    basename: GlobSet,
+    /// The `dir` half of a `dir/**/*` pattern, matched against each ancestor of the path.
+    ancestor: GlobSet,
+    /// Whether `ancestor` holds anything, so the ancestor walk is skipped when it does not.
+    has_ancestor: bool,
+    /// Whether every builder produced a set. A failure only costs speed: the caller falls back to
+    /// walking the patterns one at a time, which is what it did before the sets existed.
+    usable: bool,
+}
+
+impl PatternSet {
+    fn build<'a>(patterns: impl Iterator<Item = &'a CompiledPattern>) -> Self {
+        let mut full = GlobSetBuilder::new();
+        let mut basename = GlobSetBuilder::new();
+        let mut ancestor = GlobSetBuilder::new();
+        let mut has_ancestor = false;
+        for pattern in patterns {
+            full.add(pattern.matcher.glob().clone());
+            if pattern.basename {
+                basename.add(pattern.matcher.glob().clone());
+            }
+            if let Some(prefix) = pattern.ancestor.as_ref() {
+                ancestor.add(prefix.glob().clone());
+                has_ancestor = true;
+            }
+        }
+        match (full.build(), basename.build(), ancestor.build()) {
+            (Ok(full), Ok(basename), Ok(ancestor)) => Self {
+                full,
+                basename,
+                ancestor,
+                has_ancestor,
+                usable: true,
+            },
+            _ => Self::default(),
+        }
+    }
+
+    /// The same question `CompiledPattern::matches` answers for one pattern, asked of the whole set.
+    /// Only reachable where every pattern would have been asked with `hidden` false, so the
+    /// `skips_hidden` shortcut has no say here.
+    fn matches(&self, normalized: &str, basename: &str) -> bool {
+        self.full.is_match(normalized)
+            || (self.has_ancestor
+                && Path::new(normalized)
+                    .ancestors()
+                    .skip(1)
+                    .any(|path| self.ancestor.is_match(slashed(path).as_ref())))
+            || self.basename.is_match(basename)
+    }
+}
+
+/// `path` as text with Windows separators folded to `/`, borrowing whenever there is nothing to
+/// fold -- which is every path on a Unix checkout.
+fn slashed(path: &Path) -> Cow<'_, str> {
+    match path.to_string_lossy() {
+        Cow::Borrowed(text) if !text.contains('\\') => Cow::Borrowed(text),
+        Cow::Borrowed(text) => Cow::Owned(text.replace('\\', "/")),
+        Cow::Owned(text) if !text.contains('\\') => Cow::Owned(text),
+        Cow::Owned(text) => Cow::Owned(text.replace('\\', "/")),
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -80,12 +162,17 @@ struct CompiledPattern {
 
 impl PathPatterns {
     fn compile(patterns: &[String]) -> Self {
+        let compiled: Vec<CompiledPattern> = patterns
+            .iter()
+            .filter_map(|pattern| CompiledPattern::compile(pattern))
+            .collect();
+        let all = PatternSet::build(compiled.iter());
+        let uppercase = PatternSet::build(compiled.iter().filter(|pattern| pattern.has_uppercase));
         Self {
             configured: patterns.len(),
-            patterns: patterns
-                .iter()
-                .filter_map(|pattern| CompiledPattern::compile(pattern))
-                .collect(),
+            patterns: compiled,
+            all,
+            uppercase,
         }
     }
 
@@ -128,11 +215,22 @@ impl PathPatterns {
         // non-hidden directory. So a dot directory is invisible unless named, and a top-level dot
         // file needs naming too.
         let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", normalized));
+        let hidden_file = file.starts_with('.');
+        let hidden_directory = directories.split('/').any(|part| part.starts_with('.'));
+        // With nothing hidden about the path, every pattern would clear the two dot tests below on
+        // its own, and what is left is the plain glob question the set can answer in one go.
+        let set = if uppercase_only {
+            &self.uppercase
+        } else {
+            &self.all
+        };
+        if set.usable && !hidden_directory && !(hidden_file && directories.is_empty()) {
+            return set.matches(normalized, basename);
+        }
         let hidden_directories: Vec<&str> = directories
             .split('/')
             .filter(|part| part.starts_with('.'))
             .collect();
-        let hidden_file = file.starts_with('.');
         self.patterns.iter().any(|pattern| {
             if uppercase_only && !pattern.has_uppercase {
                 return false;
@@ -162,6 +260,11 @@ impl PathPatterns {
             .and_then(|name| name.to_str())
             .unwrap_or("");
         let hidden = respect_hidden && has_hidden_component(Path::new(normalized));
+        // `hidden` and `absolute_only` are the only things that put a pattern out of the running on
+        // its own; without them the set answers for the whole list at once.
+        if self.all.usable && !hidden && !absolute_only {
+            return self.all.matches(normalized, basename);
+        }
         self.patterns
             .iter()
             .filter(|pattern| !absolute_only || pattern.absolute)
@@ -212,7 +315,7 @@ impl CompiledPattern {
                 Path::new(normalized)
                     .ancestors()
                     .skip(1)
-                    .any(|path| ancestor.is_match(path.to_string_lossy().replace('\\', "/")))
+                    .any(|path| ancestor.is_match(slashed(path).as_ref()))
             })
             || (self.basename && self.matcher.is_match(basename))
     }

@@ -87,12 +87,33 @@ pub(crate) enum Phase {
     Syntax,
     Directives,
     Sort,
+    /// Walking the tree: what the `ignore` crate spends between entries, pruning included.
+    Walk,
+    /// `directory_excluded` on every directory the walk offers.
+    DirFilter,
+    /// Resolving the configuration that governs a discovered path.
+    ConfigLookup,
+    /// `path_included` / `path_excluded` / `path_hidden` on every file the walk offers.
+    PathMatch,
+    /// Reading a shebang from an extension-less file.
+    Shebang,
 }
 
 impl Phase {
-    const COUNT: usize = 6;
-    const NAMES: [&'static str; Self::COUNT] =
-        ["read", "parse", "index", "syntax", "directives", "sort"];
+    const COUNT: usize = 11;
+    const NAMES: [&'static str; Self::COUNT] = [
+        "read",
+        "parse",
+        "index",
+        "syntax",
+        "directives",
+        "sort",
+        "walk",
+        "dir_filter",
+        "config_lookup",
+        "path_match",
+        "shebang",
+    ];
 }
 
 /// Switches profiling on and sizes the tables to the registry.
