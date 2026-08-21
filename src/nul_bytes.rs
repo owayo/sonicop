@@ -72,10 +72,11 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
             };
             // A literal that spans the byte is one Ruby keeps reading, so the NUL stays a character
             // of the string. Replacing it would change the value every cop sees; truncating there
-            // refuses a file both `ruby -c` and RuboCop accept.
-            let spanning = literals.partition_point(|literal| literal.end <= offset);
+            // refuses a file both `ruby -c` and RuboCop accept. The literals are disjoint and in
+            // order, so the first one ending past the byte is the only one that can hold it.
+            let ending_after = literals.partition_point(|literal| literal.end <= offset);
             if literals
-                .get(spanning)
+                .get(ending_after)
                 .is_some_and(|literal| literal.start <= offset)
             {
                 from = offset + 1;

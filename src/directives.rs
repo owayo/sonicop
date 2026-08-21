@@ -265,16 +265,29 @@ fn apply_enable(state: &mut Snapshot, cops: &[String]) {
 /// expanded the name into, so a directive that names `all` or a department speaks for every cop
 /// below it and nothing an earlier directive left against one of them survives. Keeping the
 /// expansion implicit ([`Snapshot::verdict_for`] reads a department back off the cop's own name)
-/// means dropping those superseded entries by hand.
+/// means dropping those superseded entries by hand -- and leaving alone the two cops the
+/// expansion does not reach, whose own entry outlives the broader directive that follows it.
 fn record(state: &mut Snapshot, cop: &str, verdict: Verdict) {
     if cop == "all" {
         state.all = Some(verdict);
-        state.cops.clear();
+        state.cops.retain(|name, _| undisableable(name));
         return;
     }
     let cop = directive_cop_name(cop);
-    state.cops.retain(|name, _| department(name) != cop);
+    // `parsed_cop_names` ends in `cops - [LINT_SYNTAX_COP]`, so a directive that names the parse
+    // report names nothing at all -- not even enough to supersede what stands.
+    if cop == UNDISABLEABLE_COPS[1] {
+        return;
+    }
+    state.cops.retain(|name, _| {
+        department(name) != cop || (cop == LINT_DEPARTMENT && undisableable(name))
+    });
     state.cops.insert(cop.to_owned(), verdict);
+}
+
+/// `exclude_lint_department_cops`: whether `all` and the `Lint` department leave this cop alone.
+fn undisableable(cop: &str) -> bool {
+    UNDISABLEABLE_COPS.contains(&cop)
 }
 
 /// `Cop::Registry.global`: the cops a directive resolves its names against.
@@ -478,6 +491,9 @@ pub(crate) fn cop_name_length(text: &str) -> Option<usize> {
 /// department, so a file can neither turn off the parse report nor the cop that reads its own
 /// directives by naming their department.
 const UNDISABLEABLE_COPS: [&str; 2] = ["Lint/RedundantCopDisableDirective", "Lint/Syntax"];
+
+/// `DirectiveComment::LINT_DEPARTMENT`, the one department whose expansion leaves cops out.
+const LINT_DEPARTMENT: &str = "Lint";
 
 /// The cop `CommentConfig` refuses to record a directive for once it is explicitly enabled, so
 /// that a file cannot switch off the cop that objects to its directives.
@@ -1490,57 +1506,246 @@ fn pop_state(
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Range;
+    use std::path::Path;
+
+    use crate::config::Config;
     use crate::diagnostic::{Offense, Severity};
+    use crate::engine::{self, Selection};
     use crate::source::SourceFile;
 
     use super::DirectiveState;
 
-    #[test]
-    fn handles_block_inline_reason_and_push_pop_directives() {
-        let source = SourceFile::new(
-            "test.rb",
-            "# rubocop:disable Layout -- legacy\n\
-             a = 1  \n\
-             # rubocop:enable Layout\n\
-             b = 2  # rubocop:disable Layout/TrailingWhitespace\n\
-             # rubocop:push -Layout/TrailingWhitespace\n\
-             c = 3  \n\
-             # rubocop:pop\n\
-             d = 4  \n"
-                .to_owned(),
-        );
-        let comment_ranges: Vec<_> = (1..=source.line_count())
+    /// Every comment of a file whose comments are all written with a bare `#`, which is what the
+    /// parse hands [`DirectiveState`] for real.
+    fn comment_ranges(source: &SourceFile) -> Vec<Range<usize>> {
+        (1..=source.line_count())
             .filter_map(|line_number| {
                 let line = source.line(line_number);
                 let local_start = line.find('#')?;
                 let start = source.line_start(line_number) + local_start;
                 Some(start..start + line[local_start..].trim_end().len())
             })
-            .collect();
-        let directives = DirectiveState::parse(&source, &comment_ranges);
+            .collect()
+    }
+
+    fn suppression_of(text: &str, cop: &'static str, line: usize) -> Option<Option<String>> {
+        let source = SourceFile::new("test.rb", text.to_owned());
+        let ranges = comment_ranges(&source);
+        let offense = Offense::new(
+            cop,
+            Severity::Convention,
+            "test",
+            source.line_start(line),
+            source.line_start(line) + 1,
+        );
+        DirectiveState::parse(&source, &ranges).suppression(&offense, &source)
+    }
+
+    /// The whole run, so that the directives are read the way the engine reads them rather than
+    /// the way the test builds them: `--only Style/For` over a file of `for` loops reports one
+    /// offense per loop the directives left switched on.
+    fn offense_count(text: &str) -> usize {
+        let config = Config::load_with_options(None, Path::new("/"), true)
+            .expect("the embedded default configuration has to load");
+        let selection = Selection {
+            only: vec!["Style/For".to_owned()],
+            ..Selection::default()
+        };
+        engine::inspect_source("example.rb", text.to_owned(), &config, &selection)
+            .expect("the source has to be inspectable")
+            .offenses
+            .len()
+    }
+
+    const FIRST_LOOP: &str = "for i in 1..2 do\n  puts i\nend\n";
+    const SECOND_LOOP: &str = "for j in 1..2 do\n  puts j\nend\n";
+
+    #[test]
+    fn handles_block_inline_reason_and_push_pop_directives() {
+        let text = "# rubocop:disable Layout -- legacy\n\
+                    a = 1  \n\
+                    # rubocop:enable Layout\n\
+                    b = 2  # rubocop:disable Layout/TrailingWhitespace\n\
+                    # rubocop:push -Layout/TrailingWhitespace\n\
+                    c = 3  \n\
+                    # rubocop:pop\n\
+                    d = 4  \n";
         for (line, expected) in [(2, true), (4, true), (6, true), (8, false)] {
-            let offense = Offense::new(
-                "Layout/TrailingWhitespace",
-                Severity::Convention,
-                "test",
-                source.line_start(line),
-                source.line_start(line) + 1,
-            );
             assert_eq!(
-                directives.suppression(&offense, &source).is_some(),
+                suppression_of(text, "Layout/TrailingWhitespace", line).is_some(),
                 expected
             );
         }
-        let offense = Offense::new(
-            "Layout/TrailingWhitespace",
-            Severity::Convention,
-            "test",
-            source.line_start(2),
-            source.line_start(2) + 1,
-        );
         assert_eq!(
-            directives.suppression(&offense, &source),
+            suppression_of(text, "Layout/TrailingWhitespace", 2),
             Some(Some("legacy".to_owned()))
         );
+    }
+
+    /// `analyze_single_line` is `return analysis unless directive.disabled?`, so an `enable` that
+    /// shares its line with code changes nothing -- least of all closing the range a block-form
+    /// `disable` above it opened, which is what it used to do here and what left the rest of the
+    /// file reporting again.
+    #[test]
+    fn an_inline_enable_does_not_close_a_block_disable() {
+        let text = format!(
+            "# rubocop:disable Style/For\n{FIRST_LOOP}\
+             x = 1 # rubocop:enable Style/For\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&text, "Style/For", 6).is_some());
+        assert_eq!(offense_count(&text), 0);
+    }
+
+    /// The same for a `push`, which `CommentConfig#analyze` routes before it ever asks whether the
+    /// directive covers one line: it acts wherever it is written.
+    #[test]
+    fn an_inline_push_and_pop_still_act() {
+        let text = format!(
+            "x = 1 # rubocop:push -Style/For\n{FIRST_LOOP}\
+             y = 2 # rubocop:pop\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&text, "Style/For", 2).is_some());
+        assert!(suppression_of(&text, "Style/For", 6).is_none());
+        assert_eq!(offense_count(&text), 1);
+    }
+
+    /// `DirectiveComment#cop_names` expands a department into the cops it holds, so an `enable`
+    /// that names one of them closes that cop's range and leaves the rest of the department
+    /// switched off. Recording the department verbatim and only ever removing the name an `enable`
+    /// spelled out kept the cop disabled to the end of the file, which is the dangerous direction:
+    /// it hides offenses that RuboCop reports.
+    #[test]
+    fn an_enable_reopens_one_cop_of_a_disabled_department() {
+        let text = format!(
+            "# rubocop:disable Style\n{FIRST_LOOP}\
+             # rubocop:enable Style/For\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&text, "Style/For", 2).is_some());
+        assert!(suppression_of(&text, "Style/For", 6).is_none());
+        // The department is still switched off for everything it did not name.
+        assert!(suppression_of(&text, "Style/RedundantSelf", 6).is_some());
+        assert_eq!(offense_count(&text), 1);
+    }
+
+    /// `all` expands the same way.
+    #[test]
+    fn an_enable_reopens_one_cop_of_a_disabled_all() {
+        let text = format!(
+            "# rubocop:disable all\n{FIRST_LOOP}\
+             # rubocop:enable Style/For\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&text, "Style/For", 2).is_some());
+        assert!(suppression_of(&text, "Style/For", 6).is_none());
+        assert!(suppression_of(&text, "Layout/TrailingWhitespace", 6).is_some());
+        assert_eq!(offense_count(&text), 1);
+    }
+
+    /// A directive that names a department speaks for every cop below it, so what an earlier
+    /// directive left against one of them is gone.
+    #[test]
+    fn a_department_directive_supersedes_the_cops_below_it() {
+        let reopened_then_closed = format!(
+            "# rubocop:disable Style\n{FIRST_LOOP}\
+             # rubocop:enable Style/For\n\
+             # rubocop:disable Style\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&reopened_then_closed, "Style/For", 7).is_some());
+
+        let closed_then_reopened = format!(
+            "# rubocop:disable Style/For\n{FIRST_LOOP}\
+             # rubocop:enable Style\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&closed_then_reopened, "Style/For", 6).is_none());
+    }
+
+    /// `Registry.qualified_cop_name`: RuboCop warns about the missing department through
+    /// `Migration/DepartmentName` but honours the directive, so a name written without one -- or
+    /// under the wrong one -- reaches the cop that carries it.
+    #[test]
+    fn an_unqualified_cop_name_reaches_the_cop_that_carries_it() {
+        let bare = format!("# rubocop:disable For\n{FIRST_LOOP}");
+        assert!(suppression_of(&bare, "Style/For", 2).is_some());
+        assert_eq!(offense_count(&bare), 0);
+
+        let wrong_department = format!("# rubocop:disable Lint/For\n{FIRST_LOOP}");
+        assert!(suppression_of(&wrong_department, "Style/For", 2).is_some());
+        assert_eq!(offense_count(&wrong_department), 0);
+
+        let unqualified_enable = format!(
+            "# rubocop:disable Style/For\n{FIRST_LOOP}\
+             # rubocop:enable For\n{SECOND_LOOP}"
+        );
+        assert!(suppression_of(&unqualified_enable, "Style/For", 6).is_none());
+        assert_eq!(offense_count(&unqualified_enable), 1);
+
+        // A name no cop carries stays what it was written as and switches nothing off.
+        let unknown = format!("# rubocop:disable NotACop\n{FIRST_LOOP}");
+        assert!(suppression_of(&unknown, "Style/For", 2).is_none());
+        assert_eq!(offense_count(&unknown), 1);
+    }
+
+    /// `parser` strips the byte order mark before it lexes, so upstream's directive comment starts
+    /// at its `#` and its line holds no code. The mark is not in `White_Space`, so `trim` left it
+    /// behind and the directive read as one written behind prose -- covering line one alone.
+    #[test]
+    fn a_byte_order_mark_leaves_a_first_line_directive_block_form() {
+        let text = format!(
+            "{}# rubocop:disable Style/For\n{FIRST_LOOP}",
+            crate::source::BYTE_ORDER_MARK
+        );
+        assert!(suppression_of(&text, "Style/For", 2).is_some());
+        assert_eq!(offense_count(&text), 0);
+    }
+
+    /// The mark does not make line one hold code for `CommentConfig` either, which is the model
+    /// the cops that review directives read.
+    #[test]
+    fn a_byte_order_mark_leaves_the_first_line_comment_only() {
+        let text = format!(
+            "{}# rubocop:disable Style/For\n{FIRST_LOOP}",
+            crate::source::BYTE_ORDER_MARK
+        );
+        let source = SourceFile::new("test.rb", text);
+        assert!(!super::lines_with_code(&source, &comment_ranges(&source)).contains(&1));
+    }
+
+    /// `exclude_lint_department_cops`: the cop that reads directives is out of `all` and out of
+    /// the `Lint` department, and `Lint/Syntax` is out of every directive there is.
+    #[test]
+    fn the_two_undisableable_cops_stay_out_of_all_and_of_their_department() {
+        for directive in ["all", "Lint"] {
+            let text = format!("# rubocop:disable {directive}\nx = 1\n");
+            assert!(suppression_of(&text, "Lint/RedundantCopDisableDirective", 2).is_none());
+            assert!(suppression_of(&text, "Lint/Syntax", 2).is_none());
+            assert!(suppression_of(&text, "Lint/UselessAssignment", 2).is_some());
+        }
+        let named = "# rubocop:disable Lint/RedundantCopDisableDirective\nx = 1\n";
+        assert!(suppression_of(named, "Lint/RedundantCopDisableDirective", 2).is_some());
+    }
+
+    /// The other half of `exclude_lint_department_cops`: a later `all` or `Lint` directive does not
+    /// reach those two either, so what a directive that named one of them outright left behind
+    /// stands. Superseding the cops a broad directive expands into must not take them with it.
+    #[test]
+    fn a_broad_directive_does_not_supersede_the_two_cops_it_cannot_reach() {
+        for directive in [
+            "# rubocop:enable Lint",
+            "# rubocop:disable all",
+            "# rubocop:enable all",
+        ] {
+            let text = format!(
+                "# rubocop:disable Lint/RedundantCopDisableDirective\n{directive}\nx = 1\n"
+            );
+            assert!(
+                suppression_of(&text, "Lint/RedundantCopDisableDirective", 3).is_some(),
+                "{directive} closed a range it does not reach"
+            );
+        }
+        // Spelling the cop out does close it.
+        let closed = "# rubocop:disable Lint/RedundantCopDisableDirective\n\
+                      # rubocop:enable Lint/RedundantCopDisableDirective\n\
+                      x = 1\n";
+        assert!(suppression_of(closed, "Lint/RedundantCopDisableDirective", 3).is_none());
     }
 }

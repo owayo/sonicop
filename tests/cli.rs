@@ -1177,6 +1177,72 @@ fn fail_fast_separates_the_targets_found_from_the_files_inspected() {
     );
 }
 
+/// `-o` は直前の `-f` に付く。どの `-f` よりも前に書かれたものは本家では
+/// `output_path` に入り、`apply_default_formatter` の
+/// `@options[:formatters] ||= [[format, output_path]]` だけがそれを読む。
+/// `-f` が 1 つでもあれば `||=` は何もしないので、そのパスは捨てられて
+/// フォーマッタは stdout に書く。第 1 フォーマッタに繋いでしまうと、
+/// stdout をパイプで受ける CI が空を掴む。
+#[test]
+fn an_output_path_written_before_every_formatter_is_dropped() {
+    let directory = project(&[("a.rb", "x  = 1\n")]);
+    let out = directory.path().join("out.txt");
+
+    let output = command(directory.path())
+        .args([
+            "a.rb",
+            "-o",
+            out.to_str().unwrap(),
+            "--only",
+            "Layout/ExtraSpacing",
+            "-f",
+            "json",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+
+    assert!(
+        !output.is_empty(),
+        "-f があるなら先行する -o は捨てられ、フォーマッタは stdout に書く"
+    );
+    assert!(
+        !out.exists(),
+        "捨てたはずのパスにファイルを作ってはならない"
+    );
+}
+
+/// `-f` が 1 つも無ければ `||=` が働くので、先行する `-o` は既定フォーマッタの
+/// 書き出し先になる。上のテストと対で「常に捨てる」実装への退行を止める。
+#[test]
+fn an_output_path_without_any_formatter_still_receives_the_default_one() {
+    let directory = project(&[("a.rb", "x  = 1\n")]);
+    let out = directory.path().join("out.txt");
+
+    let output = command(directory.path())
+        .args([
+            "a.rb",
+            "-o",
+            out.to_str().unwrap(),
+            "--only",
+            "Layout/ExtraSpacing",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+
+    assert!(
+        output.is_empty(),
+        "書き出し先を渡したなら stdout は空になる"
+    );
+    let written = fs::read_to_string(&out).expect("既定フォーマッタの出力が書かれている");
+    assert!(written.contains("Layout/ExtraSpacing"));
+}
+
 /// 折り返せる呼び出し / ブロック / do ブロックを 1 行ずつ含む長い行のソース。
 fn breakable_source() -> String {
     let long = "x".repeat(120);
