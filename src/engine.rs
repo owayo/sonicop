@@ -3285,7 +3285,7 @@ mod tests {
             fs::write(path, "x = 1  \n").unwrap();
             let report =
                 inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
-            store_as_read(&cache, &report, &config);
+            store_as_read(cache, &report, &config);
         }
 
         first.prune();

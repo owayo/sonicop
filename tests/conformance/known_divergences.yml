@@ -241,6 +241,30 @@ blind_spots:
 # 4. json の metadata — 意図的。ruby_engine / ruby_version / ruby_platform は
 #    sonicop 自身の値を出し、sonicop_version を足す。files と summary は一致する。
 
+# 設定読み込みの既知差分 (2026-08-21 時点)。いずれも「本家が例外で止まるところを
+# sonicop は止めない」型で、上のフォーマッタ 1 と同じ方針に立つ。**本家のクラッシュは
+# 再現しない。** リンタが利用者の設定ミスでバックトレースを吐いて終わるのは、
+# 一致させる価値のある挙動ではないため。
+#
+# 1. スカラで書かれた Include / Exclude — 本家が落ちる。
+#    `Exclude: "tmp/**/*"` のようにリスト記法を忘れると、本家は
+#    `Config#make_excludes_absolute` の `String#map!` で
+#    `undefined method 'map!' for an instance of String` を上げて終了する
+#    (lib/rubocop/config.rb:117)。sonicop は Ruby の `Array(...)` と同じく
+#    単独スカラを 1 要素として読む。**黙って捨てないことが要点**で、
+#    以前は `.ok()?` が握り潰しており、利用者の Exclude が丸ごと無効なまま
+#    実行が成功したように見えていた。設定ミスを検出する側に倒すなら
+#    エラーにする選択肢もあるが、その場合も無言で捨てるのだけは不可。
+#
+# 2. 非 UTF-8 の .ruby-version / Gemfile.lock — 本家が落ちる。
+#    `TargetRuby` は候補ファイルを `File.read` して
+#    `invalid byte sequence in UTF-8` で終了する (target_ruby.rb:181)。
+#    sonicop は読めない候補を諦めて次の供給源に落ちる。
+#    **.gemspec だけは本家も同じく諦める** (`GemspecFile#version_from_gemspec_file`
+#    が nil を返す) ので、そちらは差分ではなく一致。
+#    3 つを揃えているのは、候補探索が cwd から `/` まで祖先を遡るため、
+#    検査対象と無関係なファイル 1 つで実行全体が止まるのを避けるため。
+
 # autocorrect のバイト一致は 4 コーパスすべてで確認済み
 # (rubocop/rubocop は -a と -A、rails/rails・Homebrew/brew・mastodon/mastodon は -A)。
 #

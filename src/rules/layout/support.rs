@@ -388,6 +388,30 @@ pub(super) fn display_column(context: &RuleContext<'_>, offset: usize) -> i64 {
     crate::display_width::display_width(&context.source.text()[start..offset])
 }
 
+/// `AlignmentCorrector.calculate_range` for a leftward move: the indentation the line gives back,
+/// or `None` when it has less of it than `width` and so keeps what it has.
+///
+/// Upstream measures that span in *characters* from `line_begin` and then removes it only when
+/// `/\A[ \t]+\z/` matches its source, so a span that would reach past the blanks into code is left
+/// alone. A blank is one byte, so taking the blanks the line actually has and asking for the full
+/// width back says exactly the same thing in bytes -- and, unlike stepping `width` bytes off
+/// `line_begin`, it can never land inside a multi-byte character. `column_delta` is a display
+/// width (`Alignment#display_column`) rather than a count of anything storable, so a single `"日"`
+/// on the line is enough to make the two disagree and, before this, to abort the thread on a
+/// slice that is not on a character boundary.
+fn removable_indentation(text: &str, line_begin: usize, width: usize) -> Option<Range<usize>> {
+    // `starts_with_space`: a line that opens with indentation gives it back from its front, and a
+    // node that starts its line without one takes it off the blanks written before it.
+    let range = if text[line_begin..].starts_with(' ') {
+        let run = whitespace_after(text, line_begin);
+        line_begin..line_begin.checked_add(width)?.min(run.end)
+    } else {
+        let run = whitespace_before(text, line_begin);
+        line_begin.saturating_sub(width).max(run.start)..line_begin
+    };
+    (range.end - range.start == width).then_some(range)
+}
+
 /// `AlignmentCorrector.correct`: every line the node spans is moved sideways by `column_delta`.
 pub(super) fn alignment_corrections(
     context: &RuleContext<'_>,
@@ -405,37 +429,36 @@ pub(super) fn alignment_corrections(
         // The first position is the node's own start rather than its line's, which is what lets a
         // node that shares its line with something else be moved on its own.
         let range = if column_delta > 0 {
-            line_begin..line_begin
+            Some(line_begin..line_begin)
         } else {
-            let width = usize::try_from(-column_delta).unwrap_or(0);
-            if text[line_begin..].starts_with(' ') {
-                line_begin..(line_begin + width).min(text.len())
-            } else {
-                line_begin.saturating_sub(width)..line_begin
-            }
+            removable_indentation(
+                text,
+                line_begin,
+                usize::try_from(-column_delta).unwrap_or(0),
+            )
+        };
+        let start = line_begin;
+        line_begin += line.len();
+        let Some(range) = range else {
+            continue;
         };
         if taboo
             .iter()
             .any(|range_| range.start >= range_.start && range.end <= range_.end)
         {
-            line_begin += line.len();
             continue;
         }
         if column_delta > 0 {
-            if !text[line_begin..].starts_with('\n') {
+            if !text[start..].starts_with('\n') {
                 let width = usize::try_from(column_delta).unwrap_or(0);
                 edits.push(Edit {
-                    start: line_begin,
-                    end: line_begin,
+                    start,
+                    end: start,
                     replacement: " ".repeat(width),
                     safe: true,
                 });
             }
-        } else if !range.is_empty()
-            && text[range.clone()]
-                .bytes()
-                .all(|byte| byte == b' ' || byte == b'\t')
-        {
+        } else {
             edits.push(Edit {
                 start: range.start,
                 end: range.end,
@@ -443,7 +466,6 @@ pub(super) fn alignment_corrections(
                 safe: true,
             });
         }
-        line_begin += line.len();
     }
     edits
 }
@@ -875,4 +897,116 @@ fn has_clause(container: Node<'_>) -> bool {
     container
         .named_children(&mut cursor)
         .any(|child| matches!(child.kind_str(), "rescue" | "ensure" | "else"))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::config::Config;
+    use crate::engine::{self, CorrectMode, Selection};
+
+    use super::removable_indentation;
+
+    /// The default configuration, resolved from nothing on disk so that the repository the tests
+    /// run in cannot decide what they check.
+    fn default_config() -> Config {
+        Config::load_with_options(None, Path::new("/"), true)
+            .expect("the embedded default configuration has to load")
+    }
+
+    fn corrected(cop: &str, source: &str) -> String {
+        let config = default_config();
+        let selection = Selection {
+            only: vec![cop.to_owned()],
+            correcting: true,
+            ..Selection::default()
+        };
+        let report = engine::inspect_source("example.rb", source.to_owned(), &config, &selection)
+            .expect("the source has to be inspectable");
+        let (_, corrected, _) =
+            engine::correct_until_stable(report, CorrectMode::All, &config, &selection)
+                .expect("the correction has to run");
+        corrected
+    }
+
+    fn offense_lines(cop: &str, source: &str) -> Vec<String> {
+        let config = default_config();
+        let selection = Selection {
+            only: vec![cop.to_owned()],
+            ..Selection::default()
+        };
+        let report = engine::inspect_source("example.rb", source.to_owned(), &config, &selection)
+            .expect("the source has to be inspectable");
+        report
+            .offenses
+            .iter()
+            .map(|offense| {
+                let (line, column) = report.source.line_column(offense.start);
+                format!("{line}:{column} {} {}", offense.cop_name, offense.message)
+            })
+            .collect()
+    }
+
+    /// `column_delta` is a display width, so counting that many *bytes* off `line_begin` walked
+    /// into the middle of a multi-byte character and aborted the thread the file was inspected on
+    /// -- which, under the parallel runner, took the rayon worker and the reports of unrelated
+    /// files with it.
+    #[test]
+    fn indentation_is_measured_over_the_blanks_that_are_there_rather_than_in_bytes() {
+        // Five blanks to give and three columns asked for: the first three are the indentation.
+        assert_eq!(removable_indentation("     [1,", 0, 3), Some(0..3));
+        // One blank to give and three columns asked for. Reaching three bytes ahead lands inside
+        // `日`; upstream reads three characters, sees ` "日` rather than blanks, and removes
+        // nothing.
+        assert_eq!(removable_indentation(" \"\u{65e5}\"]", 0, 3), None);
+        // The same from the other side. `line_begin` is the second line, whose first character is
+        // not a blank, so the span is taken off what precedes it -- and four bytes back is inside
+        // the `日` on the line above.
+        let across_lines = "\"\u{65e5}\",\n\"x\"";
+        assert_eq!(across_lines.find('\n'), Some(6));
+        assert_eq!(removable_indentation(across_lines, 7, 4), None);
+        assert_eq!(removable_indentation("a\n    x", 6, 3), Some(3..6));
+        // Fewer blanks than columns asked for is left alone, not shortened.
+        assert_eq!(removable_indentation("a\n  x", 4, 3), None);
+    }
+
+    /// The two files the panic was first seen on, end to end: the offense stays where RuboCop
+    /// 1.89.0 reports it and the correction is byte for byte what RuboCop 1.89.0 writes.
+    #[test]
+    fn a_multi_byte_character_on_a_realigned_line_neither_panics_nor_moves() {
+        let ends_in_a_wide_character = "def m\n     [1,\n \"\u{65e5}\"]\nend\n";
+        assert_eq!(
+            offense_lines("Layout/IndentationWidth", ends_in_a_wide_character),
+            ["2:1 Layout/IndentationWidth Use 2 (not 5) spaces for indentation."]
+        );
+        assert_eq!(
+            corrected("Layout/IndentationWidth", ends_in_a_wide_character),
+            "def m\n  [1,\n \"\u{65e5}\"]\nend\n"
+        );
+
+        let starts_after_a_wide_character = "def m\n      [1, \"\u{65e5}\",\n\"x\"]\nend\n";
+        assert_eq!(
+            offense_lines("Layout/IndentationWidth", starts_after_a_wide_character),
+            ["2:1 Layout/IndentationWidth Use 2 (not 6) spaces for indentation."]
+        );
+        assert_eq!(
+            corrected("Layout/IndentationWidth", starts_after_a_wide_character),
+            "def m\n  [1, \"\u{65e5}\",\n\"x\"]\nend\n"
+        );
+    }
+
+    /// Every width class the display-width table distinguishes, so that a fix aimed at one of them
+    /// is not mistaken for a fix of the byte arithmetic.
+    #[test]
+    fn every_multi_byte_width_class_survives_realignment() {
+        for character in ["\u{65e5}", "\u{e9}", "\u{1f600}", "\u{1d518}"] {
+            let source = format!("def m\n     [1,\n \"{character}\"]\nend\n");
+            assert_eq!(
+                corrected("Layout/IndentationWidth", &source),
+                format!("def m\n  [1,\n \"{character}\"]\nend\n"),
+                "{character} was not left where RuboCop leaves it"
+            );
+        }
+    }
 }

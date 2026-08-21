@@ -48,7 +48,7 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
         return None;
     }
     let mut text = text.to_owned();
-    let (mut comments, mut literals) = parse(&text).map(|tree| ranges(tree.root_node()))?;
+    let (mut comment_ends, mut literals) = parse(&text).map(|tree| ranges(tree.root_node()))?;
     // Where to look for the next NUL. A NUL left in place has to be stepped over, or the scan finds
     // the same byte forever. It only ever moves forward, which is also what stops a re-parse -- one
     // that can turn up a comment behind it -- from sending the walk back over a byte it has already
@@ -73,9 +73,10 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
             // A literal that spans the byte is one Ruby keeps reading, so the NUL stays a character
             // of the string. Replacing it would change the value every cop sees; truncating there
             // refuses a file both `ruby -c` and RuboCop accept.
+            let spanning = literals.partition_point(|literal| literal.end <= offset);
             if literals
-                .iter()
-                .any(|literal| literal.start <= offset && offset < literal.end)
+                .get(spanning)
+                .is_some_and(|literal| literal.start <= offset)
             {
                 from = offset + 1;
                 continue;
@@ -84,7 +85,7 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
             // exactly there is one the NUL was written inside. Anywhere else, Ruby stopped reading
             // -- but only a parse that already accounts for this pass's replacements is allowed to
             // say so, so the byte goes to the decision below rather than ending the walk here.
-            if !comments.iter().any(|comment| comment.end == offset) {
+            if comment_ends.binary_search(&offset).is_err() {
                 break Some(offset);
             }
             // A comment runs to the end of its line, so every NUL up to there belongs to it too.
@@ -124,7 +125,7 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
         let Some(tree) = parse(&text) else {
             return Some(text);
         };
-        (comments, literals) = ranges(tree.root_node());
+        (comment_ends, literals) = ranges(tree.root_node());
         // Each pass that gets here replaced at least one NUL, so the file runs out of them and the
         // loop ends.
     }
@@ -155,20 +156,37 @@ fn parse(text: &str) -> Option<tree_sitter::Tree> {
 /// `heredoc_content` of its own.
 const LITERAL_CONTENT_KINDS: &[&str] = &["string_content", "heredoc_content"];
 
-/// The comment ranges and the literal-content ranges, in one walk.
-fn ranges(root: Node<'_>) -> (Vec<Range<usize>>, Vec<Range<usize>>) {
-    let (mut comments, mut literals) = (Vec::new(), Vec::new());
+/// Where the comments end and where the literals run, in one walk.
+///
+/// Both come back ordered so the pass above can search them rather than scan them. A file whose
+/// every line carries a NUL asks one question per line, and answering each by walking every node in
+/// the file is the same quadratic shape the pass exists to get out of -- 25,600 such lines spent as
+/// long in the scan as in everything else put together.
+fn ranges(root: Node<'_>) -> (Vec<usize>, Vec<Range<usize>>) {
+    let (mut comment_ends, mut literals) = (Vec::new(), Vec::new());
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
         if node.kind() == "comment" {
-            comments.push(node.byte_range());
+            comment_ends.push(node.byte_range().end);
         } else if LITERAL_CONTENT_KINDS.contains(&node.kind()) {
             literals.push(node.byte_range());
         }
         let mut cursor = node.walk();
         stack.extend(node.named_children(&mut cursor));
     }
-    (comments, literals)
+    comment_ends.sort_unstable();
+    // Merged into disjoint runs, which is what lets one lookup answer "is this byte inside a
+    // literal": the walk hands them back in whatever order the stack popped them, and a literal can
+    // sit inside another -- a string in the interpolation of a heredoc whose body surrounds it.
+    literals.sort_unstable_by_key(|literal| literal.start);
+    literals.dedup_by(|literal, run| {
+        if literal.start > run.end {
+            return false;
+        }
+        run.end = run.end.max(literal.end);
+        true
+    });
+    (comment_ends, literals)
 }
 
 #[cfg(test)]
@@ -284,12 +302,15 @@ mod tests {
     /// knows about, re-parse, start again. It is slow, but it is the definition of the answer, so
     /// it is kept here to hold the batched pass to it byte for byte. A deliberate change to how a
     /// NUL is read has to be made here too, or the test below reports it as a disagreement.
+    ///
+    /// It asks its questions by scanning rather than searching, so the test also holds the ordered
+    /// lookups the pass gained to the plain reading of the same ranges.
     fn one_comment_at_a_time(text: &str) -> Option<String> {
         if !text.as_bytes().contains(&0) {
             return None;
         }
         let mut text = text.to_owned();
-        let (mut comments, mut literals) =
+        let (mut comment_ends, mut literals) =
             super::parse(&text).map(|tree| super::ranges(tree.root_node()))?;
         let mut from = 0;
         loop {
@@ -307,7 +328,7 @@ mod tests {
                 from = offset + 1;
                 continue;
             }
-            if !comments.iter().any(|comment| comment.end == offset) {
+            if !comment_ends.contains(&offset) {
                 text.truncate(offset);
                 return Some(text);
             }
@@ -325,7 +346,7 @@ mod tests {
             let Some(tree) = super::parse(&text) else {
                 return Some(text);
             };
-            (comments, literals) = super::ranges(tree.root_node());
+            (comment_ends, literals) = super::ranges(tree.root_node());
         }
     }
 
@@ -378,7 +399,7 @@ mod tests {
     /// above are where the two would come apart if it mattered.
     #[test]
     fn the_batched_pass_reads_what_one_comment_at_a_time_read() {
-        let mut sequence = Sequence(2026_08_21);
+        let mut sequence = Sequence(20260821);
         for _ in 0..600 {
             let mut source = String::new();
             for _ in 0..=sequence.next(7) {
