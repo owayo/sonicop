@@ -150,19 +150,26 @@ Style/StringLiterals:
   EnforcedStyle: single_quotes
 ```
 
-The CLI accepts RuboCop's server/LSP/MCP, plugin, and cache flags to keep existing command lines
-parse-compatible. Sonicop does not provide server transports, Ruby plugin execution, cache reuse,
-custom Ruby cops, or cops outside the implemented set.
+The CLI accepts RuboCop's server/LSP/MCP and plugin flags to keep existing command lines
+parse-compatible. Sonicop does not provide server transports, Ruby plugin execution, custom Ruby
+cops, or cops outside the implemented set. Each of those flags says so: `--server`, `--no-server`,
+`--lsp`, `--mcp`, and `--plugin` print a one-line notice on stderr.
 
-Most of those flags say so. `--server`, `--no-server`, `--lsp`, `--mcp`, and `--plugin` each print
-a one-line notice on stderr. The cache flags print nothing, and only one of them is silent for a
-good reason:
+The cache flags are honoured rather than merely parsed. Sonicop keeps a result cache of its own and
+serves a stored report for a file whose size, modification time and permission bits have not moved
+since it was inspected.
 
-- `--cache=false` asks for no caching, which sonicop already satisfies, so silence is the correct
-  answer.
-- `--cache=true` asks for cache reuse, which sonicop does not provide, and it is silent anyway.
+- Caching is on by default. `--cache false` turns it off, as does `AllCops/MaxFilesInCache: 0` in a
+  configuration file.
+- `--cache-root DIR` chooses where it lives. Without it the root is `$XDG_CACHE_HOME/sonicop`, or
+  `~/Library/Caches/sonicop` on macOS, or `~/.cache/sonicop`. `--cache-root` cannot be combined
+  with `--cache false`.
+- `AllCops/MaxFilesInCache` bounds how many reports are kept, defaulting to RuboCop's 20,000.
+- Autocorrect runs, `--stdin`, `--profile` and `--memory` neither read nor write it.
+- It is not shared with RuboCop's cache: the formats are unrelated, and an entry is only served back
+  to a build of Sonicop identical to the one that wrote it.
 
-Cop settings behave like the second case. A setting sonicop does not implement is ignored without
+Cop settings are the silent case. A setting sonicop does not implement is ignored without
 any warning, and so is a setting whose name is simply misspelled. **A run that reports no offenses
 is therefore not evidence that a setting took effect**, because an ignored setting and a clean file
 produce the same output. *Cop conformance* above says which values have been measured.
@@ -227,19 +234,21 @@ The speed is not bought by skipping work: over those same 394 cops the two agree
 on RuboCop's own tree, on Rails and on Mastodon — 188,812 offenses with nothing on either side of the
 ledger — and autocorrect is byte-identical on the first and the last.
 
-Two details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
+Three details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
 run rather than disabled; timing it with `--cache false --parallel` measures a single process and
 overstates the difference. RuboCop's default is a single process, while Sonicop is parallel unless
-`--no-parallel` is passed.
+`--no-parallel` is passed. And both sides need a **cold** cache: Sonicop caches by default too, so a
+second run over the same tree answers from its own cache and measures nothing about the engine.
+Give each tool a throwaway cache root.
 
 ```bash
 # RuboCop, parallel, cold cache, its full default set of 394 cops
 rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
         --no-color --parallel -f quiet
 
-# Sonicop
-sonicop --force-default-config --format quiet
+# Sonicop, cold cache
+sonicop --force-default-config --cache-root "$(mktemp -d)" --format quiet
 ```
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
@@ -292,6 +301,13 @@ fails when the two disagree.
 `config/default.yml` is vendored from upstream RuboCop; re-fetch it with
 `scripts/sync_default_yml.sh <rubocop-version>`, which records the source version in the file
 header.
+
+`src/display_width_table.rs` is generated and committed too. RuboCop measures display columns with
+the `unicode-display_width` gem, so the table is taken from the gem rather than restated by hand —
+an exception table written out by hand had already drifted far enough to draw the wrong number of
+carets under decomposed Japanese. Regenerate it with
+`ruby scripts/dump_display_width.rb > src/display_width_table.rs`, which records the gem and Unicode
+versions in the file header.
 
 Dependencies are updated with `depup --install`. The Ruby grammar dependency is pinned to an exact
 fork commit in `Cargo.toml` for reproducible builds.

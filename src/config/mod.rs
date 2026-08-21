@@ -240,6 +240,42 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Whether the run may use this cop's corrector at all, which is the cop's own `AutoCorrect`
+    /// setting rather than anything the command line asked for.
+    ///
+    /// This answers two upstream questions at once, because for every value RuboCop accepts they
+    /// have the same answer. `AutocorrectLogic#autocorrect_enabled?`
+    /// (`cop/autocorrect_logic.rb:31-46`) refuses `'disabled'` and `false` outright, and refuses
+    /// `'contextual'` while `LSP.enabled?` -- which `--editor-mode` and `--lsp` set. `Base#use_corrector`
+    /// (`cop/base.rb:445-453`) then decides what the offense is reported as, and its condition
+    /// `always_autocorrect? || (contextual_autocorrect? && !LSP.enabled?)` is false in exactly
+    /// those cases: the offense keeps status `:unsupported`, so it is **not** `correctable?` and no
+    /// `-a`/`-A` run rewrites it. Answering `false` here therefore has to do both -- withhold the
+    /// edits and clear the correctable marker -- or a user who opted out of a cop's autocorrection
+    /// still gets their code rewritten.
+    ///
+    /// `editor_mode` is `LSP.enabled?`. `AutoCorrect: contextual` is not an oddity to guard
+    /// against: `config/default.yml` ships it on 19 cops, `Lint/UselessAssignment` among them, and
+    /// deleting a half-typed assignment is precisely what an editor must not do.
+    ///
+    /// An absent key means `'always'` (`cop_config.fetch('AutoCorrect', 'always')`). A boolean is
+    /// the backward-compatible spelling of `'always'`/`'disabled'`, and
+    /// `ConfigValidator::CONFIG_CHECK_AUTOCORRECTS` refuses any other string, so the values below
+    /// are the whole reachable set. Anything else -- a number, a list -- is read as `'always'`:
+    /// upstream's `autocorrect_enabled?` says the same, and folding it the other way would let a
+    /// value RuboCop rejects outright silently switch a cop's corrections off.
+    pub fn rule_autocorrect_enabled(&self, name: &str, editor_mode: bool) -> bool {
+        match self.cop_raw_value(name, "AutoCorrect") {
+            Some(Value::Bool(value)) => *value,
+            Some(Value::String(value)) => match value.as_str() {
+                "disabled" => false,
+                "contextual" => !editor_mode,
+                _ => true,
+            },
+            _ => true,
+        }
+    }
+
     pub fn cop_value<T: DeserializeOwned>(&self, name: &str, key: &str) -> Option<T> {
         // Deserialized from the borrowed value rather than a clone of it. Every cop reads its
         // settings once per file, so a clone here is one deep copy of the value per cop per file
@@ -566,6 +602,31 @@ mod tests {
         .unwrap();
 
         assert!(Config::load(None, directory.path()).is_err());
+    }
+
+    #[test]
+    fn autocorrect_is_read_per_cop_and_contextual_defers_to_the_editor() {
+        let directory = tempdir().unwrap();
+        fs::write(directory.path().join("Gemfile"), "").unwrap();
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "Layout/TrailingWhitespace:\n  AutoCorrect: false\nStyle/StringLiterals:\n  AutoCorrect: disabled\nStyle/HashSyntax:\n  AutoCorrect: always\n",
+        )
+        .unwrap();
+
+        let config = Config::load(None, directory.path()).unwrap();
+
+        for editor_mode in [false, true] {
+            assert!(!config.rule_autocorrect_enabled("Layout/TrailingWhitespace", editor_mode));
+            assert!(!config.rule_autocorrect_enabled("Style/StringLiterals", editor_mode));
+            assert!(config.rule_autocorrect_enabled("Style/HashSyntax", editor_mode));
+            // No `AutoCorrect` key at all, which upstream reads as `'always'`.
+            assert!(config.rule_autocorrect_enabled("Layout/SpaceAfterComma", editor_mode));
+        }
+
+        // `AutoCorrect: contextual` ships in the default configuration for this cop.
+        assert!(config.rule_autocorrect_enabled("Lint/UselessAssignment", false));
+        assert!(!config.rule_autocorrect_enabled("Lint/UselessAssignment", true));
     }
 
     #[test]

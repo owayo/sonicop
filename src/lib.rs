@@ -9,6 +9,7 @@ pub mod cop_name;
 pub mod diagnostic;
 mod directives;
 pub mod display_width;
+mod display_width_table;
 pub mod engine;
 mod formatter;
 mod magic_comment;

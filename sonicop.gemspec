@@ -55,7 +55,12 @@ Gem::Specification.new do |spec|
   ]
   # ソース gem だけが Cargo でビルドする。prebuilt 側に Rust ソースを積んでも
   # 絶対にビルドされない死荷物にしかならない。
-  source_build_files = %w[Cargo.lock Cargo.toml ext/**/* src/**/*.rs]
+  #
+  # build.rs は必須。src/engine.rs が env!("SONICOP_BUILD_FINGERPRINT") で参照しており、
+  # build script が無いと環境変数が定義されず
+  # `environment variable ... not defined at compile time` でコンパイルごと落ちる。
+  # ルート直下のファイルは glob の対象外になりやすいので、明示して落とさない。
+  source_build_files = %w[Cargo.lock Cargo.toml build.rs ext/**/* src/**/*.rs]
   patterns = shared_files + (prebuilt_binary ? ['libexec/*'] : source_build_files)
 
   spec.files = Dir.glob(patterns, base: root).select { |path| File.file?(File.join(root, path)) }.sort

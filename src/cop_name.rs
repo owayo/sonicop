@@ -40,7 +40,7 @@ pub fn selector_matches(selector: &str, cop_name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{department, selector_matches};
+    use super::{department, department_ancestors, selector_matches};
 
     #[test]
     fn department_is_every_segment_but_the_last() {
@@ -67,5 +67,22 @@ mod tests {
         assert!(selector_matches("Chef/Correctness", cop));
         assert!(!selector_matches("Chef", cop));
         assert!(selector_matches(cop, cop));
+    }
+
+    /// Plugin ownership is the one lookup that widens past the cop's own department, so the
+    /// ancestors run from that department outwards and stop at the outermost namespace.
+    #[test]
+    fn ancestors_run_from_the_department_outwards() {
+        let ancestors: Vec<&str> =
+            department_ancestors("Chef/Correctness/ServiceResource").collect();
+        assert_eq!(ancestors, ["Chef/Correctness", "Chef"]);
+
+        // A cop with a single department yields just that department.
+        let ancestors: Vec<&str> = department_ancestors("Layout/LineLength").collect();
+        assert_eq!(ancestors, ["Layout"]);
+
+        // A cop with no department at all is its own only entry.
+        let ancestors: Vec<&str> = department_ancestors("Syntax").collect();
+        assert_eq!(ancestors, ["Syntax"]);
     }
 }

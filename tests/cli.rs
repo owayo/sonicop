@@ -801,6 +801,382 @@ fn naming_any_cop_leaves_stdout_clean() {
     );
 }
 
+/// `AutoCorrect: false` / `disabled` を指定した cop は書き換えず、correctable でもない。
+///
+/// 本家は `AutocorrectLogic#autocorrect_enabled?` (cop/autocorrect_logic.rb:31-46) が false を
+/// 返した時点で `Base#use_corrector` (cop/base.rb:445-453) が `:unsupported` を返すので、offense
+/// は報告されるが `correctable?` ですらない。ここを見ていないと「この cop の自動修正は切る」と
+/// 明示したユーザのコードが `-a` で黙って書き換わる。
+#[test]
+fn a_cop_with_autocorrect_disabled_is_neither_applied_nor_correctable() {
+    let source = "def foo\n  x = 1\n  2\nend\n";
+    for setting in ["false", "disabled"] {
+        let config = format!("Lint/UselessAssignment:\n  AutoCorrect: {setting}\n");
+        let directory = project(&[(".rubocop.yml", config.as_str()), ("example.rb", source)]);
+
+        let output = command(directory.path())
+            .args([
+                "-a",
+                "--only",
+                "Lint/UselessAssignment",
+                "--format",
+                "json",
+                "example.rb",
+            ])
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+
+        assert_eq!(
+            fs::read_to_string(directory.path().join("example.rb")).unwrap(),
+            source,
+            "AutoCorrect: {setting} の cop が -a でファイルを書き換えた"
+        );
+        let offenses = offenses(&output);
+        assert_eq!(
+            offenses.len(),
+            1,
+            "AutoCorrect: {setting} で検出自体が消えた"
+        );
+        assert!(
+            !offenses[0].correctable,
+            "AutoCorrect: {setting} の offense が correctable のまま"
+        );
+        assert!(
+            !offenses[0].corrected,
+            "AutoCorrect: {setting} の offense が corrected と数えられた"
+        );
+    }
+}
+
+/// `--editor-mode` は `AutoCorrect: contextual` の cop の修正を止める。
+///
+/// 本家では `LSP.enabled?` が立ち、`autocorrect_enabled?` の contextual 分岐が false になる。
+/// `config/default.yml` が `Lint/UselessAssignment` に contextual を与えているので、設定を足さ
+/// なくても再現する — 打ちかけの代入が消えては困る場面そのもの。バッチ実行では従来どおり直る。
+#[test]
+fn editor_mode_withholds_a_contextual_autocorrect() {
+    let source = "def foo\n  x = 1\n  2\nend\n";
+
+    let editor = project(&[("example.rb", source)]);
+    let output = command(editor.path())
+        .args([
+            "--editor-mode",
+            "-a",
+            "--only",
+            "Lint/UselessAssignment",
+            "--format",
+            "json",
+            "example.rb",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(
+        fs::read_to_string(editor.path().join("example.rb")).unwrap(),
+        source,
+        "--editor-mode で contextual な cop が代入を消した"
+    );
+    assert!(
+        !offenses(&output)[0].correctable,
+        "--editor-mode の contextual な offense が correctable のまま"
+    );
+
+    let batch = project(&[("example.rb", source)]);
+    command(batch.path())
+        .args(["-a", "--only", "Lint/UselessAssignment", "example.rb"])
+        .assert()
+        // 唯一の offense が直りきるので、残りは無い。
+        .code(0);
+    assert_eq!(
+        fs::read_to_string(batch.path().join("example.rb")).unwrap(),
+        // `--only` で Lint/Void を外してあるので、残された `1` はそのまま。
+        "def foo\n  1\n  2\nend\n",
+        "エディタが動かしていない -a で contextual な cop が直さなくなった"
+    );
+}
+
+/// `-A` は symlink を symlink のまま残し、その実体を書き換える。
+///
+/// 本家の `File.write` は path を開くので link をたどる。temp + rename はディレクトリ
+/// エントリごと差し替えるため、symlink が通常ファイルへ化けて実体は元のまま残る。
+#[cfg(unix)]
+#[test]
+fn autocorrect_writes_through_a_symlink_and_leaves_it_a_symlink() {
+    let directory = project(&[("shared/real.rb", "y  = 2\nputs y\n")]);
+    let link = directory.path().join("link.rb");
+    std::os::unix::fs::symlink(directory.path().join("shared/real.rb"), &link).unwrap();
+
+    command(directory.path())
+        .args(["-A", "--only", "Layout/ExtraSpacing", "link.rb"])
+        .assert()
+        .code(0);
+
+    assert!(
+        fs::symlink_metadata(&link)
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "-A が symlink を通常ファイルへ置き換えた"
+    );
+    assert_eq!(
+        fs::read_to_string(directory.path().join("shared/real.rb")).unwrap(),
+        "y = 2\nputs y\n",
+        "symlink の実体が直っていない"
+    );
+}
+
+/// `-A` は hard link を切らない。
+///
+/// rename は inode を unlink するので link 数が 1 に落ち、同じ inode を指していたもう一方の
+/// 名前は古い本文のまま取り残される。どちらも警告なしに起きるので、link 数と本文の両方を見る。
+#[cfg(unix)]
+#[test]
+fn autocorrect_keeps_a_hard_linked_file_shared() {
+    use std::os::unix::fs::MetadataExt;
+
+    let directory = project(&[("one.rb", "y  = 2\nputs y\n")]);
+    let other = directory.path().join("other.rb");
+    fs::hard_link(directory.path().join("one.rb"), &other).unwrap();
+
+    command(directory.path())
+        .args(["-A", "--only", "Layout/ExtraSpacing", "one.rb"])
+        .assert()
+        .code(0);
+
+    assert_eq!(
+        fs::metadata(&other).unwrap().nlink(),
+        2,
+        "-A が hard link を切った"
+    );
+    assert_eq!(
+        fs::read_to_string(&other).unwrap(),
+        "y = 2\nputs y\n",
+        "同じ inode を指すもう一方の名前が古い本文のまま"
+    );
+}
+
+/// 読めない `.rubocop.yml` は `--auto-gen-config` の生成物で上書きしない。
+///
+/// 本家は `File.exist?` を見てから読むので「無い」と「読めない」は別の答え。read の失敗を
+/// 既定値へ潰すと、prepend のつもりが replace になってユーザの設定が消える。無い場合の
+/// 「作る」経路は生き続けなければならないので、そちらも合わせて見る。
+#[test]
+fn auto_gen_config_refuses_to_replace_a_config_it_cannot_read() {
+    let directory = project_without_pinned_ruby(&[
+        ("other.yml", "AllCops:\n  TargetRubyVersion: '2.7'\n"),
+        ("example.rb", "x = 1  \n"),
+    ]);
+    // 先頭行のコメントだけ CP932。YAML としては正しいが UTF-8 として読めない。
+    let original = [
+        b"# \x90\xdd\x92\xe8\n".as_slice(),
+        b"Layout/LineLength:\n  Max: 100\n".as_slice(),
+    ]
+    .concat();
+    let root_config = directory.path().join(".rubocop.yml");
+    fs::write(&root_config, &original).unwrap();
+
+    command(directory.path())
+        .args(["-c", "other.yml", "--auto-gen-config"])
+        .assert()
+        .code(2);
+
+    assert_eq!(
+        fs::read(&root_config).unwrap(),
+        original,
+        "読めない .rubocop.yml が生成物で上書きされた"
+    );
+
+    let fresh = project_without_pinned_ruby(&[
+        ("other.yml", "AllCops:\n  TargetRubyVersion: '2.7'\n"),
+        ("example.rb", "x = 1  \n"),
+    ]);
+    command(fresh.path())
+        .args(["-c", "other.yml", "--auto-gen-config"])
+        .assert()
+        .code(0);
+    assert_eq!(
+        fs::read_to_string(fresh.path().join(".rubocop.yml")).unwrap(),
+        "inherit_from: .rubocop_todo.yml\n",
+        ".rubocop.yml が無いときの「作る」経路が壊れた"
+    );
+}
+
+/// `--fail-level autocorrect` は severity の閾値を置き換えるのではなく足す。
+///
+/// 本家 `Runner#considered_failure?` (runner.rb:561-569) は correctable なら早期に true を返し、
+/// **その後も** severity 比較へ落ちる。correctable だけを見ると、直しようのない
+/// `Metrics/MethodLength` で CI が緑になる。
+#[test]
+fn fail_level_autocorrect_still_honours_the_severity_threshold() {
+    let offending = project(&[
+        (".rubocop.yml", "Metrics/MethodLength:\n  Max: 2\n"),
+        (
+            "example.rb",
+            "def foo\n  a = 1\n  b = 2\n  c = 3\n  d = 4\n  [a, b, c, d]\nend\n",
+        ),
+    ]);
+    command(offending.path())
+        .args([
+            "--fail-level",
+            "autocorrect",
+            "--only",
+            "Metrics/MethodLength",
+            "--format",
+            "quiet",
+            "example.rb",
+        ])
+        .assert()
+        .code(1);
+
+    let clean = project(&[("example.rb", "# frozen_string_literal: true\n\nputs 1\n")]);
+    command(clean.path())
+        .args([
+            "--fail-level",
+            "autocorrect",
+            "--format",
+            "quiet",
+            "example.rb",
+        ])
+        .assert()
+        .code(0);
+}
+
+/// `--stdin` + 自動修正は formatter の出力を出したうえで、区切りと修正後ソースを足す。
+///
+/// 本家 `ExecuteRunner#maybe_print_corrected_source` (cli/command/execute_runner.rb:92-102)。
+/// 修正後ソースだけを出すと、何を直したのかを告げるものが無くなる。
+#[test]
+fn stdin_autocorrect_appends_the_corrected_buffer_to_the_report() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args([
+            "--stdin",
+            "example.rb",
+            "-a",
+            "--only",
+            "Layout/ExtraSpacing",
+            "--format",
+            "simple",
+        ])
+        .write_stdin("y  = 2\n")
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8(output).expect("--stdin の出力が UTF-8 でなかった");
+    assert!(
+        stdout.contains("Layout/ExtraSpacing"),
+        "formatter の出力ごと落ちている:\n{stdout}"
+    );
+    assert!(
+        stdout.ends_with("====================\ny = 2\n"),
+        "区切りと修正後ソースが末尾に無い:\n{stdout}"
+    );
+}
+
+/// `--format json` などの統合向け formatter には何も足さない。
+///
+/// `INTEGRATION_FORMATTERS` に載る形式は出力全体を機械が読むので、生の Ruby を継ぎ足すと
+/// パースが壊れる。判定は最後に指定された `--format` で行う (`@options[:format]`)。
+#[test]
+fn stdin_autocorrect_leaves_an_integration_formatter_alone() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args([
+            "--stdin",
+            "example.rb",
+            "-a",
+            "--only",
+            "Layout/ExtraSpacing",
+            "--format",
+            "json",
+        ])
+        .write_stdin("y  = 2\n")
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+
+    let stdout = String::from_utf8(output).expect("--stdin の出力が UTF-8 でなかった");
+    assert!(
+        !stdout.contains("===================="),
+        "JSON に区切りと生ソースが継ぎ足された:\n{stdout}"
+    );
+    assert_offenses(
+        stdout.as_bytes(),
+        &[("Layout/ExtraSpacing", 1, 2, "Unnecessary spacing detected.")],
+    );
+}
+
+/// UTF-8 でない `--stdin` は実行を止めず `Lint/Syntax` として報告する。
+///
+/// ディスク上のファイルは `decoded_source` 経由で既にそうなっている。stdin だけ
+/// `read_to_string` で読むと、`--format json` を頼んだ呼び出し側が JSON を 1 バイトも
+/// 受け取れないまま exit 2 を見ることになる。
+#[test]
+fn stdin_that_is_not_utf8_reports_a_syntax_offense_instead_of_aborting() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--stdin", "example.rb", "--format", "json"])
+        .write_stdin(b"x = \"\xff\xfe\"\n".to_vec())
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+
+    assert_offenses(
+        &output,
+        &[("Lint/Syntax", 1, 1, "Invalid byte sequence in utf-8.")],
+    );
+}
+
+/// `--fail-fast` は「探した数」と「読んだ数」を別々に報告する。
+///
+/// `JSONFormatter` は `target_file_count` を `started(target_files)` から、
+/// `inspected_file_count` を `finished(inspected_files)` から取る。途中で止まる実行では
+/// 両者が食い違うので、reports の数で両方を埋めると対象を全部見たかのように見える。
+#[test]
+fn fail_fast_separates_the_targets_found_from_the_files_inspected() {
+    let sources: Vec<(String, String)> = (1..=5)
+        .map(|index| (format!("f{index}.rb"), format!("x{index} = 1  \n")))
+        .collect();
+    let files: Vec<(&str, &str)> = sources
+        .iter()
+        .map(|(name, source)| (name.as_str(), source.as_str()))
+        .collect();
+    let directory = project(&files);
+
+    let output = command(directory.path())
+        .args([
+            "--fail-fast",
+            "--only",
+            "Layout/TrailingWhitespace",
+            "--format",
+            "json",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+
+    let summary = report(&output).summary;
+    assert_eq!(
+        (summary.target_file_count, summary.inspected_file_count),
+        (5, 1),
+        "--fail-fast の対象数と検査数が食い違わない"
+    );
+}
+
 /// 折り返せる呼び出し / ブロック / do ブロックを 1 行ずつ含む長い行のソース。
 fn breakable_source() -> String {
     let long = "x".repeat(120);

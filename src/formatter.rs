@@ -66,6 +66,9 @@ pub struct FormatOptions<'a> {
     pub extra_details: bool,
     pub color: bool,
     pub corrected_count: usize,
+    /// How many files the run set out to inspect, which `JSONFormatter#started` takes from
+    /// `target_files` before any of them is read. Only `json` reports it. See [`render_json`].
+    pub target_file_count: usize,
     pub fail_level: Severity,
     /// True for `-a`, where RuboCop points at `-A` instead of calling the rest autocorrectable.
     pub safe_autocorrect: bool,
@@ -774,7 +777,13 @@ fn render_json(reports: &[FileReport], options: &FormatOptions<'_>) -> Result<St
         files,
         summary: Summary {
             offense_count,
-            target_file_count: reports.len(),
+            // The two counts come from different callbacks and are not the same number.
+            // `started(target_files)` (`json_formatter.rb:19`) records what discovery produced;
+            // `finished(inspected_files)` (:28) records what the run actually got through.
+            // `--fail-fast` stops at the first offending file, so a five-file run that reports
+            // `5, 1` upstream must not report `1, 1` here -- a caller reading the pair to see
+            // whether the run covered its targets would be told it did.
+            target_file_count: options.target_file_count,
             inspected_file_count: reports.len(),
         },
     };

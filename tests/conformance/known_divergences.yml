@@ -191,7 +191,7 @@ blind_spots:
     consequence: 本家が落ちるので固定値を取れない (下の「フォーマッタの既知差分」を参照)
   - corpus: tests/formatter.rs
     not_covered: clang 系 (clang / progress / fuubar / pacman / tap) のキャレット幅、マルチバイト文字を含む行
-    consequence: 本家は Unicode::DisplayWidth で数え、sonicop は文字数で数えるため、全角を含む行でキャレットの本数と位置がずれる
+    consequence: 幅の算出自体は src/display_width_table.rs で本家と一致済み (下の「フォーマッタの既知差分」2 を参照)。固定値との突き合わせが無いので、描画側の回帰は検出できない
   - corpus: tests/formatter.rs
     not_covered: 複数ファイルの列挙順そのもの
     consequence: 対象の並び順が本家と違うため、順序を持つ全フォーマッタで行の並びが入れ替わる
@@ -212,12 +212,25 @@ blind_spots:
 #    `unless offense.location.source_line.strip.empty?` が先に弾くため。
 #    sonicop は落とさず完全な markdown を出す。クラッシュは再現しない。
 #
-# 2. clang 系のキャレット幅 — 未一致。ClangStyleFormatter#report_highlighted_area
+# 2. clang 系のキャレット幅 — 一致済み。ClangStyleFormatter#report_highlighted_area
 #    (clang_style_formatter.rb:47-55) は `'^' * Unicode::DisplayWidth.of(source_area)`、
 #    字下げも `' ' * Unicode::DisplayWidth.of(...)` で、いずれも**表示幅**で数える。
-#    sonicop は文字数で数えるため `x = "日本語です"` のキャレットが 12 本ではなく
-#    7 本になる。直すには東アジア文字幅の表を持つ必要がある
-#    (unicode-width クレート相当) ので、依存追加の判断待ち。
+#    sonicop も src/display_width.rs で同じ表示幅を使う。表は gem から生成した
+#    src/display_width_table.rs で、全 111 万コードポイントで
+#    unicode-display_width 3.2.0 と一致することを確認済み
+#    (`ruby scripts/dump_display_width.rb` で再生成)。
+#
+#    残る差分要因は 2 つ。
+#    (a) gem の版。本家の gemspec は `>= 2.4.0, < 4.0` を許すので、利用者の
+#        rubocop が別の版で数えると数コードポイントで食い違い得る。表は 3.2.0 に固定。
+#    (b) 書記素クラスタ。sonicop は 1 文字ずつ足すが、gem は絵文字 ZWJ 連結などを
+#        クラスタ単位で扱う場合がある。ASCII を挟んだ差分検証では全コードポイントで
+#        加算が一致したが、連結列そのものは突き合わせていない。
+#
+#    以前はハンドメイドの表を持っており、結合文字 U+3099 / U+309A が Wide の
+#    一括レンジ 0x3041..=0x33FF に飲まれて 2 桁と数えられていた。macOS が渡す
+#    NFD 分解された日本語 (`x = "がが"`) でキャレットが 6 本でなく
+#    10 本になる不具合があり、表を生成方式に置き換えて解消した。
 #
 # 3. 対象ファイルの列挙順 — 未一致。原因は src/formatter.rs ではなく対象探索。
 #    ディレクトリ指定: 本家はパス文字列のバイト順なので `type.rb` → `type/helpers.rb`。

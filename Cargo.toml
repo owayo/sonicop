@@ -16,12 +16,12 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.104"
-blake3 = "1.8"
-clap = { version = "4.6.5", features = ["derive", "wrap_help"] }
+blake3 = "1.8.6"
+clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
 encoding_rs = "0.8.35"
 fs2 = "0.4.3"
-globset = "0.4.19"
-ignore = "0.4.32"
+globset = "0.4.20"
+ignore = "0.4.33"
 rayon = "1.12.0"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
@@ -37,7 +37,7 @@ ureq = { version = "3.4", default-features = false, features = ["native-tls"] }
 assert_cmd = "2.2.2"
 
 [build-dependencies]
-blake3 = "1.8"
+blake3 = "1.8.6"
 
 [profile.release]
 lto = "thin"

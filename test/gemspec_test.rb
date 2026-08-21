@@ -9,7 +9,7 @@ class GemspecTest < Minitest::Test
 
   FIXTURE_FILES = %w[
     CONFORMANCE.md LICENSE NOTICE README.md README.ja.md
-    Cargo.lock Cargo.toml
+    Cargo.lock Cargo.toml build.rs
     config/default.yml licenses/NOTICE
     src/main.rs ext/sonicop/extconf.rb
   ].freeze
@@ -60,6 +60,25 @@ class GemspecTest < Minitest::Test
     assert_includes spec.files, 'lib/sonicop/version.rb'
     assert_includes spec.files, 'config/default.yml'
     refute(spec.files.any? { |path| path.start_with?('libexec/') })
+  end
+
+  # ソース gem は install 時に cargo build する。build.rs が欠けると build script が
+  # 走らず、src/engine.rs の env!("SONICOP_BUILD_FINGERPRINT") が
+  # `environment variable ... not defined at compile time` でコンパイルごと落ちる。
+  # ルート直下のファイルは `src/**/*.rs` のような glob から漏れるので、明示して守る。
+  def test_source_gem_ships_the_build_script
+    spec = evaluate_gemspec
+
+    assert_includes spec.files, 'build.rs'
+  end
+
+  # prebuilt 側は cargo を動かさないので、build script も死荷物にしかならない。
+  def test_platform_gem_leaves_the_build_script_out
+    stub_executable(@root, 'libexec', 'sonicop')
+
+    spec = evaluate_gemspec(platform: 'x86_64-linux')
+
+    refute_includes spec.files, 'build.rs'
   end
 
   def test_platform_gem_ships_the_binary_without_the_rust_sources

@@ -12,7 +12,7 @@ use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
     CorrectMode, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
-    discover_targets_with_store, inspect_files_with_store_cached, inspect_source, is_mandatory_cop,
+    discover_targets_with_store, inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop,
     offense_count, write_corrected,
 };
 use crate::formatter::{
@@ -412,8 +412,11 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if let Some(cache) = &result_cache {
         cache.prune();
     }
-    let mut reports = match inspection {
-        Inspection::Reports(reports) => reports,
+    let (mut reports, target_count) = match inspection {
+        Inspection::Reports {
+            reports,
+            target_count,
+        } => (reports, target_count),
         Inspection::ListedTargets => return Ok(0),
     };
 
@@ -441,22 +444,22 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     // A file RuboCop could not finish counts as a failed run even when nothing else offended.
     let failing = fail_level.failing(&reports) || had_errors;
 
+    filter_displayed_offenses(&mut reports, &cli, fail_level);
+    render_outputs(
+        &RenderRequest {
+            cli: &cli,
+            config: &config,
+            cwd: &cwd,
+            fail_level,
+            outputs,
+            corrected_count,
+            target_count,
+            elapsed: started.elapsed().as_secs_f64(),
+        },
+        &reports,
+    )?;
     if let Some(corrected) = stdin_corrected {
-        print!("{corrected}");
-    } else {
-        filter_displayed_offenses(&mut reports, &cli, fail_level);
-        render_outputs(
-            &RenderRequest {
-                cli: &cli,
-                config: &config,
-                cwd: &cwd,
-                fail_level,
-                outputs,
-                corrected_count,
-                elapsed: started.elapsed().as_secs_f64(),
-            },
-            &reports,
-        )?;
+        print_corrected_stdin(&cli, &corrected)?;
     }
 
     Ok(i32::from(failing))
@@ -486,6 +489,9 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
         ignore_disable_comments: cli.ignore_disable_comments,
         display_suppressed: cli.display_suppressed,
         correcting: correct_mode != CorrectMode::None,
+        // `LSP.enabled?`. `--lsp` sets it too, but that mode returns before anything is inspected,
+        // so `--editor-mode` is the only way it reaches a cop from here.
+        editor_mode: cli.editor_mode,
         // **No flag turns this on from the command line.** The guard is switched off for tests
         // only, and even then per case; a run reaches the environment variable or nothing.
         skip_syntax_guard: false,
@@ -538,7 +544,14 @@ fn default_cache_root(cwd: &Path) -> PathBuf {
 }
 
 enum Inspection {
-    Reports(Vec<FileReport>),
+    Reports {
+        reports: Vec<FileReport>,
+        /// What discovery produced, which `--fail-fast` leaves larger than the number of reports.
+        /// `JSONFormatter` takes `target_file_count` from `started(target_files)` and
+        /// `inspected_file_count` from `finished(inspected_files)`, so the two are separate counts
+        /// and only a run that inspects everything it found makes them equal.
+        target_count: usize,
+    },
     ListedTargets,
 }
 
@@ -579,24 +592,36 @@ fn inspect_inputs(
         } else {
             inspect_files_with_store_cached(&targets, configs, selection, parallel, cache)?
         };
-        return Ok(Inspection::Reports(reports));
+        return Ok(Inspection::Reports {
+            reports,
+            target_count: targets.len(),
+        });
     };
 
     if !cli.paths.is_empty() {
         bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
     }
-    let mut text = String::new();
+    // Read as bytes, not as text: `$stdin.binmode.read` (`options.rb:46`) is what RuboCop reads,
+    // and a source that is not valid UTF-8 is an offense to report rather than a run to abort.
+    let mut bytes = Vec::new();
     io::stdin()
-        .read_to_string(&mut text)
-        .context("failed to read UTF-8 source from stdin")?;
+        .read_to_end(&mut bytes)
+        .context("failed to read source from stdin")?;
     let target_config = configs.for_path(stdin_path)?;
-    let report = inspect_source(stdin_path.clone(), text, &target_config, selection)?;
-    Ok(Inspection::Reports(vec![report]))
+    let report = inspect_stdin(stdin_path.clone(), bytes, &target_config, selection)?;
+    Ok(Inspection::Reports {
+        reports: vec![report],
+        target_count: 1,
+    })
 }
 
 struct CorrectionRun {
     reports: Vec<FileReport>,
     corrected_count: usize,
+    /// The buffer `--stdin` is left holding, which is `@options[:stdin]` after the run: the
+    /// corrected source when a cop rewrote it, and the source that was read when none did.
+    /// `Team#autocorrect` (`cop/team.rb:175-178`) only assigns it on a rewrite, so the unchanged
+    /// case is not an absence -- it is the original buffer, and upstream prints that too.
     stdin_corrected: Option<String>,
     had_errors: bool,
 }
@@ -630,12 +655,12 @@ fn apply_corrections(
             eprintln!("{message}");
             had_errors = true;
         }
-        if outcome.rewritten {
-            if cli.stdin.is_some() {
+        if cli.stdin.is_some() {
+            if correct_mode != CorrectMode::None {
                 stdin_corrected = Some(outcome.text);
-            } else {
-                write_corrected(&path, &outcome.text)?;
             }
+        } else if outcome.rewritten {
+            write_corrected(&path, &outcome.text)?;
         }
         corrected_reports.push(outcome.report);
     }
@@ -675,15 +700,26 @@ impl FailLevel {
         }
     }
 
+    /// `Runner#considered_failure?` (`runner.rb:561-569`).
+    ///
+    /// `autocorrect` adds a reason to fail; it does not replace the one every run has. Upstream
+    /// returns early for a correctable offense **and then falls through** to the severity
+    /// comparison, so an uncorrectable offense at or above the threshold still fails the run.
+    /// Reading the pseudo level as "correctable offenses only" instead lets `--fail-level
+    /// autocorrect` exit 0 on a `Metrics/MethodLength` no cop can fix -- a green CI on code
+    /// RuboCop fails, which is the one direction a linter must never be wrong in.
     fn failing(self, reports: &[FileReport]) -> bool {
-        match self {
-            // A correctable offense fails even once it has been corrected.
-            Self::Autocorrect => reports
+        // `minimum_severity_to_fail` reads `autocorrect` as `:refactor`, which [`Self::severity`]
+        // already does, so the threshold applies whichever level was asked for.
+        if offense_count(reports, self.severity()) > 0 {
+            return true;
+        }
+        // A correctable offense fails even once it has been corrected.
+        self == Self::Autocorrect
+            && reports
                 .iter()
                 .flat_map(|report| &report.offenses)
-                .any(Offense::is_correctable),
-            Self::Severity(severity) => offense_count(reports, severity) > 0,
-        }
+                .any(Offense::is_correctable)
     }
 }
 
@@ -1014,7 +1050,24 @@ fn generate_todo(reports: &[FileReport], cwd: &Path, cli: &Cli) -> Result<()> {
     }
     fs::write(cwd.join(".rubocop_todo.yml"), output)?;
     let root_config = cwd.join(".rubocop.yml");
-    let existing = fs::read_to_string(&root_config).unwrap_or_default();
+    // `add_inheritance_from_auto_generated_file` reads the file only after `File.exist?` says
+    // there is one, so "absent" and "unreadable" are separate answers and only the first means
+    // "write a new one". Collapsing them -- `unwrap_or_default()` -- turns every read failure into
+    // an empty string, and the prepend below silently becomes a replace: a `.rubocop.yml` that is
+    // not valid UTF-8, or that the process cannot open, is overwritten by the one line this would
+    // have added to it, with a zero exit code and nothing on stderr. Fail instead.
+    let existing = match fs::read_to_string(&root_config) {
+        Ok(existing) => existing,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => String::new(),
+        Err(error) => {
+            return Err(error).with_context(|| {
+                format!(
+                    "failed to read {}; refusing to replace it with the generated inheritance",
+                    root_config.display()
+                )
+            });
+        }
+    };
     if !existing.contains(".rubocop_todo.yml") {
         let addition = if existing.is_empty() {
             "inherit_from: .rubocop_todo.yml\n".to_owned()
@@ -1049,6 +1102,9 @@ struct RenderRequest<'a> {
     /// Destination per format, already paired the way RuboCop pairs `--out` with `--format`.
     outputs: &'a [Option<PathBuf>],
     corrected_count: usize,
+    /// How many files discovery produced, which is not how many were inspected once `--fail-fast`
+    /// stops the run early. See [`Inspection::Reports`].
+    target_count: usize,
     elapsed: f64,
 }
 
@@ -1060,6 +1116,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
         fail_level,
         outputs,
         corrected_count,
+        target_count,
         elapsed,
     } = *request;
     let formats = if cli.formats.is_empty() {
@@ -1091,6 +1148,7 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
                 extra_details: cli.extra_details,
                 color,
                 corrected_count,
+                target_file_count: target_count,
                 fail_level: fail_level.severity(),
                 safe_autocorrect: cli.correct_mode() == CorrectMode::Safe,
                 display_only_failed: cli.display_only_failed,
@@ -1105,6 +1163,42 @@ fn render_outputs(request: &RenderRequest<'_>, reports: &[FileReport]) -> Result
             cli.stderr,
         )?;
     }
+    Ok(())
+}
+
+/// `ExecuteRunner::INTEGRATION_FORMATTERS`: the formats whose consumers parse the whole stream, so
+/// nothing may be appended to them. Both the short and the long spelling of each.
+const INTEGRATION_FORMATTERS: [&str; 6] = ["h", "html", "j", "json", "ju", "junit"];
+
+/// Appends the source `--stdin` was left holding to a formatter's report, the way
+/// `ExecuteRunner#maybe_print_corrected_source` (`cli/command/execute_runner.rb:92-102`) does.
+///
+/// An editor driving `--stdin -a` reads the corrected buffer off the end of the output, which is
+/// what the twenty `=` mark the start of. The report still comes first: printing only the buffer
+/// leaves nothing to say what was corrected, and with `--format json` it puts raw Ruby where a
+/// caller asked for JSON and will try to parse it.
+///
+/// Two details are upstream's rather than chosen here. The check is against `@options[:format]`,
+/// which the option parser assigns per `-f`, so it is the **last** format on the command line that
+/// decides -- `-f json -f simple` appends. And `--stderr` moves the separator but not the source:
+/// upstream picks the stream for the `puts` and then `print`s to `$stdout` unconditionally, by
+/// which point the redirect around the runner has already been undone.
+fn print_corrected_stdin(cli: &Cli, corrected: &str) -> Result<()> {
+    if cli
+        .formats
+        .last()
+        .is_some_and(|format| INTEGRATION_FORMATTERS.contains(&format.as_str()))
+    {
+        return Ok(());
+    }
+    let separator = format!("{}\n", "=".repeat(20));
+    if cli.stderr {
+        io::stderr().write_all(separator.as_bytes())?;
+    } else {
+        io::stdout().write_all(separator.as_bytes())?;
+    }
+    io::stdout().write_all(corrected.as_bytes())?;
+    io::stdout().flush()?;
     Ok(())
 }
 

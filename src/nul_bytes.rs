@@ -50,55 +50,98 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
     let mut text = text.to_owned();
     let (mut comments, mut literals) = parse(&text).map(|tree| ranges(tree.root_node()))?;
     // Where to look for the next NUL. A NUL left in place has to be stepped over, or the scan finds
-    // the same byte forever.
+    // the same byte forever. It only ever moves forward, which is also what stops a re-parse -- one
+    // that can turn up a comment behind it -- from sending the walk back over a byte it has already
+    // read and so leaving it with nothing to make progress on.
     let mut from = 0;
     loop {
-        let Some(offset) = text.as_bytes()[from..]
-            .iter()
-            .position(|byte| *byte == 0)
-            .map(|found| from + found)
-        else {
+        // **A pass settles every comment the parse in hand already knows about, not just the first
+        // one.** Re-parsing after each comment cost a whole parse per comment line, and a parse of
+        // a source this broken is anything but cheap: a file of 200 such lines took 5 seconds, one
+        // of 800 took 82, and one of 3,200 was still going after three minutes. The re-parse itself
+        // has to stay -- reading a NUL as part of its comment is often what lets the *next* line
+        // parse at all -- but it belongs once per pass, not once per line.
+        let mut settled = Vec::new();
+        let stopped_at = loop {
+            let Some(offset) = text.as_bytes()[from..]
+                .iter()
+                .position(|byte| *byte == 0)
+                .map(|found| from + found)
+            else {
+                break None;
+            };
+            // A literal that spans the byte is one Ruby keeps reading, so the NUL stays a character
+            // of the string. Replacing it would change the value every cop sees; truncating there
+            // refuses a file both `ruby -c` and RuboCop accept.
+            if literals
+                .iter()
+                .any(|literal| literal.start <= offset && offset < literal.end)
+            {
+                from = offset + 1;
+                continue;
+            }
+            // The grammar breaks the comment off at the byte it cannot read, so a comment ending
+            // exactly there is one the NUL was written inside. Anywhere else, Ruby stopped reading
+            // -- but only a parse that already accounts for this pass's replacements is allowed to
+            // say so, so the byte goes to the decision below rather than ending the walk here.
+            if !comments.iter().any(|comment| comment.end == offset) {
+                break Some(offset);
+            }
+            // A comment runs to the end of its line, so every NUL up to there belongs to it too.
+            // The line ends past the NUL either way, so the walk cannot stall on what it settled.
+            let line_end = text[offset..]
+                .find('\n')
+                .map_or(text.len(), |position| offset + position);
+            settled.push(offset..line_end);
+            from = line_end;
+        };
+        if !settled.is_empty() {
+            let mut bytes = std::mem::take(&mut text).into_bytes();
+            for comment in &settled {
+                for byte in &mut bytes[comment.start..comment.end] {
+                    if *byte == 0 {
+                        *byte = STAND_IN;
+                    }
+                }
+            }
+            // One byte replaced another, so every offset the caller holds still lands where it did
+            // and the text is still the UTF-8 it was.
+            text = String::from_utf8(bytes).expect("a one-byte character replaced another");
+        }
+        // No NUL is left for a re-parse to change the reading of.
+        let Some(offset) = stopped_at else {
             return Some(text);
         };
-        // A literal that spans the byte is one Ruby keeps reading, so the NUL stays a character of
-        // the string. Replacing it would change the value every cop sees; truncating there refuses
-        // a file both `ruby -c` and RuboCop accept.
-        if literals
-            .iter()
-            .any(|literal| literal.start <= offset && offset < literal.end)
-        {
-            from = offset + 1;
-            continue;
-        }
-        // The grammar breaks the comment off at the byte it cannot read, so a comment ending exactly
-        // there is one the NUL was written inside. Anywhere else, Ruby stopped reading.
-        if !comments.iter().any(|comment| comment.end == offset) {
+        // **Truncating is the one reading that cannot be taken back**, so it is only ever decided
+        // on a parse of exactly the text being truncated. A pass that replaced nothing already had
+        // one, and the byte really is where Ruby stopped. A pass that replaced something reads the
+        // byte again against the tree those replacements produce, which is how a comment that a NUL
+        // further up the file was hiding gets read as a comment instead of ending the program.
+        if settled.is_empty() {
             text.truncate(offset);
             return Some(text);
         }
-        // A comment runs to the end of its line, so every NUL up to there belongs to it too and can
-        // be settled in one pass rather than one re-parse per byte.
-        let line_end = text[offset..]
-            .find('\n')
-            .map_or(text.len(), |position| offset + position);
-        let mut bytes = std::mem::take(&mut text).into_bytes();
-        for byte in &mut bytes[offset..line_end] {
-            if *byte == 0 {
-                *byte = STAND_IN;
-            }
-        }
-        // One byte replaced another, so every offset the caller holds still lands where it did and
-        // the text is still the UTF-8 it was.
-        text = String::from_utf8(bytes).expect("a one-byte character replaced another");
-        from = line_end;
         let Some(tree) = parse(&text) else {
             return Some(text);
         };
         (comments, literals) = ranges(tree.root_node());
+        // Each pass that gets here replaced at least one NUL, so the file runs out of them and the
+        // loop ends.
     }
 }
 
+#[cfg(test)]
+thread_local! {
+    /// How many parses the pass above has taken. Counted rather than timed because a wall clock
+    /// only ever reports how fast the machine running the test is, where the count is the thing
+    /// that used to grow one-for-one with the number of comment lines. One cell per thread, so the
+    /// test that reads it needs no lock: `libtest` gives every test its own thread.
+    static PARSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 fn parse(text: &str) -> Option<tree_sitter::Tree> {
+    #[cfg(test)]
+    PARSES.with(|parses| parses.set(parses.get() + 1));
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_ruby::LANGUAGE.into())
@@ -213,5 +256,142 @@ mod tests {
     #[test]
     fn a_source_without_one_is_left_alone() {
         assert_eq!(as_ruby_reads_it("x = 1\n"), None);
+    }
+
+    /// **What the reading costs may not grow with the number of comments it settles.** Settling one
+    /// per parse made 200 comment lines take 5 seconds, 800 take 82, and 3,200 take longer than
+    /// anyone was willing to wait -- four times the input for sixteen times the time, on a file of
+    /// 5.6 KB. The parse that finds these comments is the parse that settles all of them, so the
+    /// count stays flat however many there are.
+    #[test]
+    fn the_parses_do_not_grow_with_the_comments() {
+        for lines in [1, 10, 100, 1000] {
+            let source = "# c\u{0} x\n".repeat(lines) + "z = 1\n";
+            let expected = "# c\u{1} x\n".repeat(lines) + "z = 1\n";
+
+            let (read, parses) = super::PARSES.with(|parses| {
+                parses.set(0);
+                let read = as_ruby_reads_it(&source);
+                (read, parses.get())
+            });
+
+            assert_eq!(read.as_deref(), Some(expected.as_str()), "{lines} comments");
+            assert!(parses <= 2, "{lines} comments took {parses} parses");
+        }
+    }
+
+    /// The reading this module took until the pass replaced it: settle the first comment the parse
+    /// knows about, re-parse, start again. It is slow, but it is the definition of the answer, so
+    /// it is kept here to hold the batched pass to it byte for byte. A deliberate change to how a
+    /// NUL is read has to be made here too, or the test below reports it as a disagreement.
+    fn one_comment_at_a_time(text: &str) -> Option<String> {
+        if !text.as_bytes().contains(&0) {
+            return None;
+        }
+        let mut text = text.to_owned();
+        let (mut comments, mut literals) =
+            super::parse(&text).map(|tree| super::ranges(tree.root_node()))?;
+        let mut from = 0;
+        loop {
+            let Some(offset) = text.as_bytes()[from..]
+                .iter()
+                .position(|byte| *byte == 0)
+                .map(|found| from + found)
+            else {
+                return Some(text);
+            };
+            if literals
+                .iter()
+                .any(|literal| literal.start <= offset && offset < literal.end)
+            {
+                from = offset + 1;
+                continue;
+            }
+            if !comments.iter().any(|comment| comment.end == offset) {
+                text.truncate(offset);
+                return Some(text);
+            }
+            let line_end = text[offset..]
+                .find('\n')
+                .map_or(text.len(), |position| offset + position);
+            let mut bytes = std::mem::take(&mut text).into_bytes();
+            for byte in &mut bytes[offset..line_end] {
+                if *byte == 0 {
+                    *byte = super::STAND_IN;
+                }
+            }
+            text = String::from_utf8(bytes).expect("a one-byte character replaced another");
+            from = line_end;
+            let Some(tree) = super::parse(&text) else {
+                return Some(text);
+            };
+            (comments, literals) = super::ranges(tree.root_node());
+        }
+    }
+
+    /// The line shapes the two readings could disagree about. A NUL only gets interesting next to
+    /// something that decides how the rest of the file lexes -- a `#`, a quote that never closes, a
+    /// heredoc marker -- because that is what makes one parse of the file disagree with the next.
+    const SHAPES: &[&str] = &[
+        "# comment{} tail",
+        "#{}",
+        "# TODO{} fix",
+        "# frozen_string_literal: true{}",
+        "x = \"str{}ing\"",
+        "y = 'sq{}uote'",
+        "z = /re{}gex/",
+        "%w[a{}b c]",
+        "%i[a{}b]",
+        "w = :\"sym{}bol\"",
+        "v = \"a{}#{ 1 + 1 }b\"",
+        "a = 1{}",
+        "def m{}(q); q; end",
+        "c = \"quote{} \" + \"more\"",
+        "d = 3 # trail{}ing",
+        "e = 4",
+        "",
+        "g = <<~TXT",
+        "  here{}doc",
+        "TXT",
+        "h = \"unclosed{}",
+        "i = 5 }{}{",
+        "# 日本語{}コメント",
+    ];
+
+    /// Where the shapes above are drawn from. A fixed sequence rather than a random one, so that a
+    /// disagreement is reproducible from the test alone.
+    struct Sequence(u64);
+
+    impl Sequence {
+        fn next(&mut self, modulo: usize) -> usize {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (self.0 >> 33) as usize % modulo
+        }
+    }
+
+    /// **Settling several comments per parse must not change what any of them is read as.** The
+    /// risk the pass takes is that it classifies a NUL against a parse made before the comments
+    /// ahead of it were settled; the reading it replaced never did. Sources built out of the shapes
+    /// above are where the two would come apart if it mattered.
+    #[test]
+    fn the_batched_pass_reads_what_one_comment_at_a_time_read() {
+        let mut sequence = Sequence(2026_08_21);
+        for _ in 0..600 {
+            let mut source = String::new();
+            for _ in 0..=sequence.next(7) {
+                let slot = if sequence.next(2) == 0 { "\u{0}" } else { "" };
+                source.push_str(&SHAPES[sequence.next(SHAPES.len())].replace("{}", slot));
+                source.push_str(if sequence.next(8) == 0 { "\r\n" } else { "\n" });
+            }
+
+            assert_eq!(
+                as_ruby_reads_it(&source),
+                one_comment_at_a_time(&source),
+                "the two readings disagree on {source:?}"
+            );
+        }
     }
 }

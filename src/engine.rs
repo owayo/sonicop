@@ -45,6 +45,14 @@ pub struct Selection {
     /// reported, since two overlapping shifts would corrupt the text. Without a correction pass
     /// there is nothing to corrupt, so it does not withhold, and the offense stays correctable.
     pub correcting: bool,
+    /// `LSP.enabled?`, which `--editor-mode` and `--lsp` turn on (`lsp.rb:11-13`).
+    ///
+    /// It says an editor is driving the run rather than a batch job, and the one thing that hangs
+    /// off it is `AutoCorrect: contextual`: a cop configured that way keeps its corrections to
+    /// itself here. Half-typed code is the normal state of a buffer under an editor, and the 19
+    /// cops the default configuration marks contextual are the ones that would read it as dead --
+    /// `Lint/UselessAssignment` deleting an assignment whose use has not been typed yet.
+    pub editor_mode: bool,
     /// Whether to skip the guard that refuses a correction leaving the file unparsable.
     ///
     /// **For tests, not for a run.** A cop test asks "is this correction the same as upstream's",
@@ -58,10 +66,11 @@ pub struct Selection {
     pub skip_syntax_guard: bool,
 }
 
-/// 3: one session index holds every path-keyed report in memory. Reports still carry the file's
-/// stat, the text's digest, and each offense's frozen location so an unchanged file need not be
-/// read at all.
-const RESULT_CACHE_SCHEMA: u32 = 3;
+/// 4: the stat a report is keyed on records the file's permission bits as well as its size and
+/// modification time. One session index holds every path-keyed report in memory. Reports still
+/// carry that stat, the text's digest, and each offense's frozen location so an unchanged file
+/// need not be read at all.
+const RESULT_CACHE_SCHEMA: u32 = 4;
 const RESULT_CACHE_INDEX_SCHEMA: u32 = 1;
 const RESULT_CACHE_INDEX_SUMMARY_SCHEMA: u32 = 1;
 const RESULT_CACHE_INDEX_PREFIX: &str = "sonicop-result-cache-";
@@ -97,11 +106,15 @@ pub(crate) struct ResultCache {
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct CachedReport {
     schema: u32,
-    /// What the file measured when the report was made. A run that finds both unchanged serves the
-    /// report without opening the file, which is the whole point of keying on the path rather than
-    /// on the text.
+    /// What the file measured when the report was made. A run that finds all three unchanged serves
+    /// the report without opening the file, which is the whole point of keying on the path rather
+    /// than on the text.
     size: u64,
     modified: Option<(u64, u32)>,
+    /// The permission bits, which `Lint/ScriptPermission` reads from the file itself. `chmod` moves
+    /// neither the size nor the modification time nor a single byte of the text, so without this
+    /// neither the stat nor the digest can tell that the answer has changed.
+    mode: u32,
     /// The digest of the text the report was made from, for when the stat moved but the text did
     /// not -- a checkout that restores a file, a formatter that rewrites it byte for byte.
     text: [u8; 32],
@@ -126,6 +139,26 @@ struct CacheIndex {
 struct CacheIndexSummary {
     schema: u32,
     entries: usize,
+}
+
+/// The directory entry a cached report is keyed on, as it stood when the run read the file.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct FileStat {
+    size: u64,
+    modified: Option<(u64, u32)>,
+    mode: u32,
+}
+
+/// The permission bits, or zero where the platform has none to give. Windows has no mode a cop
+/// reads, so every file there compares equal and the field simply never decides anything.
+#[cfg(unix)]
+fn file_mode(metadata: &fs::Metadata) -> u32 {
+    std::os::unix::fs::PermissionsExt::mode(&metadata.permissions())
+}
+
+#[cfg(not(unix))]
+fn file_mode(_metadata: &fs::Metadata) -> u32 {
+    0
 }
 
 impl CachedReport {
@@ -267,17 +300,21 @@ impl ResultCache {
         Some(key.finalize())
     }
 
-    /// The file's size and modification time, as the cache records them.
+    /// The file's size, modification time and permission bits, as the cache records them.
     ///
     /// A modification time the platform will not give us leaves `None`, which never compares equal
     /// to a stored one, so such a file simply falls through to the digest.
-    fn stat(metadata: &fs::Metadata) -> (u64, Option<(u64, u32)>) {
+    fn stat(metadata: &fs::Metadata) -> FileStat {
         let modified = metadata
             .modified()
             .ok()
             .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|since| (since.as_secs(), since.subsec_nanos()));
-        (metadata.len(), modified)
+        FileStat {
+            size: metadata.len(),
+            modified,
+            mode: file_mode(metadata),
+        }
     }
 
     /// The stored report for `path`, if there is one, together with what still has to be checked
@@ -297,24 +334,46 @@ impl ResultCache {
             if cached.schema != RESULT_CACHE_SCHEMA {
                 return None;
             }
-            let (size, modified) = fs::metadata(path).ok().as_ref().map(Self::stat)?;
+            let stat = fs::metadata(path).ok().as_ref().map(Self::stat)?;
             // A missing modification time never matches a stored one, so such a file always goes on
             // to be read and digested rather than being trusted on its size alone.
-            if cached.size == size && modified.is_some() && cached.modified == modified {
+            if cached.size == stat.size
+                && stat.modified.is_some()
+                && cached.modified == stat.modified
+                && cached.mode == stat.mode
+            {
                 return Some(Cached::Fresh(cached.into_report(path.to_path_buf(), None)?));
+            }
+            // The digest answers "are these the same bytes", which a `chmod` leaves true while the
+            // answer a cop gives has changed. Only a fresh inspection settles that, so a report
+            // whose mode moved is discarded rather than offered as stale.
+            if cached.mode != stat.mode {
+                return None;
             }
             Some(Cached::Stale(cached))
         })
     }
 
-    pub(crate) fn store(&self, report: &FileReport, config: &Config) {
+    /// Records `report` under the stat and digest the file had **when the run read it**.
+    ///
+    /// Both are the caller's to supply, and neither can be recovered here. The stat has to be the
+    /// one taken *before* the read: taking it afterwards pairs the report of the old bytes with the
+    /// stat of the new ones whenever a rewrite lands in between, and the next run then accepts that
+    /// as fresh on the stat alone without ever reaching the digest. Taken before, such a rewrite
+    /// leaves a stat the next run rejects, and the digest settles it from there.
+    ///
+    /// The digest likewise belongs to the bytes on disk. `report.source` has been through
+    /// [`crate::nul_bytes::as_ruby_reads_it`], which rewrites the text; hashing that would make two
+    /// different files share a digest and would defeat the guard below, since the rewrite is what
+    /// removes the NUL.
+    pub(crate) fn store(
+        &self,
+        report: &FileReport,
+        stat: FileStat,
+        digest: &[u8; 32],
+        config: &Config,
+    ) {
         if self.prepared.get() != Some(&true) {
-            return;
-        }
-        let text = report.source.text();
-        // A NUL can make Ruby stop reading before the physical end of the file. It is rare and
-        // preserving both lengths in the cache buys less than keeping this path unambiguous.
-        if text.as_bytes().contains(&0) {
             return;
         }
         let Some(key) = self.key(&report.path, config) else {
@@ -323,16 +382,12 @@ impl ResultCache {
         if self.max_files == 0 {
             return;
         }
-        // Taken after the file was read, so a rewrite that lands between the two leaves a stat the
-        // next run will not accept, and the digest settles it from there.
-        let Ok((size, modified)) = fs::metadata(&report.path).as_ref().map(Self::stat) else {
-            return;
-        };
         let cached = CachedReport {
             schema: RESULT_CACHE_SCHEMA,
-            size,
-            modified,
-            text: *blake3::hash(text.as_bytes()).as_bytes(),
+            size: stat.size,
+            modified: stat.modified,
+            mode: stat.mode,
+            text: *digest,
             offenses: report
                 .offenses
                 .iter()
@@ -780,6 +835,40 @@ struct PlannedRule {
     /// `rule.severity` unless the configuration overrode it.
     severity: Severity,
     safe_autocorrect: bool,
+    /// [`Config::rule_autocorrect_enabled`]: whether the cop's own `AutoCorrect` setting lets the
+    /// run use its corrector at all.
+    autocorrect: bool,
+}
+
+impl PlannedRule {
+    /// Settles what `Base#use_corrector` (`cop/base.rb:445-453`) would have made of the offenses a
+    /// cop has just reported.
+    ///
+    /// Two of its three statuses are decided here. A cop the configuration switched autocorrection
+    /// off for yields `:unsupported`: the offense is still reported, but it is not `correctable?`
+    /// and its edits never reach the run's corrector, so they are dropped rather than merely left
+    /// unapplied -- [`correction_candidates`] takes any offense that still carries edits. The
+    /// edits a cop scheduled outside `add_offense` go with them, since upstream reaches
+    /// `apply_correction` only through the branch this one replaces.
+    ///
+    /// `SafeAutoCorrect` is the other half and is not the same question: it leaves the offense
+    /// correctable and only bars `-a` from taking it, which is why `-A` still applies those edits.
+    fn settle_corrections(&self, reported: &mut [Offense]) {
+        if !self.autocorrect {
+            for offense in reported {
+                offense.corrections.clear();
+                offense.correctable = false;
+            }
+            return;
+        }
+        if !self.safe_autocorrect {
+            for offense in reported {
+                for correction in &mut offense.corrections {
+                    correction.safe = false;
+                }
+            }
+        }
+    }
 }
 
 impl RulePlan {
@@ -795,6 +884,7 @@ impl RulePlan {
             // unsafe cannot have a safe correction either, however `SafeAutoCorrect` was left.
             safe_autocorrect: config.rule_safe(rule.name)
                 && config.rule_safe_autocorrect(rule.name),
+            autocorrect: config.rule_autocorrect_enabled(rule.name, selection.editor_mode),
         };
         let mut entries = Vec::new();
         let mut standby = Vec::new();
@@ -845,6 +935,26 @@ fn syntax_rule() -> &'static Rule {
             .find(|rule| rule.name == "Lint/Syntax")
             .expect("the registry always carries Lint/Syntax")
     })
+}
+
+/// Inspects source read from standard input, decoded exactly as the same bytes on disk would be.
+///
+/// `Runner#get_processed_source` (`runner.rb:623-633`) builds the same `ProcessedSource` for
+/// `--stdin` as for a file; `ProcessedSource.from_file` differs only in doing the `File.read`
+/// first. So `--stdin` gets the magic comment's encoding applied, and bytes that are not valid
+/// UTF-8 get the fatal `Lint/Syntax` offense a file's would -- rather than aborting the run, which
+/// leaves a `--format json` caller with no JSON to read and an exit code it cannot interpret.
+pub fn inspect_stdin(
+    path: impl Into<PathBuf>,
+    bytes: Vec<u8>,
+    config: &Config,
+    selection: &Selection,
+) -> Result<FileReport> {
+    let path = path.into();
+    match decoded_bytes(bytes) {
+        Decoded::Text(text) => inspect_source(path, text, config, selection),
+        Decoded::Undecodable(message) => Ok(undecodable_report(&path, &message)),
+    }
 }
 
 pub fn inspect_source(
@@ -951,13 +1061,7 @@ fn inspect_planned(
             .reviewing_directives(&review);
             let mut reported = Vec::new();
             (planned.rule.check)(&context, &mut reported);
-            if !planned.safe_autocorrect {
-                for offense in &mut reported {
-                    for correction in &mut offense.corrections {
-                        correction.safe = false;
-                    }
-                }
-            }
+            planned.settle_corrections(&mut reported);
             offenses.append(&mut reported);
         }
     }
@@ -1070,13 +1174,7 @@ fn inspect_registered_rules<'a>(
             "{} reported an offense under another cop's name",
             rule.name
         );
-        if !planned.safe_autocorrect {
-            for offense in &mut offenses[start..] {
-                for correction in &mut offense.corrections {
-                    correction.safe = false;
-                }
-            }
-        }
+        planned.settle_corrections(&mut offenses[start..]);
     }
 
     (offenses, valid_syntax)
@@ -1121,15 +1219,32 @@ pub(crate) fn inspect_files_with_store_cached(
             Some(Cached::Stale(cached)) => Some(cached),
             None => None,
         };
+        // Taken before the read, so that a rewrite landing between the two leaves a stat the next
+        // run will not accept. See [`ResultCache::store`].
+        let stat = cache.and_then(|_| fs::metadata(path).ok().as_ref().map(ResultCache::stat));
         let text =
             match crate::profile::phase(crate::profile::Phase::Read, || decoded_source(path))? {
                 Decoded::Text(text) => text,
                 Decoded::Undecodable(message) => return Ok(undecodable_report(path, &message)),
             };
+        // Both describe the bytes on disk, which `inspect_planned` is about to rewrite. A NUL can
+        // make Ruby stop reading before the physical end of the file, and preserving both lengths
+        // in the cache buys less than keeping this path unambiguous, so such a file is not cached.
+        let digest = *blake3::hash(text.as_bytes()).as_bytes();
+        let cacheable = !text.as_bytes().contains(&0);
         if let Some(cached) = stale
             && cached.matches(&text)
             && let Some(report) = cached.into_report(path.clone(), Some(&text))
         {
+            // The text is confirmed, so refresh the entry's stat. Without this a file whose stat
+            // moved but whose bytes did not -- a `touch`, a `git checkout` that restores it -- is
+            // read and digested on every later run, having permanently lost the stat fast path.
+            if let Some(cache) = cache
+                && cacheable
+                && let Some(stat) = stat
+            {
+                cache.store(&report, stat, &digest, &config);
+            }
             return Ok(report);
         }
         let own_plan = (!std::ptr::eq(Arc::as_ptr(&config), configs.root()))
@@ -1142,8 +1257,11 @@ pub(crate) fn inspect_files_with_store_cached(
             own_plan.as_ref().unwrap_or(&root_plan),
             true,
         )?;
-        if let Some(cache) = cache {
-            cache.store(&report, &config);
+        if let Some(cache) = cache
+            && cacheable
+            && let Some(stat) = stat
+        {
+            cache.store(&report, stat, &digest, &config);
         }
         Ok(report)
     };
@@ -1189,46 +1307,51 @@ const INVALID_UTF8: &str = "Invalid byte sequence in utf-8.";
 /// `tests/conformance/known_divergences.yml`.
 fn decoded_source(path: &Path) -> Result<Decoded> {
     let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    Ok(decoded_bytes(bytes))
+}
+
+/// [`decoded_source`] once the bytes are in hand, which is also how `--stdin` gets them: upstream
+/// hands `ProcessedSource.new` the raw buffer either way and only `ProcessedSource.from_file` adds
+/// the `File.read` (`runner.rb:623-633`), so the two must decode identically.
+fn decoded_bytes(bytes: Vec<u8>) -> Decoded {
     let Some(label) = declared_label(&bytes) else {
-        return Ok(utf8_or_invalid(bytes));
+        return utf8_or_invalid(bytes);
     };
     // A file declaring itself binary has to be read that way even when its bytes happen to be valid
     // UTF-8: Ruby measures an `ASCII-8BIT` source one byte at a time, so a cop reporting a length or
     // a column over a multibyte sequence counts each byte separately.
     if is_binary_label(&label) {
-        return Ok(Decoded::Text(
-            bytes.iter().map(|byte| *byte as char).collect(),
-        ));
+        return Decoded::Text(bytes.iter().map(|byte| *byte as char).collect());
     }
     // `encoding_rs` answers to the WHATWG registry, which folds `us-ascii` into windows-1252 and so
     // reads every byte happily. Ruby's `US-ASCII` refuses anything above 7 bits, and that refusal is
     // the whole point of the declaration, so it is checked here rather than delegated.
     if is_seven_bit_label(&label) {
-        return Ok(match bytes.iter().position(|byte| *byte > 0x7f) {
+        return match bytes.iter().position(|byte| *byte > 0x7f) {
             Some(index) => {
                 Decoded::Undecodable(format!("\"\\x{:02x}\" on us-ascii.", bytes[index]))
             }
             None => Decoded::Text(String::from_utf8(bytes).expect("7-bit bytes are UTF-8")),
-        });
+        };
     }
     let Some(encoding) = encoding_for_ruby_label(&label) else {
         // The label reaches here already cut at the first `.`, since the magic comment's token
         // pattern holds no dot -- upstream's does not either, so `ANSI_X3.4-1968` is `ansi_x3` to
         // both of us and neither can name it. Cutting it is upstream's behaviour, not a defect to
         // repair: repairing it would resolve an encoding RuboCop reports as unknown.
-        return Ok(Decoded::Undecodable(format!(
+        return Decoded::Undecodable(format!(
             "Unknown encoding name - {}.",
             label.to_ascii_lowercase()
-        )));
+        ));
     };
     if encoding == encoding_rs::UTF_8 {
-        return Ok(utf8_or_invalid(bytes));
+        return utf8_or_invalid(bytes);
     }
     let (text, _, malformed) = encoding.decode(&bytes);
-    Ok(match malformed {
+    match malformed {
         true => Decoded::Undecodable(INVALID_UTF8.to_owned()),
         false => Decoded::Text(text.into_owned()),
-    })
+    }
 }
 
 /// A source with nothing to say about its own encoding, which Ruby reads as UTF-8.
@@ -2648,6 +2771,29 @@ fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> R
     }
 }
 
+/// Writes corrected source back over the file it was read from.
+///
+/// Upstream ends in `File.write(path, ...)` (`cop/team.rb:180`), which is `O_WRONLY|O_CREAT|O_TRUNC`
+/// **on the path itself**. That matters twice, and neither is incidental: the open follows a
+/// symlink, so a corrected symlink stays a symlink and its target is what gets rewritten; and it
+/// keeps the inode, so every other name hard-linked to it sees the correction too.
+///
+/// Writing a temporary file beside the path and `rename(2)`-ing it over instead is atomic -- a
+/// killed writer cannot leave a half-written file -- but rename replaces the *directory entry*.
+/// A symlink is replaced by a regular file holding the corrected text while its target keeps the
+/// original, and a hard-linked inode is unlinked, dropping the link count and leaving every other
+/// name on the old text. Both are silent data loss in a repository laid out with shared files, and
+/// no message anywhere says the link is gone.
+///
+/// **So the two properties are traded per file rather than one chosen for all of them.** A plain
+/// file with a single link has no identity a rename can destroy, and that is nearly every file in
+/// nearly every run, so it keeps the atomic path. A symlink or a multiply-linked inode -- where a
+/// rename would be wrong however safe -- is written through in place, upstream's way, accepting
+/// that a process killed mid-write leaves it truncated. Correctness first: an interrupted write is
+/// recoverable from version control, a deleted hard link is not obviously *there* to recover.
+///
+/// Permissions survive either way: the temporary file is given the original's before it is
+/// persisted, and the in-place write never creates a new file to give permissions to.
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     // The file on disk is still the one that was read: the loop corrects in memory and writes once.
     // What matters is whether the file *as read* named its own encoding, not whether the corrected
@@ -2657,6 +2803,9 @@ pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
         fs::read(path).is_ok_and(|bytes| declared_label(&bytes).is_some())
     })
     .with_context(|| format!("refusing to rewrite {}", path.display()))?;
+    if rename_would_lose_the_file(path) {
+        return write_in_place(path, &bytes);
+    }
     let parent = path.parent().unwrap_or(Path::new("."));
     let permissions = fs::metadata(path)
         .ok()
@@ -2683,6 +2832,49 @@ pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
     Ok(())
 }
 
+/// Whether replacing `path`'s directory entry would destroy something the entry does not own: the
+/// symlink itself, or the other names sharing its inode.
+///
+/// `symlink_metadata` is what asks the first question -- `metadata` follows the link and would
+/// report on the target, which is exactly the file a rename does *not* touch. A read that fails
+/// answers no, which routes the write through the atomic path; it then reports the same IO failure
+/// with a message of its own rather than this deciding anything on a guess.
+fn rename_would_lose_the_file(path: &Path) -> bool {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return false;
+    };
+    metadata.file_type().is_symlink() || link_count(&metadata) > 1
+}
+
+/// How many names the file has. Windows keeps hard links too but exposes no count through `std`,
+/// so it answers 1 and every write there takes the atomic path -- which is what it did before this
+/// distinction existed.
+#[cfg(unix)]
+fn link_count(metadata: &fs::Metadata) -> u64 {
+    std::os::unix::fs::MetadataExt::nlink(metadata)
+}
+
+#[cfg(not(unix))]
+fn link_count(_metadata: &fs::Metadata) -> u64 {
+    1
+}
+
+/// `File.write(path, ...)`: truncate what the path resolves to and write the corrected bytes into
+/// it, keeping the inode and following any symlink on the way.
+fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)
+        .with_context(|| format!("failed to open {} for rewriting", path.display()))?;
+    file.write_all(bytes)
+        .with_context(|| format!("failed to write corrected contents for {}", path.display()))?;
+    file.sync_all()
+        .with_context(|| format!("failed to flush corrected contents for {}", path.display()))?;
+    Ok(())
+}
+
 pub fn offense_count(reports: &[FileReport], fail_level: Severity) -> usize {
     reports
         .iter()
@@ -2706,8 +2898,11 @@ mod tests {
 
     use super::{
         CorrectMode, Correcting, ResultCache, Selection, correct_file, corrected_text,
-        discover_targets, inspect_files, inspect_source,
+        discover_targets, inspect_files, inspect_source, write_corrected,
     };
+
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
 
     /// One cop's corrections: the cop's name, then an offense per inner slice, then the edits that
     /// offense asks for.
@@ -2715,6 +2910,15 @@ mod tests {
         &'static str,
         &'static [&'static [(usize, usize, &'static str)]],
     );
+
+    /// [`ResultCache::store`] as a run reaches it, for the tests that drive the cache directly
+    /// rather than through [`inspect_files_with_store_cached`]. The stat and the digest both come
+    /// from the file on disk, which is what the caller in a real run supplies.
+    fn store_as_read(cache: &ResultCache, report: &FileReport, config: &Config) {
+        let stat = ResultCache::stat(&fs::metadata(&report.path).unwrap());
+        let digest = *blake3::hash(&fs::read(&report.path).unwrap()).as_bytes();
+        cache.store(report, stat, &digest, config);
+    }
 
     #[test]
     fn result_cache_round_trips_reports_and_rejects_changed_source() {
@@ -2737,7 +2941,7 @@ mod tests {
         cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
 
-        cache.store(&report, &config);
+        store_as_read(&cache, &report, &config);
         // 置いたままのファイルなので stat が一致し、中身を読まずに報告が返る。
         let Some(Cached::Fresh(cached)) = cache.load(&path, &config) else {
             panic!("an untouched file should be served from its stat alone");
@@ -2789,7 +2993,7 @@ mod tests {
         .unwrap();
         cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
-        cache.store(&report, &config);
+        store_as_read(&cache, &report, &config);
 
         fs::write(&path, source).unwrap();
 
@@ -2804,6 +3008,135 @@ mod tests {
             }
             None => panic!("a rewrite that changes nothing must not lose the report"),
         }
+    }
+
+    /// `Lint/ScriptPermission` stats the file itself, and `chmod` moves neither the size nor the
+    /// modification time nor a single byte of the text. Without the mode in the stat, the report
+    /// made before the `chmod` is served as fresh forever, and the digest cannot correct it either
+    /// because the bytes really are unchanged.
+    #[cfg(unix)]
+    #[test]
+    fn result_cache_notices_a_permission_change() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        let source = "#!/usr/bin/env ruby\nx = 1\n";
+        fs::write(&path, source).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Lint/ScriptPermission".to_owned()],
+            ..Selection::default()
+        };
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            100,
+        )
+        .unwrap();
+        cache.prepare(1);
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+        assert_eq!(report.offenses.len(), 1);
+        store_as_read(&cache, &report, &config);
+
+        // 置いたままなら stat が一致し、読まずに返る。
+        assert!(matches!(cache.load(&path, &config), Some(Cached::Fresh(_))));
+
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(
+            cache.load(&path, &config).is_none(),
+            "実行権が変わった報告は、stale としてでも差し出してはならない"
+        );
+    }
+
+    /// [`ResultCache::store`] must record the stat its caller took before reading, not whatever the
+    /// file measures by the time the report is ready. A rewrite landing in between would otherwise
+    /// pair the old report with the new stat, which the next run accepts on the stat alone.
+    #[test]
+    fn result_cache_records_the_stat_it_was_given() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        let source = "x = 1  \n";
+        fs::write(&path, source).unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/TrailingWhitespace".to_owned()],
+            ..Selection::default()
+        };
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            100,
+        )
+        .unwrap();
+        cache.prepare(1);
+        let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
+        let stat = ResultCache::stat(&fs::metadata(&path).unwrap());
+        let digest = *blake3::hash(source.as_bytes()).as_bytes();
+
+        // 読んだ後にファイルが書き換わった状況。store には読んだ時点の stat と digest を渡す。
+        fs::write(&path, "x = 1\n").unwrap();
+        cache.store(&report, stat, &digest, &config);
+
+        match cache.load(&path, &config) {
+            Some(Cached::Fresh(_)) => {
+                panic!("読んだ時点の stat を記録していれば、書き換え後のファイルには一致しない")
+            }
+            // digest も読んだ時点のものなので、新しい本文とは合わず作り直しになる。
+            Some(Cached::Stale(cached)) => assert!(!cached.matches("x = 1\n")),
+            None => {}
+        }
+    }
+
+    /// A NUL can make Ruby stop reading before the physical end of the file, so such a file is not
+    /// cached at all. The digest is taken over the bytes on disk rather than over the text
+    /// `nul_bytes::as_ruby_reads_it` rewrites them into -- the rewrite is what removes the NUL, so
+    /// hashing it would both defeat this guard and let two different files share a digest.
+    #[test]
+    fn result_cache_declines_a_file_holding_a_nul() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        fs::write(&path, "\0").unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let cache = ResultCache::new(
+            directory.path().join("cache"),
+            config.path_base(),
+            &selection,
+            100,
+        )
+        .unwrap();
+        cache.prepare(1);
+        let configs = super::ConfigStore::new(config.clone(), false, false);
+        let paths = vec![path.clone()];
+
+        super::inspect_files_with_store_cached(&paths, &configs, &selection, false, Some(&cache))
+            .unwrap();
+        assert!(
+            cache.load(&path, &config).is_none(),
+            "NUL を含むファイルは長さが二通りあるのでキャッシュしない"
+        );
+
+        // 空にすると `Lint/EmptyFile` の答えが変わる。前の報告が残っていれば取り違える。
+        fs::write(&path, "").unwrap();
+        let reports = super::inspect_files_with_store_cached(
+            &paths,
+            &configs,
+            &selection,
+            false,
+            Some(&cache),
+        )
+        .unwrap();
+        assert!(
+            reports[0]
+                .offenses
+                .iter()
+                .any(|offense| offense.cop_name == "Lint/EmptyFile"),
+            "空になったファイルは空として報告されなければならない"
+        );
     }
 
     #[test]
@@ -2831,7 +3164,7 @@ mod tests {
             fs::write(path, "x = 1  \n").unwrap();
             let report =
                 inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
-            cache.store(&report, &config);
+            store_as_read(&cache, &report, &config);
         }
 
         cache.prune();
@@ -2861,7 +3194,7 @@ mod tests {
         let cache = ResultCache::new(root.clone(), config.path_base(), &selection, 100).unwrap();
         cache.prepare(1);
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
-        cache.store(&report, &config);
+        store_as_read(&cache, &report, &config);
         cache.prune();
         assert!(cache.index_path.is_file());
         drop(cache);
@@ -2914,7 +3247,8 @@ mod tests {
         cache.prepare(1);
         assert_eq!(cache.prepared.get(), Some(&false));
         assert!(cache.load(&path, &config).is_none());
-        cache.store(
+        store_as_read(
+            &cache,
             &FileReport {
                 path,
                 source: SourceFile::new(directory.path().join("example.rb"), source.to_owned()),
@@ -2951,7 +3285,7 @@ mod tests {
             fs::write(path, "x = 1  \n").unwrap();
             let report =
                 inspect_source(path.clone(), "x = 1  \n".to_owned(), &config, &selection).unwrap();
-            cache.store(&report, &config);
+            store_as_read(&cache, &report, &config);
         }
 
         first.prune();
@@ -2986,7 +3320,7 @@ mod tests {
         rebuilt.prepare(1);
         assert!(rebuilt.load(&path, &config).is_none());
         let report = inspect_source(path.clone(), source.to_owned(), &config, &selection).unwrap();
-        rebuilt.store(&report, &config);
+        store_as_read(&rebuilt, &report, &config);
         rebuilt.prune();
         drop(rebuilt);
 
@@ -3020,7 +3354,7 @@ mod tests {
         first.prepare(1);
         let report =
             inspect_source(path.clone(), source.to_owned(), &config, &first_selection).unwrap();
-        first.store(&report, &config);
+        store_as_read(&first, &report, &config);
         first.prune();
         drop(first);
 
@@ -3029,7 +3363,7 @@ mod tests {
         second.prepare(1);
         let report =
             inspect_source(path.clone(), source.to_owned(), &config, &second_selection).unwrap();
-        second.store(&report, &config);
+        store_as_read(&second, &report, &config);
         second.prune();
         drop(second);
 
@@ -3746,6 +4080,86 @@ mod tests {
                 .offenses
                 .iter()
                 .any(|offense| offense.corrected)
+        );
+    }
+
+    /// A symlink names a file; it is not one. `rename(2)` replaces the name, so the link becomes a
+    /// regular file holding the correction while the file it pointed at keeps the original -- the
+    /// user's edit lands in a place nothing reads, and the link is gone with no message about it.
+    #[cfg(unix)]
+    #[test]
+    fn write_corrected_rewrites_through_a_symlink_and_leaves_the_link_alone() {
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("real.rb");
+        let link = directory.path().join("link.rb");
+        std::fs::write(&target, "y  = 2\n").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o640)).unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+
+        write_corrected(&link, "y = 2\n").unwrap();
+
+        assert!(
+            std::fs::symlink_metadata(&link)
+                .unwrap()
+                .file_type()
+                .is_symlink(),
+            "the symlink was replaced by a regular file"
+        );
+        assert_eq!(
+            std::fs::read_to_string(&target).unwrap(),
+            "y = 2\n",
+            "the file the link points at was not corrected"
+        );
+        assert_eq!(
+            std::fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+            0o640,
+            "writing in place must not change the file's permissions"
+        );
+    }
+
+    /// Every name on an inode is the file. Unlinking it to put another in its place leaves the
+    /// other names on text the run has already reported as corrected.
+    #[cfg(unix)]
+    #[test]
+    fn write_corrected_keeps_a_hard_linked_inode_shared() {
+        let directory = tempdir().unwrap();
+        let first = directory.path().join("one.rb");
+        let second = directory.path().join("two.rb");
+        std::fs::write(&first, "y  = 2\n").unwrap();
+        std::fs::hard_link(&first, &second).unwrap();
+
+        write_corrected(&first, "y = 2\n").unwrap();
+
+        assert_eq!(
+            std::os::unix::fs::MetadataExt::nlink(&std::fs::metadata(&first).unwrap()),
+            2,
+            "the inode was unlinked and the second name left behind"
+        );
+        assert_eq!(
+            std::fs::read_to_string(&second).unwrap(),
+            "y = 2\n",
+            "the other name for the same file still holds the old text"
+        );
+    }
+
+    /// The ordinary file keeps the atomic path, and its permissions with it. Nothing about the
+    /// distinction above may cost the common case what it already had.
+    #[test]
+    fn write_corrected_replaces_an_ordinary_file_and_preserves_its_permissions() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("plain.rb");
+        std::fs::write(&path, "y  = 2\n").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+
+        write_corrected(&path, "y = 2\n").unwrap();
+
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "y = 2\n");
+        #[cfg(unix)]
+        assert_eq!(
+            std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o600,
+            "the temporary file was persisted without the original's permissions"
         );
     }
 

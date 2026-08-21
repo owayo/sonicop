@@ -140,20 +140,26 @@ Style/StringLiterals:
   EnforcedStyle: single_quotes
 ```
 
-既存コマンドとの互換性を保つため、server/LSP/MCP、plugin、cache 系の引数も受理します。
-サーバートランスポート、Ruby プラグイン実行、キャッシュ再利用、カスタム Cop、実装済み以外の
-Cop は実行しません。
+既存コマンドとの互換性を保つため、server/LSP/MCP、plugin 系の引数も受理します。
+サーバートランスポート、Ruby プラグイン実行、カスタム Cop、実装済み以外の Cop は実行しません。
+これらはその旨を出力します。`--server` / `--no-server` / `--lsp` / `--mcp` / `--plugin` は
+stderr に 1 行の注記を出します。
 
-そのうち大半は、その旨を出力します。`--server` / `--no-server` / `--lsp` / `--mcp` /
-`--plugin` は stderr に 1 行の注記を出します。cache 系は何も出しませんが、
-無言でよいのは片方だけです。
+cache 系の引数は、受理するだけでなく実際に効きます。sonicop は独自の結果キャッシュを持ち、
+検査時からサイズ・更新時刻・パーミッションのいずれも動いていないファイルには、
+保存済みのレポートをそのまま返します。
 
-- `--cache=false` はキャッシュを使わないことを求めるもので、sonicop はそれを満たしているため、
-  無言が正しい応答です。
-- `--cache=true` はキャッシュ再利用を求めるものですが、sonicop はこれを提供しておらず、
-  それでも無言です。
+- キャッシュは既定で有効です。`--cache false` で無効化できます。設定ファイルの
+  `AllCops/MaxFilesInCache: 0` でも同じです。
+- 置き場所は `--cache-root DIR` で指定します。省略時は `$XDG_CACHE_HOME/sonicop`、
+  macOS では `~/Library/Caches/sonicop`、それ以外は `~/.cache/sonicop` です。
+  `--cache-root` は `--cache false` とは併用できません。
+- 保持するレポート数の上限は `AllCops/MaxFilesInCache` で、既定は本家と同じ 20,000 件です。
+- autocorrect 実行、`--stdin`、`--profile`、`--memory` では読み書きしません。
+- 本家のキャッシュとは共有しません。形式が別物であり、書いたときとまったく同じ
+  ビルドの sonicop にしかエントリを返さないためです。
 
-Cop の設定値も後者と同じ挙動です。sonicop が実装していない設定値は**警告なしに無視されます**。
+無言なのは Cop の設定値のほうです。sonicop が実装していない設定値は**警告なしに無視されます**。
 名前を綴り間違えた設定値も同様です。つまり
 **offense が 0 件であることは、その設定が効いた証拠にはなりません**。
 無視された設定値と、違反の無いファイルが、同じ出力になるためです。
@@ -218,19 +224,22 @@ autocorrect は RuboCop 自身のツリーと Mastodon でバイト単位に一�
 Rails・Mastodon の 3 つで**すべての offense が一致**します（計 188,812 件、どちらの側にも
 残りません）。autocorrect は前者と後者でバイト単位に一致します。
 
-再現時に注意が必要な点が 2 つあります。RuboCop は **`--cache false` と併用すると
+再現時に注意が必要な点が 3 つあります。RuboCop は **`--cache false` と併用すると
 `--parallel` を黙って無効化します**。そのためここでの並列実行はキャッシュを有効にしたうえで
 実行ごとにキャッシュディレクトリを消しており、`--cache false --parallel` で計測すると
 単一プロセスを測ることになり差が過大に出ます。また RuboCop の既定は単一プロセス、
-Sonicop は `--no-parallel` を渡さない限り並列です。
+Sonicop は `--no-parallel` を渡さない限り並列です。そして**両方ともキャッシュを空にする**
+必要があります。Sonicop も既定でキャッシュするため、同じツリーを 2 回目に流すと自分の
+キャッシュが答えてしまい、エンジンについては何も測れません。どちらにも使い捨ての
+キャッシュディレクトリを渡してください。
 
 ```bash
 # RuboCop（並列・キャッシュは毎回空・既定の全 394 Cop）
 rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
         --no-color --parallel -f quiet
 
-# Sonicop
-sonicop --force-default-config --format quiet
+# Sonicop（キャッシュは毎回空）
+sonicop --force-default-config --cache-root "$(mktemp -d)" --format quiet
 ```
 
 測定機は Apple M2（8 コア）、Ruby 4.0.6（YJIT 利用可）、RubyGems 導入の RuboCop 1.89.0。
@@ -280,6 +289,12 @@ Cop ごとの全走査はファイル規模ではなく Cop 数に比例して�
 `config/default.yml` は上流 RuboCop から取り込んだものです。再取得は
 `scripts/sync_default_yml.sh <rubocop-version>` で行い、由来のバージョンがファイル先頭に
 記録されます。
+
+`src/display_width_table.rs` も生成物で、コミットします。RuboCop は表示桁を
+`unicode-display_width` gem で数えるため、この表は手書きせず gem から生成しています。
+手書きの例外表は実際にずれており、NFD 分解された日本語でキャレットの本数が合わなくなっていました。
+再生成は `ruby scripts/dump_display_width.rb > src/display_width_table.rs` で行い、
+gem と Unicode のバージョンがファイル先頭に記録されます。
 
 依存更新には `depup --install` を使います。Ruby grammar は再現可能性のため `Cargo.toml` で
 fork のコミットを固定しています。

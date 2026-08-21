@@ -8,6 +8,11 @@ class ConformanceDiffTest < Minitest::Test
   SCRIPT = File.join(ROOT, 'scripts', 'conformance_diff.sh')
 
   def setup
+    # Windows は shebang を見ないので、`.sh` を直接 exec すると jq の有無に関わらず
+    # `Errno::ENOEXEC: Exec format error` になる。conformance_diff.sh は適合率を測る
+    # ための保守用ツールで、製品が通る経路ではない。bash を探して回るより、
+    # jq が無いときと同じように名指しで飛ばす。
+    skip 'conformance_diff.sh is a bash script and cannot be exec\'d on Windows' if Gem.win_platform?
     skip 'conformance_diff.sh requires jq' unless system('jq', '--version', out: File::NULL, err: File::NULL)
 
     @root = Dir.mktmpdir('sonicop-conformance-diff')

@@ -15,7 +15,13 @@ module Sonicop
       MESSAGE
 
       begin
-        exec(binary, *arguments)
+        # `[binary, binary]` = exec 形式の強制。`exec(binary, *arguments)` は arguments が空、
+        # つまり「カレントディレクトリを見る素の `sonicop`」という最も普通の呼び出しのとき
+        # `exec(String)` = commandline 形式に落ちる。この形式は空白で単語分割し、メタ文字が
+        # あればまるごと /bin/sh に渡すため、binary のパス次第で ENOENT や exit 127 になる。
+        # パスの出所は SONICOP_BINARY と gem の install 先で、どちらもメタ文字を含まない保証がない。
+        # argv0 は multi-arg 形式が既定で入れるものと同じ値を明示している。
+        exec([binary, binary], *arguments)
       rescue SystemCallError => error
         # 実行できない典型は「platform gem は入ったが実行環境と ABI が違う」ケース
         # (musl 環境に glibc ビルドが入るなど)。素の errno だけでは原因が読めない。

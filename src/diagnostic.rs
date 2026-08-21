@@ -270,3 +270,156 @@ pub struct FileReport {
     pub source: SourceFile,
     pub offenses: Vec<Offense>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Edit, Offense, Severity, character_length};
+    use crate::source::SourceFile;
+
+    fn source(text: &str) -> SourceFile {
+        SourceFile::new("example.rb", text.to_owned())
+    }
+
+    fn offense(start: usize, end: usize) -> Offense {
+        Offense::new("Test/Cop", Severity::Convention, "message", start, end)
+    }
+
+    fn edit(start: usize, end: usize) -> Edit {
+        Edit {
+            start,
+            end,
+            replacement: String::new(),
+            safe: true,
+        }
+    }
+
+    #[test]
+    fn every_severity_round_trips_through_its_rubocop_name() {
+        for severity in [
+            Severity::Info,
+            Severity::Refactor,
+            Severity::Convention,
+            Severity::Warning,
+            Severity::Error,
+            Severity::Fatal,
+        ] {
+            assert_eq!(Severity::parse(severity.as_str()), Some(severity));
+            // 本家は頭文字 1 字でも受ける。大文字小文字は問わない。
+            let initial = severity.code().to_string();
+            assert_eq!(Severity::parse(&initial), Some(severity));
+            assert_eq!(
+                Severity::parse(&severity.as_str().to_uppercase()),
+                Some(severity)
+            );
+        }
+        assert_eq!(Severity::parse(""), None);
+        assert_eq!(Severity::parse("critical"), None);
+    }
+
+    #[test]
+    fn severities_order_from_least_to_most_serious() {
+        assert!(Severity::Info < Severity::Convention);
+        assert!(Severity::Convention < Severity::Warning);
+        assert!(Severity::Warning < Severity::Error);
+        assert!(Severity::Error < Severity::Fatal);
+    }
+
+    /// 本家は範囲の終端を「最後の文字」ではなく排他的な終端オフセットで解決するので、空の範囲は
+    /// `last_column` が開始より 1 手前になる。0 になったときだけ 1 に丸める。
+    #[test]
+    fn an_empty_range_reports_its_last_column_one_before_its_start() {
+        let source = source("x = 1\n");
+        let location = offense(0, 0).location(&source);
+        assert_eq!((location.start_line, location.start_column), (1, 1));
+        assert_eq!(location.last_column, 1);
+        assert_eq!(location.length, 0);
+
+        let location = offense(4, 4).location(&source);
+        assert_eq!(location.start_column, 5);
+        assert_eq!(location.last_column, 4);
+    }
+
+    /// 改行で閉じる範囲は次の行に載る。本家の `last_line` の取り方と同じ。
+    #[test]
+    fn a_range_closing_on_a_newline_is_reported_on_the_following_line() {
+        let source = source("x = 1\ny = 2\n");
+        let location = offense(0, 6).location(&source);
+        assert_eq!(location.start_line, 1);
+        assert_eq!(location.last_line, 2);
+    }
+
+    /// 長さは本家に合わせて文字数で数える。バイト数を渡すと全角で 3 倍になる。
+    #[test]
+    fn length_is_counted_in_characters_not_bytes() {
+        let source = source("x = \"なまえ\"\n");
+        let start = "x = \"".len();
+        let end = start + "なまえ".len();
+        assert_eq!(character_length(&source, start, end), 3);
+        assert_eq!(offense(start, end).location(&source).length, 3);
+    }
+
+    /// cop が算術で導いたオフセットは文字の途中に落ち得る。ここで panic すると実行全体が死ぬので、
+    /// 両端とも文字境界まで引き戻す。
+    #[test]
+    fn an_offset_inside_a_character_is_pulled_back_instead_of_panicking() {
+        let source = source("なまえ\n");
+        for start in 0..source.text().len() {
+            for end in start..=source.text().len() {
+                // 落ちないことがこのテストの主張。
+                let _ = character_length(&source, start, end);
+            }
+        }
+        // 「な」の途中から「ま」の途中まで → 両端が丸まって「な」1 文字分。
+        assert_eq!(character_length(&source, 1, 4), 1);
+    }
+
+    /// 範囲の終端を超えるオフセットでも切り詰めるだけで、落ちも巻き戻しもしない。
+    #[test]
+    fn offsets_past_the_end_are_clamped() {
+        let source = source("abc");
+        assert_eq!(character_length(&source, 0, 999), 3);
+        assert_eq!(character_length(&source, 999, 999), 0);
+        // `Offense::new` が終端を開始まで押し上げるので、逆転した範囲は空になる。
+        assert_eq!(offense(2, 1).end, 2);
+    }
+
+    /// 本家は `correctable?` を offense の status から導くので、ディレクティブで抑止されたものは
+    /// cop がどう報告していても訂正可能ではない。
+    #[test]
+    fn a_suppressed_offense_is_never_correctable() {
+        let mut with_edit = offense(0, 1).corrected_by(edit(0, 1));
+        assert!(with_edit.is_correctable());
+        with_edit.suppressed = true;
+        assert!(!with_edit.is_correctable());
+
+        assert!(!offense(0, 1).is_correctable());
+    }
+
+    /// `Cop::Base#correct` 相当。offense に紐づかない書き換えは corrector には届くが、
+    /// offense 自体は `:unsupported` のままで訂正可能にはならない。
+    #[test]
+    fn detached_corrections_reach_the_corrector_without_making_the_offense_correctable() {
+        let detached = offense(0, 1).corrected_without_status([edit(0, 1)]);
+        assert_eq!(detached.corrections.len(), 1);
+        assert!(detached.corrections_detached);
+        assert!(!detached.is_correctable());
+    }
+
+    /// 訂正で本文が置き換わっても、凍結した位置と行がそのまま報告に残らなければならない。
+    #[test]
+    fn a_frozen_location_survives_a_rewrite_of_the_text() {
+        let before = source("x = 1  \ny = 2\n");
+        let mut offense = offense(5, 7);
+        offense.freeze_location(&before);
+        let frozen = offense.location(&before);
+
+        let after = source("y = 2\n");
+        assert_eq!(offense.location(&after).start_line, frozen.start_line);
+        assert_eq!(offense.source_line(&after), "x = 1  \n");
+        assert_eq!(offense.start_position(&after), (frozen.line, frozen.column));
+
+        // 二度目の凍結は最初のものを上書きしない。
+        offense.freeze_location(&after);
+        assert_eq!(offense.source_line(&after), "x = 1  \n");
+    }
+}

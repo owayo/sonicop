@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 
 use globset::{Glob, GlobMatcher, GlobSet, GlobSetBuilder};
@@ -45,7 +45,19 @@ pub(super) fn cop_patterns(raw: &Value, name: &str, key: &str) -> Option<PathPat
 }
 
 fn mapping_patterns(mapping: &Mapping, key: &str) -> Option<PathPatterns> {
-    let patterns: Vec<String> = serde_yaml_ng::from_value(mapping.get(key)?.clone()).ok()?;
+    let value = mapping.get(key)?;
+    // `Array(...)`: a lone scalar counts as a one-element list. `Exclude: tmp/**/*`, written
+    // without the list dashes, is a common enough slip that it has to mean something, and Ruby's
+    // own idiom for reading these lists says what. Upstream does not survive the shape at all --
+    // `Config#make_excludes_absolute` raises `undefined method 'map!' for an instance of String` --
+    // and this project answers a malformed configuration rather than reproducing a crash. What it
+    // must not do is the third thing, which is what deserializing straight into `Vec<String>` and
+    // dropping the error did: forgetting the entry leaves an `Exclude` silently unenforced, so the
+    // files the user ruled out get inspected and nothing says why.
+    let patterns: Vec<String> = match value.as_str() {
+        Some(pattern) => vec![pattern.to_owned()],
+        None => serde_yaml_ng::from_value(value.clone()).ok()?,
+    };
     Some(PathPatterns::compile(&patterns))
 }
 
@@ -65,6 +77,10 @@ pub(super) struct PathPatterns {
     /// The patterns written with a capital, which is the subset
     /// `matches_uppercase_includes` walks.
     uppercase: PatternSet,
+    /// Whether any pattern is absolute. Only those are ever held against the absolute spelling of a
+    /// path, so a list without one -- which is every list RuboCop ships and nearly every list a
+    /// project writes -- skips that second pass and the `PathBuf` it would build per file.
+    has_absolute: bool,
 }
 
 /// One list of globs folded into `globset`'s set form so a path can be tested against all of them
@@ -169,11 +185,13 @@ impl PathPatterns {
             .collect();
         let all = PatternSet::build(compiled.iter());
         let uppercase = PatternSet::build(compiled.iter().filter(|pattern| pattern.has_uppercase));
+        let has_absolute = compiled.iter().any(|pattern| pattern.absolute);
         Self {
             configured: patterns.len(),
             patterns: compiled,
             all,
             uppercase,
+            has_absolute,
         }
     }
 
@@ -205,35 +223,71 @@ impl PathPatterns {
         }
         let relative = project_relative(path, root).unwrap_or_else(|| path.to_path_buf());
         let relative = relative.to_string_lossy().replace('\\', "/");
-        let normalized = relative.trim_start_matches("./");
         let basename = path
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("");
+        if self.matches_includes_spelling(
+            relative.trim_start_matches("./"),
+            basename,
+            uppercase_only,
+            false,
+        ) {
+            return true;
+        }
+        // `match_relative_or_absolute_path?`: an `Include` pattern written absolutely is held
+        // against the absolute spelling of the file, which is the only spelling it can ever match.
+        // Only the absolute patterns are asked -- upstream picks the spelling per pattern, and
+        // handing a relative pattern the absolute path would let `**/vendor/**/*` match by way of a
+        // directory above the project root that the user never named.
+        if !self.has_absolute {
+            return false;
+        }
+        let Some(absolute) = absolute_form(path) else {
+            return false;
+        };
+        self.matches_includes_spelling(slashed(&absolute).as_ref(), basename, uppercase_only, true)
+    }
+
+    /// One spelling of a path put to the `Include` list. `absolute_only` restricts the question to
+    /// the absolute patterns and takes the slow walk, because the sets are built over the whole
+    /// list and there is no set for that subset.
+    fn matches_includes_spelling(
+        &self,
+        normalized: &str,
+        basename: &str,
+        uppercase_only: bool,
+        absolute_only: bool,
+    ) -> bool {
         // RuboCop's `match_path?` matches without `FNM_DOTMATCH`, so a wildcard never reaches a dot
         // component -- only a segment the pattern spells out literally does. On top of that,
         // `hidden_file_in_not_hidden_dir?` lets a dot *file* through as long as it sits in a real,
         // non-hidden directory. So a dot directory is invisible unless named, and a top-level dot
         // file needs naming too.
         let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", normalized));
-        let hidden_file = file.starts_with('.');
-        let hidden_directory = directories.split('/').any(|part| part.starts_with('.'));
+        let hidden_file = hidden_segment(file);
+        let hidden_directory = directories.split('/').any(hidden_segment);
         // With nothing hidden about the path, every pattern would clear the two dot tests below on
         // its own, and what is left is the plain glob question the set can answer in one go.
-        let set = if uppercase_only {
-            &self.uppercase
-        } else {
-            &self.all
-        };
-        if set.usable && !hidden_directory && !(hidden_file && directories.is_empty()) {
-            return set.matches(normalized, basename);
+        if !absolute_only {
+            let set = if uppercase_only {
+                &self.uppercase
+            } else {
+                &self.all
+            };
+            if set.usable && !hidden_directory && !(hidden_file && directories.is_empty()) {
+                return set.matches(normalized, basename);
+            }
         }
         let hidden_directories: Vec<&str> = directories
             .split('/')
-            .filter(|part| part.starts_with('.'))
+            .filter(|part| hidden_segment(part))
             .collect();
         self.patterns.iter().any(|pattern| {
             if uppercase_only && !pattern.has_uppercase {
+                return false;
+            }
+            if absolute_only && !pattern.absolute {
                 return false;
             }
             if !hidden_directories
@@ -263,13 +317,32 @@ impl PathPatterns {
         let hidden = respect_hidden && has_hidden_component(Path::new(normalized));
         // `hidden` and `absolute_only` are the only things that put a pattern out of the running on
         // its own; without them the set answers for the whole list at once.
-        if self.all.usable && !hidden && !absolute_only {
-            return self.all.matches(normalized, basename);
+        let matched = if self.all.usable && !hidden && !absolute_only {
+            self.all.matches(normalized, basename)
+        } else {
+            self.patterns
+                .iter()
+                .filter(|pattern| !absolute_only || pattern.absolute)
+                .any(|pattern| pattern.matches(normalized, basename, hidden))
+        };
+        if matched {
+            return true;
         }
+        // `file_to_exclude?` expands the file before matching, so an `Exclude` written absolutely
+        // reaches project files upstream. The same restriction as on the `Include` side applies:
+        // only the absolute patterns get to see the absolute spelling.
+        if !self.has_absolute {
+            return false;
+        }
+        let Some(absolute) = absolute_form(path) else {
+            return false;
+        };
+        let absolute = slashed(&absolute);
+        let hidden = respect_hidden && has_hidden_component(Path::new(absolute.as_ref()));
         self.patterns
             .iter()
-            .filter(|pattern| !absolute_only || pattern.absolute)
-            .any(|pattern| pattern.matches(normalized, basename, hidden))
+            .filter(|pattern| pattern.absolute)
+            .any(|pattern| pattern.matches(absolute.as_ref(), basename, hidden))
     }
 }
 
@@ -333,6 +406,13 @@ impl CompiledPattern {
 /// treated as hidden. The text comparisons are tried first because they cover every normal case;
 /// only when they disagree is it worth asking the filesystem.
 pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
+    // `strip_prefix` compares component by component, so a `..` left in the path survives into the
+    // result: `sonicop ../lib` run from a subdirectory produced `sub/../lib/a.rb` where upstream
+    // produces `lib/a.rb`, and every wildcard pattern then refused the file over the dot segment.
+    // Upstream never sees one because `PathUtil.relative_path` runs the path through
+    // `File.expand_path` first, so the fold happens here too.
+    let folded = without_parent_segments(path);
+    let path = folded.as_ref();
     if let Ok(relative) = path.strip_prefix(root) {
         return Some(relative.to_path_buf());
     }
@@ -344,14 +424,16 @@ pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
     // the file falls through to `canonicalize`. That is two syscalls per question and three
     // questions per file, which cost more than inspecting the file did. Joining the working
     // directory answers the same question without asking the filesystem anything; `Components`
-    // drops the `.` segments a walk introduces, and a `..` it cannot settle still reaches the
-    // canonical form below.
+    // drops the `.` segments a walk introduces, and the join is folded again because a leading `..`
+    // only has something to cancel once the working directory is in front of it.
     if path.is_relative() {
         if let Some(joined) = working_directory().map(|cwd| cwd.join(path)) {
+            let joined = without_parent_segments(&joined);
+            let joined = joined.as_ref();
             if let Ok(relative) = joined.strip_prefix(root) {
                 return Some(relative.to_path_buf());
             }
-            if let Ok(relative) = strip_verbatim(&joined).strip_prefix(strip_verbatim(root)) {
+            if let Ok(relative) = strip_verbatim(joined).strip_prefix(strip_verbatim(root)) {
                 return Some(relative.to_path_buf());
             }
         }
@@ -367,6 +449,71 @@ pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
                 .ok()
         })
         .map(Path::to_path_buf)
+}
+
+/// `path` with its `..` segments folded away, borrowed whenever it has none -- which is every path
+/// a `sonicop .` run walks.
+///
+/// This is for `project_relative`, whose comparisons are all `strip_prefix` and therefore run over
+/// `Components`, which already hides the `.` segments a walk introduces. Only `..` needs settling
+/// there, and settling it is lexical, exactly as `File.expand_path` is: a `..` that crosses a
+/// symlink lands where the text says rather than where the link points. That is upstream's answer
+/// as well, and it is what keeps this from costing a `readlink` per file. Matching against the
+/// *text* of a path needs more than this -- see `folded_components`.
+fn without_parent_segments(path: &Path) -> Cow<'_, Path> {
+    if !path
+        .components()
+        .any(|component| component == Component::ParentDir)
+    {
+        // `strip_prefix` -- the only thing the fold is for here -- compares `Components`, and those
+        // already drop the `.` segments a walk introduces. A path with no `..` in it is therefore
+        // its own folded form as far as `project_relative` is concerned, and can be borrowed.
+        return Cow::Borrowed(path);
+    }
+    Cow::Owned(folded_components(path))
+}
+
+/// `path` rebuilt out of its components, with `.` and `..` folded away.
+///
+/// Unlike `without_parent_segments` this always rebuilds, because a glob is matched against the
+/// *text* of a path: `Components` hides the `./` a `sonicop .` walk leaves in the middle of
+/// `<cwd>/./lib/a.rb`, but `to_string_lossy` does not, and no pattern spelled `<root>/lib/**/*.rb`
+/// can match a string with that `./` still in it.
+fn folded_components(path: &Path) -> PathBuf {
+    let mut kept: Vec<Component<'_>> = Vec::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => match kept.last() {
+                // `a/../b` is `b`.
+                Some(Component::Normal(_)) => {
+                    kept.pop();
+                }
+                // `/..` is `/`: a path cannot climb past its own root.
+                Some(Component::RootDir) => {}
+                // A leading `..`, or one following another, has nothing to cancel and has to
+                // survive -- `File.expand_path` keeps those too, once a relative path has run out
+                // of segments to undo.
+                _ => kept.push(component),
+            },
+            other => kept.push(other),
+        }
+    }
+    kept.iter().collect()
+}
+
+/// `File.expand_path(path)`: the absolute spelling of `path`, folded.
+///
+/// `Config#file_to_exclude?` matches the absolute path and `Config#file_to_include?` matches the
+/// relative *or* the absolute one, so a pattern written absolutely reaches project files upstream.
+/// The working directory is what a relative path is joined to, because that is what
+/// `File.expand_path` uses -- not the project root, which a run started outside the project does
+/// not sit in.
+fn absolute_form(path: &Path) -> Option<PathBuf> {
+    if path.is_absolute() {
+        return Some(folded_components(path));
+    }
+    Some(folded_components(&working_directory()?.join(path)))
 }
 
 /// The working directory, asked of the kernel once.
@@ -398,16 +545,30 @@ fn strip_verbatim(path: &Path) -> &Path {
 /// the same project-relative path, so both walk the components here instead of
 /// each carrying its own copy of the rule.
 pub(super) fn has_hidden_component(path: &Path) -> bool {
-    path.components().any(|component| {
-        component
-            .as_os_str()
-            .to_str()
-            .is_some_and(|part| part.starts_with('.') && part != "." && part != "..")
-    })
+    path.components()
+        .any(|component| component.as_os_str().to_str().is_some_and(hidden_segment))
+}
+
+/// Whether one path segment is hidden.
+///
+/// `.` and `..` begin with a dot without being hidden, and both can reach a matcher: a path outside
+/// the project root keeps its `..` segments, and a walk hands out `./`-prefixed spellings.
+/// Upstream draws the same line -- `file_to_include?` asks
+/// `relative_file_path.start_with?('.') && !relative_file_path.start_with?('..')`. Reading a `..`
+/// as hidden put every wildcard pattern out of the running, which is how `sonicop ../lib` came to
+/// inspect nothing at all.
+fn hidden_segment(segment: &str) -> bool {
+    segment.starts_with('.') && segment != "." && segment != ".."
 }
 
 /// Verbatim copy of the pre-compilation matcher, kept so the compiled matcher can be
 /// proven byte-for-byte equivalent over a cross product of paths and patterns.
+///
+/// It compiles a `Glob` per pattern per question and knows nothing of `PatternSet`, `has_absolute`
+/// or the dot-segment tables, so the accelerators the real matcher is built out of have somewhere
+/// to be checked against. What it does share is `absolute_form` and `hidden_segment`: those decide
+/// *which path* is being matched rather than *how*, and a second copy of them would only prove the
+/// two copies agree.
 #[cfg(test)]
 fn matches_patterns_reference(
     path: &Path,
@@ -416,22 +577,25 @@ fn matches_patterns_reference(
     respect_hidden: bool,
 ) -> bool {
     let relative = path.strip_prefix(root).unwrap_or(path);
-    let normalized = relative
+    let relative = relative
         .to_string_lossy()
         .replace('\\', "/")
         .trim_start_matches("./")
         .to_owned();
+    let absolute = absolute_form(path).map(|path| slashed(&path).into_owned());
     let basename = path
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("");
-    let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", &normalized));
-    let hidden_directories: Vec<&str> = directories
-        .split('/')
-        .filter(|part| part.starts_with('.') && *part != "." && *part != "..")
-        .collect();
-    let hidden_file = file.starts_with('.') && file != "." && file != "..";
     patterns.iter().any(|pattern| {
+        // `match_relative_or_absolute_path?`: the absolute spelling of the path is in play for an
+        // absolute pattern and for nothing else.
+        let mut spellings = vec![relative.as_str()];
+        if Path::new(pattern.as_str()).is_absolute()
+            && let Some(absolute) = absolute.as_deref()
+        {
+            spellings.push(absolute);
+        }
         let pattern = pattern.trim_start_matches("./");
         // Only a dot-prefixed segment of the pattern reaches a dot component, and a dot file at the
         // top level needs the same. Below the top level a dot file is reached anyway.
@@ -441,28 +605,36 @@ fn matches_patterns_reference(
                     && Glob::new(part).is_ok_and(|glob| glob.compile_matcher().is_match(segment))
             })
         };
-        if respect_hidden
-            && (!hidden_directories.iter().all(|part| reaches(part))
-                || (hidden_file && directories.is_empty() && !reaches(file)))
-        {
-            return false;
-        }
-        Glob::new(pattern)
-            .map(|glob| {
-                let matcher = glob.compile_matcher();
-                matcher.is_match(&normalized)
-                    || pattern.strip_suffix("/**/*").is_some_and(|prefix| {
-                        Glob::new(prefix).is_ok_and(|prefix_glob| {
-                            let prefix_matcher = prefix_glob.compile_matcher();
-                            Path::new(&normalized).ancestors().skip(1).any(|ancestor| {
-                                prefix_matcher
-                                    .is_match(ancestor.to_string_lossy().replace('\\', "/"))
+        spellings.into_iter().any(|normalized| {
+            let (directories, file) = normalized.rsplit_once('/').unwrap_or(("", normalized));
+            let hidden_directories: Vec<&str> = directories
+                .split('/')
+                .filter(|part| hidden_segment(part))
+                .collect();
+            let hidden_file = hidden_segment(file);
+            if respect_hidden
+                && (!hidden_directories.iter().all(|part| reaches(part))
+                    || (hidden_file && directories.is_empty() && !reaches(file)))
+            {
+                return false;
+            }
+            Glob::new(pattern)
+                .map(|glob| {
+                    let matcher = glob.compile_matcher();
+                    matcher.is_match(normalized)
+                        || pattern.strip_suffix("/**/*").is_some_and(|prefix| {
+                            Glob::new(prefix).is_ok_and(|prefix_glob| {
+                                let prefix_matcher = prefix_glob.compile_matcher();
+                                Path::new(normalized).ancestors().skip(1).any(|ancestor| {
+                                    prefix_matcher
+                                        .is_match(ancestor.to_string_lossy().replace('\\', "/"))
+                                })
                             })
                         })
-                    })
-                    || (!pattern.contains('/') && matcher.is_match(basename))
-            })
-            .unwrap_or(false)
+                        || (!pattern.contains('/') && matcher.is_match(basename))
+                })
+                .unwrap_or(false)
+        })
     })
 }
 
@@ -483,9 +655,11 @@ fn matches_any_reference(path: &Path, root: &Path, patterns: &[String]) -> bool 
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use serde_yaml_ng::Value;
+
     use super::{
-        PathPatterns, matches_any_reference, matches_patterns_reference, project_relative,
-        strip_verbatim,
+        PathPatterns, hidden_segment, mapping_patterns, matches_any_reference,
+        matches_patterns_reference, project_relative, slashed, strip_verbatim,
     };
 
     fn owned(patterns: &[&str]) -> Vec<String> {
@@ -493,6 +667,14 @@ mod tests {
             .iter()
             .map(|pattern| (*pattern).to_owned())
             .collect()
+    }
+
+    /// `AllCops`'s `Include`/`Exclude` read the way the configuration hands it over, so the shape
+    /// of the YAML is part of what is under test.
+    fn all_cops_patterns(yaml: &str, key: &str) -> Option<PathPatterns> {
+        let value: Value = serde_yaml_ng::from_str(yaml).unwrap();
+        let all_cops = value.as_mapping().unwrap().get("AllCops").unwrap();
+        mapping_patterns(all_cops.as_mapping().unwrap(), key)
     }
 
     fn includes(path: &str, root: &str, patterns: &[&str]) -> bool {
@@ -598,6 +780,134 @@ mod tests {
         assert!(excludes("/p/.git/config.rb", "/p", &["**/*.rb"]));
     }
 
+    /// `.` and `..` begin with a dot without being hidden, and a matcher meets both: a walk hands
+    /// out `./`-prefixed spellings, and a file outside the project root keeps its `..` segments.
+    /// Reading either as hidden put every pattern that does not spell a dot -- which is the whole
+    /// of the default `Include` list -- out of the running, and `sonicop ../lib` inspected nothing.
+    #[test]
+    fn a_parent_directory_segment_is_not_hidden() {
+        assert!(!hidden_segment("."));
+        assert!(!hidden_segment(".."));
+        assert!(!hidden_segment("lib"));
+        // The exemption is those two names and nothing else, which is where `hidden_dir?` and
+        // `hidden_file?` draw it too -- both ask only `start_with?('.')` of a whole segment.
+        assert!(hidden_segment(".git"));
+        assert!(hidden_segment("..."));
+        assert!(hidden_segment(".rubocop.yml"));
+        // A path that keeps its `..` -- one outside the project root -- is still reachable by an
+        // ordinary wildcard, which is what upstream does once it switches to the absolute spelling.
+        assert!(includes("../other/x.rb", "/p", &["**/*.rb"]));
+        // A genuinely hidden directory still has to be named by the pattern.
+        assert!(!includes("/p/.git/config.rb", "/p", &["**/*.rb"]));
+        assert!(includes("/p/.git/config.rb", "/p", &[".git/**/*"]));
+    }
+
+    /// `PathUtil.relative_path` expands the path before comparing it with the base directory, so a
+    /// project-relative spelling never keeps a `..`. `strip_prefix` compares components and leaves
+    /// one in place, so `sonicop ../lib` run from `sub/` produced `sub/../lib/a.rb` where upstream
+    /// produces `lib/a.rb`.
+    #[test]
+    fn a_parent_directory_target_folds_before_the_root_is_stripped() {
+        assert_eq!(
+            project_relative(Path::new("/p/sub/../lib/a.rb"), Path::new("/p")),
+            Some(PathBuf::from("lib/a.rb"))
+        );
+        // Folding must not invent a hit: `..` that climbs out of the root still leaves the file
+        // outside it.
+        assert_eq!(
+            project_relative(
+                Path::new("/p/../other/x.rb"),
+                Path::new("/p/does-not-exist")
+            ),
+            None
+        );
+        // The spelling a walk actually produces is relative to the working directory, and a leading
+        // `..` only has something to cancel once that directory is in front of it. Non-existent
+        // paths again, so that an answer can only have come from the lexical fold.
+        let cwd = std::env::current_dir().unwrap();
+        let sibling = cwd.parent().unwrap().join("nowhere");
+        assert_eq!(
+            project_relative(Path::new("../nowhere/lib/a.rb"), &sibling),
+            Some(PathBuf::from("lib/a.rb"))
+        );
+    }
+
+    /// `file_to_exclude?` matches the absolute path and `file_to_include?` the relative *or* the
+    /// absolute one, so a pattern written absolutely reaches project files upstream. Asking only
+    /// the project-relative spelling meant an absolute `Exclude` was quietly ignored and an
+    /// absolute `Include` matched nothing at all.
+    #[test]
+    fn an_absolute_pattern_reaches_a_file_inside_the_project() {
+        // A root under the working directory, so the relative spellings below resolve against it.
+        // Nothing here exists; the answers can only come from the lexical expansion.
+        let cwd = std::env::current_dir().unwrap();
+        let root = cwd.join("nowhere/deep");
+        let root_text = slashed(&root).into_owned();
+        let file = root.join("lib/a.rb");
+        let temporary = root.join("tmp/t.rb");
+
+        let include = PathPatterns::compile(&[format!("{root_text}/lib/**/*.rb")]);
+        assert!(include.matches_includes(&file, &root));
+        assert!(!include.matches_includes(&temporary, &root));
+        // The same file spelled the way a walk hands it over. `./` is the spelling `sonicop .`
+        // produces, and `Components` hides it from `strip_prefix` while leaving it in the text a
+        // glob is matched against, so it needs its own case.
+        assert!(include.matches_includes(Path::new("nowhere/deep/lib/a.rb"), &root));
+        assert!(include.matches_includes(Path::new("./nowhere/deep/lib/a.rb"), &root));
+
+        let exclude = PathPatterns::compile(&[format!("{root_text}/tmp/**/*")]);
+        assert!(exclude.matches_any(&temporary, &root));
+        assert!(exclude.matches_any(Path::new("./nowhere/deep/tmp/t.rb"), &root));
+        assert!(!exclude.matches_any(&file, &root));
+
+        // The other side of the boundary: a *relative* pattern is never held against the absolute
+        // spelling. `**/nowhere/**/*` names a directory that only exists above the project root, so
+        // matching it there would exclude every file in the project over a name the user never
+        // wrote about.
+        assert!(!excludes(
+            "lib/a.rb",
+            root.to_str().unwrap(),
+            &["**/nowhere/**/*"]
+        ));
+        assert!(!includes(
+            "lib/a.rb",
+            root.to_str().unwrap(),
+            &["**/nowhere/**/*"]
+        ));
+        // And a relative pattern still matches the relative spelling, absolutely as before.
+        assert!(excludes("lib/a.rb", root.to_str().unwrap(), &["lib/**/*"]));
+    }
+
+    /// `Array(...)`: a lone scalar is a one-element list. Upstream raises on the shape
+    /// (`undefined method 'map!' for an instance of String`), and the answer this project gives
+    /// instead must not be "the entry never existed" -- a forgotten `Exclude` inspects the files
+    /// the user ruled out and says nothing about it.
+    #[test]
+    fn a_scalar_pattern_list_is_read_as_one_element() {
+        let scalar = all_cops_patterns("AllCops:\n  Exclude: tmp/**/*\n", "Exclude").unwrap();
+        let list = all_cops_patterns("AllCops:\n  Exclude:\n    - tmp/**/*\n", "Exclude").unwrap();
+        for patterns in [&scalar, &list] {
+            assert!(!patterns.is_empty());
+            assert!(patterns.matches_any(Path::new("/p/tmp/t.rb"), Path::new("/p")));
+            assert!(!patterns.matches_any(Path::new("/p/lib/a.rb"), Path::new("/p")));
+        }
+
+        let scalar = all_cops_patterns("AllCops:\n  Include: lib/**/*.rb\n", "Include").unwrap();
+        let list =
+            all_cops_patterns("AllCops:\n  Include:\n    - lib/**/*.rb\n", "Include").unwrap();
+        for patterns in [&scalar, &list] {
+            assert!(patterns.matches_includes(Path::new("/p/lib/a.rb"), Path::new("/p")));
+            assert!(!patterns.matches_includes(Path::new("/p/tmp/t.rb"), Path::new("/p")));
+        }
+
+        // A key that is not written at all still has no list, which is a different thing from an
+        // empty one: `path_included` reads it as "every file".
+        assert!(all_cops_patterns("AllCops:\n  Exclude: tmp/**/*\n", "Include").is_none());
+        // An empty list stays empty rather than turning into a one-element list of nothing.
+        let empty = all_cops_patterns("AllCops:\n  Exclude: []\n", "Exclude").unwrap();
+        assert!(empty.is_empty());
+    }
+
     #[test]
     fn an_unusable_include_list_still_counts_as_configured() {
         let patterns = PathPatterns::compile(&owned(&["["]));
@@ -620,6 +930,10 @@ mod tests {
             "**/.*",
             "/abs/**/*",
             "/abs/x.rb",
+            // Absolute patterns that reach *into* the project root, which is the shape a hand
+            // written `Include`/`Exclude` takes and the one the relative-only matcher never saw.
+            "/p/**/*.rb",
+            "/p/.git/**/*",
             "spec/**/*_spec.rb",
             "a/*/c",
             "[",

@@ -148,6 +148,61 @@ class RunnerTest < Minitest::Test
     assert_equal ROOT, Sonicop::Runner.gem_root
   end
 
+  # gem のインストール先も SONICOP_BINARY も、シェルのメタ文字を含まない保証はない。
+  # 空白は単語分割、それ以外は /bin/sh 送りになるので、両方を代表させる。
+  QUOTING_REQUIRED = ['with space', 'semi;colon', 'dollar$sign', 'star*glob'].freeze
+
+  # 候補解決のスタブ (stub_executable) と違い、こちらは exec がどう届いたかを見たいので中身が要る。
+  def stub_reporting_argv(directory)
+    binary = File.join(@root, directory, EXECUTABLE)
+    FileUtils.mkdir_p(File.dirname(binary))
+    File.write(binary, <<~SH)
+      #!/bin/sh
+      printf 'argc=%s\\n' "$#"
+      for argument in "$@"; do printf 'argv=%s\\n' "$argument"; done
+    SH
+    FileUtils.chmod(0o755, binary)
+    binary
+  end
+
+  # exec はプロセスを置き換えるので、wrapper は子プロセスで動かすほかない。
+  def wrapper_output(binary, arguments)
+    IO.popen(
+      [{ 'SONICOP_BINARY' => binary }, RbConfig.ruby, '-I', File.join(ROOT, 'lib'),
+       '-rsonicop', '-e', "Sonicop::Runner.run(#{arguments.inspect})"],
+      err: [:child, :out], &:read
+    )
+  end
+
+  # 引数なしの `sonicop` (カレントディレクトリを lint) こそ通常の呼び出しなのに、
+  # `exec(binary, *arguments)` はそこだけ `exec(String)` = commandline 形式に落ちる。
+  # つまり空白入りのパスに入れた gem は `sonicop --version` だけ動いて素の `sonicop` は
+  # ENOENT で死に、直後の `rescue SystemCallError` が「platform gem が合っていない」という
+  # 見当違いの案内を出す。引数の有無で経路が変わらないことを固定する。
+  def test_runs_without_arguments_from_a_path_that_needs_quoting
+    skip 'relies on POSIX exec' if Gem.win_platform?
+
+    QUOTING_REQUIRED.each do |directory|
+      output = wrapper_output(stub_reporting_argv(directory), [])
+
+      assert_predicate $CHILD_STATUS, :success?, "#{directory}: #{output}"
+      assert_equal "argc=0\n", output, directory
+    end
+  end
+
+  # 引数ありの経路も同じ形式を通ること。exec 形式は cmdname を再解釈しないので、
+  # 空白を含む引数も 1 つの引数のまま届く。
+  def test_passes_arguments_through_a_path_that_needs_quoting_without_resplitting
+    skip 'relies on POSIX exec' if Gem.win_platform?
+
+    QUOTING_REQUIRED.each do |directory|
+      output = wrapper_output(stub_reporting_argv(directory), ['--only', 'Lint/Syntax', 'a b.rb'])
+
+      assert_predicate $CHILD_STATUS, :success?, "#{directory}: #{output}"
+      assert_equal "argc=3\nargv=--only\nargv=Lint/Syntax\nargv=a b.rb\n", output, directory
+    end
+  end
+
   # ABI が合わない platform gem が入ると exec 自体が errno で落ちる。素の errno だけでは
   # 利用者が原因にたどり着けないので、復旧手段まで案内できているかを見る。
   def test_reports_an_unusable_binary_instead_of_a_bare_errno
