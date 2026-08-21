@@ -68,9 +68,7 @@ pub(super) fn captures(pattern: &str, extended: bool) -> Captures {
                 index += 1;
             }
             b'#' if extended && !in_class => {
-                index += pattern[index..]
-                    .find('\n')
-                    .map_or(bytes.len() - index, |offset| offset);
+                index += pattern[index..].find('\n').unwrap_or(bytes.len() - index);
             }
             b'(' if !in_class => {
                 index += group(&pattern[index..], &mut found);

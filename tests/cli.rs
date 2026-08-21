@@ -1033,7 +1033,12 @@ fn fail_level_autocorrect_still_honours_the_severity_threshold() {
         .assert()
         .code(1);
 
-    let clean = project(&[("example.rb", "# frozen_string_literal: true\n\nputs 1\n")]);
+    // 全 cop が走る側なので改行コードを固定する。既定の `native` は Windows では CRLF を
+    // 期待し、LF で書いたフィクスチャに `Layout/EndOfLine` が付いて「無違反」でなくなる。
+    let clean = project(&[
+        (".rubocop.yml", "Layout/EndOfLine:\n  EnforcedStyle: lf\n"),
+        ("example.rb", "# frozen_string_literal: true\n\nputs 1\n"),
+    ]);
     command(clean.path())
         .args([
             "--fail-level",
