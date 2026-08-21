@@ -307,10 +307,17 @@ fn output_paths_by_format(matches: &ArgMatches) -> Vec<Option<PathBuf>> {
 
     let mut slots = vec![None; format_positions.len().max(1)];
     for (out_position, path) in out_positions.into_iter().zip(out_paths) {
+        // `Options#parse`: `-o` attaches to the `-f` it follows. One written before any `-f` lands
+        // in `output_path` instead, and the only thing that reads it is `apply_default_formatter`'s
+        // `@options[:formatters] ||= [[format, output_path]]` -- a no-op once a `-f` was given. So
+        // with a `-f` present such a path is dropped, and the formatter writes to stdout; with none,
+        // it is where the default formatter writes.
         let slot = format_positions
             .iter()
-            .rposition(|format_position| *format_position < out_position)
-            .unwrap_or(0);
+            .rposition(|format_position| *format_position < out_position);
+        let Some(slot) = slot.or_else(|| format_positions.is_empty().then_some(0)) else {
+            continue;
+        };
         slots[slot].get_or_insert_with(|| path.clone());
     }
     slots

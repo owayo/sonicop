@@ -10,11 +10,56 @@ use crate::diagnostic::Offense;
 use crate::engine::{Selection, is_mandatory_cop};
 use crate::source::SourceFile;
 
+/// What the last directive to speak for a name decided, which is the shape `analyze_cop` leaves
+/// one cop's analysis in.
+///
+/// An `enable` records a verdict rather than dropping the entry, because the cop it names may sit
+/// under a department -- or under `all` -- that a directive above it switched off, and upstream
+/// closes that cop's range while leaving the rest of the department alone.
+#[derive(Clone, Debug)]
+enum Verdict {
+    /// `analyze_disabled`, carrying the `-- reason` the directive was written with.
+    Disabled(Option<String>),
+    /// `analyze_rest`.
+    Enabled,
+}
+
 #[derive(Clone, Debug, Default)]
 struct Snapshot {
-    all: bool,
-    all_reason: Option<String>,
-    cops: HashMap<String, Option<String>>,
+    /// The verdict a directive that named `all` left in force.
+    all: Option<Verdict>,
+    /// The verdict for every name a directive spelled out, department names included. See
+    /// [`Snapshot::verdict_for`] for why a department is not expanded here.
+    cops: HashMap<String, Verdict>,
+}
+
+impl Snapshot {
+    /// The directive in force for `cop`: the one that named it, else the one that named its
+    /// department, else the one that named `all`.
+    ///
+    /// `DirectiveComment#cop_names` expands a department and `all` into concrete cop names when
+    /// the directive is read, so upstream needs no lookup order at all. Expanding here instead
+    /// would mean copying a couple of hundred names into a snapshot that every line of the file
+    /// clones, and a department is exactly the prefix of the cops it holds -- so the expansion is
+    /// left implicit and read back here, with the entries it supersedes dropped by
+    /// [`record`] as the directive is applied.
+    fn verdict_for(&self, cop: &str) -> Option<&Verdict> {
+        // `parsed_cop_names` subtracts `Lint/Syntax` from every directive, `all` and departments
+        // included: a file cannot switch off the report of the parse it was not read by.
+        if cop == UNDISABLEABLE_COPS[1] {
+            return None;
+        }
+        if let Some(verdict) = self.cops.get(cop) {
+            return Some(verdict);
+        }
+        // `exclude_lint_department_cops` takes the cop that reads directives out of `all` and out
+        // of the `Lint` department, so only a directive that spells its name out reaches it:
+        // "this cop is not disabled when disabling all cops".
+        if cop == UNDISABLEABLE_COPS[0] {
+            return None;
+        }
+        self.cops.get(department(cop)).or(self.all.as_ref())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -56,7 +101,9 @@ impl DirectiveState {
     ) -> Self {
         let mut current = Snapshot::default();
         for cop in disabled_by_config {
-            current.cops.insert((*cop).to_owned(), None);
+            current
+                .cops
+                .insert((*cop).to_owned(), Verdict::Disabled(None));
         }
         let mut stack = Vec::new();
         let mut line_states = Vec::with_capacity(source.line_count());
@@ -81,14 +128,21 @@ impl DirectiveState {
                 .and_then(|&start| parse_directive(line, start));
 
             if let Some(directive) = directive {
-                if directive.inline && matches!(directive.action, Action::Disable) {
-                    let mut line_only = before;
-                    apply_disable(&mut line_only, &directive.cops, directive.reason);
-                    line_states.push(line_only);
-                    continue;
-                }
-
                 match directive.action {
+                    // `analyze_single_line`, which is where `analyze_cop` sends a directive that
+                    // shares its line with code or that was written behind prose: it covers that
+                    // one line and no more.
+                    Action::Disable if directive.inline => {
+                        let mut line_only = before;
+                        apply_disable(&mut line_only, &directive.cops, directive.reason);
+                        line_states.push(line_only);
+                        continue;
+                    }
+                    // `return analysis unless directive.disabled?`: an `enable` written there is a
+                    // no-op, and in particular does not close the range a block-form `disable`
+                    // above it opened. `push` and `pop` are routed before that check upstream, so
+                    // they act wherever they are written.
+                    Action::Enable if directive.inline => {}
                     Action::Disable => {
                         apply_disable(&mut current, &directive.cops, directive.reason);
                     }
@@ -135,10 +189,7 @@ impl DirectiveState {
             let Some(state) = self.line_states.get(line - 1) else {
                 break;
             };
-            if !(state.all
-                || state.cops.contains_key(cop)
-                || state.cops.contains_key(department(cop)))
-            {
+            if !matches!(state.verdict_for(cop), Some(Verdict::Disabled(_))) {
                 continue;
             }
             match ranges.last_mut() {
@@ -161,19 +212,10 @@ impl DirectiveState {
         }
         let (line, _) = source.line_column(offense.start);
         let state = self.line_states.get(line.saturating_sub(1))?;
-        if let Some(reason) = state.cops.get(offense.cop_name) {
-            return Some(reason.clone());
+        match state.verdict_for(offense.cop_name)? {
+            Verdict::Disabled(reason) => Some(reason.clone()),
+            Verdict::Enabled => None,
         }
-        // `exclude_lint_department_cops` takes the cop that reads directives out of `all` and out
-        // of the `Lint` department, so only a directive that spells its name out switches it off:
-        // "this cop is not disabled when disabling all cops".
-        if offense.cop_name == UNDISABLEABLE_COPS[0] {
-            return None;
-        }
-        if let Some(reason) = state.cops.get(department(offense.cop_name)) {
-            return Some(reason.clone());
-        }
-        state.all.then(|| state.all_reason.clone())
     }
 }
 
@@ -206,26 +248,87 @@ pub fn opted_in_cops(source: &SourceFile, comment_ranges: &[Range<usize>]) -> Ha
 }
 
 fn apply_disable(state: &mut Snapshot, cops: &[String], reason: Option<String>) {
-    if cops.iter().any(|cop| cop == "all") {
-        state.all = true;
-        state.all_reason = reason;
-    } else {
-        state
-            .cops
-            .extend(cops.iter().cloned().map(|cop| (cop, reason.clone())));
+    for cop in cops {
+        record(state, cop, Verdict::Disabled(reason.clone()));
     }
 }
 
 fn apply_enable(state: &mut Snapshot, cops: &[String]) {
-    if cops.iter().any(|cop| cop == "all") {
-        state.all = false;
-        state.all_reason = None;
-        state.cops.clear();
-    } else {
-        for cop in cops {
-            state.cops.remove(cop);
-        }
+    for cop in cops {
+        record(state, cop, Verdict::Enabled);
     }
+}
+
+/// One name of one directive, applied to the snapshot.
+///
+/// `CommentConfig#analyze` writes the verdict against every cop `DirectiveComment#cop_names`
+/// expanded the name into, so a directive that names `all` or a department speaks for every cop
+/// below it and nothing an earlier directive left against one of them survives. Keeping the
+/// expansion implicit ([`Snapshot::verdict_for`] reads a department back off the cop's own name)
+/// means dropping those superseded entries by hand.
+fn record(state: &mut Snapshot, cop: &str, verdict: Verdict) {
+    if cop == "all" {
+        state.all = Some(verdict);
+        state.cops.clear();
+        return;
+    }
+    let cop = directive_cop_name(cop);
+    state.cops.retain(|name, _| department(name) != cop);
+    state.cops.insert(cop.to_owned(), verdict);
+}
+
+/// `Cop::Registry.global`: the cops a directive resolves its names against.
+///
+/// Both `CommentConfig#qualified_cop_name` and `DirectiveComment#initialize` read the *global*
+/// registry rather than the one the run mobilized, so what `# rubocop:disable For` means depends
+/// on neither the configuration nor `--only`. [`CopRegistry`] is neither -- it is built from the
+/// configuration, and only for the cop that reviews directives -- so the names come from the cop
+/// list itself, which is what the global registry holds upstream.
+struct GlobalRegistry {
+    departments: HashSet<&'static str>,
+    /// `Registry#qualify_badge`, worked out once: the cop that carries a bare name, for the names
+    /// exactly one cop carries. An ambiguous one is left out, which is what makes a directive that
+    /// uses it resolve to nothing rather than to whichever cop was registered first.
+    by_cop_name: HashMap<&'static str, &'static str>,
+}
+
+fn global_registry() -> &'static GlobalRegistry {
+    static REGISTRY: OnceLock<GlobalRegistry> = OnceLock::new();
+    REGISTRY.get_or_init(|| {
+        let mut departments = HashSet::new();
+        let mut candidates: HashMap<&'static str, Option<&'static str>> = HashMap::new();
+        for name in crate::rules::rule_names() {
+            departments.insert(department(name));
+            let cop_name = name.rsplit('/').next().unwrap_or(name);
+            candidates
+                .entry(cop_name)
+                .and_modify(|found| *found = None)
+                .or_insert(Some(name));
+        }
+        GlobalRegistry {
+            departments,
+            by_cop_name: candidates
+                .into_iter()
+                .filter_map(|(cop_name, full)| Some((cop_name, full?)))
+                .collect(),
+        }
+    })
+}
+
+/// `CommentConfig#qualified_cop_name`, for one name a directive spelled out.
+///
+/// A department is left as it is: upstream expands it into the cops it holds, each of which is
+/// already qualified. Everything else goes through `Registry.qualified_cop_name`, which is what
+/// makes `# rubocop:disable For` switch off `Style/For` -- RuboCop warns about the missing
+/// department through `Migration/DepartmentName`, but it honours the directive -- and what makes
+/// a name written under the wrong department reach the cop that really carries it.
+fn directive_cop_name(name: &str) -> &str {
+    let registry = global_registry();
+    if registry.departments.contains(name) {
+        return name;
+    }
+    let cop_name = name.rsplit('/').next().unwrap_or(name);
+    registry.by_cop_name.get(cop_name).copied().unwrap_or(name)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -270,7 +373,16 @@ fn parse_directive(line: &str, comment_start: usize) -> Option<Directive> {
     // `!comment_only_line?(directive.line_number) || directive.single_line?`: a directive covers
     // its own line alone when that line holds code as well, and also when it was written behind
     // prose rather than opening its comment.
-    let inline = !line[..comment_start].trim().is_empty() || header.start != 0;
+    //
+    // A byte order mark is not code. It is not in `White_Space` either, so `trim` leaves it and
+    // the first line of a file that carries one would read as holding something -- upstream never
+    // sees it, because `comment_only_line?` asks the token stream and `parser` strips the mark
+    // before it lexes anything.
+    let before_marker = &line[..comment_start];
+    let before_marker = before_marker
+        .strip_prefix(crate::source::BYTE_ORDER_MARK)
+        .unwrap_or(before_marker);
+    let inline = !before_marker.trim().is_empty() || header.start != 0;
 
     if matches!(action, Action::Push) {
         let push_operations = arguments
@@ -1262,7 +1374,11 @@ fn lines_with_code(source: &SourceFile, comment_ranges: &[Range<usize>]) -> Hash
     let mut lines = HashSet::new();
     let mut comments = comment_ranges.iter().peekable();
     let mut line = 1;
-    let mut index = 0;
+    // `parser` strips a byte order mark before it lexes, so upstream never has a token for one and
+    // the first line of a file that carries one is still a comment-only line. The mark is not in
+    // `White_Space`, so nothing below would take it for a blank.
+    let mut index = usize::from(source.text().starts_with(crate::source::BYTE_ORDER_MARK))
+        * crate::source::BYTE_ORDER_MARK.len();
     while index < text.len() {
         if comments
             .peek()
