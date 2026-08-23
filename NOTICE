@@ -15,9 +15,9 @@ licence position checkable rather than remembered.
   not the attribution. An entry that is added late is an entry that was, for a
   while, undocumented in a public repository.
 
-  Known to be coming: tests/fixtures/upstream_spec_cases.jsonl, which will hold
-  input text from RuboCop's specs. It is deliberately **not** listed yet -- this
-  file describes what is here now, not what is planned.
+  That inventory is now complete for what is here. The entry that used to be
+  listed as "coming" -- the spec-derived fixtures -- has landed and is recorded
+  below with the rest.
 
 ================================================================================
 WHAT IS TAKEN
@@ -31,6 +31,18 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       source of truth for which cops exist and what their defaults are.
       Regenerate: scripts/sync_default_yml.sh 1.89.0
       Full text also kept at licenses/RUBOCOP.txt
+
+  tests/fixtures/upstream_spec_cases.jsonl
+  tests/fixtures/upstream_spec_divergences.jsonl
+      Input text taken out of RuboCop's own cop specs, each paired with what
+      RuboCop 1.89.0 actually reports for it. The spec text is upstream's; the
+      expectation beside it is not -- upstream was run once and its output
+      recorded, because upstream does not always behave the way its own specs
+      say. The second file holds the cases whose `-A` output does not parse as
+      Ruby, kept apart so that nothing demands this port reproduce them.
+      Regenerate: make spec-fixtures  (runs upstream once per cop; needs the
+      rubocop gem, which the test run itself does not)
+      Read by tests/spec_fixtures.rs
 
 Ruby on Rails -- https://github.com/rails/rails -- MIT
   Copyright (c) David Heinemeier Hansson

@@ -30,6 +30,7 @@ Never write an expectation from Sonicop's current output — that bakes today's 
 | `config/default.yml` | Vendored from upstream; refresh with `scripts/sync_default_yml.sh <version>` |
 | `tests/cops.rs` | Per-cop regression tests using caret annotations |
 | `tests/conformance.rs` | Hand-written cases plus the known-divergence manifest |
+| `tests/spec_fixtures.rs` | Every case RuboCop's own specs supply, checked against what upstream really reports |
 | `tests/cli.rs` | End-to-end tests that drive the binary |
 | `lib/`, `exe/`, `script/` | The Ruby gem wrapper that ships the binary |
 
@@ -110,6 +111,31 @@ expect_correction("Style/RedundantReturn", before, after);
 
 Cases that match upstream belong in `tests/cops.rs`. Cases that do not belong in
 `tests/conformance.rs` together with an entry in the divergence manifest explaining why.
+
+## The cases nobody wrote by hand
+
+Hand-written tests only cover what somebody thought to write down. Counted on 2026-08-23, the
+1,918 of them reach 606 cops but check an actual **offense** for only 427 — and `make cop-coverage`
+recounts it, because reading the test source does not answer the question (cop names get passed
+through `const`s).
+
+`tests/spec_fixtures.rs` closes that gap from the other side: every case RuboCop's own specs
+supply becomes a case here. **The expectation is not the spec text — it is what upstream really
+reports**, recorded once by `make spec-fixtures`, because upstream does not always behave the way
+its specs say. The recording is committed, so a normal test run needs no rubocop gem.
+
+Two things about this gate are easy to get backwards.
+
+**Its value is in the cases where upstream stays silent.** Corpora can only show what upstream
+reports, so **over-detection is invisible to them** — the shapes upstream is quiet about are
+infinite and appear in real code only by accident. Roughly 44% of the recorded cases are
+`no_offenses` ones, and that half is the point of the file.
+
+**Reproducing the recording means reproducing its conditions.** Upstream was run on a file whose
+extension matches the department's `Include` (`.gemspec`, `.gemfile`), and the `length` it prints
+is the whole range, which is **not** the number of carets an annotation wants. Getting either
+wrong turns the harness into a difference generator: those two mistakes alone accounted for 54 of
+the first 65 failures seen, none of them real.
 
 ## Conformance measurement
 

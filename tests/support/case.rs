@@ -209,6 +209,7 @@ impl CopCase {
     /// 検査だけ行い、報告をそのまま返す。ハーネスで表現しきれない検証を
     /// テスト側で書きたいときの逃げ道。
     pub fn inspect(&self) -> FileReport {
+        record_coverage(self);
         let config = self.resolved_config();
         let report =
             engine::inspect_source(&self.path, self.source.clone(), &config, &self.selection())
@@ -552,6 +553,40 @@ fn format_lengths(lengths: &[usize]) -> String {
             .collect::<Vec<_>>()
             .join(", "),
     }
+}
+
+/// 検証が実際に触れた cop を記録する。`SONICOP_COP_COVERAGE` にパスが入っている
+/// ときだけ働く。どの cop に回帰テストが無いかは、テストの本文を静的に読んでも
+/// 分からない -- cop 名を `const` に置いて渡す書き方が混ざっているため、実行時に
+/// 記録するしかない。
+fn record_coverage(case: &CopCase) {
+    use std::io::Write;
+
+    let Ok(path) = std::env::var("SONICOP_COP_COVERAGE") else {
+        return;
+    };
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    else {
+        return;
+    };
+    let kind = match (&case.expected, &case.corrected) {
+        (_, Some(_)) => "correction",
+        (Some(expected), None) if !expected.is_empty() => "positive",
+        (Some(_), None) => "negative",
+        (None, None) => "other",
+    };
+    let mut line = String::new();
+    for cop in &case.only {
+        line.push_str(cop);
+        line.push('\t');
+        line.push_str(kind);
+        line.push('\n');
+    }
+    // テストは並列に走る。1 回の write に収めれば行が混ざらない。
+    let _ = file.write_all(line.as_bytes());
 }
 
 /// キャレット注記どおりの offense が出ることを検証する。

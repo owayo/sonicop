@@ -1,0 +1,13 @@
+# 本家 spec を入力源にしたゲート (`tests/spec_fixtures.rs`) 専用の既知差分。
+#
+# 手書きケース用の `known_divergences.yml` とは分けてある。混ぜると、その差分が
+# どちらの入力で出たものか言えなくなる。
+#
+# 書式は同じ 5 つ組 + note:
+#   - cop: Style/Foo
+#     case: foo_spec.rb:123      # `origin` をそのままケース ID に使う
+#     kind: message
+#     upstream: "本家が出した値"
+#     sonicop: "移植版が出した値"
+#     note: なぜ食い違うのか。空にできない。
+divergences: []

@@ -1,4 +1,4 @@
-.PHONY: build release install clean test test-ruby fmt check gem gem-platform version-sync version-check help
+.PHONY: build release install clean test test-ruby fmt check gem gem-platform version-sync version-check spec-fixtures cop-coverage help
 
 .DEFAULT_GOAL := help
 
@@ -42,6 +42,27 @@ check: version-check ## Run all local quality gates
 	cargo clippy --all-targets --all-features --locked -- -D warnings
 	cargo test --all-targets --locked --no-fail-fast
 	$(RAKE) test:ruby
+
+# 本家の spec を入力に、本家 1.89.0 の実出力を期待値として録り直す。**本家を cop の数だけ
+# 起動するので 1 時間前後かかる。**録った結果は tests/fixtures/ にコミットされ、`make test` は
+# それを読むだけなので rubocop gem を要らない。本家を上げたときだけ回す。
+SPEC_FIXTURE_GEN ?= $(HOME)/.claude/skills/migrate-rubocop/scripts/spec_fixture_gen.py
+
+spec-fixtures: ## Re-record upstream spec expectations (needs the rubocop gem; ~1h)
+	cd $(dir $(SPEC_FIXTURE_GEN)) && python3 $(notdir $(SPEC_FIXTURE_GEN)) \
+		--all --out $(CURDIR)/tests/fixtures
+
+# どの cop に回帰テストが無いかを数える。テスト本文を静的に読んでも分からない
+# (cop 名を const 経由で渡す書き方が混ざる) ので、実行時に記録する。
+cop-coverage: ## Count which cops the hand-written tests actually reach
+	@rm -f target/cop-coverage.tsv
+	@SONICOP_COP_COVERAGE=$(CURDIR)/target/cop-coverage.tsv \
+		cargo test --test cops --locked >/dev/null
+	@cut -f1 target/cop-coverage.tsv | sort -u | wc -l | xargs echo "検証に到達した cop:"
+	@awk -F'\t' '$$2=="positive"' target/cop-coverage.tsv | cut -f1 | sort -u | wc -l \
+		| xargs echo "  うち offense 検出を検証:"
+	@awk -F'\t' '$$2=="correction"' target/cop-coverage.tsv | cut -f1 | sort -u | wc -l \
+		| xargs echo "  うち autocorrect を検証:"
 
 gem: ## Build the source gem
 	$(RAKE) gem
