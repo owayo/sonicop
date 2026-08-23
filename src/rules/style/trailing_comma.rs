@@ -50,8 +50,8 @@ pub(super) fn check(
 
 /// `should_have_comma?`.
 ///
-/// `diff_comma` is not reachable from the shipped configuration -- it is not among the supported
-/// styles of any of the four cops -- so it is left out rather than guessed at.
+/// `diff_comma` is not among the shipped `SupportedStyles`, but the specs configure it, so it is
+/// implemented rather than guessed at.
 fn should_have_comma(
     context: &RuleContext<'_>,
     style: &str,
@@ -128,6 +128,7 @@ fn extra_avoid_comma_info(style: &str) -> &'static str {
     match style {
         "comma" => ", unless each item is on its own line",
         "consistent_comma" => ", unless items are split onto multiple lines",
+        "diff_comma" => ", unless that item immediately precedes a newline",
         _ => "",
     }
 }

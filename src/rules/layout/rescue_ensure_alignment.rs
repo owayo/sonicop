@@ -181,9 +181,16 @@ fn ending(node: Node<'_>) -> Option<usize> {
         "singleton_class" => node
             .field("value")
             .map(|value| value.end_byte()),
-        "assignment" | "operator_assignment" => {
-            node.field("left").map(|left| left.end_byte())
-        }
+        "assignment" | "operator_assignment" => node.field("left").map(|left| {
+            // `obj.attr = …` is a `send` of `:attr=` upstream, which falls to the wrapper branch
+            // and aligns against the **receiver**; only a plain variable aligns against its name.
+            match left.kind_str() {
+                "call" => left
+                    .field("receiver")
+                    .map_or_else(|| left.end_byte(), |receiver| receiver.end_byte()),
+                _ => left.end_byte(),
+            }
+        }),
         // A wrapper such as an access modifier: its receiver, or the name of what it wraps.
         _ => node
             .field("receiver")

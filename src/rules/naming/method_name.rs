@@ -171,7 +171,7 @@ impl Check<'_, '_> {
     }
 
     fn class_emitter_method(&self, node: Node<'_>, name: &str) -> bool {
-        super::support::class_emitter_method(node, name, self.context.source)
+        super::support::class_emitter_method(node, name, self.context)
     }
 
     /// Whether the call's receiver is the bare `Struct`/`Data` constant. `(const {nil? cbase} …)`

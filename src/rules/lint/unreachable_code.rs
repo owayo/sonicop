@@ -48,11 +48,11 @@ fn flow_expression(
         "parenthesized_statements" => super::statements::statements(node)
             .into_iter()
             .any(|child| flow_expression(child, context, locals, flow)),
-        "if" | "unless" | "elsif" | "conditional" => flow::check_if(node, &mut |child| {
-            flow_expression(child, context, locals, flow)
+        "if" | "unless" | "elsif" | "conditional" => flow::check_if(node, &mut |branch| {
+            branch.any(&mut |child| flow_expression(child, context, locals, flow))
         }),
-        "case" | "case_match" => flow::check_case(node, &mut |child| {
-            flow_expression(child, context, locals, flow)
+        "case" | "case_match" => flow::check_case(node, &mut |branch| {
+            branch.any(&mut |child| flow_expression(child, context, locals, flow))
         }),
         "method" | "singleton_method" => {
             flow.register_redefinition(node, context);

@@ -3,6 +3,7 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
@@ -30,9 +31,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // **多重代入のときだけ**である。`w = 1, 2 rescue nil` は `(rescue (lvasgn w (array 1 2))
         // ..)` で修飾子が外に出るが、`a, b = 1, 2 rescue nil` は `(masgn (mlhs ..) (rescue ..))`
         // で中に入る。左辺が代入の並びかどうかで分かれる。
-        let operation = match operation
-            .field("left")
-            .is_some_and(|left| left.kind_str() == "left_assignment_list")
+        // その振り分けは **2.7 以降のパーサ**の話である。2.6 では多重代入もろとも `rescue` の
+        // 中に入る (`(rescue (masgn ..) ..)`) ので、文法が作る形がそのまま本家の形になる。
+        let splits_multiple_assignment = context.target_ruby_version() >= RubyVersion::new(2, 7);
+        let operation = match splits_multiple_assignment
+            && operation
+                .field("left")
+                .is_some_and(|left| left.kind_str() == "left_assignment_list")
         {
             true => match operation.field("right") {
                 Some(right) => right,

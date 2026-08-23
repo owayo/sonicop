@@ -290,17 +290,34 @@ fn sexp(node: Node<'_>, source: &SourceFile, indent: usize) -> String {
     }
 }
 
+/// The `defs` a definition is written inside, which upstream reaches through `node.parent` alone.
+/// The grammar hangs a body on a `body_statement`, so the walk passes one to find it.
+fn enclosing_singleton_method<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let parent = node.parent()?;
+    let parent = match parent.kind_str() {
+        "body_statement" => parent.parent()?,
+        _ => parent,
+    };
+    (parent.kind_str() == "singleton_method").then_some(parent)
+}
+
 /// `class_emitter_method?`: a singleton method may be named after a class defined beside it, as
 /// `def self.Foo` is next to `class Foo`. RuboCop lets that through -- the method emits the class.
-pub(super) fn class_emitter_method(node: Node<'_>, name: &str, source: &SourceFile) -> bool {
+pub(super) fn class_emitter_method<'tree>(
+    node: Node<'tree>,
+    name: &str,
+    context: &'tree RuleContext<'_>,
+) -> bool {
     if node.kind_str() != "singleton_method" {
         return false;
     }
+    let source = context.source;
+    // `node = node.parent while node.parent.defs_type?`, which reaches the enclosing `def
+    // self.included`. Upstream's `defs` holds its body directly; the grammar puts a
+    // `body_statement` between the two, so walking the raw parent stops one level short and the
+    // class beside the *outer* definition is never seen.
     let mut current = node;
-    while let Some(parent) = current
-        .parent()
-        .filter(|p| p.kind_str() == "singleton_method")
-    {
+    while let Some(parent) = enclosing_singleton_method(current) {
         current = parent;
     }
     let Some(parent) = current.parent() else {

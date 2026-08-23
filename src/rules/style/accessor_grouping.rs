@@ -7,8 +7,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
-use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 /// `attribute_accessor?`: the macros that declare an attribute.
 const ACCESSORS: &[&str] = &["attr_reader", "attr_writer", "attr_accessor", "attr"];
@@ -306,12 +306,39 @@ impl<'t> Body<'_, 't> {
             .field("method")
             .map_or(node.start_byte(), |method| method.end_byte());
         for (position, argument) in accessor.arguments.iter().enumerate() {
-            // `ast_with_comments[arg]`: a comment written before an attribute travels with it.
+            // `ast_with_comments[arg]` -- `Comment.associate_locations` -- ties a comment to the
+            // attribute it shares a line with, and to the attribute below a run of comment lines.
+            // **A trailing comment belongs to the attribute in front of it, not the one after.**
+            let argument_line = self.context.source.line_column(argument.start_byte()).0;
+            let mut owned = Vec::new();
+            let mut probe = argument_line;
+            while probe > 1 {
+                let above = self.context.source.line(probe - 1).trim();
+                if !above.starts_with('#') {
+                    break;
+                }
+                owned.push(probe - 1);
+                probe -= 1;
+            }
+            owned.reverse();
+            // `attr_reader :bar, :baz # c` gives the comment to `:bar` alone: a comment lands on
+            // one node, and the one it lands on is the first written on its line. Handing it to
+            // every attribute of the line copies it once per attribute.
+            let opens_its_line = position == 0
+                || accessor.arguments.get(position - 1).is_none_or(|previous| {
+                    self.context.source.line_column(previous.start_byte()).0 != argument_line
+                });
+            if opens_its_line {
+                owned.push(argument_line);
+            }
             let mut written: Vec<String> = self
                 .context
                 .comment_ranges()
                 .iter()
-                .filter(|comment| comment.start >= previous && comment.end <= argument.start_byte())
+                .filter(|comment| {
+                    comment.start >= previous
+                        && owned.contains(&self.context.source.line_column(comment.start).0)
+                })
                 .map(|comment| self.context.source.slice(comment.clone()).to_owned())
                 .collect();
             written.push(format!(
@@ -319,10 +346,21 @@ impl<'t> Body<'_, 't> {
                 accessor.name,
                 self.context.source.node_text(*argument)
             ));
+            // `arg == node.first_argument` compares **structurally**, not by identity, so a
+            // repeated attribute is written as though it were the first one -- without the indent
+            // the others get. `attr_reader :one, :two, :one` really does come out with its third
+            // line flush left. That is what upstream produces, and this gate holds the port to
+            // upstream's output rather than to what the code reads as if it meant.
+            let writes_as_first = position == 0
+                || self.context.source.node_text(*argument)
+                    == accessor
+                        .arguments
+                        .first()
+                        .map_or("", |first| self.context.source.node_text(*first));
             for line in written {
-                lines.push(match position {
-                    0 => line,
-                    _ => format!("{indent}{line}"),
+                lines.push(match writes_as_first {
+                    true => line,
+                    false => format!("{indent}{line}"),
                 });
             }
             previous = argument.end_byte();

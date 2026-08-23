@@ -157,7 +157,10 @@ fn check_do_block(
     allowed: &Allowed,
     offenses: &mut Vec<Offense>,
 ) {
-    let Some(call) = node.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = node
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "call")
+    else {
         return;
     };
     // `super do ... end` is a `zsuper` upstream, not a send.
@@ -204,7 +207,7 @@ fn trailing_block_method<'tree>(
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
         if current.kind_str() == "call"
-            && current.end_byte() == end
+            && send_end(current) == end
             && BLOCK_METHODS.contains(&call_method_name(current, context))
             && !has_arguments(current)
         {
@@ -228,6 +231,23 @@ fn block_of(node: Node<'_>) -> Option<Node<'_>> {
     (node.kind_str() == "call")
         .then(|| node.field("block"))
         .flatten()
+}
+
+/// Where the `send` upstream would end: a block belongs to a node above the call there, so a call
+/// carrying one ends at its own last token rather than at the block's `}`.
+///
+/// Without the distinction, `queries.map { |q| q }` ends exactly where the argument list holding it
+/// ends, and every such argument looks like the call a trailing `do` block stole its block from.
+fn send_end(call: Node<'_>) -> usize {
+    let Some(block) = block_of(call) else {
+        return call.end_byte();
+    };
+    let mut cursor = call.walk();
+    call.children(&mut cursor)
+        .filter(|child| child.id() != block.id())
+        .map(|child| child.end_byte())
+        .max()
+        .unwrap_or_else(|| call.end_byte())
 }
 
 /// `arguments?`: an empty argument list is no arguments at all.

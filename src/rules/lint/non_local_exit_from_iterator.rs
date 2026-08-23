@@ -43,7 +43,7 @@ fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         if defines_a_method(send, context) {
             return false;
         }
-        if block_argument_list_is_empty(current) {
+        if block_argument_list_is_empty(current, context) {
             continue;
         }
         // `chained_send?`: `(call !nil? ...)`.
@@ -87,9 +87,10 @@ fn defines_a_method(send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
 
 /// `node.argument_list.empty?`. A block that names no argument cannot be the one the `return` was
 /// meant for, so the search carries on outwards.
-fn block_argument_list_is_empty(block: Node<'_>) -> bool {
+fn block_argument_list_is_empty(block: Node<'_>, context: &RuleContext<'_>) -> bool {
     match block.field("parameters") {
         Some(parameters) => named_children(parameters).is_empty(),
-        None => true,
+        // A `numblock` / `itblock` declares nothing but still has an argument list.
+        None => !super::blocks::uses_implicit_parameter(context, block),
     }
 }

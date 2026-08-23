@@ -203,6 +203,17 @@ fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         "integer" => integer_value(context.source.node_text(node)),
         "float" => float_value(context.source.node_text(node)),
         "unary" => signed_numeric(node, context),
+        "string" if !decodes_to_utf8(node, context) => {
+            // `unless node.value.valid_encoding?`: `"\201"` is one byte, not a code point, and a
+            // literal holding one has no `String` to escape -- upstream hands back the source with
+            // its quotes taken off.
+            let source = context.source.node_text(node);
+            source
+                .strip_prefix('"')
+                .and_then(|rest| rest.strip_suffix('"'))
+                .unwrap_or(source)
+                .to_owned()
+        }
         "string" => escape_string_content(&string_value(node, context)),
         // A character literal's source never starts with a quote, so upstream takes the branch of
         // `autocorrected_value_for_string` that only escapes the double quote.
@@ -213,6 +224,56 @@ fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         "nil" => String::new(),
         _ => context.source.node_text(node).replace('"', "\\\""),
     }
+}
+
+/// `node.value.valid_encoding?`: whether the bytes the literal's escapes stand for form valid
+/// UTF-8.
+///
+/// Ruby resolves `\201` and `\x81` to single bytes, so a literal can name a byte sequence that is
+/// no string at all. Rust cannot hold one in a `String`, which is why the check works on the bytes
+/// rather than on the decoded value.
+fn decodes_to_utf8(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let source = context.source.node_text(node);
+    let bytes = source.as_bytes();
+    let mut decoded: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] != b'\\' || index + 1 >= bytes.len() {
+            decoded.push(bytes[index]);
+            index += 1;
+            continue;
+        }
+        let escape = bytes[index + 1];
+        index += 2;
+        match escape {
+            b'0'..=b'7' => {
+                let start = index - 1;
+                let mut end = start + 1;
+                while end < bytes.len() && end - start < 3 && bytes[end].is_ascii_digit() {
+                    end += 1;
+                }
+                index = end;
+                if let Ok(value) = u16::from_str_radix(&source[start..end], 8) {
+                    decoded.push(value as u8);
+                }
+            }
+            b'x' => {
+                let start = index;
+                let mut end = start;
+                while end < bytes.len() && end - start < 2 && bytes[end].is_ascii_hexdigit() {
+                    end += 1;
+                }
+                index = end;
+                if let Ok(value) = u8::from_str_radix(&source[start..end], 16) {
+                    decoded.push(value);
+                }
+            }
+            // Every other escape either stands for an ASCII character or names a code point, and
+            // neither can produce a byte sequence that is not valid on its own.
+            _ => {}
+        }
+    }
+    std::str::from_utf8(&decoded).is_ok()
 }
 
 fn signed_numeric(node: Node<'_>, context: &RuleContext<'_>) -> String {

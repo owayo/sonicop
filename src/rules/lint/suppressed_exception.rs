@@ -9,8 +9,13 @@ const MSG: &str = "Do not suppress exceptions.";
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_comments: bool = context.setting("AllowComments").unwrap_or(true);
     let allow_nil: bool = context.setting("AllowNil").unwrap_or(true);
-    for node in context.nodes_of("rescue") {
-        let statements = body(node);
+    // `on_resbody`: the modifier form is a `resbody` too -- `something rescue nil` suppresses just
+    // as silently as the block form.
+    for node in context.nodes_of_any(&["rescue", "rescue_modifier"]) {
+        let statements = match node.kind_str() {
+            "rescue_modifier" => node.field("handler").into_iter().collect(),
+            _ => body(node),
+        };
         let empty = statements.is_empty();
         let nil_body = statements.len() == 1 && statements[0].kind_str() == "nil";
         if !(empty || nil_body)
@@ -19,7 +24,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        offenses.push(context.offense(MSG, node.start_byte()..end(node, &statements)));
+        let range = match node.kind_str() {
+            // The offense covers the `rescue` keyword and what follows it, not the guarded body.
+            "rescue_modifier" => {
+                let keyword = (0..node.child_count())
+                    .filter_map(|index| node.child(index as u32))
+                    .find(|child| context.source.node_text(*child) == "rescue");
+                match keyword {
+                    Some(keyword) => keyword.start_byte()..node.end_byte(),
+                    None => node.byte_range(),
+                }
+            }
+            _ => node.start_byte()..end(node, &statements),
+        };
+        offenses.push(context.offense(MSG, range));
     }
 }
 

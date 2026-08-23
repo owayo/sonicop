@@ -9,6 +9,9 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::arguments;
 
 /// `minimum_target_ruby_version 3.1`: `Array#intersect?` arrived in 3.1.
+/// `itblock` arrived in Ruby 3.4; before that `it` is a method call.
+const ITBLOCK_SINCE: RubyVersion = RubyVersion::new(3, 4);
+
 const MINIMUM: RubyVersion = RubyVersion::new(3, 1);
 
 /// `PREDICATES` and the two `ACTIVE_SUPPORT_PREDICATES` add.
@@ -125,13 +128,17 @@ fn block_form(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     };
     let receiver = node.field("receiver")?;
     let block = node.field("block")?;
-    let parameters = super::nodes::children(block.field("parameters")?);
-    let [key] = parameters.as_slice() else {
-        return None;
+    // `(block ... (args (arg _key)) ...)` and the two implicit forms upstream lists beside it:
+    // `numblock` names its parameter `_1`, `itblock` names it `it`.
+    let key = match block.field("parameters") {
+        Some(parameters) => match super::nodes::children(parameters).as_slice() {
+            [key] if key.kind_str() == "identifier" => {
+                Some(context.source.node_text(*key).to_owned())
+            }
+            _ => return None,
+        },
+        None => None,
     };
-    if key.kind_str() != "identifier" {
-        return None;
-    }
     let body = super::nodes::children(block.field("body")?);
     let [statement] = body.as_slice() else {
         return None;
@@ -149,7 +156,18 @@ fn block_form(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     let [only] = list.as_slice() else {
         return None;
     };
-    if context.source.node_text(only.first()) != context.source.node_text(*key) {
+    let written = context.source.node_text(only.first());
+    let names_the_parameter = match &key {
+        Some(name) => written == name,
+        // `itblock` is Ruby 3.4 syntax. Below that `it` is an ordinary method call, so the
+        // pattern upstream matches does not exist and the cop stays silent.
+        None => match written {
+            "_1" => true,
+            "it" => context.target_ruby_version() >= ITBLOCK_SINCE,
+            _ => false,
+        },
+    };
+    if !names_the_parameter {
         return None;
     }
     let dot = node.field("operator")?;

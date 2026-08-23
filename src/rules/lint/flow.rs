@@ -67,19 +67,22 @@ fn is_kernel_command(
 ///
 /// `unless` swaps the two branches upstream, and a `then` written without an `else` leaves the
 /// second one `nil`; either way the test is the same on both, so which is which never shows.
+/// The branch is handed over whole rather than statement by statement: upstream reaches a branch
+/// of several statements as a `begin`, and what a `begin` counts as differs between the two cops
+/// that ask -- `Lint/UnreachableLoop` disqualifies a `break` that a `next` precedes.
 pub(super) fn check_if<'tree>(
     node: Node<'tree>,
-    flow: &mut impl FnMut(Node<'tree>) -> bool,
+    flow: &mut impl FnMut(&Branch<'tree>) -> bool,
 ) -> bool {
     let consequence = Branch::of(node.field("consequence"));
     let alternative = Branch::of(node.field("alternative"));
-    consequence.exists() && alternative.exists() && consequence.any(flow) && alternative.any(flow)
+    consequence.exists() && alternative.exists() && flow(&consequence) && flow(&alternative)
 }
 
 /// `else_branch && flow(else_branch) && branches.all? { |b| b.body && flow(b.body) }`.
 pub(super) fn check_case<'tree>(
     node: Node<'tree>,
-    flow: &mut impl FnMut(Node<'tree>) -> bool,
+    flow: &mut impl FnMut(&Branch<'tree>) -> bool,
 ) -> bool {
     // The `else` of a `case` carries no field name, unlike the one of a `case ... in`.
     let mut cursor = node.walk();
@@ -90,7 +93,7 @@ pub(super) fn check_case<'tree>(
             .copied()
             .find(|child| child.kind_str() == "else"),
     );
-    if !otherwise.exists() || !otherwise.any(flow) {
+    if !otherwise.exists() || !flow(&otherwise) {
         return false;
     }
     let branches: Vec<Node<'tree>> = children
@@ -99,7 +102,7 @@ pub(super) fn check_case<'tree>(
         .collect();
     branches.into_iter().all(|branch| {
         let body = Branch::of(branch.field("body"));
-        body.exists() && body.any(flow)
+        body.exists() && flow(&body)
     })
 }
 

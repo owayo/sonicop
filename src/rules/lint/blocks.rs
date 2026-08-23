@@ -112,3 +112,52 @@ fn numbered_parameter(name: &str) -> Option<usize> {
     }
     Some((bytes[1] - b'0') as usize)
 }
+
+/// Whether a block takes its parameter implicitly: `_1` / `_2` (a `numblock` upstream) or `it`
+/// (an `itblock`).
+///
+/// **The grammar spells all three as `block`.** Upstream gives each its own node type, and several
+/// cops read that type -- `argument_list` is non-empty for a numblock, `each_ancestor(:block)`
+/// passes over one, and the arity is the highest `_N` rather than zero. A nested block owns its
+/// own, so the walk stops at one.
+pub(crate) fn uses_implicit_parameter(context: &RuleContext<'_>, block: Node<'_>) -> bool {
+    if block.field("parameters").is_some() {
+        return false;
+    }
+    let Some(body) = block.field("body") else {
+        return false;
+    };
+    implicit_parameter_depth(context, body) > 0
+}
+
+/// The highest `_N` a block body names, with `it` counting as one. Zero when it names neither.
+pub(crate) fn implicit_parameter_depth(context: &RuleContext<'_>, body: Node<'_>) -> usize {
+    let mut highest = 0;
+    let mut names_it = false;
+    let mut stack = vec![body];
+    while let Some(node) = stack.pop() {
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
+                continue;
+            }
+            if child.kind_str() == "identifier" {
+                let text = context.source.node_text(child);
+                if text == "it" {
+                    names_it = true;
+                } else if let Some(digit) = text
+                    .strip_prefix('_')
+                    .and_then(|rest| rest.parse::<usize>().ok())
+                    .filter(|digit| (1..=9).contains(digit))
+                {
+                    highest = highest.max(digit);
+                }
+            }
+            stack.push(child);
+        }
+    }
+    match (highest, names_it) {
+        (0, true) => 1,
+        (highest, _) => highest,
+    }
+}

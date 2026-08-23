@@ -223,6 +223,11 @@ fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> 
 fn to_percent(context: &RuleContext<'_>, found: &Formatter<'_>) -> Option<Edit> {
     let (format, parameters) = found.written.split_first()?;
     let args = match parameters {
+        // A brace-less hash is one `hash` argument upstream, and `format_single_parameter` writes
+        // a hash back in braces: `fmt % { a: 1, b: 2 }`.
+        [only] if only.parts().len() > 1 || only.first().kind_str() == "pair" => {
+            format!("{{ {} }}", context.source.slice(only.range()))
+        }
         [only] => format_single_parameter(context, only.first()),
         _ => format!(
             "[{}]",

@@ -19,6 +19,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(condition) = node.field("condition") else {
             continue;
         };
+        // `not x ? a : b` is `not(x ? a : b)` upstream whatever the parentheses around `x`: the
+        // keyword binds looser than `?:`. The grammar agrees only while `x` is bare -- once it is
+        // parenthesized it hoists the conditional above the `not`, which would make the cop wrap
+        // `not (x)` and grow another pair of parentheses on every pass.
+        let condition = match keyword_not(condition, context) {
+            Some(operand) => operand,
+            None => condition,
+        };
         if only_closing_parenthesis_is_last_line(context, condition)
             || condition_as_parenthesized_one_line_pattern_matching(condition)
         {
@@ -68,6 +76,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
+/// The operand of a `not` written as the condition, which upstream reads as standing outside the
+/// conditional entirely. `!` is not one of these -- it binds tighter than `?:` and stays inside.
+fn keyword_not<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+    if node.kind_str() != "unary" {
+        return None;
+    }
+    let operator = node.child(0)?;
+    (context.source.node_text(operator) == "not").then(|| node.field("operand"))?
+}
+
 /// `only_closing_parenthesis_is_last_line?`: a condition whose last line is nothing but `)` is
 /// spread over lines on purpose, and pulling the parentheses off it would run the lines together.
 fn only_closing_parenthesis_is_last_line(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
@@ -109,7 +127,8 @@ fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     let [only] = children.as_slice() else {
         return false;
     };
-    only.kind_str() == "assignment" && !super::nodes::is_match_assignment(*only, context.source.text())
+    only.kind_str() == "assignment"
+        && !super::nodes::is_match_assignment(*only, context.source.text())
 }
 
 /// `complex_condition?`: a parenthesized condition is complex when anything written inside it is.
@@ -137,11 +156,9 @@ fn non_complex_expression(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             .is_some_and(|operator| context.source.node_text(operator) == "defined?"),
         // A call carrying a block is a `block` node upstream rather than a `send`, and no `block`
         // is ever simple.
-        "call" if node.field("block").is_none() => {
-            node.field("method").is_some_and(|method| {
-                !super::nodes::is_operator_method(context.source.node_text(method))
-            })
-        }
+        "call" if node.field("block").is_none() => node.field("method").is_some_and(|method| {
+            !super::nodes::is_operator_method(context.source.node_text(method))
+        }),
         // `a.b = 1` is a `send` named `b=`, which is no operator; `a[0] = 1` is `:[]=`, which is.
         "assignment" => node
             .field("left")
@@ -156,11 +173,9 @@ fn unsafe_autocorrect(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     super::nodes::children(condition)
         .into_iter()
         .any(|child| match child.kind_str() {
-            "binary" | "unary" => child
-                .field("operator")
-                .is_some_and(|operator| {
-                    matches!(context.source.node_text(operator), "and" | "or" | "not")
-                }),
+            "binary" | "unary" => child.field("operator").is_some_and(|operator| {
+                matches!(context.source.node_text(operator), "and" | "or" | "not")
+            }),
             _ => false,
         })
 }

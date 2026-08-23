@@ -22,6 +22,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         else {
             continue;
         };
+        // `find_offense_node_by` reaches `*`, `**` and `&` as `splat`, `kwsplat` and `block_pass`
+        // nodes, which say nothing about the call they sit in. A unary `+` or `-` is found through
+        // `each_node(:send)` instead -- and a `csend` is not a `send`, so `foo&.* -1` is not one.
+        if matches!(operator, "+" | "-")
+            && !crate::rules::send_node::is_plain_send(ambiguity.owner, context)
+        {
+            continue;
+        }
         offenses.push(
             context
                 .offense(

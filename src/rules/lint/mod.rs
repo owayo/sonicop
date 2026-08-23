@@ -26,6 +26,7 @@ pub(crate) mod locals;
 /// Reachable from `style` too: `Style/SafeNavigation` measures a chained call against the same
 /// `nil.methods` list that the `NilMethods` mixin gives the Lint cops.
 pub(crate) mod nil_methods;
+mod nil_receiver;
 /// Reachable from `style` too: `Node#==` is the same question wherever a cop ported from a node
 /// pattern compares two subtrees, and answering it by source text instead would call `a.b` and
 /// `a. b` different nodes.

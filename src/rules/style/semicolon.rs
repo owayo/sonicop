@@ -2,9 +2,9 @@ use std::collections::HashSet;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 use crate::rules::support::Interpolations;
 use crate::source::is_protected;
-use crate::rules::node_ext::NodeExt;
 
 /// Node kinds whose named children are a sequence of statements.
 ///
@@ -38,7 +38,6 @@ const NON_STATEMENT_KINDS: &[&str] = &["comment", "empty_statement", "rescue", "
 /// Node kinds that spell a semicolon as part of a single token: `$;`, `?;` and `:";"`. RuboCop
 /// walks a token stream rather than the text, so none of these is a semicolon to it.
 const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "delimited_symbol"];
-
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -113,6 +112,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `corrector.wrap(node, '(', ')') if node`: an endless range whose `;` goes away would
         // reach on to the next line and swallow it (`42..;\n42...;` becomes one range). Upstream
         // puts parentheses around the range first.
+        // `token_before_semicolon&.type == :tLABEL`: `m key:;` has to keep reading as an argument
+        // list once the semicolon goes, so the hash gains parentheses and the space in front of it
+        // is removed. Without it `m key:` is a label standing on its own.
+        if let Some((space, arguments)) = value_omission_before(context, offset) {
+            offenses.push(offense.corrected_by_all([
+                Edit {
+                    start: space.start,
+                    end: space.end,
+                    replacement: String::new(),
+                    safe: true,
+                },
+                insert(arguments.start, "("),
+                insert(arguments.end, ")"),
+                removal,
+            ]));
+            continue;
+        }
         if let Some(range) = endless_range_before(context, offset) {
             offenses.push(offense.corrected_by_all([
                 insert(range.start, "("),
@@ -207,11 +223,28 @@ fn line_terminator_or_opener(
     if after_last == "}" {
         return Some(last);
     }
+    // `exist_semicolon_before_right_string_interpolation_brace?`: the `}` closing an interpolation
+    // is a `tSTRING_DEND`, and the string it sits in goes on past it -- so the line does not end
+    // there, but the semicolon still terminates the last expression of the interpolation.
+    if closes_an_interpolation(context, last) {
+        return Some(last);
+    }
     let before_first = text[code.start..first].trim_end();
     if before_first.ends_with('{') {
         return Some(first);
     }
     None
+}
+
+/// Whether the first thing after the semicolon is the brace that closes an interpolation.
+fn closes_an_interpolation(context: &RuleContext<'_>, semicolon: usize) -> bool {
+    let text = context.source.text();
+    let rest = &text[semicolon + 1..];
+    let brace = semicolon + 1 + (rest.len() - rest.trim_start().len());
+    text[brace..].starts_with('}')
+        && context
+            .nodes_of("interpolation")
+            .any(|node| node.end_byte() == brace + 1)
 }
 
 /// The byte range of `line_number` with comments and surrounding whitespace removed.
@@ -294,4 +327,43 @@ fn heredoc_opened_before(
     openers
         .iter()
         .any(|(line, end)| *line == line_number && *end <= offset)
+}
+
+/// The space to drop and the span to bracket when the semicolon follows a value-omitted label.
+///
+/// `value_omission_pair_nodes` upstream; the pair's grandparent is the call whose selector the
+/// space belongs to.
+fn value_omission_before(
+    context: &RuleContext<'_>,
+    offset: usize,
+) -> Option<(std::ops::Range<usize>, std::ops::Range<usize>)> {
+    let before = context.source.text()[..offset].trim_end().len();
+    for pair in context.nodes_of("pair") {
+        if pair.field("value").is_some() || pair.end_byte() != before {
+            continue;
+        }
+        let list = pair.parent()?;
+        if list.kind_str() != "argument_list" {
+            continue;
+        }
+        let call = list.parent()?;
+        if call.kind_str() != "call" {
+            continue;
+        }
+        let selector = call.field("method")?;
+        // A call already written with brackets needs neither edit.
+        if list
+            .child(0)
+            .is_some_and(|first| context.source.node_text(first) == "(")
+        {
+            continue;
+        }
+        let mut cursor = list.walk();
+        let first = list.named_children(&mut cursor).next()?;
+        return Some((
+            selector.end_byte()..first.start_byte(),
+            first.start_byte()..list.end_byte(),
+        ));
+    }
+    None
 }

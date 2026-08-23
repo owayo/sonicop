@@ -69,7 +69,9 @@ fn ast_range(context: &RuleContext<'_>) -> Option<Range<usize>> {
     let mut cursor = root.walk();
     let statements: Vec<Node<'_>> = root
         .named_children(&mut cursor)
-        .filter(|child| child.kind_str() != "comment")
+        // `__END__` and what follows it is `DATA`, not code: upstream's AST stops at the keyword,
+        // so a `\` down there is out of the range the candidates are searched in.
+        .filter(|child| !matches!(child.kind_str(), "comment" | "uninterpreted"))
         .collect();
     let (first, last) = (statements.first()?, statements.last()?);
     Some(first.start_byte()..last.end_byte())

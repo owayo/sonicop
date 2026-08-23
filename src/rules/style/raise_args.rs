@@ -37,15 +37,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let written = arguments(node);
         let range = send_range(node, context);
         let offense = if compact {
-            let Some(edit) = exploded_to_compact(context, node, &written, &range) else {
+            if !reports_compact(&written) {
                 continue;
-            };
-            context
-                .offense(
-                    format!("Provide an exception object as an argument to `{method}`."),
-                    range.clone(),
-                )
-                .corrected_by(edit)
+            }
+            let offense = context.offense(
+                format!("Provide an exception object as an argument to `{method}`."),
+                range.clone(),
+            );
+            // `correction_exploded_to_compact` hands back the original source when there is more
+            // than one message argument, so the offense stands without a rewrite.
+            match exploded_to_compact(context, node, &written, &range) {
+                Some(edit) => offense.corrected_by(edit),
+                None => offense,
+            }
         } else {
             let Some(edit) = compact_to_exploded(context, node, &written, &range, &allowed) else {
                 continue;
@@ -115,27 +119,29 @@ fn compact_to_exploded(
 }
 
 /// `check_compact` plus `correction_exploded_to_compact`.
+/// `check_compact`: more than one argument, unless the exception itself was handed a hash.
+fn reports_compact(written: &[crate::rules::send_node::Argument<'_>]) -> bool {
+    if written.len() <= 1 {
+        return false;
+    }
+    let exception = written[0].first();
+    // A call whose own first argument is a hash is `raise Klass, key: value`, which stays.
+    !(exception.kind_str() == "call"
+        && arguments(exception)
+            .first()
+            .is_some_and(|argument| matches!(argument.first().kind_str(), "pair" | "hash")))
+}
+
 fn exploded_to_compact(
     context: &RuleContext<'_>,
     node: Node<'_>,
     written: &[crate::rules::send_node::Argument<'_>],
     range: &std::ops::Range<usize>,
 ) -> Option<Edit> {
-    if written.len() <= 1 {
+    if !reports_compact(written) || written.len() > 2 {
         return None;
     }
     let exception = written[0].first();
-    // A call whose own first argument is a hash is `raise Klass, key: value`, which stays.
-    if exception.kind_str() == "call"
-        && arguments(exception)
-            .first()
-            .is_some_and(|argument| matches!(argument.first().kind_str(), "pair" | "hash"))
-    {
-        return None;
-    }
-    if written.len() > 2 {
-        return None;
-    }
     let argument = context.source.slice(written[1].range());
     let exception_class = exception.field("receiver").map_or_else(
         || context.source.node_text(exception),

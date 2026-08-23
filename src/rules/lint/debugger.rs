@@ -137,7 +137,12 @@ fn is_debugger_method(node: Node<'_>, methods: &[String], context: &RuleContext<
     let Some(name) = chained_method_name(node, context) else {
         return false;
     };
-    methods.iter().any(|method| method == &name)
+    methods.iter().any(|method| match method.contains('.') {
+        // `chained_method_name(send_node).end_with?(method)`: a dotted entry matches any receiver
+        // chain that ends in it, so `::Kernel.debugger` answers to `Kernel.debugger`.
+        true => name.ends_with(method.as_str()),
+        false => method == &name,
+    })
 }
 
 /// `chained_method_name`: every receiver's own name, joined with dots in front of the selector.
@@ -216,12 +221,23 @@ fn has_call_ancestor(node: Node<'_>) -> bool {
         if matches!(
             ancestor.kind_str(),
             "call" | "binary" | "unary" | "element_reference"
-        ) {
+        ) || is_attribute_assignment(ancestor)
+        {
             return true;
         }
         current = ancestor.parent();
     }
     false
+}
+
+/// `x.y = value` is a `send` of `:y=` upstream. The grammar spells it as an assignment whose
+/// left-hand side is a call, so the two shapes have to be read as the same thing -- otherwise the
+/// value handed to a setter looks like a statement standing on its own.
+fn is_attribute_assignment(node: Node<'_>) -> bool {
+    matches!(node.kind_str(), "assignment" | "operator_assignment")
+        && node
+            .field("left")
+            .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
 }
 
 /// `assumed_argument?`: `parent.call_type? || parent.literal? || parent.pair_type?`.
@@ -232,7 +248,8 @@ fn is_assumed_argument(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     matches!(
         parent.kind_str(),
         "call" | "binary" | "unary" | "element_reference" | "pair"
-    ) || literal_type(parent, context).is_some()
+    ) || is_attribute_assignment(parent)
+        || literal_type(parent, context).is_some()
 }
 
 /// The node upstream would call the parent: an argument list is no node of its own there.

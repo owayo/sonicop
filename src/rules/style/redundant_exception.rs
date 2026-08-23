@@ -117,7 +117,9 @@ fn argument_source(context: &RuleContext<'_>, message: &Argument<'_>) -> String 
     let literal = message.parts().len() == 1
         && matches!(
             message.first().kind_str(),
-            "string" | "chained_string" | "character" | "heredoc_beginning"
+            // `any_str_type?` is `str`, `dstr` **and `xstr`** -- a backtick command is a string
+            // literal, so it needs no `.to_s`.
+            "string" | "chained_string" | "character" | "heredoc_beginning" | "subshell"
         );
     if literal {
         text.to_owned()

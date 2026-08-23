@@ -67,7 +67,9 @@ fn first_element_of_unpack<'tree>(
                 .unwrap_or_default();
             let taken = match (context.source.node_text(method), arguments.as_slice()) {
                 ("first", []) => true,
-                ("slice" | "at", [index]) => context.source.node_text(*index) == "0",
+                // `:[]` is in `RESTRICT_ON_SEND` beside `slice` and `at`, and `x.unpack(y).[](0)`
+                // is how it is written as an ordinary call.
+                ("slice" | "at" | "[]", [index]) => context.source.node_text(*index) == "0",
                 _ => return None,
             };
             (receiver, taken)

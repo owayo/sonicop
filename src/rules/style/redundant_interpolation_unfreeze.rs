@@ -83,7 +83,14 @@ fn unfreezing(
                 return None;
             }
             let selector = parent.field("method")?;
-            if context.source.node_text(selector) != "dup" {
+            // `:+@` written as an ordinary call (`"...".+@`) reaches the same matcher as the
+            // unary form; the grammar only spells the operator one as `unary`.
+            if !matches!(context.source.node_text(selector), "dup" | "+@") {
+                return None;
+            }
+            // `(send dstr_type? {:+@ :dup})` takes no arguments: `"…".dup(baz)` is a different
+            // call and upstream leaves it alone.
+            if !crate::rules::send_node::arguments(parent).is_empty() {
                 return None;
             }
             Some((

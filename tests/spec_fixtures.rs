@@ -91,11 +91,22 @@ struct RecordedOffense {
 /// 変えると、本家は `.gemspec` で測ったものを移植版は `.rb` で再生し、**差分が
 /// 「移植版のバグ」の顔をして出る**。
 fn path_for(cop: &str) -> &'static str {
+    // 本家 spec の仮想ファイル名。`Lint/ScriptPermission` はそれをメッセージに書くので、
+    // 別の名前で再生すると本文が食い違う。
+    if cop == "Lint/ScriptPermission" {
+        return "c0000.rb";
+    }
     match cop.split('/').next() {
         Some("Gemspec") => "example.gemspec",
         Some("Bundler") => "example.gemfile",
         _ => "example.rb",
     }
+}
+
+/// `Lint/Syntax` が出したメッセージかどうか。cop 名は記録されていないので、`parser` gem の
+/// 診断が必ず添える文言で見分ける。
+fn is_syntax_error(message: &str) -> bool {
+    message.contains("parser; configure using `TargetRubyVersion` parameter")
 }
 
 /// 本家 JSON の `length` (レンジ全体の文字数) を、注記のキャレット本数に直す。
@@ -166,7 +177,20 @@ impl Record {
             case = case.target_ruby(version);
         }
         if let Some(corrected) = &self.corrected {
-            case = case.corrected(corrected);
+            case = case.corrected_verbatim(corrected);
+        }
+        // 本家自身が構文エラーを報告したケースでは、それこそが期待値。構文ガードは
+        // 「本家が読めた例を移植版が読めない」を捕まえるためのものなので、ここでは外す。
+        if self
+            .offenses
+            .iter()
+            .any(|item| is_syntax_error(&item.message))
+        {
+            case = case.expecting_syntax_error();
+        }
+        // モードを読む cop は、名前だけのパスでは何も見えない。
+        if self.cop == "Lint/ScriptPermission" {
+            case = case.materialized();
         }
         case
     }

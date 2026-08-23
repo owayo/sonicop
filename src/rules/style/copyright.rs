@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use regex::{Regex, RegexBuilder};
 
-use crate::diagnostic::Offense;
+use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
@@ -30,7 +30,68 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `processed_source.blank?`: a file with nothing but comments has no AST upstream, and the
     // offense it gets is a global one.
     let range = if has_code(context) { 0..1 } else { 0..0 };
-    offenses.push(context.offense(message, range));
+    let offense = context.offense(message, range);
+    // `autocorrect`: the notice is written in before the first token that is neither a shebang nor
+    // an encoding comment. `verify_autocorrect_notice!` refuses one the pattern does not match, so
+    // a misconfigured notice raises rather than being inserted -- here it simply corrects nothing.
+    let autocorrect_notice = context
+        .setting::<String>("AutocorrectNotice")
+        .unwrap_or_default();
+    let normalized = normalized_notice(&autocorrect_notice);
+    // `verify_autocorrect_notice!` matches `autocorrect_notice.gsub(/^#\s*/, '')` -- the notice is
+    // checked **without** its comment marker, because the pattern is written against the text.
+    let bare: String = normalized
+        .lines()
+        .map(|line| line.trim_start().trim_start_matches('#').trim_start())
+        .collect::<Vec<_>>()
+        .join("\n");
+    if autocorrect_notice.is_empty() || !pattern.is_match(&bare) {
+        offenses.push(offense);
+        return;
+    }
+    let at = insert_notice_before(context);
+    offenses.push(offense.corrected_by(Edit {
+        start: at,
+        end: at,
+        replacement: format!("{normalized}\n"),
+        safe: false,
+    }));
+}
+
+/// `normalized_autocorrect_notice`: every line becomes a comment, and a blank one becomes `#`.
+fn normalized_notice(notice: &str) -> String {
+    notice
+        .lines()
+        .map(|line| match () {
+            () if line.starts_with('#') => line.to_owned(),
+            () if line.trim().is_empty() => "#".to_owned(),
+            () => format!("# {line}"),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// `insert_notice_before`: after a shebang and an encoding comment, and before everything else.
+fn insert_notice_before(context: &RuleContext<'_>) -> usize {
+    let mut line = 1;
+    if context
+        .source
+        .line(line)
+        .trim_start()
+        .starts_with("#!")
+    {
+        line += 1;
+    }
+    if line <= context.source.line_count()
+        && context.source.line(line).contains("coding")
+        && context.source.line(line).trim_start().starts_with('#')
+    {
+        line += 1;
+    }
+    match line {
+        1 => 0,
+        _ => context.source.line_start(line),
+    }
 }
 
 /// `notice_regexp`.

@@ -8,7 +8,7 @@ use crate::rules::send_node::send_range;
 
 use super::flow;
 use super::locals::LocalVariables;
-use super::statements::{body_children, body_statements, statements};
+use super::statements::{Branch, body_children, body_statements, statements};
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "This loop will have at most one iteration.";
@@ -169,17 +169,33 @@ fn is_break(
             inner
                 .iter()
                 .position(|statement| is_break(*statement, context, locals, allowed))
-                .is_some_and(|index| {
-                    !preceded_by_sibling_continue(&inner, index, context, allowed)
-                })
+                .is_some_and(|index| !preceded_by_sibling_continue(&inner, index, context, allowed))
         }
-        "if" | "unless" | "elsif" | "conditional" => {
-            flow::check_if(node, &mut |child| is_break(child, context, locals, allowed))
-        }
-        "case" | "case_match" => {
-            flow::check_case(node, &mut |child| is_break(child, context, locals, allowed))
-        }
+        "if" | "unless" | "elsif" | "conditional" => flow::check_if(node, &mut |branch| {
+            branch_breaks(branch, context, locals, allowed)
+        }),
+        "case" | "case_match" => flow::check_case(node, &mut |branch| {
+            branch_breaks(branch, context, locals, allowed)
+        }),
         _ => false,
+    }
+}
+
+/// A branch of an `if` or a `case` as `break_statement?` reads it: several statements are a `begin`
+/// upstream, whose first break disqualifies itself if a `next` stands anywhere before it.
+fn branch_breaks(
+    branch: &Branch<'_>,
+    context: &RuleContext<'_>,
+    locals: &LocalVariables<'_, '_>,
+    allowed: &[&'static Regex],
+) -> bool {
+    match branch {
+        Branch::Missing => false,
+        Branch::One(node) => is_break(*node, context, locals, allowed),
+        Branch::Sequence(nodes) => nodes
+            .iter()
+            .position(|statement| is_break(*statement, context, locals, allowed))
+            .is_some_and(|index| !preceded_by_sibling_continue(nodes, index, context, allowed)),
     }
 }
 

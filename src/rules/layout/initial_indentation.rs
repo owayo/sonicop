@@ -36,7 +36,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// first token is whatever the file opens with other than a `#` comment -- a `=begin` block is one.
 fn first_token(context: &RuleContext<'_>) -> Option<Range<usize>> {
     let text = context.source.text();
-    let mut offset = 0;
+    // A byte order mark is not whitespace to `trim_start`, and it is no token to the lexer either:
+    // left in, the search settles on the mark itself and never reaches the first real token.
+    let mut offset = match text.starts_with('\u{feff}') {
+        true => '\u{feff}'.len_utf8(),
+        false => 0,
+    };
     loop {
         let rest = &text[offset..];
         let blanks = rest.len() - rest.trim_start().len();
@@ -52,10 +57,16 @@ fn first_token(context: &RuleContext<'_>) -> Option<Range<usize>> {
             Some(comment) if text[comment.clone()].starts_with('#') => offset = comment.end,
             Some(comment) => return Some(comment.clone()),
             None => {
-                return context
+                // `processed_source.tokens` holds lexer tokens, so the offense covers the first
+                // **token** -- `puts`, not the call it opens. Walking to the leaf gives the same
+                // span.
+                let mut node = context
                     .root_node()
-                    .descendant_for_byte_range(offset, offset + 1)
-                    .map(|node| node.byte_range());
+                    .descendant_for_byte_range(offset, offset + 1)?;
+                while let Some(first) = node.child(0) {
+                    node = first;
+                }
+                return Some(node.byte_range());
             }
         }
     }

@@ -19,6 +19,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
+        // `on_send` is never called for a `csend`, and this cop does not alias `on_csend`, so
+        // `File&.open` is not its business. The grammar spells both as `call`.
+        if !crate::rules::send_node::is_plain_send(node, context) {
+            continue;
+        }
         // `node.block_argument?`: `File.open(path, &:read)` hands the descriptor to something that
         // closes it.
         if arguments(node)

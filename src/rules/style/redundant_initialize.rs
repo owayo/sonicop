@@ -122,7 +122,10 @@ fn holds_comments(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// `find_end_line` for a definition.
 fn find_end_line(node: Node<'_>, context: &RuleContext<'_>) -> usize {
     let fallback = context.source.line_column(node.end_byte()).0;
-    let Some(parent) = node.parent() else {
+    // `node.parent` is nil at the top level upstream, and the `|| node.loc.end.line` fallback is
+    // what answers there. The grammar hands back `program` instead, which would otherwise put the
+    // end line at 1 and hide every comment inside the definition.
+    let Some(parent) = node.parent().filter(|parent| parent.kind_str() != "program") else {
         return fallback;
     };
     let siblings: Vec<Node<'_>> = super::nodes::children(parent)

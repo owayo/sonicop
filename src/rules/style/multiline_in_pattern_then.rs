@@ -24,7 +24,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `require_then?`: a pattern spread over several lines needs the keyword to close it, and
         // so does a body written beside the `in`.
-        if pattern.start_position().row != pattern.end_position().row {
+        // `pattern.single_line?`. The grammar can close a pattern early -- a multi-line array
+        // pattern ends at its comma, leaving `in bar,\n baz` looking single-line -- so anything
+        // written between the pattern and the keyword counts as part of the pattern. Blanks do
+        // not: `in bar\n  then …` really does have a single-line pattern.
+        let written_after = pattern.end_byte() < keyword.start_byte()
+            && !context.source.text()[pattern.end_byte()..keyword.start_byte()]
+                .trim()
+                .is_empty();
+        let last_row = match written_after {
+            true => keyword.start_position().row,
+            false => pattern.end_position().row,
+        };
+        if pattern.start_position().row != last_row {
             continue;
         }
         if super::nodes::children(body)
@@ -38,7 +50,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let start = final_pos(
             context.source.text(),
             keyword.start_byte(),
-            false, false,
+            false,
+            false,
             false,
             false,
         );

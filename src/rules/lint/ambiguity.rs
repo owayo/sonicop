@@ -25,8 +25,8 @@ pub(super) struct Ambiguity<'tree> {
     pub operator: Range<usize>,
     /// The call, `yield` or `super` whose arguments the correction parenthesizes.
     pub owner: Node<'tree>,
-    /// The list those arguments were written in.
-    arguments: Node<'tree>,
+    /// The span the parentheses go around: the arguments as written.
+    arguments: Range<usize>,
 }
 
 /// Keywords whose arguments the lexer never reads from `expr_arg`.
@@ -87,7 +87,58 @@ pub(super) fn scan<'tree>(
         found.push(Ambiguity {
             operator: start..after,
             owner,
-            arguments: list,
+            arguments: list.byte_range(),
+        });
+    }
+    found.extend(binary_operands(context, prefixes));
+    found
+}
+
+/// The same ambiguity written in a shape the grammar reads as a binary operator.
+///
+/// `do_something +42` leaves the lexer in `expr_arg` and is a command call whose argument opens
+/// with a unary `+`; the grammar reads it as `do_something + 42`. **The two differ only in whether
+/// the name is a local variable** -- which is the question the lexer answers as well -- so the
+/// variable analysis settles it here.
+fn binary_operands<'tree>(
+    context: &'tree RuleContext<'_>,
+    prefixes: &[&str],
+) -> Vec<Ambiguity<'tree>> {
+    let bytes = context.source.text().as_bytes();
+    let mut found = Vec::new();
+    for node in context.nodes_of("binary") {
+        let (Some(operator), Some(left), Some(right)) = (
+            node.field("operator"),
+            node.field("left"),
+            node.field("right"),
+        ) else {
+            continue;
+        };
+        if !prefixes.contains(&context.source.node_text(operator)) {
+            continue;
+        }
+        // A local variable on the left makes this arithmetic, exactly as it does for the lexer.
+        if left.kind_str() != "identifier" || context.variable_analysis().names_a_local(left) {
+            continue;
+        }
+        // `do_something&.* -1` is a `csend`, which `on_send` never reaches.
+        if !crate::rules::send_node::is_plain_send(node, context) {
+            continue;
+        }
+        let start = operator.start_byte();
+        if start == 0 || !matches!(bytes[start - 1], b' ' | b'\t') {
+            continue;
+        }
+        if bytes
+            .get(operator.end_byte())
+            .is_none_or(|byte| byte.is_ascii_whitespace())
+        {
+            continue;
+        }
+        found.push(Ambiguity {
+            operator: operator.byte_range(),
+            owner: node,
+            arguments: operator.start_byte()..right.end_byte(),
         });
     }
     found
@@ -100,9 +151,28 @@ impl Ambiguity<'_> {
     /// `send` stops at the last argument and holds any `do ... end` in a separate node above it,
     /// while this grammar keeps the block inside the `call`. Closing at the call would put the
     /// `)` after the `end` and write `p(/pattern/ do ... end)`, which Ruby rejects.
+    /// `corrector.wrap(node, '(', ')')`, the arm `add_parentheses` takes for a node that answers
+    /// nothing to `arguments`. The space in front of the arguments is left where it was.
+    pub(super) fn wrap(&self) -> Vec<Edit> {
+        vec![
+            Edit {
+                start: self.arguments.start,
+                end: self.arguments.start,
+                replacement: "(".to_owned(),
+                safe: true,
+            },
+            Edit {
+                start: self.arguments.end,
+                end: self.arguments.end,
+                replacement: ")".to_owned(),
+                safe: true,
+            },
+        ]
+    }
+
     pub(super) fn parenthesize(&self, context: &RuleContext<'_>) -> Vec<Edit> {
-        let opening = self.arguments.start_byte() - 1;
-        let closing = self.arguments.end_byte();
+        let opening = self.arguments.start - 1;
+        let closing = self.arguments.end;
         let _ = context;
         vec![
             Edit {

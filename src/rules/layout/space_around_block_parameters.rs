@@ -124,6 +124,15 @@ fn no_space(
     if context.source.text()[range.clone()].contains('\n') {
         return;
     }
+    // `add_offense` keeps one offense per range (`current_offense_locations.add?`). The pipe
+    // checks and the per-argument check reach the same span for the first parameter, and upstream
+    // reports only the one that got there first.
+    if offenses
+        .iter()
+        .any(|offense| offense.start == range.start && offense.end == range.end)
+    {
+        return;
+    }
     offenses.push(
         context
             .offense(

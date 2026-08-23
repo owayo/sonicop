@@ -1,12 +1,16 @@
 //! `Metrics/AbcSize`, a port of `Utils::AbcSizeCalculator`.
 //!
-//! `CountRepeatedAttributes` is not read: the bundled configuration leaves it at `true`, which is
-//! what turns `Utils::RepeatedAttributeDiscount` off upstream, so the counting here is the counting
-//! every default run does. Setting it to `false` would ask for a discount this cop does not apply.
+//! `CountRepeatedAttributes` is `true` in the bundled configuration, which turns
+//! `Utils::RepeatedAttributeDiscount` off; [`Attributes`] is what a run setting it to `false` gets.
+
+use std::collections::HashMap;
+
+use tree_sitter::Node;
 
 use super::complexity::{Allowed, CsendDiscount, Emit, Kind, Order, Walk, measured};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max = context
@@ -21,8 +25,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let fragments = context.fragments();
     let locals = context.metric_locals();
     let walk = Walk::new(context, locals, fragments, Order::Post);
+    // `discount_repeated_attributes: !cop_config['CountRepeatedAttributes']`.
+    let discounting = !context
+        .setting::<bool>("CountRepeatedAttributes")
+        .unwrap_or(true);
     for method in methods {
-        let vector = Vector::of(&walk, method.body);
+        let vector = Vector::of(&walk, method.body, context, locals, discounting);
         let size = vector.size();
         if size <= max {
             continue;
@@ -49,20 +57,47 @@ struct Vector {
 }
 
 impl Vector {
-    fn of(walk: &Walk<'_>, body: tree_sitter::Node<'_>) -> Self {
+    fn of(
+        walk: &Walk<'_>,
+        body: tree_sitter::Node<'_>,
+        context: &RuleContext<'_>,
+        locals: &super::locals::Locals,
+        discounting: bool,
+    ) -> Self {
         let mut vector = Self::default();
         let mut discount = CsendDiscount::default();
-        walk.run(body, &mut |emit| vector.count(emit, &mut discount));
+        let mut attributes = discounting.then(Attributes::default);
+        walk.run(body, &mut |emit| {
+            vector.count(emit, &mut discount, context, locals, attributes.as_mut());
+        });
         vector
     }
 
     /// `AbcSizeCalculator#calculate_node`, whose two arms are exclusive: a call is never also
     /// counted as a condition, though it may add one.
-    fn count<'a>(&mut self, emit: Emit<'a>, discount: &mut CsendDiscount<'a>) {
+    fn count<'a>(
+        &mut self,
+        emit: Emit<'a>,
+        discount: &mut CsendDiscount<'a>,
+        context: &RuleContext<'_>,
+        locals: &super::locals::Locals,
+        attributes: Option<&mut Attributes>,
+    ) {
+        // `RepeatedAttributeDiscount#calculate_node` invalidates before the count, so an
+        // assignment to a receiver does not discount the reads that follow it.
+        let repeated = match attributes {
+            Some(known) => {
+                known.invalidate(emit, context, locals);
+                matches!(emit.kind, Kind::Send | Kind::Csend)
+                    && known.repeats(emit.node, context, locals)
+            }
+            None => false,
+        };
         if self.assignment(emit, discount) {
             self.assignment += 1;
         }
         match emit.kind {
+            Kind::Send | Kind::Csend if repeated => {}
             Kind::Send | Kind::Csend | Kind::Yield => self.branch_node(emit, discount),
             // A block on a method that is known not to iterate is not a decision point.
             kind if is_condition(kind) && emit.iterating != Some(false) => {
@@ -274,4 +309,159 @@ fn above_decimal(value: f64, digits: &[u8], exponent: i32) -> bool {
 fn scaled(value: u128, twos: i32, tens: i32) -> Option<u128> {
     let value = value.checked_mul(2u128.checked_pow(u32::try_from(twos).ok()?)?)?;
     value.checked_mul(10u128.checked_pow(u32::try_from(tens).ok()?)?)
+}
+
+/// `Utils::RepeatedAttributeDiscount`: the attribute reads already seen, so a second read of the
+/// same one is not counted as another branch.
+///
+/// Upstream keys the tree by the receiver node itself and makes the `nil` and `self` receivers
+/// share one entry, which is what lets `bar`, `self.bar` and `bar` count once between them. The
+/// keys here spell the same identity as a string.
+#[derive(Default)]
+struct Attributes {
+    tree: HashMap<String, Attributes>,
+}
+
+impl Attributes {
+    /// `discount_repeated_attribute?`: walks the receiver chain, recording what it has not seen.
+    /// True only when every step of the chain was already there.
+    fn repeats(
+        &mut self,
+        node: Node<'_>,
+        context: &RuleContext<'_>,
+        locals: &super::locals::Locals,
+    ) -> bool {
+        match key_path(node, context, locals) {
+            Some(path) => self.record(&path),
+            None => false,
+        }
+    }
+
+    fn record(&mut self, path: &[String]) -> bool {
+        let Some((head, rest)) = path.split_first() else {
+            return true;
+        };
+        let known = self.tree.contains_key(head);
+        let deeper = self.tree.entry(head.clone()).or_default().record(rest);
+        known & deeper
+    }
+
+    /// `update_repeated_attribute`: writing to a receiver invalidates what was read through it.
+    fn invalidate(
+        &mut self,
+        emit: Emit<'_>,
+        context: &RuleContext<'_>,
+        locals: &super::locals::Locals,
+    ) {
+        let Some((path, method)) = setter_to_getter(emit, context, locals) else {
+            return;
+        };
+        let Some(branch) = self.navigate(&path) else {
+            return;
+        };
+        match method {
+            Some(method) => drop(branch.tree.remove(&method)),
+            None => branch.tree.clear(),
+        }
+    }
+
+    fn navigate(&mut self, path: &[String]) -> Option<&mut Self> {
+        let mut current = self;
+        for key in path {
+            current = current.tree.get_mut(key)?;
+        }
+        Some(current)
+    }
+}
+
+/// `setter_to_getter`, as the receiver chain to invalidate and the one attribute under it -- or
+/// the whole branch, when a variable itself was written.
+fn setter_to_getter(
+    emit: Emit<'_>,
+    context: &RuleContext<'_>,
+    locals: &super::locals::Locals,
+) -> Option<(Vec<String>, Option<String>)> {
+    match emit.kind {
+        // `(lvasgn :my_var _)` and its three siblings: everything read through the name goes.
+        Kind::Lvasgn | Kind::Asgn => {
+            let target = emit.node.field("left")?;
+            Some((vec![root_key(target, context, locals)?], None))
+        }
+        // `foo.bar = 1` and `foo.bar ||= 1` both name one attribute of one receiver.
+        Kind::Send | Kind::Csend if emit.setter => {
+            let receiver = emit.node.field("receiver");
+            let method = context.source.node_text(emit.node.field("method")?);
+            let path = match receiver {
+                Some(receiver) => key_path(receiver, context, locals)?,
+                None => vec![ROOT.to_owned()],
+            };
+            Some((path, Some(method.trim_end_matches('=').to_owned())))
+        }
+        Kind::OpAsgn | Kind::OrAsgn | Kind::AndAsgn => {
+            let target = emit.node.field("left")?;
+            match target.kind_str() {
+                "call" => {
+                    let method = context.source.node_text(target.field("method")?);
+                    let path = match target.field("receiver") {
+                        Some(receiver) => key_path(receiver, context, locals)?,
+                        None => vec![ROOT.to_owned()],
+                    };
+                    Some((path, Some(method.to_owned())))
+                }
+                _ => Some((vec![root_key(target, context, locals)?], None)),
+            }
+        }
+        _ => None,
+    }
+}
+
+/// The entry `nil` and `self` share upstream, by sharing one hash between the two keys.
+const ROOT: &str = "self";
+
+/// `find_attributes`, flattened: the chain of names a read walks through, or `None` when the node
+/// is not a series of argument-less calls over a root the tree can key on.
+fn key_path(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    locals: &super::locals::Locals,
+) -> Option<Vec<String>> {
+    if let Some(root) = root_key(node, context, locals) {
+        return Some(vec![root]);
+    }
+    match node.kind_str() {
+        // `attribute_call?` is `(call _receiver _method)` -- two children, so no arguments.
+        "call" if node.field("arguments").is_none() && node.field("block").is_none() => {
+            let method = context.source.node_text(node.field("method")?);
+            let mut path = match node.field("receiver") {
+                Some(receiver) => key_path(receiver, context, locals)?,
+                None => vec![ROOT.to_owned()],
+            };
+            path.push(method.to_owned());
+            Some(path)
+        }
+        // A bare name that is not a local is `(send nil :name)`.
+        "identifier" => Some(vec![
+            ROOT.to_owned(),
+            context.source.node_text(node).to_owned(),
+        ]),
+        _ => None,
+    }
+}
+
+/// `root_node?`: the receivers the tree keys on directly rather than walking through.
+fn root_key(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    locals: &super::locals::Locals,
+) -> Option<String> {
+    let text = || context.source.node_text(node);
+    match node.kind_str() {
+        "self" => Some(ROOT.to_owned()),
+        "identifier" if locals.is_lvar(node) => Some(format!("lvar:{}", text())),
+        "instance_variable" => Some(format!("ivar:{}", text())),
+        "class_variable" => Some(format!("cvar:{}", text())),
+        "global_variable" => Some(format!("gvar:{}", text())),
+        "constant" | "scope_resolution" => Some(format!("const:{}", text())),
+        _ => None,
+    }
 }

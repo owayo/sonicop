@@ -10,8 +10,8 @@ use super::support::{
     start_line_range,
 };
 use crate::diagnostic::Offense;
-use crate::rules::{RuleContext, push_named_children};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::{RuleContext, push_named_children};
 
 /// `EnforcedStyleAlignWith`.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -70,6 +70,20 @@ impl Checker<'_, '_> {
                 None => self.check_other_alignment(node, offenses),
             },
             "assignment" | "operator_assignment" | "call" => self.check_assignment(node, offenses),
+            // `variable + if ... end` is a `send` upstream, so `CheckAssignment#on_send` reads its
+            // last argument. The grammar spells a binary operator as its own kind -- except for
+            // `and` / `or`, which upstream keeps out of `on_send` as separate node types.
+            "binary" => {
+                let logical = node.field("operator").is_some_and(|operator| {
+                    matches!(
+                        self.context.source.node_text(operator),
+                        "&&" | "||" | "and" | "or"
+                    )
+                });
+                if !logical {
+                    self.check_assignment(node, offenses);
+                }
+            }
             _ => {}
         }
     }
@@ -228,10 +242,8 @@ fn leading_child(node: Node<'_>) -> Option<Node<'_>> {
 fn assignment_or_operator_method(node: Node<'_>) -> Option<Node<'_>> {
     let mut current = node.parent();
     while let Some(candidate) = current {
-        if matches!(
-            candidate.kind_str(),
-            "assignment" | "operator_assignment" | "binary"
-        ) {
+        let operator_method = candidate.kind_str() == "binary" && !is_logical(candidate);
+        if matches!(candidate.kind_str(), "assignment" | "operator_assignment") || operator_method {
             return Some(candidate);
         }
         current = candidate.parent();
@@ -239,11 +251,24 @@ fn assignment_or_operator_method(node: Node<'_>) -> Option<Node<'_>> {
     None
 }
 
+/// Whether a `binary` is one of the four operators upstream spells as its own node type rather
+/// than as a send.
+///
+/// `operator_method?` is asked of a `send`, and `a || b` is an `or` -- so the search walks past it
+/// to the assignment above. Answering yes here instead aligns the `end` of `var = if ... end || x`
+/// to the `if` it already sits under, which corrects nothing and reads as a correction loop.
+fn is_logical(node: Node<'_>) -> bool {
+    node.field("operator")
+        .is_some_and(|operator| matches!(operator.kind_str(), "&&" | "||" | "and" | "or"))
+}
+
 /// The call a node sits directly inside, which is what `parent.send_type?` asks for.
 fn send_parent<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let parent = node.parent()?;
     match parent.kind_str() {
-        "call" | "binary" | "unary" | "element_reference" => Some(parent),
+        // `parent.send_type?`, which the four logical operators are not.
+        "binary" => (!is_logical(parent)).then_some(parent),
+        "call" | "unary" | "element_reference" => Some(parent),
         "argument_list" => parent.parent().filter(|call| call.kind_str() == "call"),
         _ => None,
     }

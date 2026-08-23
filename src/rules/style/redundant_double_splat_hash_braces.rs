@@ -14,7 +14,15 @@ const MERGE_METHODS: &[&str] = &["merge", "merge!"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("hash") {
-        let pairs = super::nodes::children(node);
+        // `node.pairs` lists the `pair` children alone -- a nested `**{…}` is a `kwsplat` and is
+        // not one of them. Counting it as a pair made every hash holding one look rocket-written
+        // and dropped the **outer** hash of `**{a: 1, **{b: 2}}` on the floor.
+        let written = super::nodes::children(node);
+        let pairs: Vec<Node<'_>> = written
+            .iter()
+            .copied()
+            .filter(|child| child.kind_str() == "pair")
+            .collect();
         if pairs.is_empty() || pairs.iter().any(|pair| is_hash_rocket(*pair, context)) {
             continue;
         }
@@ -35,7 +43,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         offenses.push(
             context
                 .offense(MSG, splat.byte_range())
-                .corrected_by_all(autocorrect(context, node, splat, &pairs)),
+                .corrected_by_all(autocorrect(context, node, splat, &written)),
         );
     }
 }
@@ -98,6 +106,8 @@ fn autocorrect(
     context: &RuleContext<'_>,
     node: Node<'_>,
     splat: Node<'_>,
+    // Everything the braces hold, `kwsplat` children included: the braces come off around all of
+    // it, not just around the pairs.
     pairs: &[Node<'_>],
 ) -> Vec<Edit> {
     let mut edits = Vec::new();

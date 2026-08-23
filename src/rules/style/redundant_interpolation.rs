@@ -5,8 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
-use crate::rules::send_node;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 const MSG: &str = "Prefer `to_s` over string interpolation.";
 
@@ -40,11 +40,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let embedded = super::nodes::children(*interpolation);
-        // `use_match_pattern?`: `"#{x => y}"` binds a name rather than producing one.
+        // `use_match_pattern?`: `"#{x => y}"` binds a name rather than producing one. The test it
+        // runs is `match_pattern_type?`, which `x in y` fails -- that is a `match_pattern_p`, and
+        // `"#{42 in var}"` is reported like any other interpolation.
         if context.target_ruby_version() > RubyVersion::new(2, 7)
             && embedded
                 .iter()
-                .any(|child| matches!(child.kind_str(), "match_pattern" | "test_pattern"))
+                .any(|child| child.kind_str() == "match_pattern")
         {
             continue;
         }
@@ -162,9 +164,7 @@ fn is_symbol_key(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         return false;
     };
     parent.kind_str() == "pair"
-        && parent
-            .field("key")
-            .is_some_and(|key| key.id() == node.id())
+        && parent.field("key").is_some_and(|key| key.id() == node.id())
         && parent
             .child(1)
             .is_some_and(|separator| context.source.node_text(separator) == ":")

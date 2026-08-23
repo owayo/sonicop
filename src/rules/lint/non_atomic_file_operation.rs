@@ -135,9 +135,15 @@ fn corrections(
     }];
     if !is_force_method(node, context) {
         if let (Some(receiver), Some(method)) = (node.field("receiver"), node.field("method")) {
+            // `loc.name` is the constant's own name, so a `::`-prefixed receiver keeps its prefix:
+            // `::File.exist?` becomes `::FileUtils.rm_f`, not `FileUtils.rm_f`.
+            let name = match receiver.kind_str() {
+                "scope_resolution" => receiver.field("name").unwrap_or(receiver),
+                _ => receiver,
+            };
             edits.push(Edit {
-                start: receiver.start_byte(),
-                end: receiver.end_byte(),
+                start: name.start_byte(),
+                end: name.end_byte(),
                 replacement: "FileUtils".to_owned(),
                 safe: true,
             });

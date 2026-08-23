@@ -48,6 +48,9 @@ const IMMUTABLE_LITERAL_KINDS: &[&str] = &[
     "complex",
     "simple_symbol",
     "delimited_symbol",
+    // `{ a: 1 }` writes its key without a colon in front, but the parser still makes it a `sym`.
+    // Left out, `Recursive` walks into a frozen hash and tries to append `.freeze` to the key.
+    "hash_key_symbol",
     "true",
     "false",
     "nil",
@@ -196,11 +199,9 @@ impl<'tree> Cop<'_, 'tree> {
         }
         // A sign written against a numeric literal is folded into the literal upstream.
         value.kind_str() == "unary"
-            && value
-                .field("operator")
-                .is_some_and(|operator| {
-                    matches!(self.context.source.node_text(operator), "-" | "+")
-                })
+            && value.field("operator").is_some_and(|operator| {
+                matches!(self.context.source.node_text(operator), "-" | "+")
+            })
             && value
                 .field("operand")
                 .is_some_and(|operand| IMMUTABLE_LITERAL_KINDS.contains(&operand.kind_str()))
@@ -260,9 +261,7 @@ impl<'tree> Cop<'_, 'tree> {
             && node.field("operator").is_some_and(|operator| {
                 matches!(self.context.source.node_text(operator), "||" | "or")
             })
-            && node
-                .field("left")
-                .is_some_and(|left| self.env_lookup(left))
+            && node.field("left").is_some_and(|left| self.env_lookup(left))
         {
             return true;
         }
@@ -311,17 +310,13 @@ impl<'tree> Cop<'_, 'tree> {
         match node.kind_str() {
             "binary" => Some((
                 Some(node.field("left")?),
-                self.context
-                    .source
-                    .node_text(node.field("operator")?),
+                self.context.source.node_text(node.field("operator")?),
                 vec![node.field("right")?],
                 false,
             )),
             "call" if send_node::is_plain_send(node, self.context) => Some((
                 node.field("receiver"),
-                self.context
-                    .source
-                    .node_text(node.field("method")?),
+                self.context.source.node_text(node.field("method")?),
                 send_node::arguments(node)
                     .into_iter()
                     .map(|argument| argument.first())
@@ -348,13 +343,11 @@ impl<'tree> Cop<'_, 'tree> {
         match node.kind_str() {
             "integer" | "float" => true,
             "unary" => {
-                node.field("operator")
-                    .is_some_and(|operator| {
-                        matches!(self.context.source.node_text(operator), "-" | "+")
-                    })
-                    && node
-                        .field("operand")
-                        .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"))
+                node.field("operator").is_some_and(|operator| {
+                    matches!(self.context.source.node_text(operator), "-" | "+")
+                }) && node
+                    .field("operand")
+                    .is_some_and(|operand| matches!(operand.kind_str(), "integer" | "float"))
             }
             _ => false,
         }
@@ -385,14 +378,19 @@ impl<'tree> Cop<'_, 'tree> {
             edits.push(edit(expr.end..expr.end, ".freeze".to_owned()));
             return;
         }
-        if is_unbracketed_array(node) {
+        // The bracket and `.freeze` land on the same byte, and two insertions there come out in
+        // whichever order the edit list is applied -- `1..10.freeze)` rather than `(1..10).freeze`.
+        // One edit fixes the order.
+        let closing = if is_unbracketed_array(node) {
             edits.push(edit(expr.start..expr.start, "[".to_owned()));
-            edits.push(edit(expr.end..expr.end, "]".to_owned()));
+            "]"
         } else if self.requires_parentheses(node) {
             edits.push(edit(expr.start..expr.start, "(".to_owned()));
-            edits.push(edit(expr.end..expr.end, ")".to_owned()));
-        }
-        edits.push(edit(expr.end..expr.end, ".freeze".to_owned()));
+            ")"
+        } else {
+            ""
+        };
+        edits.push(edit(expr.end..expr.end, format!("{closing}.freeze")));
         if self.recursive {
             self.freeze_nested_literals(node, edits);
         }
@@ -418,12 +416,10 @@ impl<'tree> Cop<'_, 'tree> {
     fn splat_value(&self, node: Node<'tree>) -> Option<Node<'tree>> {
         let splat = match node.kind_str() {
             "splat_argument" => node,
-            "array" | "right_assignment_list" => {
-                match send_node::named_children(node).as_slice() {
-                    [only] if only.kind_str() == "splat_argument" => *only,
-                    _ => return None,
-                }
-            }
+            "array" | "right_assignment_list" => match send_node::named_children(node).as_slice() {
+                [only] if only.kind_str() == "splat_argument" => *only,
+                _ => return None,
+            },
             _ => return None,
         };
         send_node::named_children(splat).first().copied()

@@ -63,6 +63,11 @@ fn symbol_kind(node: Node<'_>, context: &RuleContext<'_>) -> Option<bool> {
         return None;
     }
     if node.kind_str() == "delimited_symbol" {
+        // A literal running over more than one line is a `dsym` too: the parser gives each line a
+        // `str` of its own and hangs them under one, so `on_sym` never sees it.
+        if context.source.node_text(node).contains('\n') {
+            return None;
+        }
         // An empty `:""` is a `dsym` upstream as well -- but an empty hash key is a plain `sym`.
         return (node.named_child_count() > 0).then_some(false);
     }

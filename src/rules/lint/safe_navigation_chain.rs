@@ -357,7 +357,9 @@ fn requires_parentheses(chain: &Chain<'_>, context: &RuleContext<'_>) -> bool {
     parent.is_some_and(|parent| match parent.kind_str() {
         "binary" => parent.field("operator").is_some_and(|operator| {
             let text = context.source.node_text(operator);
-            matches!(text, "&&" | "and" | "||" | "or") || COMPARISON_METHODS.contains(&text)
+            // `logical_operator?` is true for `&&` / `||` and **false for the keyword forms**:
+            // `and` binds looser than a comparison, so the rewrite needs no brackets there.
+            matches!(text, "&&" | "||") || COMPARISON_METHODS.contains(&text)
         }),
         _ => false,
     })

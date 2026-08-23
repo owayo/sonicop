@@ -79,6 +79,11 @@ fn check_comparison(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Ve
             ("<" | "!=", _, Some(length), Some(0), _) => (false, length, "0", false),
             _ => return,
         };
+    // `on_csend` runs the two zero-length checks and **not** `check_nonzero_length_comparison`,
+    // so `foo&.length > 0` is left alone while `foo&.length == 0` is not.
+    if !zero && !crate::rules::send_node::is_plain_send(length, context) {
+        return;
+    }
     let name = selector_of(context, length).unwrap_or_default();
     let current = if on_the_left {
         format!("{name} {operator} {literal}")

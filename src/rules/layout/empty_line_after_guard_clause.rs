@@ -359,7 +359,11 @@ fn last_heredoc_argument<'tree>(
             return Some(found);
         }
     }
-    let receiver = current.field("receiver")?;
+    // `n.receiver` for a binary operator is its left-hand side: `<<~TEXT.length > bar` is a
+    // `send` of `:>` upstream, whose receiver holds the heredoc.
+    let receiver = current
+        .field("receiver")
+        .or_else(|| (current.kind_str() == "binary").then(|| current.field("left")).flatten())?;
     last_heredoc_argument(context, receiver, false)
 }
 

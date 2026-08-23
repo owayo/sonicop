@@ -48,7 +48,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     for node in context.nodes_of("array") {
         let items = nodes::children(node);
-        if items.is_empty() || !items.iter().all(|item| is_word(context, *item)) {
+        if items.is_empty() || !items.iter().all(|item| is_word(*item)) {
             continue;
         }
         let values = values(context, &items);
@@ -113,10 +113,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `bracketed_array_of?(:str, node)`: a plain string, so neither interpolated nor split across
 /// lines, both of which upstream's parser turns into a `dstr`. A `?a` character literal is a `str`
 /// there too.
-fn is_word(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+fn is_word(node: Node<'_>) -> bool {
     match node.kind_str() {
         "character" => true,
-        "string" => !interpolated(node) && !context.source.node_text(node).contains('\n'),
+        // A literal newline inside the quotes is still a word to `WordRegex`, whose default
+        // matches `\n` and `\t` on purpose.
+        "string" => !interpolated(node),
         _ => false,
     }
 }
@@ -132,7 +134,7 @@ fn interpolated(node: Node<'_>) -> bool {
 fn values(context: &RuleContext<'_>, items: &[Node<'_>]) -> Vec<Option<Decoded>> {
     items
         .iter()
-        .map(|item| match is_word(context, *item) {
+        .map(|item| match is_word(*item) {
             true => node_value(context, *item),
             false => None,
         })

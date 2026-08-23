@@ -251,11 +251,10 @@ fn in_pattern_matching_in_method_argument(
     let Some(first) = children.first() else {
         return false;
     };
-    // `match_pattern_p_type?` above Ruby 2.7, where `in` builds that node rather than the `=>` one.
-    match context.target_ruby_version() <= crate::ruby_version::RubyVersion::new(2, 7) {
-        true => first.kind_str() == "match_pattern",
-        false => first.kind_str() == "test_pattern",
-    }
+    // Upstream names the node differently per version -- 2.7 builds `match_pattern` for `in`, and
+    // 3.0 renamed that to `match_pattern_p` while giving `=>` the freed-up name. **Either way the
+    // question is about `in`**, which the grammar always spells `test_pattern`.
+    first.kind_str() == "test_pattern"
 }
 
 /// `allowed_pin_operator?`: `^(pin (begin !{lvar ivar cvar gvar}))`.

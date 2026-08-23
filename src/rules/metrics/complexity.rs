@@ -832,6 +832,29 @@ impl<'a> Walk<'a> {
         is_receiverless_call(node)
             && !self.locals.is_lvar(node)
             && !is_keyword_literal(self.text(node))
+            && !self.is_implicit_block_parameter(node)
+    }
+
+    /// `it` inside a block that declares no parameters is that block's parameter -- an `itblock`
+    /// upstream, where the name is a variable rather than a call.
+    fn is_implicit_block_parameter(&self, node: Node<'_>) -> bool {
+        if self.text(node) != "it" {
+            return false;
+        }
+        let mut current = node.parent();
+        while let Some(parent) = current {
+            if matches!(parent.kind_str(), "block" | "do_block") {
+                return parent.field("parameters").is_none();
+            }
+            if matches!(
+                parent.kind_str(),
+                "method" | "singleton_method" | "class" | "module" | "lambda"
+            ) {
+                return false;
+            }
+            current = parent.parent();
+        }
+        false
     }
 
     /// Whether a block takes its parameters implicitly through `_1`, which makes it a `numblock`

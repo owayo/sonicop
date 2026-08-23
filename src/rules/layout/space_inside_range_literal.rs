@@ -21,8 +21,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         else {
             continue;
         };
-        let operator = &text[operator.byte_range()];
-        let source = &text[node.byte_range()];
+        let operator_text = &text[operator.byte_range()];
+        // Ruby continues a range across the line break after its operator -- `0 ..\n 10` is one
+        // `irange`. The grammar stops the node at the operator and reads the rest as a statement of
+        // its own, so the literal is stitched back together before it is measured.
+        let end = continued_end(context, node, operator).unwrap_or_else(|| node.end_byte());
+        let operator = operator_text;
+        let source = &text[node.start_byte()..end];
         // The cop works on the literal's text rather than on its parts, so a multiline range is
         // first folded back onto one line and only then measured.
         let expression = collapse_line_break(source, operator);
@@ -31,12 +36,41 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let replacement = trim_before(&expression, operator);
         let replacement = trim_after(&replacement, operator);
-        offenses.push(context.offense(MSG, node.byte_range()).corrected_by(Edit {
-            start: node.start_byte(),
-            end: node.end_byte(),
-            replacement,
-            safe: true,
-        }));
+        offenses.push(
+            context
+                .offense(MSG, node.start_byte()..end)
+                .corrected_by(Edit {
+                    start: node.start_byte(),
+                    end,
+                    replacement,
+                    safe: true,
+                }),
+        );
+    }
+}
+
+/// Where the literal really ends when the grammar cut it short at a line break.
+///
+/// A range whose operator is its last token is either endless -- `(0..)` -- or continued on the
+/// next line, and only the second joins what follows into the same node upstream. The statement the
+/// grammar built out of the continuation is the sibling that follows the one holding the range.
+fn continued_end(context: &RuleContext<'_>, node: Node<'_>, operator: Node<'_>) -> Option<usize> {
+    if operator.end_byte() != node.end_byte() {
+        return None;
+    }
+    if !context.source.text()[node.end_byte()..].starts_with('\n') {
+        return None;
+    }
+    let mut current = node;
+    loop {
+        if let Some(next) = current.next_named_sibling() {
+            return Some(next.end_byte());
+        }
+        let parent = current.parent()?;
+        if parent.kind_str() == "program" {
+            return None;
+        }
+        current = parent;
     }
 }
 
@@ -60,11 +94,9 @@ fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
                 }
             }
             "binary"
-                if parent
-                    .field("operator")
-                    .is_some_and(|operator| {
-                        matches!(&text[operator.byte_range()], "&&" | "||" | "and" | "or")
-                    }) => {}
+                if parent.field("operator").is_some_and(|operator| {
+                    matches!(&text[operator.byte_range()], "&&" | "||" | "and" | "or")
+                }) => {}
             "unary" => {
                 return parent
                     .child(0)

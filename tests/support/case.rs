@@ -60,6 +60,14 @@ pub struct CopCase {
     /// 安全網 (`#41`) を切るか。**本家の出力そのものが `ruby -c` を通らないケース専用。**
     /// 既定は偽 = 安全網は働く。
     pub skip_syntax_guard: bool,
+    /// 本家自身が構文エラーを報告したケースか。**その報告こそが期待値**なので、
+    /// [`Self::assert_parsed`] のガードは邪魔になる。[`Self::skip_syntax_guard`] とは別物:
+    /// あちらは「補正後の出力」、こちらは「入力そのもの」についての話。
+    pub expects_syntax_error: bool,
+    /// ソースを実際にディスクへ書くか。`Lint/ScriptPermission` はファイルのモードを読むので、
+    /// 名前だけのパスでは何も判定できない -- 既定が偽なのは、11,300 ケース分のファイル I/O を
+    /// 1 つの cop のために払う理由がないから。
+    pub materialize: bool,
     /// `(start_line, start_column, last_line, last_column)` の期待。
     pub locations: Option<Vec<(usize, usize, usize, usize)>>,
     /// `location.length` の期待。本家は文字数で出す。
@@ -84,6 +92,8 @@ impl CopCase {
             cop_names: None,
             uses_only: true,
             skip_syntax_guard: false,
+            expects_syntax_error: false,
+            materialize: false,
             locations: None,
             lengths: None,
             correct_mode: CorrectMode::All,
@@ -172,6 +182,14 @@ impl CopCase {
         self
     }
 
+    /// 期待値をそのまま置く。[`CopCase::corrected`] は手書きケースが `<<~RUBY` 風に
+    /// 書かれている前提で字下げを落とすので、**録った実出力を渡すと先頭の改行と共通字下げが
+    /// 黙って消える**。録ったものを再生する側はこちらを使う。
+    pub fn corrected_verbatim(mut self, corrected: &str) -> Self {
+        self.corrected = Some(corrected.to_owned());
+        self
+    }
+
     pub fn severity(mut self, severity: Severity) -> Self {
         self.severity = Some(severity);
         self
@@ -194,6 +212,20 @@ impl CopCase {
     /// decision about whether to write the file at all. **Write the reason in the test**, with
     /// the `ruby -c` verdict on upstream's expected text, so the next reader does not have to
     /// rediscover that upstream is the one breaking it.
+    /// ソースを実ファイルとして書き出させる。ファイルのモードや存在そのものを読む cop --
+    /// `Lint/ScriptPermission` -- はこれがないと何も見えない。
+    pub fn materialized(mut self) -> Self {
+        self.materialize = true;
+        self
+    }
+
+    /// 本家が構文エラーを報告したケースだと宣言する。期待 offense にその報告が入っている
+    /// ので、[`Self::assert_parsed`] で弾かずに他の offense と同じように突き合わせる。
+    pub fn expecting_syntax_error(mut self) -> Self {
+        self.expects_syntax_error = true;
+        self
+    }
+
     pub fn without_syntax_guard(mut self) -> Self {
         self.skip_syntax_guard = true;
         self
@@ -211,11 +243,34 @@ impl CopCase {
     pub fn inspect(&self) -> FileReport {
         record_coverage(self);
         let config = self.resolved_config();
-        let report =
-            engine::inspect_source(&self.path, self.source.clone(), &config, &self.selection())
-                .unwrap_or_else(|error| panic!("{}: 検査に失敗した: {error:#}", self.label()));
+        // 一時ディレクトリは束縛したまま検査する。先に落とすとファイルが消えて、モードを
+        // 読む cop が「ファイルが無い」側の答えを返す。
+        let materialized = self.materialize.then(|| self.write_source());
+        let path = match &materialized {
+            Some((_, path)) => path.clone(),
+            None => self.path.clone(),
+        };
+        let report = engine::inspect_source(&path, self.source.clone(), &config, &self.selection())
+            .unwrap_or_else(|error| panic!("{}: 検査に失敗した: {error:#}", self.label()));
         self.assert_parsed(&report);
         report
+    }
+
+    /// ソースを一時ディレクトリへ [`Self::path`] の名前で書き、そのフルパスを返す。
+    ///
+    /// 本家 spec は実行権限の無いファイルを作るので、モードもそれに合わせる。
+    fn write_source(&self) -> (TempDir, String) {
+        let directory = TempDir::new().expect("一時ディレクトリを作れなかった");
+        let path = directory.path().join(&self.path);
+        std::fs::write(&path, &self.source).expect("ソースを書けなかった");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))
+                .expect("モードを設定できなかった");
+        }
+        let name = path.to_string_lossy().into_owned();
+        (directory, name)
     }
 
     /// 期待との差分を集める。パニックしないので、既知差分マニフェストと
@@ -311,7 +366,7 @@ impl CopCase {
     /// いない構文エラーが差分に混ざる。本家が「Error parsing example code」で
     /// 落とすのと同じく、ここで切り分けておく。
     fn assert_parsed(&self, report: &FileReport) {
-        if self.only.iter().any(|cop| cop == "Lint/Syntax") {
+        if self.expects_syntax_error || self.only.iter().any(|cop| cop == "Lint/Syntax") {
             return;
         }
         let syntax: Vec<&str> = report
@@ -336,6 +391,9 @@ impl CopCase {
             .offenses
             .iter()
             .map(|offense| offense.cop_name)
+            // `Selection::includes` は `Lint/Syntax` を `--only` に関わらず有効にする -- 本家も
+            // そうなので、構文エラーを期待するケースではその offense こそ突き合わせる対象。
+            .filter(|name| !(self.expects_syntax_error && *name == "Lint/Syntax"))
             .filter(|name| !self.selects(name))
             .collect();
         assert!(
@@ -448,11 +506,12 @@ impl CopCase {
         let selection = self.selection_for(self.correct_mode != CorrectMode::None);
         let report = engine::inspect_source(&self.path, self.source.clone(), &config, &selection)
             .unwrap_or_else(|error| panic!("{}: 検査に失敗した: {error:#}", self.label()));
-        let (_, corrected, _) =
-            engine::correct_until_stable(report, self.correct_mode, &config, &selection)
-                .unwrap_or_else(|error| {
-                    panic!("{}: autocorrect が失敗した: {error:#}", self.label())
-                });
+        // 本家も無限補正ループでは `InfiniteCorrectionLoop` を投げて終わる。投げる前に書いた
+        // ソースこそが記録された期待値なので、ここで打ち切られたこと自体は差異ではない --
+        // 差異かどうかを決めるのはそのソースが記録と一致するかどうか。
+        let outcome = engine::correct_file(report, self.correct_mode, &config, &selection)
+            .unwrap_or_else(|error| panic!("{}: autocorrect が失敗した: {error:#}", self.label()));
+        let corrected = outcome.text;
         match corrected == *expected {
             true => Vec::new(),
             false => vec![Divergence::new(Kind::Correction, expected, &corrected)],

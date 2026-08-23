@@ -243,7 +243,9 @@ fn instance_eval_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 fn enclosed_by_method(node: Node<'_>) -> bool {
     let mut current = node.parent();
     while let Some(parent) = current {
-        if matches!(parent.kind_str(), "method" | "singleton_method") {
+        // `node.each_ancestor(:def).none?` lists `:def` alone -- a `defs` (`def obj.name`) does
+        // not stop `alias_method` from being possible, it only makes the scope dynamic.
+        if parent.kind_str() == "method" {
             return true;
         }
         current = parent.parent();

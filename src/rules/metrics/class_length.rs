@@ -8,7 +8,12 @@ use crate::rules::node_ext::NodeExt;
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(100);
     let heredocs = HeredocEnds::new(context);
-    for node in context.nodes_of_any(&["class", "singleton_class", "assignment"]) {
+    for node in context.nodes_of_any(&[
+        "class",
+        "singleton_class",
+        "assignment",
+        "operator_assignment",
+    ]) {
         let (measured, target) = match node.kind_str() {
             // A `class << self` inside a class body is part of that class's length rather than a
             // class of its own. Only `class` and `module` are classlike to `CodeLengthCalculator`,
@@ -17,8 +22,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             "class" => (node, LengthTarget::Classlike),
             // `CONST = Class.new { ... }` and `CONST = Struct.new(...) { ... }` are class
             // definitions written as expressions, which `Node#class_definition?` recognises and
-            // `on_casgn` measures here rather than as blocks.
-            "assignment" => match class_definition_block(context, node) {
+            // `on_casgn` measures here rather than as blocks. `CONST ||= Struct.new { ... }`
+            // reaches upstream the same way: the `casgn` has no expression of its own, so
+            // `find_expression_within_parent` reads the assignment wrapping it.
+            "assignment" | "operator_assignment" => match class_definition_block(context, node) {
                 Some(block) => (block, LengthTarget::Block),
                 None => continue,
             },
@@ -46,7 +53,12 @@ fn class_definition_block<'tree>(
     assignment: Node<'tree>,
 ) -> Option<Node<'tree>> {
     let target = assignment.field("left")?;
-    if !matches!(target.kind_str(), "constant" | "scope_resolution") {
+    // `Foo, Bar = Struct.new { ... }`: the `casgn` sits inside an `masgn` upstream, which
+    // `find_expression_within_parent` reads through.
+    if !matches!(
+        target.kind_str(),
+        "constant" | "scope_resolution" | "left_assignment_list"
+    ) {
         return None;
     }
     let call = assignment

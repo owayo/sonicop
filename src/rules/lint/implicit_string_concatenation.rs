@@ -2,8 +2,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::{is_plain_send, named_children, string_text};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{is_plain_send, named_children, string_text};
 
 const FOR_ARRAY: &str =
     " Or, if they were intended to be separate array elements, separate them with a comma.";
@@ -82,7 +82,25 @@ fn display(node: Node<'_>, context: &RuleContext<'_>) -> String {
     if !source.contains('\n') {
         return source.to_owned();
     }
-    format!("{:?}", string_text(node, context))
+    format!("{:?}", str_content(node, context))
+}
+
+/// `str_content`: the text of a literal with every interpolation dropped.
+///
+/// Upstream reaches the interpolation as a `begin` node holding a `send`, whose children answer
+/// nothing to `str_type?` -- so the recursion joins an empty string for it. Showing the source
+/// instead puts `#{...}` in a message that upstream writes without it.
+fn str_content(node: Node<'_>, context: &RuleContext<'_>) -> String {
+    let mut cursor = node.walk();
+    let parts: Vec<&str> = node
+        .children(&mut cursor)
+        .filter(|child| child.is_named() && child.kind_str() != "interpolation")
+        .map(|child| context.source.node_text(child))
+        .collect();
+    match parts.is_empty() {
+        true => string_text(node, context).to_owned(),
+        false => parts.concat(),
+    }
 }
 
 /// `str.source[-1] == ending_delimiter(str)`: the literal both opens and closes with a quote, which

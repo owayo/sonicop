@@ -80,9 +80,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The errors the tree-sitter grammar itself rejected the file for.
 fn parse_errors(context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
+    // A heredoc opened inside an interpolation throws the grammar off for the rest of the file --
+    // the unterminated body it then reports has nothing to do with what the source says. Nothing
+    // the scan finds here can be trusted, so none of it is reported.
+    if opens_heredoc_in_interpolation(context) {
+        return;
+    }
     let mut ran_out_of_input = false;
     for node in context.nodes() {
-        let nested_error = node.parent_of(context).is_some_and(|parent| parent.is_error());
+        let nested_error = node
+            .parent_of(context)
+            .is_some_and(|parent| parent.is_error());
         if (!node.is_error() && !node.is_missing()) || nested_error {
             continue;
         }
@@ -90,6 +98,9 @@ fn parse_errors(context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
         // it reaches the end of the input.
         if node.is_missing() || opens_without_closing(node) {
             ran_out_of_input = true;
+            continue;
+        }
+        if grammar_gap(node, context) {
             continue;
         }
         let (reason, range) = match offending_token(node) {
@@ -125,6 +136,45 @@ fn offending_token(error: Node<'_>) -> Option<Node<'_>> {
         .find(|child| CLOSING_TOKENS.contains(&child.kind_str()) && !child.is_named())
         .or_else(|| children.last())
         .copied()
+}
+
+/// Whether an `ERROR` node marks Ruby the grammar cannot read rather than Ruby the parser rejects.
+///
+/// `Lint/Syntax` reports what `parser` reports, and a file the real thing reads without complaint
+/// must draw no offense here -- reporting one would be a false positive on valid code, and would
+/// also stop every other cop from running on the file. Both shapes below were found by comparing
+/// against upstream; each is a construct `parser` accepts and tree-sitter's Ruby grammar does not.
+fn grammar_gap(error: Node<'_>, context: &RuleContext<'_>) -> bool {
+    multiline_array_pattern(error, context)
+}
+
+/// `in bar,\n   baz then …`: an array pattern continued on the next line. The grammar closes the
+/// pattern at the comma -- reading it as a nameless splat -- and everything after the line break
+/// lands in an `ERROR` inside the clause's body.
+fn multiline_array_pattern(error: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let mut current = Some(error);
+    while let Some(node) = current {
+        if node.kind_str() == "in_clause" {
+            return node.field("pattern").is_some_and(|pattern| {
+                pattern.kind_str() == "array_pattern"
+                    && context.source.node_text(pattern).trim_end().ends_with(',')
+            });
+        }
+        current = node.parent();
+    }
+    false
+}
+
+/// `"…#{ <<~INNER … }"`: a heredoc opened inside an interpolation. Ruby puts the body after the
+/// line the interpolation is written on, which the grammar has no way to express -- it looks for
+/// the body where the interpolation still is, and never finds the terminator.
+fn opens_heredoc_in_interpolation(context: &RuleContext<'_>) -> bool {
+    context.nodes_of("interpolation").any(|interpolation| {
+        let mut cursor = interpolation.walk();
+        interpolation
+            .named_children(&mut cursor)
+            .any(|child| child.kind_str() == "heredoc_beginning")
+    })
 }
 
 /// Whether an `ERROR` node leaves a region open, which the parser reports at the end of the input
@@ -189,12 +239,16 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
         } else if let Some(statement) = statement_closing_its_body(node) {
             resumed_at = Some(statement.end_byte().max(resumed_at.unwrap_or(0)));
         }
+        let endless_in_block = gate.endless_in_block;
         out.push(Diagnostic {
             reason: gate.reason,
             range: gate.range,
         });
         if gate.legacy_forwarding {
             legacy_forwarding_recovery(node, context, out);
+        }
+        if endless_in_block {
+            endless_in_block_recovery(node, context, out);
         }
     }
 
@@ -263,6 +317,10 @@ struct Gate {
     /// a later use nor the end of the input is ever reached.
     abandons_file: bool,
     legacy_forwarding: bool,
+    /// Set for an endless definition written inside a block. The parser keeps `def name(args)` and
+    /// discards the `= body`, which leaves the block's `}` with nothing to close and the file a
+    /// token short at the end.
+    endless_in_block: bool,
     /// Set when upstream reports **more** after this one and the shape of those further
     /// diagnostics is not modelled here. Only this one is emitted; see `first_only()`.
     first_only: bool,
@@ -278,12 +336,19 @@ impl Gate {
             in_method_body: false,
             abandons_file: false,
             legacy_forwarding: false,
+            endless_in_block: false,
             first_only: false,
         }
     }
 
     fn recovers_through(mut self, end: usize) -> Self {
         self.recovery = Some(end);
+        self
+    }
+
+    /// See [`Gate::endless_in_block`].
+    fn endless_in_block(mut self) -> Self {
+        self.endless_in_block = true;
         self
     }
 
@@ -361,11 +426,15 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
             let equals = direct_children(node)
                 .into_iter()
                 .find(|child| !child.is_named() && child.kind_str() == "=")?;
-            Some(Gate::new(
+            let gate = Gate::new(
                 ENDLESS_METHOD_SINCE,
                 "unexpected token tEQL".to_owned(),
                 equals.byte_range(),
-            ))
+            );
+            Some(match enclosing_brace_block(node).is_some() {
+                true => gate.endless_in_block(),
+                false => gate,
+            })
         }
         // `case a / in Integer / ... / end`. Upstream reports every clause keyword and then a
         // surplus `end` whose position depends on the nesting, so only the first is claimed --
@@ -688,6 +757,48 @@ fn push_separators(items: &mut Vec<Interior<'_>>, context: &RuleContext<'_>, ran
 /// is not itself written inside one is reported as being written in a method body. `class << obj`
 /// carries no such check and is left alone. The file then ends a keyword short as well, unless the
 /// last thing the parser read was one of those definitions.
+/// The `{ … }` block a definition was written inside, which is the one whose closing brace loses
+/// its opener. A `do … end` block does not: its `end` is a keyword the parser can still pair up.
+fn enclosing_brace_block<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        if ancestor.kind_str() == "block" {
+            return Some(ancestor);
+        }
+        if matches!(
+            ancestor.kind_str(),
+            "method" | "singleton_method" | "do_block"
+        ) {
+            return None;
+        }
+        current = ancestor.parent();
+    }
+    None
+}
+
+/// What the parser reports after an endless definition inside a block.
+///
+/// `def name(args)` still parses, so the `= body` is what it stops on -- and once the definition is
+/// closed there, the `}` that was meant to end the block has no opener left. The file then runs out
+/// of input with the block still unclosed.
+fn endless_in_block_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
+    let Some(block) = enclosing_brace_block(node) else {
+        return;
+    };
+    let Some(brace) = block
+        .child(block.child_count().saturating_sub(1) as u32)
+        .filter(|last| last.kind_str() == "}")
+    else {
+        return;
+    };
+    out.push(Diagnostic {
+        reason: "unexpected token tRCURLY".to_owned(),
+        range: brace.byte_range(),
+    });
+    let (reason, range) = end_of_input(context);
+    out.push(Diagnostic { reason, range });
+}
+
 fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {
     if !inside_method_body(node) {
         return;
@@ -913,7 +1024,9 @@ fn legacy_forwarding_recovery(
                 .field("body")
                 .is_some_and(|body| significant_named_children(body).next().is_some())
     });
-    if container.kind_str() != "module" || !has_preceding_top_level_statement || !later_nonempty_method
+    if container.kind_str() != "module"
+        || !has_preceding_top_level_statement
+        || !later_nonempty_method
     {
         return;
     }

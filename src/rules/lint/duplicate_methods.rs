@@ -382,11 +382,16 @@ fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<Strin
                 }
             }
             "singleton_class" => parts.push(singleton_class_name(context, parent)?),
-            "block" | "do_block" => match block_module_name(context, parent) {
-                BlockScope::Transparent => {}
-                BlockScope::Named(name) => parts.push(name),
-                BlockScope::Opaque => return None,
-            },
+            // `each_ancestor(:class, :module, :sclass, :casgn, :block)` does not list `numblock`
+            // or `itblock`: a block whose parameter is implicit is a different node type upstream,
+            // and the walk passes straight over it. The grammar spells all three as `block`.
+            "block" | "do_block" if !super::blocks::uses_implicit_parameter(context, parent) => {
+                match block_module_name(context, parent) {
+                    BlockScope::Transparent => {}
+                    BlockScope::Named(name) => parts.push(name),
+                    BlockScope::Opaque => return None,
+                }
+            }
             _ => {}
         }
         current = parent;
@@ -417,11 +422,13 @@ fn defined_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<Stri
 }
 
 fn constant_name(context: &RuleContext<'_>, node: Node<'_>) -> String {
-    context
-        .source
-        .node_text(node)
-        .trim_start_matches("::")
-        .to_owned()
+    let text = context.source.node_text(node);
+    // `qualified_name` interpolates `namespace.const_name`, and `(self)` has none -- `self::A`
+    // qualifies as `::A`.
+    if let Some(rest) = text.strip_prefix("self::") {
+        return format!("::{rest}");
+    }
+    text.trim_start_matches("::").to_owned()
 }
 
 /// `Class.new`/`Module.new`, optionally carrying a block. `global` demands the bare global
@@ -807,3 +814,4 @@ fn symbol_name(text: &str) -> Option<&str> {
         .unwrap_or(text);
     (!unquoted.is_empty() && !unquoted.contains(['#', '"', '\''])).then_some(unquoted)
 }
+

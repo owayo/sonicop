@@ -8,7 +8,6 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
 use crate::rules::support::spurious_assignment_list;
 
-
 /// The parts of a constant path, as `each_path` walks them.
 struct ConstantPath {
     /// `constant_namespaces`: the `const` links of the path, which is what the message names.
@@ -202,13 +201,11 @@ fn definition_name(
     namespaces: &[String],
     context: &RuleContext<'_>,
 ) -> Option<String> {
+    // `fully_qualified_constant_name` is the same function for a definition as for an assignment:
+    // `class ::A::FooError` registers `::A::FooError`, which is what `A::FooError = …` looks up.
+    // Dropping the namespace of an absolute path made the two spell the constant differently.
     let path = constant_path(node.field("name")?, context)?;
-    if path.absolute {
-        return Some(join(&[], &path.name));
-    }
-    let mut parts = namespaces.to_vec();
-    parts.extend(path.namespaces.iter().cloned());
-    Some(join(&parts, &path.name))
+    Some(qualified_name(&path, namespaces))
 }
 
 /// `unconditional_definition?`: nothing but a class, a module or a statement list stands above it.

@@ -7,10 +7,13 @@ use crate::rules::send_node::{arguments, named_children, string_text, symbol_nam
 use super::blocks::BLOCK_KINDS;
 use super::literals::{is_literal, literal_type};
 use super::nil_methods::NIL_METHODS;
+use super::nil_receiver::cant_be_nil;
 use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Redundant safe navigation detected, use `.` instead.";
 const MSG_LITERAL: &str = "Redundant safe navigation with default literal detected.";
+const MSG_NON_NIL: &str = "Redundant safe navigation on non-nil receiver (detected by analyzing \
+                           previous code/method invocations).";
 
 /// `GUARANTEED_INSTANCE_METHODS`: conversions that cannot answer `nil`.
 const GUARANTEED_INSTANCE_METHODS: &[&str] = &["to_s", "to_i", "to_f", "to_a", "to_h"];
@@ -35,10 +38,34 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed = context
         .setting::<Vec<String>>("AllowedMethods")
         .unwrap_or_default();
+    // `InferNonNilReceiver`: look into the code before the call rather than at the call alone.
+    let infer_non_nil = context
+        .setting::<bool>("InferNonNilReceiver")
+        .unwrap_or(false);
+    let additional_nil_methods = context
+        .setting::<Vec<String>>("AdditionalNilMethods")
+        .unwrap_or_default();
+
     for node in context.nodes_of("call") {
         let Some(dot) = safe_navigation_dot(node, context) else {
             continue;
         };
+        if infer_non_nil
+            && let Some(receiver) = node.field("receiver")
+            && cant_be_nil(context, receiver, &additional_nil_methods)
+        {
+            offenses.push(
+                context
+                    .offense(MSG_NON_NIL, dot.clone())
+                    .corrected_by(Edit {
+                        start: dot.start,
+                        end: dot.end,
+                        replacement: ".".to_owned(),
+                        safe: false,
+                    }),
+            );
+            continue;
+        }
         if guarded_by_nil_receiver(node, &allowed, context) {
             continue;
         }
@@ -110,11 +137,9 @@ fn guaranteed_instance(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if receiver.kind_str() != "call" || safe_navigation_dot(receiver, context).is_some() {
         return false;
     }
-    receiver
-        .field("method")
-        .is_some_and(|method| {
-            GUARANTEED_INSTANCE_METHODS.contains(&context.source.node_text(method))
-        })
+    receiver.field("method").is_some_and(|method| {
+        GUARANTEED_INSTANCE_METHODS.contains(&context.source.node_text(method))
+    })
 }
 
 /// `check?`: an allowed predicate written where its result decides a branch.
@@ -139,14 +164,12 @@ fn checks_nil(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> 
         return true;
     }
     match parent.kind_str() {
-        "binary" => parent
-            .field("operator")
-            .is_some_and(|operator| {
-                matches!(
-                    context.source.node_text(operator),
-                    "&&" | "and" | "||" | "or"
-                )
-            }),
+        "binary" => parent.field("operator").is_some_and(|operator| {
+            matches!(
+                context.source.node_text(operator),
+                "&&" | "and" | "||" | "or"
+            )
+        }),
         "unary" => parent
             .field("operator")
             .is_some_and(|operator| context.source.node_text(operator) == "!"),
@@ -179,10 +202,7 @@ fn check_conversion_with_default(
     {
         return;
     }
-    let (Some(left), Some(right)) = (
-        node.field("left"),
-        node.field("right"),
-    ) else {
+    let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
         return;
     };
     // `foo&.to_h { ... } || {}` reaches the call through the block upstream wraps it in.
@@ -199,8 +219,12 @@ fn check_conversion_with_default(
     let matched = match context.source.node_text(method) {
         "to_h" => right.kind_str() == "hash" && named_children(right).is_empty(),
         "to_a" if !has_block => right.kind_str() == "array" && named_children(right).is_empty(),
-        "to_i" if !has_block => right.kind_str() == "integer" && context.source.node_text(right) == "0",
-        "to_f" if !has_block => right.kind_str() == "float" && context.source.node_text(right) == "0.0",
+        "to_i" if !has_block => {
+            right.kind_str() == "integer" && context.source.node_text(right) == "0"
+        }
+        "to_f" if !has_block => {
+            right.kind_str() == "float" && context.source.node_text(right) == "0.0"
+        }
         "to_s" if !has_block => {
             literal_type(right, context) == Some("str") && string_text(right, context).is_empty()
         }

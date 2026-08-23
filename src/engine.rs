@@ -2641,7 +2641,10 @@ pub fn correct_file(
     // `Runner#add_redundant_disables` runs once, after the loop has settled, and the loop that
     // follows it does not carry the directive cop at all.
     let mut directives_pending = plan.checks_directives();
-    for pass in 0..=MAX_CORRECTION_PASSES {
+    // `Runner#loop_until_no_offense` raises once a **201st** pass is asked for, so 200 of them
+    // actually run. A cop that grows the file every time leaves exactly that many marks behind, and
+    // an off-by-one here is visible in the file it gives up on.
+    for pass in 0..MAX_CORRECTION_PASSES {
         let (mut corrected, mut count) =
             corrected_text(&mut report, mode, Correcting::ExceptDirectives);
         let mut directive_pass = false;
@@ -2675,7 +2678,7 @@ pub fn correct_file(
         // repeat tells us which pass the cycle closed on.
         let corrected_digest = digest(&corrected);
         let repeated = sources.iter().position(|seen| *seen == corrected_digest);
-        if pass == MAX_CORRECTION_PASSES || repeated.is_some() {
+        if pass + 1 == MAX_CORRECTION_PASSES || repeated.is_some() {
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
             let root_cause = log.root_cause(loop_start);
             let (report, corrected_count) = log.merge_into(report);

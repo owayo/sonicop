@@ -89,7 +89,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         if valid_number(&name, &style)
             || patterns.iter().any(|pattern| pattern.is_match(&name))
-            || definition.is_some_and(|node| class_emitter_method(node, &name, context.source))
+            || definition.is_some_and(|node| class_emitter_method(node, &name, context))
         {
             continue;
         }

@@ -33,6 +33,10 @@ const DEPARTMENTS: &[&str] = &[
 pub(super) enum Mode {
     Disable,
     Enable,
+    /// `# rubocop:push`: saves the state the directives have built so far.
+    Push,
+    /// `# rubocop:pop`: restores it, closing every range `push` did not already hold open.
+    Pop,
 }
 
 /// One `# rubocop:` comment, as `DirectiveComment` reads it.
@@ -140,9 +144,10 @@ fn cop_names_for_department(department: &str) -> impl Iterator<Item = &'static s
         .filter(move |name| !lint || reached_by_all(name))
 }
 
-/// Every `disable`, `todo` and `enable` comment of the file, in source order.
+/// Every `disable`, `todo`, `enable`, `push` and `pop` comment of the file, in source order.
 ///
-/// `push` and `pop` are skipped: neither cop looks at them.
+/// `push` and `pop` name no cops, so the emptiness check below has to let them through -- a range
+/// opened inside a `push` is closed by the matching `pop` rather than by an `enable`.
 pub(super) fn directives(context: &RuleContext<'_>) -> Vec<Directive> {
     let mut found = Vec::new();
     for comment in context.comment_ranges() {
@@ -151,7 +156,7 @@ pub(super) fn directives(context: &RuleContext<'_>) -> Vec<Directive> {
             continue;
         };
         let (names, all, end) = cop_list(rest);
-        if names.is_empty() && !all {
+        if names.is_empty() && !all && !matches!(mode, Mode::Push | Mode::Pop) {
             continue;
         }
         let (line, _) = context.source.line_column(comment.start);
@@ -173,12 +178,14 @@ pub(super) fn directives(context: &RuleContext<'_>) -> Vec<Directive> {
 /// Where the marker matched, where the cop list starts, and the mode.
 ///
 /// The pattern matches the *first* marker in the comment whichever mode it names, so a `push` or
-/// `pop` is read and skipped here rather than searched past for a later `disable`.
+/// `pop` is the mode of that comment rather than something to search past for a later `disable`.
 fn header(text: &str) -> Option<(usize, usize, Mode, &str)> {
     let header = crate::directives::directive_header(text)?;
     let mode = match header.mode {
         "disable" | "todo" => Mode::Disable,
         "enable" => Mode::Enable,
+        "push" => Mode::Push,
+        "pop" => Mode::Pop,
         _ => return None,
     };
     Some((

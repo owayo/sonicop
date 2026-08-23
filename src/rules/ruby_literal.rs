@@ -69,7 +69,8 @@ fn is_bare_identifier(name: &str, method: bool) -> bool {
 pub(crate) fn inspect_string(value: &str) -> String {
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
-    for character in value.chars() {
+    let mut characters = value.chars().peekable();
+    while let Some(character) = characters.next() {
         match character {
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
@@ -82,6 +83,9 @@ pub(crate) fn inspect_string(value: &str) -> String {
             '\u{c}' => out.push_str("\\f"),
             '\u{1b}' => out.push_str("\\e"),
             '\0' => out.push_str("\\0"),
+            // `String#inspect` escapes the `#` that would open an interpolation, so what it
+            // returns stands for the same string when pasted back into double quotes.
+            '#' if matches!(characters.peek(), Some('{' | '@' | '$')) => out.push_str("\\#"),
             other => out.push(other),
         }
     }

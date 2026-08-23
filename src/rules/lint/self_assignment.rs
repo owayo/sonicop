@@ -24,6 +24,11 @@ const VARIABLE_KINDS: [&str; 4] = [
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
+    // `AllowRBSInlineAnnotation`: `foo = foo #: Integer` is how an RBS inline annotation is
+    // written, so the assignment beside one is deliberate.
+    let allow_rbs = context
+        .setting::<bool>("AllowRBSInlineAnnotation")
+        .unwrap_or(false);
     for node in context.nodes_of_any(&["assignment", "operator_assignment", "call"]) {
         let range = match node.kind_str() {
             "call" => {
@@ -45,8 +50,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 node.byte_range()
             }
         };
+        if allow_rbs && has_rbs_annotation(context, node) {
+            continue;
+        }
         offenses.push(context.offense(MSG, range));
     }
+}
+
+/// `rbs_inline_annotation?`: a `#:` comment closing the line the assignment ends on.
+fn has_rbs_annotation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let line = context.source.line_column(node.end_byte()).0;
+    context.comment_ranges().iter().any(|comment| {
+        context.source.line_column(comment.start).0 == line
+            && context.source.slice(comment.clone()).starts_with("#:")
+    })
 }
 
 /// `on_lvasgn` and its aliases, `on_casgn`, `on_masgn`, and the two `on_send` branches for the

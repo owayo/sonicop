@@ -35,6 +35,21 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let alternative = node.field("alternative");
         let range = match alternative {
             Some(clause) => node.start_byte()..clause.start_byte(),
+            // `node.source_range` ends at the last node the **parser** built, and a comment is not
+            // one. An `elsif` holding nothing but a comment therefore ends at its condition; an
+            // `if` still reaches its own `end`, which the grammar keeps inside the node.
+            None if node.kind_str() == "elsif" => {
+                let end = node
+                    .field("condition")
+                    .map_or_else(|| node.end_byte(), |condition| condition.end_byte());
+                // The parser's range keeps the separator that closes the clause -- `elsif cond;`
+                // ends after the semicolon -- and stops before a comment or a line break.
+                let end = match context.source.text()[end..node.end_byte()].chars().next() {
+                    Some(';') => end + 1,
+                    _ => end,
+                };
+                node.start_byte()..end
+            }
             None => node.byte_range(),
         };
         let mut offense =

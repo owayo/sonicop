@@ -496,6 +496,14 @@ impl<'tree> Force<'tree, '_> {
             }
             // `foo = 1 if bar` runs its condition first, but tree-sitter writes the body first.
             "if_modifier" | "unless_modifier" => {
+                // The parser registers a local the moment it *reads* the assignment, so the `paths`
+                // in `paths = [paths] unless paths.is_a?(Array)` is an `lvar` on both sides of the
+                // keyword -- which is the whole of what `Style/ArrayCoercion` matches on. Declaring
+                // the names the body writes, with no assignment behind them yet, gets that spelling
+                // right while the walk below still reaches them in execution order.
+                if let Some(body) = node.field("body") {
+                    self.declare_lexically(body);
+                }
                 if let Some(condition) = node.field("condition") {
                     self.process_node(condition);
                 }
@@ -601,6 +609,31 @@ impl<'tree> Force<'tree, '_> {
     fn declare_unless_known(&mut self, name: &str, node: Node<'tree>, name_node: Node<'tree>) {
         if self.find_variable(name).is_none() {
             self.declare(name, node, name_node, Declaration::Variable);
+        }
+    }
+
+    /// Introduces the names an assignment inside `node` would introduce, without recording the
+    /// assignment itself -- the lexical half of what the parser does when it reaches one.
+    ///
+    /// Anything opening a scope of its own is left alone: a name written inside a block or a `def`
+    /// does not survive it, so the parser does not spell it as a variable outside either.
+    fn declare_lexically(&mut self, node: Node<'tree>) {
+        if opens_a_scope(node) {
+            return;
+        }
+        // Only the plain `foo = ...` target is introduced here. A multiple assignment reaches the
+        // same names through `process_assignment`, whose handling of `left_assignment_list` is not
+        // worth duplicating for a shape the spelling question has never turned on.
+        if matches!(node.kind_str(), "assignment" | "operator_assignment")
+            && let Some(left) = node.field("left")
+            && left.kind_str() == "identifier"
+        {
+            let name = self.text(left).to_owned();
+            self.declare_unless_known(&name, node, left);
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor).collect::<Vec<_>>() {
+            self.declare_lexically(child);
         }
     }
 
@@ -1558,6 +1591,21 @@ fn opaque_binding_argument(node: Node<'_>) -> bool {
         None => true,
         Some(first) => matches!(first.kind_str(), "nil" | "true" | "false" | "self"),
     }
+}
+
+/// The node types that hold their own local variables, which a name written inside does not leave.
+fn opens_a_scope(node: Node<'_>) -> bool {
+    matches!(
+        node.kind_str(),
+        "method"
+            | "singleton_method"
+            | "class"
+            | "singleton_class"
+            | "module"
+            | "block"
+            | "do_block"
+            | "lambda"
+    )
 }
 
 fn contains_kind(node: Node<'_>, kind: &str) -> bool {

@@ -27,7 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(dot) = dot_of(node, receiver, context) else {
             continue;
         };
-        let Some(selector) = node.field("method") else {
+        // `selector_range`: `l.(1)` has no selector, so the opening parenthesis stands in for it.
+        let Some(selector) = node.field("method").or_else(|| opening_parenthesis(node)) else {
             continue;
         };
         let (dot_line, dot_column) = context.source.line_column(dot.start_byte());
@@ -46,6 +47,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             safe: true,
         }));
     }
+}
+
+/// `node.loc.begin` for a `foo.(1)`: the `(` that opens the argument list, which is all the call
+/// has where a name would otherwise be.
+fn opening_parenthesis<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let arguments = node.field("arguments")?;
+    arguments.child(0).filter(|first| first.kind_str() == "(")
 }
 
 /// The `{`/`do` .. `}`/`end` the receiver closes with, when the receiver is a block at all.

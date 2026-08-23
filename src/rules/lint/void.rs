@@ -387,7 +387,11 @@ impl Void<'_, '_> {
             node.kind_str(),
             "instance_variable" | "global_variable" | "class_variable"
         ) || (node.kind_str() == "identifier"
-            && (self.locals.is_lvar(node) || self.is_block_parameter(node)));
+            && (self.locals.is_lvar(node)
+                || self.is_block_parameter(node)
+                // `special_keyword?`: upstream parses these as `const` and reports them with the
+                // variable message. The grammar spells them as plain identifiers.
+                || matches!(self.text(node), "__FILE__" | "__LINE__" | "__ENCODING__")));
         if !constant && !variable {
             return;
         }

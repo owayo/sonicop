@@ -215,9 +215,11 @@ impl Parser {
             // A quantifier binds to what was written before it, so the character it follows has to
             // leave the run it would otherwise have joined.
             if is_plain(character) {
-                let quantified = self
-                    .quantifier_length(self.position + 1)
-                    .is_some_and(|length| length > 0);
+                // In free-spacing mode a quantifier may be written away from what it quantifies:
+                // `a ?` is `a?`, and the gem writes the blanks between them as `free_space` nodes
+                // placed **after** the quantified literal rather than between the two.
+                let gap = self.blank_run(self.position + 1);
+                let quantified = self.quantifier_length(gap).is_some_and(|length| length > 0);
                 if quantified {
                     self.flush_literal(&mut literal, &mut terms);
                     let start = self.position;
@@ -279,10 +281,19 @@ impl Parser {
     /// first -- which is the shape `Lint/RedundantRegexpQuantifiers` reports.
     fn quantify(&mut self, node: usize, terms: &mut Vec<usize>) -> Option<()> {
         let mut current = node;
-        while let Some(length) = self.quantifier_length(self.position) {
-            if length == 0 {
+        let mut blanks: Vec<Range<usize>> = Vec::new();
+        loop {
+            // In free-spacing mode a quantifier may be written away from what it quantifies:
+            // `a ?` is `a?` and `(?:…) +` is `(?:…)+`. The gem keeps the blanks as `free_space`
+            // nodes but places them **after** the quantified expression, not between the two.
+            let gap = self.blank_run(self.position);
+            let Some(length) = self.quantifier_length(gap).filter(|length| *length > 0) else {
                 break;
+            };
+            if gap > self.position {
+                blanks.push(self.position..gap);
             }
+            self.position = gap;
             let start = self.position;
             self.position += length;
             let text = self.slice(start..self.position);
@@ -311,6 +322,11 @@ impl Parser {
             });
         }
         terms.push(current);
+        for blank in blanks {
+            let text = self.slice(blank.clone());
+            let space = self.push("free_space", "whitespace", blank.start, blank.end, text);
+            terms.push(space);
+        }
         Some(())
     }
 
@@ -692,6 +708,23 @@ impl Parser {
     }
 
     /// A run of blanks, or a `#` comment up to and including its line break.
+    /// Where the run of blanks starting at `from` ends, in free-spacing mode. Outside it there is
+    /// no run: a blank is a literal like any other.
+    fn blank_run(&self, from: usize) -> usize {
+        if !self.extended {
+            return from;
+        }
+        let mut end = from;
+        while self
+            .characters
+            .get(end)
+            .is_some_and(|character| character.is_whitespace())
+        {
+            end += 1;
+        }
+        end
+    }
+
     fn parse_free_space(&mut self, character: char) -> usize {
         let start = self.position;
         if character == '#' {

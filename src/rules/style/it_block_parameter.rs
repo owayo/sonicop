@@ -96,7 +96,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         // Upstream reports the `block` node, which begins at the call rather than
                         // at the brace.
                         let whole = context.parent(block).unwrap_or(block);
-                        if whole.start_position().row != whole.end_position().row {
+                        // `BlockNode#single_line?` compares `loc.begin` with `loc.end` -- the
+                        // braces -- and not the node it reports, which starts back at the call. A
+                        // one-line block closing a chain written over several lines is single-line.
+                        if block.start_position().row != block.end_position().row {
                             offenses.push(
                                 context
                                     .offense(MSG_AVOID_IT_PARAMETER_MULTILINE, whole.byte_range()),

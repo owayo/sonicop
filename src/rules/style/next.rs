@@ -128,9 +128,13 @@ impl Cop<'_, '_> {
         let Some(condition) = last.field("condition") else {
             return;
         };
+        // The reported range stops at the condition, but the correction reaches the `then` beyond
+        // it and the `end` that closes the branch. Anchoring on the whole conditional is what keeps
+        // those edits inside the offense they belong to.
         let offense = self
             .context
-            .offense(MSG, last.start_byte()..condition.end_byte());
+            .offense(MSG, last.start_byte()..condition.end_byte())
+            .corrections_anchored_at(last.byte_range());
         offenses.push(offense.corrected_by_all(self.autocorrect(last, condition, reindented)));
     }
 
@@ -164,16 +168,12 @@ impl Cop<'_, '_> {
             .field("consequence")
             .map(body_of)
             .or_else(|| node.field("body").map(Body::One));
-        [
-            node.field("condition"),
-            body.and_then(|body| body.single()),
-        ]
-        .into_iter()
-        .flatten()
-        .any(|child| {
-            matches!(child.kind_str(), "if" | "unless")
-                && child.field("alternative").is_some()
-        })
+        [node.field("condition"), body.and_then(|body| body.single())]
+            .into_iter()
+            .flatten()
+            .any(|child| {
+                matches!(child.kind_str(), "if" | "unless") && child.field("alternative").is_some()
+            })
     }
 
     fn min_body_length(&self, node: Node<'_>) -> bool {

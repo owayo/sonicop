@@ -19,6 +19,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     match style.as_str() {
         "never" => {
+            // `ensure_no_comment` asks `frozen_string_literal_comment_exists?`, which reads only
+            // the **leading** comments -- a magic comment written after code does not reach Ruby,
+            // so there is nothing unnecessary to remove. The offense itself is then placed on the
+            // comment found anywhere, which is what `specified_comment` returns.
+            let leading = leading_comments(context)
+                .any(|(_, line)| MagicComment::parse(line).valid_literal_value());
+            if !leading {
+                return;
+            }
             if let Some(comment) = specified_comment(context) {
                 offenses.push(
                     context
@@ -44,7 +53,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         .corrected_by(Edit {
                             start: comment.start,
                             end: comment.end,
-                            replacement: "# frozen_string_literal: true".to_owned(),
+                            // `MagicComment#new_frozen_string_literal(true)` keeps the comment's
+                            // own shape -- `# -*- frozen_string_literal: false -*-` becomes the
+                            // same line with `true`, not a plain one.
+                            replacement: enabled_form(context.source.slice(comment.clone())),
                             safe: false,
                         }),
                 );
@@ -151,9 +163,21 @@ fn line_content_end(context: &RuleContext<'_>, line_number: usize) -> usize {
 /// Removes the comment along with the line it sits on, so no blank line is left behind.
 fn remove_comment(context: &RuleContext<'_>, comment: Range<usize>) -> Edit {
     let line_number = context.source.line_column(comment.start).0;
+    let start = context.source.line_start(line_number);
+    // `range_with_surrounding_space(node.pos, side: :right)`: the blank lines the comment left
+    // behind go with it, so removing it does not open a gap at the head of the file.
+    let text = context.source.text();
+    let mut end = context.source.line_range(line_number).end;
+    while text[end..]
+        .chars()
+        .next()
+        .is_some_and(|character| character.is_whitespace())
+    {
+        end += text[end..].chars().next().map_or(0, char::len_utf8);
+    }
     Edit {
-        start: context.source.line_start(line_number),
-        end: context.source.line_range(line_number).end,
+        start,
+        end,
         replacement: String::new(),
         safe: false,
     }
@@ -186,4 +210,29 @@ fn specified_comment(context: &RuleContext<'_>) -> Option<Range<usize>> {
         let start = context.source.line_start(line_number) + (line.len() - line.trim_start().len());
         Some(start..start + trimmed.len())
     })
+}
+
+/// `MagicComment#new_frozen_string_literal(true)`: the value changes and nothing else does.
+fn enabled_form(comment: &str) -> String {
+    let mut out = String::with_capacity(comment.len());
+    let mut rest = comment;
+    while let Some(index) = rest.find("frozen_string_literal") {
+        let (before, after) = rest.split_at(index + "frozen_string_literal".len());
+        out.push_str(before);
+        let value_start = after
+            .find(|character: char| character != ':' && character != ' ' && character != '=')
+            .unwrap_or(after.len());
+        out.push_str(&after[..value_start]);
+        let tail = &after[value_start..];
+        let value_end = tail
+            .find(|character: char| !character.is_ascii_alphanumeric())
+            .unwrap_or(tail.len());
+        out.push_str("true");
+        rest = &tail[value_end..];
+    }
+    out.push_str(rest);
+    match out.is_empty() {
+        true => "# frozen_string_literal: true".to_owned(),
+        false => out,
+    }
 }

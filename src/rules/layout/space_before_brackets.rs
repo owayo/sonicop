@@ -46,7 +46,13 @@ fn index_gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usize, usize)
                 return None;
             }
             let method = node.field("method")?;
-            if !context.variable_analysis().names_a_local(method) {
+            // Only a bare name is ambiguous. `@ivar [0]`, `@@cvar [0]` and `$global [0]` are
+            // variable reads whatever else is in scope, so the bracket is always the index.
+            let reads_a_variable = matches!(
+                method.kind_str(),
+                "instance_variable" | "class_variable" | "global_variable"
+            ) || context.variable_analysis().names_a_local(method);
+            if !reads_a_variable {
                 return None;
             }
             let arguments = node.field("arguments")?;

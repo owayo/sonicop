@@ -58,9 +58,20 @@ fn check_syntax(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let sym_indices = pairs
             .iter()
             .all(|pair| word_symbol_pair(*pair, context, quoted_keys_allowed));
+        // `force_hash_rockets?`: a hash holding a symbol value is written in the old syntax
+        // whatever the style says, so that `{ a: :b }` does not read as two different things.
+        let force_hash_rockets = context
+            .setting::<bool>("UseHashRocketsWithSymbolValues")
+            .unwrap_or(false)
+            && pairs.iter().any(|pair| {
+                pair.field("value").is_some_and(|value| {
+                    matches!(value.kind_str(), "simple_symbol" | "delimited_symbol")
+                })
+            });
         // Which delimiter the style rejects, and what it says about it. `check(pairs, delim, msg)`
         // upstream.
         let (reject_colon, message) = match style.as_str() {
+            _ if force_hash_rockets => (true, MSG_HASH_ROCKETS),
             "hash_rockets" => (true, MSG_HASH_ROCKETS),
             "ruby19_no_mixed_keys" if sym_indices => (false, MSG_19),
             "ruby19_no_mixed_keys" => (true, MSG_NO_MIXED_KEYS),
@@ -334,12 +345,101 @@ fn register_shorthand(
             None => pair.byte_range(),
         },
     };
-    offenses.push(context.offense(message.into(), range).corrected_by(Edit {
+    // The closing bracket goes **into** the rewrite: an insertion at the byte the rewrite ends on
+    // is a second edit at the same position, which `apply_edits` refuses -- silently, so the cop
+    // reads as having declined to correct at all.
+    let opening = parentheses_the_omission_needs(context, pair);
+    let replacement = match opening.is_some() {
+        true => format!("{replacement})"),
+        false => replacement,
+    };
+    let mut edits = vec![Edit {
         start: pair.start_byte(),
         end: pair.end_byte(),
         replacement,
         safe: true,
-    }));
+    }];
+    edits.extend(opening);
+    offenses.push(
+        context
+            .offense(message.into(), range)
+            .corrected_by_all(edits),
+    );
+}
+
+/// `def_node_that_require_parentheses`: dropping the value from a parenthesis-less call would
+/// leave `foo bar:`, which is not the same program. Upstream adds the parentheses in the same
+/// pass, replacing the space after the selector and closing after the last argument.
+fn parentheses_the_omission_needs(context: &RuleContext<'_>, pair: Node<'_>) -> Option<Edit> {
+    let hash = pair.parent_of(context)?;
+    if hash.kind_str() != "hash" && hash.kind_str() != "argument_list" {
+        return None;
+    }
+    // Only the last pair carries the closing bracket, and only when it is the one being omitted.
+    let pairs = super::nodes::children(hash);
+    if pairs.last().is_none_or(|last| last.id() != pair.id()) {
+        return None;
+    }
+    // A braced hash needs nothing: `{ bar: }` already reads as one.
+    if hash.kind_str() == "hash"
+        && hash
+            .child(0)
+            .is_some_and(|first| context.source.node_text(first) == "{")
+    {
+        return None;
+    }
+    let call = find_ancestor_method_dispatch(context, hash)?;
+    let (selector, arguments) = (call.field("method")?, call.field("arguments")?);
+    // `dispatch_node.parenthesized?`
+    if arguments
+        .child(0)
+        .is_some_and(|first| context.source.node_text(first) == "(")
+    {
+        return None;
+    }
+    let first_argument = *super::nodes::children(arguments).first()?;
+    // The closing bracket only lands right when the omitted pair ends the argument list.
+    if arguments.end_byte() != pair.end_byte() {
+        return None;
+    }
+    // `last_expression?(dispatch) && !requires_parentheses_context?(dispatch)`: a call standing on
+    // its own needs no help, because `foo bar:` at the end of a body still parses.
+    if !requires_parentheses_context(call) {
+        return None;
+    }
+    Some(Edit {
+        start: selector.end_byte(),
+        end: first_argument.start_byte(),
+        replacement: "(".to_owned(),
+        safe: true,
+    })
+}
+
+/// `find_ancestor_method_dispatch_node`: the call, `super` or `yield` the hash is an argument of.
+fn find_ancestor_method_dispatch<'tree>(
+    context: &'tree RuleContext<'_>,
+    hash: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let mut node = hash;
+    while let Some(parent) = node.parent_of(context) {
+        match parent.kind_str() {
+            "call" | "super" | "yield" => return Some(parent),
+            "argument_list" => node = parent,
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// `requires_parentheses_context?`: the call sits where a bare `foo bar:` would be read as part of
+/// the surrounding expression.
+fn requires_parentheses_context(call: Node<'_>) -> bool {
+    call.parent().is_some_and(|parent| {
+        matches!(
+            parent.kind_str(),
+            "call" | "if" | "unless" | "super" | "until" | "while" | "yield"
+        )
+    })
 }
 
 /// `node.value_omission?`.

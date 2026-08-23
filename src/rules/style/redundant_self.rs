@@ -520,6 +520,16 @@ fn is_match_var(node: Node<'_>) -> bool {
             ) || parent.kind_str() == "array_pattern"
                 || parent.kind_str() == "find_pattern"
                 || parent.kind_str() == "hash_pattern"
+                // `in {x: foo}`: the grammar puts a `keyword_pattern` between the hash pattern
+                // and the name. Its key is a `hash_key_symbol`, so an identifier here is always
+                // the binding -- `in {x:}` binds `x` the same way.
+                || parent.kind_str() == "keyword_pattern"
                 || parent.kind_str() == "alternative_pattern"
+                // `in *bar` is a `match_rest` holding a `match_var` upstream, so the name it
+                // catches is bound for the branch just like any other. A bare `*` binds nothing
+                // and has no identifier under it.
+                || parent.kind_str() == "splat_parameter"
+            // `^foo` is a `pin`, not a binding: the identifier under it stays a read, which is
+            // why `variable_reference_pattern` is deliberately absent from this list.
         })
 }

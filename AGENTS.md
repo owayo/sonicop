@@ -124,6 +124,10 @@ supply becomes a case here. **The expectation is not the spec text — it is wha
 reports**, recorded once by `make spec-fixtures`, because upstream does not always behave the way
 its specs say. The recording is committed, so a normal test run needs no rubocop gem.
 
+As of 2026-08-23 all **11,300** recorded cases match, across the **555** cops the specs reach, with
+no entry in `spec_known_divergences.yml`. A difference appearing there is a regression, not a
+backlog item.
+
 Two things about this gate are easy to get backwards.
 
 **Its value is in the cases where upstream stays silent.** Corpora can only show what upstream
@@ -131,11 +135,62 @@ reports, so **over-detection is invisible to them** — the shapes upstream is q
 infinite and appear in real code only by accident. Roughly 44% of the recorded cases are
 `no_offenses` ones, and that half is the point of the file.
 
-**Reproducing the recording means reproducing its conditions.** Upstream was run on a file whose
-extension matches the department's `Include` (`.gemspec`, `.gemfile`), and the `length` it prints
-is the whole range, which is **not** the number of carets an annotation wants. Getting either
-wrong turns the harness into a difference generator: those two mistakes alone accounted for 54 of
-the first 65 failures seen, none of them real.
+**Reproducing the recording means reproducing its conditions.** Four ways of getting that wrong
+have already turned the harness into a difference generator, and each looked exactly like a bug in
+a cop:
+
+| Mistake | What it produced |
+|---|---|
+| Running `.rb` where upstream ran `.gemspec` / `.gemfile` | Every Gemspec and Bundler cop silently matched nothing |
+| Passing the printed `length` as the caret count | Every offense spanning lines became a `range` difference — 57 in three Metrics cops alone |
+| Feeding a recorded output through `CopCase::corrected` | It dedents, for the hand-written `<<~RUBY` cases; recorded output loses its leading newline and indentation. **20 differences, all of them mine** — use `corrected_verbatim` |
+| Treating `foo&.bar` as a `send` | The grammar spells `send` and `csend` alike; upstream's `:send` arm excludes `csend`, and reading it as one makes a cop claim its own receiver is non-nil |
+
+The first two accounted for 54 of the first 65 failures. Before believing a difference, reproduce
+it from the command line against the real upstream — the recording says what upstream did, not
+what the harness asked it.
+
+**Print the tree before guessing at it.** Most of what is left in that gate is a place where the
+grammar and upstream's AST disagree about shape, and reasoning about which node holds what is
+slower and less reliable than looking:
+
+```bash
+cargo run --release --example dump_ast -- 'do_something(**{foo: bar, **{baz: qux}})'
+cargo run --release --example dump_ast -- --file path/to/source.rb
+```
+
+Two differences that had each survived a round of guessing fell in minutes once the tree was on
+screen: a nested `**{…}` is a `hash_splat_argument` **among the pairs** of the hash above it (so
+`node.pairs` is not `children`), and `not bar ? a : b` parses as `unary(not, conditional(…))`
+rather than as a conditional over a negation.
+
+**Print the corrections too, when a correction does not land.** A cop can build a perfectly good
+set of edits and still leave the file untouched: the edit applier drops what falls outside the
+offense's anchor, and the syntax guard throws away a pass whose output does not parse. Neither
+says which edit was at fault.
+
+```bash
+cargo run --release --example dump_corrections -- --config .rubocop.yml --only Style/Foo file.rb
+```
+
+`Style/Next` was reported as "correctable" and never corrected, because its edits reach the `then`
+and the `end` beyond the range it reports and nothing anchored them there. `Style/MutableConstant`
+under `Recursive: true` was withheld as unparsable, because a hash key is a `hash_key_symbol` here
+and was missing from the immutable list, so the second pass tried to append `.freeze` to it.
+
+**The same source can have two right answers.** `TargetRubyVersion` changes the tree upstream
+builds, not just which constructs it accepts: `a, b = 1, 2 rescue nil` puts the `rescue` around the
+whole assignment before 2.7 and around the right-hand side after it, and the correction differs
+accordingly. When a recording disagrees with the upstream you run by hand, check the recorded
+`target_ruby` before concluding either is wrong.
+
+**A construct the grammar cannot read is not a syntax error.** `Lint/Syntax` reports what `parser`
+reports; an `ERROR` node over Ruby the real thing accepts is a false positive that also stops every
+other cop from running on the file. Two are known and skipped by name in `src/rules/lint/syntax.rs`
+-- a multi-line array pattern (`in bar,\n baz`) and a heredoc opened inside an interpolation. Both
+also mislead the cops that then do run: silencing the first one turned
+`Style/MultilineInPatternThen` into a false positive, because the pattern the grammar closed early
+looked single-line.
 
 ## Conformance measurement
 

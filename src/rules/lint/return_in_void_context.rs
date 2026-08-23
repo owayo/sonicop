@@ -38,7 +38,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn enclosing_void_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
-        if matches!(current.kind_str(), "method" | "singleton_method") {
+        // `context_node&.def_type?` lists `:def` alone -- `def self.initialize` is a `defs`, and
+        // its return value is not thrown away the way a constructor's is.
+        if current.kind_str() == "singleton_method" {
+            return None;
+        }
+        if current.kind_str() == "method" {
             let name = context
                 .source
                 .node_text(current.field("name")?);
