@@ -3,18 +3,20 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
-use crate::rules::send_node::{is_plain_send, top_level_constant};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{is_plain_send, top_level_constant};
+
+const FAIL_MSG: &str = "Use `fail` instead of `raise` to signal exceptions.";
+const RAISE_MSG: &str = "Use `raise` instead of `fail` to rethrow exceptions.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style = context
         .setting::<String>("EnforcedStyle")
         .unwrap_or_else(|| "only_raise".to_owned());
-    // `:semantic` decides per rescue clause which of the two words belongs where; it is not the
-    // default and is left to the pass that ports `on_rescue`.
     let (looked_for, preferred) = match style.as_str() {
         "only_raise" => ("fail", "raise"),
         "only_fail" => ("raise", "fail"),
+        "semantic" => return check_semantic(context, offenses),
         _ => return,
     };
     // `custom_fail_defined?`: a file that defines its own `fail` is not talking about `Kernel#fail`.
@@ -43,6 +45,61 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 }),
         );
     }
+}
+
+/// `:semantic`: `raise` belongs inside a rescue clause and `fail` everywhere else.
+///
+/// Upstream reaches the same split from two directions -- `on_rescue` walks the body for `raise`
+/// and each `resbody` for `fail`, while `on_send` catches every remaining `raise` -- with
+/// `ignore_node` keeping the two from reporting the same call twice. Asking each call where it
+/// sits gives the same set without the bookkeeping: a call under a `rescue` clause's body may say
+/// `raise`, and one anywhere else may say `fail`.
+fn check_semantic(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let locals = LocalVariables::new(context);
+    for node in context.nodes_of_any(&["call", "identifier"]) {
+        if !is_plain_send(node, context) {
+            continue;
+        }
+        let rescuing = inside_rescue_body(node);
+        let looked_for = match rescuing {
+            true => "fail",
+            false => "raise",
+        };
+        let Some(selector) = signal_selector(node, looked_for, context, &locals) else {
+            continue;
+        };
+        let (message, preferred) = match rescuing {
+            true => (RAISE_MSG, "raise"),
+            false => (FAIL_MSG, "fail"),
+        };
+        offenses.push(
+            context
+                .offense(message, selector.byte_range())
+                .corrected_by(Edit {
+                    start: selector.start_byte(),
+                    end: selector.end_byte(),
+                    replacement: preferred.to_owned(),
+                    safe: true,
+                }),
+        );
+    }
+}
+
+/// Whether the call sits in the body of a `rescue` clause -- not in the exception list or the
+/// `=> e` binding, which are part of the same node but not part of the clause's body.
+fn inside_rescue_body(node: Node<'_>) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind_str() == "rescue"
+            && parent.field("body").is_some_and(|body| {
+                body.start_byte() <= node.start_byte() && node.end_byte() <= body.end_byte()
+            })
+        {
+            return true;
+        }
+        current = parent;
+    }
+    false
 }
 
 /// `command_or_kernel_call?`: the `raise` / `fail` token of a receiverless call or of one made

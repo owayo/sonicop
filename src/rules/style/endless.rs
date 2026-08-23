@@ -37,10 +37,18 @@ pub(super) fn receiver(context: &RuleContext<'_>, node: Node<'_>) -> String {
     format!("{}{operator}", context.source.node_text(object))
 }
 
-/// `arguments`: the parameter list as it was written, parentheses and all.
+/// `arguments`: `node.arguments.any? ? node.arguments.source : ''`.
+///
+/// Upstream asks the list what it holds, not whether it was written, so an empty `()` is dropped:
+/// `def foo() = x` rewrites to `def foo`, not `def foo()`.
 pub(super) fn arguments<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> &'a str {
-    node.field("parameters")
-        .map_or("", |parameters| context.source.node_text(parameters))
+    let Some(parameters) = node.field("parameters") else {
+        return "";
+    };
+    match super::nodes::children(parameters).is_empty() {
+        true => "",
+        false => context.source.node_text(parameters),
+    }
 }
 
 /// `configured_indentation_width`.

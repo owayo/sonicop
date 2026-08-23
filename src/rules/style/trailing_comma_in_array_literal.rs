@@ -14,6 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         trailing_comma::check(
             context,
+            node,
             &items,
             "item of %<article>s array",
             last.end_byte(),

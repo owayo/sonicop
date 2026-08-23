@@ -116,6 +116,21 @@ fn caret_length(source: &str, line: usize, column: usize, length: usize) -> usiz
     length.min(width.saturating_sub(column.saturating_sub(1)))
 }
 
+/// 本家のメッセージに焼き込まれた**録ったときの一時ディレクトリ**を、ハーネスの前方一致に
+/// 委ねる形へ畳む。
+///
+/// `Lint/DuplicateMethods` は "defined at both `<path>`:2 and `<path>`:5" と書き、その
+/// `<path>` は録ったときの `TemporaryDirectory` である。**再生できないので、比べれば必ず
+/// 差分になる。**畳んだ先は `[...]` -- 本家 `match_annotations?` と同じ前方一致なので、
+/// **パス以降 (行番号を含む) はこの gate では検証していない**。件数は実行のたびに出す。
+fn abbreviate_recorded_paths(message: &str) -> Option<String> {
+    static ABSOLUTE_PATH: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"/[^\s:]*/[^\s:/]+\.(?:rb|gemspec|gemfile):\d+").expect("パターンが不正")
+    });
+    let found = ABSOLUTE_PATH.find(message)?;
+    Some(format!("{}[...]", &message[..found.start()]))
+}
+
 impl Record {
     fn to_case(&self) -> CopCase {
         let expected = self
@@ -126,7 +141,8 @@ impl Record {
                     offense.line,
                     offense.column,
                     caret_length(&self.source, offense.line, offense.column, offense.length),
-                    offense.message.clone(),
+                    abbreviate_recorded_paths(&offense.message)
+                        .unwrap_or_else(|| offense.message.clone()),
                 )
             })
             .collect();
@@ -180,6 +196,23 @@ fn load(name: &str) -> Vec<Record> {
         .collect()
 }
 
+// パニックの既定出力はそのまま流す。**抑制しようとして 1 度失敗している** -- テストは
+// 並列に走るので、テストごとに `set_hook` / `take_hook` で包むと**片方の drop が
+// もう片方の抑制を解除する**。プロセスに 1 度だけ入れる形なら成立するが、そうすると
+// 捕まえ損ねた本物のパニックまで文言を失う。止まったケースは集計にも出るので、
+// 二重に見えるほうを採る。
+
+/// `catch_unwind` の payload から読める文言を取り出す。
+fn panic_message(payload: &Box<dyn std::any::Any + Send>) -> String {
+    let text = payload
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| payload.downcast_ref::<&str>().copied())
+        .unwrap_or("(文言の無いパニック)");
+    // 1 行にまとめる。集計の行が複数行に散ると数えられない。
+    text.lines().next().unwrap_or(text).to_owned()
+}
+
 /// 本家が録った版が全行で揃っていることを見る。**混ざった fixture は、どちらの版に
 /// 対する主張なのかが言えない。**
 fn assert_single_upstream_version(records: &[Record]) {
@@ -200,14 +233,49 @@ fn every_recorded_upstream_case_matches() {
     assert_single_upstream_version(&records);
     let manifest = Manifest::load(Path::new(MANIFEST));
 
+    // **測っていないものを数えて出す。**畳んだメッセージは前方一致で通るので、黙っていると
+    // 「全件が完全一致した」と読めてしまう。
+    let abbreviated = records
+        .iter()
+        .flat_map(|record| &record.offenses)
+        .filter(|offense| abbreviate_recorded_paths(&offense.message).is_some())
+        .count();
+    if abbreviated > 0 {
+        eprintln!(
+            "録ったときの絶対パスを含むメッセージ {abbreviated} 件は、パスの手前までしか \
+             比べていない (行番号を含む後半は未検証)"
+        );
+    }
+
     let mut unknown = Vec::new();
     let mut resolved = Vec::new();
     let mut reversed = Vec::new();
     let mut known = 0usize;
     let mut by_cop: BTreeMap<&str, usize> = BTreeMap::new();
     let mut by_kind: BTreeMap<String, usize> = BTreeMap::new();
+    let mut aborted = Vec::new();
+    // ハーネスは 1 件の異常でパニックする (パースできない入力、収束しない autocorrect)。
+    // **11,300 件を回す側では、それは 1 件ぶんの結果として集計する。**そうしないと
+    // 最初の 1 件で全体が止まり、**残り 11,299 件を測っていないのに「1 件失敗」と読める。**
+
     for record in &records {
-        let (verdict, detail) = manifest.judge(&record.to_case());
+        let judged = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            manifest.judge(&record.to_case())
+        }));
+        let (verdict, detail) = match judged {
+            Ok(judged) => judged,
+            Err(payload) => {
+                aborted.push(format!(
+                    "{} [{}] {}",
+                    record.origin,
+                    record.cop,
+                    panic_message(&payload)
+                ));
+                *by_cop.entry(record.cop.as_str()).or_default() += 1;
+                *by_kind.entry("panic".to_owned()).or_default() += 1;
+                continue;
+            }
+        };
         known += verdict.known.len();
         if !verdict.unknown.is_empty() {
             *by_cop.entry(record.cop.as_str()).or_default() += verdict.unknown.len();
@@ -227,9 +295,22 @@ fn every_recorded_upstream_case_matches() {
     // **差分の全文は、頼まれたときだけファイルに出す。**画面に流すと最初の 1 件を読むのに
     // スクロールが要り、`| tail` で受けると先頭が消える (どちらも実際にやった)。
     if let Ok(path) = std::env::var("SONICOP_SPEC_REPORT") {
-        let body = unknown.join("\n\n");
+        let body = match aborted.is_empty() {
+            true => unknown.join("\n\n"),
+            false => format!(
+                "== ハーネスが止まったケース {} 件 ==\n{}\n\n== 差分 {} 件 ==\n{}",
+                aborted.len(),
+                aborted.join("\n"),
+                unknown.len(),
+                unknown.join("\n\n")
+            ),
+        };
         fs::write(&path, body).unwrap_or_else(|error| panic!("{path} に書けない: {error}"));
-        eprintln!("未登録の差分 {} 件を {path} に書いた", unknown.len());
+        eprintln!(
+            "差分 {} 件 / 止まったケース {} 件を {path} に書いた",
+            unknown.len(),
+            aborted.len()
+        );
     }
 
     // 失敗時の出力は先頭だけ。**ただし集計は必ず全件ぶん出す** — 件数と分布が見えないと、
@@ -255,8 +336,9 @@ fn every_recorded_upstream_case_matches() {
         }
     };
     assert!(
-        unknown.is_empty() && resolved.is_empty() && reversed.is_empty(),
+        unknown.is_empty() && resolved.is_empty() && reversed.is_empty() && aborted.is_empty(),
         "本家 spec 由来 {} ケース / {} cop。既知差分 {known} 件。\n\n\
+         == ハーネスが止まったケース {} 件 ==\n{}\n\n\
          == 未登録の差分 {} 件 ({} cop) ==\n\
          種別ごと: {:?}\n\
          cop ごと:\n{}\n\n\
@@ -269,6 +351,8 @@ fn every_recorded_upstream_case_matches() {
             .map(|record| record.cop.as_str())
             .collect::<BTreeSet<_>>()
             .len(),
+        aborted.len(),
+        head(&aborted, 10),
         unknown.len(),
         by_cop.len(),
         by_kind,
@@ -290,17 +374,33 @@ fn sonicop_does_not_reproduce_upstreams_broken_corrections() {
     assert_single_upstream_version(&records);
 
     let mut broken = Vec::new();
+    let mut unparsable = Vec::new();
+
     for record in &records {
         // 期待値を持たないので集合検証は切り、訂正の結果だけを見る。
         let case = CopCase::new(&record.cop, record.source.clone(), Vec::new())
             .id(&record.origin)
+            .path(path_for(&record.cop))
             .without_offense_check();
         let case = match &record.target_ruby {
             Some(version) => case.target_ruby(version),
             None => case,
         };
-        // 安全網 (`ruby -c`) を通す。ここで落ちるなら移植版も壊れた出力を書いている。
-        let report = case.inspect();
+        // **入力そのものを移植版がパースできないことがある** (本家は通す)。それは
+        // この gate の主題ではないので、止めずに別枠で数える。
+        let inspected = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| case.inspect()));
+        let report = match inspected {
+            Ok(report) => report,
+            Err(payload) => {
+                unparsable.push(format!(
+                    "{} [{}] {}",
+                    record.origin,
+                    record.cop,
+                    panic_message(&payload)
+                ));
+                continue;
+            }
+        };
         if report.offenses.is_empty() {
             continue;
         }
@@ -311,6 +411,7 @@ fn sonicop_does_not_reproduce_upstreams_broken_corrections() {
             report.offenses.len()
         ));
     }
+
     // ここは「壊れた出力を書かない」だけを見る gate なので、offense が出ること自体は
     // 正常。件数を出しておき、0 件に落ちたら fixture 側の異常として気づけるようにする。
     assert!(
@@ -318,10 +419,18 @@ fn sonicop_does_not_reproduce_upstreams_broken_corrections() {
         "本家が round-trip できないケースが 1 件も無い。fixture の生成が途中で終わっている"
     );
     eprintln!(
-        "本家が round-trip できないケース {} 件のうち、移植版が offense を出したもの {} 件",
+        "本家が round-trip できないケース {} 件: 移植版が offense を出したもの {} 件 / \
+         移植版がパースできなかったもの {} 件",
         records.len(),
-        broken.len()
+        broken.len(),
+        unparsable.len()
     );
+    if !unparsable.is_empty() {
+        eprintln!(
+            "  パースできなかったケース:\n    {}",
+            unparsable.join("\n    ")
+        );
+    }
 }
 
 /// **この gate がどれだけの cop に届いているかを、gate 自身に言わせる。**

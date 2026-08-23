@@ -6,8 +6,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::{Argument, arguments, is_plain_send};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{Argument, arguments, is_plain_send};
 
 /// Literal kinds a leading sign belongs to rather than turning into a `:-@` call.
 const NUMBER_KINDS: &[&str] = &["integer", "float", "rational", "complex"];
@@ -68,6 +68,8 @@ struct Formatter<'tree> {
     receiver: Option<Range<usize>>,
     /// `node.first_argument`, which is all either correction reads.
     argument: Option<Operand<'tree>>,
+    /// `node.arguments` of a `format` / `sprintf` call, which only the `percent` correction reads.
+    written: Vec<Argument<'tree>>,
 }
 
 impl<'tree> Formatter<'tree> {
@@ -99,6 +101,7 @@ impl<'tree> Formatter<'tree> {
             span: node.byte_range(),
             receiver: Some(left.byte_range()),
             argument: Some(Operand::Node(right)),
+            written: Vec::new(),
         })
     }
 
@@ -125,6 +128,7 @@ impl<'tree> Formatter<'tree> {
             span: node.byte_range(),
             receiver: Some(first.byte_range()),
             argument: Some(Operand::Text(second.start_byte() + 1..second.end_byte())),
+            written: Vec::new(),
         })
     }
 
@@ -148,6 +152,7 @@ impl<'tree> Formatter<'tree> {
                 span: node.byte_range(),
                 receiver: Some(receiver.byte_range()),
                 argument: first.map(Operand::Node),
+                written: Vec::new(),
             });
         }
         // `(send nil? ${:sprintf :format} _ _ ...)`: no receiver and at least two arguments.
@@ -157,7 +162,8 @@ impl<'tree> Formatter<'tree> {
         {
             return None;
         }
-        if arguments(node).len() < 2 {
+        let written = arguments(node);
+        if written.len() < 2 {
             return None;
         }
         Some(Self {
@@ -166,15 +172,14 @@ impl<'tree> Formatter<'tree> {
             span: node.byte_range(),
             receiver: None,
             argument: None,
+            written,
         })
     }
 }
 
 fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> Option<Edit> {
-    // `autocorrect_to_percent` is only reachable with `EnforcedStyle: percent`, which no corpus
-    // configures; the offense is reported without a correction rather than guessed at.
     if style == "percent" {
-        return None;
+        return to_percent(context, found);
     }
     if found.detected != "percent" {
         return Some(Edit {
@@ -211,6 +216,62 @@ fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> 
         ),
         safe: true,
     })
+}
+
+/// `autocorrect_to_percent`: `format(fmt, a, b)` becomes `fmt % [a, b]`, and a single parameter
+/// stands on its own.
+fn to_percent(context: &RuleContext<'_>, found: &Formatter<'_>) -> Option<Edit> {
+    let (format, parameters) = found.written.split_first()?;
+    let args = match parameters {
+        [only] => format_single_parameter(context, only.first()),
+        _ => format!(
+            "[{}]",
+            parameters
+                .iter()
+                .map(|argument| context.source.slice(argument.range()).to_owned())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    };
+    Some(Edit {
+        start: found.span.start,
+        end: found.span.end,
+        replacement: format!("{} % {args}", context.source.slice(format.range())),
+        safe: true,
+    })
+}
+
+/// `format_single_parameter`.
+fn format_single_parameter(context: &RuleContext<'_>, node: Node<'_>) -> String {
+    // `format(fmt, *args)` prints what `fmt % args` does, so the splat comes off.
+    if node.kind_str() == "splat_argument" {
+        return match super::nodes::children(node).first() {
+            Some(inner) => format_single_parameter(context, *inner),
+            None => context.source.node_text(node).to_owned(),
+        };
+    }
+    let source = context.source.node_text(node);
+    if node.kind_str() == "hash" {
+        return format!("{{ {source} }}");
+    }
+    match requires_parentheses(context, node) {
+        true => format!("({source})"),
+        false => source.to_owned(),
+    }
+}
+
+/// `requires_parentheses?`: anything binding looser than `%` keeps its meaning only in brackets.
+fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    match node.kind_str() {
+        "assignment" | "operator_assignment" | "if" | "unless" | "conditional" | "range" => true,
+        // `and` / `or` are `binary` here; so are the operator calls, which need brackets only when
+        // written without them -- and an operator call never is.
+        "binary" => node.field("operator").is_some_and(|operator| {
+            let text = context.source.node_text(operator);
+            matches!(text, "&&" | "||" | "and" | "or") || super::nodes::is_operator_method(text)
+        }),
+        _ => false,
+    }
 }
 
 /// `children.map(&:source).join(', ')` for the array or hash the grammar left as text.
@@ -278,11 +339,9 @@ fn is_variable_argument(
                     .is_some_and(|operand| NUMBER_KINDS.contains(&operand.kind_str()));
             !signed_number && matches!(operator, "-" | "+" | "!" | "~" | "not")
         }
-        "binary" => node
-            .field("operator")
-            .is_some_and(|operator| {
-                super::nodes::is_operator_method(context.source.node_text(operator))
-            }),
+        "binary" => node.field("operator").is_some_and(|operator| {
+            super::nodes::is_operator_method(context.source.node_text(operator))
+        }),
         _ => false,
     }
 }

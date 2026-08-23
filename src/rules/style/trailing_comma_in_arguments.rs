@@ -18,6 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         trailing_comma::check(
             context,
+            node,
             &items,
             KIND,
             last.end_byte(),
