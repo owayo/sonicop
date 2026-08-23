@@ -47,10 +47,22 @@ check: version-check ## Run all local quality gates
 # 起動するので 1 時間前後かかる。**録った結果は tests/fixtures/ にコミットされ、`make test` は
 # それを読むだけなので rubocop gem を要らない。本家を上げたときだけ回す。
 SPEC_FIXTURE_GEN ?= $(HOME)/.claude/skills/migrate-rubocop/scripts/spec_fixture_gen.py
+# 入力の集め方は 2 段になっている。まず本家の spec を**走らせて** `expect_offense` に渡った
+# ものを録り (`spec-capture`)、その記録に対して本家 gem を回して期待値を採る
+# (`spec-fixtures`)。spec を字面で読むだけでは `shared_examples` も `#{}` も `context` の
+# `cop_config` も復元できず、609 cop のうち 54 cop が丸ごと届かなかった。
+SPEC_CAPTURE_HOOK ?= $(HOME)/.claude/skills/migrate-rubocop/scripts/spec_capture.rb
+UPSTREAM_SPEC_TREE ?= $(HOME)/tmp/rubocop-v1.89.0/rubocop_rubocop
+SPEC_CAPTURE_OUT ?= tests/fixtures/upstream_spec_capture.jsonl
 
-spec-fixtures: ## Re-record upstream spec expectations (needs the rubocop gem; ~1h)
+spec-capture: ## Record what upstream's specs hand to `expect_offense` (needs its dev bundle)
+	cd $(UPSTREAM_SPEC_TREE) && CAPTURE_OUT=$(CURDIR)/$(SPEC_CAPTURE_OUT) \
+		ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(ARGV)' -- \
+		--require $(SPEC_CAPTURE_HOOK) spec/rubocop/cop
+
+spec-fixtures: ## Re-record upstream spec expectations from a capture (needs the rubocop gem; ~2h)
 	cd $(dir $(SPEC_FIXTURE_GEN)) && python3 $(notdir $(SPEC_FIXTURE_GEN)) \
-		--all --out $(CURDIR)/tests/fixtures
+		--from-capture $(CURDIR)/$(SPEC_CAPTURE_OUT) --all --out $(CURDIR)/tests/fixtures
 
 # どの cop に回帰テストが無いかを数える。テスト本文を静的に読んでも分からない
 # (cop 名を const 経由で渡す書き方が混ざる) ので、実行時に記録する。

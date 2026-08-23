@@ -124,6 +124,20 @@ supply becomes a case here. **The expectation is not the spec text — it is wha
 reports**, recorded once by `make spec-fixtures`, because upstream does not always behave the way
 its specs say. The recording is committed, so a normal test run needs no rubocop gem.
 
+**The input is collected by running the specs, not by reading them.** `make spec-capture` loads
+`spec_capture.rb` into upstream's own suite and records what reaches `expect_offense` — by then
+the source is a plain string and the cop is configured exactly as the example meant it. Reading
+the files instead leaves four whole categories out, and with them 54 of the 609 cops: a
+`shared_examples` driven by `it_behaves_like`, a `#{}` the spec evaluates, an
+`expect_offense(wrap(<<~RUBY))` where the heredoc is an argument, and a `cop_config` a surrounding
+`context` builds. Two cops (`Lint/Syntax`, `Bundler/GemFilename`) never call `expect_offense` at
+all, so the hook also wraps `CopHelper#_investigate` and `Commissioner#investigate`.
+
+Running the suite needs upstream's development bundle, which the pinned tree at
+`~/tmp/rubocop-v1.89.0` does not ship with. `bundle install` fails there under Ruby 4 — install
+`rspec`, `webmock` and `mcp` as plain gems and drive RSpec through
+`ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(ARGV)'` instead.
+
 As of 2026-08-23 all **11,300** recorded cases match, across the **555** cops the specs reach, with
 no entry in `spec_known_divergences.yml`. A difference appearing there is a regression, not a
 backlog item.
