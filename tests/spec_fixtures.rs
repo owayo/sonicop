@@ -91,16 +91,27 @@ struct RecordedOffense {
 /// 変えると、本家は `.gemspec` で測ったものを移植版は `.rb` で再生し、**差分が
 /// 「移植版のバグ」の顔をして出る**。
 fn path_for(cop: &str) -> &'static str {
-    // 本家 spec の仮想ファイル名。`Lint/ScriptPermission` はそれをメッセージに書くので、
-    // 別の名前で再生すると本文が食い違う。
-    if cop == "Lint/ScriptPermission" {
-        return "c0000.rb";
-    }
     match cop.split('/').next() {
         Some("Gemspec") => "example.gemspec",
         Some("Bundler") => "example.gemfile",
         _ => "example.rb",
     }
+}
+
+/// 本家 spec が使う仮想ファイル名 (`c0000.rb`) がメッセージに焼き込まれているなら、その名前で
+/// 再生する。
+///
+/// `Naming/FileName` や `Lint/ScriptPermission` は**ファイル名そのものを報告する**ので、
+/// `example.rb` で再生すると本文が食い違う -- 中身の差ではないのに差分として出る。cop 名で
+/// 特別扱いを並べるのではなく、メッセージに現れた名前をそのまま使う。
+fn path_in_message(offenses: &[RecordedOffense]) -> Option<String> {
+    static VIRTUAL_PATH: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"\bc\d{4,}\.(?:rb|gemspec|gemfile)\b").expect("パターンが不正")
+    });
+    offenses
+        .iter()
+        .find_map(|offense| VIRTUAL_PATH.find(&offense.message))
+        .map(|found| found.as_str().to_owned())
 }
 
 /// `Lint/Syntax` が出したメッセージかどうか。cop 名は記録されていないので、`parser` gem の
@@ -159,7 +170,10 @@ impl Record {
             .collect();
         let mut case = CopCase::new(&self.cop, self.source.clone(), expected)
             .id(&self.origin)
-            .path(path_for(&self.cop));
+            .path(
+                &path_in_message(&self.offenses)
+                    .unwrap_or_else(|| path_for(&self.cop).to_owned()),
+            );
         // 本家が出した `location.length` そのものも見る。キャレット本数だけだと、
         // 行を跨るレンジの**終端**を一度も検証しないまま緑になる。
         if !self.offenses.is_empty() {
@@ -188,7 +202,7 @@ impl Record {
         {
             case = case.expecting_syntax_error();
         }
-        // モードを読む cop は、名前だけのパスでは何も見えない。
+        // モードやファイルの存在そのものを読む cop は、名前だけのパスでは何も見えない。
         if self.cop == "Lint/ScriptPermission" {
             case = case.materialized();
         }

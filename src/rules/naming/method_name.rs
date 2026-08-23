@@ -24,6 +24,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .setting("EnforcedStyle")
             .unwrap_or_else(|| "snake_case".to_owned()),
         forbidden: context.setting("ForbiddenIdentifiers").unwrap_or_default(),
+        // `forbidden_name?` is `forbidden_identifier? || forbidden_pattern?`.
+        forbidden_patterns: super::support::forbidden_patterns(context),
         reported: HashSet::new(),
         offenses,
     };
@@ -40,6 +42,7 @@ struct Check<'a, 'tree> {
     context: &'a RuleContext<'tree>,
     style: String,
     forbidden: Vec<String>,
+    forbidden_patterns: Vec<&'static regex::Regex>,
     /// `Base#add_offense` drops a second offense at a range it already reported, and
     /// `attr_accessor :aB, :cD` reports both names over the same range.
     reported: HashSet<Range<usize>>,
@@ -228,6 +231,10 @@ impl Check<'_, '_> {
 
     fn is_forbidden(&self, name: &str) -> bool {
         self.forbidden.iter().any(|forbidden| forbidden == name)
+            || self
+                .forbidden_patterns
+                .iter()
+                .any(|pattern| pattern.is_match(name))
     }
 
     fn style_offense(&mut self, range: Range<usize>) {

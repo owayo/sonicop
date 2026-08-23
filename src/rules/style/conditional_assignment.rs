@@ -567,26 +567,40 @@ impl Cop<'_, '_> {
                 safe: true,
             });
         }
-        // `remove_whitespace_in_branches`: once `lhs = ` is removed from in front of the
-        // conditional, every following line moves left by that prefix's width. This covers branch
-        // bodies as well as `elsif` / `else` / `end`, including nested expressions on later lines.
+        // `remove_whitespace_in_branches`: the lines are **aligned**, not shifted. Upstream removes
+        // `child.column - column - 2` in front of each node of a branch, which lands every one of
+        // them on `column + 2` whatever it started from, and `else.column - column` in front of an
+        // `elsif` / `else` / `end`, which lands those on `column`. Taking the same width off every
+        // line instead leaves an uneven source uneven: `bar = if foo` with its first branch written
+        // four columns deeper than the rest kept those four columns.
         let assignment_column = self.context.source.line_column(node.start_byte()).1;
-        let condition_column = self.context.source.line_column(value.start_byte()).1;
-        let shift = condition_column.saturating_sub(assignment_column);
-        if shift > 0 && !conditional.ternary {
+        if !conditional.ternary {
             let text = self.context.source.text();
             let mut line_start = value.start_byte();
             while let Some(newline) = text[line_start..value.end_byte()].find('\n') {
                 line_start += newline + 1;
-                let removable = text.as_bytes()
-                    [line_start..value.end_byte().min(line_start + shift)]
+                let rest = &text[line_start..value.end_byte()];
+                let blanks = rest
+                    .as_bytes()
                     .iter()
                     .take_while(|byte| matches!(byte, b' ' | b'\t'))
                     .count();
-                if removable == shift {
+                // `line_column` is 1-based; the columns upstream compares are 0-based.
+                let column = self.context.source.line_column(line_start + blanks).1 - 1;
+                let keyword = rest[blanks..].starts_with("elsif")
+                    || rest[blanks..].starts_with("else")
+                    || rest[blanks..].starts_with("end")
+                    || rest[blanks..].starts_with("when")
+                    || rest[blanks..].starts_with("in ");
+                let target = match keyword {
+                    true => assignment_column.saturating_sub(1),
+                    false => assignment_column.saturating_sub(1) + 2,
+                };
+                let removable = column.saturating_sub(target).min(blanks);
+                if removable > 0 {
                     edits.push(Edit {
                         start: line_start,
-                        end: line_start + shift,
+                        end: line_start + removable,
                         replacement: String::new(),
                         safe: true,
                     });

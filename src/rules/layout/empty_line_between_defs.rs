@@ -167,12 +167,10 @@ impl Checker<'_, '_> {
     /// whole.
     fn def_location(&self, node: Node<'_>) -> Range<usize> {
         match node.kind_str() {
-            "method" | "singleton_method" | "class" | "module" => {
-                match node.field("name") {
-                    Some(name) => node.start_byte()..name.end_byte(),
-                    None => node.byte_range(),
-                }
-            }
+            "method" | "singleton_method" | "class" | "module" => match node.field("name") {
+                Some(name) => node.start_byte()..name.end_byte(),
+                None => node.byte_range(),
+            },
             _ => node.byte_range(),
         }
     }
@@ -249,6 +247,10 @@ fn node_type(node: Node<'_>) -> &'static str {
         "method" | "singleton_method" => "method",
         "class" => "class",
         "module" => "module",
+        // A `DefLikeMacros` entry reaches upstream as the `block` wrapped around the call, and
+        // `node_type` folds `numblock` / `itblock` into `block` as well. The grammar keeps the
+        // block on the call, so the name has to come from whether one is written.
+        "call" if node.field("block").is_some() => "block",
         _ => "send",
     }
 }

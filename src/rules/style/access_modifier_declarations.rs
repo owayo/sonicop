@@ -147,6 +147,9 @@ impl<'tree> Cop<'_, 'tree> {
         };
         match value.kind_str() {
             "constant" | "scope_resolution" => true,
+            // `percent_symbol_array?` asks an `array` node whether it was written as `%i`. The
+            // grammar gives that literal a kind of its own, so it never reached the check.
+            "symbol_array" => true,
             "array" => percent_symbol_array(value, self.context),
             // `send` and nothing else: `private(*names)` splats an `lvar`, which the pattern does
             // not match, and the modifier is an offense after all.

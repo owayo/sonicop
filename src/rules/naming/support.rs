@@ -559,3 +559,16 @@ mod tests {
         assert!(valid_name("é", "camelCase"));
     }
 }
+
+/// `forbidden_pattern_regexps`: the `ForbiddenPatterns` entries compiled once.
+///
+/// The entries are plain pattern strings rather than `!ruby/regexp` literals, and they are matched
+/// **anywhere in the name** -- `st_[a-z]` forbids `first_arg`.
+pub(crate) fn forbidden_patterns(context: &RuleContext<'_>) -> Vec<&'static Regex> {
+    context
+        .setting::<Vec<serde_yaml_ng::Value>>("ForbiddenPatterns")
+        .unwrap_or_default()
+        .iter()
+        .filter_map(ruby_regex)
+        .collect()
+}

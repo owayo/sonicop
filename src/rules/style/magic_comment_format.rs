@@ -44,15 +44,18 @@ static SIMPLE: LazyLock<Vec<Regex>> = LazyLock::new(|| {
 
 /// `EmacsComment::REGEXP` and `VimComment::REGEXP`.
 static EMACS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-\*-(.+)-\*-").expect("valid"));
-static VIM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"#(?-u:\s)*vim:(?-u:\s)*(.+)").expect("valid"));
+static VIM: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"#(?-u:\s)*vim:(?-u:\s)*(.+)").expect("valid"));
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let kebab = context
         .setting::<String>("EnforcedStyle")
         .is_some_and(|style| style == "kebab_case");
-    let directive_case = context
-        .setting::<String>("DirectiveCapitalization")
-        .or_else(|| Some("lowercase".to_owned()));
+    // `expected_style` is `[directive_capitalization, style].compact.join(' ')`: an explicit `~`
+    // in the configuration means the capitalization is not enforced at all, and the message says
+    // "snake" rather than "lower snake". Filling the shipped default back in over a written `null`
+    // both enforced a rule the run had turned off and misnamed the style.
+    let directive_case = context.setting::<String>("DirectiveCapitalization");
     let value_case = context.setting::<String>("ValueCapitalization");
     let limit = first_non_comment_line(context);
     for comment in context.comment_ranges() {

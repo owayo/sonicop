@@ -9,6 +9,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "snake_case".to_owned());
     let allowed: Vec<String> = context.setting("AllowedIdentifiers").unwrap_or_default();
     let forbidden: Vec<String> = context.setting("ForbiddenIdentifiers").unwrap_or_default();
+    // `forbidden_name?` is `forbidden_identifier? || forbidden_pattern?`: a name may be forbidden
+    // by an exact spelling or by a pattern it matches anywhere.
+    let patterns = super::support::forbidden_patterns(context);
     let variables = context.variable_analysis();
     for node in context.nodes_of_any(&[
         "identifier",
@@ -20,7 +23,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let name = context.source.node_text(node);
-        let forbidden_name = forbidden.iter().any(|entry| entry == name);
+        let forbidden_name = forbidden.iter().any(|entry| entry == name)
+            || patterns.iter().any(|pattern| pattern.is_match(name));
         // `on_gvasgn` stops at the forbidden names: a global variable's spelling is never held
         // against the enforced style.
         if node.kind_str() == "global_variable" {
