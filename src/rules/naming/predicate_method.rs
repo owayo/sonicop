@@ -331,12 +331,30 @@ fn extract_return_value<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> 
     let _ = context;
     match arguments.as_slice() {
         [] => Value::Synthesized,
-        [only] if matches!(only.kind_str(), "pair" | "hash_splat_argument") => {
-            Value::Synthesized
-        }
-        [only] => Value::Node(*only),
+        [only] if matches!(only.kind_str(), "pair" | "hash_splat_argument") => Value::Synthesized,
+        // `first_argument` sees through the `begin` a pair of parentheses makes: `return (not nil)`
+        // hands back the `send`, not the grouping. Stopping at the group made every parenthesized
+        // return value read as "type unknown".
+        [only] => Value::Node(ungroup(*only)),
         _ => Value::Synthesized,
     }
+}
+
+/// The expression inside a redundant grouping, which upstream's node accessors look through.
+fn ungroup<'tree>(node: Node<'tree>) -> Node<'tree> {
+    let mut current = node;
+    while current.kind_str() == "parenthesized_statements" {
+        match named_children(current)
+            .into_iter()
+            .filter(|child| child.kind_str() != "comment")
+            .collect::<Vec<_>>()
+            .as_slice()
+        {
+            [only] => current = *only,
+            _ => break,
+        }
+    }
+    current
 }
 
 /// A trailing run of `key: value` arguments is one `hash` upstream.
@@ -453,8 +471,14 @@ fn method_name<'a>(value: Value<'_>, context: &'a RuleContext<'_>) -> Option<&'a
 
 /// `-1` and `+1`, which upstream's parser folds into a single numeric literal.
 fn is_signed_number(node: Node<'_>) -> bool {
-    node.field("operand")
-        .is_some_and(|operand| NUMERIC_KINDS.contains(&operand.kind_str()))
+    // **Only `-` and `+` fold into the literal.** Without checking the operator, `not 5` counted as
+    // a signed number: it then read as a literal that is not a boolean, and `def foo?` returning it
+    // was reported as a non-predicate.
+    node.child(0)
+        .is_some_and(|operator| matches!(operator.kind_str(), "-" | "+"))
+        && node
+            .field("operand")
+            .is_some_and(|operand| NUMERIC_KINDS.contains(&operand.kind_str()))
 }
 
 fn is_call(value: Value<'_>, context: &RuleContext<'_>) -> bool {

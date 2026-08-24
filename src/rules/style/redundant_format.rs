@@ -204,6 +204,22 @@ fn all_fields_literal(
         if unknown_variable_width(sequence, &pending, values) {
             continue;
         }
+        // `%999…$d`: upstream raises on an argument number no argument answers, and a raising
+        // `format` is not a redundant one. Reading the unparsable number as "no number given"
+        // instead made the cop fold the call to whatever the first argument printed as.
+        if unreadable_argument_number(sequence) {
+            return false;
+        }
+        // `format('%{y}', 2015)` raises `ArgumentError: one hash required`. A named sequence has
+        // nothing to read without a hash to read it from, so there is no value to fold to.
+        if hash.is_none()
+            && matches!(
+                sequence.style,
+                SequenceStyle::Annotated | SequenceStyle::Template
+            )
+        {
+            return false;
+        }
         let Some(index) = find_argument(sequence, &mut pending, hash, values) else {
             continue;
         };
@@ -348,9 +364,28 @@ fn as_integer(value: &Value) -> Option<i128> {
         Value::Float(number) => Some(number.trunc() as i128),
         // `Integer('0x10')` is 16: the prefixes count, which a plain parse would refuse.
         Value::Text(text) => parse_integer(text.trim()),
+        // `Integer((5+0i))` is 5: a complex whose imaginary part is zero converts, and one whose
+        // is not raises. `Value::Complex` keeps what the literal prints as, which is where the
+        // two halves are read from.
+        Value::Complex(text) => real_part_of_complex(text),
         Value::Computed(inner) => as_integer(inner),
         _ => None,
     }
+}
+
+/// The real part of a complex literal whose imaginary part is zero, as `Integer()` reads it.
+fn real_part_of_complex(text: &str) -> Option<i128> {
+    let body = text.trim();
+    let imaginary = body.rfind(['+', '-']).filter(|index| *index > 0)?;
+    if !body.ends_with('i') {
+        return None;
+    }
+    let tail = &body[imaginary + 1..body.len() - 1];
+    // `(5+0i)` converts, `(5+1i)` does not.
+    if tail.parse::<f64>().ok()? != 0.0 {
+        return None;
+    }
+    parse_integer(body[..imaginary].trim())
 }
 
 /// `numeric?` together with `Float(value, exception: false)`.
@@ -360,6 +395,7 @@ fn as_float(value: &Value) -> Option<f64> {
         Value::Rational(numerator, denominator) => Some(*numerator as f64 / *denominator as f64),
         Value::Float(number) => Some(*number),
         Value::Text(text) => text.trim().parse::<f64>().ok(),
+        Value::Complex(text) => real_part_of_complex(text).map(|number| number as f64),
         Value::Computed(inner) => as_float(inner),
         _ => None,
     }
@@ -541,7 +577,10 @@ fn computed_number(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
                 true => "",
                 false => "+",
             };
-            let imaginary = imaginary.trim_start_matches("0+").trim_start_matches("0");
+            // Only the `0+` real part that `complex_value` writes comes off. Trimming a further
+            // `0` turned `(5+0i)` into `5+i`, which is `5+1i` -- and `Integer()` then refused it,
+            // because a complex with a non-zero imaginary part does not convert.
+            let imaginary = imaginary.trim_start_matches("0+");
             Some(Value::Computed(Box::new(Value::Complex(format!(
                 "{left_text}{sign}{imaginary}"
             )))))
@@ -645,6 +684,15 @@ fn apply_format(text: &str, values: &[Value]) -> Option<String> {
             }
             false => sequence.width.parse::<isize>().ok(),
         };
+        // `%.*f` takes its precision from an argument too, and consumes it before the value.
+        let precision = match sequence.precision.starts_with('*') {
+            true => {
+                let taken = *pending.first()?;
+                pending.remove(0);
+                Some(as_integer(values.get(taken)?)?.max(0) as usize)
+            }
+            false => None,
+        };
         let index = match hash.is_some()
             && matches!(
                 sequence.style,
@@ -661,17 +709,27 @@ fn apply_format(text: &str, values: &[Value]) -> Option<String> {
             },
         };
         let value = value_at(values, hash, sequence, index)?;
-        out.push_str(&render(sequence, value, width)?);
+        out.push_str(&render(sequence, value, width, precision)?);
     }
     out.push_str(text.get(cursor..)?);
     Some(out)
 }
 
 /// One formatted field.
-fn render(sequence: &Sequence, value: &Value, width: Option<isize>) -> Option<String> {
-    let precision: Option<usize> = match sequence.precision.is_empty() {
-        true => None,
-        false => Some(sequence.precision.parse().ok()?),
+fn render(
+    sequence: &Sequence,
+    value: &Value,
+    width: Option<isize>,
+    from_argument: Option<usize>,
+) -> Option<String> {
+    let precision: Option<usize> = match from_argument {
+        Some(precision) => Some(precision),
+        None => match (sequence.has_precision, sequence.precision.is_empty()) {
+            (false, _) => None,
+            // `%.d`: the dot with no digits behind it asks for a precision of zero.
+            (true, true) => Some(0),
+            (true, false) => Some(sequence.precision.parse().ok()?),
+        },
     };
     let kind = match sequence.style {
         SequenceStyle::Template => 's',
@@ -689,6 +747,11 @@ fn render(sequence: &Sequence, value: &Value, width: Option<isize>) -> Option<St
             let number = as_integer(value)?;
             let mut digits = number.unsigned_abs().to_string();
             if let Some(precision) = precision {
+                // `format('%.d', 0)` is `''`: a precision of zero asks for no digits at all, and
+                // zero has none to keep. Padding up to the precision left the `0` in place.
+                if precision == 0 && number == 0 {
+                    digits.clear();
+                }
                 while digits.len() < precision {
                     digits.insert(0, '0');
                 }
@@ -862,4 +925,9 @@ fn report(context: &RuleContext<'_>, call: Node<'_>, replacement: String) -> Off
             replacement,
             safe: true,
         })
+}
+
+/// A `%N$` whose `N` no `usize` holds -- upstream raises rather than formatting.
+fn unreadable_argument_number(sequence: &Sequence) -> bool {
+    sequence.flags.contains('$') && argument_number(sequence).is_none()
 }

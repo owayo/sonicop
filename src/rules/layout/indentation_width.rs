@@ -6,7 +6,7 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use super::support::{
-    alignment_corrections, body_statements, character_column, holds_block_comment,
+    alignment_corrections, body_statements, effective_character_column, holds_block_comment,
     line_indentation, string_interiors,
 };
 use crate::diagnostic::Offense;
@@ -21,6 +21,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut checker = Checker {
         context,
         width,
+        allowed_patterns: crate::rules::naming::support::forbidden_patterns_named(
+            context,
+            "AllowedPatterns",
+        ),
+        relative_to_receiver: context.setting::<String>("EnforcedStyleAlignWith").as_deref()
+            == Some("relative_to_receiver"),
         outdented_modifiers: context
             .setting_of::<String>("Layout/AccessModifierIndentation", "EnforcedStyle")
             .as_deref()
@@ -49,6 +55,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 struct Checker<'a, 'b> {
     context: &'a RuleContext<'b>,
     width: i64,
+    /// `AllowedPatterns`, matched against the source line the base keyword sits on.
+    allowed_patterns: Vec<&'static regex::Regex>,
+    /// `EnforcedStyleAlignWith: relative_to_receiver`.
+    relative_to_receiver: bool,
     outdented_modifiers: bool,
     indented_internal_methods: bool,
     align_end_with_def: bool,
@@ -183,6 +193,38 @@ impl Checker<'_, '_> {
         }
     }
 
+    /// `block_body_indentation_base`.
+    fn block_body_indentation_base(&self, node: Node<'_>, end: Range<usize>) -> Range<usize> {
+        if !self.relative_to_receiver {
+            return end;
+        }
+        let Some(call) = node.parent_of(self.context).filter(|p| p.kind_str() == "call") else {
+            return end;
+        };
+        let row = |byte: usize| self.context.source.line_column(byte).0;
+        // `dot_on_new_line?`: the receiver stops on an earlier line than the dot.
+        let mut cursor = call.walk();
+        let dot = call
+            .children(&mut cursor)
+            .find(|child| !child.is_named() && matches!(child.kind_str(), "." | "&."));
+        if let Some(dot) = dot
+            && call
+                .field("receiver")
+                .is_some_and(|receiver| row(receiver.end_byte()) < row(dot.start_byte()))
+        {
+            return dot.byte_range();
+        }
+        // `selector_on_new_line?`: no dot, but the name itself moved down.
+        if let Some(selector) = call.field("method")
+            && call
+                .field("receiver")
+                .is_some_and(|receiver| row(receiver.end_byte()) < row(selector.start_byte()))
+        {
+            return selector.byte_range();
+        }
+        end
+    }
+
     fn on_block(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         let Some(end) = last_child(node).filter(|end| matches!(end.kind_str(), "end" | "}")) else {
             return;
@@ -191,7 +233,10 @@ impl Checker<'_, '_> {
             return;
         }
         let container = body_container(node);
-        self.check_container(end.byte_range(), container, offenses);
+        // `block_body_indentation_base`: under `relative_to_receiver` the body is measured from
+        // the dot or the selector when the chain broke the line, not from the `end`.
+        let base = self.block_body_indentation_base(node, end.byte_range());
+        self.check_container(base, container, offenses);
         if !self.indented_internal_methods {
             return;
         }
@@ -350,8 +395,9 @@ impl Checker<'_, '_> {
         if self.skip_check(&base, body) || !body.worth_checking() {
             return;
         }
-        let indentation =
-            character_column(self.context, body.start) - character_column(self.context, base.start);
+        // `column_offset_between(body_node.loc, base_loc)`, which discounts a byte order mark.
+        let indentation = effective_character_column(self.context, body.start)
+            - effective_character_column(self.context, base.start);
         let delta = self.width - indentation;
         if delta == 0 {
             return;
@@ -360,6 +406,17 @@ impl Checker<'_, '_> {
     }
 
     fn skip_check(&self, base: &Range<usize>, body: &Body) -> bool {
+        // `return true if allowed_line?(base_loc)`: the pattern is matched against the **source
+        // line the base sits on**, not against the body.
+        let base_line = self.context.source.line_column(base.start).0;
+        let text = crate::rules::support::chomp(self.context.source.line(base_line));
+        if self
+            .allowed_patterns
+            .iter()
+            .any(|pattern| pattern.is_match(text))
+        {
+            return true;
+        }
         if self.context.source.line_column(body.start).0
             == self.context.source.line_column(base.start).0
         {

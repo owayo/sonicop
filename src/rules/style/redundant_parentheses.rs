@@ -1030,6 +1030,9 @@ fn call_has_arguments(node: Node<'_>) -> bool {
         // A setter call takes the assigned value, and an indexing setter its subscripts too.
         "binary" | "assignment" => true,
         "element_reference" => !super::nodes::children(node).is_empty(),
+        // A `defined?` node's child **is** its argument upstream; the grammar writes it as a
+        // `unary` with an operand and no argument list, so it read as taking nothing.
+        "unary" => node.field("operand").is_some(),
         _ => argument_list(node).is_some_and(|list| !super::nodes::children(list).is_empty()),
     }
 }
@@ -1113,7 +1116,19 @@ fn is_prefix_not(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 }
 
 fn is_suspect_unary(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    is_unary_operation(context, node) && !is_prefix_not(context, node)
+    // `node.send_type? && ...`: `defined? arg` is a `defined?` node upstream, not a `send`, so the
+    // walk down through the operators stops in front of it. Stepping past it handed
+    // `method_call_with_redundant_parentheses?` the bare argument, and `foo && (!defined? arg)`
+    // came out as redundant parentheses around a unary operation.
+    !is_defined(context, node) && is_unary_operation(context, node) && !is_prefix_not(context, node)
+}
+
+/// `defined? x`, which the grammar spells as a `unary` and upstream as a node type of its own.
+fn is_defined(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.kind_str() == "unary"
+        && node
+            .field("operator")
+            .is_some_and(|operator| context.source.node_text(operator) == "defined?")
 }
 
 /// `method_call_with_redundant_parentheses?`.

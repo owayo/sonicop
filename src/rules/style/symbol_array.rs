@@ -1,6 +1,7 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 
 use super::literal::{node_value, to_string_literal, to_symbol_literal, trim_interpolation_escape};
@@ -17,7 +18,13 @@ const ARRAY_MSG: &str = "Use %<prefer>s for an array of symbols.";
 /// The characters `complex_content?` refuses to leave inside a percent literal.
 const DELIMITERS: [char; 4] = ['[', ']', '(', ')'];
 
+/// `minimum_target_ruby_version 2.0`: `%i[…]` arrived in 2.0.
+const MINIMUM: RubyVersion = RubyVersion::new(2, 0);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if context.target_ruby_version() < MINIMUM {
+        return;
+    }
     let style: String = context
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "percent".to_owned());

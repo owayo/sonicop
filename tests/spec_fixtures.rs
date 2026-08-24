@@ -171,8 +171,7 @@ impl Record {
         let mut case = CopCase::new(&self.cop, self.source.clone(), expected)
             .id(&self.origin)
             .path(
-                &path_in_message(&self.offenses)
-                    .unwrap_or_else(|| path_for(&self.cop).to_owned()),
+                &path_in_message(&self.offenses).unwrap_or_else(|| path_for(&self.cop).to_owned()),
             );
         // 本家が出した `location.length` そのものも見る。キャレット本数だけだと、
         // 行を跨るレンジの**終端**を一度も検証しないまま緑になる。

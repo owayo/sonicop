@@ -58,6 +58,17 @@ pub mod project;
 /// 文字列連結ではなくマッピングとして合成するので、呼び出し側が `AllCops` を
 /// 持っていてもキーが重複しない。
 pub fn with_target_ruby(yaml: Option<&str>, version: &str) -> String {
+    with_target_ruby_enabling(yaml, version, &[])
+}
+
+/// 同じことを、`--only` が選ぶ cop に `Enabled: true` を書き足したうえで行う。
+///
+/// **記録の再現には記録の条件が要る。**`spec_fixture_gen` は `--only` の cop に
+/// `Enabled: true` を必ず書く。既定で無効な cop -- `Style/DisableCopsWithinSourceCodeDirective`
+/// はその一つ -- は、この 1 行があるかどうかで挙動そのものが変わる (`prevent_directive_disabling?`
+/// は `Enabled` が明示的に true のときだけ効く)。書かずに走らせると、cop の不具合と
+/// 見分けのつかない差分が出る。
+pub fn with_target_ruby_enabling(yaml: Option<&str>, version: &str, only: &[String]) -> String {
     let mut root: Value = match yaml {
         Some(yaml) if !yaml.trim().is_empty() => serde_yaml_ng::from_str(yaml)
             .unwrap_or_else(|error| panic!("設定 YAML が不正: {error}\n--- yaml ---\n{yaml}")),
@@ -76,5 +87,15 @@ pub fn with_target_ruby(yaml: Option<&str>, version: &str) -> String {
             Value::String("TargetRubyVersion".to_owned()),
             Value::String(version.to_owned()),
         );
+    for cop in only {
+        let entry = mapping
+            .entry(Value::String(cop.clone()))
+            .or_insert_with(|| Value::Mapping(Mapping::new()));
+        if let Some(section) = entry.as_mapping_mut() {
+            section
+                .entry(Value::String("Enabled".to_owned()))
+                .or_insert(Value::Bool(true));
+        }
+    }
     serde_yaml_ng::to_string(&root).expect("合成した設定 YAML を書き出せなかった")
 }

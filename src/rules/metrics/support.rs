@@ -138,6 +138,7 @@ fn body_code_line_count(
     let start = first.start_position().row;
     let end = heredoc_extended_end(&statements, heredocs).unwrap_or(last.end_position().row);
     count_code_lines(context, start, end, count_comments)
+        .saturating_sub(folded_away(context, body, count_comments, heredocs))
 }
 
 /// The statements RuboCop would see as the body, in the order they are written.
@@ -270,4 +271,71 @@ pub(super) fn constructor_call<'a>(
         return None;
     }
     Some((name, context.source.node_text(method)))
+}
+
+/// `CountAsOne`: the kinds of literal `CodeLengthCalculator` folds down to a single line.
+///
+/// `normalize_foldable_types` turns `heredoc` into `str`/`dstr` and `method_call` into
+/// `send`/`csend`, which the grammar spells as a heredoc opener and a `call`.
+fn foldable_kinds(context: &RuleContext<'_>) -> Vec<&'static str> {
+    let mut kinds = Vec::new();
+    for entry in context
+        .setting::<Vec<String>>("CountAsOne")
+        .unwrap_or_default()
+    {
+        match entry.as_str() {
+            "array" => kinds.push("array"),
+            "hash" => kinds.push("hash"),
+            "heredoc" => kinds.push("heredoc_beginning"),
+            "method_call" => kinds.push("call"),
+            _ => {}
+        }
+    }
+    kinds
+}
+
+/// `each_top_level_descendant`: the outermost foldable nodes, never descending into a class or a
+/// module and never into a fold that has already been taken.
+fn top_level_foldable<'tree>(
+    node: Node<'tree>,
+    kinds: &[&str],
+    found: &mut Vec<Node<'tree>>,
+) {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if matches!(child.kind_str(), "class" | "module") {
+            continue;
+        }
+        if kinds.contains(&child.kind_str()) {
+            found.push(child);
+        } else {
+            top_level_foldable(child, kinds, found);
+        }
+    }
+}
+
+/// `length - descendant_length + 1` for each folded node: what `CountAsOne` takes off the count.
+fn folded_away(
+    context: &RuleContext<'_>,
+    body: Node<'_>,
+    count_comments: bool,
+    heredocs: &HeredocEnds,
+) -> usize {
+    let kinds = foldable_kinds(context);
+    if kinds.is_empty() {
+        return 0;
+    }
+    let mut found = Vec::new();
+    top_level_foldable(body, &kinds, &mut found);
+    let mut removed = 0;
+    for node in found {
+        let (start, end) = match node.kind_str() {
+            // `heredoc_length`: the body's lines plus the opener and the terminator.
+            "heredoc_beginning" => (node.start_position().row, heredocs.end_row(node)),
+            _ => (node.start_position().row, node.end_position().row),
+        };
+        let length = count_code_lines(context, start, end, count_comments);
+        removed += length.saturating_sub(1);
+    }
+    removed
 }

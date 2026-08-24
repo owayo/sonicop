@@ -27,7 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         crate::engine::LiteralEncoding::Binary => |character| matches!(character, ' ' | '\t'),
         _ => crate::rules::support::is_ruby_blank,
     };
-    for line_number in 1..=context.source.line_count() {
+    // `processed_source.lines` stops at `__END__`; whitespace in the data section is data.
+    for line_number in 1..=crate::rules::support::last_code_line(context) {
         let range = context.source.line_range(line_number);
         let line = &text[range.clone()];
         let content_end = line.trim_end_matches(['\r', '\n']).len();

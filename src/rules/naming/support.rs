@@ -522,6 +522,27 @@ fn translate_ruby_pattern(pattern: &str) -> String {
     out
 }
 
+/// `forbidden_pattern_regexps`: the `ForbiddenPatterns` entries compiled once.
+///
+/// The entries are plain pattern strings rather than `!ruby/regexp` literals, and they are matched
+/// **anywhere in the name** -- `st_[a-z]` forbids `first_arg`.
+pub(crate) fn forbidden_patterns(context: &RuleContext<'_>) -> Vec<&'static Regex> {
+    forbidden_patterns_named(context, "ForbiddenPatterns")
+}
+
+/// The same for any list of patterns a cop reads under its own key.
+pub(crate) fn forbidden_patterns_named(
+    context: &RuleContext<'_>,
+    key: &str,
+) -> Vec<&'static Regex> {
+    context
+        .setting::<Vec<serde_yaml_ng::Value>>(key)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(ruby_regex)
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::valid_name;
@@ -558,17 +579,4 @@ mod tests {
         assert!(valid_name("é", "snake_case"));
         assert!(valid_name("é", "camelCase"));
     }
-}
-
-/// `forbidden_pattern_regexps`: the `ForbiddenPatterns` entries compiled once.
-///
-/// The entries are plain pattern strings rather than `!ruby/regexp` literals, and they are matched
-/// **anywhere in the name** -- `st_[a-z]` forbids `first_arg`.
-pub(crate) fn forbidden_patterns(context: &RuleContext<'_>) -> Vec<&'static Regex> {
-    context
-        .setting::<Vec<serde_yaml_ng::Value>>("ForbiddenPatterns")
-        .unwrap_or_default()
-        .iter()
-        .filter_map(ruby_regex)
-        .collect()
 }

@@ -202,9 +202,11 @@ impl Reporter<'_, '_> {
             let range = space_before(text, right.start_byte());
             self.report(node, range, NO_SPACE_COMMAND, offenses);
         } else if !nested_right {
-            let offset = right.start_byte();
+            // `space_offenses` passes `side: :none`, and `side_space_range` then hands back the
+            // token's own range -- the bracket, one character. Reporting the empty span where the
+            // space belongs instead made the caret vanish from the annotation.
             if !end_ok && !extra_space_before(text, right) {
-                self.report(node, offset..offset, SPACE_COMMAND, offenses);
+                self.report(node, right.byte_range(), SPACE_COMMAND, offenses);
             }
         }
     }

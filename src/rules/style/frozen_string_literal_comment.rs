@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 
 const MSG_MISSING: &str = "Missing frozen string literal comment.";
@@ -9,7 +10,13 @@ const MSG_MISSING_TRUE: &str = "Missing magic comment `# frozen_string_literal: 
 const MSG_UNNECESSARY: &str = "Unnecessary frozen string literal comment.";
 const MSG_DISABLED: &str = "Frozen string literal comment must be set to `true`.";
 
+/// `minimum_target_ruby_version 2.3`: the frozen string literal comment is only valid in Ruby 2.3+.
+const MINIMUM: RubyVersion = RubyVersion::new(2, 3);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if context.target_ruby_version() < MINIMUM {
+        return;
+    }
     if context.source.text().trim().is_empty() {
         return;
     }

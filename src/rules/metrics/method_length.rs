@@ -7,13 +7,15 @@ use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(10);
-    let allowed: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+    let allowed = crate::rules::support::allowed_methods(context);
+    // `allowed?(name)` is `allowed_method?(name) || matches_allowed_pattern?(name)`.
+    let patterns = crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
     let heredocs = HeredocEnds::new(context);
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         if node.field("name").is_some_and(|name| {
-            allowed
-                .iter()
-                .any(|entry| entry == context.source.node_text(name))
+            let written = context.source.node_text(name);
+            allowed.iter().any(|entry| entry == written)
+                || patterns.iter().any(|pattern| pattern.is_match(written))
         }) {
             continue;
         }
@@ -30,7 +32,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // A `define_method` block defines a method just as much as `def` does, so RuboCop measures it
     // here as well -- under the `Method` label, and reported against the `define_method` call.
     for node in context.nodes_of_any(&["block", "do_block"]) {
-        if !defines_method(context, node, &allowed) {
+        if !defines_method(context, node, &allowed, &patterns) {
             continue;
         }
         report_length(
@@ -45,7 +47,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn defines_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String]) -> bool {
+fn defines_method(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    allowed: &[String],
+    patterns: &[&regex::Regex],
+) -> bool {
     let Some(call) = node.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
         return false;
     };
@@ -67,4 +74,5 @@ fn defines_method(context: &RuleContext<'_>, node: Node<'_>, allowed: &[String])
     let literal = context.source.node_text(name).trim_start_matches(':');
     let literal = literal.trim_matches(['"', '\'']);
     !allowed.iter().any(|entry| entry == literal)
+        && !patterns.iter().any(|pattern| pattern.is_match(literal))
 }

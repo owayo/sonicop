@@ -77,10 +77,17 @@ fn conversion_correction(receiver: Node<'_>, context: &RuleContext<'_>) -> Optio
             Some(out)
         }
         "string" | "delimited_symbol" if has_interpolation(receiver) => {
-            // `dstr_correction`: a literal already written with `"` keeps its body verbatim.
+            // `dstr_correction`: a literal already written with `"` keeps its body verbatim. A
+            // `%Q{…}` takes the other arm, which reads the same body back off the parts -- and
+            // whose opening delimiter is **three characters**, not one.
             let text = context.source.node_text(receiver);
-            text.starts_with('"')
-                .then(|| format!(":\"{}\"", &text[1..text.len() - 1]))
+            let open = receiver
+                .child(0)
+                .map_or(1, |node| context.source.node_text(node).len());
+            // The closing delimiter is one character for every spelling the parts leave behind.
+            let close = 1;
+            text.get(open..text.len().checked_sub(close)?)
+                .map(|body| format!(":\"{body}\""))
         }
         "string" => Some(symbol_inspect(string_text(receiver, context))),
         "simple_symbol" | "delimited_symbol" | "hash_key_symbol" => {

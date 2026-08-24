@@ -60,7 +60,10 @@ fn should_have_comma(
 ) -> bool {
     match style {
         "comma" => multiline(context, node, items) && no_elements_on_same_line(node, items),
-        "consistent_comma" => multiline(context, node, items),
+        "consistent_comma" => {
+            multiline(context, node, items)
+                && !method_name_and_arguments_on_same_line(context, node, items)
+        }
         "diff_comma" => {
             multiline(context, node, items) && last_item_precedes_newline(context, node, items)
         }
@@ -264,4 +267,53 @@ fn last_argument<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 pub(super) fn closing_bracket<'tree>(node: Node<'tree>, bracket: &str) -> Option<Node<'tree>> {
     let last = node.child(node.child_count().saturating_sub(1) as u32)?;
     (last.kind_str() == bracket).then_some(last)
+}
+
+/// `method_name_and_arguments_on_same_line?`: the call's own line already carries the last
+/// argument, so `obj\n  .do_something(:foo, :bar)` needs no comma even though the whole call spans
+/// lines. The line compared against is the **selector's**, not the call's -- the receiver may sit
+/// several lines above it.
+fn method_name_and_arguments_on_same_line(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    items: &[Node<'_>],
+) -> bool {
+    // `node.call_type?` covers `obj[...]`, which upstream spells as a `send` of `:[]`; the grammar
+    // gives it a node of its own with no `method` field.
+    if !matches!(node.kind_str(), "call" | "element_reference") {
+        return false;
+    }
+    let Some(last) = items.last() else {
+        return false;
+    };
+    if node.end_position().row != last.end_position().row {
+        return false;
+    }
+    // `return true if node.last_argument.hash_type? && node.last_argument.braces?`.
+    if last.kind_str() == "hash"
+        && last
+            .child(0)
+            .is_some_and(|first| context.source.node_text(first) == "{")
+    {
+        return true;
+    }
+    // `node.loc.selector&.line || node.loc.line`: for `obj[...]` the selector is the `[`, which
+    // the grammar leaves as an anonymous child rather than a `method` field.
+    let line = match node.kind_str() {
+        "element_reference" => node
+            .field("object")
+            .map_or(node.start_position().row, |object| {
+                context
+                    .source
+                    .line_column(object.end_byte().saturating_sub(1))
+                    .0
+                    - 1
+            }),
+        _ => node
+            .field("method")
+            .unwrap_or(node)
+            .start_position()
+            .row,
+    };
+    line == last.end_position().row
 }

@@ -178,9 +178,7 @@ fn ending(node: Node<'_>) -> Option<usize> {
         "method" | "singleton_method" | "class" | "module" => {
             node.field("name").map(|name| name.end_byte())
         }
-        "singleton_class" => node
-            .field("value")
-            .map(|value| value.end_byte()),
+        "singleton_class" => node.field("value").map(|value| value.end_byte()),
         "assignment" | "operator_assignment" => node.field("left").map(|left| {
             // `obj.attr = …` is a `send` of `:attr=` upstream, which falls to the wrapper branch
             // and aligns against the **receiver**; only a plain variable aligns against its name.
@@ -200,10 +198,15 @@ fn ending(node: Node<'_>) -> Option<usize> {
 }
 
 fn wrapped_name_end(node: Node<'_>) -> Option<usize> {
+    // `node.child_nodes.first` for a `send` is its **first argument**: the method name reaches
+    // upstream as a symbol, not a node. The grammar makes it an `identifier` child, and taking that
+    // as the first child asked it for a `name` field it does not have -- the whole call then went
+    // into the message instead of just `private_class_method def test`.
+    let selector = node.field("method").map(|method| method.id());
     let mut cursor = node.walk();
-    let child = node
-        .named_children(&mut cursor)
-        .find(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))?;
+    let child = node.named_children(&mut cursor).find(|child| {
+        !matches!(child.kind_str(), "comment" | "heredoc_body") && Some(child.id()) != selector
+    })?;
     let inner = if child.kind_str() == "argument_list" {
         let mut inner_cursor = child.walk();
         child
@@ -212,9 +215,7 @@ fn wrapped_name_end(node: Node<'_>) -> Option<usize> {
     } else {
         child
     };
-    inner
-        .field("name")
-        .map(|name| name.end_byte())
+    inner.field("name").map(|name| name.end_byte())
 }
 
 /// `access_modifier?`: `private def foo` and the class-method variants.

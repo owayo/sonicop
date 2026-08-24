@@ -7,10 +7,17 @@ use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(25);
-    let allowed: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+    let allowed = crate::rules::support::allowed_methods(context);
+    // `matches_allowed_pattern?(node.method_name)`: the patterns are matched against the method
+    // name alone, never against the receiver.
+    let patterns = crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
     let heredocs = HeredocEnds::new(context);
     for node in context.nodes_of_any(&["block", "do_block"]) {
-        if block_method_allowed(node, context, &allowed) || class_constructor(node, context) {
+        if block_method_allowed(node, context, &allowed)
+            || block_method_name(node, context)
+                .is_some_and(|name| patterns.iter().any(|pattern| pattern.is_match(name)))
+            || class_constructor(node, context)
+        {
             continue;
         }
         report_length(

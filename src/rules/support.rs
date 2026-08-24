@@ -1311,3 +1311,28 @@ pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -
         line >= first && line <= last
     })
 }
+
+/// `AllowedMethods#allowed_methods`: the configured list plus the deprecated `IgnoredMethods`,
+/// which upstream **appends to** rather than falls back on.
+pub(crate) fn allowed_methods(context: &RuleContext<'_>) -> Vec<String> {
+    let mut names: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+    names.extend(
+        context
+            .setting::<Vec<String>>("IgnoredMethods")
+            .unwrap_or_default(),
+    );
+    names
+}
+
+/// `ProcessedSource#lines`: the last line a cop walking the source should see.
+///
+/// `trim_lines_after_data_marker` drops the `__END__` line and everything behind it, so a cop that
+/// measures lines never sees the data section. The grammar hangs that section off an
+/// `uninterpreted` node.
+pub(crate) fn last_code_line(context: &RuleContext<'_>) -> usize {
+    let data_line = context
+        .nodes_of("uninterpreted")
+        .next()
+        .map_or(usize::MAX, |node| node.start_position().row + 1);
+    context.source.line_count().min(data_line.saturating_sub(1))
+}

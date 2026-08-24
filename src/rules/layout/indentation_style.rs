@@ -27,7 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let unwanted = if tabs { b' ' } else { b'\t' };
 
     let mut literals: Option<Vec<Range<usize>>> = None;
-    for line in 1..=context.source.line_count() {
+    // `processed_source.lines` stops at `__END__`; the data section is not indented code.
+    for line in 1..=crate::rules::support::last_code_line(context) {
         let start = context.source.line_start(line);
         let Some(end) = offending_indentation(context.source.line(line), unwanted) else {
             continue;

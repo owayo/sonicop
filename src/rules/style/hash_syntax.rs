@@ -402,9 +402,10 @@ fn parentheses_the_omission_needs(context: &RuleContext<'_>, pair: Node<'_>) -> 
     if arguments.end_byte() != pair.end_byte() {
         return None;
     }
-    // `last_expression?(dispatch) && !requires_parentheses_context?(dispatch)`: a call standing on
-    // its own needs no help, because `foo bar:` at the end of a body still parses.
-    if !requires_parentheses_context(call) {
+    // `return if last_expression?(dispatch) && !requires_parentheses_context?(dispatch)`: a call
+    // that ends its body needs no help, because `foo bar:` there still parses. One with anything
+    // written after it does -- `foo value:` would swallow the next line.
+    if last_expression(call, context) && !requires_parentheses_context(call, context) {
         return None;
     }
     Some(Edit {
@@ -433,8 +434,37 @@ fn find_ancestor_method_dispatch<'tree>(
 
 /// `requires_parentheses_context?`: the call sits where a bare `foo bar:` would be read as part of
 /// the surrounding expression.
-fn requires_parentheses_context(call: Node<'_>) -> bool {
-    call.parent().is_some_and(|parent| {
+/// `last_expression?`: nothing is written after the call, once an enclosing assignment is followed
+/// out to whatever holds *it*.
+fn last_expression(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    if node.next_named_sibling().is_some() {
+        return false;
+    }
+    let mut current = node.parent_of(context);
+    while let Some(ancestor) = current {
+        if matches!(ancestor.kind_str(), "assignment" | "operator_assignment") {
+            // `return last_expression?(assignment.parent) if assignment.parent&.assignment?`.
+            return match ancestor
+                .parent_of(context)
+                .filter(|parent| matches!(parent.kind_str(), "assignment" | "operator_assignment"))
+            {
+                Some(parent) => last_expression(parent, context),
+                None => ancestor.next_named_sibling().is_none(),
+            };
+        }
+        current = ancestor.parent_of(context);
+    }
+    true
+}
+
+fn requires_parentheses_context(call: Node<'_>, context: &RuleContext<'_>) -> bool {
+    // `node.parent`: the grammar interposes an `argument_list` upstream has no node for, so the
+    // parent of a nested call is that list rather than the call it is an argument of.
+    let mut parent = call.parent_of(context);
+    while parent.is_some_and(|node| node.kind_str() == "argument_list") {
+        parent = parent.and_then(|node| node.parent_of(context));
+    }
+    parent.is_some_and(|parent| {
         matches!(
             parent.kind_str(),
             "call" | "if" | "unless" | "super" | "until" | "while" | "yield"
@@ -450,8 +480,14 @@ fn omits_value(pair: Node<'_>) -> bool {
 /// `!pair_node.parent.hash_type?` inverted. A braceless hash has its pairs sitting in the argument
 /// list, where upstream's parser still builds a `hash` around them; a hash *pattern* does not.
 fn in_hash_literal(pair: Node<'_>, context: &RuleContext<'_>) -> bool {
-    pair.parent_of(context)
-        .is_some_and(|parent| matches!(parent.kind_str(), "hash" | "argument_list"))
+    // `Hash[foo: foo]` parks its pairs straight under the `element_reference`; upstream still
+    // builds a `hash` around them there, as it does for a braceless argument list.
+    pair.parent_of(context).is_some_and(|parent| {
+        matches!(
+            parent.kind_str(),
+            "hash" | "argument_list" | "element_reference"
+        )
+    })
 }
 
 /// The pairs of each hash in the file, in source order.
@@ -461,7 +497,10 @@ fn hash_groups<'tree>(context: &'tree RuleContext<'_>) -> Vec<Vec<Node<'tree>>> 
         let Some(parent) = pair.parent_of(context) else {
             continue;
         };
-        if !matches!(parent.kind_str(), "hash" | "argument_list") {
+        if !matches!(
+            parent.kind_str(),
+            "hash" | "argument_list" | "element_reference"
+        ) {
             continue;
         }
         match groups.iter_mut().find(|(id, _)| *id == parent.id()) {

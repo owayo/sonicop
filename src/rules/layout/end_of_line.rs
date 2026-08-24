@@ -12,8 +12,21 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "native".to_owned());
     let crlf_expected = style == "crlf" || (style == "native" && cfg!(windows));
 
+    // `last_line`: the line the **last token** sits on, not the last line of the file. Everything
+    // past `__END__` is `DATA` and holds no tokens, so its line endings are none of this cop's
+    // business -- scanning to the end of the file reported the data section instead.
     let line_count = context.source.line_count();
-    for line_number in 1..=line_count {
+    let last_line = context
+        .nodes_of("uninterpreted")
+        .next()
+        .map_or(line_count, |node| {
+            context
+                .source
+                .line_column(node.start_byte())
+                .0
+                .saturating_sub(1)
+        });
+    for line_number in 1..=last_line {
         let line = context.source.line(line_number);
         let has_crlf = line.ends_with("\r\n");
         let offending = if crlf_expected {

@@ -24,7 +24,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(array) = named_children(node)
             .into_iter()
             .rfind(|child| child.kind_str() != "comment")
-            .filter(|last| last.kind_str() == "array")
+            // `%w[…]` and `%i[…]` are `array` nodes upstream. The grammar gives each percent form
+            // a kind of its own, so asking for `array` alone missed every one of them.
+            .filter(|last| matches!(last.kind_str(), "array" | "string_array" | "symbol_array"))
         else {
             continue;
         };
@@ -75,7 +77,12 @@ fn literal_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
                 .flatten()
         }
         "float" => Some(context.source.node_text(node).to_owned()),
-        "string" if !has_interpolation(node) => Some(string_text(node, context).to_owned()),
+        // A `%w[…]` element is a `str` upstream like any other; the grammar spells it
+        // `bare_string`, and a `%i[…]` element `bare_symbol`.
+        "string" | "bare_string" if !has_interpolation(node) => {
+            Some(string_text(node, context).to_owned())
+        }
+        "bare_symbol" => Some(string_text(node, context).to_owned()),
         "character" => Some(string_text(node, context).to_owned()),
         "simple_symbol" | "delimited_symbol" | "hash_key_symbol" => {
             symbol_name(node, context).map(str::to_owned)

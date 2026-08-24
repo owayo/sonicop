@@ -207,7 +207,11 @@ fn lvar_used(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
         return true;
     }
     match node.kind_str() {
-        "assignment" | "operator_assignment" => node
+        // `(lvasgn %1 ...)` matches a plain assignment. The shorthand arm is written
+        // `(%SHORTHAND_ASSIGNMENTS (lvasgn %1))`, which asks for **exactly one** child -- and an
+        // `op_asgn` has three, so `acc += 1` does not match it. Accepting it here made the cop
+        // treat every `acc += …` as "the accumulator is returned" and stay silent.
+        "assignment" => node
             .field("left")
             .is_some_and(|left| is_lvar_named(left, name, context)),
         "binary" => {
@@ -267,6 +271,23 @@ fn modifies_element(node: Node<'_>, element: &str, context: &RuleContext<'_>) ->
         "assignment" | "operator_assignment" => node
             .field("left")
             .is_some_and(|left| is_lvar_named(left, element, context)),
+        // `el << x` is `(send (lvar :el) :<< (lvar :x))` upstream. The grammar spells every
+        // operator call as `binary`, so the `el.method(arg)` arm never saw the one shape this cop
+        // is most often written with.
+        "binary" => {
+            let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
+                return false;
+            };
+            is_lvar_named(left, element, context)
+                && matches!(
+                    right.kind_str(),
+                    "identifier"
+                        | "instance_variable"
+                        | "global_variable"
+                        | "class_variable"
+                        | "call"
+                )
+        }
         "call" => {
             let Some(method) = node.field("method") else {
                 return false;

@@ -288,5 +288,14 @@ fn is_basic_literal(node: Node<'_>) -> bool {
             | "true"
             | "false"
             | "nil"
-    ) || (node.kind_str() == "string" && node.named_child_count() <= 1)
+    ) || (node.kind_str() == "string"
+        && node.named_child_count() <= 1
+        // `basic_literal?` is `str`, not `dstr`: an interpolated string holds a call whose value
+        // nobody knows until run time. Counting the parts alone let `"#{foo}"` through, because a
+        // lone `#{…}` is one child just as `foo` is.
+        && !crate::rules::send_node::has_interpolation(node))
+        // A regexp's parts are `str` nodes upstream; the grammar names the text inside one
+        // `string_content` and puts the `/x` flags in a `regopt` of its own -- neither of which is
+        // a kind this list had, so `/foo/` was never a literal branch.
+        || matches!(node.kind_str(), "string_content" | "regex_flags" | "bare_string")
 }

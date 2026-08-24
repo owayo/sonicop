@@ -149,7 +149,7 @@ reports, so **over-detection is invisible to them** — the shapes upstream is q
 infinite and appear in real code only by accident. Roughly 44% of the recorded cases are
 `no_offenses` ones, and that half is the point of the file.
 
-**Reproducing the recording means reproducing its conditions.** Four ways of getting that wrong
+**Reproducing the recording means reproducing its conditions.** Seven ways of getting that wrong
 have already turned the harness into a difference generator, and each looked exactly like a bug in
 a cop:
 
@@ -159,8 +159,12 @@ a cop:
 | Passing the printed `length` as the caret count | Every offense spanning lines became a `range` difference — 57 in three Metrics cops alone |
 | Feeding a recorded output through `CopCase::corrected` | It dedents, for the hand-written `<<~RUBY` cases; recorded output loses its leading newline and indentation. **20 differences, all of them mine** — use `corrected_verbatim` |
 | Treating `foo&.bar` as a `send` | The grammar spells `send` and `csend` alike; upstream's `:send` arm excludes `csend`, and reading it as one makes a cop claim its own receiver is non-nil |
+| Reading and writing the case with Python's default newline handling | Universal-newline translation turns a CRLF case into an LF one on the way in **and** on the way out, so `Layout/EndOfLine` — the cop whose whole subject is the line ending — records an expectation nobody can reproduce. Both sides need `newline=""` |
+| Serialising the recorded `cop_config` as JSON | JSON has no symbol, so `{ any?: :none? }` lands as `{"any?": "none?"}` and YAML reads it back as string keys. `Style/InverseMethods` looks its methods up by symbol, so the recorded configuration disabled the very thing the case was testing. Record with `inspect`, and write the YAML **as a block mapping** — Psych reads an unquoted `:any?` as a symbol, a flow mapping `{:any?: :none?}` is a syntax error, and quoting it makes it a string again |
+| Omitting the `Enabled: true` the generator writes for `--only` | A cop that ships disabled behaves differently with that one line: `Style/DisableCopsWithinSourceCodeDirective` refuses to be switched off by a directive **only** when `Enabled` is explicitly true, so without it the case's own `# rubocop:disable Style` silenced the cop under test |
 
-The first two accounted for 54 of the first 65 failures. Before believing a difference, reproduce
+The first two accounted for 54 of the first 65 failures; the last three for 39 of the 133 that
+remained after the cop work. Before believing a difference, reproduce
 it from the command line against the real upstream — the recording says what upstream did, not
 what the harness asked it.
 
@@ -177,6 +181,25 @@ Two differences that had each survived a round of guessing fell in minutes once 
 screen: a nested `**{…}` is a `hash_splat_argument` **among the pairs** of the hash above it (so
 `node.pairs` is not `children`), and `not bar ? a : b` parses as `unary(not, conditional(…))`
 rather than as a conditional over a negation.
+
+**One grammar node often stands for several upstream ones.** These have each cost more than one
+cop, and the second time is always in a cop whose author had read the first fix:
+
+| Written as | Grammar | Upstream |
+|---|---|---|
+| `a && b`, `a \|\| b` | `binary` | `and` / `or` — **not** a `send`, so `operator_method?` says no |
+| `a << b`, `a + b` | `binary` | `send` — an operator call, which `(send (lvar :a) :<< …)` matches |
+| `/re/ =~ str` | `binary` | `match_with_lvasgn` — answers nothing to `arguments` |
+| `foo&.bar` | `call` | `csend` — upstream's `:send` arm excludes it, `on_csend` is separate |
+| `%w[…]`, `%i[…]` | `string_array` / `symbol_array` | `array`, with `percent_literal?` true |
+| `%w[…]`'s elements | `bare_string` / `bare_symbol` | `str` / `sym` |
+| `/foo/`'s text | `string_content` | `str` |
+| a heredoc's body | one `heredoc_content` per run | one `str` **per line** |
+| `{ a: 1 }`'s key | `hash_key_symbol` | `sym` |
+| `(foo)` | `parenthesized_statements` | `begin` — and node accessors see through it |
+| a `def`'s body | `body_statement` between the two | the body hangs off the `def` directly |
+| the top level | `program` is a parent | `node.parent` is **nil** |
+| `_1`, `it` | `block` | `numblock` / `itblock` |
 
 **Print the corrections too, when a correction does not land.** A cop can build a perfectly good
 set of edits and still leave the file untouched: the edit applier drops what falls outside the

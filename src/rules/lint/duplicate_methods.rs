@@ -53,9 +53,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         if has_if_ancestor(node) {
             return;
         }
-        let (Some(name), Some(receiver)) =
-            (self.name_text(node), node.field("object"))
-        else {
+        let (Some(name), Some(receiver)) = (self.name_text(node), node.field("object")) else {
             return;
         };
         match receiver.kind_str() {
@@ -71,10 +69,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
     }
 
     fn on_alias(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
-        let (Some(name), Some(original)) = (
-            node.field("name"),
-            node.field("alias"),
-        ) else {
+        let (Some(name), Some(original)) = (node.field("name"), node.field("alias")) else {
             return;
         };
         let (Some(name), Some(original)) = (
@@ -118,6 +113,15 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
                 }
             }
             accessor @ ("attr" | "attr_reader" | "attr_writer" | "attr_accessor") => {
+                // `attr :foo, true` carries a `true` that is no symbol, and `literal_arguments`
+                // answers a call with any such argument with nothing at all. `on_attr` reads only
+                // the first argument of an `attr`, so the name is recovered from that alone.
+                let arguments = match (accessor, arguments.is_empty()) {
+                    ("attr", true) => attr_first_name(self.context, node)
+                        .map(|name| vec![name])
+                        .unwrap_or_default(),
+                    _ => arguments,
+                };
                 if arguments.is_empty() || !in_macro_scope(node) {
                     return;
                 }
@@ -151,8 +155,10 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         offenses: &mut Vec<Offense>,
     ) {
         let (readable, writable) = match accessor {
-            // `attr :foo, true` is the historical writer form.
-            "attr" => (true, false),
+            // `writable = args.size == 2 && args.last.true_type?`: `attr :foo, true` is the
+            // historical accessor form, and it defines the writer as well. `literal_arguments`
+            // keeps only the symbols, so the `true` has to be read off the call itself.
+            "attr" => (true, attr_with_writer(node)),
             "attr_reader" => (true, false),
             "attr_writer" => (false, true),
             _ => (true, true),
@@ -212,13 +218,17 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         let Some(receiver) = sclass.field("value") else {
             return;
         };
-        if receiver.kind_str() != "call" {
-            return;
-        }
-        let Some(method) = receiver.field("method") else {
-            return;
+        // `singleton_receiver_node.send_type?` -- and a bare `blah` **is** a send upstream. The
+        // grammar spells a receiverless call as an `identifier`, so `class << blah` never reached
+        // the check and every method defined in it went unrecorded.
+        let method = match receiver.kind_str() {
+            "call" => match receiver.field("method") {
+                Some(method) => self.text(method).to_owned(),
+                None => return,
+            },
+            "identifier" => self.text(receiver).to_owned(),
+            _ => return,
         };
-        let method = self.text(method).to_owned();
         self.found_method(node, &format!("{method}.{name}"), None, offenses);
     }
 
@@ -445,10 +455,7 @@ fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: boo
     if !crate::rules::send_node::is_plain_send(call, context) {
         return false;
     }
-    let (Some(receiver), Some(method)) = (
-        call.field("receiver"),
-        call.field("method"),
-    ) else {
+    let (Some(receiver), Some(method)) = (call.field("receiver"), call.field("method")) else {
         return false;
     };
     if context.source.node_text(method) != "new" {
@@ -459,7 +466,8 @@ fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: boo
         return false;
     }
     let bare = name.rsplit("::").next().unwrap_or(&name);
-    matches!(receiver.kind_str(), "constant" | "scope_resolution") && matches!(bare, "Class" | "Module")
+    matches!(receiver.kind_str(), "constant" | "scope_resolution")
+        && matches!(bare, "Class" | "Module")
 }
 
 fn singleton_class_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
@@ -486,7 +494,10 @@ enum BlockScope {
 }
 
 fn block_module_name(context: &RuleContext<'_>, block: Node<'_>) -> BlockScope {
-    let Some(call) = block.parent_of(context).filter(|parent| parent.kind_str() == "call") else {
+    let Some(call) = block
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "call")
+    else {
         return BlockScope::Opaque;
     };
     // `on_send` は `csend` に呼ばれないので、`Class&.new do` のブロックは本家からは名前の付かない
@@ -740,15 +751,12 @@ fn named_receiver<'a>(context: &'a RuleContext<'_>, call: Node<'_>) -> Option<(&
 }
 
 fn is_class_new_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
-    block
-        .field("receiver")
-        .is_some_and(|receiver| {
-            constant_name(context, receiver)
-                .rsplit("::")
-                .next()
-                .is_some_and(|name| name == "Class")
-        })
-        && is_class_or_module_new(context, block, false)
+    block.field("receiver").is_some_and(|receiver| {
+        constant_name(context, receiver)
+            .rsplit("::")
+            .next()
+            .is_some_and(|name| name == "Class")
+    }) && is_class_or_module_new(context, block, false)
 }
 
 fn anon_block_identity(context: &RuleContext<'_>, block: Node<'_>) -> String {
@@ -815,3 +823,22 @@ fn symbol_name(text: &str) -> Option<&str> {
     (!unquoted.is_empty() && !unquoted.contains(['#', '"', '\''])).then_some(unquoted)
 }
 
+/// `args.size == 2 && args.last.true_type?`: the second argument of the historical `attr` form.
+fn attr_with_writer(node: Node<'_>) -> bool {
+    let Some(list) = node.field("arguments") else {
+        return false;
+    };
+    let written = crate::rules::send_node::named_children(list);
+    matches!(written.as_slice(), [_, last] if last.kind_str() == "true")
+}
+
+/// The name the first argument of an `attr` spells, when a later argument stopped
+/// `literal_arguments` from answering.
+fn attr_first_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
+    let list = node.field("arguments")?;
+    let first = *crate::rules::send_node::named_children(list).first()?;
+    if !matches!(first.kind_str(), "simple_symbol" | "string") {
+        return None;
+    }
+    symbol_name(context.source.node_text(first)).map(str::to_owned)
+}

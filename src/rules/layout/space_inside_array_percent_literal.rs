@@ -45,9 +45,15 @@ fn unnecessary_spaces(contents: &str) -> Vec<std::ops::Range<usize>> {
             index += 1;
             continue;
         }
-        let start = index;
+        let mut start = index;
         while index < bytes.len() && bytes[index] == b' ' {
             index += 1;
+        }
+        // `(?:\\ )*` belongs to the **word**, not to the run: in `%I{a\   b}` the first of the
+        // three spaces is escaped and is part of `a\ `, leaving two for the run. Measuring the
+        // whole run instead put a backslash in front of it and the match was thrown away.
+        while start < index && start > 0 && bytes[start - 1] == b'\\' {
+            start += 1;
         }
         // `( {2,})(?=\S)`: a single space separates words already, and a run that ends the literal
         // or a line is not between two words.

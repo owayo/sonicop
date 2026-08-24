@@ -140,6 +140,17 @@ fn subscript<'tree>(
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     match node.kind_str() {
         "element_reference" => {
+            // `RESTRICT_ON_SEND = %i[[]]`: `arr[i] = value` dispatches `[]=`, which this cop never
+            // sees. The grammar writes the assignment around the same `element_reference`, so the
+            // read and the write look alike until the parent is checked.
+            if node.parent_of(context).is_some_and(|parent| {
+                matches!(parent.kind_str(), "assignment" | "operator_assignment")
+                    && parent
+                        .field("left")
+                        .is_some_and(|left| left.id() == node.id())
+            }) {
+                return None;
+            }
             let object = node.field("object")?;
             let children = super::nodes::children(node);
             Some((object, *children.get(1)?))
@@ -179,7 +190,13 @@ fn length_subtraction<'tree>(
     }
     let left = node.field("left")?;
     match left.kind_str() {
-        "identifier" if LENGTH_METHODS.contains(&context.source.node_text(left)) => {
+        // `(send $_ {:length :size :count})` matches a call, and a local variable named `length`
+        // is an `lvar` -- `length = do_something; self[length - 1]` subtracts from a number nobody
+        // asked the receiver for, so there is no `[-1]` to rewrite it to.
+        "identifier"
+            if LENGTH_METHODS.contains(&context.source.node_text(left))
+                && !context.variable_analysis().is_variable_reference(left) =>
+        {
             Some((None, count))
         }
         "call" => {

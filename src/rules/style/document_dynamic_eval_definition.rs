@@ -6,7 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{is_plain_send, arguments};
+use crate::rules::send_node::{arguments, is_plain_send};
 
 const MSG: &str = "Add a comment block showing its appearance if interpolated.";
 
@@ -173,9 +173,33 @@ fn comment_regexp(context: &RuleContext<'_>, parts: &[Node<'_>]) -> Option<Strin
         {
             source = rest;
         }
-        pattern.push_str(&source_to_regexp(source));
+        // **A heredoc's `dstr` holds one `str` per line upstream**, and each becomes its own
+        // `\s*…` fragment. The grammar runs the lines together into one `heredoc_content`, whose
+        // newline then gets escaped into the pattern -- and a comment block indented differently
+        // from the heredoc could never match it.
+        for text in split_lines(source) {
+            pattern.push_str(&source_to_regexp(&text));
+        }
     }
     (!pattern.is_empty()).then_some(pattern)
+}
+
+/// The `str` nodes one run of heredoc text stands for: upstream keeps the newline that ends each
+/// line **with that line**, and starts a new node after it.
+fn split_lines(source: &str) -> Vec<String> {
+    if source.is_empty() {
+        return vec![String::new()];
+    }
+    let mut lines = Vec::new();
+    let mut rest = source;
+    while let Some(index) = rest.find('\n') {
+        lines.push(rest[..=index].to_owned());
+        rest = &rest[index + 1..];
+    }
+    if !rest.is_empty() {
+        lines.push(rest.to_owned());
+    }
+    lines
 }
 
 /// `source_to_regexp`.

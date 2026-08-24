@@ -1019,7 +1019,7 @@ pub(super) struct Allowed {
 
 impl Allowed {
     pub(super) fn new(context: &RuleContext<'_>) -> Self {
-        let methods: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+        let methods = crate::rules::support::allowed_methods(context);
         let patterns: Vec<String> = context.setting("AllowedPatterns").unwrap_or_default();
         Self {
             methods,

@@ -368,6 +368,13 @@ impl Cop<'_, '_> {
         if parent.kind_str() == "unary" {
             return true;
         }
+        // `return false unless (parent = node.parent)`: a lone top-level statement **has no
+        // parent** upstream. The grammar always hands back a `program`, whose only child is that
+        // statement -- reading it as "the last thing the parent holds" made every such block look
+        // like the value of its scope, and `each { |x| x }` went unreported under `semantic`.
+        if parent.kind_str() == "program" && super::nodes::children(parent).len() == 1 {
+            return false;
+        }
         // `parent.children.last == node`: the block is the last thing the parent holds, so its
         // value is the parent's.
         let children = super::nodes::children(parent);

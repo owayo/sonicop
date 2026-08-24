@@ -53,7 +53,8 @@ fn is_acceptable(node: Node<'_>, context: &RuleContext<'_>, chains_need_parenthe
         | "integer" | "float" | "rational" | "complex" | "string" | "chained_string"
         | "character" | "simple_symbol" | "delimited_symbol" | "hash_key_symbol" | "true"
         | "false" | "nil" | "regex" | "array" | "hash" | "range" | "string_array"
-        | "symbol_array" | "lambda"
+        // `` `date` `` is an `xstr`, which `literal?` accepts.
+        | "symbol_array" | "lambda" | "subshell"
         // `variable?`, `const_type?` and `self_type?`.
         | "identifier" | "instance_variable" | "class_variable" | "global_variable"
         | "constant" | "scope_resolution" | "self" => true,

@@ -107,6 +107,10 @@ fn receiver_allowed(receiver: Option<Node<'_>>, context: &RuleContext<'_>) -> bo
     };
     match receiver.kind_str() {
         "hash" => true,
+        // `(call _ {:to_h :to_hash} ...)` matches a receiverless call too -- `to_h.reject { … }`
+        // is `(send (send nil :to_h) :reject)`. The grammar writes a bare name as an `identifier`,
+        // which fell through to "not a hash".
+        "identifier" => matches!(context.source.node_text(receiver), "to_h" | "to_hash"),
         // `env_const?`: `(const {nil? cbase} :ENV)`.
         "constant" => context.source.node_text(receiver) == "ENV",
         "scope_resolution" => {

@@ -15,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut seen: Vec<Node<'_>> = Vec::new();
         for (index, &element) in elements.iter().enumerate() {
             // Only a value the cop can compare: anything computed may differ at run time.
-            if !is_comparable(element) {
+            if !is_comparable(element, context) {
                 continue;
             }
             if !seen.iter().any(|other| identical(*other, element, context)) {
@@ -62,7 +62,10 @@ fn set_init_elements<'tree>(
                 return None;
             };
             let array = only.first();
-            (array.kind_str() == "array").then(|| (name, literal_elements(array)))
+            // `%i[…]` and `%w[…]` are `array` nodes upstream; the grammar names them by their
+            // percent spelling, so `Set.new(%i[foo bar foo])` fell out of the arm entirely.
+            matches!(array.kind_str(), "array" | "symbol_array" | "string_array")
+                .then(|| (name, literal_elements(array)))
         }
         // `(call (array $...) :to_set)`: the class is not written, so the message names `Set`.
         "to_set" => {
@@ -95,7 +98,12 @@ fn set_class_name(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
 }
 
 /// `literal? || const_type? || variable?`: what the cop is willing to call the same twice.
-fn is_comparable(node: Node<'_>) -> bool {
+fn is_comparable(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    // `variable?` is `lvar`/`ivar`/`cvar`/`gvar`. A bare name that was never assigned is a `send`
+    // upstream -- `Set[foo, foo]` calls `foo` twice and may well get two different values.
+    if node.kind_str() == "identifier" && !context.variable_analysis().is_variable_reference(node) {
+        return false;
+    }
     matches!(
         node.kind_str(),
         "integer"
@@ -105,6 +113,9 @@ fn is_comparable(node: Node<'_>) -> bool {
             | "string"
             | "simple_symbol"
             | "delimited_symbol"
+            // The elements of a `%i[…]` / `%w[…]`, which upstream spells as plain `sym` and `str`.
+            | "bare_symbol"
+            | "bare_string"
             | "hash_key_symbol"
             | "character"
             | "true"
@@ -122,6 +133,8 @@ fn is_comparable(node: Node<'_>) -> bool {
             | "instance_variable"
             | "class_variable"
             | "global_variable"
+            // `variable?` covers a local variable, which the grammar spells as a bare identifier.
+            | "identifier"
             | "self"
     )
 }

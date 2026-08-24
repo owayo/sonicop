@@ -113,6 +113,18 @@ impl SourceFile {
     /// An offset landing inside a multibyte character is rounded down to that character's start
     /// rather than panicking: a cop reporting a byte range it derived by arithmetic must not be
     /// able to abort the whole run.
+    /// `effective_column`: the column as an editor shows it, which on line 1 of a file that opens
+    /// with a byte order mark is one less than the column `parser` reports. Only the cops that
+    /// measure one column against another go through this -- the columns a cop **reports** keep the
+    /// mark, so `Layout/InitialIndentation` points at the same place upstream does.
+    pub fn effective_column(&self, byte_offset: usize) -> usize {
+        let (line, column) = self.line_column(byte_offset);
+        match line == 1 && self.text.starts_with(BYTE_ORDER_MARK) {
+            true => column.saturating_sub(1),
+            false => column,
+        }
+    }
+
     pub fn line_column(&self, byte_offset: usize) -> (usize, usize) {
         let mut offset = byte_offset.min(self.text.len());
         while offset > 0 && !self.text.is_char_boundary(offset) {

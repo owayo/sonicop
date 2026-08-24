@@ -34,6 +34,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(alternative) = node.field("alternative") else {
             continue;
         };
+        // `return unless node.else_branch`: upstream's `else_branch` is what the clause **holds**,
+        // so a bare `else end` answers `nil`. The grammar keeps the empty clause as a node, and
+        // taking its presence for a branch made `if cond then run else end` look convertible.
+        if !crate::rules::send_node::named_children(alternative)
+            .iter()
+            .any(|child| child.kind_str() != "comment")
+        {
+            continue;
+        }
         let consequence = node.field("consequence");
         // `node.if_branch&.begin_type?`: a then-branch upstream reads as a `begin` has no ternary
         // arm to become.
@@ -191,11 +200,19 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     {
         return true;
     }
-    // `keyword_with_changed_precedence?`: `not x`, and a keyword written with arguments.
+    // `keyword_with_changed_precedence?`: `not x`, and a keyword written with arguments -- which
+    // includes `defined? :A`, a `defined?` node upstream and a `unary` here. Only `not` was read,
+    // so `defined? :A` lost the parentheses that keep the `?` of the ternary out of its argument.
     if node.kind_str() == "unary" {
-        return node
-            .field("operator")
-            .is_some_and(|operator| context.source.node_text(operator) == "not");
+        return node.field("operator").is_some_and(|operator| {
+            match context.source.node_text(operator) {
+                "not" => true,
+                "defined?" => node
+                    .field("operand")
+                    .is_some_and(|operand| !context.source.node_text(operand).starts_with('(')),
+                _ => false,
+            }
+        });
     }
     // `node.arguments? && !node.parenthesized_call?`: a keyword whose arguments are already in
     // parentheses takes nothing more from what follows, so it needs no parentheses of its own.

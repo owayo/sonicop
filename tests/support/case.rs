@@ -359,7 +359,14 @@ impl CopCase {
     }
 
     fn config_yaml_text(&self) -> String {
-        super::with_target_ruby(self.config_yaml.as_deref(), &self.target_ruby)
+        // `spec_fixture_gen` writes `Enabled: true` for **the one** cop it passes to `--only`.
+        // A case naming several cops was never recorded that way, so it keeps their configured
+        // state -- `re_disabling_a_configuration_disabled_cop_is_still_reported` depends on it.
+        let enable: &[String] = match self.only.as_slice() {
+            [only] => std::slice::from_ref(only),
+            _ => &[],
+        };
+        super::with_target_ruby_enabling(self.config_yaml.as_deref(), &self.target_ruby, enable)
     }
 
     /// `Selection::includes` は `Lint/Syntax` を常に有効にするため、ケースが選んで

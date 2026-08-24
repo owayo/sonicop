@@ -439,7 +439,12 @@ fn check_if(
     let elsif_conditional = alternative.is_some_and(|branch| branch.kind_str() == "elsif");
     let source = |range: &Range<usize>| context.source.slice(range.clone()).to_owned();
     let replacement = match (is_elsif, result) {
-        (true, true) => format!("else\n  {}", source(&if_range.clone().unwrap_or(0..0))),
+        // `range_with_comments(node.if_branch)`: the branch **with the comments tied to it**, which
+        // for a trailing one means the range reaches to the end of its line.
+        (true, true) => format!(
+            "else\n  {}",
+            source(&with_comments(context, if_range.clone().unwrap_or(0..0)))
+        ),
         (true, false) => format!("else\n  {}", source(&else_range.clone().unwrap_or(0..0))),
         _ => {
             if result && if_range.is_some() {
@@ -481,4 +486,21 @@ fn branch_range(branch: &Branch<'_>) -> Option<Range<usize>> {
         Branch::One(node) => Some(node.byte_range()),
         Branch::Sequence(nodes) => Some(nodes[0].start_byte()..nodes[nodes.len() - 1].end_byte()),
     }
+}
+
+/// `range_with_comments`: the span grown to cover every comment `ast_with_comments` ties to the
+/// node -- in practice the one written after it on the same line.
+fn with_comments(context: &RuleContext<'_>, range: Range<usize>) -> Range<usize> {
+    let last_line = context.source.line_column(range.end.saturating_sub(1)).0;
+    let end = context
+        .comment_ranges()
+        .iter()
+        .filter(|comment| {
+            comment.start >= range.end
+                && context.source.line_column(comment.start).0 == last_line
+        })
+        .map(|comment| comment.end)
+        .max()
+        .unwrap_or(range.end);
+    range.start..end
 }

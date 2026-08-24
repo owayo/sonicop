@@ -24,6 +24,9 @@ pub(super) struct Sequence {
     pub flags: String,
     pub width: String,
     pub precision: String,
+    /// Whether a `.` was written at all. `%.d` is a precision of **zero**, which prints no digits,
+    /// and an empty `precision` cannot tell that apart from a sequence with no precision.
+    pub has_precision: bool,
     pub name: Option<String>,
     /// The type character, absent from a template sequence.
     pub kind: Option<char>,
@@ -65,6 +68,7 @@ fn match_at(text: &str, bytes: &[u8], start: usize) -> Option<Sequence> {
             flags: String::new(),
             width: String::new(),
             precision: String::new(),
+            has_precision: false,
             name: None,
             kind: Some('%'),
             style: SequenceStyle::Percent,
@@ -204,12 +208,14 @@ fn build(
         Some(_) if source.contains('{') => SequenceStyle::Template,
         _ => SequenceStyle::Unannotated,
     };
+    let has_precision = source.contains('.');
     Sequence {
         begin,
         end,
         flags,
         width,
         precision,
+        has_precision,
         name,
         kind,
         style,

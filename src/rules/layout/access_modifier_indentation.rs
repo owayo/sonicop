@@ -2,7 +2,9 @@
 
 use tree_sitter::Node;
 
-use super::support::{alignment_corrections, body_statements, character_column, end_keyword};
+use super::support::{
+    alignment_corrections, body_statements, effective_character_column, end_keyword,
+};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
@@ -43,7 +45,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             _ => node,
         };
         let owner_line = context.source.line_column(owner.start_byte()).0;
-        let end_column = character_column(context, end.start_byte());
+        // `column_offset_between`, which discounts a byte order mark on line 1.
+        let end_column = effective_character_column(context, end.start_byte());
         for modifier in statements {
             if !is_bare_access_modifier(context, modifier) {
                 continue;
@@ -51,7 +54,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             if context.source.line_column(modifier.start_byte()).0 == owner_line {
                 continue;
             }
-            let offset = character_column(context, modifier.start_byte()) - end_column;
+            let offset = effective_character_column(context, modifier.start_byte()) - end_column;
             let delta = expected - offset;
             if delta == 0 {
                 continue;

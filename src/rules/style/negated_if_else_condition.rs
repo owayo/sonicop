@@ -140,9 +140,11 @@ fn swap_branches(
 /// `unwrap_begin_nodes`.
 fn unwrap_parentheses<'tree>(node: Node<'tree>) -> Node<'tree> {
     let mut current = node;
+    // `unwrap_begin_nodes` peels a `begin` as well as a `kwbegin`, which the grammar writes as
+    // `begin … end`. Leaving that one on hid `begin / x !~ y / end ? a : b` from the cop.
     while matches!(
         current.kind_str(),
-        "parenthesized_statements" | "begin_block"
+        "parenthesized_statements" | "begin_block" | "begin"
     ) {
         match super::nodes::children(current).as_slice() {
             [only] => current = *only,

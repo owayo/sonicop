@@ -31,17 +31,25 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<String>("Mode")
         .is_some_and(|mode| mode == "conservative");
     let allowed_methods: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+    // `allowed_method?(name) || matches_allowed_pattern?(name)`: both are matched against the
+    // **enclosing call's method name**, not against the string.
+    let allowed_patterns =
+        crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
 
     for literal in literals(context) {
         if surrounded_by_command_or_regexp(literal.anchor)
             || allowed_method(context, literal.anchor, &allowed_methods)
+            || allowed_call_pattern(context, literal.anchor, &allowed_patterns)
         {
             continue;
         }
         // `format_string_in_typical_context?` reads the node `on_str` was handed: for a literal the
         // parser split into parts that is the enclosing `dstr`, which is never a call's argument.
-        let single = literal.parts.len() == 1;
-        let typical = single && typical_context(context, literal.anchor);
+        // `format_string_context?` is `format_string_in_typical_context?(node) || any ancestor
+        // `dstr` in one`. The anchor **is** the node upstream asks about, whether the parser split
+        // it into parts or not -- requiring a single part made every interpolated format string
+        // uncorrectable, and `format("c#{b}%{template}")` was reported and then left alone.
+        let typical = typical_context(context, literal.anchor);
         let correctable = typical || enclosing_typical_context(context, literal.anchor);
 
         for part in &literal.parts {
@@ -364,4 +372,26 @@ fn describe(style: SequenceStyle) -> &'static str {
         SequenceStyle::Template => "template tokens (like `%{foo}`)",
         _ => "unannotated tokens (like `%s`)",
     }
+}
+
+/// `matches_allowed_pattern?(send_parent.method_name)`.
+fn allowed_call_pattern(
+    context: &RuleContext<'_>,
+    anchor: Node<'_>,
+    patterns: &[&regex::Regex],
+) -> bool {
+    if patterns.is_empty() {
+        return false;
+    }
+    let mut current = anchor.parent_of(context);
+    while let Some(node) = current {
+        if node.kind_str() == "call"
+            && let Some(method) = node.field("method")
+        {
+            let name = context.source.node_text(method);
+            return patterns.iter().any(|pattern| pattern.is_match(name));
+        }
+        current = node.parent_of(context);
+    }
+    false
 }

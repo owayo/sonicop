@@ -22,6 +22,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_heredoc: bool = context.setting("AllowHeredoc").unwrap_or(true);
     let allow_uri: bool = context.setting("AllowURI").unwrap_or(true);
     let allow_qualified_name: bool = context.setting("AllowQualifiedName").unwrap_or(true);
+    // `allowed_line?`: a line matching one of these is never long, whatever it holds.
+    let allowed_patterns =
+        crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
+    let uri_pattern = match context.setting::<Vec<String>>("URISchemes") {
+        Some(schemes) if !schemes.is_empty() => uri_regex(&schemes),
+        _ => URI.clone(),
+    };
 
     // RuboCop drops the `__END__` line and the data section behind it from the lines it walks, so
     // a long line down there is not a long line of code.
@@ -67,6 +74,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
         if length <= max
             || (line_number == 1 && line.starts_with("#!"))
+            || allowed_patterns.iter().any(|pattern| pattern.is_match(line))
             || (allow_heredoc && context.in_heredoc(line_start..line_start + line.len()))
         {
             continue;
@@ -95,10 +103,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             (max, without)
         } else if allow_uri || allow_qualified_name {
             let uri = allow_uri
-                .then(|| excessive_range(line, MatchKind::Uri, max, indent))
+                .then(|| excessive_range(line, MatchKind::Uri, max, indent, &uri_pattern))
                 .flatten();
             let name = allow_qualified_name
-                .then(|| excessive_range(line, MatchKind::QualifiedName, max, indent))
+                .then(|| excessive_range(line, MatchKind::QualifiedName, max, indent, &uri_pattern))
                 .flatten();
             if exempted(uri, name, length, max) {
                 continue;
@@ -254,11 +262,12 @@ fn excessive_range(
     kind: MatchKind,
     max: usize,
     indent: usize,
+    uri: &Regex,
 ) -> Option<(usize, usize)> {
     let found = match kind {
         // RuboCop drops matches that `URI.parse` rejects, but the scan still consumed them, so
         // filtering after the scan -- not before -- keeps the remaining matches where they were.
-        MatchKind::Uri => URI
+        MatchKind::Uri => uri
             .find_iter(line)
             .filter(|found| valid_uri(found.as_str()))
             .last()?,
@@ -335,7 +344,16 @@ static QUALIFIED_NAME: LazyLock<Regex> = LazyLock::new(|| {
 /// production stops at the `:` either way. And the `(?!//)` guarding the authority-less branch
 /// becomes an optional group: the authority branch itself can match nothing, so it never fails on
 /// a `//` and the negative lookahead was only ever reachable without one.
-static URI: LazyLock<Regex> = LazyLock::new(|| {
+/// `URISchemes`: the schemes `URI::DEFAULT_PARSER.make_regexp` is built from. Hard-coding
+/// `https?` made a line holding any other scheme -- the config exists to name one -- too long.
+fn uri_regex(schemes: &[String]) -> Regex {
+    let escaped: Vec<String> = schemes.iter().map(|scheme| regex::escape(scheme)).collect();
+    build_uri_regex(&escaped.join("|"))
+}
+
+static URI: LazyLock<Regex> = LazyLock::new(|| build_uri_regex("https?"));
+
+fn build_uri_regex(schemes: &str) -> Regex {
     const ESCAPED: &str = r"%[a-fA-F\d]{2}";
     let uric_no_slash = format!(r"(?:[\-_.!~*'()a-zA-Z\d;?:@&=+$,]|{ESCAPED})");
     let uric = format!(r"(?:[\-_.!~*'()a-zA-Z\d;/?:@&=+$,\[\]]|{ESCAPED})");
@@ -348,10 +366,10 @@ static URI: LazyLock<Regex> = LazyLock::new(|| {
     let segment = format!(r"{pchar}*(?:;{pchar}*)*");
     let abs_path = format!(r"/{segment}(?:/{segment})*");
     Regex::new(&format!(
-        r"(?:https?):(?:{uric_no_slash}{uric}*|(?:(?://(?:(?:(?:{userinfo}@)?(?:{host}(?::(?-u:\d)*)?))?|{reg_name}))?(?:{abs_path})?)(?:\?{uric}*)?)(?:\#{uric}*)?"
+        r"(?:{schemes}):(?:{uric_no_slash}{uric}*|(?:(?://(?:(?:(?:{userinfo}@)?(?:{host}(?::(?-u:\d)*)?))?|{reg_name}))?(?:{abs_path})?)(?:\?{uric}*)?)(?:\#{uric}*)?"
     ))
     .unwrap()
-});
+}
 
 /// Whether `URI.parse` accepts the string, which RuboCop uses to weed out RFC 2396 matches that
 /// are not URIs after all.
@@ -469,12 +487,31 @@ fn line_break_edits(
     // The range each break hangs off, which is not the range the offense is reported on: upstream
     // calls `insert_before(breakable_range, ...)` with the element it would break in front of, and
     // that range is what orders this insertion against another cop's at the same offset.
-    let mut positions: HashMap<usize, std::ops::Range<usize>> = HashMap::new();
+    // The insertion is `"\n"` for everything but a split string, where upstream writes
+    // `delimiter + " \\\n" + delimiter` so the two halves stay one literal.
+    let mut positions: HashMap<usize, (std::ops::Range<usize>, String)> = HashMap::new();
 
     // Reversed, so that the first semicolon on a line is the one whose position survives.
     if context.source.text().contains(';') {
         for offset in semicolon_break_positions(context).into_iter().rev() {
-            positions.insert(context.source.line_column(offset).0, offset..(offset + 1));
+            positions.insert(
+                context.source.line_column(offset).0,
+                (offset..(offset + 1), "\n".to_owned()),
+            );
+        }
+    }
+
+    // `check_for_breakable_str` / `check_for_breakable_dstr` run on `on_str` / `on_dstr`, which
+    // come before the walk below fills the same lines -- a string that can be split wins over the
+    // element a break would otherwise go in front of.
+    if context.setting::<bool>("SplitStrings").unwrap_or(false) {
+        for node in context.nodes_of_any(&["string", "bare_string"]) {
+            let Some((offset, delimiter)) = breakable_string(context, node, max) else {
+                continue;
+            };
+            positions
+                .entry(node.start_position().row + 1)
+                .or_insert_with(|| (offset..(offset + 1), format!("{delimiter} \\\n{delimiter}")));
         }
     }
 
@@ -488,25 +525,28 @@ fn line_break_edits(
                 // Upstream's block node starts at the receiver, not at the brace, so a call split
                 // over two lines files its break under the line the receiver is on.
                 let owner = node.parent_of(context).unwrap_or(node);
-                positions.insert(owner.start_position().row + 1, offset..(offset + 1));
+                positions.insert(
+                    owner.start_position().row + 1,
+                    (offset..(offset + 1), "\n".to_owned()),
+                );
             }
         } else if let Some(element) = breaker.breakable_element(node) {
             positions
                 .entry(element.start_position().row + 1)
-                .or_insert_with(|| element.byte_range());
+                .or_insert_with(|| (element.byte_range(), "\n".to_owned()));
         }
     }
 
     positions
         .into_iter()
-        .map(|(line, anchor)| {
+        .map(|(line, (anchor, replacement))| {
             (
                 line,
                 (
                     Edit {
                         start: anchor.start,
                         end: anchor.start,
-                        replacement: "\n".to_owned(),
+                        replacement,
                         safe: true,
                     },
                     anchor,
@@ -998,4 +1038,163 @@ mod tests {
         assert_eq!(indentation_difference("\t\tx = 1"), 2);
         assert_eq!(indentation_difference("  x = 1"), 0);
     }
+}
+
+/// `check_for_breakable_str` and its helpers: where a too-long string literal may be split, and
+/// which quote the two halves close and reopen with.
+///
+/// The break is put where the text can be cut without bisecting an escape: at the last blank that
+/// still fits, else in front of the last escape, else at the width `Max` leaves once the closing
+/// quote and the ` \` continuation are taken off.
+fn breakable_string(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    max: usize,
+) -> Option<(usize, &'static str)> {
+    // `breakable_string?`: a heredoc has no quotes to reopen, and a string standing as a hash value
+    // or an array element is left alone for now upstream too.
+    if node.start_position().row != node.end_position().row {
+        return None;
+    }
+    let parent = node.parent_of(context)?;
+    if matches!(parent.kind_str(), "pair" | "keyword_parameter" | "array") {
+        return None;
+    }
+    let source = context.source.node_text(node);
+    let delimiter = match source.as_bytes().first() {
+        Some(b'\'') => "'",
+        Some(b'"') => "\"",
+        _ => return None,
+    };
+    // `check_for_breakable_dstr` handles an interpolated literal separately, breaking only in front
+    // of a `#{`. Cutting one by width instead splits the marker itself -- `"…#" \ "{bbbb}"`.
+    if crate::rules::send_node::has_interpolation(node) {
+        return breakable_dstr(context, node, max, delimiter)
+            .or_else(|| breakable_string_part(context, node, max, delimiter));
+    }
+    // `return if source_range.last_column < max`.
+    let last_column = context
+        .source
+        .line_column(node.end_byte().saturating_sub(1))
+        .1;
+    if last_column < max {
+        return None;
+    }
+    // `largest_possible_string`: `Max` less the closing quote and the ` \`, then less wherever the
+    // literal starts -- on its parent's line that is the offset between them, otherwise its indent.
+    let column = context.source.line_column(node.start_byte()).1 - 1;
+    let offset = match parent.start_position().row == node.start_position().row {
+        true => column.saturating_sub(context.source.line_column(parent.start_byte()).1 - 1),
+        false => column,
+    };
+    let limit = max.saturating_sub(3).saturating_sub(offset);
+    let candidate: String = source.chars().take(limit).collect();
+    let cut = if let Some(blank) = candidate.rfind(char::is_whitespace) {
+        blank + 1
+    } else if let Some(escape) = trailing_escape(&candidate) {
+        escape
+    } else {
+        // `source_range.adjust(end_pos: max - last_column - 3)` measured from the literal's end.
+        let adjustment = (max as isize) - (last_column as isize) - 3;
+        let size = source.len() as isize;
+        if adjustment.abs() > size {
+            return None;
+        }
+        (size + adjustment) as usize
+    };
+    let position = node.start_byte() + cut;
+    // `pos.end_pos unless pos.end_pos == source_range.begin_pos`.
+    (position != node.start_byte() && position < node.end_byte()).then_some((position, delimiter))
+}
+
+/// `/\\(u[\da-f]{0,4}|x[\da-f]{0,2})?\z/`: an escape the cut would otherwise land inside.
+fn trailing_escape(candidate: &str) -> Option<usize> {
+    let bytes = candidate.as_bytes();
+    let mut index = bytes.len();
+    while index > 0 {
+        let start = index - 1;
+        if bytes[start] != b'\\' {
+            // Only a short run of hex digits can follow the backslash.
+            if candidate.len() - start > 5 || !bytes[start].is_ascii_alphanumeric() {
+                return None;
+            }
+            index = start;
+            continue;
+        }
+        return Some(start);
+    }
+    None
+}
+
+/// `check_for_breakable_dstr` with `breakable_dstr_begin_position`: an interpolated literal breaks
+/// in front of the first `#{` that **starts before `Max` and ends past it**, and nowhere else.
+fn breakable_dstr(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    max: usize,
+    delimiter: &'static str,
+) -> Option<(usize, &'static str)> {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if child.kind_str() != "interpolation" {
+            continue;
+        }
+        let start = context.source.line_column(child.start_byte()).1 - 1;
+        let end = context
+            .source
+            .line_column(child.end_byte().saturating_sub(1))
+            .1;
+        if start < max && end >= max {
+            return Some((child.start_byte(), delimiter));
+        }
+    }
+    None
+}
+
+/// `check_for_breakable_str` reaching the `str` parts **inside** a `dstr`: when no `#{` straddles
+/// `Max`, upstream still cuts the run of plain text by width, measuring the offset from the `dstr`
+/// that holds it rather than from the start of the line.
+fn breakable_string_part(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    max: usize,
+    delimiter: &'static str,
+) -> Option<(usize, &'static str)> {
+    let parent_column = context.source.line_column(node.start_byte()).1 - 1;
+    let mut cursor = node.walk();
+    for part in node.named_children(&mut cursor) {
+        if part.kind_str() != "string_content" {
+            continue;
+        }
+        let last_column = context
+            .source
+            .line_column(part.end_byte().saturating_sub(1))
+            .1;
+        if last_column < max {
+            continue;
+        }
+        let column = context.source.line_column(part.start_byte()).1 - 1;
+        let limit = max
+            .saturating_sub(3)
+            .saturating_sub(column.saturating_sub(parent_column));
+        let source = context.source.node_text(part);
+        let candidate: String = source.chars().take(limit).collect();
+        let cut = if let Some(blank) = candidate.rfind(char::is_whitespace) {
+            blank + 1
+        } else if let Some(escape) = trailing_escape(&candidate) {
+            escape
+        } else {
+            let adjustment = (max as isize) - (last_column as isize) - 3;
+            let size = source.len() as isize;
+            if adjustment.abs() > size {
+                continue;
+            }
+            (size + adjustment) as usize
+        };
+        let position = part.start_byte() + cut;
+        if position != part.start_byte() && position < part.end_byte() {
+            return Some((position, delimiter));
+        }
+    }
+    None
 }

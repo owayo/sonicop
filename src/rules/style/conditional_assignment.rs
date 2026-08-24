@@ -587,9 +587,14 @@ impl Cop<'_, '_> {
                     .count();
                 // `line_column` is 1-based; the columns upstream compares are 0-based.
                 let column = self.context.source.line_column(line_start + blanks).1 - 1;
+                // `condition.loc.end` is **the conditional's own** `end`, which is the last thing
+                // the node holds. A block written inside a branch ends with an `end` too, and
+                // pulling that one back to the assignment's column unindented the branch body.
+                let closes_the_conditional = rest[blanks..].starts_with("end")
+                    && line_start + blanks + 3 >= value.end_byte();
                 let keyword = rest[blanks..].starts_with("elsif")
                     || rest[blanks..].starts_with("else")
-                    || rest[blanks..].starts_with("end")
+                    || closes_the_conditional
                     || rest[blanks..].starts_with("when")
                     || rest[blanks..].starts_with("in ");
                 let target = match keyword {

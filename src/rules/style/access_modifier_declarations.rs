@@ -185,13 +185,22 @@ impl<'tree> Cop<'_, 'tree> {
     fn offense(&self, node: Node<'tree>, name: &str) -> bool {
         let inlined = !self.arguments(node).is_empty();
         if self.group {
-            // A modifier standing in a branch of a conditional is left alone; without a parent at
-            // all it is the whole file, where `allowed?` has already turned down the symbol form.
-            if self
-                .upstream_parent(node)
-                .is_some_and(|parent| is_conditional(parent))
-            {
-                return false;
+            // `return false if node.parent ? node.parent.if_type? : access_modifier_with_symbol?`.
+            // A modifier standing in a branch of a conditional is left alone -- and one written at
+            // the very top of the file has **no parent at all** upstream, where the test becomes
+            // the symbol form instead. Reading the grammar's `program` as a parent took the first
+            // arm and reported `private :foo` at the top level, which upstream never does.
+            match self.upstream_parent(node) {
+                Some(parent) => {
+                    if is_conditional(parent) {
+                        return false;
+                    }
+                }
+                None => {
+                    if self.modifier_with_symbol(node) {
+                        return false;
+                    }
+                }
             }
             return inlined && !self.right_siblings_same_inline_method(node, name);
         }
@@ -234,17 +243,23 @@ impl<'tree> Cop<'_, 'tree> {
         node: Node<'tree>,
         name: &str,
     ) -> Option<(Vec<Edit>, Option<Range<usize>>)> {
-        // `find_corresponding_def_nodes` answers with the first argument whatever that argument
-        // turns out to be; only the symbol form, which `allowed?` has already turned down under
-        // the default configuration, looks the definitions up by name.
-        let definition = *self.arguments(node).first()?;
-        let source = self.definition_source(node, definition);
-        let removals = [definition, node].map(|removed| Edit {
-            start: self.with_comments_and_lines(removed).start,
-            end: self.with_comments_and_lines(removed).end,
-            replacement: String::new(),
-            safe: false,
-        });
+        // `find_corresponding_def_nodes`: the symbol form names the definitions rather than
+        // holding one, so `private :bar, :baz` moves **both** `def`s. Taking the first argument
+        // whatever it is moved the symbol `:bar` itself into the group and left the two methods
+        // where they were.
+        let definitions = self.corresponding_definitions(node)?;
+        let source = self.definition_source(node, &definitions);
+        let removals: Vec<Edit> = definitions
+            .iter()
+            .copied()
+            .chain(std::iter::once(node))
+            .map(|removed| Edit {
+                start: self.with_comments_and_lines(removed).start,
+                end: self.with_comments_and_lines(removed).end,
+                replacement: String::new(),
+                safe: false,
+            })
+            .collect();
         if let Some(bare) = self.argument_less_modifier(node, name) {
             let mut edits = vec![Edit {
                 start: bare.end_byte(),
@@ -316,14 +331,44 @@ impl<'tree> Cop<'_, 'tree> {
     }
 
     /// `def_source`: the comments written above the modifier, then the definition itself.
-    fn definition_source(&self, node: Node<'tree>, definition: Node<'tree>) -> String {
+    fn definition_source(&self, node: Node<'tree>, definitions: &[Node<'tree>]) -> String {
         let mut parts: Vec<&str> = self
             .leading_comments(node)
             .into_iter()
             .map(|comment| self.context.source.slice(comment))
             .collect();
-        parts.push(self.context.source.node_text(definition));
+        parts.extend(
+            definitions
+                .iter()
+                .map(|definition| self.context.source.node_text(*definition)),
+        );
         parts.join("\n")
+    }
+
+    /// `find_corresponding_def_nodes`: the definitions the modifier is about.
+    ///
+    /// `private :bar, :baz` names them, and **every** name has to resolve or upstream declines to
+    /// correct at all; anything else holds the one definition it was written against.
+    fn corresponding_definitions(&self, node: Node<'tree>) -> Option<Vec<Node<'tree>>> {
+        if !self.modifier_with_symbol(node) {
+            return Some(vec![*self.arguments(node).first()?]);
+        }
+        let names: Vec<&str> = self
+            .arguments(node)
+            .iter()
+            .filter_map(|argument| send_node::symbol_name(*argument, self.context))
+            .collect();
+        let found: Vec<Node<'tree>> = self
+            .siblings(node)
+            .into_iter()
+            .filter(|sibling| {
+                sibling.kind_str() == "method"
+                    && sibling
+                        .field("name")
+                        .is_some_and(|name| names.contains(&self.context.source.node_text(name)))
+            })
+            .collect();
+        (found.len() == names.len()).then_some(found)
     }
 
     /// `find_argument_less_modifier_node`: the first statement of the same scope spelling this

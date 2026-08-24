@@ -14,6 +14,19 @@ const MSG: &str =
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let min_digits: usize = context.setting("MinDigits").unwrap_or(5);
     let strict: bool = context.setting("Strict").unwrap_or(false);
+    // `allowed_numbers.include?(int)`: compared as **strings**, against the integer part alone.
+    let allowed: Vec<String> = context
+        .setting::<Vec<serde_yaml_ng::Value>>("AllowedNumbers")
+        .unwrap_or_default()
+        .iter()
+        .map(|value| match value {
+            serde_yaml_ng::Value::String(text) => text.clone(),
+            other => serde_yaml_ng::to_string(other)
+                .unwrap_or_default()
+                .trim()
+                .to_owned(),
+        })
+        .collect();
 
     for node in context.nodes_of_any(&["integer", "float"]) {
         // A rational or imaginary suffix makes a different literal upstream (`rational` / `complex`
@@ -30,7 +43,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let integer = integer_part(source);
         // Anything starting with `0` is a non-decimal literal (`0x`, `0b`, `0o`, or a leading-zero
         // octal), which this cop does not know how to group.
-        if integer.starts_with('0') || integer.chars().count() < min_digits {
+        if integer.starts_with('0')
+            || allowed.iter().any(|entry| entry == integer)
+            || integer.chars().count() < min_digits
+        {
             continue;
         }
         if !offending(integer, strict) {

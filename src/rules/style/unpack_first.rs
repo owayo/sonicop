@@ -1,10 +1,17 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+/// `minimum_target_ruby_version 2.4`: `String#unpack1` arrived in 2.4.
+const MINIMUM: RubyVersion = RubyVersion::new(2, 4);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    if context.target_ruby_version() < MINIMUM {
+        return;
+    }
     for node in context.nodes_of_any(&["call", "element_reference"]) {
         let Some((unpack, format)) = first_element_of_unpack(context, node) else {
             continue;

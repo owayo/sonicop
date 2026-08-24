@@ -6,7 +6,8 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use super::support::{
-    alignment_corrections, begins_its_line, character_column, first_part_of_call_chain,
+    alignment_corrections, begins_its_line, effective_character_column,
+    first_part_of_call_chain,
     start_line_range,
 };
 use crate::diagnostic::Offense;
@@ -214,8 +215,9 @@ impl Checker<'_, '_> {
         if !begins_its_line(self.context, branch.start) {
             return;
         }
-        let delta = character_column(self.context, base.start)
-            - character_column(self.context, branch.start);
+        // `column_offset_between(base_range, else_range)`, which discounts a byte order mark.
+        let delta = effective_character_column(self.context, base.start)
+            - effective_character_column(self.context, branch.start);
         if delta == 0 {
             return;
         }

@@ -84,7 +84,11 @@ fn inspect(
     if !in_macro_scope(context.source.text(), node) {
         return;
     }
-    if right_sibling(node).is_some_and(|sibling| sibling.start_position() == node.start_position())
+    // `same_line?(node, node.right_sibling)` compares **lines**, not positions: `public; foo` puts
+    // the modifier and the next statement on one line at different columns, and upstream leaves
+    // that alone.
+    if right_sibling(node)
+        .is_some_and(|sibling| sibling.start_position().row == node.start_position().row)
     {
         return;
     }
@@ -291,7 +295,13 @@ fn right_sibling<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     ) {
         return None;
     }
-    node.next_named_sibling()
+    // A comment is no node upstream, so `right_sibling` steps over it. Stopping at one made
+    // `public # note` look like a modifier followed on its own line by something else.
+    let mut sibling = node.next_named_sibling();
+    while sibling.is_some_and(|node| node.kind_str() == "comment") {
+        sibling = sibling.and_then(|node| node.next_named_sibling());
+    }
+    sibling
 }
 
 /// `in_macro_scope?`: the modifier stands directly in a class-like body, or inside wrappers that

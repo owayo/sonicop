@@ -658,6 +658,13 @@ pub(super) fn character_column(context: &RuleContext<'_>, offset: usize) -> i64 
     context.source.line_column(offset).1 as i64 - 1
 }
 
+/// `effective_column`: the column as an editor shows it. Only `column_offset_between` goes through
+/// this, so a cop measuring one column against another discounts a byte order mark on line 1 while
+/// the columns it **reports** keep it.
+pub(super) fn effective_character_column(context: &RuleContext<'_>, offset: usize) -> i64 {
+    context.source.effective_column(offset) as i64 - 1
+}
+
 /// `source_line =~ /\S/`: where the line's first non-blank character sits.
 pub(super) fn line_indentation(context: &RuleContext<'_>, offset: usize) -> i64 {
     let line = context.source.line_column(offset).0;
