@@ -47,13 +47,15 @@ fn block_method_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option
     )
 }
 
-fn block_receiver<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let call = node.parent_of(context).filter(|parent| parent.kind_str() == "call")?;
-    Some(
-        context
-            .source
-            .node_text(call.field("receiver")?),
-    )
+/// `node.receiver&.source&.gsub(/\s+/, '')`: the receiver as written, with every run of
+/// whitespace removed -- a chain broken over lines (`Foo::\n  Bar.baz`) names the same receiver
+/// as the one written on a single line.
+fn block_receiver(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
+    let call = node
+        .parent_of(context)
+        .filter(|parent| parent.kind_str() == "call")?;
+    let written = context.source.node_text(call.field("receiver")?);
+    Some(written.split_whitespace().collect())
 }
 
 /// `AllowedMethods` entries are either a bare method name or `Receiver.method`; the second form
@@ -65,7 +67,7 @@ fn block_method_allowed(node: Node<'_>, context: &RuleContext<'_>, allowed: &[St
     let receiver = block_receiver(node, context);
     allowed.iter().any(|entry| match entry.split_once('.') {
         Some((entry_receiver, entry_method)) => {
-            entry_method == method && Some(entry_receiver) == receiver
+            entry_method == method && receiver.as_deref() == Some(entry_receiver)
         }
         None => entry == method,
     })

@@ -309,11 +309,7 @@ fn method_name_and_arguments_on_same_line(
                     .0
                     - 1
             }),
-        _ => node
-            .field("method")
-            .unwrap_or(node)
-            .start_position()
-            .row,
+        _ => node.field("method").unwrap_or(node).start_position().row,
     };
     line == last.end_position().row
 }

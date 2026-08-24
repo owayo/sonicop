@@ -995,50 +995,6 @@ fn call_parenthesized(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{URI, extended_end, indentation_difference, valid_uri};
-
-    #[test]
-    fn a_yard_link_swallows_the_closing_bracket_and_stops_being_a_uri() {
-        let uri = "https://guides.rubyonrails.org/action_view_overview.html#strict-locals]";
-        assert_eq!(
-            URI.find(uri).map(|found| found.as_str()),
-            Some(uri),
-            "RFC 2396 では `]` もフラグメントの一部として食う"
-        );
-        assert!(
-            !valid_uri(uri),
-            "RFC 3986 のフラグメントは `]` を許さないので URI.parse は失敗する"
-        );
-        assert!(valid_uri(
-            "https://guides.rubyonrails.org/action_view_overview.html#strict-locals"
-        ));
-    }
-
-    #[test]
-    fn a_bracketed_query_stays_a_valid_uri() {
-        // RFC 3986 のクエリは `#` 以外を何でも許すので、`[` があっても弾かれない。
-        assert!(valid_uri("http://example.com/?x=[1]"));
-    }
-
-    #[test]
-    fn the_end_of_a_match_moves_to_the_end_of_its_word() {
-        let line = r#"assert_equal "http://test.host/x", url"#;
-        let found = URI.find(line).unwrap();
-        // 引用符で閉じられた URI は、その閉じ引用符とカンマまで 1 語として伸びる。
-        assert_eq!(
-            &line[..extended_end(line, found.end())],
-            r#"assert_equal "http://test.host/x","#
-        );
-    }
-
-    #[test]
-    fn leading_tabs_count_double() {
-        assert_eq!(indentation_difference("\t\tx = 1"), 2);
-        assert_eq!(indentation_difference("  x = 1"), 0);
-    }
-}
 
 /// `check_for_breakable_str` and its helpers: where a too-long string literal may be split, and
 /// which quote the two halves close and reopen with.
@@ -1197,4 +1153,49 @@ fn breakable_string_part(
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{URI, extended_end, indentation_difference, valid_uri};
+
+    #[test]
+    fn a_yard_link_swallows_the_closing_bracket_and_stops_being_a_uri() {
+        let uri = "https://guides.rubyonrails.org/action_view_overview.html#strict-locals]";
+        assert_eq!(
+            URI.find(uri).map(|found| found.as_str()),
+            Some(uri),
+            "RFC 2396 では `]` もフラグメントの一部として食う"
+        );
+        assert!(
+            !valid_uri(uri),
+            "RFC 3986 のフラグメントは `]` を許さないので URI.parse は失敗する"
+        );
+        assert!(valid_uri(
+            "https://guides.rubyonrails.org/action_view_overview.html#strict-locals"
+        ));
+    }
+
+    #[test]
+    fn a_bracketed_query_stays_a_valid_uri() {
+        // RFC 3986 のクエリは `#` 以外を何でも許すので、`[` があっても弾かれない。
+        assert!(valid_uri("http://example.com/?x=[1]"));
+    }
+
+    #[test]
+    fn the_end_of_a_match_moves_to_the_end_of_its_word() {
+        let line = r#"assert_equal "http://test.host/x", url"#;
+        let found = URI.find(line).unwrap();
+        // 引用符で閉じられた URI は、その閉じ引用符とカンマまで 1 語として伸びる。
+        assert_eq!(
+            &line[..extended_end(line, found.end())],
+            r#"assert_equal "http://test.host/x","#
+        );
+    }
+
+    #[test]
+    fn leading_tabs_count_double() {
+        assert_eq!(indentation_difference("\t\tx = 1"), 2);
+        assert_eq!(indentation_difference("  x = 1"), 0);
+    }
 }

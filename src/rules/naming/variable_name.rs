@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // matching, so `AllowedIdentifiers: [first_arg]` covers `@first_arg` too. **The patterns do
         // not** -- `forbidden_pattern?` is given the name as written.
         let bare = name.replace(['@', '$'], "");
-        let forbidden_name = forbidden.iter().any(|entry| *entry == bare)
+        let forbidden_name = forbidden.contains(&bare)
             || patterns.iter().any(|pattern| pattern.is_match(name));
         // `on_gvasgn` stops at the forbidden names: a global variable's spelling is never held
         // against the enforced style.
@@ -40,7 +40,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
             continue;
         }
-        if allowed.iter().any(|entry| *entry == bare) {
+        if allowed.contains(&bare) {
             continue;
         }
         if forbidden_name {

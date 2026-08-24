@@ -137,8 +137,12 @@ fn body_code_line_count(
     };
     let start = first.start_position().row;
     let end = heredoc_extended_end(&statements, heredocs).unwrap_or(last.end_position().row);
-    count_code_lines(context, start, end, count_comments)
-        .saturating_sub(folded_away(context, body, count_comments, heredocs))
+    count_code_lines(context, start, end, count_comments).saturating_sub(folded_away(
+        context,
+        body,
+        count_comments,
+        heredocs,
+    ))
 }
 
 /// The statements RuboCop would see as the body, in the order they are written.
@@ -296,11 +300,7 @@ fn foldable_kinds(context: &RuleContext<'_>) -> Vec<&'static str> {
 
 /// `each_top_level_descendant`: the outermost foldable nodes, never descending into a class or a
 /// module and never into a fold that has already been taken.
-fn top_level_foldable<'tree>(
-    node: Node<'tree>,
-    kinds: &[&str],
-    found: &mut Vec<Node<'tree>>,
-) {
+fn top_level_foldable<'tree>(node: Node<'tree>, kinds: &[&str], found: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         if matches!(child.kind_str(), "class" | "module") {
