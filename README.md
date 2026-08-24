@@ -262,38 +262,6 @@ both sides, and not by the same factor on each, which is what makes the parallel
 as it does. If the absolute numbers matter to you, measure on an idle machine and record the load
 either side of the run — a figure without that context cannot be compared with another one.
 
-#### Against nitrocop as well
-
-[nitrocop](https://github.com/nitrocop/nitrocop) 0.0.1-pre12 is the other native RuboCop-compatible
-linter. Comparing three tools needs one condition all three accept, and only "no cache at all" is
-one: nitrocop has no flag for where its cache lives, so it cannot be given a throwaway root the way
-the two above are. **RuboCop runs single-process here** — `--cache false` silently turns `--parallel`
-off — while the two Rust tools run parallel by default. Read the column as "what each tool does when
-you ask it to inspect a tree from scratch", not as an engine-for-engine comparison.
-
-| Corpus | Files | RuboCop | Sonicop | nitrocop |
-|---|---:|---:|---:|---:|
-| rubocop/rubocop | 1,765 | 45.81 s | 2.90 s | **2.05 s** |
-| mastodon/mastodon | 3,290 | 43.05 s | 4.97 s | **3.11 s** |
-| Homebrew/brew | 2,179 | 45.48 s | **3.96 s** | 3.94 s |
-| rails/rails | 3,551 | 86.94 s | 11.46 s | **6.62 s** |
-| ruby/ruby | 7,466 | 227.51 s | **22.60 s** | 38.51 s |
-
-Neither Rust tool wins everywhere: nitrocop is ahead on the three smaller trees and rails, Sonicop
-is ahead on `ruby/ruby` by 1.7x — the largest of the five at 7,466 files — and the two are within
-1% on Homebrew. Against RuboCop the totals are 10.3x for Sonicop and 8.5x for nitrocop.
-
-```bash
-python3 ~/.claude/skills/migrate-rubocop/scripts/bench-three.py <corpus> 2
-```
-
-Two things will make this measurement lie if you reproduce it by hand. nitrocop's `--cache false`
-stops the cache being read and written but **still wants a lockfile**; without one it prints
-`Run 'nitrocop --init' first` and exits 3 in 8 milliseconds, which is then the fastest run of the
-round. Use `--no-cache`. And `ruby/ruby` makes RuboCop exit 2, because the tree holds files that
-are deliberately not valid Ruby — that is a completed inspection, not a failure, so an exit-code
-guard has to allow it.
-
 ## Development
 
 `make` is the single entry point; `make help` lists every target. The Rakefile holds the gem
