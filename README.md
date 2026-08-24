@@ -73,6 +73,13 @@ either way — its silence is indistinguishable from agreement — so the 169 th
 outside the measurement rather than passing it. That is why the percentage is taken over 440 and
 not over 609.
 
+Closing that gap is the current goal: **Cops, Exercised and Exact match all reading 609**. More real
+Ruby will not get there — the 56 cops RuboCop ships disabled, and much of what it ships as pending,
+never fire in a plain run however large the tree. What does reach all of them is the input its own
+specs supply: the 44,070 cases recorded in `tests/fixtures/upstream_spec_capture.jsonl` touch
+**609 of 609 cops**, measured. Counting that as a second corpus is what moves the denominator, and
+the *Exercised* column is the safeguard that keeps "never fired" from being written up as "agreed".
+
 The four that diverge: `Lint/Syntax` (1,275 positions, all of them Homebrew's — the two parsers
 recover differently after a syntax error, and **the set of files each calls unparseable is
 identical**), `Style/EmptyElse` (42), `Style/DisableCopsWithinSourceCodeDirective` (3) and
