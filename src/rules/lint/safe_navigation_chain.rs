@@ -60,7 +60,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `x&.foo[bar] = baz` those differ -- upstream's send covers the assignment, so the range
         // reaches past `= baz` and the rewrite replaces it. Ending at the reference instead leaves
         // the old `= baz` behind and writes `x&.foo&.[]=(bar, baz) = baz`.
-        let range = start..chain.node.end_byte();
+        // **`node` is the `send`, and a `send` does not hold its block.** The grammar hangs the
+        // block off the call, so `Hash&.new.select { … }` ended the range past the closing brace
+        // and reported -- and rewrote -- the whole block along with it.
+        let end = chain
+            .node
+            .field("block")
+            .map_or_else(|| chain.node.end_byte(), |block| block.start_byte());
+        let range = start..end;
         let offense = context.offense(MSG, range.clone());
         offenses.push(
             if ternary_branch(chain.node, chain.safe_navigation, context) == Some(Branch::Else) {

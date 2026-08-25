@@ -39,8 +39,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // lines to move an expression between.
     for node in context.nodes_of("conditional") {
         let branches = vec![
-            node.field("consequence").map(|only| vec![only]),
-            node.field("alternative").map(|only| vec![only]),
+            node.field("consequence").map(|only| vec![unwrap(only)]),
+            node.field("alternative").map(|only| vec![unwrap(only)]),
         ];
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
     }
@@ -402,5 +402,23 @@ fn is_variable(locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind_str() {
         "identifier" => locals.is_lvar(node),
         kind => VARIABLE_KINDS.contains(&kind),
+    }
+}
+
+/// `tail(node)`: `node.begin_type? ? node.children.last : node`. A `(…)` is a `begin` upstream and
+/// its accessors see through it, so `(defined? :A) ? … : …` reports the expression rather than the
+/// parentheses around it.
+fn unwrap(node: Node<'_>) -> Node<'_> {
+    if node.kind_str() != "parenthesized_statements" {
+        return node;
+    }
+    let mut cursor = node.walk();
+    let children: Vec<Node<'_>> = node
+        .named_children(&mut cursor)
+        .filter(|child| child.kind_str() != "comment")
+        .collect();
+    match children.last() {
+        Some(last) if children.len() == 1 => *last,
+        _ => node,
     }
 }
