@@ -27,7 +27,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         match directive.mode {
             Mode::Disable if !directive.all => open.push(index),
-            Mode::Disable => {}
+            // **`# rubocop:disable all` swallows every range already open.** Upstream's
+            // `disabled_line_ranges` records one range per cop, and the blanket directive replaces
+            // the ones before it -- so the individual `disable` no longer wants an `enable`.
+            Mode::Disable => {
+                let line = context.source.line_column(directive.comment.start).0;
+                // **`all` does not reach every cop.** `Lint/RedundantCopDisableDirective` is
+                // outside what a blanket directive switches off, so a range opened for it stays
+                // open -- every other cop's range is closed here.
+                let mut still_open = Vec::new();
+                for &disabled in &open {
+                    match parsed[disabled].names.iter().all(|name| is_blanket_exempt(name)) {
+                        true => still_open.push(disabled),
+                        false => closed.push((disabled, line)),
+                    }
+                }
+                open = still_open;
+            }
             // A range opened by `# rubocop:push` is closed by `# rubocop:pop`, not by an `enable`.
             Mode::Push => saved.push(open.clone()),
             Mode::Pop => {
@@ -118,4 +134,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         offenses.push(context.offense(message, directive.comment.clone()));
     }
+}
+
+/// The cops a `# rubocop:disable all` leaves running, which upstream keeps out of the blanket set.
+fn is_blanket_exempt(name: &str) -> bool {
+    name == "Lint/RedundantCopDisableDirective"
 }

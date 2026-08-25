@@ -92,13 +92,28 @@ fn enclosing_subscript(node: Node<'_>) -> bool {
     };
     // `brace_method?` asks only what the parent is, so a subscript written as another one's index
     // (`a[b[0]]`) is left alone just as one written as its receiver is.
-    parent.kind_str() == "element_reference"
+    if parent.kind_str() == "element_reference" {
+        return true;
+    }
+    // **`brace_method?` accepts `[]=` as well as `[]`.** `a[1] = b[0]` is one `[]=` send upstream
+    // with `b[0]` among its arguments, so the parent is a brace method and the inner subscript is
+    // left alone -- the grammar writes the two as an `assignment` instead.
+    parent.kind_str() == "assignment"
+        && parent
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "element_reference")
 }
 
 /// Whether the subscript is what an assignment writes to, which upstream spells `[]=` or wraps in
 /// an `op_asgn`.
 fn is_assignment_target(node: Node<'_>) -> bool {
     node.parent().is_some_and(|parent| {
+        // **A target of a multiple assignment is an `[]=` upstream too.** `a[0], a[1] = …` puts
+        // each target under an `mlhs`, and the parser spells them with the setter selector -- so
+        // the cop, which wants exactly one argument, never sees them.
+        if parent.kind_str() == "left_assignment_list" {
+            return true;
+        }
         matches!(parent.kind_str(), "assignment" | "operator_assignment")
             && parent
                 .field("left")

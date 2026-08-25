@@ -122,6 +122,11 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
                         .unwrap_or_default(),
                     _ => arguments,
                 };
+                // **`found_attr` names each argument through `sym_name`, which answers `nil` for a
+                // `str`.** `attr_reader 'foo'` defines the method all the same, but upstream never
+                // records it -- so pairing it with `attr_reader :foo` reported a duplicate that
+                // upstream is silent about.
+                let arguments: Vec<String> = attr_symbol_names(node, &arguments);
                 if arguments.is_empty() || !in_macro_scope(node) {
                     return;
                 }
@@ -841,4 +846,22 @@ fn attr_first_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> 
         return None;
     }
     symbol_name(context.source.node_text(first)).map(str::to_owned)
+}
+
+/// The `attr` arguments upstream records: `sym_name` answers only for a `sym`, so an accessor
+/// named with a string contributes nothing.
+fn attr_symbol_names(node: Node<'_>, fallback: &[String]) -> Vec<String> {
+    let Some(list) = node.field("arguments") else {
+        return fallback.to_vec();
+    };
+    let written = crate::rules::send_node::named_children(list);
+    if written.len() != fallback.len() {
+        return fallback.to_vec();
+    }
+    written
+        .iter()
+        .zip(fallback)
+        .filter(|(argument, _)| argument.kind_str() == "simple_symbol")
+        .map(|(_, name)| name.clone())
+        .collect()
 }

@@ -1274,11 +1274,31 @@ fn expression_end(node: Node<'_>) -> usize {
     // A `;` between statements is a token here and nothing at all upstream, so an expression that
     // happens to be followed by one would otherwise reach a byte further than upstream's node
     // does. `if a; 1; elsif b; 2; end` reported the `elsif` branch one character too long.
-    let Some(last) = children.into_iter().rfind(|child| {
-        !matches!(
+    let skippable = |child: &Node<'_>| {
+        matches!(
             child.kind_str(),
             "comment" | "heredoc_body" | ";" | "empty_statement"
         )
+    };
+    // **The `;` is dropped only when a body stands before it.** `elsif cond;` with nothing in its
+    // branch reaches upstream spelling the separator, because there is no statement for the node
+    // to end at -- while `elsif b; 2` ends at the `2`. Skipping it either way reported the empty
+    // branch one character short.
+    let meaningful = match matches!(node.kind_str(), "if" | "elsif" | "unless") {
+        true => node.field("consequence").is_some_and(|body| {
+            // A comment is no statement upstream, so a branch holding only one is empty there.
+            let mut cursor = body.walk();
+            body.named_children(&mut cursor)
+                .any(|child| child.kind_str() != "comment")
+        }),
+        false => true,
+    };
+    let Some(last) = children.into_iter().rfind(|child| {
+        // Only the `;` is kept for an empty branch; a comment is never a statement upstream.
+        match child.kind_str() {
+            ";" => !meaningful,
+            _ => !skippable(child),
+        }
     }) else {
         return node.end_byte();
     };

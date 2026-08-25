@@ -197,6 +197,16 @@ impl Builder<'_, '_> {
     /// The inside of a literal from `from` onwards: its delimiters and text are tokens of their
     /// own, the space between two of them is one as well, and an interpolation is code again.
     fn walk_literal_from(&mut self, node: Node<'_>, from: usize) {
+        // **`tSPACE` sits *between words*, and an empty percent literal has none.** `%W(  )` is
+        // two delimiters to the lexer with the padding between them, which is what
+        // `Layout/ExtraSpacing` reports -- filling the gap here made them non-neighbours and the
+        // offense disappeared.
+        if matches!(node.kind_str(), "string_array" | "symbol_array")
+            && node.named_child_count() == 0
+        {
+            self.emit_delimiters(node, from);
+            return;
+        }
         let mut offset = from;
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
@@ -215,6 +225,18 @@ impl Builder<'_, '_> {
             offset = child.end_byte();
         }
         self.fill(offset..node.end_byte());
+    }
+
+    /// The two delimiters of an empty percent literal, emitted as neighbours.
+    fn emit_delimiters(&mut self, node: Node<'_>, from: usize) {
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if child.end_byte() <= from {
+                continue;
+            }
+            let start = child.start_byte().max(from);
+            self.emit(start..child.end_byte(), delimiter_kind(node, child));
+        }
     }
 
     /// The lexer's `tSPACE`: the run of characters between two parts of a literal, which keeps the

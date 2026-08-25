@@ -163,6 +163,13 @@ fn collect_binary(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec<Ope
     if text == "=~" && left.kind_str() == "regex" {
         return;
     }
+    // **`a +42` is a call carrying a signed argument, not an addition.** Ruby reads a sign as
+    // belonging to the operand when a space stands before it and none after, and the receiver is
+    // a bare name that could take arguments -- so upstream builds `(send nil :a (int 42))` with
+    // no operator in it at all, while the grammar builds a `binary`.
+    if matches!(text, "+" | "-") && is_argument_sign(context, operator, left) {
+        return;
+    }
     // `rational_literal?`: `1/48r` is a single literal to RuboCop, which skips the send rather
     // than judging the spacing around its slash.
     let right_is_rational = right.kind_str() == "rational";
@@ -190,6 +197,16 @@ fn collect_assignment(context: &RuleContext<'_>, node: Node<'_>, sites: &mut Vec
     let Some(operator) = operator_between(node, left, right) else {
         return;
     };
+    // **An attribute written on a safe navigation is a `csend`, and this cop has no handler for
+    // one.** `obj&.foo = y` reaches upstream as `(csend … :foo= …)`, so its `=` goes unchecked --
+    // while `obj.foo = y` is a `send` and is checked.
+    if left.kind_str() == "call"
+        && left
+            .field("operator")
+            .is_some_and(|dot| context.source.node_text(dot) == "&.")
+    {
+        return;
+    }
     // tree-sitter reads `a[0] =~ /x/` as assigning `~ /x/` to `a[0]`, but the source spells one
     // operator: `=` butted against `~` can only be Ruby's `=~`, which lexes as a single token
     // and reaches RuboCop as a match rather than as an assignment. `a[0] = ~b` keeps its space,
@@ -564,4 +581,20 @@ fn comment_columns(context: &RuleContext<'_>) -> HashMap<usize, usize> {
         columns.insert(line, column - 1);
     }
     columns
+}
+
+/// Whether the sign is the start of an argument rather than an operator: a space before it, none
+/// after it, and a receiver Ruby would read as a method able to take one.
+fn is_argument_sign(context: &RuleContext<'_>, operator: Node<'_>, left: Node<'_>) -> bool {
+    if left.kind_str() != "identifier" {
+        return false;
+    }
+    // A local variable is a value, and a value takes no arguments.
+    if context.variable_analysis().is_reference(left) {
+        return false;
+    }
+    let text = context.source.text();
+    let before = text[..operator.start_byte()].ends_with([' ', '\t']);
+    let after = text[operator.end_byte()..].starts_with([' ', '\t']);
+    before && !after
 }

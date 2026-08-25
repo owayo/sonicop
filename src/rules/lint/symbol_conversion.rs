@@ -55,6 +55,14 @@ fn conversion_call(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node:
     if !matches!(context.source.node_text(method), "to_sym" | "intern") {
         return;
     }
+    // **`on_send` is not `on_csend`.** The cop declares only the first, so `"x"&.to_sym` goes
+    // unchecked -- the grammar spells both as a `call`.
+    if node
+        .field("operator")
+        .is_some_and(|dot| context.source.node_text(dot) == "&.")
+    {
+        return;
+    }
     let Some(correction) = conversion_correction(receiver, context) else {
         return;
     };
@@ -76,7 +84,11 @@ fn conversion_correction(receiver: Node<'_>, context: &RuleContext<'_>) -> Optio
             out.push('"');
             Some(out)
         }
-        "string" | "delimited_symbol" if has_interpolation(receiver) => {
+        // **`:"#{x}"` is a `dsym`, which `symbol_conversion_correction` answers `nil` for.** Only
+        // `str`, `sym` and a non-heredoc `dstr` reach a correction there, so an interpolated
+        // symbol is left alone -- while an interpolated *string* is corrected.
+        "delimited_symbol" if has_interpolation(receiver) => None,
+        "string" if has_interpolation(receiver) => {
             // `dstr_correction`: a literal already written with `"` keeps its body verbatim. A
             // `%Q{…}` takes the other arm, which reads the same body back off the parts -- and
             // whose opening delimiter is **three characters**, not one.
@@ -108,6 +120,12 @@ fn symbol_literal(
         return;
     };
     let source = context.source.node_text(node);
+    // **A quoted symbol spanning lines is a `dsym`, not a `sym`.** The parser splits `:'a\nb'`
+    // into one `str` per line and wraps them, so `on_sym` never sees it -- while `:'a b'` on one
+    // line stays a plain symbol.
+    if node.kind_str() == "delimited_symbol" && source.contains('\n') {
+        return;
+    }
     let inspected = symbol_inspect(&value);
     if properly_quoted(source, &inspected, consistent) {
         return;

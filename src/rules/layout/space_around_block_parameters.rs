@@ -127,10 +127,16 @@ fn no_space(
     // `add_offense` keeps one offense per range (`current_offense_locations.add?`). The pipe
     // checks and the per-argument check reach the same span for the first parameter, and upstream
     // reports only the one that got there first.
-    if offenses
-        .iter()
-        .any(|offense| offense.start == range.start && offense.end == range.end)
-    {
+    //
+    // **The set is per cop, and this vector is not.** Every cop of the run appends to it, so
+    // matching on the range alone withdrew this cop's offense whenever another had already
+    // reported the same span -- `Layout/ExtraSpacing` reaches the very same padding, and the two
+    // together lost 11 offenses upstream reports.
+    if offenses.iter().any(|offense| {
+        offense.cop_name == context.rule.name
+            && offense.start == range.start
+            && offense.end == range.end
+    }) {
         return;
     }
     offenses.push(

@@ -120,7 +120,11 @@ fn argument_send<'tree>(
 ) -> Option<Node<'tree>> {
     let parent = opener.parent()?;
     match parent.kind_str() {
-        "argument_list" => parent.parent().filter(|call| call.kind_str() == "call"),
+        // **`argument?` asks `parent.send_type?`, and `csend` is not one.** A heredoc handed to
+        // `foo&.bar(…)` answers false there, so the indentation check upstream skips is run.
+        "argument_list" => parent
+            .parent()
+            .filter(|call| call.kind_str() == "call" && !is_safe_navigation(context, *call)),
         "assignment" => (parent.field("right") == Some(opener)
             && parent
                 .field("left")
@@ -168,7 +172,13 @@ fn outermost_send<'tree>(context: &RuleContext<'_>, send: Node<'tree>) -> Node<'
                 "argument_list" => parent.parent(),
                 _ => Some(parent),
             })
-            .filter(|parent| is_send_like(context, *parent) || is_setter(*parent));
+            // **`send_type?` excludes `csend`.** The grammar spells `foo&.bar` and `foo.bar`
+            // alike, so ascending through a safe navigation found an outer call upstream stops
+            // at -- and the indentation was then measured against the wrong line.
+            .filter(|parent| {
+                (is_send_like(context, *parent) && !is_safe_navigation(context, *parent))
+                    || is_setter(*parent)
+            });
         match parent {
             Some(parent) => current = parent,
             None => return current,
@@ -182,4 +192,12 @@ fn is_setter(node: Node<'_>) -> bool {
         && node
             .field("left")
             .is_some_and(|left| matches!(left.kind_str(), "call" | "element_reference"))
+}
+
+/// `csend`: a call written with `&.`, which upstream files under a type of its own.
+fn is_safe_navigation(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.kind_str() == "call"
+        && node
+            .field("operator")
+            .is_some_and(|operator| context.source.node_text(operator) == "&.")
 }

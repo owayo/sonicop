@@ -64,6 +64,10 @@ fn is_acceptable(node: Node<'_>, context: &RuleContext<'_>, chains_need_parenthe
         "element_reference" => {
             is_acceptable_call(node.field("object"), chains_need_parentheses)
         }
+        // **A call carrying a block is a `block` node upstream, and `call_type?` is false for
+        // one.** `detect { true }...other` therefore reaches no allowance at all -- while the
+        // grammar writes the block inside the call and made it look like a plain send.
+        "call" if node.field("block").is_some() => false,
         "call" => {
             let operator = node.field("method").is_some_and(|method| {
                 let name = context.source.node_text(method);

@@ -146,7 +146,21 @@ fn value_kind<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Value<'tre
             _ => Value::Other,
         },
         // A method call carrying a block is a `block` node upstream, not a `send`.
-        "call" if node.field("block").is_some() => Value::ClassLike,
+        //
+        // **`numblock` and `itblock` are not `block`.** A block using `_1` or `it` reaches upstream
+        // as a type of its own, which the `%i[block const casgn]` list does not name -- so
+        // `Foo = Module.new do a(_1) end` is reported where the same block spelling its parameter
+        // is not.
+        // **A `numblock` passes every allowance.** It is not in `%i[block const casgn]`, it is no
+        // `send`, and `class_or_struct_return_method?` never reaches it -- so upstream reports the
+        // constant that a plain block would excuse.
+        "call" if node.field("block").is_some() => match node
+            .field("block")
+            .is_some_and(|block| is_numbered_block(context, block))
+        {
+            true => Value::Other,
+            false => Value::ClassLike,
+        },
         "lambda" => Value::ClassLike,
         "call" => Value::Call {
             receiver: node.field("receiver"),
@@ -280,4 +294,29 @@ fn operator(node: Node<'_>) -> Option<&'static str> {
             return None;
         }
     }
+}
+
+/// The version `it` becomes a block parameter rather than a method call.
+const IT_VERSION: crate::ruby_version::RubyVersion = crate::ruby_version::RubyVersion::new(3, 4);
+
+/// `numblock` / `itblock`: a block with no parameter list that names `_1`…`_9` or `it` instead.
+fn is_numbered_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
+    if block.field("parameters").is_some() {
+        return false;
+    }
+    let mut found = false;
+    crate::rules::walk_named(block, &mut |node| {
+        if found || node.kind_str() != "identifier" {
+            return;
+        }
+        let text = context.source.node_text(node);
+        // `it` is an `itblock` only from 3.4 on; before that it is an ordinary method call, and
+        // the block stays a `block`.
+        found |= (context.target_ruby_version() >= IT_VERSION && text == "it")
+            || (text.len() == 2
+                && text.starts_with('_')
+                && text.as_bytes()[1].is_ascii_digit()
+                && text.as_bytes()[1] != b'0');
+    });
+    found
 }

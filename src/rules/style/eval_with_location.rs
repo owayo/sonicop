@@ -354,6 +354,12 @@ fn arguments<'tree>(call: Node<'tree>) -> Vec<Arg<'tree>> {
     let mut out = Vec::new();
     for argument in send_node::arguments(call) {
         let (node, range) = (argument.first(), argument.range());
+        // **A heredoc's body is written inside the argument list here.** Upstream keeps it under
+        // the opening marker, so the body is no argument of its own -- reading it as the last one
+        // made `__LINE__ + 1` invisible and quoted the whole body back at the user.
+        if node.kind_str() == "heredoc_body" {
+            continue;
+        }
         let folded = (argument.parts().len() == 1 && node.kind_str() == "assignment")
             .then(|| node.field("left"))
             .flatten()
