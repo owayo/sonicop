@@ -13,7 +13,7 @@ department_rules! {
     closing_heredoc_indentation => ("ClosingHeredocIndentation", Convention),
     closing_parenthesis_indentation => ("ClosingParenthesisIndentation", Convention),
     comment_indentation => ("CommentIndentation", Convention),
-    condition_position => ("ConditionPosition", Warning),
+    condition_position => ("ConditionPosition", Convention),
     def_end_alignment => ("DefEndAlignment", Warning),
     dot_position => ("DotPosition", Convention),
     else_alignment => ("ElseAlignment", Convention),

@@ -48,42 +48,48 @@ configuration, exactly as with RuboCop. Unknown cop names still fail validation 
 
 ### Cop conformance
 
-All 609 cops switched on, on both sides, over four projects — rubocop/rubocop, mastodon/mastodon,
-rails/rails and Homebrew/brew, 10,792 files between them. A cop counts as an **exact match** only
-when its offenses agree completely: every position, message, severity and correctable flag, with
-nothing extra on either side.
+All 609 cops switched on, on both sides, over the 37,491 cases RuboCop's own specs supply, each
+run at the `TargetRubyVersion` its spec asked for. A cop counts as an **exact match** only when its
+offenses agree completely: every position, message, severity and correctable flag, with nothing
+extra on either side.
 
 <!-- conformance:start -->
 | Department | Cops | Exercised | Exact match | Diverging |
 |---|---:|---:|---:|---:|
-| Bundler | 7 | 3 | **3 ✓** | 0 |
-| Gemspec | 10 | 4 | **4 ✓** | 0 |
-| Layout | 100 | 84 | **84 ✓** | 0 |
-| Lint | 157 | 80 | 78 | 2 |
-| Metrics | 10 | 10 | **10 ✓** | 0 |
-| Migration | 1 | 0 | 0 | 0 |
-| Naming | 19 | 19 | **19 ✓** | 0 |
-| Security | 7 | 6 | **6 ✓** | 0 |
-| Style | 298 | 234 | 232 | 2 |
-| **Total** | **609** | **440** | **436 (99.1%)** | **4** |
+| Bundler | 7 | 7 | **7 ✓** | 0 |
+| Gemspec | 10 | 10 | **10 ✓** | 0 |
+| Layout | 100 | 100 | 75 | 25 |
+| Lint | 157 | 154 | 131 | 23 |
+| Metrics | 10 | 10 | 8 | 2 |
+| Migration | 1 | 1 | **1 ✓** | 0 |
+| Naming | 19 | 19 | 17 | 2 |
+| Security | 7 | 7 | **7 ✓** | 0 |
+| Style | 298 | 298 | 244 | 54 |
+| **Total** | **609** | **606** | **500** | **106** |
 <!-- conformance:end -->
 
-**Read the *Exercised* column first.** A cop these corpora never made fire contributes nothing
-either way — its silence is indistinguishable from agreement — so the 169 that did not fire are
-outside the measurement rather than passing it. That is why the percentage is taken over 440 and
-not over 609.
+**Read the *Exercised* column first.** A cop nothing here made fire contributes neither way — its
+silence is indistinguishable from agreement — so the 3 that did not fire are outside the
+measurement rather than passing it. That is why the ratio is taken over 606 and not over 609.
 
-Closing that gap is the current goal: **Cops, Exercised and Exact match all reading 609**. More real
-Ruby will not get there — the 56 cops RuboCop ships disabled, and much of what it ships as pending,
-never fire in a plain run however large the tree. What does reach all of them is the input its own
-specs supply: the 44,070 cases recorded in `tests/fixtures/upstream_spec_capture.jsonl` touch
-**609 of 609 cops**, measured. Counting that as a second corpus is what moves the denominator, and
-the *Exercised* column is the safeguard that keeps "never fired" from being written up as "agreed".
+Those 3 are the ceiling of this method, not a backlog. `Lint/DeprecatedReference`,
+`Lint/NameTypo` and `Lint/UnusedPrivateMethod` report nothing at all without a `rubydex`
+project index — upstream's own specs open with an `expect_no_offenses` saying exactly that, and
+build the index in memory for every other example. No amount of source on disk reaches them.
 
-The four that diverge: `Lint/Syntax` (1,275 positions, all of them Homebrew's — the two parsers
-recover differently after a syntax error, and **the set of files each calls unparseable is
-identical**), `Style/EmptyElse` (42), `Style/DisableCopsWithinSourceCodeDirective` (3) and
-`Lint/InterpolationCheck` (2).
+Getting all three columns to 609 is the current goal. More real Ruby does not get there: the 56 cops
+RuboCop ships disabled, and much of what it ships as pending, never fire in a plain run however
+large the tree. What does reach every one of them is the input its own specs supply — the cases
+recorded in `tests/fixtures/upstream_spec_capture.jsonl` touch **609 of 609 cops**, measured. Two
+things about running them are easy to get wrong, and both silently shrink the table rather than
+failing:
+
+- **`TargetRubyVersion` is part of the input, not a global.** Pinning everything at 2.7 leaves
+  `Style/ArrayIntersect`, `Naming/BlockForwarding`, `Style/ItBlockParameter` and eleven others
+  unable to fire at all. Each case is run at the version its spec asked for.
+- **The filename is what several cops inspect.** `Bundler/*` needs a `Gemfile`, `Gemspec/*` a
+  `.gemspec`, and `Naming/FileName` reads the name itself. Writing every case as `.rb` had all 17
+  of those cops matching nothing.
 
 Configuration is measured separately, because a cop that only matches at its default value is half
 a cop. Every one of the 111 cops carrying an `Enforced*` setting was switched to a **non-default**

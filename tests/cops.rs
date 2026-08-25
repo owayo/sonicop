@@ -13519,7 +13519,7 @@ mod layout_assignment_and_condition {
                 "Place the condition on the same line as `if`.",
             )],
         )
-        .severity(Severity::Warning)
+        .severity(Severity::Convention)
         .corrected("if x\n  puts 1\nend\n")
         .run();
         CopCase::new(

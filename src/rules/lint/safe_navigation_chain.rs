@@ -275,8 +275,17 @@ fn ternary_branch(
     safe_navigation: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<Branch> {
-    let parent = node.parent_of(context)?;
-    if parent.kind_str() != "conditional" {
+    // `node.parent`: the grammar interposes a `then`/`else` between the `if` and its body, and
+    // upstream's AST has neither -- the body hangs off the `if` directly.
+    let mut parent = node.parent_of(context)?;
+    if matches!(parent.kind_str(), "then" | "else") {
+        parent = parent.parent_of(context)?;
+    }
+    // **`if_type?` is one node upstream and two in the grammar.** The ternary and the `if`
+    // statement are both `if` there, so `if foo&.bar` guards its own body exactly as
+    // `foo&.bar ? … : …` guards its branches. Reading only `conditional` reported
+    // `if foo&.bar\n  foo&.bar.baz\nend`, which upstream is silent about.
+    if !matches!(parent.kind_str(), "conditional" | "if" | "elsif") {
         return None;
     }
     // **The two checks upstream makes here are not the same kind of comparison.**
@@ -292,16 +301,28 @@ fn ternary_branch(
     if !node_equality::identical(condition, safe_navigation, context) {
         return None;
     }
-    if parent
-        .field("consequence")
-        .is_some_and(|branch| branch.id() == node.id())
-    {
+    // `node.equal?(parent.if_branch)`: upstream's accessor sees through the `then`/`else`
+    // wrappers the grammar interposes, so the branch is compared to what they hold.
+    if parent.field("consequence").is_some_and(|branch| holds(branch, node)) {
         return Some(Branch::If);
     }
     parent
         .field("alternative")
-        .filter(|branch| branch.id() == node.id())
+        .filter(|branch| holds(*branch, node))
         .map(|_| Branch::Else)
+}
+
+/// Whether `branch` *is* the node, or is the single-statement `then`/`else` that wraps it.
+fn holds(branch: Node<'_>, node: Node<'_>) -> bool {
+    if branch.id() == node.id() {
+        return true;
+    }
+    if !matches!(branch.kind_str(), "then" | "else") {
+        return false;
+    }
+    let mut cursor = branch.walk();
+    let mut children = branch.named_children(&mut cursor);
+    matches!((children.next(), children.next()), (Some(only), None) if only.id() == node.id())
 }
 
 fn autocorrect(chain: &Chain<'_>, range: &Range<usize>, context: &RuleContext<'_>) -> Vec<Edit> {

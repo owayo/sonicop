@@ -1153,7 +1153,7 @@ fn catalogue() -> Vec<CopCase> {
             )],
         )
         .id("layout_condition_position")
-        .severity(Severity::Warning)
+        .severity(Severity::Convention)
         .correctable(true),
         CopCase::annotated(
             "Layout/ClassStructure",
