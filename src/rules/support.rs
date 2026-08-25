@@ -875,11 +875,21 @@ fn label_of(node: Node<'_>, text: &str, leaf: bool) -> String {
         label.push(' ');
         label.push_str(spelling);
     }
-    if leaf {
+    if leaf && !is_empty_delimited(node) {
         label.push(' ');
         label.push_str(&text[node.byte_range()]);
     }
     label
+}
+
+/// A collection literal holding nothing, whose text is its delimiters and the whitespace between
+/// them. **Upstream's AST has no delimiters**, so `[\n]` and `[ ]` are one empty `array` there --
+/// comparing the spelling instead makes joining the lines look like a change to the tree.
+fn is_empty_delimited(node: Node<'_>) -> bool {
+    matches!(
+        node.kind_str(),
+        "array" | "argument_list" | "hash" | "string_array" | "symbol_array"
+    )
 }
 
 /// `rotate_same_operator`: `x && (y && z)` and `x && y && z` differ as trees, but neither operator

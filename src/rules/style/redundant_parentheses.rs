@@ -65,6 +65,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut pending: Vec<(Node<'_>, &'static str)> = Vec::new();
 
     for node in context.nodes_of("parenthesized_statements") {
+        if std::env::var("SONICOP_DEBUG_RP").is_ok() {
+            eprintln!(
+                "DBG range={:?} begin={} allowed={} ignore={}",
+                node.byte_range(),
+                is_begin_node(context, node),
+                parens_allowed(context, node),
+                ignore_syntax(context, node),
+            );
+        }
         if !is_begin_node(context, node)
             || parens_allowed(context, node)
             || ignore_syntax(context, node)
@@ -75,6 +84,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     // `on_investigation_end`: each candidate's exact correction is verified by reparsing before the
     // offense is registered, so redundancy never rests on a hand-kept list of the grammar's rules.
+    if std::env::var("SONICOP_DEBUG_RP").is_ok() {
+        eprintln!("DBG pending={}", pending.len());
+        for (n, m) in &pending {
+            eprintln!("DBG   cand range={:?} msg={} edits={:?}",
+                n.byte_range(), m,
+                super::parens::correct(context, *n).iter().map(|e| (e.start, e.end, e.replacement.clone())).collect::<Vec<_>>());
+        }
+    }
     let verified = crate::rules::support::verified_by_reparse(
         context,
         pending,
@@ -498,6 +515,14 @@ fn check_group<'tree>(
             };
         record(pending, target, message);
         return;
+    }
+    if std::env::var("SONICOP_DEBUG_RP").is_ok() {
+        eprintln!(
+            "DBG group inner={} msg={:?} call={}",
+            inner.kind_str(),
+            find_offense_message(context, locals, node, inner, &children),
+            is_call_node(context, locals, inner),
+        );
     }
     if is_call_node(context, locals, inner) {
         check_send(context, locals, node, inner, pending);
@@ -1145,6 +1170,14 @@ fn method_call_with_redundant_parentheses(
             && call
                 .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "defined?"));
+    if std::env::var("SONICOP_DEBUG_RP").is_ok() {
+        eprintln!(
+            "DBG mcrp kind={} candidate={} prefix_not={} singular={} args={} own_parens={}",
+            call.kind_str(), candidate, is_prefix_not(context, call),
+            singular_parenthesized_parent(context, node),
+            call_has_arguments(call), has_own_parentheses(context, call),
+        );
+    }
     if !candidate || is_prefix_not(context, call) {
         return false;
     }

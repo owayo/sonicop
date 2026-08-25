@@ -63,10 +63,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // **`node` is the `send`, and a `send` does not hold its block.** The grammar hangs the
         // block off the call, so `Hash&.new.select { … }` ended the range past the closing brace
         // and reported -- and rewrote -- the whole block along with it.
-        let end = chain
-            .node
-            .field("block")
-            .map_or_else(|| chain.node.end_byte(), |block| block.start_byte());
+        let end = match chain.node.field("block") {
+            // The `send` ends where its own text does, not where the block begins -- the space
+            // written between them belongs to neither.
+            Some(block) => {
+                let upto = &context.source.text()[..block.start_byte()];
+                upto.trim_end().len()
+            }
+            None => chain.node.end_byte(),
+        };
         let range = start..end;
         let offense = context.offense(MSG, range.clone());
         offenses.push(

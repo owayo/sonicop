@@ -230,7 +230,10 @@ fn register(
     let verification = Verification {
         verify_oversized: true,
         fold_string_concatenation: true,
-        ..Default::default()
+        // **Upstream's AST has no parentheses.** Joining `obj.do_something(\n)` onto one line
+        // leaves `( )` where the source had `(\n)`, and comparing the delimiters as leaves calls
+        // that a different tree -- so a correction upstream makes was thrown away here.
+        fold_empty_call_parentheses: true,
     };
     let verified = verified_by_reparse(
         context,
@@ -324,7 +327,14 @@ fn is_upstream_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
             .field("method")
             .is_none_or(|method| method.kind_str() != "super"),
         "element_reference" => true,
-        "binary" => !is_logical(node, context),
+        // **`super \\\n +1` is no binary upstream.** The parser reads the sign as belonging to an
+        // argument of the `super`, so the whole line is one `super` node and `on_send` never fires.
+        "binary" => {
+            !is_logical(node, context)
+                && node
+                    .field("left")
+                    .is_none_or(|left| left.kind_str() != "super")
+        }
         // `defined?` is a node of its own upstream, and a sign belongs to the number it was written
         // on rather than to a call.
         "unary" => !is_keyword_unary(node, context) && !is_signed_number(node, context),
