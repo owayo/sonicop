@@ -59,13 +59,13 @@ extra on either side.
 | Bundler | 7 | 7 | **7 ✓** | 0 |
 | Gemspec | 10 | 10 | **10 ✓** | 0 |
 | Layout | 100 | 100 | 79 | 21 |
-| Lint | 157 | 154 | 134 | 20 |
+| Lint | 157 | 154 | 135 | 19 |
 | Metrics | 10 | 10 | 8 | 2 |
 | Migration | 1 | 1 | **1 ✓** | 0 |
 | Naming | 19 | 19 | 18 | 1 |
 | Security | 7 | 7 | **7 ✓** | 0 |
 | Style | 298 | 298 | 249 | 49 |
-| **Total** | **609** | **606** | **513** | **93** |
+| **Total** | **609** | **606** | **514** | **92** |
 <!-- conformance:end -->
 
 **Read the *Exercised* column first.** A cop nothing here made fire contributes neither way — its

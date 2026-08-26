@@ -36,6 +36,19 @@ pub(super) struct Ambiguity<'tree> {
 /// are absent on purpose: to the lexer they are ordinary command calls and they do warn.
 const KEYWORDS_WITHOUT_ARGUMENTS: &[&str] = &["break", "next", "redo", "retry", "return"];
 
+/// The call spellings a leading `-` is never ambiguous after. `super` and `yield` are keywords
+/// rather than identifiers, so `super -1` cannot be read as a subtraction -- while `super *a` and
+/// `yield /re/` still can be a multiplication and a division.
+const KEYWORD_CALLS: &[&str] = &["super", "yield"];
+
+/// Whether the call is one of those keywords, spelled either as the `method` of a call or as a node.
+fn is_keyword_call(owner: Node<'_>) -> bool {
+    KEYWORD_CALLS.contains(&owner.kind_str())
+        || owner
+            .field("method")
+            .is_some_and(|method| KEYWORD_CALLS.contains(&method.kind_str()))
+}
+
 /// Every argument list written without parentheses whose first argument opens with `prefixes`.
 pub(super) fn scan<'tree>(
     context: &'tree RuleContext<'_>,
@@ -56,6 +69,7 @@ pub(super) fn scan<'tree>(
         if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind_str()) {
             continue;
         }
+
         let Some(first) = named_children(list).into_iter().next() else {
             continue;
         };
@@ -67,6 +81,12 @@ pub(super) fn scan<'tree>(
         else {
             continue;
         };
+        // `super -1` and `yield -1`: a keyword cannot be the left operand of a subtraction, so the
+        // lexer raises no `ambiguous_prefix` for a leading `-` after one. Every other prefix still
+        // can be -- `super *a` is a multiplication as readily as a splat.
+        if prefix == "-" && is_keyword_call(owner) {
+            continue;
+        }
         let start = first.start_byte();
         let bytes = context.source.text().as_bytes();
         // `->` is matched as a lambda literal before the `-` can be read as a prefix.

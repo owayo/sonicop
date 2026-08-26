@@ -56,6 +56,14 @@ fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "assignment" | "operator_assignment" => parent
             .field("left")
             .is_none_or(|left| left.id() != node.id()),
+        // **`rescue => BAR` assigns to the constant.** Upstream builds a `casgn` for the target,
+        // which is no lookup -- the grammar wraps it in an `exception_variable` instead.
+        "exception_variable" => false,
+        // **A `for` loop's variable is a `casgn` upstream, not a read.** The grammar files it under
+        // a `pattern` field of the loop rather than under an assignment.
+        "for" => parent
+            .field("pattern")
+            .is_none_or(|pattern| pattern.id() != node.id()),
         // Every name a multiple assignment writes to is a `casgn` upstream, the same as the single
         // one. The grammar collects them in a list of their own instead -- except where it reads
         // `def m(a = X, b = {})` as one assignment to a list, which upstream has as two parameters

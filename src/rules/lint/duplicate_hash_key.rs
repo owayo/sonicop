@@ -10,7 +10,10 @@ use crate::rules::node_ext::NodeExt;
 const MSG: &str = "Duplicated key in hash literal.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for hash in context.nodes_of("hash") {
+    // **A trailing `a: 1, b: 2` is one `hash` upstream.** The grammar leaves the pairs directly in
+    // the argument list, so a call's keyword arguments are no hash node here -- and every duplicate
+    // written that way went unreported.
+    for hash in context.nodes_of_any(&["hash", "argument_list"]) {
         let mut cursor = hash.walk();
         // `HashNode#keys`: a `**splat` entry is no pair and contributes no key.
         let keys: Vec<_> = hash
