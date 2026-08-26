@@ -830,10 +830,13 @@ pub(super) fn end_keyword_alignment(
     base: Range<usize>,
     align_to: i64,
 ) -> Option<Offense> {
+    // **The BOM is not a column upstream.** `parser` strips it before handing the source over, so
+    // a `def` on the first line of a file that carries one sits at column 0 there and at 1 here --
+    // and the two alignments compared unequal on every such file.
     let end_line = context.source.line_column(end.start).0;
-    let end_column = character_column(context, end.start);
+    let end_column = effective_character_column(context, end.start);
     let base_line = context.source.line_column(base.start).0;
-    let base_column = character_column(context, base.start);
+    let base_column = effective_character_column(context, base.start);
     if end_line == base_line || end_column == base_column {
         return None;
     }

@@ -58,6 +58,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let newline = branches
             .iter()
             .any(|branch| matches!(branch, Branch::Several(..)))
+            // **`begin_type?` is true for a single parenthesized expression too.** `else(1)` is
+            // one `begin` upstream, and the message asks for a newline rather than a ternary --
+            // the grammar keeps the parentheses as a node of their own.
+            || branches.iter().filter_map(|branch| branch.node()).any(|branch| {
+                branch.kind_str() == "parenthesized_statements"
+            })
             || branches
                 .iter()
                 .filter_map(|branch| branch.node())

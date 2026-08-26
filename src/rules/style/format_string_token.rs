@@ -50,6 +50,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // it into parts or not -- requiring a single part made every interpolated format string
         // uncorrectable, and `format("c#{b}%{template}")` was reported and then left alone.
         let typical = typical_context(context, literal.anchor);
+        // Whether the parser cut the literal into parts, which is what puts a `dstr` between each
+        // part and the call.
+        let split = literal.parts.len() > 1
+            || crate::rules::send_node::has_interpolation(literal.anchor);
         let correctable = typical || enclosing_typical_context(context, literal.anchor);
 
         for part in &literal.parts {
@@ -63,8 +67,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .filter(|sequence| {
                     // `allowed_string?`: an unannotated token outside a format call is left alone,
                     // and `conservative` mode extends that to every token.
+                    //
+                    // **The node `on_str` is handed is the part, not the literal.** A `"#{x} %s"`
+                    // splits into a `dstr` of parts, and a part's parent is that `dstr` rather
+                    // than the call -- so `format_string_in_typical_context?` is false there and
+                    // every unannotated token in an interpolated format string is allowed.
                     let allowed = sequence.style == SequenceStyle::Unannotated || conservative;
-                    !(allowed && !typical)
+                    !(allowed && !(typical && !split))
                 })
                 .collect();
             if detected.is_empty() || allowed_unannotated(&detected, style, max_unannotated) {

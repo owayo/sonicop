@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use tree_sitter::Node;
 
-use super::support::{character_column, end_keyword, end_keyword_alignment};
+use super::support::{effective_character_column, end_keyword, end_keyword_alignment};
 use crate::diagnostic::Offense;
 use crate::rules::{RuleContext, push_named_children};
 use crate::rules::node_ext::NodeExt;
@@ -26,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         node,
                         node.child(0)
                             .map_or_else(|| node.byte_range(), |keyword| keyword.byte_range()),
-                        character_column(context, node.start_byte()),
+                        effective_character_column(context, node.start_byte()),
                     )
                 {
                     offenses.push(offense);
@@ -40,15 +40,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             "call" => {
                 if let Some(definition) = def_modifier(node)
                     && let Some(keyword) = definition.child(0)
+                    // **`ignore_node(method_def)` stops the inner modifier too.** `public foo def`
+                    // has two calls answering `def_modifier?`, and upstream measures the `end`
+                    // against the outermost one alone -- the walk reaches that one first.
+                    && !ignored.contains(&definition.id())
                 {
                     let (base, column) = match align_with_def {
                         true => (
                             keyword.byte_range(),
-                            character_column(context, definition.start_byte()),
+                            effective_character_column(context, definition.start_byte()),
                         ),
                         false => (
                             node.start_byte()..keyword.end_byte(),
-                            character_column(context, node.start_byte()),
+                            effective_character_column(context, node.start_byte()),
                         ),
                     };
                     if let Some(offense) = check_definition(context, definition, base, column) {
