@@ -20,7 +20,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     if catch_all_found {
                         offenses.push(context.offense(
                             "Unreachable `in` pattern branch detected.",
-                            branch.byte_range(),
+                            // A trailing comment is no part of the branch upstream, which ends
+                            // at the last statement the branch holds.
+                            crate::rules::support::expression_range(branch),
                         ));
                         continue;
                     }

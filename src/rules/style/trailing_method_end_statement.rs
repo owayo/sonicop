@@ -16,7 +16,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = node.field("body") else {
             continue;
         };
-        let Some(last) = super::nodes::children(body).last().copied() else {
+        // **A lone `;` is an `empty_statement` here and no node at all upstream.** `def a; x = 1`
+        // followed by `; end` ends its body at the assignment there, a line above the `end`.
+        let Some(last) = super::nodes::children(body)
+            .into_iter()
+            .rfind(|child| child.kind_str() != "empty_statement")
+        else {
             continue;
         };
         if node.start_position().row == node.end_position().row

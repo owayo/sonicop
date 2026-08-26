@@ -59,25 +59,28 @@ extra on either side.
 | Bundler | 7 | 7 | **7 ✓** | 0 |
 | Gemspec | 10 | 10 | **10 ✓** | 0 |
 | Layout | 100 | 100 | 79 | 21 |
-| Lint | 157 | 154 | 135 | 19 |
+| Lint | 157 | 157 | 136 | 21 |
 | Metrics | 10 | 10 | 8 | 2 |
 | Migration | 1 | 1 | **1 ✓** | 0 |
 | Naming | 19 | 19 | 18 | 1 |
 | Security | 7 | 7 | **7 ✓** | 0 |
-| Style | 298 | 298 | 249 | 49 |
-| **Total** | **609** | **606** | **514** | **92** |
+| Style | 298 | 298 | 250 | 48 |
+| **Total** | **609** | **609** | **516** | **93** |
 <!-- conformance:end -->
 
 **Read the *Exercised* column first.** A cop nothing here made fire contributes neither way — its
-silence is indistinguishable from agreement — so the 3 that did not fire are outside the
-measurement rather than passing it. That is why the ratio is taken over 606 and not over 609.
+silence is indistinguishable from agreement, so it would be counted as agreement without ever
+being asked. **Every one of the 609 fires here**, which is what makes the *Exact match* column
+mean what it says.
 
-Those 3 are the ceiling of this method, not a backlog. `Lint/DeprecatedReference`,
-`Lint/NameTypo` and `Lint/UnusedPrivateMethod` report nothing at all without a `rubydex`
-project index — upstream's own specs open with an `expect_no_offenses` saying exactly that, and
-build the index in memory for every other example. No amount of source on disk reaches them.
+Three of them took a run of their own. `Lint/DeprecatedReference`, `Lint/NameTypo` and
+`Lint/UnusedPrivateMethod` report nothing without a `rubydex` project index, which needs the gem
+installed and `AllCops/UseProjectIndex` switched on — and `Lint/DeprecatedReference` needs more
+than that: the call has to sit inside a class inheriting the one whose method carries the
+`@deprecated` tag. Upstream's own specs open with an `expect_no_offenses` saying the cop is silent
+without the index, which is easy to read as "unreachable"; it is not.
 
-Getting all three columns to 609 is the current goal. More real Ruby does not get there: the 56 cops
+Getting the last column to 609 is the current goal. More real Ruby does not get there: the 56 cops
 RuboCop ships disabled, and much of what it ships as pending, never fire in a plain run however
 large the tree. What does reach every one of them is the input its own specs supply — the cases
 recorded in `tests/fixtures/upstream_spec_capture.jsonl` touch **609 of 609 cops**, measured. Two
