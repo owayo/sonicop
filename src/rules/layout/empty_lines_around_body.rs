@@ -282,8 +282,14 @@ fn line_head(context: &RuleContext<'_>, line: usize) -> std::ops::Range<usize> {
 }
 
 fn is_blank(context: &RuleContext<'_>, line: usize) -> bool {
-    line <= context.source.line_count()
-        && crate::rules::support::chomp(context.source.line(line)).is_empty()
+    // **`processed_source.lines` holds no entry for the newline that ends the file.** A source
+    // closing with `\n` counts one line more here, and `lines[that]` is `nil` upstream -- so a
+    // definition whose signature runs to the last line was read as opening with a blank one.
+    let last = match context.source.text().ends_with('\n') {
+        true => context.source.line_count().saturating_sub(1),
+        false => context.source.line_count(),
+    };
+    line <= last && crate::rules::support::chomp(context.source.line(line)).is_empty()
 }
 
 fn is_comment_line(context: &RuleContext<'_>, line: usize) -> bool {
