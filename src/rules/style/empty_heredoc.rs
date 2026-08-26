@@ -15,6 +15,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if context.source.node_text(node).contains('`') {
             continue;
         }
+        // **An empty delimiter leaves upstream with nothing to point at.** `<<''` parses to a
+        // `dstr` with no children and no expression range, so `add_offense` raises a `TypeError`
+        // the runner swallows and the cop reports nothing. Silence is what upstream does here.
+        if has_empty_delimiter(node, context) {
+            continue;
+        }
         let Some(body) = heredoc_body(node, context) else {
             continue;
         };
@@ -47,6 +53,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             },
         ]));
     }
+}
+
+/// Whether the opener names its terminator with an empty quoted string, as `<<''` does.
+fn has_empty_delimiter(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let text = context.source.node_text(node);
+    let delimiter = text.trim_start_matches('<').trim_start_matches(['~', '-']);
+    matches!(delimiter, "''" | "\"\"")
 }
 
 /// `node.loc.heredoc_body.source.empty?`.

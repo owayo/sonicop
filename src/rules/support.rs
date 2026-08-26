@@ -1344,13 +1344,27 @@ pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -
 
 /// `AllowedMethods#allowed_methods`: the configured list plus the deprecated `IgnoredMethods`,
 /// which upstream **appends to** rather than falls back on.
+/// Whether a quoted symbol's contents carry a line break with anything written after it, which is
+/// what makes the parser build a `dsym` rather than a `sym`. A break that closes the contents
+/// leaves one `str` and the symbol stays a `sym`.
+pub(crate) fn symbol_spans_lines(source: &str) -> bool {
+    let inner = source
+        .trim_start_matches(':')
+        .trim_start_matches(['\'', '"'])
+        .trim_end_matches(['\'', '"']);
+    inner.strip_suffix('\n').unwrap_or(inner).contains('\n')
+}
+
 pub(crate) fn allowed_methods(context: &RuleContext<'_>) -> Vec<String> {
     let mut names: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
-    names.extend(
-        context
-            .setting::<Vec<String>>("IgnoredMethods")
-            .unwrap_or_default(),
-    );
+    // `cop_config_deprecated_values` reads both of the names the option used to have.
+    for deprecated in ["IgnoredMethods", "ExcludedMethods"] {
+        names.extend(
+            context
+                .setting::<Vec<String>>(deprecated)
+                .unwrap_or_default(),
+        );
+    }
     names
 }
 

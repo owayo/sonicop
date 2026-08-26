@@ -34,6 +34,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         ) {
             continue;
         }
+        // A heredoc opened with backticks runs a command: that is an `xstr`, which the pattern
+        // leaves out.
+        if only.kind_str() == "heredoc_beginning"
+            && context.source.node_text(*only).contains('`')
+        {
+            continue;
+        }
         offenses.push(context.offense(
             format!(
                 "Use `{method}` with an explicit exception class and message, \

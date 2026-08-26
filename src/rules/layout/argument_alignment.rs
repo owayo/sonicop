@@ -79,7 +79,19 @@ fn multiple_arguments(arguments: &[GroupedArgument<'_>]) -> bool {
     }
     arguments
         .first()
-        .is_some_and(|first| first.hash_run && first.parts.len() >= 2)
+        .is_some_and(|first| first.hash_run && pairs_of(first).count() >= 2)
+}
+
+/// `hash.pairs`, which is `children.select(&:pair_type?)`: **a `**splat` is not a pair.** The
+/// brace-less hash a call ends with holds both, and only the pairs are lined up against each other.
+fn pairs_of<'a, 'tree>(argument: &'a GroupedArgument<'tree>) -> impl Iterator<Item = &'a Node<'tree>>
+where
+    'tree: 'a,
+{
+    argument
+        .parts
+        .iter()
+        .filter(|part| part.kind_str() == "pair")
 }
 
 /// `super` is a node of its own upstream, which `on_send` never sees.
@@ -122,10 +134,8 @@ fn flattened_arguments<'a, 'tree>(
             .map(|argument| argument.range.clone())
             .collect();
     }
-    let pairs: Vec<Range<usize>> = candidate
-        .parts
-        .iter()
-        .map(tree_sitter::Node::byte_range)
+    let pairs: Vec<Range<usize>> = pairs_of(candidate)
+        .map(|part| part.byte_range())
         .collect();
     if fixed {
         let mut items: Vec<Range<usize>> = arguments[..arguments.len() - 1]

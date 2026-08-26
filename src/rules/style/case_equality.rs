@@ -71,6 +71,10 @@ fn case_equality<'tree>(
             ))
         }
         _ => {
+            // `on_send` is not aliased to `on_csend`: `a&.===(b)` is outside this cop.
+            if !crate::rules::send_node::is_plain_send(node, context) {
+                return None;
+            }
             let method = node.field("method")?;
             if context.source.node_text(method) != "===" {
                 return None;

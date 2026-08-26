@@ -21,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `process(node, '%Q', '%q')` then `correct_literal_style?`.
         if !matches!(literal.percent_type.as_str(), "%q" | "%Q")
             || literal.percent_type == wanted
-            || !is_str(node)
+            || !is_str(node, context, &literal)
         {
             continue;
         }
@@ -91,10 +91,22 @@ fn closing_of(context: &RuleContext<'_>, literal: &super::percent::PercentLitera
 
 /// `node.str_type?`: a literal is a `dstr` upstream both when it interpolates and when its text
 /// does not fit on one line.
-fn is_str(node: tree_sitter::Node<'_>) -> bool {
+fn is_str(
+    node: tree_sitter::Node<'_>,
+    context: &RuleContext<'_>,
+    literal: &super::percent::PercentLiteral,
+) -> bool {
     let mut cursor = node.walk();
-    !node
+    if node
         .named_children(&mut cursor)
         .any(|child| child.kind_str() == "interpolation")
-        && node.start_position().row == node.end_position().row
+    {
+        return false;
+    }
+    // **The parser cuts the contents after every line break**, so a literal written over lines is
+    // a `dstr` of one `str` per line and `on_str` never sees it. A break that closes the contents
+    // leaves a single `str`, which is why `%Q{\n}` still reaches this cop.
+    let body = context.source.slice(literal.begin.end..literal.close.start);
+    !body.strip_suffix('\n').unwrap_or(body).contains('\n')
 }
+

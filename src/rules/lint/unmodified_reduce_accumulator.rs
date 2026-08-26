@@ -367,6 +367,13 @@ fn expression_values(node: Node<'_>, context: &RuleContext<'_>) -> Vec<String> {
             }
             _ => {}
         }
+        // **A heredoc's body hangs off the opener rather than inside it.** Upstream's `dstr` holds
+        // its interpolations, so `#{el}` inside a heredoc is one of the names the expression reads.
+        if current.kind_str() == "heredoc_beginning"
+            && let Some(body) = crate::rules::send_node::heredoc_body(current, context)
+        {
+            stack.push(body);
+        }
         let method = (current.kind_str() == "call")
             .then(|| current.field("method"))
             .flatten();

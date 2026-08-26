@@ -73,8 +73,16 @@ pub(super) fn report_length(
     target: LengthTarget<'_>,
     heredocs: &HeredocEnds,
 ) {
+    // A `CountAsOne` naming something the calculator does not know raises there, and the cop
+    // reports nothing for the file.
+    if foldable_kinds(context).is_none() {
+        return;
+    }
     let count_comments: bool = context.setting("CountComments").unwrap_or(false);
-    if node.field("body").is_none() {
+    // `check_code_length` measures the node itself, so a class body of nothing but comments still
+    // has lines to count when `CountComments` is on. Only the constructs measured from their body
+    // need one to be there.
+    if node.field("body").is_none() && !matches!(target, LengthTarget::Classlike) {
         return;
     }
     let location = match target {
@@ -95,7 +103,9 @@ pub(super) fn report_length(
         return;
     }
     let length = match target {
-        LengthTarget::Classlike => classlike_code_line_count(node, context, count_comments),
+        LengthTarget::Classlike => {
+            classlike_code_line_count(node, context, count_comments, heredocs)
+        }
         _ => body_code_line_count(node, context, count_comments, heredocs),
     };
     if length <= max {
@@ -218,6 +228,7 @@ fn classlike_code_line_count(
     node: Node<'_>,
     context: &RuleContext<'_>,
     count_comments: bool,
+    heredocs: &HeredocEnds,
 ) -> usize {
     if is_namespace(node) {
         return 0;
@@ -245,6 +256,9 @@ fn classlike_code_line_count(
             !text.is_empty() && (count_comments || !text.starts_with('#'))
         })
         .count()
+        // `CountAsOne` folds a literal wherever the calculator meets one, and a class body is no
+        // exception.
+        .saturating_sub(folded_away(context, node, count_comments, heredocs))
 }
 
 /// Whether the class or module exists only to namespace a single class or module, which RuboCop
@@ -281,21 +295,27 @@ pub(super) fn constructor_call<'a>(
 ///
 /// `normalize_foldable_types` turns `heredoc` into `str`/`dstr` and `method_call` into
 /// `send`/`csend`, which the grammar spells as a heredoc opener and a `call`.
-fn foldable_kinds(context: &RuleContext<'_>) -> Vec<&'static str> {
+fn foldable_kinds(context: &RuleContext<'_>) -> Option<Vec<&'static str>> {
     let mut kinds = Vec::new();
-    for entry in context
-        .setting::<Vec<String>>("CountAsOne")
-        .unwrap_or_default()
-    {
+    // `Array(cop_config['CountAsOne'])`: a bare scalar is the one-element list it stands for.
+    let configured: Vec<String> = match context.setting::<serde_yaml_ng::Value>("CountAsOne") {
+        Some(serde_yaml_ng::Value::String(only)) => vec![only],
+        Some(value) => serde_yaml_ng::from_value(value).unwrap_or_default(),
+        None => Vec::new(),
+    };
+    for entry in configured {
         match entry.as_str() {
             "array" => kinds.push("array"),
             "hash" => kinds.push("hash"),
             "heredoc" => kinds.push("heredoc_beginning"),
             "method_call" => kinds.push("call"),
-            _ => {}
+            // **`build_foldable_checks` raises on a name it does not know.** The runner swallows
+            // the `ArgumentError` and the cop reports nothing at all, so a misspelt `CountAsOne`
+            // silences the measurement rather than being ignored.
+            _ => return None,
         }
     }
-    kinds
+    Some(kinds)
 }
 
 /// `each_top_level_descendant`: the outermost foldable nodes, never descending into a class or a
@@ -321,7 +341,9 @@ fn folded_away(
     count_comments: bool,
     heredocs: &HeredocEnds,
 ) -> usize {
-    let kinds = foldable_kinds(context);
+    let Some(kinds) = foldable_kinds(context) else {
+        return 0;
+    };
     if kinds.is_empty() {
         return 0;
     }

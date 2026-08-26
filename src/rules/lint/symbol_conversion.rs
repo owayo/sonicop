@@ -120,10 +120,11 @@ fn symbol_literal(
         return;
     };
     let source = context.source.node_text(node);
-    // **A quoted symbol spanning lines is a `dsym`, not a `sym`.** The parser splits `:'a\nb'`
-    // into one `str` per line and wraps them, so `on_sym` never sees it -- while `:'a b'` on one
-    // line stays a plain symbol.
-    if node.kind_str() == "delimited_symbol" && source.contains('\n') {
+    // **A quoted symbol spanning lines is a `dsym`, not a `sym`.** The parser cuts the contents
+    // after every line break and wraps the pieces, so `:'a\nb'` is a `dsym` of two `str`s that
+    // `on_sym` never sees. A break that closes the contents leaves one piece and stays a `sym`,
+    // which is why `:"two\n"` is still this cop's business.
+    if node.kind_str() == "delimited_symbol" && crate::rules::support::symbol_spans_lines(source) {
         return;
     }
     let inspected = symbol_inspect(&value);

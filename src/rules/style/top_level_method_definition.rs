@@ -12,10 +12,15 @@ const MSG: &str = "Do not define methods at the top-level.";
 /// statement list, which is the same as having `program` for a parent here.
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method", "call"]) {
-        if !node
-            .parent()
-            .is_some_and(|parent| parent.kind_str() == "program")
-        {
+        // `node.parent&.begin_type? ? node.parent.root? : node.root?`: a definition wrapped in
+        // parentheses is a `begin` at the top level upstream, and counts as written there.
+        if !node.parent().is_some_and(|parent| match parent.kind_str() {
+            "program" => true,
+            "parenthesized_statements" => parent
+                .parent()
+                .is_some_and(|outer| outer.kind_str() == "program"),
+            _ => false,
+        }) {
             continue;
         }
         if node.kind_str() == "call" && !defines_a_method(node, context) {

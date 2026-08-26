@@ -61,10 +61,10 @@ fn invertible(
             [only] => invertible(*only, inverses, context),
             _ => false,
         },
-        // `node.method?(:!)`: the grammar spells the same `(send _ :!)` as a `unary` for `!x`
-        // and as a `call` for `x.!`. The `call` arm below only consults `inverse_methods`, which
-        // has no entry for `!`, so without this the postfix spelling is invisible.
-        _ if send_node::bang(node, context).is_some() => true,
+        // `node.method?(:!)`: the grammar spells the same `(send _ :!)` three ways -- a `unary` for
+        // `!x` **and for `not x`**, and a `call` for `x.!`. The `call` arm below only consults
+        // `inverse_methods`, which has no entry for `!`, so without this they are invisible.
+        _ if send_node::negation(node, context).is_some() => true,
         "binary" => {
             let Some(operator) = node
                 .field("operator")
@@ -106,9 +106,9 @@ fn preferred_condition(
             [only] => format!("({})", preferred_condition(*only, inverses, context)),
             _ => context.source.node_text(node).to_owned(),
         },
-        // `return receiver_source if node.method?(:!)`: the receiver alone, whichever way the
-        // `!` was written.
-        _ if send_node::bang(node, context).is_some() => send_node::bang(node, context)
+        // `return receiver_source if node.method?(:!)`: the operand alone, whichever way the
+        // `!` was written -- `not x` included.
+        _ if send_node::negation(node, context).is_some() => send_node::negation(node, context)
             .map_or_else(String::new, |found| {
                 context.source.node_text(found.operand).to_owned()
             }),
@@ -208,8 +208,8 @@ fn invert(
         // the opposite. (Upstream removes only the `!` and leaves `foo if x.`, which is a syntax
         // error; the reparse guard then drops the whole correction, and the offense is reported
         // without one. That is the safe half of the same behaviour.)
-        _ if send_node::bang(node, context).is_some() => {
-            if let Some(found) = send_node::bang(node, context) {
+        _ if send_node::negation(node, context).is_some() => {
+            if let Some(found) = send_node::negation(node, context) {
                 edits.push(Edit {
                     start: found.selector.start_byte(),
                     end: found.selector.end_byte(),

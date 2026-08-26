@@ -526,6 +526,9 @@ fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
         "delimited_symbol" if !has_interpolation(node) => {
             symbol_name(node, context).map(|name| Value::Text(name.to_owned()))
         }
+        // `dsym_value`: a symbol written with an interpolation formats to what its own text reads
+        // as, so `:"#{foo}"` carries the same value the string `"#{foo}"` does.
+        "delimited_symbol" => Some(Value::Dynamic(dstr_value(node, context))),
         // `?a`, which the parser resolves into the one-character string it stands for.
         "character" => Some(Value::Text(crate::rules::ruby_literal::character_value(
             text,

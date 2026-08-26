@@ -1,7 +1,7 @@
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 
-use super::cop_directives::{Mode, directives, is_department};
+use super::cop_directives::{Mode, directives, is_department, qualified_cop_name};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `MaxRangeSize` is `.inf` by default, which makes every bounded range acceptable and leaves
@@ -115,6 +115,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .find(|name| is_department(name) || context.cop_enabled(name))
         else {
             continue;
+        };
+        // `message` prints the name the registry answers with, so a cop written without its
+        // department is reported under the qualified name upstream resolved it to.
+        let name = &match is_department(name) {
+            true => name.clone(),
+            false => qualified_cop_name(name, context)
+                .unwrap_or_else(|| name.clone()),
         };
         let kind = if is_department(name) {
             "department"

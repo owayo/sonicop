@@ -99,10 +99,7 @@ impl<'t> Loop<'t> {
             return None;
         }
         let block = node.field("block")?;
-        let method = context
-            .source
-            .node_text(node.field("method")?)
-            .to_owned();
+        let method = context.source.node_text(node.field("method")?).to_owned();
         // `collection_looping_method?`.
         if !(method.starts_with("each") || method.ends_with("_each")) {
             return None;
@@ -151,11 +148,7 @@ impl<'t> Loop<'t> {
 }
 
 /// `combine_with_left_sibling`: the second loop's header goes, and its body joins the first.
-fn combine(
-    node: &Loop<'_>,
-    previous: &Loop<'_>,
-    right: Option<Node<'_>>,
-) -> Vec<Edit> {
+fn combine(node: &Loop<'_>, previous: &Loop<'_>, right: Option<Node<'_>>) -> Vec<Edit> {
     let mut edits = vec![
         remove(previous.body.end, previous.closing.end_byte()),
         remove(node.node.start_byte(), node.body.start),
@@ -201,7 +194,12 @@ fn remove(start: usize, end: usize) -> Edit {
 
 /// The statements a loop body holds, which is all of it but the keywords around it.
 fn statements(body: Node<'_>) -> Option<std::ops::Range<usize>> {
-    let statements = super::nodes::children(body);
+    // `node.body` is nil for a loop holding nothing, and the `;` of `for a in [] do; end` is not a
+    // statement upstream: it leaves an empty body the cop returns on.
+    let statements: Vec<Node<'_>> = super::nodes::children(body)
+        .into_iter()
+        .filter(|child| child.kind_str() != "empty_statement")
+        .collect();
     Some(statements.first()?.start_byte()..statements.last()?.end_byte())
 }
 

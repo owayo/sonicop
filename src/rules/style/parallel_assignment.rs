@@ -206,6 +206,18 @@ impl Cop<'_, '_> {
         };
         let receiver = self.source(receiver);
         let method = self.source(method);
+        // `add_self_to_getters`: a bare name on the right is read as `self.name` before the
+        // dependencies are worked out, so `self.a, self.b = b, a` is the swap it looks like.
+        if receiver == "self"
+            && descendants(rhs).into_iter().any(|inner| {
+                inner.kind_str() == "identifier"
+                    && self.source(inner) == method
+                    // `(send nil? $_)`: a name the file never assigned is a call, not a variable.
+                    && !self.context.variable_analysis().is_variable_reference(inner)
+            })
+        {
+            return true;
+        }
         descendants(rhs).into_iter().any(|inner| {
             matches!(inner.kind_str(), "call" | "method_call")
                 && inner

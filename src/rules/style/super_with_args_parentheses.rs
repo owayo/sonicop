@@ -47,9 +47,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 (keyword, arguments)
             }
         };
-        // `node.parenthesized?`: the argument list starts at the paren when there is one, so its
-        // first byte is what decides.
-        if context.source.node_text(arguments).starts_with('(') {
+        // `node.parenthesized?`: the parser reads a `(` written apart from the keyword as the
+        // argument's own grouping rather than as the call's parentheses, so `super (x)` has no
+        // `loc.begin` and is an offense. The grammar puts that `(` inside the argument list either
+        // way, which leaves the space between the two as what tells them apart.
+        if arguments.start_byte() == keyword.end_byte()
+            && context.source.node_text(arguments).starts_with('(')
+        {
             continue;
         }
         // A binary's right operand is the single argument; a list holds them all.

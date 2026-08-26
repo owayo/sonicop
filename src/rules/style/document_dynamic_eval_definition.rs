@@ -160,28 +160,42 @@ fn strip_comment_marker(line: &str) -> Option<String> {
 /// `comment_regexp`: the literal read as a pattern, with each interpolation standing for anything.
 fn comment_regexp(context: &RuleContext<'_>, parts: &[Node<'_>]) -> Option<String> {
     let mut pattern = String::new();
-    for (index, part) in parts.iter().enumerate() {
+    // **The text between two interpolations is one `str` upstream and several nodes here.** The
+    // grammar cuts an escape such as `\#` out into an `escape_sequence` of its own, and reading
+    // each piece separately turns `puts "escaped \#{x}"` into fragments that no comment matches.
+    let mut text = String::new();
+    let mut leading = true;
+    for part in parts {
         if part.kind_str() == "interpolation" {
+            flush(&mut text, &mut pattern, &mut leading);
             pattern.push_str(".+");
             continue;
         }
-        let mut source = context.source.node_text(*part);
-        // The grammar's first content run starts where the opener was written; upstream's begins on
-        // the line below it.
-        if index == 0
-            && let Some((_, rest)) = source.split_once('\n')
-        {
-            source = rest;
-        }
-        // **A heredoc's `dstr` holds one `str` per line upstream**, and each becomes its own
-        // `\s*…` fragment. The grammar runs the lines together into one `heredoc_content`, whose
-        // newline then gets escaped into the pattern -- and a comment block indented differently
-        // from the heredoc could never match it.
-        for text in split_lines(source) {
-            pattern.push_str(&source_to_regexp(&text));
-        }
+        text.push_str(context.source.node_text(*part));
     }
+    flush(&mut text, &mut pattern, &mut leading);
     (!pattern.is_empty()).then_some(pattern)
+}
+
+/// Turns the text gathered so far into pattern fragments, one per line.
+fn flush(text: &mut String, pattern: &mut String, leading: &mut bool) {
+    let mut source = text.as_str();
+    // The grammar's first content run starts where the opener was written; upstream's begins on
+    // the line below it.
+    if *leading
+        && let Some((_, rest)) = source.split_once('\n')
+    {
+        source = rest;
+    }
+    *leading = false;
+    // **A heredoc's `dstr` holds one `str` per line upstream**, and each becomes its own
+    // `\s*…` fragment. The grammar runs the lines together into one `heredoc_content`, whose
+    // newline then gets escaped into the pattern -- and a comment block indented differently
+    // from the heredoc could never match it.
+    for line in split_lines(source) {
+        pattern.push_str(&source_to_regexp(&line));
+    }
+    text.clear();
 }
 
 /// The `str` nodes one run of heredoc text stands for: upstream keeps the newline that ends each

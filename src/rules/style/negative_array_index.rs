@@ -204,6 +204,11 @@ fn length_subtraction<'tree>(
             if !LENGTH_METHODS.contains(&context.source.node_text(selector)) {
                 return None;
             }
+            // `(send $_ {:length :size :count})` names no arguments, so it matches only the call
+            // that asks for the length: `arr.size(1)` counts something else entirely.
+            if left.field("arguments").is_some() || left.field("block").is_some() {
+                return None;
+            }
             Some((left.field("receiver"), count))
         }
         _ => None,

@@ -170,6 +170,7 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
                 if parent
                     .field("condition")
                     .is_some_and(|condition| condition.id() == current.id())
+                    && !branch_repeats_condition(parent, current, context)
                 {
                     return false;
                 }
@@ -178,6 +179,41 @@ pub(in crate::rules) fn in_macro_scope(node: Node<'_>, context: &RuleContext<'_>
             _ => return false,
         }
     }
+}
+
+/// **The condition is excluded by a pattern that compares trees, not places.**
+/// `(if _condition <%0 _>)` binds `%0` to the node being tested and looks for it among the
+/// branches, and `Parser::AST::Node#==` answers on structure alone -- so a condition a branch
+/// repeats verbatim matches itself there and counts as being in the branches after all.
+/// `(yield a) ? (yield a) : (yield a)` is the shape that reaches this: all three read alike, so
+/// the condition is in macro scope while `(yield a) ? 1 : 2` is not.
+fn branch_repeats_condition(
+    conditional: Node<'_>,
+    condition: Node<'_>,
+    context: &RuleContext<'_>,
+) -> bool {
+    let text = context.source.node_text(condition);
+    let mut cursor = conditional.walk();
+    let branches: Vec<Node<'_>> = conditional
+        .named_children(&mut cursor)
+        .filter(|child| child.id() != condition.id())
+        .collect();
+    branches.into_iter().any(|branch| {
+        // A `then` or an `else` stands where upstream's branch node does; a branch holding one
+        // statement is that statement, and one holding several is a `begin` no condition matches.
+        let branch = match branch.kind_str() {
+            "then" | "else" => {
+                let mut cursor = branch.walk();
+                let mut children = branch.named_children(&mut cursor);
+                match (children.next(), children.next()) {
+                    (Some(only), None) => only,
+                    _ => return false,
+                }
+            }
+            _ => branch,
+        };
+        context.source.node_text(branch) == text
+    })
 }
 
 /// Whether the body holds a clause that makes it a `rescue` or `ensure` node upstream rather than

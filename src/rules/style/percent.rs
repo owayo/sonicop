@@ -67,13 +67,20 @@ impl PercentLiteral {
         if !types_for(node.kind_str()).contains(&percent_type.as_str()) {
             return None;
         }
+        // **A literal closed by a newline leaves the grammar with an empty closing node.** `%\n\n`
+        // is a string whose delimiter is the line break: the break that ends it is counted into the
+        // content and the closing node sits after it with no text of its own. The delimiter is
+        // still there in the source, one character back from where the literal ends.
         let close_text = context.source.node_text(close);
-        let close_len = close_text.chars().next()?.len_utf8();
+        let close = match close_text.chars().next() {
+            Some(character) => close.start_byte()..close.start_byte() + character.len_utf8(),
+            None => node.end_byte().saturating_sub(opening.len_utf8())..node.end_byte(),
+        };
         Some(Self {
             percent_type,
             opening,
             begin: begin.byte_range(),
-            close: close.start_byte()..close.start_byte() + close_len,
+            close,
         })
     }
 }

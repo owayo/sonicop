@@ -270,15 +270,26 @@ impl Void<'_, '_> {
                     .then(|| OperatorCall {
                         method,
                         selector: operator.byte_range(),
-                        receiver: node
-                            .field("left")
-                            .map(|left| left.byte_range()),
+                        receiver: node.field("left").map(|left| left.byte_range()),
                         argument_count: 1,
                         dot: None,
                     })
             }
             "unary" => {
                 let operator = node.field("operator")?;
+                // **A sign in front of a number is part of the number upstream.** `-3` parses to
+                // `(int -3)`, not to a `-@` send, so it is a literal here and no operator at all --
+                // the grammar keeps the two apart and would otherwise report both.
+                if matches!(self.text(operator), "-" | "+")
+                    && node.field("operand").is_some_and(|operand| {
+                        matches!(
+                            operand.kind_str(),
+                            "integer" | "float" | "rational" | "complex"
+                        )
+                    })
+                {
+                    return None;
+                }
                 let method = match self.text(operator) {
                     "-" => "-@",
                     "+" => "+@",
@@ -291,9 +302,7 @@ impl Void<'_, '_> {
                 Some(OperatorCall {
                     method,
                     selector: operator.byte_range(),
-                    receiver: node
-                        .field("operand")
-                        .map(|operand| operand.byte_range()),
+                    receiver: node.field("operand").map(|operand| operand.byte_range()),
                     argument_count: 0,
                     dot: None,
                 })
@@ -309,13 +318,9 @@ impl Void<'_, '_> {
                 Some(OperatorCall {
                     method: name,
                     selector: method.byte_range(),
-                    receiver: node
-                        .field("receiver")
-                        .map(|receiver| receiver.byte_range()),
+                    receiver: node.field("receiver").map(|receiver| receiver.byte_range()),
                     argument_count: arguments(node).len(),
-                    dot: node
-                        .field("operator")
-                        .map(|operator| operator.byte_range()),
+                    dot: node.field("operator").map(|operator| operator.byte_range()),
                 })
             }
             _ => None,
@@ -410,8 +415,9 @@ impl Void<'_, '_> {
         while let Some(ancestor) = current {
             if BLOCK_KINDS.contains(&ancestor.kind_str()) {
                 return match BlockArgs::of(ancestor, self.context, &self.locals) {
-                    BlockArgs::Numbered(highest) => (1..=highest)
-                        .any(|index| self.text(node) == format!("_{index}")),
+                    BlockArgs::Numbered(highest) => {
+                        (1..=highest).any(|index| self.text(node) == format!("_{index}"))
+                    }
                     BlockArgs::It => self.text(node) == "it",
                     BlockArgs::Written(_) => false,
                 };
@@ -505,7 +511,8 @@ impl Void<'_, '_> {
         if parent.is_some_and(|parent| {
             matches!(
                 parent.kind_str(),
-                "if" | "elsif" | "unless"
+                "if" | "elsif"
+                    | "unless"
                     | "if_modifier"
                     | "unless_modifier"
                     | "conditional"

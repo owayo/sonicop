@@ -39,6 +39,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = keyword(*inner) else {
             continue;
         };
+        // **The offense goes when its own correction clobbers itself.** For an `if` written with
+        // neither `then` nor the modifier form, `correct_to_elsif_from_if_inside_else_form`
+        // replaces the condition's range and removes the whole line the branch sits on -- the same
+        // line, when the two were separated by a `;`. The rewriter raises, and RuboCop drops the
+        // offense along with the correction.
+        if !modifier && !has_then(*inner) && branch_shares_keyword_line(*inner, keyword) {
+            continue;
+        }
         let offense = context.offense(MSG, keyword.byte_range());
         let nested = ignored
             .iter()
@@ -54,6 +62,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
         });
     }
+}
+
+/// Whether the branch stands on the line the `if` keyword was written on. The grammar's `then`
+/// node starts at the line break, so it is the first statement inside it that answers this.
+fn branch_shares_keyword_line(node: Node<'_>, keyword: Node<'_>) -> bool {
+    node.field("consequence")
+        .and_then(|consequence| super::nodes::children(consequence).first().copied())
+        .is_some_and(|first| first.start_position().row == keyword.start_position().row)
 }
 
 fn autocorrect(

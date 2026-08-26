@@ -47,10 +47,11 @@ fn argument_span<'tree>(node: Node<'tree>) -> Option<(Vec<Node<'tree>>, usize)> 
         }
         _ => {
             // `super(...)` and `yield(...)` have node types of their own upstream, so `on_send`
-            // never sees them.
+            // never sees them. **`func.(1)` has no method node at all** -- the parser reads it as
+            // a call to `:call`, which `on_send` does see.
             if node
                 .field("method")
-                .is_none_or(|method| method.kind_str() == "super")
+                .is_some_and(|method| method.kind_str() == "super")
             {
                 return None;
             }

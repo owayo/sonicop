@@ -58,14 +58,14 @@ extra on either side.
 |---|---:|---:|---:|---:|
 | Bundler | 7 | 7 | **7 ✓** | 0 |
 | Gemspec | 10 | 10 | **10 ✓** | 0 |
-| Layout | 100 | 100 | 80 | 20 |
-| Lint | 157 | 157 | 136 | 21 |
-| Metrics | 10 | 10 | 8 | 2 |
+| Layout | 100 | 100 | 83 | 17 |
+| Lint | 157 | 157 | 141 | 16 |
+| Metrics | 10 | 10 | **10 ✓** | 0 |
 | Migration | 1 | 1 | **1 ✓** | 0 |
 | Naming | 19 | 19 | 18 | 1 |
 | Security | 7 | 7 | **7 ✓** | 0 |
-| Style | 298 | 298 | 250 | 48 |
-| **Total** | **609** | **609** | **517** | **92** |
+| Style | 298 | 298 | 268 | 30 |
+| **Total** | **609** | **609** | **545** | **64** |
 <!-- conformance:end -->
 
 **Read the *Exercised* column first.** A cop nothing here made fire contributes neither way — its

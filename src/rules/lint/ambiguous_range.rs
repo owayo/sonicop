@@ -60,6 +60,15 @@ fn is_acceptable(node: Node<'_>, context: &RuleContext<'_>, chains_need_parenthe
         | "constant" | "scope_resolution" | "self" => true,
         // `unary_operation?`: `-x` and `!x` read as one thing.
         "unary" => true,
+        // `rational_literal?`, `(send (int _) :/ (rational _))`: `1/10r` is how a rational is
+        // written, so the division that spells it is not the ambiguity this cop is about.
+        "binary" => {
+            node.field("left").is_some_and(|left| left.kind_str() == "integer")
+                && node
+                    .field("operator")
+                    .is_some_and(|operator| context.source.node_text(operator) == "/")
+                && node.field("right").is_some_and(|right| right.kind_str() == "rational")
+        }
         // `a[1]` is a `send` of `:[]` upstream -- the one operator method the cop lets through.
         "element_reference" => {
             is_acceptable_call(node.field("object"), chains_need_parentheses)

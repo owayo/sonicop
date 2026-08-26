@@ -77,7 +77,39 @@ fn expand_elses<'t>(alternative: Option<Node<'t>>, branches: &mut Vec<Option<Vec
         expand_elses(alternative.field("alternative"), branches);
         return;
     }
+    // **`expand_elses` asks `branch.if_type?`, not whether the branch was written as an `elsif`.**
+    // An `else` holding nothing but a conditional -- a ternary included -- contributes that
+    // conditional's own branches, so `if a ? b : c ... else a ? b : c end` compares `b` and `c`
+    // against the whole ternary rather than three copies of it.
+    if let Some(inner) = sole_conditional(alternative) {
+        expand_conditional(inner, branches);
+        return;
+    }
     branches.push(branch(Some(alternative)));
+}
+
+/// The one conditional an `else` holds, when that is all it holds.
+fn sole_conditional<'t>(alternative: Node<'t>) -> Option<Node<'t>> {
+    match super::nodes::children(alternative).as_slice() {
+        [only] if matches!(only.kind_str(), "conditional" | "if" | "unless") => Some(*only),
+        _ => None,
+    }
+}
+
+/// The branches of a conditional standing where an `else` branch would.
+fn expand_conditional<'t>(node: Node<'t>, branches: &mut Vec<Option<Vec<Node<'t>>>>) {
+    if node.kind_str() != "conditional" {
+        branches.push(branch(node.field("consequence")));
+        expand_elses(node.field("alternative"), branches);
+        return;
+    }
+    // A ternary's branches are bare expressions rather than the statement lists an `if` holds.
+    branches.push(node.field("consequence").map(|only| vec![unwrap(only)]));
+    match node.field("alternative") {
+        Some(other) if other.kind_str() == "conditional" => expand_conditional(other, branches),
+        Some(other) => branches.push(Some(vec![unwrap(other)])),
+        None => branches.push(None),
+    }
 }
 
 fn check_branches(

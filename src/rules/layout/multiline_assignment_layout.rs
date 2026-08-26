@@ -22,6 +22,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `node.loc.operator&.source != '='` guard then drops. Only the assignments are left, and every
     // one of those the grammar writes carries its operator.
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
+        // **`on_csend` is not aliased.** `foo&.bar = x` is a `csend` upstream and outside the
+        // mixin's callbacks, while the grammar spells the assignment the same either way.
+        if node
+            .field("left")
+            .is_some_and(|left| is_safe_navigation(left, context))
+        {
+            continue;
+        }
         let Some(right) = node.field("right") else {
             continue;
         };
@@ -82,6 +90,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         offenses.push(offense);
     }
+}
+
+/// Whether the assignment target is reached through `&.`, which makes the write a `csend`.
+fn is_safe_navigation(left: Node<'_>, context: &RuleContext<'_>) -> bool {
+    left.kind_str() == "call" && !crate::rules::send_node::is_plain_send(left, context)
 }
 
 /// Whether the right-hand side is of the named `SupportedTypes` kind.

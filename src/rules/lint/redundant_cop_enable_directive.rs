@@ -6,8 +6,18 @@ use crate::rules::support::{self, Side};
 
 use super::cop_directives::{ALL, Directive, Mode, directives, reached_by_all};
 
+/// Whether the file parses to no tree at all -- nothing but comments and blank lines.
+fn is_blank(context: &RuleContext<'_>) -> bool {
+    let root = context.root_node();
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .all(|child| child.kind() == "comment")
+}
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    if !context.source.text().contains("enable") {
+    // `processed_source.blank?`, which is `ast.nil?`: a file of nothing but comments parses to no
+    // tree at all, and this cop returns before it reads a single directive.
+    if is_blank(context) || !context.source.text().contains("enable") {
         return;
     }
     // `extra_enabled_comments` seeds the counters from `registry.disabled_names(config)`: a cop the

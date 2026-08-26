@@ -6,6 +6,10 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node;
 
+/// The version `positive?` and `negative?` were added in.
+const PREDICATES_SINCE: crate::ruby_version::RubyVersion =
+    crate::ruby_version::RubyVersion::new(2, 3);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let predicate_style = context
         .setting::<String>("EnforcedStyle")
@@ -24,6 +28,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if allowed.matches(selector.as_deref())
             || (allowed.is_set() && ancestor_is_allowed(context, node, &allowed))
         {
+            continue;
+        }
+        // `replacement_supported?`: `positive?` and `negative?` arrived in 2.3, so a comparison is
+        // left alone below that -- `zero?` has always been there.
+        if matches!(operator, ">" | "<") && context.target_ruby_version() < PREDICATES_SINCE {
             continue;
         }
 
@@ -134,6 +143,11 @@ fn operands<'a, 'tree>(
             ))
         }
         _ => {
+            // `comparison` is a `(send …)` pattern, and `&.` is a `csend`: the grammar spells both
+            // a `call`, so the operator reached through a safe navigation has to be excluded here.
+            if !send_node::is_plain_send(node, context) {
+                return None;
+            }
             let method = node.field("method")?;
             let arguments = super::nodes::children(node.field("arguments")?);
             match arguments.as_slice() {

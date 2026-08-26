@@ -18,7 +18,7 @@ const ACCEPT_LEFT_PAREN: [&str; 7] = [
 const ACCEPT_LEFT_SQUARE_BRACKET: [&str; 2] = ["super", "yield"];
 
 /// Every node kind carrying one of the keywords this cop inspects.
-const KINDS: [&str; 31] = [
+const KINDS: [&str; 32] = [
     "begin",
     "begin_block",
     "binary",
@@ -37,6 +37,7 @@ const KINDS: [&str; 31] = [
     "in_clause",
     "next",
     "rescue",
+    "rescue_modifier",
     "return",
     "super",
     "test_pattern",
@@ -140,7 +141,18 @@ impl Reporter<'_, '_> {
             }
             "while_modifier" | "until_modifier" | "if_modifier" | "unless_modifier"
             | "if_guard" | "unless_guard" => {
+                // **`begin ... end while cond` is a `while_post` upstream, and the cop has no
+                // `on_while_post`.** The grammar writes it as the same modifier as `x while cond`,
+                // so the `begin` the loop hangs off is what tells the two apart.
+                if is_post_loop(node) {
+                    return;
+                }
                 if let Some(keyword) = token(node, &["while", "until", "if", "unless"]) {
+                    self.keyword(node, keyword, offenses);
+                }
+            }
+            "rescue_modifier" => {
+                if let Some(keyword) = token(node, &["rescue"]) {
                     self.keyword(node, keyword, offenses);
                 }
             }
@@ -266,9 +278,9 @@ impl Reporter<'_, '_> {
                 return true;
             }
             if parent.kind_str() == "binary"
-                && parent
-                    .field("operator")
-                    .is_some_and(|operator| matches!(operator.kind_str(), "and" | "or" | "&&" | "||"))
+                && parent.field("operator").is_some_and(|operator| {
+                    matches!(operator.kind_str(), "and" | "or" | "&&" | "||")
+                })
             {
                 return true;
             }
@@ -306,6 +318,12 @@ fn case_else<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
             .find(|child| child.kind_str() == "else")
     })?;
     token(branch, &["else"])
+}
+
+/// Whether the modifier trails a `begin ... end`, which upstream reads as a post-condition loop.
+fn is_post_loop(node: Node<'_>) -> bool {
+    node.field("body")
+        .is_some_and(|body| body.kind_str() == "begin")
 }
 
 /// The `else` of a `begin ... rescue ... else ... end`, which upstream hangs off the rescue node.

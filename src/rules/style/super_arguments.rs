@@ -205,13 +205,21 @@ fn same_argument(
             if argument.kind_str() != "pair" {
                 return false;
             }
-            let (Some(key), Some(value)) = (argument.field("key"), argument.field("value")) else {
+            let Some(key) = argument.field("key") else {
                 return false;
             };
-            // `sym_node.source == lvar_node.source`: only the `name:` shorthand spelling.
-            context.source.node_text(key) == context.source.node_text(value)
-                && symbol_name(key, context) == parameter.name.as_deref()
-                && value.kind_str() == "identifier"
+            match argument.field("value") {
+                // `sym_node.source == lvar_node.source`: only the `name:` shorthand spelling.
+                Some(value) => {
+                    context.source.node_text(key) == context.source.node_text(value)
+                        && symbol_name(key, context) == parameter.name.as_deref()
+                        && value.kind_str() == "identifier"
+                }
+                // **`a:` with no value is the same pair spelled shorter.** The parser fills the
+                // omitted value in with the variable of that name, so `super(a:)` passes `a` --
+                // the grammar leaves the field empty instead.
+                None => symbol_name(key, context) == parameter.name.as_deref(),
+            }
         }
         // `keyword_rest_arg_same?`.
         "hash_splat_parameter" => match &parameter.name {

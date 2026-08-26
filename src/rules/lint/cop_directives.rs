@@ -29,6 +29,23 @@ const DEPARTMENTS: &[&str] = &[
     "Style",
 ];
 
+/// `Registry.global.qualified_cop_name`: the department that has a cop by this name. A name two
+/// departments answer to is ambiguous, and upstream raises rather than picking one.
+pub(super) fn qualified_cop_name(name: &str, context: &RuleContext<'_>) -> Option<String> {
+    let mut qualified = DEPARTMENTS
+        .iter()
+        .map(|department| format!("{department}/{name}"))
+        .filter(|candidate| {
+            context
+                .setting_of::<String>(candidate, "Description")
+                .is_some()
+        });
+    match (qualified.next(), qualified.next()) {
+        (Some(only), None) => Some(only),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum Mode {
     Disable,

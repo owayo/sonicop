@@ -20,7 +20,7 @@ const PRECEDENCE: &[&[&str]] = &[
 const MSG: &str = "Wrap expressions with varying precedence with parentheses to avoid ambiguity.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for node in context.nodes_of("binary") {
+    for node in context.nodes_of_any(&["binary", "call"]) {
         let Some(operator) = binary_operator(node, context) else {
             continue;
         };
@@ -66,6 +66,23 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The operator of a binary expression, or `None` for a node that is not one. `operator?` accepts
 /// the keyword forms too, which is why they are recognised here and only ranked below.
 fn binary_operator<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
+    // **`RESTRICT_ON_SEND` asks for the method name, not for the shape the call was written in.**
+    // `CONST.*` is a `send` of `:*` upstream and ranks with the operator it names, which the
+    // grammar writes as an ordinary call rather than as a `binary`.
+    if node.kind_str() == "call" && node.field("block").is_none() {
+        // `on_send` returns on a parenthesized call: `a.*(b)` already reads unambiguously.
+        if node
+            .field("arguments")
+            .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
+        {
+            return None;
+        }
+        let method = context.source.node_text(node.field("method")?);
+        return PRECEDENCE
+            .iter()
+            .any(|rank| rank.contains(&method))
+            .then_some(method);
+    }
     if node.kind_str() != "binary" {
         return None;
     }

@@ -424,6 +424,9 @@ impl Heredocs {
             "string" => interpolated(context, node).is_none() && written_on_one_line(context, node),
             "character" => true,
             "heredoc_beginning" => self.plain.get(&node.id()).copied().unwrap_or(false),
+            // The parser resolves `__FILE__` to the path it stands for, which is a `str`. The
+            // grammar leaves it an identifier.
+            "identifier" => context.source.node_text(node) == "__FILE__",
             _ => false,
         }
     }
