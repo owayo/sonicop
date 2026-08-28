@@ -195,9 +195,21 @@ fn chained_conversion(receiver: Node<'_>, method: &str, context: &RuleContext<'_
 
 /// `TYPED_METHODS`: methods whose answer is already a string.
 fn chained_to_typed_method(receiver: Node<'_>, method: &str, context: &RuleContext<'_>) -> bool {
-    method == "to_s"
-        && receiver.kind_str() == "call"
-        && receiver
+    if method != "to_s" {
+        return false;
+    }
+    match receiver.kind_str() {
+        "call" => receiver
             .field("method")
-            .is_some_and(|name| matches!(context.source.node_text(name), "inspect" | "to_json"))
+            .is_some_and(|name| matches!(context.source.node_text(name), "inspect" | "to_json")),
+        // A receiverless call is a bare name to the grammar and a `send` upstream, so `inspect.to_s`
+        // reaches this the same way `foo.inspect.to_s` does.
+        "identifier" => {
+            matches!(context.source.node_text(receiver), "inspect" | "to_json")
+                && !context
+                    .variable_analysis()
+                    .is_variable_reference(receiver)
+        }
+        _ => false,
+    }
 }

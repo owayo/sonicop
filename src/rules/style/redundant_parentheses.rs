@@ -73,6 +73,31 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         check_group(context, &locals, node, &mut pending);
     }
+    // **`^(var)` is a `pin` holding a `begin` upstream**, so the parentheses are a node the walk
+    // above would find. The grammar writes them as part of the pin itself, which leaves
+    // `allowed_pin_operator?` -- `^(pin (begin !{lvar ivar cvar gvar}))` -- as the only thing to
+    // say about them: a pinned variable is reported, anything else is left alone.
+    for node in context.nodes_of("expression_reference_pattern") {
+        let Some(value) = node.field("value") else {
+            continue;
+        };
+        if !is_variable(context, &locals, value) {
+            continue;
+        }
+        let Some(range) = pinned_parentheses(node, context) else {
+            continue;
+        };
+        offenses.push(
+            context
+                .offense("Don't use parentheses around a variable.", range.clone())
+                .corrected_by(crate::diagnostic::Edit {
+                    start: range.start,
+                    end: range.end,
+                    replacement: context.source.node_text(value).to_owned(),
+                    safe: true,
+                }),
+        );
+    }
     // `on_investigation_end`: each candidate's exact correction is verified by reparsing before the
     // offense is registered, so redundancy never rests on a hand-kept list of the grammar's rules.
     let verified = crate::rules::support::verified_by_reparse(
@@ -623,6 +648,23 @@ fn is_block(node: Node<'_>) -> bool {
 
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
+/// The `(` … `)` a pin operator wrote around its value.
+fn pinned_parentheses(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+) -> Option<std::ops::Range<usize>> {
+    let mut cursor = node.walk();
+    let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
+    let open = children
+        .iter()
+        .find(|child| !child.is_named() && context.source.node_text(**child) == "(")?;
+    let close = children
+        .iter()
+        .rev()
+        .find(|child| !child.is_named() && context.source.node_text(**child) == ")")?;
+    Some(open.start_byte()..close.end_byte())
+}
+
 fn is_variable(context: &RuleContext<'_>, locals: &LocalVariables<'_, '_>, node: Node<'_>) -> bool {
     match node.kind_str() {
         "instance_variable" | "class_variable" | "global_variable" => true,

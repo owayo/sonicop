@@ -336,7 +336,14 @@ fn is_upstream_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     match node.kind_str() {
         "call" => node.field("block").is_none(),
         // A bare name reaches upstream as a receiverless `send` unless it read a local variable.
-        "identifier" => send_name(node, context).is_some(),
+        // **The three keyword literals are nodes of their own there**: `__LINE__` is an `int`,
+        // `__FILE__` a `str` and `__ENCODING__` its own type, so none of them is a `send`.
+        "identifier" => {
+            !matches!(
+                context.source.node_text(node),
+                "__LINE__" | "__FILE__" | "__ENCODING__"
+            ) && send_name(node, context).is_some()
+        }
         "element_reference" => true,
         "binary" => !matches!(
             operator_text(node, context),

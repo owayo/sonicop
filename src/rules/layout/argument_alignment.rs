@@ -84,7 +84,9 @@ fn multiple_arguments(arguments: &[GroupedArgument<'_>]) -> bool {
 
 /// `hash.pairs`, which is `children.select(&:pair_type?)`: **a `**splat` is not a pair.** The
 /// brace-less hash a call ends with holds both, and only the pairs are lined up against each other.
-fn pairs_of<'a, 'tree>(argument: &'a GroupedArgument<'tree>) -> impl Iterator<Item = &'a Node<'tree>>
+fn pairs_of<'a, 'tree>(
+    argument: &'a GroupedArgument<'tree>,
+) -> impl Iterator<Item = &'a Node<'tree>>
 where
     'tree: 'a,
 {
@@ -96,7 +98,8 @@ where
 
 /// `super` is a node of its own upstream, which `on_send` never sees.
 fn is_super(node: Node<'_>) -> bool {
-    node.child(0).is_some_and(|child| child.kind_str() == "super")
+    node.child(0)
+        .is_some_and(|child| child.kind_str() == "super")
 }
 
 /// `node.method?(:[]=)`: assigning through an index reaches the cop as one call whose arguments
@@ -134,9 +137,7 @@ fn flattened_arguments<'a, 'tree>(
             .map(|argument| argument.range.clone())
             .collect();
     }
-    let pairs: Vec<Range<usize>> = pairs_of(candidate)
-        .map(|part| part.byte_range())
-        .collect();
+    let pairs: Vec<Range<usize>> = pairs_of(candidate).map(|part| part.byte_range()).collect();
     if fixed {
         let mut items: Vec<Range<usize>> = arguments[..arguments.len() - 1]
             .iter()
@@ -162,6 +163,7 @@ fn base_column(
     // `target_method_lineno`: the selector's line, or the opening parenthesis for `l.(1)`.
     let anchor = call
         .field("method")
+        .or_else(|| call.field("arguments"))
         .map_or_else(|| call.start_byte(), |method| method.start_byte());
     let line = context.source.line_column(anchor).0;
     let text = context.source.line(line);

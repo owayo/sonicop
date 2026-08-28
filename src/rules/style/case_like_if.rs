@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let branches = branch_conditions(node);
         // `elsif_conditional?` and `min_branches_count?`: the chain has to be an `if`/`elsif` one
         // with enough arms to be worth a `case`.
-        if branches.len() < 2 || branches.len() < minimum {
+        if branches.len() < 2 || branch_count(node) < minimum {
             continue;
         }
         let Some(target) = find_target(context, branches[0]) else {
@@ -86,6 +86,30 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .corrected_by_all(edits),
         );
     }
+}
+
+/// `if_conditional_branches`: the arms a conditional chain has, which is what `MinBranchesCount`
+/// is counted against. **A ternary is an `if` upstream**, so an `else` holding one contributes its
+/// own arm -- `if a / elsif b / else c ? d : e` has three, not two.
+fn branch_count(node: Node<'_>) -> usize {
+    let mut count = 0;
+    let mut current = Some(node);
+    while let Some(branch) = current {
+        if !matches!(branch.kind_str(), "if" | "elsif" | "conditional") {
+            break;
+        }
+        count += 1;
+        current = match branch.field("alternative") {
+            Some(alternative) if alternative.kind_str() == "else" => {
+                match super::nodes::children(alternative).as_slice() {
+                    [only] => Some(*only),
+                    _ => None,
+                }
+            }
+            other => other,
+        };
+    }
+    count
 }
 
 /// `branch_conditions`: the condition of every `if`/`elsif` in the chain.

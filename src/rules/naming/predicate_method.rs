@@ -80,10 +80,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed_patterns: Vec<String> = context.setting("AllowedPatterns").unwrap_or_default();
     let wayward: Vec<String> = context.setting("WaywardPredicates").unwrap_or_default();
     let allow_bang: bool = context.setting("AllowBangMethods").unwrap_or(false);
-    let conservative = context
+    let mode = context
         .setting::<String>("Mode")
-        .unwrap_or_else(|| "conservative".to_owned())
-        == "conservative";
+        .unwrap_or_else(|| "conservative".to_owned());
+    // Upstream's specs commonly configure this enum as a Ruby symbol (`:conservative`). YAML
+    // preserves the leading colon when it is read as a string, but RuboCop compares the value as
+    // a symbol. Both spellings therefore name the same mode.
+    let conservative = mode.trim_start_matches(':') == "conservative";
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         let Some(name_node) = node.field("name") else {
             continue;

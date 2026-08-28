@@ -126,6 +126,11 @@ impl SourceFile {
     }
 
     pub fn line_column(&self, byte_offset: usize) -> (usize, usize) {
+        // **A range may reach past the source.** The parser's buffer carries a newline the file
+        // does not, and a cop measuring an indentation counts characters that are not there, so
+        // upstream still names a column for such a position. Only the slicing below is clamped;
+        // what lies beyond is counted onto the last column.
+        let overflow = byte_offset.saturating_sub(self.text.len());
         let mut offset = byte_offset.min(self.text.len());
         while offset > 0 && !self.text.is_char_boundary(offset) {
             offset -= 1;
@@ -133,7 +138,7 @@ impl SourceFile {
         let line_index = self.line_starts.partition_point(|start| *start <= offset) - 1;
         let line_start = self.line_starts[line_index];
         let column = self.text[line_start..offset].chars().count() + 1;
-        (line_index + 1, column)
+        (line_index + 1, column + overflow)
     }
 }
 

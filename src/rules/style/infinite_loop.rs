@@ -75,6 +75,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// Whether the condition is one of the literals whose truth the parser already knows.
 fn literal(node: Node<'_>, context: &RuleContext<'_>, kinds: &[&str]) -> bool {
+    // **A regexp standing as a loop's condition is a `match_current_line`, not a `regexp`.** The
+    // parser reads `while /foo/` as a match against `$_`, whose truth is unknown -- so it is not
+    // the always-true condition this cop is about.
+    if node.kind_str() == "regex" {
+        return false;
+    }
     if kinds.contains(&node.kind_str()) {
         return true;
     }

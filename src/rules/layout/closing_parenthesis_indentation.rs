@@ -15,7 +15,8 @@ const MSG_ALIGN: &str = "Align `)` with `(`.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
-        .setting_of::<i64>("Layout/IndentationWidth", "Width")
+        .setting::<i64>("IndentationWidth")
+        .or_else(|| context.setting_of::<i64>("Layout/IndentationWidth", "Width"))
         .unwrap_or(2);
     // An index read is a `:[]` send upstream whose source map carries no `begin` or `end` at all,
     // so its brackets are never what this cop looks at.

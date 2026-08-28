@@ -110,6 +110,13 @@ impl Literal {
                         if literal != Self::String && node.field("block").is_some() {
                             return None;
                         }
+                        // **`hash_with_block(node.parent)` reaches past the call's own block.**
+                        // A `Hash.new` written as the body of another `Hash.new`'s block has that
+                        // block for a parent upstream, so the check meant for the outer call
+                        // silences the inner one too.
+                        if literal == Self::Hash && inside_hash_new_block(node, context) {
+                            return None;
+                        }
                         Some(literal)
                     }
                     // `Array([])` and `Hash([])`, the conversion functions.
@@ -135,6 +142,31 @@ impl Literal {
 }
 
 /// `(const {nil? cbase} :Array)` and its `Hash` and `String` counterparts.
+/// Whether the call stands as the body of a `Hash.new { ... }` block, which is what
+/// `hash_with_block(node.parent)` answers to for a nested call.
+fn inside_hash_new_block(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let Some(body) = node.parent_of(context) else {
+        return false;
+    };
+    let Some(block) = body
+        .parent_of(context)
+        .filter(|parent| matches!(parent.kind_str(), "block" | "do_block"))
+        .or_else(|| matches!(body.kind_str(), "block" | "do_block").then_some(body))
+    else {
+        return false;
+    };
+    block
+        .parent_of(context)
+        .filter(|call| call.kind_str() == "call")
+        .is_some_and(|call| {
+            call.field("method")
+                .is_some_and(|method| context.source.node_text(method) == "new")
+                && call
+                    .field("receiver")
+                    .is_some_and(|receiver| context.source.node_text(receiver) == "Hash")
+        })
+}
+
 fn named_constant(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
     for (name, literal) in [
         ("Array", Literal::Array),

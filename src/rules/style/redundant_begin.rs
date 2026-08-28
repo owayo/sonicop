@@ -19,7 +19,9 @@ const IMPLICIT_BEGIN_VERSION: RubyVersion = RubyVersion::new(2, 5);
 
 /// The clauses that make the parser put a `rescue` or an `ensure` node between the `kwbegin` and
 /// its statements, which is what leaves it a single child.
-const CLAUSES: &[&str] = &["rescue", "ensure", "else"];
+/// `contain_rescue_or_ensure?` asks for a `rescue` or an `ensure` and **not** for an `else`: a
+/// `begin ... else ... end` written without a `rescue` is the redundant `begin` this cop reports.
+const CLAUSES: &[&str] = &["rescue", "ensure"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `add_offense` refuses a range it has already reported, and every handler here reports the

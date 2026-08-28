@@ -63,8 +63,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             "unless" => (normalized_else.clone(), normalized_if.clone()),
             _ => (normalized_if.clone(), normalized_else.clone()),
         };
+        // `if_branch_is_true_type_and_else_is_not?` returns early unless the conditional was
+        // written as an `if` or a ternary: `unless x then true else false end` is outside it.
+        let is_if = node.kind_str() != "unless";
         if !is_offense(
             context,
+            is_if,
             ternary,
             condition,
             &raw_if,
@@ -111,6 +115,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 #[allow(clippy::too_many_arguments)]
 fn is_offense(
     context: &RuleContext<'_>,
+    is_if: bool,
     ternary: bool,
     condition: Node<'_>,
     raw_if: &Option<Branch<'_>>,
@@ -137,6 +142,7 @@ fn is_offense(
     }
     if !synonymous(
         context,
+        is_if,
         condition,
         raw_if,
         normalized_if,
@@ -179,6 +185,7 @@ fn is_plain_node(branch: &Branch<'_>) -> bool {
 
 fn synonymous(
     context: &RuleContext<'_>,
+    is_if: bool,
     condition: Node<'_>,
     raw_if: &Option<Branch<'_>>,
     normalized_if: &Option<Branch<'_>>,
@@ -192,7 +199,7 @@ fn synonymous(
     {
         return true;
     }
-    if if_branch_is_true(context, condition, normalized_if, normalized_else, allowed) {
+    if is_if && if_branch_is_true(context, condition, normalized_if, normalized_else, allowed) {
         return true;
     }
     if assignment_pair(context, normalized_if, normalized_else).is_some()

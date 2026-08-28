@@ -43,9 +43,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(list) = block.field("parameters") else {
             continue;
         };
-        // `eligible_arguments?`: every parameter has to be a plain one.
+        // `eligible_arguments?`: every parameter has to be a plain one. A block-local written
+        // after a `;` is a `shadowarg` upstream, which fails `arg_type?` -- the grammar spells it
+        // as another identifier in the same list and marks it only by the separator.
         let written = super::nodes::children(list);
         if written.is_empty() || written.iter().any(|arg| arg.kind_str() != "identifier") {
+            continue;
+        }
+        let mut cursor = list.walk();
+        if list
+            .children(&mut cursor)
+            .any(|child| !child.is_named() && child.kind_str() == ";")
+        {
             continue;
         }
         let names: Vec<&str> = written

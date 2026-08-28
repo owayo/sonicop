@@ -243,8 +243,11 @@ pub(super) fn parser_range(range: &Range<usize>, context: &RuleContext<'_>) -> R
     if !text[range.clone()].starts_with("=begin") {
         return range.clone();
     }
-    let end = text[range.end..]
-        .find('\n')
-        .map_or(text.len(), |offset| range.end + offset + 1);
+    let end = text[range.end..].find('\n').map_or_else(
+        // **A file that does not end in a newline still has one to the parser**, and a block
+        // comment's range runs one character past even that.
+        || text.len() + 2,
+        |offset| range.end + offset + 1,
+    );
     range.start..end
 }

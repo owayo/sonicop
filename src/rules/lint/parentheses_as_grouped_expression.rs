@@ -15,6 +15,11 @@ const COMPARISON_METHODS: [&str; 5] = ["==", "===", "!=", "<=", ">="];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
+        // `on_send` never sees a `super`: the parser gives it a node of its own, while the grammar
+        // writes the keyword as the method of a call.
+        if crate::rules::send_node::is_super_call(node) {
+            continue;
+        }
         let Some((method, argument)) = grouped_argument(node, context) else {
             continue;
         };

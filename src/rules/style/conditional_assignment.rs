@@ -576,6 +576,7 @@ impl Cop<'_, '_> {
         let assignment_column = self.context.source.line_column(node.start_byte()).1;
         if !conditional.ternary {
             let text = self.context.source.text();
+            let literal_interiors = literal_interiors(self.context, &value.byte_range());
             let mut line_start = value.start_byte();
             while let Some(newline) = text[line_start..value.end_byte()].find('\n') {
                 line_start += newline + 1;
@@ -585,6 +586,15 @@ impl Cop<'_, '_> {
                     .iter()
                     .take_while(|byte| matches!(byte, b' ' | b'\t'))
                     .count();
+                // The corrector moves branch nodes, not physical lines inside their literals.
+                // In particular, regex/string continuation lines and heredoc bodies retain their
+                // original indentation when the assignment prefix moves into the branch.
+                if literal_interiors
+                    .iter()
+                    .any(|range| range.contains(&(line_start + blanks)))
+                {
+                    continue;
+                }
                 // `line_column` is 1-based; the columns upstream compares are 0-based.
                 let column = self.context.source.line_column(line_start + blanks).1 - 1;
                 // `condition.loc.end` is **the conditional's own** `end`, which is the last thing
@@ -623,6 +633,37 @@ impl Cop<'_, '_> {
         }
         edits
     }
+}
+
+/// Literal text whose line indentation is content rather than branch indentation.
+fn literal_interiors(
+    context: &RuleContext<'_>,
+    expression: &std::ops::Range<usize>,
+) -> Vec<std::ops::Range<usize>> {
+    let mut ranges = Vec::new();
+    for node in context.nodes_of_any(&["string", "regex", "subshell"]) {
+        if node.start_byte() < expression.start || node.end_byte() > expression.end {
+            continue;
+        }
+        let count = node.child_count();
+        if count < 2 {
+            continue;
+        }
+        let (Some(first), Some(last)) = (
+            node.child(0),
+            node.child(u32::try_from(count).unwrap_or(0).saturating_sub(1)),
+        ) else {
+            continue;
+        };
+        ranges.push(first.end_byte()..last.start_byte());
+    }
+    ranges.extend(
+        context
+            .nodes_of("heredoc_body")
+            .filter(|body| body.end_byte() > expression.start && body.start_byte() < expression.end)
+            .map(|body| body.byte_range()),
+    );
+    ranges
 }
 
 /// The statements a branch holds, or `None` when it holds nothing.

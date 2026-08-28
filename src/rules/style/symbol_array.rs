@@ -89,7 +89,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn is_symbol(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     matches!(node.kind_str(), "simple_symbol" | "delimited_symbol")
         && !interpolated(node)
-        && !context.source.node_text(node).contains('\n')
+        && !crate::rules::support::quoted_spans_lines(context.source.node_text(node))
 }
 
 fn interpolated(node: Node<'_>) -> bool {

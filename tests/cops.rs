@@ -325,6 +325,60 @@ mod layout {
     }
 
     #[test]
+    fn line_length_honors_rbs_heredoc_lists_and_unicode_string_splitting() {
+        CopCase::new(
+            "Layout/LineLength",
+            "def foo #: () -> String\nend\n",
+            Vec::new(),
+        )
+        .config("Layout/LineLength:\n  Max: 10\n  AllowRBSInlineAnnotation: true\n")
+        .run();
+        CopCase::annotated(
+            "Layout/LineLength",
+            "<<~DOC\n  aaaaaaaaaaa\n          ^^^ Line is too long. [13/10]\nDOC\n",
+        )
+        .config("Layout/LineLength:\n  Max: 10\n  AllowHeredoc: [SQL]\n")
+        .run();
+        CopCase::new(
+            "Layout/LineLength",
+            "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaあbbbbb\"\n",
+            vec![Annotation::new(1, 41, 4, "Line is too long. [44/40]")],
+        )
+        .config("Layout/LineLength:\n  Max: 40\n  SplitStrings: true\n")
+        .corrected("\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" \\\n\"あbbbbb\"\n")
+        .run();
+    }
+
+    /// タブを含む行のキャレットはソース文字を指すが、JSON の length はタブの追加幅を含む。
+    #[test]
+    fn line_length_reports_tab_adjusted_json_length() {
+        CopCase::new(
+            "Layout/LineLength",
+            "\t\t\t\t# There is some content http://test.com\n",
+            vec![Annotation::new(1, 27, 17, "Line is too long. [47/30]")],
+        )
+        .config("Layout/LineLength:\n  Max: 30\n")
+        .lengths(&[21])
+        .run();
+        CopCase::new(
+            "Layout/LineLength",
+            "\t\t############################a\n",
+            vec![Annotation::new(1, 29, 3, "Line is too long. [33/30]")],
+        )
+        .config("Layout/LineLength:\n  Max: 30\n")
+        .lengths(&[5])
+        .run();
+        CopCase::new(
+            "Layout/LineLength",
+            "\t\t\t\t\t\t\t\t\t\t\t\t1\n",
+            vec![Annotation::new(1, 1, 13, "Line is too long. [25/10]")],
+        )
+        .config("Layout/LineLength:\n  Max: 10\n")
+        .lengths(&[25])
+        .run();
+    }
+
+    #[test]
     fn space_after_comma() {
         expect_offense(
             "Layout/SpaceAfterComma",
@@ -496,6 +550,12 @@ mod layout {
     /// 期待値はすべて本家 1.89.0 の `-A` 実出力から取得。
     #[test]
     fn trailing_whitespace_inside_a_heredoc_is_preserved() {
+        // opener はヒアドキュメント本文ではなく Ruby のソースなので、空白をそのまま削除する。
+        expect_correction(
+            "Layout/TrailingWhitespace",
+            "x = <<HEREDOC \n  a  \nHEREDOC\n",
+            "x = <<HEREDOC\n  a#{'  '}\nHEREDOC\n",
+        );
         // 内容のある行では、空白を補間に包んで残す。
         expect_correction(
             "Layout/TrailingWhitespace",
@@ -1402,6 +1462,13 @@ mod lint {
             "Lint/NestedMethodDefinition",
             "def foo\n  Class.new do\n    def bar; end\n  end\n  instance_eval do\n    def baz; end\n  end\nend\n",
         );
+        CopCase::new(
+            "Lint/NestedMethodDefinition",
+            "def foo(obj)\n  obj.do_baz do\n    def bar; end\n  end\nend\n",
+            Vec::new(),
+        )
+        .config("Lint/NestedMethodDefinition:\n  AllowedPatterns: [baz]\n")
+        .run();
     }
 
     /// 2.6 以降は構文エラーになるので、cop 自体が組み立てられない。
@@ -4682,6 +4749,40 @@ mod syntax_version_gates {
         accepted("p (<<~E\n  a\nE\n)\n", "2.7").run();
     }
 
+    /// 2.7 の parser は括弧付き endless 定義を通常の `def` として読み始めるため、
+    /// `=` の後も閉じる `end` を待ち続ける。クラス内では外側までメソッド本体扱いになる。
+    #[test]
+    fn endless_method_recovery_matches_the_legacy_parser() {
+        at_2_7(
+            "def foo(bar) = bar.length\n",
+            vec![
+                unexpected(1, 14, 1, "tEQL"),
+                Annotation::new(1, 26, 0, format!("unexpected token $end\n{HINT}")),
+            ],
+        )
+        .locations(&[(1, 14, 1, 14), (1, 26, 2, 1)])
+        .lengths(&[1, 1])
+        .run();
+        at_2_7(
+            "class Foo\n  def citations = value\nend\n",
+            vec![
+                Annotation::new(1, 1, 5, format!("class definition in method body\n{HINT}")),
+                unexpected(2, 17, 1, "tEQL"),
+            ],
+        )
+        .run();
+    }
+
+    /// command-style 引数の値にした hash で省略値が拒否されると、parser は以降を読まない。
+    #[test]
+    fn an_omission_in_a_nested_command_hash_abandons_the_file() {
+        at_2_7(
+            "render :json => {a:, b:}, :status => 404\ndef example\n  a(b:)\nend\n",
+            vec![unexpected(1, 20, 1, "tCOMMA")],
+        )
+        .run();
+    }
+
     /// メソッド定義の中で行き詰まると、その定義は最後まで還元されない。本家は以降の
     /// `class` / `module` 定義をメソッド本体に書かれたものとして報告し続け、`class <<`
     /// は同じ検査を持たないので対象にならない。
@@ -7080,6 +7181,15 @@ mod style_rest {
             "class Foo::Bar\n  X = 1\nend\n",
             "module Foo\n  class Bar\n  X = 1\n  end\nend\n",
         );
+        CopCase::new(
+            "Style/ClassAndModuleChildren",
+            "module A\n\tmodule B\n\t\tmodule C\n\t\t\tbody\n\t\tend\n\tend\nend\n",
+            Vec::new(),
+        )
+        .config("Style/ClassAndModuleChildren:\n  EnforcedStyle: compact\n")
+        .without_offense_check()
+        .corrected("module A::B::C\n\t\t\tbody\nend\n")
+        .run();
     }
 
     /// 直前の兄弟に同名のクラス定義があれば `class`、無ければ `module` で包む。
@@ -7871,6 +7981,22 @@ mod layout_bracket_spacing {
         );
     }
 
+    /// `compact` では入れ子の連続した括弧を改行越しでも隣接させる。
+    #[test]
+    fn compact_style_joins_nested_brackets_across_line_breaks() {
+        CopCase::new(
+            BRACKETS,
+            "multiline = [\n  [ 1, 2 ],\n  [ 3, 4 ]\n]\n",
+            vec![
+                Annotation::new(1, 14, 0, MSG),
+                Annotation::new(4, 1, 0, MSG),
+            ],
+        )
+        .config("Layout/SpaceInsideArrayLiteralBrackets:\n  EnforcedStyle: compact\n")
+        .corrected("multiline = [[ 1, 2 ],\n  [ 3, 4 ]]\n")
+        .run();
+    }
+
     /// `%w[...]` は括弧を持たないので配列側の cop は触らない。
     #[test]
     fn a_percent_literal_is_not_a_bracketed_array() {
@@ -8521,6 +8647,15 @@ mod layout_alignment {
         )
         .run();
         expect_no_offenses(ARGUMENT, "super a: 1,\n  b: 2\n");
+
+        // `foo.(...)` は selector を持たないため、固定字下げの基準は `(` の行になる。
+        CopCase::new(
+            ARGUMENT,
+            "something\n  .(\n    a,\n    b,\n    c\n  )\n",
+            Vec::new(),
+        )
+        .config("Layout/ArgumentAlignment:\n  EnforcedStyle: with_fixed_indentation\n")
+        .run();
     }
 
     /// 整列の autocorrect は要素が跨る行を丸ごと動かす。
@@ -8536,6 +8671,29 @@ mod layout_alignment {
             concat!("foo :bar,\n", "  :baz,\n", "      :qux\n"),
             concat!("foo :bar,\n", "    :baz,\n", "    :qux\n"),
         );
+
+        CopCase::new(
+            HASH,
+            concat!(
+                "hash = {\n",
+                "  'abcdefg' => 0,\n",
+                "  'abcdef'  => 0,\n",
+                "  'gijk'    => 0,\n",
+                "  'a'       => 0,\n",
+                "  'b' => 1,\n",
+                "        'c' => 1\n",
+                "}\n",
+            ),
+            Vec::new(),
+        )
+        .config(
+            "Layout/HashAlignment:\n  EnforcedColonStyle: [key, table]\n  EnforcedHashRocketStyle: [key, table]\n",
+        )
+        .without_offense_check()
+        .corrected(
+            "hash = {\n  'abcdefg' => 0,\n  'abcdef'  => 0,\n  'gijk'    => 0,\n  'a'       => 0,\n  'b' => 1,\n  'c' => 1\n}\n",
+        )
+        .run();
     }
 
     /// 先頭要素の字下げは、既定では括弧の直後 (`special_inside_parentheses`)、
@@ -9608,6 +9766,17 @@ mod block_delimiters {
             "items.each { |x|\n  puts x\n}\n",
             "items.each do |x|\n  puts x\nend\n",
         );
+    }
+
+    #[test]
+    fn a_multiline_brace_block_followed_by_indexing_is_a_chain() {
+        CopCase::new(
+            COP,
+            "foo = [{foo: :bar}].find { |item|\n  item[:foo]\n}[:foo]\n",
+            Vec::new(),
+        )
+        .config("Style/BlockDelimiters:\n  EnforcedStyle: braces_for_chaining\n")
+        .run();
     }
 
     /// `AllowedMethods` の既定は `lambda` / `proc` / `it`。括弧の無い引数に付いた
@@ -14889,6 +15058,13 @@ mod layout_spacing_and_alignment {
         expect_no_offenses(COP, "def a\n  b # comment\nend\n");
         // `end` の手前は 1 段深い方に揃える。
         expect_no_offenses(COP, "def a\n  b\n  # comment\nend\n");
+        CopCase::new(
+            COP,
+            "if foo\n # aligned with else\nelse\n  bar\nend\n",
+            Vec::new(),
+        )
+        .config("Layout/CommentIndentation:\n  IndentationWidth: 1\n")
+        .run();
     }
 
     /// キーワードの前後の空白。`(` を許すキーワードは決まっている。
@@ -14934,6 +15110,17 @@ mod layout_spacing_and_alignment {
         expect_no_offenses(COP, "baz(\n  a\n)\n");
         expect_no_offenses(COP, "qux(\n)\n");
         expect_no_offenses(COP, "def foo(a,\n  b\n)\nend\n");
+        CopCase::new(
+            COP,
+            "some_method(\n  a\n)\n",
+            vec![Annotation::new(3, 1, 1, "Indent `)` to column 1 (not 0)")],
+        )
+        .config("Layout/ClosingParenthesisIndentation:\n  IndentationWidth: 1\n")
+        .corrected("some_method(\n  a\n )\n")
+        .run();
+        CopCase::new(COP, "some_method(\n  a\n )\n", Vec::new())
+            .config("Layout/ClosingParenthesisIndentation:\n  IndentationWidth: 1\n")
+            .run();
     }
 }
 
@@ -22363,6 +22550,32 @@ mod style_conditional_assignment {
         .config(config)
         .without_offense_check()
         .corrected("if one?\n  value = one\nelsif two?\n  value = two\nend\n")
+        .run();
+    }
+
+    /// 分岐を移動しても、文字列・正規表現・ヒアドキュメント内部の字下げは値の一部なので残す。
+    #[test]
+    fn assign_inside_condition_preserves_literal_indentation() {
+        let config = "Style/ConditionalAssignment:\n  EnforcedStyle: assign_inside_condition\n";
+        CopCase::new(
+            COP,
+            "x = if condition\n  %r{a\n    b}x\nelse\n  %r{c\n    d}x\nend\n",
+            Vec::new(),
+        )
+        .config(config)
+        .without_offense_check()
+        .corrected("if condition\n  x = %r{a\n    b}x\nelse\n  x = %r{c\n    d}x\nend\n")
+        .run();
+        CopCase::new(
+            COP,
+            "value = if a\n  239\nelse\n  raise(ArgumentError, <<~ANSWER)\n    4\n\n    2\n  ANSWER\nend\n",
+            Vec::new(),
+        )
+        .config(config)
+        .without_offense_check()
+        .corrected(
+            "if a\n  value = 239\nelse\n  value = raise(ArgumentError, <<~ANSWER)\n    4\n\n    2\n  ANSWER\nend\n",
+        )
         .run();
     }
 }
@@ -31604,6 +31817,9 @@ mod naming_predicate_method {
     #[test]
     fn an_unreadable_call_is_left_alone_in_conservative_mode() {
         CopCase::new(COP, "def foo?\n  x.to_s\nend\n", Vec::new()).run();
+        CopCase::new(COP, "def foo?\n  return 1 if x\n  true\nend\n", Vec::new())
+            .config("Naming/PredicateMethod:\n  Mode: :conservative\n")
+            .run();
         CopCase::annotated_with(
             COP,
             r#"
@@ -32553,6 +32769,12 @@ mod layout_redundant_line_break {
         .lengths(&[26])
         .corrected("foo(a) do |x| puts x end\n")
         .run();
+        CopCase::new(COP, "f do\nend\n", vec![Annotation::new(1, 1, 4, MSG)])
+            .config("Layout/RedundantLineBreak:\n  InspectBlocks: true\n")
+            .locations(&[(1, 1, 2, 3)])
+            .lengths(&[8])
+            .corrected("f do end\n")
+            .run();
     }
 
     /// 畳んだ結果が読み直せないものは報告しない。逆斜線で割った連鎖呼び出しは
@@ -32703,6 +32925,30 @@ mod layout_multiline_assignment_layout {
         .config("Layout/MultilineAssignmentLayout:\n  EnforcedStyle: same_line\n")
         .corrected("baz = if bar\n    1\n  end\n")
         .run();
+    }
+
+    /// 複数代入の右辺は本家 AST では `array` なので、通常の配列と同じ対象になる。
+    #[test]
+    fn multiple_assignment_uses_the_array_supported_type() {
+        CopCase::new(
+            COP,
+            "a, b = 4,\n5\n",
+            // 複数行 range のキャレットは先頭行の末尾までだが、JSON の length は全体。
+            vec![Annotation::new(1, 1, 9, NEW_LINE)],
+        )
+        .config("Layout/MultilineAssignmentLayout:\n  SupportedTypes: [array]\n")
+        .locations(&[(1, 1, 2, 1)])
+        .lengths(&[11])
+        .corrected("a, b =\n 4,\n5\n")
+        .run();
+
+        CopCase::new(COP, "a, b =\n4,\n5\n", Vec::new())
+            .config(
+                "Layout/MultilineAssignmentLayout:\n  EnforcedStyle: same_line\n  SupportedTypes: [array]\n",
+            )
+            .without_offense_check()
+            .corrected("a, b = 4,\n5\n")
+            .run();
     }
 
     /// `SupportedTypes` に無い右辺は対象外。ブロックは**自身の区切り文字**で 1 行かを
@@ -37481,6 +37727,15 @@ mod lint_literal_as_condition_modifier {
         // 生き残らない側は消える。
         correction("def m\n  c if false\nend\n", "def m\n  \nend\n");
         correction("def m\n  d unless true\nend\n", "def m\n  \nend\n");
+    }
+
+    /// 偽の `elsif` を除いたとき、生き残る `else` 文の行末コメントも一緒に残る。
+    #[test]
+    fn a_false_elsif_keeps_the_surviving_branch_comment() {
+        correction(
+            "if condition\n  top # one\nelsif false\n  gone # two\nelse\n  kept # three\nend\n",
+            "if condition\n  top # one\nelse\n  kept # three\nend\n",
+        );
     }
 }
 

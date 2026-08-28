@@ -42,11 +42,13 @@ fn first_token(context: &RuleContext<'_>) -> Option<Range<usize>> {
         true => '\u{feff}'.len_utf8(),
         false => 0,
     };
+    // The lexer stops at `__END__`, so nothing past it is a token to find.
+    let limit = crate::rules::support::code_before_data(context).len();
     loop {
         let rest = &text[offset..];
         let blanks = rest.len() - rest.trim_start().len();
         offset += blanks;
-        if offset >= text.len() {
+        if offset >= limit {
             return None;
         }
         match context

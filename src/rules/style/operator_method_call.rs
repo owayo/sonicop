@@ -127,6 +127,11 @@ fn has_first_child(node: Node<'_>, locals: &LocalVariables<'_, '_>) -> bool {
         // A bare name is an `lvar` when it names a variable and a receiverless `send` otherwise.
         "identifier" => locals.is_lvar(node),
         "call" => node.field("receiver").is_some(),
+        // `(const nil :CONST)`: the namespace is the first child, and a plain constant has none.
+        // `::Foo` and `Foo::Bar` both carry one, which the grammar spells as a `scope_resolution`.
+        "constant" => false,
+        // An empty literal has no children either.
+        "array" | "hash" | "string_array" | "symbol_array" => node.named_child_count() > 0,
         "nil" | "true" | "false" | "self" | "super" => false,
         _ => true,
     }

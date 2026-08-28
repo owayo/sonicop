@@ -16,6 +16,10 @@ const STATEMENT_CONTAINERS: &[&str] = &[
     "body_statement",
     "block_body",
     "do",
+    // A `rescue` or an `ensure` clause holds statements of its own; the parser wraps several of
+    // them in a `begin` there, which is what makes the clause a statement container here.
+    "rescue",
+    "ensure",
 ];
 
 /// Clause kinds a body list holds that are not statements of it.

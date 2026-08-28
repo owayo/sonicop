@@ -60,6 +60,15 @@ fn check_singleton_class(node: Node<'_>, context: &RuleContext<'_>, offenses: &m
     if ranges.iter().any(|range| range.end >= node.end_byte()) {
         return;
     }
+    // A definition written on the `class << self` line itself leaves the correction asking the
+    // rewriter for a range it cannot build (`RangeError`), and the offense goes with it.
+    let keyword_line = context.source.line_column(node.start_byte()).0;
+    if definitions
+        .iter()
+        .any(|definition| context.source.line_column(definition.start_byte()).0 == keyword_line)
+    {
+        return;
+    }
     let mut rewritten: Vec<String> = definitions
         .iter()
         .zip(&ranges)

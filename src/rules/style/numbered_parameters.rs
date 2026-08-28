@@ -20,9 +20,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<String>("EnforcedStyle")
         .is_some_and(|style| style == "disallow");
     let locals = LocalVariables::new(context);
-    for node in context.nodes_of("call") {
+    // **A lambda literal is a `block` upstream too.** `-> { _1 }` is a `numblock` whose send is
+    // the `lambda` call, while the grammar gives the arrow a node of its own that holds the block.
+    for node in context.nodes_of_any(&["call", "lambda"]) {
         let Some(block) = node
             .field("block")
+            .or_else(|| (node.kind_str() == "lambda").then(|| node.field("body")).flatten())
             .filter(|block| BLOCK_KINDS.contains(&block.kind_str()))
         else {
             continue;

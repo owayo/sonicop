@@ -670,10 +670,12 @@ fn step_back(text: &str, offset: usize, characters: usize) -> usize {
 
 fn step_forward(text: &str, offset: usize, characters: usize) -> usize {
     let mut cursor = offset;
-    for _ in 0..characters {
+    for step in 0..characters {
         match text[cursor..].chars().next() {
             Some(character) => cursor += character.len_utf8(),
-            None => break,
+            // `begin_pos - indentation` is plain arithmetic upstream, and the range it builds may
+            // reach past the source. What lies beyond counts one column each.
+            None => return cursor + (characters - step),
         }
     }
     cursor

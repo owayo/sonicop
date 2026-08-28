@@ -39,14 +39,12 @@ fn rewritten_in_condition(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         };
         let reaches_through = match parent.kind_str() {
             "parenthesized_statements" => statements(parent).len() == 1,
-            "binary" => parent
-                .field("operator")
-                .is_some_and(|operator| {
-                    matches!(
-                        context.source.node_text(operator),
-                        "&&" | "and" | "||" | "or"
-                    )
-                }),
+            "binary" => parent.field("operator").is_some_and(|operator| {
+                matches!(
+                    context.source.node_text(operator),
+                    "&&" | "and" | "||" | "or"
+                )
+            }),
             _ => false,
         };
         if reaches_through {
@@ -142,10 +140,7 @@ fn check_operator_keyword(node: Node<'_>, context: &RuleContext<'_>, offenses: &
         "||" | "or" => false,
         _ => return,
     };
-    let (Some(left), Some(right)) = (
-        node.field("left"),
-        node.field("right"),
-    ) else {
+    let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
         return;
     };
     let decisive = if conjunction {
@@ -198,14 +193,12 @@ fn check_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offe
     }
     match node.kind_str() {
         "binary"
-            if node
-                .field("operator")
-                .is_some_and(|operator| {
-                    matches!(
-                        context.source.node_text(operator),
-                        "&&" | "and" | "||" | "or"
-                    )
-                }) =>
+            if node.field("operator").is_some_and(|operator| {
+                matches!(
+                    context.source.node_text(operator),
+                    "&&" | "and" | "||" | "or"
+                )
+            }) =>
         {
             for side in ["left", "right"] {
                 if let Some(operand) = node.field(side) {
@@ -230,11 +223,9 @@ fn handle_node(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Off
         // The left operand of an `and` is already `on_and`'s to report.
         if node.parent_of(context).is_some_and(|parent| {
             parent.kind_str() == "binary"
-                && parent
-                    .field("operator")
-                    .is_some_and(|operator| {
-                        matches!(context.source.node_text(operator), "&&" | "and")
-                    })
+                && parent.field("operator").is_some_and(|operator| {
+                    matches!(context.source.node_text(operator), "&&" | "and")
+                })
         }) {
             return;
         }
@@ -401,7 +392,10 @@ fn binds_a_match_variable(node: Node<'_>) -> bool {
 }
 
 fn has_binding(node: Node<'_>) -> bool {
-    if matches!(node.kind_str(), "identifier" | "match_pattern" | "test_pattern") {
+    if matches!(
+        node.kind_str(),
+        "identifier" | "match_pattern" | "test_pattern"
+    ) {
         return true;
     }
     named_children(node).into_iter().any(has_binding)
@@ -445,7 +439,10 @@ fn check_if(
             "else\n  {}",
             source(&with_comments(context, if_range.clone().unwrap_or(0..0)))
         ),
-        (true, false) => format!("else\n  {}", source(&else_range.clone().unwrap_or(0..0))),
+        (true, false) => format!(
+            "else\n  {}",
+            source(&with_comments(context, else_range.clone().unwrap_or(0..0)))
+        ),
         _ => {
             if result && if_range.is_some() {
                 source(&if_range.clone().unwrap_or(0..0))
@@ -496,8 +493,7 @@ fn with_comments(context: &RuleContext<'_>, range: Range<usize>) -> Range<usize>
         .comment_ranges()
         .iter()
         .filter(|comment| {
-            comment.start >= range.end
-                && context.source.line_column(comment.start).0 == last_line
+            comment.start >= range.end && context.source.line_column(comment.start).0 == last_line
         })
         .map(|comment| comment.end)
         .max()

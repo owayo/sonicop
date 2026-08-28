@@ -888,7 +888,7 @@ fn label_of(node: Node<'_>, text: &str, leaf: bool) -> String {
 fn is_empty_delimited(node: Node<'_>) -> bool {
     matches!(
         node.kind_str(),
-        "array" | "argument_list" | "hash" | "string_array" | "symbol_array"
+        "array" | "argument_list" | "hash" | "string_array" | "symbol_array" | "block" | "do_block"
     )
 }
 
@@ -1344,10 +1344,33 @@ pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -
 
 /// `AllowedMethods#allowed_methods`: the configured list plus the deprecated `IgnoredMethods`,
 /// which upstream **appends to** rather than falls back on.
-/// Whether a quoted symbol's contents carry a line break with anything written after it, which is
-/// what makes the parser build a `dsym` rather than a `sym`. A break that closes the contents
-/// leaves one `str` and the symbol stays a `sym`.
-pub(crate) fn symbol_spans_lines(source: &str) -> bool {
+/// The source up to the `__END__` marker, which is where the lexer stops producing tokens. The
+/// marker itself is no more a token than the data section it opens.
+pub(crate) fn code_before_data<'a>(context: &'a RuleContext<'_>) -> &'a str {
+    let text = context.source.text();
+    match context.nodes_of("uninterpreted").next() {
+        Some(data) => {
+            let head = text[..data.start_byte()].trim_end();
+            head.strip_suffix("__END__").unwrap_or(head)
+        }
+        None => text,
+    }
+}
+
+/// `processed_source.blank?`, which is `ast.nil?`: a file of nothing but comments and blank lines
+/// parses to no tree at all, and the cops that ask for one return before they look at anything.
+pub(crate) fn source_is_blank(context: &RuleContext<'_>) -> bool {
+    let root = context.root_node();
+    let mut cursor = root.walk();
+    root.named_children(&mut cursor)
+        .all(|child| child.kind() == "comment")
+}
+
+/// Whether a quoted literal's contents carry a line break with anything written after it, which is
+/// what makes the parser build a `dstr`/`dsym` rather than a `str`/`sym`. **The parser cuts the
+/// contents after every break**, so a break that closes them leaves one piece and the literal stays
+/// a plain one.
+pub(crate) fn quoted_spans_lines(source: &str) -> bool {
     let inner = source
         .trim_start_matches(':')
         .trim_start_matches(['\'', '"'])

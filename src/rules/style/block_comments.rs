@@ -18,9 +18,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // the grammar stops at the last character of that line.
         let start = node.start_byte();
         let mut end = node.end_byte();
-        if text.as_bytes().get(end) == Some(&b'\n') {
+        // **A file that does not end in a newline still has one to the parser**, and a block
+        // comment's range runs one character past even that. Only the report reaches there; every
+        // read below stays inside the text.
+        let closed_by_newline = text.as_bytes().get(end) == Some(&b'\n');
+        if closed_by_newline {
             end += 1;
         }
+        let reported_end = match closed_by_newline {
+            true => end,
+            false => end + 2,
+        };
+
         // `=begin\n=end` is the shortest block comment the parser accepts; anything shorter would
         // only reach here from a file that does not parse, where no cop runs at all.
         if end - start < BEGIN_LENGTH + 4 {
@@ -61,7 +70,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             replacement: String::new(),
             safe: true,
         });
-        offenses.push(context.offense(MSG, start..end).corrected_by_all(edits));
+        offenses.push(context.offense(MSG, start..reported_end).corrected_by_all(edits));
     }
 }
 

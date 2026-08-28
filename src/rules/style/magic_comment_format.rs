@@ -48,6 +48,10 @@ static VIM: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"#(?-u:\s)*vim:(?-u:\s)*(.+)").expect("valid"));
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    // `return unless processed_source.ast`: a file of nothing but comments has none.
+    if crate::rules::support::source_is_blank(context) {
+        return;
+    }
     let kebab = context
         .setting::<String>("EnforcedStyle")
         .is_some_and(|style| style == "kebab_case");

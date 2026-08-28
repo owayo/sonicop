@@ -114,7 +114,9 @@ fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
         .nodes_of("heredoc_beginning")
         .zip(bodies)
         .filter_map(|(beginning, body)| {
-            let first = context.source.line_column(body.start_byte()).0;
+            // The body node starts on the newline terminating the opener. That physical opener
+            // line is not string content and its trailing whitespace is removed normally.
+            let first = context.source.line_column(body.start_byte()).0 + 1;
             // The body node runs through the terminator, which is a line of its own.
             let terminator = body
                 .named_children(&mut body.walk())

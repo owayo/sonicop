@@ -66,7 +66,7 @@ fn symbol_kind(node: Node<'_>, context: &RuleContext<'_>) -> Option<bool> {
         // A literal running over more than one line is a `dsym` too: the parser gives each line a
         // `str` of its own and hangs them under one, so `on_sym` never sees it. A break that closes
         // the contents leaves one `str`, and `:"two\n"` stays a `sym`.
-        if crate::rules::support::symbol_spans_lines(context.source.node_text(node)) {
+        if crate::rules::support::quoted_spans_lines(context.source.node_text(node)) {
             return None;
         }
         // An empty `:""` is a `dsym` upstream as well -- but an empty hash key is a plain `sym`.

@@ -190,16 +190,28 @@ impl Reporter<'_, '_> {
     ) {
         let text = self.context.source.text();
         let nested_left = next_is_left_bracket(text, left.end_byte());
-        if nested_left && extra_space_after(text, left) {
-            let range = space_after(text, left.end_byte());
+        let whitespace = whitespace_after(text, left.end_byte());
+        if nested_left && !whitespace.is_empty() {
+            // A line break is whitespace to the compact corrector but `space_range` is empty for
+            // it, so upstream anchors a zero-width offense immediately after the outer bracket.
+            let range = if extra_space_after(text, left) {
+                space_after(text, left.end_byte())
+            } else {
+                left.end_byte()..left.end_byte()
+            };
             self.report(node, range, NO_SPACE_COMMAND, offenses);
         } else if !nested_left {
             self.space_offenses(node, left, None, start_ok, true, offenses);
         }
 
         let nested_right = previous_is_right_bracket(text, right.start_byte());
-        if nested_right && extra_space_before(text, right) {
-            let range = space_before(text, right.start_byte());
+        let whitespace = whitespace_before(text, right.start_byte());
+        if nested_right && !whitespace.is_empty() {
+            let range = if extra_space_before(text, right) {
+                space_before(text, right.start_byte())
+            } else {
+                right.start_byte()..right.start_byte()
+            };
             self.report(node, range, NO_SPACE_COMMAND, offenses);
         } else if !nested_right {
             // `space_offenses` passes `side: :none`, and `side_space_range` then hands back the

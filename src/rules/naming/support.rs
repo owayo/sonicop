@@ -436,7 +436,10 @@ pub(super) fn ruby_regex_to_s(value: &serde_yaml_ng::Value) -> Option<String> {
             let literal = tagged.value.as_str()?;
             split_regexp_literal(literal).unwrap_or((literal, ""))
         }
-        other => (other.as_str()?, ""),
+        // **A plain string is not a `Regexp`.** The message interpolates whatever the configuration
+        // holds, so a `Regex:` written without the `!ruby/regexp` tag prints exactly as written --
+        // only a real `Regexp` goes through `Regexp#to_s`.
+        other => return Some(other.as_str()?.to_owned()),
     };
     let enabled: String = "mix".chars().filter(|flag| flags.contains(*flag)).collect();
     let disabled: String = "mix"

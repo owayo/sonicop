@@ -240,10 +240,14 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
             resumed_at = Some(statement.end_byte().max(resumed_at.unwrap_or(0)));
         }
         let endless_in_block = gate.endless_in_block;
+        let endless_definition = gate.endless_definition;
         out.push(Diagnostic {
             reason: gate.reason,
             range: gate.range,
         });
+        if endless_definition {
+            endless_definition_recovery(node, context, out);
+        }
         if gate.legacy_forwarding {
             legacy_forwarding_recovery(node, context, out);
         }
@@ -321,6 +325,9 @@ struct Gate {
     /// discards the `= body`, which leaves the block's `}` with nothing to close and the file a
     /// token short at the end.
     endless_in_block: bool,
+    /// Set for every endless definition so the legacy parser's surrounding-definition recovery
+    /// can be reproduced after reporting the `=` itself.
+    endless_definition: bool,
     /// Set when upstream reports **more** after this one and the shape of those further
     /// diagnostics is not modelled here. Only this one is emitted; see `first_only()`.
     first_only: bool,
@@ -337,6 +344,7 @@ impl Gate {
             abandons_file: false,
             legacy_forwarding: false,
             endless_in_block: false,
+            endless_definition: false,
             first_only: false,
         }
     }
@@ -349,6 +357,11 @@ impl Gate {
     /// See [`Gate::endless_in_block`].
     fn endless_in_block(mut self) -> Self {
         self.endless_in_block = true;
+        self
+    }
+
+    fn endless_definition(mut self) -> Self {
+        self.endless_definition = true;
         self
     }
 
@@ -430,7 +443,8 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
                 ENDLESS_METHOD_SINCE,
                 "unexpected token tEQL".to_owned(),
                 equals.byte_range(),
-            );
+            )
+            .endless_definition();
             Some(match enclosing_brace_block(node).is_some() {
                 true => gate.endless_in_block(),
                 false => gate,
@@ -556,7 +570,12 @@ fn feature_use(node: Node<'_>, context: &RuleContext<'_>) -> Option<Gate> {
         "pair" if node.field("value").is_none() => {
             let (reason, range) = unexpected_token_after(node, context);
             let discarded = recovery_region(node).end_byte();
-            Some(Gate::new(HASH_VALUE_OMISSION_SINCE, reason, range).recovers_through(discarded))
+            let gate =
+                Gate::new(HASH_VALUE_OMISSION_SINCE, reason, range).recovers_through(discarded);
+            Some(match omission_in_nested_command_hash(node) {
+                true => gate.abandons_file(),
+                false => gate,
+            })
         }
         "block_parameter" | "block_argument" if node.named_child_count() == 0 => {
             let (reason, range) = unexpected_token_after(node, context);
@@ -582,6 +601,33 @@ fn recovery_region(node: Node<'_>) -> Node<'_> {
         region = parent;
     }
     region
+}
+
+/// An omitted value inside a braced hash used as the value of a command-style hash argument.
+/// Legacy parser recovery never resumes after that command, so later diagnostics in the file do
+/// not exist even when a fresh definition follows it.
+fn omission_in_nested_command_hash(node: Node<'_>) -> bool {
+    let Some(hash) = ancestor_matching(node, |ancestor| ancestor.kind_str() == "hash") else {
+        return false;
+    };
+    let Some(pair) = hash
+        .parent()
+        .filter(|parent| parent.kind_str() == "pair" && parent.field("value") == Some(hash))
+    else {
+        return false;
+    };
+    let Some(arguments) = pair
+        .parent()
+        .filter(|parent| parent.kind_str() == "argument_list")
+    else {
+        return false;
+    };
+    arguments
+        .child(0)
+        .is_some_and(|first| first.kind_str() != "(")
+        && arguments
+            .parent()
+            .is_some_and(|parent| parent.kind_str() == "call")
 }
 
 /// Whether `paren` is where the lexer reads the `(` as `tLPAREN_ARG`: the start of a command's
@@ -797,6 +843,36 @@ fn endless_in_block_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mu
     });
     let (reason, range) = end_of_input(context);
     out.push(Diagnostic { reason, range });
+}
+
+/// What Ruby 2.7's parser leaves open after rejecting an endless definition.
+fn endless_definition_recovery(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    out: &mut Vec<Diagnostic>,
+) {
+    if let Some(definition) = ancestor_matching(node, |ancestor| {
+        matches!(ancestor.kind_str(), "class" | "module")
+    }) {
+        let (keyword, reason) = match definition.kind_str() {
+            "module" => ("module", "module definition in method body"),
+            _ => ("class", "class definition in method body"),
+        };
+        out.push(Diagnostic {
+            reason: reason.to_owned(),
+            range: definition.start_byte()..definition.start_byte() + keyword.len(),
+        });
+        return;
+    }
+    // With a parenthesized parameter list the parser has already committed to a regular method
+    // header before it sees `=`, so it reaches EOF still waiting for that method's `end`.
+    if node
+        .field("parameters")
+        .is_some_and(|parameters| context.source.node_text(parameters).starts_with('('))
+    {
+        let (reason, range) = end_of_input(context);
+        out.push(Diagnostic { reason, range });
+    }
 }
 
 fn method_body_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mut Vec<Diagnostic>) {

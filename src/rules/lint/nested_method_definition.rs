@@ -31,6 +31,12 @@ const CONSTRUCTORS: &[(&str, &str)] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
+    let allowed_patterns: Vec<regex::Regex> = context
+        .setting::<Vec<String>>("AllowedPatterns")
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|pattern| regex::Regex::new(&pattern).ok())
+        .collect();
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         // `def obj.name` defines a method on something else, so it is only nested when the thing
         // it defines on cannot be named from outside -- which is what `self` alone is.
@@ -44,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !has_enclosing_definition(node) {
             continue;
         }
-        if opens_its_own_scope(node, context, &allowed) {
+        if opens_its_own_scope(node, context, &allowed, &allowed_patterns) {
             continue;
         }
         offenses.push(context.offense(MSG, node.byte_range()));
@@ -78,13 +84,20 @@ fn has_enclosing_definition(node: Node<'_>) -> bool {
 }
 
 /// `each_ancestor(:any_block, :sclass).any? { |a| scoping_method_call?(a) }`.
-fn opens_its_own_scope(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
+fn opens_its_own_scope(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    allowed: &[String],
+    allowed_patterns: &[regex::Regex],
+) -> bool {
     let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
         if ancestor.kind_str() == "singleton_class" {
             return true;
         }
-        if BLOCK_KINDS.contains(&ancestor.kind_str()) && is_scoping_block(ancestor, context, allowed) {
+        if BLOCK_KINDS.contains(&ancestor.kind_str())
+            && is_scoping_block(ancestor, context, allowed, allowed_patterns)
+        {
             return true;
         }
         current = ancestor.parent_of(context);
@@ -92,21 +105,33 @@ fn opens_its_own_scope(node: Node<'_>, context: &RuleContext<'_>, allowed: &[Str
     false
 }
 
-fn is_scoping_block(block: Node<'_>, context: &RuleContext<'_>, allowed: &[String]) -> bool {
-    let Some(call) = block.parent_of(context).filter(|call| call.kind_str() == "call") else {
+fn is_scoping_block(
+    block: Node<'_>,
+    context: &RuleContext<'_>,
+    allowed: &[String],
+    allowed_patterns: &[regex::Regex],
+) -> bool {
+    let Some(call) = block
+        .parent_of(context)
+        .filter(|call| call.kind_str() == "call")
+    else {
         return false;
     };
     let Some(selector) = call.field("method") else {
         return false;
     };
     let name = context.source.node_text(selector);
-    if SCOPING_METHODS.contains(&name) || allowed.iter().any(|method| method == name) {
+    if SCOPING_METHODS.contains(&name)
+        || allowed.iter().any(|method| method == name)
+        || allowed_patterns
+            .iter()
+            .any(|pattern| pattern.is_match(name))
+    {
         return true;
     }
-    call.field("receiver")
-        .is_some_and(|receiver| {
-            CONSTRUCTORS.iter().any(|(constant, method)| {
-                name == *method && top_level_constant(receiver, constant, context)
-            })
+    call.field("receiver").is_some_and(|receiver| {
+        CONSTRUCTORS.iter().any(|(constant, method)| {
+            name == *method && top_level_constant(receiver, constant, context)
         })
+    })
 }

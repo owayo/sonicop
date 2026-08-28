@@ -52,7 +52,14 @@ fn safe_navigation_chains<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -
         let Some(parent) = enclosing(current) else {
             break;
         };
-        if !is_safe_navigation(parent, context) {
+        // **`other&.foo = x` is one `csend` of `:foo=` upstream.** The grammar writes it as an
+        // assignment whose target is the safe navigation, so the assignment stands where that
+        // `csend` would.
+        let is_csend_setter = parent.kind_str() == "assignment"
+            && parent
+                .field("left")
+                .is_some_and(|left| is_safe_navigation(left, context));
+        if !is_csend_setter && !is_safe_navigation(parent, context) {
             break;
         }
         chains.push(parent);

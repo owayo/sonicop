@@ -110,6 +110,10 @@ pub struct Offense {
     /// still reach the run's corrector. See [`Offense::corrected_without_status`].
     pub corrections_detached: bool,
     pub snapshot: Option<OffenseSnapshot>,
+    /// RuboCop's JSON `length` when it is measured in display columns rather than by the source
+    /// range itself. Tabs are the only current caller: the caret range stays on source characters
+    /// while the length includes the extra columns those tabs occupy.
+    length_override: Option<usize>,
 }
 
 impl Offense {
@@ -138,7 +142,13 @@ impl Offense {
             correction_anchor: None,
             corrections_detached: false,
             snapshot: None,
+            length_override: None,
         }
+    }
+
+    pub fn with_length(mut self, length: usize) -> Self {
+        self.length_override = Some(length);
+        self
     }
 
     pub fn corrected_by(self, edit: Edit) -> Self {
@@ -228,7 +238,9 @@ impl Offense {
             start_column,
             last_line,
             last_column,
-            length: character_length(source, self.start, self.end),
+            length: self
+                .length_override
+                .unwrap_or_else(|| character_length(source, self.start, self.end)),
             line: start_line,
             column: start_column,
         }

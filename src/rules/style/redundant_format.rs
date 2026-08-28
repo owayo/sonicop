@@ -148,6 +148,11 @@ fn detect_unnecessary_fields(
     if template.kind_str() != "string" || has_interpolation(*template) || rest.is_empty() {
         return;
     }
+    // `$str`: a template written over lines is a `dstr` of one `str` per line, which the pattern
+    // does not match.
+    if crate::rules::support::quoted_spans_lines(context.source.node_text(*template)) {
+        return;
+    }
     if splatted_arguments(rest) {
         return;
     }

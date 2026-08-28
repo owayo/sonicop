@@ -28,6 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(splat) = hash_splat(last) else {
             continue;
         };
+
         let Some(merge) = merge_call(splat, context) else {
             continue;
         };
@@ -79,6 +80,11 @@ fn merge_call<'tree>(splat: Node<'tree>, context: &RuleContext<'_>) -> Option<No
         return None;
     };
     if value.kind_str() != "call" || value.field("block").is_some() {
+        return None;
+    }
+    // `(send $_ :merge $...)`: a `csend` matches no `send` pattern, so `options&.merge(...)` is
+    // outside this cop even though the grammar writes both as a `call`.
+    if !crate::rules::send_node::is_plain_send(*value, context) {
         return None;
     }
     (context.source.node_text(value.field("method")?) == "merge").then_some(*value)

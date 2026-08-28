@@ -124,7 +124,7 @@ fn symbol_literal(
     // after every line break and wraps the pieces, so `:'a\nb'` is a `dsym` of two `str`s that
     // `on_sym` never sees. A break that closes the contents leaves one piece and stays a `sym`,
     // which is why `:"two\n"` is still this cop's business.
-    if node.kind_str() == "delimited_symbol" && crate::rules::support::symbol_spans_lines(source) {
+    if node.kind_str() == "delimited_symbol" && crate::rules::support::quoted_spans_lines(source) {
         return;
     }
     let inspected = symbol_inspect(&value);

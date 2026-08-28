@@ -50,14 +50,22 @@ fn check_syntax(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting("EnforcedStyle")
         .unwrap_or_else(|| "ruby19".to_owned());
     let quoted_keys_allowed = context.target_ruby_version() >= QUOTED_KEY_SINCE;
+    let prefer_rockets_for_non_alnum = context
+        .setting::<bool>("PreferHashRocketsForNonAlnumEndingSymbols")
+        .unwrap_or(false);
 
     for pairs in hash_groups(context) {
         // `sym_indices?`: a hash is left in the old syntax unless every one of its keys can take
         // the new one, so that one rocket that has to stay does not leave the hash written in two
         // styles at once.
-        let sym_indices = pairs
-            .iter()
-            .all(|pair| word_symbol_pair(*pair, context, quoted_keys_allowed));
+        let sym_indices = pairs.iter().all(|pair| {
+            word_symbol_pair(
+                *pair,
+                context,
+                quoted_keys_allowed,
+                prefer_rockets_for_non_alnum,
+            )
+        });
         // `force_hash_rockets?`: a hash holding a symbol value is written in the old syntax
         // whatever the style says, so that `{ a: :b }` does not read as two different things.
         let force_hash_rockets = context
@@ -680,19 +688,34 @@ fn key_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
 ///
 /// A key written with a colon is already a symbol whatever it looks like -- `"a b": 1` reaches
 /// RuboCop as a `dsym` -- so only the rocket form has to have its node kind checked.
-fn word_symbol_pair(node: Node<'_>, context: &RuleContext<'_>, quoted_keys_allowed: bool) -> bool {
+fn word_symbol_pair(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    quoted_keys_allowed: bool,
+    prefer_rockets_for_non_alnum: bool,
+) -> bool {
     let Some(key) = node.field("key") else {
         return false;
     };
     let is_symbol = hash_rocket(node, context).is_none()
         || matches!(key.kind_str(), "simple_symbol" | "delimited_symbol");
-    is_symbol && acceptable_19_syntax_symbol(context.source.node_text(key), quoted_keys_allowed)
+    is_symbol
+        && acceptable_19_syntax_symbol(
+            context.source.node_text(key),
+            quoted_keys_allowed,
+            prefer_rockets_for_non_alnum,
+        )
 }
 
-fn acceptable_19_syntax_symbol(text: &str, quoted_keys_allowed: bool) -> bool {
+fn acceptable_19_syntax_symbol(
+    text: &str,
+    quoted_keys_allowed: bool,
+    prefer_rockets_for_non_alnum: bool,
+) -> bool {
     let name = text.strip_prefix(':').unwrap_or(text);
     if PLAIN_SYMBOL.is_match(name) {
-        return true;
+        return !(prefer_rockets_for_non_alnum
+            && matches!(name.as_bytes().last(), Some(b'?' | b'!')));
     }
     quoted_keys_allowed
         && name.len() >= 2

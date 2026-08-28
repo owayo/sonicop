@@ -561,25 +561,6 @@ divergences:
     note: >-
       規則 C。`a, b = c = @app.call(env)` の括弧を外すと `a, b = c = @app.call env` になり
       Ruby の構文エラー。多重代入と連鎖代入が揃ったときだけ駄目で、どちらか一方なら通る。
-  # --- Lint/Syntax ---
-  # 本家は parser gem (LALR) の誤り回復に乗って追加の診断を出す。tree-sitter は
-  # ファイルを正しく解析してしまうので、回復後の状態から生まれる診断は再現できない。
-  # 実コーパスでは `class definition in method body` / `dynamic constant assignment` /
-  # 1 つの多行ハッシュ内で繰り返される `unexpected token` がこれに当たる。
-  - cop: Lint/Syntax
-    case: lint_syntax_recovery_cascade
-    kind: false_negative
-    upstream: |-
-      1:1-6 (5 chars) class definition in method body
-      (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
-    sonicop: (検出なし)
-    note: >-
-      endless メソッドの誤りが parser の def 文脈を開いたままにするため、本家は class の還元でこれを出す。
-      回復後の状態は tree-sitter からは再現できない。
-      構文エラーと判定するファイルの集合は両者で一致するので、Lint/Syntax 以外は全 cop 一致する。
-      規模の実測 (ファイル数・診断の一致数) は CONFORMANCE.md の
-      "Error recovery after a syntax error" 節だけに置く。ここに書き写すと、片方だけ更新されて
-      食い違う (実際に 498 対 499 でずれていた)
   # 本家は解析前にソースを UTF-8 へ再符号化し、補間の無い正規表現リテラルを
   # `Regexp.new` に通す (parser gem `Builders::Default#static_regexp`)。診断の文面は
   # Ruby の正規表現エンジン (Onigmo) の例外そのままなので、再現するには Onigmo の

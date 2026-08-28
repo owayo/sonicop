@@ -105,6 +105,9 @@ fn is_safe_navigation(left: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn is_type(node: Node<'_>, kind: &str) -> bool {
     let actual = node.kind_str();
     match kind {
+        // Parser represents the comma-separated right side of a multiple assignment as an
+        // `array`; tree-sitter keeps the assignment-specific wrapper around those values.
+        "array" => matches!(actual, "array" | "right_assignment_list"),
         "block" => {
             (actual == "call" && node.field("block").is_some())
                 || matches!(actual, "lambda" | "block" | "do_block")

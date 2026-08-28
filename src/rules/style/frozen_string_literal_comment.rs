@@ -17,7 +17,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM {
         return;
     }
-    if context.source.text().trim().is_empty() {
+    // `processed_source.tokens.empty?`: a file of nothing but a data section has no tokens at
+    // all, and the cop returns before it looks for a comment.
+    if crate::rules::support::code_before_data(context).trim().is_empty() {
         return;
     }
     let style: String = context

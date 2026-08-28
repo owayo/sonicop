@@ -16,15 +16,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(last) = items.last() else {
             continue;
         };
-        trailing_comma::check(
-            context,
-            node,
-            &items,
-            KIND,
-            last.end_byte(),
-            end,
-            offenses,
-        );
+        // A block pass is always the final argument and cannot carry a comma in the parser version
+        // this cop mirrors. Upstream returns before applying `consistent_comma` to it.
+        if last.kind_str() == "block_argument" {
+            continue;
+        }
+        trailing_comma::check(context, node, &items, KIND, last.end_byte(), end, offenses);
     }
 }
 

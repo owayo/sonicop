@@ -111,6 +111,12 @@ fn convertible(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "call" => node
             .field("method")
             .is_some_and(|selector| context.source.node_text(selector) == "extend"),
+        // A receiverless call with no arguments is a bare name to the grammar and a `send`
+        // upstream, which `extend_call?` answers to just the same.
+        "identifier" => {
+            context.source.node_text(node) == "extend"
+                && !context.variable_analysis().is_variable_reference(node)
+        }
         _ => false,
     }
 }

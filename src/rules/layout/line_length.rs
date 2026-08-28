@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::LazyLock;
 
 use regex::Regex;
@@ -19,7 +19,22 @@ const TAB_INDENTATION_WIDTH: usize = 2;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(120);
-    let allow_heredoc: bool = context.setting("AllowHeredoc").unwrap_or(true);
+    // `AllowHeredoc` is either a boolean or a list of permitted delimiters. Deserializing the
+    // list as `bool` used to fall back to `true` and exempt every heredoc in the file.
+    let allow_heredoc: Option<bool> = context.setting("AllowHeredoc");
+    let allowed_heredocs: Option<Vec<String>> = context.setting("AllowHeredoc");
+    let allow_all_heredocs = allow_heredoc.unwrap_or(allowed_heredocs.is_none());
+    let allowed_heredoc_lines = allowed_heredocs
+        .as_deref()
+        .map(|names| heredoc_lines(context, names))
+        .unwrap_or_default();
+    let rbs_lines = match context
+        .setting::<bool>("AllowRBSInlineAnnotation")
+        .unwrap_or(false)
+    {
+        true => rbs_annotation_lines(context),
+        false => HashSet::new(),
+    };
     let allow_uri: bool = context.setting("AllowURI").unwrap_or(true);
     let allow_qualified_name: bool = context.setting("AllowQualifiedName").unwrap_or(true);
     // `allowed_line?`: a line matching one of these is never long, whatever it holds.
@@ -46,11 +61,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let length = line.chars().count() + indentation_difference(line);
         length > max
             && !(line_number == 1 && line.starts_with("#!"))
-            && !(allow_heredoc
-                && context.in_heredoc(
-                    context.source.line_start(line_number)
-                        ..context.source.line_start(line_number) + line.len(),
-                ))
+            && !rbs_lines.contains(&line_number)
+            && !(context.in_heredoc(
+                context.source.line_start(line_number)
+                    ..context.source.line_start(line_number) + line.len(),
+            ) && (allow_all_heredocs || allowed_heredoc_lines.contains(&line_number)))
     });
     if !has_candidate {
         return;
@@ -74,8 +89,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
         if length <= max
             || (line_number == 1 && line.starts_with("#!"))
-            || allowed_patterns.iter().any(|pattern| pattern.is_match(line))
-            || (allow_heredoc && context.in_heredoc(line_start..line_start + line.len()))
+            || allowed_patterns
+                .iter()
+                .any(|pattern| pattern.is_match(line))
+            || rbs_lines.contains(&line_number)
+            || (context.in_heredoc(line_start..line_start + line.len())
+                && (allow_all_heredocs || allowed_heredoc_lines.contains(&line_number)))
         {
             continue;
         }
@@ -116,10 +135,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             (max.saturating_sub(indent), length)
         };
 
-        let offense = context.offense(
-            format!("Line is too long. [{reported}/{max}]"),
-            line_start + byte_offset(line, start_column)..line_start + byte_offset(line, reported),
-        );
+        let offense = context
+            .offense(
+                format!("Line is too long. [{reported}/{max}]"),
+                line_start + byte_offset(line, start_column)
+                    ..line_start + byte_offset(line, reported),
+            )
+            .with_length(reported.saturating_sub(start_column));
         offenses.push(match break_edits.get(&line_number) {
             Some((edit, anchor)) => offense
                 .corrected_by(edit.clone())
@@ -158,6 +180,89 @@ fn indentation_difference(line: &str) -> usize {
         // A line of nothing but tabs has no indentation to measure against.
         None => 0,
     }
+}
+
+/// Lines that belong to a heredoc whose delimiter appears in the list form of `AllowHeredoc`.
+///
+/// Heredocs opened on one statement are consumed in order, while one opened inside an
+/// interpolation temporarily suspends the body around it. The grammar keeps the opening nodes
+/// even for that nested shape but cannot attach all of their bodies correctly, so deriving this
+/// small state machine from the opening lines is more faithful than zipping AST body nodes.
+fn heredoc_lines(context: &RuleContext<'_>, allowed: &[String]) -> HashSet<usize> {
+    let mut openings: HashMap<usize, Vec<String>> = HashMap::new();
+    for node in context.nodes_of("heredoc_beginning") {
+        let Some(delimiter) = heredoc_delimiter(context.source.node_text(node)) else {
+            continue;
+        };
+        openings
+            .entry(node.start_position().row + 1)
+            .or_default()
+            .push(delimiter);
+    }
+
+    let mut result = HashSet::new();
+    let mut pending = VecDeque::new();
+    let mut suspended = Vec::new();
+    let mut current: Option<String> = None;
+    for line_number in 1..=context.source.line_count() {
+        let line = crate::rules::support::chomp(context.source.line(line_number));
+        let terminates = current
+            .as_deref()
+            .is_some_and(|delimiter| line.trim() == delimiter);
+        if !terminates
+            && current
+                .iter()
+                .chain(suspended.iter())
+                .any(|delimiter| allowed.iter().any(|name| name == delimiter))
+        {
+            result.insert(line_number);
+        }
+
+        if terminates {
+            current = suspended.pop().or_else(|| pending.pop_front());
+        }
+        if let Some(mut on_line) = openings.remove(&line_number) {
+            match current.take() {
+                Some(parent) => {
+                    suspended.push(parent);
+                    current = Some(on_line.remove(0));
+                    for delimiter in on_line.into_iter().rev() {
+                        pending.push_front(delimiter);
+                    }
+                }
+                None => {
+                    pending.extend(on_line);
+                    current = pending.pop_front();
+                }
+            }
+        }
+    }
+    result
+}
+
+fn heredoc_delimiter(opening: &str) -> Option<String> {
+    let rest = opening.strip_prefix("<<")?;
+    let rest = rest
+        .strip_prefix('-')
+        .or_else(|| rest.strip_prefix('~'))
+        .unwrap_or(rest)
+        .trim();
+    let unquoted = match rest.as_bytes().first() {
+        Some(quote @ (b'\'' | b'"' | b'`')) if rest.as_bytes().last() == Some(quote) => {
+            &rest[1..rest.len().saturating_sub(1)]
+        }
+        _ => rest,
+    };
+    (!unquoted.is_empty()).then(|| unquoted.to_owned())
+}
+
+fn rbs_annotation_lines(context: &RuleContext<'_>) -> HashSet<usize> {
+    context
+        .comment_ranges()
+        .iter()
+        .filter(|range| context.source.slice((*range).clone()).starts_with("#:"))
+        .map(|range| context.source.line_column(range.start).0)
+        .collect()
 }
 
 /// Lines holding a comment that RuboCop reads as a `# rubocop:...` directive.
@@ -509,9 +614,15 @@ fn line_break_edits(
             let Some((offset, delimiter)) = breakable_string(context, node, max) else {
                 continue;
             };
+            let anchor_end = offset
+                + context.source.text()[offset..]
+                    .chars()
+                    .next()
+                    .map(char::len_utf8)
+                    .unwrap_or(0);
             positions
                 .entry(node.start_position().row + 1)
-                .or_insert_with(|| (offset..(offset + 1), format!("{delimiter} \\\n{delimiter}")));
+                .or_insert_with(|| (offset..anchor_end, format!("{delimiter} \\\n{delimiter}")));
         }
     }
 
@@ -995,7 +1106,6 @@ fn call_parenthesized(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
 }
 
-
 /// `check_for_breakable_str` and its helpers: where a too-long string literal may be split, and
 /// which quote the two halves close and reopen with.
 ///
@@ -1052,11 +1162,11 @@ fn breakable_string(
     } else {
         // `source_range.adjust(end_pos: max - last_column - 3)` measured from the literal's end.
         let adjustment = (max as isize) - (last_column as isize) - 3;
-        let size = source.len() as isize;
+        let size = source.chars().count() as isize;
         if adjustment.abs() > size {
             return None;
         }
-        (size + adjustment) as usize
+        byte_offset(source, (size + adjustment) as usize)
     };
     let position = node.start_byte() + cut;
     // `pos.end_pos unless pos.end_pos == source_range.begin_pos`.
@@ -1141,11 +1251,11 @@ fn breakable_string_part(
             escape
         } else {
             let adjustment = (max as isize) - (last_column as isize) - 3;
-            let size = source.len() as isize;
+            let size = source.chars().count() as isize;
             if adjustment.abs() > size {
                 continue;
             }
-            (size + adjustment) as usize
+            byte_offset(source, (size + adjustment) as usize)
         };
         let position = part.start_byte() + cut;
         if position != part.start_byte() && position < part.end_byte() {

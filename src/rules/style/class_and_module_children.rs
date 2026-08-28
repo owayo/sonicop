@@ -308,7 +308,9 @@ fn unindent(
             let text = context.source.line(line);
             let removable = text
                 .chars()
-                .take_while(|character| *character == ' ' || *character == '\t')
+                // Upstream removes a run of literal spaces. A tab is one source character but
+                // does not match that run, so tab-indented bodies remain byte-for-byte intact.
+                .take_while(|character| *character == ' ')
                 .count()
                 .min(delta);
             let start = context.source.line_start(line);

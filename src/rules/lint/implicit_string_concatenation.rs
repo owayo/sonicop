@@ -92,10 +92,20 @@ fn display(node: Node<'_>, context: &RuleContext<'_>) -> String {
 /// instead puts `#{...}` in a message that upstream writes without it.
 fn str_content(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut cursor = node.walk();
-    let parts: Vec<&str> = node
+    let parts: Vec<String> = node
         .children(&mut cursor)
         .filter(|child| child.is_named() && child.kind_str() != "interpolation")
-        .map(|child| context.source.node_text(child))
+        .map(|child| match child.kind_str() {
+            // **`str_content` reads the value, not the source.** A `\` closing a line joins it to
+            // the next and contributes nothing, so the escapes have to be resolved rather than
+            // copied -- `"foo\nbar\<newline>"` is `foo\nbar` upstream.
+            "escape_sequence" => {
+                let mut out = String::new();
+                crate::rules::ruby_literal::unescape(context.source.node_text(child), &mut out);
+                out
+            }
+            _ => context.source.node_text(child).to_owned(),
+        })
         .collect();
     match parts.is_empty() {
         true => string_text(node, context).to_owned(),

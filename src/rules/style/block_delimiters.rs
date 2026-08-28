@@ -583,10 +583,15 @@ fn get_blocks(node: Node<'_>, out: &mut Vec<Range<usize>>) {
 /// Whether the call carrying the block is itself the receiver of another one.
 fn chained(call: Node<'_>) -> bool {
     call.parent().is_some_and(|parent| {
-        matches!(parent.kind_str(), "call" | "method_call")
-            && parent
-                .field("receiver")
-                .is_some_and(|receiver| receiver.id() == call.id())
+        let receiver = match parent.kind_str() {
+            "call" | "method_call" => parent.field("receiver"),
+            // `foo { ... }[key]` is a `send` of `:[]` upstream and therefore extends the same
+            // chain as a dotted call. The grammar gives indexing its own node and calls the
+            // receiver `object`.
+            "element_reference" => parent.field("object"),
+            _ => None,
+        };
+        receiver.is_some_and(|receiver| receiver.id() == call.id())
     })
 }
 

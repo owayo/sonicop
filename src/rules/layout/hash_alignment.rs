@@ -201,9 +201,18 @@ impl Hash {
             .collect();
         let first = literal[0];
         let last = literal[literal.len() - 1];
+        // `node.single_line?` is asked of the **hash**, whose braces reach past its pairs. Only a
+        // brace-less hash has no node of its own, and there the pairs are its whole extent.
+        let braced = first
+            .parent_of(context)
+            .filter(|parent| parent.kind_str() == "hash");
+        let (span_start, span_end) = match braced {
+            Some(hash) => (hash.start_byte(), hash.end_byte()),
+            None => (first.start_byte(), last.end_byte()),
+        };
         Self {
-            first_line: context.source.line_column(first.start_byte()).0,
-            last_line: context.source.line_column(last.end_byte()).0,
+            first_line: context.source.line_column(span_start).0,
+            last_line: context.source.line_column(span_end).0,
             parent_kind: first
                 .parent_of(context)
                 .map_or("", |parent| parent.kind_str()),
@@ -323,13 +332,24 @@ impl Hash {
                 continue;
             }
             reported.push(*id);
-            self.report(
-                context,
-                *id,
-                deltas[&(style, *id)],
-                style.message(),
-                offenses,
-            );
+            let correction_delta = self
+                .elements
+                .iter()
+                .find(|element| element.id == *id)
+                .and_then(|element| {
+                    self.alignment_for(element, rockets, colons)
+                        .first()
+                        .copied()
+                        .map(|correction_style| match element.id == first.id {
+                            true => self.deltas_for_first_pair(correction_style, element),
+                            false => self.deltas(context, correction_style, first, element),
+                        })
+                })
+                .unwrap_or(deltas[&(style, *id)]);
+            // Detection chooses the configured style with the fewest offenses, but RuboCop's
+            // corrector still applies the first configured style. This can deliberately leave a
+            // reported table-style offense unchanged while another offense moves by key style.
+            self.report(context, *id, correction_delta, style.message(), offenses);
         }
     }
 
