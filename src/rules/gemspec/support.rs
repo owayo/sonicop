@@ -5,6 +5,8 @@ use std::collections::HashSet;
 use tree_sitter::Node;
 
 use crate::rules::RuleContext;
+use crate::rules::lint::blocks::BlockArgs;
+use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, top_level_constant};
 
@@ -53,11 +55,6 @@ pub(super) fn first_specification_variable<'a>(context: &'a RuleContext<'_>) -> 
         .find_map(|call| specification_variable(call, context))
 }
 
-/// The names a specification can be reached by besides the block parameter it was opened with:
-/// upstream writes them into the pattern itself, so they match whether or not the file opens a
-/// specification at all.
-const NUMBERED_PARAMETERS: &[&str] = &["_1", "it"];
-
 /// Whether `receiver` is the specification, as `(lvar {#match_block_variable_name? :_1 :it})` reads
 /// it.
 pub(super) fn is_specification_receiver(
@@ -69,7 +66,29 @@ pub(super) fn is_specification_receiver(
         return false;
     }
     let name = context.source.node_text(receiver);
-    Some(name) == variable || NUMBERED_PARAMETERS.contains(&name)
+    if Some(name) == variable {
+        return true;
+    }
+    if !matches!(name, "_1" | "it") {
+        return false;
+    }
+    let locals = LocalVariables::new(context);
+    // The node pattern asks for an `lvar`, so an ordinary local with either reserved-looking name
+    // still matches in versions where the name is not an implicit parameter.
+    if locals.is_lvar(receiver) {
+        return true;
+    }
+    let mut current = receiver;
+    while let Some(parent) = current.parent_of(context) {
+        if matches!(parent.kind_str(), "block" | "do_block") {
+            return matches!(
+                (name, BlockArgs::of(parent, context, &locals)),
+                ("_1", BlockArgs::Numbered(_)) | ("it", BlockArgs::It)
+            );
+        }
+        current = parent;
+    }
+    false
 }
 
 /// The `Gem::Specification.new` block `node` sits inside, identified by where that block starts.

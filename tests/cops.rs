@@ -654,6 +654,33 @@ mod lint {
         );
     }
 
+    /// 外側の `{ ... }` は Ruby 3.4 から `itblock` になり、`each_ancestor(:block)` の
+    /// 名前空間探索から外れる。同じソースでも無名クラスの表示名が変わる。
+    #[test]
+    fn duplicate_methods_treats_it_blocks_as_a_separate_node_type_from_ruby_3_4() {
+        let ruby = r#"
+            foo { Class.new(it) do
+                def foo
+                  1
+                end
+                def foo
+                ^^^^^^^ Method `::Object#foo` is defined at both example.rb:2 and example.rb:5.
+                  2
+                end
+              end
+            }
+            "#;
+        CopCase::annotated("Lint/DuplicateMethods", ruby)
+            .target_ruby("3.3")
+            .run();
+        CopCase::annotated(
+            "Lint/DuplicateMethods",
+            &ruby.replace("Method `::Object#foo`", "Method `Object#foo`"),
+        )
+        .target_ruby("3.4")
+        .run();
+    }
+
     /// `if` の下の定義はプラットフォーム別の出し分けである可能性が高く、本家は両方とも
     /// 見逃す。
     #[test]
@@ -5466,6 +5493,30 @@ mod gemspec_department {
         .run();
     }
 
+    /// `it` は Ruby 3.4 の仕様ブロック内でだけ暗黙引数になる。3.3 以前の同じ字面は
+    /// レシーバ無しのメソッド呼び出しなので、仕様の属性代入として数えない。
+    #[test]
+    fn duplicated_assignment_treats_it_as_a_specification_only_from_ruby_3_4() {
+        let source = "Gem::Specification.new do\n  it.name = 'x'\n  it.name = 'y'\nend\n";
+        CopCase::new("Gemspec/DuplicatedAssignment", source, Vec::new())
+            .path(GEMSPEC)
+            .target_ruby("3.3")
+            .run();
+        CopCase::annotated(
+            "Gemspec/DuplicatedAssignment",
+            r#"
+            Gem::Specification.new do
+              it.name = 'x'
+              it.name = 'y'
+              ^^^^^^^^^^^^^ `name=` method calls already given on line 2 of the gemspec.
+            end
+            "#,
+        )
+        .path(GEMSPEC)
+        .target_ruby("3.4")
+        .run();
+    }
+
     /// 報告されるのは「1 行目のカラムから **最終行**の終端カラムまで」なので、
     /// 複数行の代入では 1 行目の途中で切れる。
     #[test]
@@ -6416,6 +6467,17 @@ mod naming_rest {
             BINARY_OPERATOR,
             "def +(amount)\n  amount + 1\nend\n",
             "def +(other)\n  other + 1\nend\n",
+        );
+    }
+
+    /// 本家の補正は `lvar` / `lvasgn` を字面で置換するため、内側の同名ブロック引数は
+    /// 宣言だけを残し、その引数を読む箇所は `other` に変える。
+    #[test]
+    fn binary_operator_parameter_name_does_not_rename_nested_parameter_declarations() {
+        expect_correction(
+            BINARY_OPERATOR,
+            "def +(foo)\n  result = foo\n  [1].each do |foo|\n    result += foo\n  end\nend\n",
+            "def +(other)\n  result = other\n  [1].each do |foo|\n    result += other\n  end\nend\n",
         );
     }
 
@@ -11756,6 +11818,28 @@ mod hash_compare_by_identity {
             // 引数を取らないブロックは外側へ委ねる。
             expect_no_offenses(COP, "foo.each { return }\n");
             expect_no_offenses(COP, "foo.each { || return }\n");
+        }
+
+        /// `itblock` が引数リストを持つのは Ruby 3.4 から。3.3 以前は引数無しブロックとして
+        /// 外側へ判定を渡す。
+        #[test]
+        fn it_makes_the_block_an_iterator_only_from_ruby_3_4() {
+            let source = "items.each do\n  return if baz?(it)\n  it.update!\nend\n";
+            CopCase::new(COP, source, Vec::new())
+                .target_ruby("3.3")
+                .run();
+            CopCase::annotated(
+                COP,
+                r#"
+                items.each do
+                  return if baz?(it)
+                  ^^^^^^ Non-local exit from iterator, without return value. `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.
+                  it.update!
+                end
+                "#,
+            )
+            .target_ruby("3.4")
+            .run();
         }
 
         /// 自前のスコープを開くもの (`def` / lambda) と `define_method` は探索を止める。
@@ -30425,6 +30509,30 @@ mod lint_unexpected_block_arity {
         );
     }
 
+    /// `it` は Ruby 3.4 から暗黙の第 1 引数になる。3.3 以前は引数無しの呼び出しなので、
+    /// 同じソースでも実引数の表示が 0 から 1 に変わる。
+    #[test]
+    fn it_becomes_an_implicit_parameter_in_ruby_3_4() {
+        CopCase::annotated(
+            COP,
+            r#"
+            values.reduce { it }
+            ^^^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 0.
+            "#,
+        )
+        .target_ruby("3.3")
+        .run();
+        CopCase::annotated(
+            COP,
+            r#"
+            values.reduce { it }
+            ^^^^^^^^^^^^^^^^^^^^ `reduce` expects at least 2 positional arguments, got 1.
+            "#,
+        )
+        .target_ruby("3.4")
+        .run();
+    }
+
     /// `restarg` はいくつでも受け取れる。レシーバ無しの呼び出しと一覧に無いメソッドは
     /// 対象外。
     #[test]
@@ -34108,6 +34216,33 @@ mod lint_constant_reassignment {
                 .inspect();
             assert_eq!(report.offenses.len(), 1, "{source:?}");
         }
+    }
+
+    /// 本家の `ancestor_namespaces` は compact / absolute な宣言でも末尾の短い名前だけを
+    /// 内容の名前空間に足す。このため異なる完全名が衝突し、逆に入れ子と compact 表記は
+    /// 同じ完全名でも衝突しない場合がある。
+    #[test]
+    fn declaration_contents_use_each_ancestors_short_name() {
+        expect_offense(
+            COP,
+            r#"
+            module Matcher
+              FOO = :bar
+            end
+            module Documentation::Matcher
+              FOO = :baz
+              ^^^^^^^^^^ Constant `FOO` is already assigned in this namespace.
+            end
+            "#,
+        );
+        expect_no_offenses(
+            COP,
+            "module A\n  module B\n    FOO = :bar\n  end\nend\nmodule A::B\n  FOO = :baz\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "module Outer\n  FOO = :bar\nend\nmodule Outer\n  module ::Other::Outer\n    FOO = :baz\n  end\nend\n",
+        );
     }
 
     /// 条件付きの代入、`remove_const` を挟んだもの、別の名前空間、動的なスコープは

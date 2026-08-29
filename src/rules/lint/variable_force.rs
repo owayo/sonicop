@@ -189,6 +189,13 @@ impl<'tree> Analysis<'tree> {
         self.naming_references.contains(&node.id())
     }
 
+    /// Whether this node is the target of the `lvasgn` shape upstream exposes. Parameter
+    /// declarations are naming definitions too, but an AST walk restricted to `lvasgn` does not
+    /// visit them.
+    pub(in crate::rules) fn is_local_assignment(&self, node: Node<'_>) -> bool {
+        self.is_naming_definition(node) && structural_definition(node)
+    }
+
     /// Whether the parser would dispatch this node to a Naming variable-definition handler.
     pub(in crate::rules) fn is_naming_definition(&self, node: Node<'_>) -> bool {
         if node.kind_str() == "identifier" {

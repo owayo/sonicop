@@ -35,11 +35,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 Some(path) => {
                     let mut inner = namespaces.clone();
-                    if !path.absolute {
-                        inner.extend(path.namespaces.iter().cloned());
-                    } else {
-                        inner.clear();
-                    }
+                    // `ancestor_namespaces` asks each enclosing declaration only for its
+                    // `identifier.short_name`. A compact or absolute namespace therefore
+                    // contributes its final component without replacing the lexical ancestors.
                     inner.push(path.name.clone());
                     inner
                 }

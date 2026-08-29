@@ -6,9 +6,13 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+use super::blocks::BlockArgs;
+use super::locals::LocalVariables;
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut tracker = Tracker {
         context,
+        locals: LocalVariables::new(context),
         // Only the line of the earlier definition is ever read back, so the node itself does not
         // have to be kept alive alongside the key.
         definitions: HashMap::new(),
@@ -27,6 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 struct Tracker<'a, 'tree> {
     context: &'a RuleContext<'tree>,
+    locals: LocalVariables<'a, 'tree>,
     definitions: HashMap<String, usize>,
     /// Keys already redefined once inside a `rescue` or `ensure`. A body with such a clause is
     /// allowed one redefinition -- that is how a conditional fallback definition is written -- but
@@ -184,12 +189,13 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
     }
 
     fn found_instance_method(&mut self, node: Node<'_>, name: &str, offenses: &mut Vec<Offense>) {
-        if let Some(scope) = parent_module_name(self.context, node) {
+        if let Some(scope) = parent_module_name(self.context, node, &self.locals) {
             let method = format!("{}{name}", humanize_scope(&scope));
             self.found_method(node, &method, None, offenses);
         } else if let Some(anon_block) = anonymous_class_block(self.context, node) {
-            let base =
-                qualified_object_scope(parent_module_name(self.context, anon_block).as_deref());
+            let base = qualified_object_scope(
+                parent_module_name(self.context, anon_block, &self.locals).as_deref(),
+            );
             let scope = if singleton_class_ancestor(node).is_some() {
                 format!("#<Class:{base}>")
             } else {
@@ -204,11 +210,12 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
     }
 
     fn check_self_receiver(&mut self, node: Node<'_>, name: &str, offenses: &mut Vec<Offense>) {
-        if let Some(enclosing) = parent_module_name(self.context, node) {
+        if let Some(enclosing) = parent_module_name(self.context, node, &self.locals) {
             self.found_method(node, &format!("{enclosing}.{name}"), None, offenses);
         } else if let Some(anon_block) = anonymous_class_block(self.context, node) {
-            let scope =
-                qualified_object_scope(parent_module_name(self.context, anon_block).as_deref());
+            let scope = qualified_object_scope(
+                parent_module_name(self.context, anon_block, &self.locals).as_deref(),
+            );
             let scope_id = anon_block_scope_id(self.context, anon_block);
             self.found_method(node, &format!("{scope}.{name}"), scope_id, offenses);
         }
@@ -276,7 +283,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
     }
 
     fn track_self_alias(&mut self, node: Node<'_>, name: &str) {
-        if let Some(scope) = parent_module_name(self.context, node) {
+        if let Some(scope) = parent_module_name(self.context, node, &self.locals) {
             self.self_aliased
                 .insert(format!("{}{name}", humanize_scope(&scope)));
         }
@@ -298,7 +305,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
             if let Some(defined) = defined_module_name(self.context, parent) {
                 let bare = defined.rsplit("::").next().unwrap_or(&defined);
                 if bare == const_name.trim_start_matches("::") {
-                    let enclosing = parent_module_name(self.context, parent);
+                    let enclosing = parent_module_name(self.context, parent, &self.locals);
                     return Some(match enclosing.as_deref() {
                         Some("Object") | None => defined,
                         Some(name) => format!("{name}::{defined}"),
@@ -386,7 +393,11 @@ fn rescue_scope(node: Node<'_>) -> Option<&'static str> {
 
 /// The lexical namespace enclosing `node`, or `None` when a block breaks the chain -- a block body
 /// is ordinary code, so what a `def` inside one attaches to cannot be read off the source.
-fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
+fn parent_module_name(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    locals: &LocalVariables<'_, '_>,
+) -> Option<String> {
     let mut parts: Vec<String> = Vec::new();
     let mut current = node;
     while let Some(parent) = current.parent_of(context) {
@@ -396,11 +407,16 @@ fn parent_module_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<Strin
                     parts.push(name);
                 }
             }
-            "singleton_class" => parts.push(singleton_class_name(context, parent)?),
+            "singleton_class" => parts.push(singleton_class_name(context, parent, locals)?),
             // `each_ancestor(:class, :module, :sclass, :casgn, :block)` does not list `numblock`
             // or `itblock`: a block whose parameter is implicit is a different node type upstream,
             // and the walk passes straight over it. The grammar spells all three as `block`.
-            "block" | "do_block" if !super::blocks::uses_implicit_parameter(context, parent) => {
+            "block" | "do_block"
+                if matches!(
+                    BlockArgs::of(parent, context, locals),
+                    BlockArgs::Written(_)
+                ) =>
+            {
                 match block_module_name(context, parent) {
                     BlockScope::Transparent => {}
                     BlockScope::Named(name) => parts.push(name),
@@ -475,7 +491,11 @@ fn is_class_or_module_new(context: &RuleContext<'_>, node: Node<'_>, global: boo
         && matches!(bare, "Class" | "Module")
 }
 
-fn singleton_class_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
+fn singleton_class_name(
+    context: &RuleContext<'_>,
+    node: Node<'_>,
+    locals: &LocalVariables<'_, '_>,
+) -> Option<String> {
     let value = node.field("value")?;
     match value.kind_str() {
         "constant" | "scope_resolution" => {
@@ -483,7 +503,7 @@ fn singleton_class_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<Str
         }
         "self" => Some(format!(
             "#<Class:{}>",
-            parent_module_name(context, node).unwrap_or_default()
+            parent_module_name(context, node, locals).unwrap_or_default()
         )),
         _ => None,
     }

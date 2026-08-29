@@ -70,7 +70,7 @@ fn rename(
         if node.start_byte() <= parameter.start_byte()
             || node.end_byte() > definition.end_byte()
             || context.source.node_text(node) != name
-            || !variables.is_variable(node)
+            || !(variables.is_reference(node) || variables.is_local_assignment(node))
         {
             continue;
         }

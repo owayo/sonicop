@@ -6,10 +6,14 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+use super::blocks::BlockArgs;
+use super::locals::LocalVariables;
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let Some(methods) = context.setting::<BTreeMap<String, usize>>("Methods") else {
         return;
     };
+    let locals = LocalVariables::new(context);
     for block in context.nodes_of_any(&["block", "do_block"]) {
         let Some(node) = block.parent_of(context) else {
             continue;
@@ -23,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(&expected) = methods.get(name) else {
             continue;
         };
-        let Some(actual) = arg_count(block, context) else {
+        let Some(actual) = arg_count(block, context, &locals) else {
             // A `restarg` takes as many as it is given.
             continue;
         };
@@ -38,14 +42,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `arg_count`: the positional parameters the block declares, or `None` for the splat that makes
 /// the count infinite.
-fn arg_count(block: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
+fn arg_count(
+    block: Node<'_>,
+    context: &RuleContext<'_>,
+    locals: &LocalVariables<'_, '_>,
+) -> Option<usize> {
     let Some(parameters) = block.field("parameters") else {
-        // `numblock` and `itblock` declare nothing: upstream reads the count off the node
-        // (`node.children[1]` for a numblock, one for an itblock), which here means reading the
-        // body for the highest `_N` it names.
-        return Some(match block.field("body") {
-            Some(body) => super::blocks::implicit_parameter_depth(context, body),
-            None => 0,
+        return Some(match BlockArgs::of(block, context, locals) {
+            BlockArgs::Numbered(count) => count,
+            BlockArgs::It => 1,
+            BlockArgs::Written(_) => 0,
         });
     };
     let mut count = 0;
@@ -65,4 +71,3 @@ fn arg_count(block: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     }
     Some(count)
 }
-

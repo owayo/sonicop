@@ -2,13 +2,17 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, is_plain_send, named_children};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::{arguments, is_plain_send, named_children};
+
+use super::blocks::BlockArgs;
+use super::locals::LocalVariables;
 
 const MSG: &str = "Non-local exit from iterator, without return value. \
                    `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let locals = LocalVariables::new(context);
     for node in context.nodes_of("return") {
         // `return_value?`: a `return` handing back a value leaves the iterator on purpose.
         if !named_children(node).is_empty() {
@@ -17,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = node.child(0).filter(|child| child.kind_str() == "return") else {
             continue;
         };
-        if escapes_an_iterator(node, context) {
+        if escapes_an_iterator(node, context, &locals) {
             offenses.push(context.offense(MSG, keyword.byte_range()));
         }
     }
@@ -25,7 +29,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `each_ancestor(:any_block, :any_def)` with its three exits: a scope of its own stops the search,
 /// so does a block handed to `define_method`, and a block without arguments merely passes it on.
-fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+fn escapes_an_iterator(
+    node: Node<'_>,
+    context: &RuleContext<'_>,
+    locals: &LocalVariables<'_, '_>,
+) -> bool {
     let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
         ancestor = current.parent_of(context);
@@ -43,7 +51,7 @@ fn escapes_an_iterator(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         if defines_a_method(send, context) {
             return false;
         }
-        if block_argument_list_is_empty(current, context) {
+        if block_argument_list_is_empty(current, context, locals) {
             continue;
         }
         // `chained_send?`: `(call !nil? ...)`.
@@ -87,10 +95,13 @@ fn defines_a_method(send: Option<Node<'_>>, context: &RuleContext<'_>) -> bool {
 
 /// `node.argument_list.empty?`. A block that names no argument cannot be the one the `return` was
 /// meant for, so the search carries on outwards.
-fn block_argument_list_is_empty(block: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match block.field("parameters") {
-        Some(parameters) => named_children(parameters).is_empty(),
-        // A `numblock` / `itblock` declares nothing but still has an argument list.
-        None => !super::blocks::uses_implicit_parameter(context, block),
+fn block_argument_list_is_empty(
+    block: Node<'_>,
+    context: &RuleContext<'_>,
+    locals: &LocalVariables<'_, '_>,
+) -> bool {
+    match BlockArgs::of(block, context, locals) {
+        BlockArgs::Written(parameters) => parameters.is_empty(),
+        BlockArgs::Numbered(_) | BlockArgs::It => false,
     }
 }
