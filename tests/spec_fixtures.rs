@@ -153,10 +153,43 @@ fn abbreviate_recorded_paths(message: &str) -> Option<String> {
     Some(format!("{}[...]", &message[..found.start()]))
 }
 
+/// 録った本家は Unix 上で動いたが、`Lint/ScriptPermission` は本家自身が Windows で
+/// 常に黙る。記録済みの Unix 側 offense を Windows へ持ち込まず、その環境で本家を
+/// 動かしたときの期待値に合わせる。
+fn replayed_offenses<'a>(
+    cop: &str,
+    offenses: &'a [RecordedOffense],
+    windows: bool,
+) -> &'a [RecordedOffense] {
+    match windows && cop == "Lint/ScriptPermission" {
+        true => &[],
+        false => offenses,
+    }
+}
+
+/// `Layout/EndOfLine` の既定 `native` は記録元の Unix では `lf`、Windows では `crlf` に
+/// 解決される。spec が明示した値は保ち、未指定のケースだけ記録条件の `lf` を補う。
+fn replayed_config(cop: &str, config: &BTreeMap<String, String>, windows: bool) -> Option<String> {
+    let force_recorded_line_ending =
+        windows && cop == "Layout/EndOfLine" && !config.contains_key("EnforcedStyle");
+    if config.is_empty() && !force_recorded_line_ending {
+        return None;
+    }
+
+    let mut yaml = format!("{cop}:\n");
+    for (key, value) in config {
+        yaml.push_str(&format!("  {key}: {value}\n"));
+    }
+    if force_recorded_line_ending {
+        yaml.push_str("  EnforcedStyle: lf\n");
+    }
+    Some(yaml)
+}
+
 impl Record {
     fn to_case(&self) -> CopCase {
-        let expected = self
-            .offenses
+        let offenses = replayed_offenses(&self.cop, &self.offenses, cfg!(windows));
+        let expected = offenses
             .iter()
             .map(|offense| {
                 Annotation::new(
@@ -170,20 +203,14 @@ impl Record {
             .collect();
         let mut case = CopCase::new(&self.cop, self.source.clone(), expected)
             .id(&self.origin)
-            .path(
-                &path_in_message(&self.offenses).unwrap_or_else(|| path_for(&self.cop).to_owned()),
-            );
+            .path(&path_in_message(offenses).unwrap_or_else(|| path_for(&self.cop).to_owned()));
         // 本家が出した `location.length` そのものも見る。キャレット本数だけだと、
         // 行を跨るレンジの**終端**を一度も検証しないまま緑になる。
-        if !self.offenses.is_empty() {
-            let lengths: Vec<usize> = self.offenses.iter().map(|item| item.length).collect();
+        if !offenses.is_empty() {
+            let lengths: Vec<usize> = offenses.iter().map(|item| item.length).collect();
             case = case.lengths(&lengths);
         }
-        if !self.config.is_empty() {
-            let mut yaml = format!("{}:\n", self.cop);
-            for (key, value) in &self.config {
-                yaml.push_str(&format!("  {key}: {value}\n"));
-            }
+        if let Some(yaml) = replayed_config(&self.cop, &self.config, cfg!(windows)) {
             case = case.config(&yaml);
         }
         if let Some(version) = &self.target_ruby {
@@ -194,11 +221,7 @@ impl Record {
         }
         // 本家自身が構文エラーを報告したケースでは、それこそが期待値。構文ガードは
         // 「本家が読めた例を移植版が読めない」を捕まえるためのものなので、ここでは外す。
-        if self
-            .offenses
-            .iter()
-            .any(|item| is_syntax_error(&item.message))
-        {
+        if offenses.iter().any(|item| is_syntax_error(&item.message)) {
             case = case.expecting_syntax_error();
         }
         // モードやファイルの存在そのものを読む cop は、名前だけのパスでは何も見えない。
@@ -497,4 +520,37 @@ fn the_fixture_reports_which_cops_it_does_not_reach() {
     if !unreachable.is_empty() {
         eprintln!("届かない cop:\n  {}", unreachable.join("\n  "));
     }
+}
+
+#[test]
+fn windows_replay_uses_upstreams_script_permission_branch() {
+    let offenses = [RecordedOffense {
+        message: "permission".to_owned(),
+        line: 1,
+        column: 1,
+        length: 1,
+    }];
+
+    assert!(replayed_offenses("Lint/ScriptPermission", &offenses, true).is_empty());
+    assert_eq!(
+        replayed_offenses("Lint/ScriptPermission", &offenses, false).len(),
+        1
+    );
+    assert_eq!(replayed_offenses("Lint/Syntax", &offenses, true).len(), 1);
+}
+
+#[test]
+fn windows_replay_preserves_the_recorded_line_ending_condition() {
+    let empty = BTreeMap::new();
+    assert_eq!(
+        replayed_config("Layout/EndOfLine", &empty, true).as_deref(),
+        Some("Layout/EndOfLine:\n  EnforcedStyle: lf\n")
+    );
+    assert!(replayed_config("Layout/EndOfLine", &empty, false).is_none());
+
+    let explicit = BTreeMap::from([("EnforcedStyle".to_owned(), "crlf".to_owned())]);
+    assert_eq!(
+        replayed_config("Layout/EndOfLine", &explicit, true).as_deref(),
+        Some("Layout/EndOfLine:\n  EnforcedStyle: crlf\n")
+    );
 }
