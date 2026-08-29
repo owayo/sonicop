@@ -89,6 +89,11 @@ reads the mode, which `chmod` changes without touching the bytes. The stat is ta
 file is read; taken afterwards, a rewrite landing in between pairs the old report with the new stat
 and the next run accepts it as fresh. Bump `RESULT_CACHE_SCHEMA` when the stored shape changes.
 
+**Remote inherited configurations are bounded.** Network operations time out after 30 seconds and
+each response may contain at most 5 MiB. `ureq` rejects a body whose length equals the value passed
+to `BodyWithConfig::limit`, so pass one byte beyond the logical maximum. Preserve tests for both the
+exact limit and the first rejected byte when changing this path.
+
 **Autocorrect writes to real source files.** Corrections go through a temp file so a killed writer
 cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
 test that inspects the file on disk afterwards, not just the reported offenses.

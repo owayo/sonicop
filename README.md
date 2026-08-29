@@ -160,6 +160,8 @@ run. Local and HTTPS `inherit_from`, `inherit_gem`, `inherit_mode`,
 `AllCops/DisabledByDefault`, `Include`, and `Exclude`, plus per-cop `Enabled`, `Exclude`,
 `Severity`, `Safe`, `SafeAutoCorrect`, and cop settings are supported. Cops supplied by declared
 plugins are accepted as recognized-but-unimplemented without executing Ruby plugin code.
+Remote configuration requests use 30-second network timeouts, and each response is limited to
+5 MiB.
 
 ```yaml
 inherit_from: .rubocop_todo.yml

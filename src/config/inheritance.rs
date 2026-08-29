@@ -8,6 +8,8 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use serde_yaml_ng::{Mapping, Value};
 
+const MAX_REMOTE_CONFIG_BYTES: u64 = 5 * 1024 * 1024;
+
 /// Configuration files whose inheritance has already been resolved, keyed by canonical path for
 /// local files and by URL for remote ones.
 ///
@@ -164,7 +166,8 @@ fn fetch_remote_config(url: &str) -> Result<String> {
     response
         .body_mut()
         .with_config()
-        .limit(5 * 1024 * 1024)
+        // ureq は指定値と同じ長さでも上限超過にするため、論理上限を含む 1 バイト先を渡す。
+        .limit(MAX_REMOTE_CONFIG_BYTES + 1)
         .read_to_string()
         .with_context(|| format!("failed to read remote configuration: {url}"))
 }
@@ -459,14 +462,17 @@ fn mode_keys(mode: &Value, name: &str) -> HashSet<String> {
 mod tests {
     use std::collections::HashSet;
     use std::fs;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
     use std::path::Path;
+    use std::thread;
 
     use serde_yaml_ng::Value;
     use tempfile::tempdir;
 
     use super::{
-        InheritMode, PARSED_CONFIG_COUNT, deep_merge, join_remote_url, load_with_inheritance,
-        merge_config, merge_inherited_config,
+        InheritMode, MAX_REMOTE_CONFIG_BYTES, PARSED_CONFIG_COUNT, deep_merge, fetch_remote_config,
+        join_remote_url, load_with_inheritance, merge_config, merge_inherited_config,
     };
     use crate::config::Config;
 
@@ -481,6 +487,24 @@ mod tests {
 
     fn resolve(path: &Path) -> anyhow::Result<Value> {
         load_with_inheritance(path, &mut HashSet::new())
+    }
+
+    fn serve_once(body: Vec<u8>) -> (String, thread::JoinHandle<()>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0; 1024];
+            assert_ne!(stream.read(&mut request).unwrap(), 0);
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            )
+            .unwrap();
+            stream.write_all(&body).unwrap();
+        });
+        (format!("http://{address}/config.yml"), server)
     }
 
     fn cop_exclude(merged: &Value, cop: &str) -> Value {
@@ -575,6 +599,24 @@ mod tests {
         );
         assert!(join_remote_url("example.com/base.yml", "/root.yml").is_err());
         assert!(join_remote_url("no-directory", "shared.yml").is_err());
+    }
+
+    #[test]
+    fn remote_configuration_enforces_the_response_size_limit() {
+        let limit = MAX_REMOTE_CONFIG_BYTES as usize;
+
+        let (url, server) = serve_once(vec![b'a'; limit]);
+        let accepted = fetch_remote_config(&url).unwrap();
+        server.join().unwrap();
+        assert_eq!(accepted.len(), limit);
+
+        let (url, server) = serve_once(vec![b'a'; limit + 1]);
+        let error = fetch_remote_config(&url).unwrap_err().to_string();
+        server.join().unwrap();
+        assert!(
+            error.starts_with("failed to read remote configuration:"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]

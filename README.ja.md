@@ -153,6 +153,8 @@ sonicop --show-cops
 `AllCops/DisabledByDefault`、`Include`／`Exclude`、Cop ごとの `Enabled`、`Exclude`、
 `Severity`、`Safe`、`SafeAutoCorrect` と設定値に対応します。宣言されたプラグイン由来の
 Cop は「認識済み・未実装」として受理し、Ruby プラグインコード自体は実行しません。
+リモート設定のリクエストには 30 秒のネットワークタイムアウトを設け、応答は 1 件あたり
+5 MiB に制限します。
 
 ```yaml
 inherit_from: .rubocop_todo.yml
