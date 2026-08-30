@@ -244,13 +244,13 @@ warmed runs.
 
 | Corpus | Files | Offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---:|---:|---:|---:|---:|---:|
-| rubocop/rubocop | 1,780 | 5,826 | 12.84 s | **2.49 s** | 46.09 s | **8.01 s** |
-| mastodon/mastodon | 3,292 | 15,293 | 18.66 s | **3.16 s** | 35.88 s | **7.10 s** |
-| Homebrew/brew | 2,296 | 51,527 | 19.58 s | **2.93 s** | 40.25 s | **6.65 s** |
-| rails/rails | 3,562 | 168,615 | 36.24 s | **8.79 s** | 87.41 s | **19.64 s** |
-| ruby/ruby | 7,477 | 765,975 | 97.46 s | **18.28 s** | 191.01 s | **40.58 s** |
+| rubocop/rubocop | 1,780 | 5,826 | 10.85 s | **1.53 s** | 41.44 s | **8.96 s** |
+| mastodon/mastodon | 3,292 | 15,293 | 22.59 s | **3.04 s** | 34.74 s | **6.86 s** |
+| Homebrew/brew | 2,296 | 51,527 | 13.56 s | **2.21 s** | 40.36 s | **6.51 s** |
+| rails/rails | 3,562 | 168,615 | 32.90 s | **8.84 s** | 85.71 s | **19.17 s** |
+| ruby/ruby | 7,477 | 765,975 | 86.89 s | **15.59 s** | 193.59 s | **37.98 s** |
 
-The gap is 4.1x to 6.7x in parallel and 4.5x to 6.1x single-process, so no single corpus summarizes
+The gap is 3.7x to 7.4x in parallel and 4.5x to 6.2x single-process, so no single corpus summarizes
 it. **Read the single-process column and treat the parallel one as indicative.** Measuring the same
 two binaries three times over a day put the single-process figures within 16% of each other every
 time, while the parallel ratio on RuboCop's own tree moved between 3.3x and 9.2x purely with what
@@ -286,12 +286,12 @@ sonicop --force-default-config --cache-root "$root" --format quiet
 
 Writing the cache is part of these numbers, and it is not free: the index holds every offense with
 the source line it was found on, which is 336 MB over `ruby/ruby`. A second run against a warm cache
-answers in 1.88 s there, and in 0.42 s over Rails.
+answers in 1.59 s there, and in 0.42 s over Rails.
 
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-Measured on 2026-08-30 against the corpora at `rubocop_rubocop` 2693129, `mastodon_mastodon` b59ddc7,
+Measured on 2026-08-31 against the corpora at `rubocop_rubocop` 2693129, `mastodon_mastodon` b59ddc7,
 `Homebrew_brew` b42173b, `rails_rails` a19f07f and `ruby_ruby` 22e4a75. The one-minute load average
-was between 3.3 and 10.1 as each row was taken — most of it RuboCop's own parallel workers, which is
+was between 4.5 and 7.1 as each row was taken — most of it RuboCop's own parallel workers, which is
 inherent to measuring them. **The machine was in use, not idle.** Both tools ran back to back under
 the same conditions on each corpus, so the ratios hold, but the absolute seconds are not a floor:
 expect better on a quiet machine. Anything competing for cores inflates both sides, and not by the
