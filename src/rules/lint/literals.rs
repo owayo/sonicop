@@ -11,6 +11,7 @@ use tree_sitter::Node;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::has_interpolation;
+use crate::rules::send_node::named_children_of;
 
 /// `BASIC_LITERALS`: a literal whose value is the node itself.
 const BASIC: &[&str] = &[
@@ -95,8 +96,9 @@ pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>)
 
 /// `children.compact.all?(&:recursive_basic_literal?)`.
 fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor)
+    let _cursor = node.walk();
+    named_children_of(node, context)
+        .into_iter()
         .filter(|child| child.kind_str() != "comment")
         .all(|child| match child.kind_str() {
             // The parts a quoted literal is written from are not nodes upstream at all: the text
@@ -189,9 +191,9 @@ fn string_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
     if has_interpolation(node) {
         return "dstr";
     }
-    let mut cursor = node.walk();
-    let broken = node
-        .named_children(&mut cursor)
+    let _cursor = node.walk();
+    let broken = named_children_of(node, context)
+        .into_iter()
         .filter(|child| child.kind_str() == "string_content")
         .any(|child| context.source.node_text(child).contains('\n'));
     if broken { "dstr" } else { "str" }
@@ -206,9 +208,9 @@ fn heredoc_type(node: Node<'_>, context: &RuleContext<'_>) -> &'static str {
     if has_interpolation(body) {
         return "dstr";
     }
-    let mut cursor = body.walk();
-    let lines: usize = body
-        .named_children(&mut cursor)
+    let _cursor = body.walk();
+    let lines: usize = named_children_of(body, context)
+        .into_iter()
         .filter(|child| child.kind_str() == "heredoc_content")
         .map(|child| context.source.node_text(child).matches('\n').count())
         .sum();

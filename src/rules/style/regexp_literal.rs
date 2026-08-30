@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const MSG_USE_SLASHES: &str = "Use `//` around regular expression.";
 const MSG_USE_PERCENT_R: &str = "Use `%r` around regular expression.";
@@ -123,8 +124,8 @@ impl<'a> Literal<'a> {
 
         let mut literal_text = String::new();
         let mut start = begin.end_byte();
-        let mut cursor = node.walk();
-        for child in node.named_children(&mut cursor) {
+        let _cursor = node.walk();
+        for child in named_children_iter(node, context) {
             if child.kind_str() != "interpolation" {
                 continue;
             }

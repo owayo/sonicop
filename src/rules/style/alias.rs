@@ -190,8 +190,7 @@ fn is_symbol(node: Node<'_>) -> bool {
         // `:"a"` is a `sym` too, unless an interpolation makes it a `dsym`.
         "delimited_symbol" => {
             let mut cursor = node.walk();
-            !node
-                .named_children(&mut cursor)
+            !node.named_children(&mut cursor)
                 .any(|child| child.kind_str() == "interpolation")
         }
         _ => false,

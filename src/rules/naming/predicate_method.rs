@@ -6,6 +6,7 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::{push_named_children_in};
 use crate::rules::regex_cache;
 use crate::rules::send_node::named_children;
+use crate::rules::send_node::all_children_iter;
 
 const MSG_PREDICATE: &str = "Predicate method names should end with `?`.";
 const MSG_NON_PREDICATE: &str = "Non-predicate method names should not end with `?`.";
@@ -540,8 +541,8 @@ fn is_conditional(node: Node<'_>) -> bool {
 
 /// The operator a node was written with, which the grammar leaves as an anonymous token.
 fn operator<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .find(|child| !child.is_named())
         .map(|child| context.source.node_text(child))
 }

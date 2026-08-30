@@ -12,6 +12,8 @@ use super::support::{
 use crate::diagnostic::Offense;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::{RuleContext, push_named_children_in};
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
@@ -203,9 +205,9 @@ impl Checker<'_, '_> {
         };
         let row = |byte: usize| self.context.source.line_column(byte).0;
         // `dot_on_new_line?`: the receiver stops on an earlier line than the dot.
-        let mut cursor = call.walk();
-        let dot = call
-            .children(&mut cursor)
+        let _cursor = call.walk();
+        let dot = all_children_of(call, self.context)
+            .into_iter()
             .find(|child| !child.is_named() && matches!(child.kind_str(), "." | "&."));
         if let Some(dot) = dot
             && call
@@ -281,9 +283,9 @@ impl Checker<'_, '_> {
     }
 
     fn on_case(&mut self, node: Node<'_>, branch_kind: &str, offenses: &mut Vec<Offense>) {
-        let mut cursor = node.walk();
-        let branches: Vec<Node<'_>> = node
-            .named_children(&mut cursor)
+        let _cursor = node.walk();
+        let branches: Vec<Node<'_>> = named_children_of(node, self.context)
+            .into_iter()
             .filter(|child| child.kind_str() == branch_kind)
             .collect();
         let mut last_keyword = None;
@@ -345,9 +347,9 @@ impl Checker<'_, '_> {
         if node.field("receiver").is_some() {
             return;
         }
-        let mut cursor = node.walk();
-        let Some(list) = node
-            .children(&mut cursor)
+        let _cursor = node.walk();
+        let Some(list) = all_children_of(node, self.context)
+            .into_iter()
             .find(|child| child.kind_str() == "argument_list")
         else {
             return;
@@ -694,8 +696,7 @@ fn is_statement_container(node: Node<'_>) -> bool {
 
 fn body_container<'tree>(owner: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = owner.walk();
-    owner
-        .named_children(&mut cursor)
+    owner.named_children(&mut cursor)
         .find(|child| matches!(child.kind_str(), "body_statement" | "block_body" | "do"))
 }
 

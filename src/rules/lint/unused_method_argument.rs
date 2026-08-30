@@ -86,8 +86,7 @@ fn method_body(node: Node<'_>) -> Option<MethodBody<'_>> {
         });
     }
     let mut cursor = body.walk();
-    let statements: Vec<Node<'_>> = body
-        .named_children(&mut cursor)
+    let statements: Vec<Node<'_>> = body.named_children(&mut cursor)
         .filter(|child| !NOT_A_STATEMENT.contains(&child.kind_str()))
         .collect();
     match statements.len() {

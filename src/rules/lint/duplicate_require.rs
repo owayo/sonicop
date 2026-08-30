@@ -156,7 +156,6 @@ fn body_parent(container: Node<'_>) -> Parent {
 /// statements it holds.
 fn split_body(container: Node<'_>) -> bool {
     let mut cursor = container.walk();
-    container
-        .named_children(&mut cursor)
+    container.named_children(&mut cursor)
         .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
 }

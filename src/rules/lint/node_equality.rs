@@ -10,6 +10,8 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_of;
 
 /// Whether the two operands are the same node. Upstream compares structurally rather than by
 /// source -- `Node#==` looks at the type and the children -- so a difference in spacing is no
@@ -227,8 +229,9 @@ fn heredoc_parts<'tree>(body: Node<'tree>) -> Vec<Node<'tree>> {
 }
 
 fn operator_text(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_of(node, context)
+        .into_iter()
         .filter(|child| !child.is_named())
         .map(|child| context.source.node_text(child))
         .collect()
@@ -288,9 +291,9 @@ fn literal(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> {
 /// is a `dstr`/`dsym` upstream and has no value of its own, and an escape this cannot resolve
 /// leaves the node to be compared structurally instead.
 fn quoted_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Vec<u8>> {
-    let mut cursor = node.walk();
-    if node
-        .named_children(&mut cursor)
+    let _cursor = node.walk();
+    if named_children_of(node, context)
+        .into_iter()
         .any(|child| child.kind_str() == "interpolation")
     {
         return None;

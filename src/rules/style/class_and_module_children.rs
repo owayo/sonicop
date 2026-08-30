@@ -3,6 +3,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_iter;
 
 const NESTED_MSG: &str = "Use nested module/class definitions instead of compact style.";
 const COMPACT_MSG: &str = "Use compact module/class definition instead of nested style.";
@@ -166,9 +168,9 @@ fn nested_correction(
     if closing.kind_str() != "end" {
         return None;
     }
-    let mut cursor = name.walk();
-    let separator = name
-        .children(&mut cursor)
+    let _cursor = name.walk();
+    let separator = all_children_of(name, context)
+        .into_iter()
         .find(|child| child.kind_str() == "::")?;
 
     let (_, column) = context.source.line_column(node.start_byte());
@@ -356,8 +358,8 @@ fn namespace_keyword(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
         {
             return "class";
         }
-        let mut cursor = current.walk();
-        stack.extend(current.named_children(&mut cursor));
+        let _cursor = current.walk();
+        stack.extend(named_children_iter(current, context));
     }
     "module"
 }

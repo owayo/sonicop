@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::Interpolations;
 use crate::source::is_protected;
+use crate::rules::send_node::named_children_iter;
 
 /// Node kinds whose named children are a sequence of statements.
 ///
@@ -268,8 +269,8 @@ fn code_range(context: &RuleContext<'_>, line_number: usize) -> Option<std::ops:
 fn expression_separator_lines(context: &RuleContext<'_>) -> HashSet<usize> {
     let mut lines = HashSet::new();
     for node in context.nodes_of_any(STATEMENT_SEQUENCE_KINDS) {
-        let mut cursor = node.walk();
-        let children: Vec<_> = node.named_children(&mut cursor).collect();
+        let _cursor = node.walk();
+        let children: Vec<_> = named_children_iter(node, context).collect();
         // `begin ... end` holds its statements directly upstream rather than wrapping them in the
         // `begin` node the cop looks for, so `begin a; b end` is not an offense. Add a `rescue` and
         // the protected body becomes such a node after all.
@@ -358,8 +359,8 @@ fn value_omission_before(
         {
             continue;
         }
-        let mut cursor = list.walk();
-        let first = list.named_children(&mut cursor).next()?;
+        let _cursor = list.walk();
+        let first = named_children_iter(list, context).next()?;
         return Some((
             selector.end_byte()..first.start_byte(),
             first.start_byte()..list.end_byte(),

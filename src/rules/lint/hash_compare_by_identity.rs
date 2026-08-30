@@ -6,6 +6,7 @@ use crate::rules::send_node::{arguments, is_plain_send, send_range};
 
 use super::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Use `Hash#compare_by_identity` instead of using `object_id` for keys.";
 
@@ -29,13 +30,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// reports it at.
 fn keyed_call<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, std::ops::Range<usize>)> {
     if node.kind_str() == "element_reference" {
         let object = node.field("object")?;
-        let mut cursor = node.walk();
-        let key = node
-            .named_children(&mut cursor)
+        let _cursor = node.walk();
+        let key = named_children_of(node, context)
+            .into_iter()
             .find(|child| child.id() != object.id())?;
         // `hash[k] = v` is one `[]=` send upstream, spanning the assignment rather than the
         // brackets. Written in a multiple assignment the send holds no value and stops at the

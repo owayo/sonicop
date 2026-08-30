@@ -7,6 +7,7 @@ use crate::rules::lint::locals::LocalVariables;
 
 use super::conditional::{UpstreamParent, upstream_parent};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 /// `ALLOWED_NODE_TYPES`: the parents whose child keeps its parentheses around a logical operator.
 /// `send` covers every shape the grammar spells as a call.
@@ -653,8 +654,8 @@ fn pinned_parentheses(
     node: Node<'_>,
     context: &RuleContext<'_>,
 ) -> Option<std::ops::Range<usize>> {
-    let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let children: Vec<Node<'_>> = all_children_iter(node, context).collect();
     let open = children
         .iter()
         .find(|child| !child.is_named() && context.source.node_text(**child) == "(")?;

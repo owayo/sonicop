@@ -6,6 +6,7 @@ use crate::diagnostic::Offense;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The first Ruby version whose grammar accepts each construct.
 ///
@@ -170,9 +171,9 @@ fn multiline_array_pattern(error: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// the body where the interpolation still is, and never finds the terminator.
 fn opens_heredoc_in_interpolation(context: &RuleContext<'_>) -> bool {
     context.nodes_of("interpolation").any(|interpolation| {
-        let mut cursor = interpolation.walk();
-        interpolation
-            .named_children(&mut cursor)
+        let _cursor = interpolation.walk();
+        named_children_of(interpolation, context)
+            .into_iter()
             .any(|child| child.kind_str() == "heredoc_beginning")
     })
 }

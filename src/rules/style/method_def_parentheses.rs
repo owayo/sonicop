@@ -91,8 +91,7 @@ fn unwanted(context: &RuleContext<'_>, parameters: Node<'_>) -> Offense {
 fn forced(node: Node<'_>, parameters: Node<'_>) -> bool {
     // `endless?` is `!loc.end`: a definition written with `=` has no closing keyword.
     let mut cursor = node.walk();
-    if !node
-        .children(&mut cursor)
+    if !node.children(&mut cursor)
         .any(|child| child.kind_str() == "end")
     {
         return true;

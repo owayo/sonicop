@@ -9,6 +9,7 @@ use super::support::{Edits, begins_its_line, hash_literals};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const KEY_MESSAGE: &str = "Align the keys of a hash literal if they span more than one line.";
 const SEPARATOR_MESSAGE: &str =
@@ -648,10 +649,9 @@ fn ignored_last_argument(elements: &[Node<'_>], context: &RuleContext<'_>, style
     let is_last_argument = match list.kind_str() {
         // `on_send`, `on_csend`, `on_super` and `on_yield`: an array literal is none of them.
         "argument_list" | "element_reference" => {
-            let mut cursor = list.walk();
-            list.named_children(&mut cursor)
-                .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
-                .last()
+            let _cursor = list.walk();
+            named_children_iter(list, context)
+                .rfind(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
                 .is_some_and(|node| node.id() == wanted.id())
         }
         // `x.foo = { … }` and `x[k] = { … }` are `send :foo=` and `send :[]=` to upstream's

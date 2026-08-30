@@ -14,6 +14,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// `REQUIRES_ESCAPE_OUTSIDE_CHAR_CLASS_CHARS`: what a character class is the escape for.
 const REQUIRES_ESCAPE: [char; 10] = ['.', '*', '+', '?', '{', '}', '(', ')', '|', '$'];
@@ -114,9 +115,9 @@ impl Pattern {
         let flags = &context.source.node_text(closing)[1..];
         let start = opening.end_byte();
         let end = closing.start_byte();
-        let mut cursor = node.walk();
-        let interpolations: Vec<Range<usize>> = node
-            .named_children(&mut cursor)
+        let _cursor = node.walk();
+        let interpolations: Vec<Range<usize>> = named_children_of(node, context)
+            .into_iter()
             .filter(|child| child.kind_str() == "interpolation")
             .map(|child| child.byte_range())
             .collect();

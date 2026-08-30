@@ -100,8 +100,7 @@ fn inspect(
 /// first element spans the whole run rather than just its first pair.
 fn first_element<'tree>(array: Node<'tree>) -> Option<(Range<usize>, Option<Node<'tree>>)> {
     let mut cursor = array.walk();
-    let children: Vec<Node<'tree>> = array
-        .named_children(&mut cursor)
+    let children: Vec<Node<'tree>> = array.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     let first = *children.first()?;

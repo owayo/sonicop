@@ -6,6 +6,7 @@ use crate::rules::RuleContext;
 use super::literals::{is_constant, recursive_basic_literal};
 use super::node_equality::equality_key;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Duplicated key in hash literal.";
 
@@ -14,10 +15,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // the argument list, so a call's keyword arguments are no hash node here -- and every duplicate
     // written that way went unreported.
     for hash in context.nodes_of_any(&["hash", "argument_list"]) {
-        let mut cursor = hash.walk();
+        let _cursor = hash.walk();
         // `HashNode#keys`: a `**splat` entry is no pair and contributes no key.
-        let keys: Vec<_> = hash
-            .named_children(&mut cursor)
+        let keys: Vec<_> = named_children_of(hash, context)
+            .into_iter()
             .filter(|child| child.kind_str() == "pair")
             .filter_map(|pair| pair.field("key"))
             .filter(|key| recursive_basic_literal(*key, context) || is_constant(*key, context))

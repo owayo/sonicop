@@ -5,6 +5,7 @@ use std::ops::Range;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let tabs = context
@@ -77,11 +78,11 @@ fn string_literals(context: &RuleContext<'_>) -> Vec<Range<usize>> {
         .map(|node| node.byte_range())
         .collect();
     for body in context.nodes_of("heredoc_body") {
-        let mut cursor = body.walk();
+        let _cursor = body.walk();
         // `loc.heredoc_body` stops at the start of the terminator's *line*, so the indentation a
         // squiggly heredoc's terminator was written with is code as far as this cop is concerned.
-        let end = body
-            .named_children(&mut cursor)
+        let end = named_children_of(body, context)
+            .into_iter()
             .find(|child| child.kind_str() == "heredoc_end")
             .map_or_else(
                 || body.end_byte(),

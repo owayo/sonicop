@@ -1,6 +1,7 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::ops::Range;
+use std::sync::LazyLock;
 
 use tree_sitter::Node;
 
@@ -526,6 +527,14 @@ pub(crate) struct AstIndex<'tree> {
     child_start: Vec<u32>,
     /// Where each node sits in `named_nodes`, or [`NOT_NAMED`] for one that is not named.
     named_index: Vec<u32>,
+    /// The field each node fills in its parent, as the grammar's field id, or 0 for a node that
+    /// fills none.
+    ///
+    /// Answering "which field is this child" by walking the parent's children with a cursor costs
+    /// one walk per question, and the cops that classify identifiers ask on every identifier of
+    /// every file. The walk that builds the index passes each node once with a cursor that already
+    /// knows the answer.
+    field_of: Vec<u32>,
     /// How many nodes each node's subtree holds, itself included. `nodes` is in pre-order, so a
     /// node's own children are found by stepping over one subtree at a time from the node after
     /// it -- which is what lets [`Self::children_of`] answer without a tree cursor.
@@ -560,6 +569,15 @@ impl<'a> Iterator for Children<'a> {
     }
 }
 
+/// Every field name the grammar has, by field id, so a recorded id can be turned back into the
+/// `&'static str` the cops compare against.
+static FIELD_NAMES: LazyLock<Vec<Option<&'static str>>> = LazyLock::new(|| {
+    let language = node_ext::language();
+    (0..=language.field_count() as u16)
+        .map(|id| language.field_name_for_id(id))
+        .collect()
+});
+
 /// The value [`AstIndex::parent_of`] carries for the root.
 const NO_PARENT: u32 = u32::MAX;
 
@@ -585,6 +603,7 @@ impl<'tree> AstIndex<'tree> {
             named_children: Vec::new(),
             child_start: Vec::new(),
             named_index: Vec::with_capacity(count),
+            field_of: Vec::with_capacity(count),
             subtree_len: Vec::new(),
             named_subtree: Vec::new(),
         };
@@ -636,6 +655,24 @@ impl<'tree> AstIndex<'tree> {
         kind: &str,
     ) -> impl Iterator<Item = Node<'tree>> + 'a {
         self.of_kind(kind).map(|index| self.named_node(index))
+    }
+
+    /// The field `node` fills in its parent, as `TreeCursor::field_name` reports it, or `None`
+    /// for a node that fills none.
+    ///
+    /// A node the index does not know answers `None` as well, so a caller that must tell the two
+    /// apart asks [`Self::knows`] first.
+    pub(in crate::rules) fn field_name_of(&self, node: Node<'_>) -> Option<&'static str> {
+        let position = *self.positions.get(&node.id())? as usize;
+        match self.field_of[position] {
+            0 => None,
+            id => FIELD_NAMES.get(id as usize).copied().flatten(),
+        }
+    }
+
+    /// Whether the node belongs to the tree this index was built from.
+    pub(in crate::rules) fn knows(&self, node: Node<'_>) -> bool {
+        self.positions.contains_key(&node.id())
     }
 
     /// Every child of `node`, named or not, in the order the parser wrote them.
@@ -772,9 +809,11 @@ impl<'tree> AstIndex<'tree> {
         let mut ancestors: Vec<u32> = Vec::new();
         loop {
             let here = self.nodes.len() as u32;
+            let field = cursor.field_id().map_or(0, std::num::NonZeroU16::get);
             self.visit(
                 cursor.node(),
                 ancestors.last().copied().unwrap_or(NO_PARENT),
+                field,
             );
             if cursor.goto_first_child() {
                 ancestors.push(here);
@@ -792,13 +831,14 @@ impl<'tree> AstIndex<'tree> {
         }
     }
 
-    fn visit(&mut self, node: Node<'tree>, parent: u32) {
+    fn visit(&mut self, node: Node<'tree>, parent: u32, field: u16) {
         // Read once. Each call goes through the C API for the node's symbol, and this used to ask
         // four times for every node of every file.
         let kind = node.kind_str();
         let named = node.is_named();
         self.positions.insert(node.id(), self.nodes.len() as u32);
         self.parent_of.push(parent);
+        self.field_of.push(u32::from(field));
         self.named_index.push(match named {
             true => self.named_nodes.len() as u32,
             false => NOT_NAMED,
@@ -979,6 +1019,26 @@ mod tests {
                 index.parent_in_tree(*node).map(|found| found.id()),
                 node.parent().map(|found| found.id()),
                 "{} reported a different parent",
+                node.kind_str()
+            );
+            // The field a node fills, as a cursor sitting on it would report.
+            let by_cursor = index.parent_in_tree(*node).and_then(|parent| {
+                let mut walk = parent.walk();
+                walk.goto_first_child().then_some(()).and_then(|()| {
+                    loop {
+                        if walk.node().id() == node.id() {
+                            return walk.field_name();
+                        }
+                        if !walk.goto_next_sibling() {
+                            return None;
+                        }
+                    }
+                })
+            });
+            assert_eq!(
+                index.field_name_of(*node),
+                by_cursor,
+                "{} reported a different field",
                 node.kind_str()
             );
             seen += 1;

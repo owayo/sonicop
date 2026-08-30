@@ -445,8 +445,7 @@ fn unwrap(node: Node<'_>) -> Node<'_> {
         return node;
     }
     let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node
-        .named_children(&mut cursor)
+    let children: Vec<Node<'_>> = node.named_children(&mut cursor)
         .filter(|child| child.kind_str() != "comment")
         .collect();
     match children.last() {

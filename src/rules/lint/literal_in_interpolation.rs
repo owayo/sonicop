@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::ruby_literal::{character_value, inspect_string, inspect_symbol, string_value};
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Literal interpolation detected.";
 
@@ -58,8 +59,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// evaluated and thrown away.
 fn last_statement<'tree>(interpolation: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = interpolation.walk();
-    interpolation
-        .named_children(&mut cursor)
+    interpolation.named_children(&mut cursor)
         .filter(|child| {
             !matches!(
                 child.kind_str(),
@@ -370,9 +370,9 @@ fn array_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
 }
 
 fn hash_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    let mut cursor = node.walk();
-    let pairs: Vec<String> = node
-        .named_children(&mut cursor)
+    let _cursor = node.walk();
+    let pairs: Vec<String> = named_children_of(node, context)
+        .into_iter()
         .map(|pair| {
             let key = pair
                 .field("key")

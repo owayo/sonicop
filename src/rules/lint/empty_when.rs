@@ -8,14 +8,15 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 use super::comments_help::comment_search_lines;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Avoid `when` branches without a body.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allow_comments: bool = context.setting("AllowComments").unwrap_or(true);
     for case in context.nodes_of("case") {
-        let mut cursor = case.walk();
-        let children: Vec<Node<'_>> = case.named_children(&mut cursor).collect();
+        let _cursor = case.walk();
+        let children: Vec<Node<'_>> = named_children_iter(case, context).collect();
         for (index, &branch) in children.iter().enumerate() {
             if branch.kind_str() != "when" || has_body(branch) {
                 continue;
@@ -32,8 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// the `;` or `then` that separates it from the body it does not have is no part of it.
 fn reported_range(branch: Node<'_>) -> std::ops::Range<usize> {
     let mut cursor = branch.walk();
-    let last = branch
-        .named_children(&mut cursor)
+    let last = branch.named_children(&mut cursor)
         .filter(|child| child.kind_str() == "pattern")
         .last();
     branch.start_byte()..last.map_or_else(|| branch.end_byte(), |last| last.end_byte())

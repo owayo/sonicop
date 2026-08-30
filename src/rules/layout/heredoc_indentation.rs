@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `minimum_target_ruby_version 2.3`: `<<~` is what the cop asks for, and it did not exist
@@ -101,9 +102,9 @@ fn heredocs<'ctx, 'tree>(
         .enumerate()
         .filter_map(|(index, node)| {
             let opener = *openers.get(index)?;
-            let mut cursor = node.walk();
-            let end = node
-                .named_children(&mut cursor)
+            let _cursor = node.walk();
+            let end = named_children_of(node, context)
+                .into_iter()
                 .find(|child| child.kind_str() == "heredoc_end")?;
             let first_body_line = context.source.line_column(node.start_byte()).0 + 1;
             let terminator_line = context.source.line_column(end.start_byte()).0;

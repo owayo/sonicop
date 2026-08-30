@@ -905,7 +905,7 @@ impl<'tree> Force<'tree, '_> {
         if self.index.parent(node).is_some_and(|parent| {
             matches!(parent.kind_str(), "alias" | "undef" | "setter")
                 || (matches!(parent.kind_str(), "method" | "singleton_method")
-                    && field_name(node, parent) == Some("name"))
+                    && field_name(node, parent, self.index) == Some("name"))
         }) {
             return;
         }
@@ -1479,7 +1479,7 @@ fn branch_role<'tree>(
     parent: Node<'tree>,
     index: &'tree super::super::AstIndex<'tree>,
 ) -> Option<BranchRole<'tree>> {
-    let field = field_name(child, parent);
+    let field = field_name(child, parent, index);
     let always_run = BranchRole::always_run(child);
     let branched = BranchRole::branched(child);
     match parent.kind_str() {
@@ -1585,7 +1585,18 @@ fn has_child_kind<'tree>(
         .any(|child| child.kind_str() == kind)
 }
 
-fn field_name(child: Node<'_>, parent: Node<'_>) -> Option<&'static str> {
+/// Which field the child fills in its parent.
+///
+/// The index recorded this for every node of the file on the walk that built it, so the cursor
+/// walk below is only for a node from one of the extra trees `Metrics` parses.
+fn field_name(
+    child: Node<'_>,
+    parent: Node<'_>,
+    index: &super::super::AstIndex<'_>,
+) -> Option<&'static str> {
+    if index.knows(child) {
+        return index.field_name_of(child);
+    }
     let mut cursor = parent.walk();
     if !cursor.goto_first_child() {
         return None;
@@ -1788,9 +1799,9 @@ pub(super) fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_
     };
     match parent.kind_str() {
         // The receiver of `foo.bar` and of `def obj.baz` is read; the selector is not.
-        "call" => field_name(node, parent) != Some("method"),
-        "method" | "singleton_method" => field_name(node, parent) != Some("name"),
-        "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),
+        "call" => field_name(node, parent, index) != Some("method"),
+        "method" | "singleton_method" => field_name(node, parent, index) != Some("name"),
+        "assignment" | "operator_assignment" => field_name(node, parent, index) != Some("left"),
         "left_assignment_list"
         | "rest_assignment"
         | "destructured_left_assignment"
@@ -1807,8 +1818,8 @@ pub(super) fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_
         | "keyword_parameter"
         | "splat_parameter"
         | "hash_splat_parameter"
-        | "block_parameter" => field_name(node, parent) != Some("name"),
-        "for" => field_name(node, parent) != Some("pattern"),
+        | "block_parameter" => field_name(node, parent, index) != Some("name"),
+        "for" => field_name(node, parent, index) != Some("pattern"),
         _ => true,
     }
 }
@@ -1830,7 +1841,7 @@ fn bare_assignment_target(node: Node<'_>, index: &super::super::AstIndex<'_>) ->
         return false;
     };
     match parent.kind_str() {
-        "for" => field_name(node, parent) == Some("pattern"),
+        "for" => field_name(node, parent, index) == Some("pattern"),
         "exception_variable" => true,
         _ => false,
     }

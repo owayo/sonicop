@@ -8,6 +8,7 @@ use crate::rules::node_ext::NodeExt;
 
 use super::blocks::BlockArgs;
 use super::locals::LocalVariables;
+use crate::rules::send_node::all_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let Some(methods) = context.setting::<BTreeMap<String, usize>>("Methods") else {
@@ -55,8 +56,8 @@ fn arg_count(
         });
     };
     let mut count = 0;
-    let mut cursor = parameters.walk();
-    for parameter in parameters.children(&mut cursor) {
+    let _cursor = parameters.walk();
+    for parameter in all_children_iter(parameters, context) {
         // `{ |a; b| }`: what follows the `;` is a block-local variable. Upstream's parser never
         // puts it among the arguments; the grammar keeps it in the same node.
         if parameter.kind_str() == ";" {

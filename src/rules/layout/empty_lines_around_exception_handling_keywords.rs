@@ -98,8 +98,7 @@ fn body_clauses<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
         },
     };
     let mut cursor = container.walk();
-    container
-        .named_children(&mut cursor)
+    container.named_children(&mut cursor)
         .filter(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
         .collect()
 }

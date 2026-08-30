@@ -157,8 +157,7 @@ const NOT_A_STATEMENT: &[&str] = &["comment", "empty_statement", "heredoc_body"]
 /// protected body -- so it is skipped even though it is a child here.
 fn check_sequence<'tree>(node: Node<'tree>, returns: &mut Vec<Node<'tree>>) {
     let mut cursor = node.walk();
-    let children: Vec<Node<'tree>> = node
-        .named_children(&mut cursor)
+    let children: Vec<Node<'tree>> = node.named_children(&mut cursor)
         .filter(|child| !NOT_A_STATEMENT.contains(&child.kind_str()))
         .collect();
 

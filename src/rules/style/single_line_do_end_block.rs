@@ -6,6 +6,8 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::heredoc_body;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_of;
 
 const MSG: &str = "Prefer multiline `do`...`end` block.";
 
@@ -87,9 +89,9 @@ fn do_line(context: &RuleContext<'_>, block: Node<'_>) -> Option<usize> {
         return Some(parameters.end_byte());
     }
     let _ = context;
-    let mut cursor = block.walk();
-    block
-        .children(&mut cursor)
+    let _cursor = block.walk();
+    all_children_of(block, context)
+        .into_iter()
         .find(|child| child.kind_str() == "do")
         .map(|token| token.end_byte())
 }
@@ -97,8 +99,7 @@ fn do_line(context: &RuleContext<'_>, block: Node<'_>) -> Option<usize> {
 /// `node.loc.end`.
 fn end_keyword<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = block.walk();
-    block
-        .children(&mut cursor)
+    block.children(&mut cursor)
         .find(|child| child.kind_str() == "end")
 }
 
@@ -110,9 +111,9 @@ fn trailing_heredoc(context: &RuleContext<'_>, block: Node<'_>) -> Option<usize>
         if node.kind_str() == "heredoc_beginning"
             && let Some(body) = heredoc_body(node, context)
         {
-            let mut cursor = body.walk();
-            if let Some(terminator) = body
-                .named_children(&mut cursor)
+            let _cursor = body.walk();
+            if let Some(terminator) = named_children_of(body, context)
+                .into_iter()
                 .find(|child| child.kind_str() == "heredoc_end")
             {
                 last = Some(last.map_or(terminator.end_byte(), |end: usize| {

@@ -10,6 +10,7 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::support::Interpolations;
 use crate::rules::support::is_ruby_space_char;
 use crate::source::is_protected;
+use crate::rules::send_node::named_children_iter;
 
 /// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
 /// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
@@ -335,8 +336,7 @@ fn name_start(node: Node<'_>, object: Node<'_>) -> usize {
 
 fn is_endless_method(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
-    !node
-        .children(&mut cursor)
+    !node.children(&mut cursor)
         .any(|child| child.kind_str() == "end")
 }
 
@@ -836,8 +836,7 @@ impl Breaker<'_, '_> {
         let mut cursor = container.walk();
         // A comment is a node of the tree but not of RuboCop's AST, and a heredoc's body hangs off
         // the argument list it was opened in rather than off the opener, so neither is an element.
-        let children: Vec<Node<'t>> = container
-            .named_children(&mut cursor)
+        let children: Vec<Node<'t>> = container.named_children(&mut cursor)
             .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect();
         // A literal hash's own pairs are its elements; only an argument list and an array literal
@@ -1245,8 +1244,8 @@ fn breakable_dstr(
     max: usize,
     delimiter: &'static str,
 ) -> Option<(usize, &'static str)> {
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
+    let _cursor = node.walk();
+    for child in named_children_iter(node, context) {
         if child.kind_str() != "interpolation" {
             continue;
         }
@@ -1272,8 +1271,8 @@ fn breakable_string_part(
     delimiter: &'static str,
 ) -> Option<(usize, &'static str)> {
     let parent_column = context.source.line_column(node.start_byte()).1 - 1;
-    let mut cursor = node.walk();
-    for part in node.named_children(&mut cursor) {
+    let _cursor = node.walk();
+    for part in named_children_iter(node, context) {
         if part.kind_str() != "string_content" {
             continue;
         }

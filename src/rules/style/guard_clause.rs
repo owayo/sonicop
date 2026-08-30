@@ -11,6 +11,7 @@ use super::conditional::{
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Use a guard clause (`%<example>s`) instead of wrapping the code inside a \
      conditional expression.";
@@ -602,9 +603,9 @@ fn heredoc_end(context: &RuleContext<'_>, beginning: Node<'_>) -> Option<Range<u
         .nodes_of("heredoc_beginning")
         .position(|node| node.id() == beginning.id())?;
     let body = context.nodes_of("heredoc_body").nth(index)?;
-    let mut cursor = body.walk();
-    let terminator = body
-        .named_children(&mut cursor)
+    let _cursor = body.walk();
+    let terminator = named_children_of(body, context)
+        .into_iter()
         .find(|child| child.kind_str() == "heredoc_end")?;
     Some(terminator.byte_range())
 }

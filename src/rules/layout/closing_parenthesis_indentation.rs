@@ -153,8 +153,7 @@ fn delimited<'tree>(node: Node<'tree>) -> Option<Delimited<'tree>> {
         "call" => grouped(node),
         _ => {
             let mut cursor = container.walk();
-            container
-                .named_children(&mut cursor)
+            container.named_children(&mut cursor)
                 .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
                 .map(|child| (child.start_byte(), hash_parts(child)))
                 .collect()

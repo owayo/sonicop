@@ -10,6 +10,8 @@ use crate::rules::send_node::is_plain_send;
 
 use super::literal::{self, Quoting};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::all_children_iter;
 
 const MSG: &str = "Prefer string interpolation to string concatenation.";
 
@@ -322,11 +324,11 @@ struct Interpolated<'tree> {
 /// The children upstream's `dstr` holds, or `None` when the literal has no interpolation and is a
 /// plain `str`.
 fn interpolated<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<Interpolated<'tree>> {
-    let mut cursor = node.walk();
-    let children: Vec<Node<'tree>> = node.children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let children: Vec<Node<'tree>> = all_children_iter(node, context).collect();
     if !children.iter().any(|child| child.kind_str() == "interpolation") {
         return None;
     }
@@ -475,9 +477,9 @@ fn body_is_str(context: &RuleContext<'_>, body: Node<'_>) -> bool {
     if has_interpolation_descendant(body) {
         return false;
     }
-    let mut cursor = body.walk();
-    let end = body
-        .children(&mut cursor)
+    let _cursor = body.walk();
+    let end = all_children_of(body, context)
+        .into_iter()
         .find(|child| child.kind_str() == "heredoc_end")
         .map_or(body.end_byte(), |terminator| terminator.start_byte());
     let text = &context.source.text()[body.start_byte()..end];

@@ -3,6 +3,7 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Do not use `%W` unless interpolation is needed. If not, use `%w`.";
 
@@ -16,8 +17,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // `requires_interpolation?`: an element that interpolates, or one whose text could not be
         // written between single quotes.
-        let mut cursor = node.walk();
-        let interpolates = node.named_children(&mut cursor).any(|element| {
+        let _cursor = node.walk();
+        let interpolates = named_children_iter(node, context).any(|element| {
             holds_interpolation(element)
                 || super::literal::double_quotes_required(context.source.node_text(element))
         });

@@ -8,6 +8,7 @@ use regex::Regex;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// `MagicComment::TOKEN`.
 const TOKEN: &str = "[[:alnum:]\\-_]+";
@@ -227,8 +228,8 @@ fn editor_specifies(inner: &str, separator: char, operator: char, keywords: &[&s
 /// `leading_comment_lines`: the line the first token that is not a comment sits on.
 fn first_non_comment_line(context: &RuleContext<'_>) -> usize {
     let root = context.root_node();
-    let mut cursor = root.walk();
-    root.named_children(&mut cursor)
+    let _cursor = root.walk();
+    named_children_iter(root, context)
         .find(|child| child.kind_str() != "comment")
         .map_or(usize::MAX, |child| {
             context.source.line_column(child.start_byte()).0

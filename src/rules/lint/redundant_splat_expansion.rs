@@ -10,6 +10,7 @@ use super::literals::literal_type;
 use super::statements::statements;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Replace splat expansion with comma separated values.";
 const ARRAY_PARAM_MSG: &str = "Pass array contents as separate arguments.";
@@ -49,7 +50,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<bool>("AllowPercentLiteralArrayArgument")
         .unwrap_or(true);
     for node in context.nodes_of("splat_argument") {
-        let Some(expanded) = named_children_of(node, context).into_iter().next() else {
+        let Some(expanded) = named_children_iter(node, context).next() else {
             continue;
         };
         let (position, grandparent) = position_of(node);

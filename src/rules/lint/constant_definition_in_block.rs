@@ -43,8 +43,7 @@ fn enclosing_block(node: Node<'_>) -> Option<Node<'_>> {
     // statements one level further down again -- so nothing in such a block is written directly in
     // it any more.
     let mut cursor = body.walk();
-    if body
-        .named_children(&mut cursor)
+    if body.named_children(&mut cursor)
         .any(|child| matches!(child.kind_str(), "rescue" | "else" | "ensure"))
     {
         return None;

@@ -5,6 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::all_children_iter;
 
 const MSG: &str = "Use double pipes `||` instead.";
 const REDUNDANT_CONDITION: &str = "This condition is not needed.";
@@ -453,8 +455,8 @@ fn branch<'tree>(node: Node<'tree>, want_consequence: bool) -> Option<Branch<'tr
 
 /// `range_between(node.loc.question.begin_pos, node.loc.colon.end_pos)`.
 fn question_to_colon(context: &RuleContext<'_>, node: Node<'_>) -> Option<Range<usize>> {
-    let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node.children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let children: Vec<Node<'_>> = all_children_iter(node, context).collect();
     let question = children
         .iter()
         .find(|child| context.source.node_text(**child) == "?")?;
@@ -598,16 +600,16 @@ fn stands_in_a_send(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 
 /// The operator token a binary expression is written with, which the grammar keeps unnamed.
 fn binary_operator<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> Option<&'a str> {
-    let mut cursor = node.walk();
-    let operator = node
-        .children(&mut cursor)
+    let _cursor = node.walk();
+    let operator = all_children_of(node, context)
+        .into_iter()
         .find(|child| !child.is_named() && !child.is_extra())?;
     Some(context.source.node_text(operator))
 }
 
 fn writes_through_safe_navigation(context: &RuleContext<'_>, call: Node<'_>) -> bool {
-    let mut cursor = call.walk();
-    call.children(&mut cursor)
+    let _cursor = call.walk();
+    all_children_iter(call, context)
         .any(|child| !child.is_named() && context.source.node_text(child) == "&.")
 }
 

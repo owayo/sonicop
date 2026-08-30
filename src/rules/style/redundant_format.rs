@@ -10,6 +10,8 @@ use crate::rules::ruby_literal::{string_value, unescape};
 use crate::rules::send_node::{
     Argument, arguments, has_interpolation, heredoc_body, send_range, symbol_name,
 };
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// `RESTRICT_ON_SEND`.
 const FORMAT_METHODS: &[&str] = &["format", "sprintf"];
@@ -97,8 +99,8 @@ fn static_string_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Stri
         "string" if !has_interpolation(node) => Some(string_value(node, context)),
         "string" => {
             let mut text = String::new();
-            let mut cursor = node.walk();
-            for child in node.named_children(&mut cursor) {
+            let _cursor = node.walk();
+            for child in named_children_iter(node, context) {
                 if child.kind_str() != "interpolation" {
                     text.push_str(&string_value(node, context));
                     break;
@@ -108,8 +110,8 @@ fn static_string_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Stri
         }
         "chained_string" => {
             let mut text = String::new();
-            let mut cursor = node.walk();
-            for child in node.named_children(&mut cursor) {
+            let _cursor = node.walk();
+            for child in named_children_iter(node, context) {
                 if child.kind_str() == "string" && !has_interpolation(child) {
                     text.push_str(&string_value(child, context));
                 }
@@ -120,8 +122,8 @@ fn static_string_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Stri
         "heredoc_beginning" => {
             let body = heredoc_body(node, context)?;
             let mut text = String::new();
-            let mut cursor = body.walk();
-            for child in body.named_children(&mut cursor) {
+            let _cursor = body.walk();
+            for child in named_children_iter(body, context) {
                 if child.kind_str() == "heredoc_content" {
                     text.push_str(context.source.node_text(child));
                 }
@@ -610,8 +612,8 @@ fn dstr_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         return string_value(node, context);
     }
     let mut value = String::new();
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
+    let _cursor = node.walk();
+    for child in named_children_iter(node, context) {
         match child.kind_str() {
             "string_content" => value.push_str(context.source.node_text(child)),
             "escape_sequence" => unescape(context.source.node_text(child), &mut value),
@@ -855,9 +857,9 @@ fn to_s(value: &Value) -> String {
 
 /// `quote`: the result keeps the delimiters the template was written with.
 fn quote(context: &RuleContext<'_>, template: Node<'_>, call: Node<'_>, formatted: &str) -> String {
-    let mut cursor = template.walk();
-    let delimiters: Vec<Node<'_>> = template
-        .children(&mut cursor)
+    let _cursor = template.walk();
+    let delimiters: Vec<Node<'_>> = all_children_of(template, context)
+        .into_iter()
         .filter(|child| !child.is_named())
         .collect();
     let mut opening = delimiters.first().map_or("'".to_owned(), |token| {

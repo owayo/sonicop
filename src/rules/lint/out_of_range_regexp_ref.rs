@@ -7,6 +7,7 @@ use crate::rules::send_node::{arguments, named_children};
 use super::regexp::{captures, interpolates, pattern};
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// The methods that leave `$~` set, which is what makes a numbered reference after them valid.
 /// `RESTRICT_ON_SEND` is this list, so a call to anything else leaves the state alone.
@@ -215,7 +216,7 @@ fn regexp_operand<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> 
             node.field("right"),
             node.field("left"),
         ),
-        "element_reference" => ("[]", named_children_of(node, context).into_iter().nth(1), node.child(0)),
+        "element_reference" => ("[]", named_children_iter(node, context).nth(1), node.child(0)),
         _ => return None,
     };
     if let Some(first) = first

@@ -6,6 +6,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
 
 /// One entry of `Methods`, which upstream writes as a list of single-key hashes.
 type Methods = Vec<HashMap<String, Vec<String>>>;
@@ -50,9 +51,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if written.is_empty() || written.iter().any(|arg| arg.kind_str() != "identifier") {
             continue;
         }
-        let mut cursor = list.walk();
-        if list
-            .children(&mut cursor)
+        let _cursor = list.walk();
+        if all_children_of(list, context)
+            .into_iter()
             .any(|child| !child.is_named() && child.kind_str() == ";")
         {
             continue;

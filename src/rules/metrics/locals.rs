@@ -493,7 +493,14 @@ pub(super) fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     node.named_children(&mut cursor).collect()
 }
 
-pub(super) fn field_name(child: Node<'_>, parent: Node<'_>) -> Option<&'static str> {
+pub(super) fn field_name(
+    child: Node<'_>,
+    parent: Node<'_>,
+    index: &super::super::AstIndex<'_>,
+) -> Option<&'static str> {
+    if index.knows(child) {
+        return index.field_name_of(child);
+    }
     let mut cursor = parent.walk();
     if !cursor.goto_first_child() {
         return None;
@@ -540,9 +547,9 @@ fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool 
         return true;
     };
     match parent.kind_str() {
-        "call" => field_name(node, parent) != Some("method"),
-        "method" | "singleton_method" => field_name(node, parent) != Some("name"),
-        "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),
+        "call" => field_name(node, parent, index) != Some("method"),
+        "method" | "singleton_method" => field_name(node, parent, index) != Some("name"),
+        "assignment" | "operator_assignment" => field_name(node, parent, index) != Some("left"),
         "left_assignment_list"
         | "rest_assignment"
         | "destructured_left_assignment"
@@ -558,8 +565,8 @@ fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool 
         | "keyword_parameter"
         | "splat_parameter"
         | "hash_splat_parameter"
-        | "block_parameter" => field_name(node, parent) != Some("name"),
-        "for" => field_name(node, parent) != Some("pattern"),
+        | "block_parameter" => field_name(node, parent, index) != Some("name"),
+        "for" => field_name(node, parent, index) != Some("pattern"),
         _ => true,
     }
 }

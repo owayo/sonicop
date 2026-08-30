@@ -13,6 +13,7 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 use super::statements::{holds_statements, statements};
+use crate::rules::send_node::all_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("range") {
@@ -53,9 +54,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 /// `node.loc.operator`.
-fn operator<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+fn operator<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .find(|child| !child.is_named() && matches!(context.source.node_text(*child), ".." | "..."))
 }
 
@@ -106,8 +107,7 @@ fn innermost<'tree>(node: Node<'tree>) -> Node<'tree> {
     let mut current = node;
     loop {
         let mut cursor = current.walk();
-        let first = current
-            .named_children(&mut cursor)
+        let first = current.named_children(&mut cursor)
             .find(|child| !skippable(*child));
         match first {
             Some(child) => current = child,

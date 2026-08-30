@@ -127,8 +127,7 @@ fn clause_range(node: Node<'_>) -> Range<usize> {
 /// The `resbody` of `x rescue y`, which starts at the keyword and ends with the handler.
 fn modifier_clause(node: Node<'_>, handler: Node<'_>) -> Range<usize> {
     let mut cursor = node.walk();
-    let keyword = node
-        .children(&mut cursor)
+    let keyword = node.children(&mut cursor)
         .find(|child| !child.is_named() && child.kind_str() == "rescue")
         .map_or(node.start_byte(), |child| child.start_byte());
     keyword..handler.end_byte()

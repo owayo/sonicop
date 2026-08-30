@@ -17,7 +17,7 @@ use tree_sitter::{Node, Tree};
 use super::locals::named_children;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 pub(in crate::rules) struct Fragments {
     /// The recovered parse, absent when the file holds nothing to recover.
@@ -43,7 +43,7 @@ impl Fragments {
             .collect();
         let percents: Vec<Node<'_>> = context
             .nodes_of("chained_string")
-            .flat_map(|chained| named_children_of(chained, context).into_iter().skip(1))
+            .flat_map(|chained| named_children_iter(chained, context).skip(1))
             .filter(|part| {
                 part.kind_str() == "string" && source[part.byte_range()].starts_with('%')
             })

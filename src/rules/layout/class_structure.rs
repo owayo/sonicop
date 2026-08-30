@@ -8,7 +8,8 @@ use crate::rules::lint::access_modifier::send_name;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, symbol_name};
 use crate::rules::visibility::{node_visibility, siblings, statements};
-use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_iter;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let expected: Vec<String> = context.setting("ExpectedOrder").unwrap_or_default();
@@ -205,7 +206,7 @@ fn is_private_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    named_children_of(parent, context).into_iter().any(|sibling| {
+    named_children_iter(parent, context).any(|sibling| {
         sibling.kind_str() == "call"
             && sibling
                 .field("method")
@@ -359,8 +360,8 @@ fn is_upstream_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 fn operator_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .find(|child| !child.is_named())
         .map(|child| context.source.node_text(child))
 }

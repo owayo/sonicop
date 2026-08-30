@@ -65,8 +65,7 @@ fn optional_parameters(name: Node<'_>, value: Node<'_>) -> Vec<(usize, usize)> {
             .filter(|left| left.kind_str() == "left_assignment_list")
             .and_then(|left| {
                 let mut cursor = left.walk();
-                let parts: Vec<Node<'_>> = left
-                    .named_children(&mut cursor)
+                let parts: Vec<Node<'_>> = left.named_children(&mut cursor)
                     .filter(|part| !matches!(part.kind_str(), "comment" | "heredoc_body"))
                     .collect();
                 match (parts.len() == 2, value.field("right")) {

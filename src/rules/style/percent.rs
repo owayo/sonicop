@@ -10,6 +10,7 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// Node kinds that can be written as a `%`-literal. A node of one of these kinds is only a percent
 /// literal when its opening delimiter actually starts with `%`; `"a"` and `%q(a)` share a kind.
@@ -98,8 +99,8 @@ pub(super) fn literal_segments<'a>(
     let text = context.source.text();
     let mut segments = Vec::new();
     if matches!(node.kind_str(), "string_array" | "symbol_array") {
-        let mut cursor = node.walk();
-        for element in node.named_children(&mut cursor) {
+        let _cursor = node.walk();
+        for element in named_children_iter(node, context) {
             if !holds_interpolation(element) {
                 segments.push(&text[element.byte_range()]);
             }
@@ -109,8 +110,8 @@ pub(super) fn literal_segments<'a>(
 
     // Everything else is one run of text, broken only where an interpolation replaces it with code.
     let mut start = literal.begin.end;
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
+    let _cursor = node.walk();
+    for child in named_children_iter(node, context) {
         if child.kind_str() != "interpolation" {
             continue;
         }

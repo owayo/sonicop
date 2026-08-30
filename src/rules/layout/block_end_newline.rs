@@ -8,6 +8,7 @@ use super::support::{begins_its_line, heredoc_terminators};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -108,9 +109,9 @@ fn last_heredoc_argument(
     let terminators = heredoc_terminators(context);
     loop {
         if let Some(list) = argument_list(node) {
-            let mut cursor = list.walk();
-            let found = list
-                .named_children(&mut cursor)
+            let _cursor = list.walk();
+            let found = named_children_of(list, context)
+                .into_iter()
                 .filter(|child| child.kind_str() == "heredoc_beginning")
                 .filter_map(|child| plain_heredoc(context, &bodies, &terminators, child))
                 .last();
@@ -131,8 +132,7 @@ fn body_call<'tree>(block: Node<'tree>) -> Option<Node<'tree>> {
         matches!(child.kind_str(), "body_statement" | "block_body") && child.named_child_count() > 0
     })?;
     let mut cursor = body.walk();
-    let statements: Vec<Node<'tree>> = body
-        .named_children(&mut cursor)
+    let statements: Vec<Node<'tree>> = body.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     match statements.as_slice() {

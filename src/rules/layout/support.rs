@@ -8,6 +8,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_of;
 pub(super) use crate::rules::support::final_pos;
 
 /// The run of spaces and tabs ending at `offset`.
@@ -518,13 +520,13 @@ pub(super) fn holds_block_comment(context: &RuleContext<'_>, expr: &Range<usize>
 /// This is `each_argument_node`, which walks each argument's subtree but stops at anything that is
 /// a method call upstream -- so a literal nested inside another call belongs to that call instead.
 pub(super) fn argument_literals<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     call: Node<'tree>,
     kinds: &[&str],
 ) -> Vec<(Node<'tree>, Node<'tree>)> {
-    let mut cursor = call.walk();
-    let Some(list) = call
-        .children(&mut cursor)
+    let _cursor = call.walk();
+    let Some(list) = all_children_of(call, context)
+        .into_iter()
         .find(|child| child.kind_str() == "argument_list")
     else {
         return Vec::new();
@@ -893,9 +895,9 @@ pub(super) fn heredoc_terminators(context: &RuleContext<'_>) -> Vec<(usize, Rang
         .enumerate()
         .filter_map(|(index, body)| {
             let opener = *openers.get(index)?;
-            let mut cursor = body.walk();
-            let terminator = body
-                .named_children(&mut cursor)
+            let _cursor = body.walk();
+            let terminator = named_children_of(body, context)
+                .into_iter()
                 .find(|child| child.kind_str() == "heredoc_end")?;
             Some((opener, terminator.byte_range()))
         })

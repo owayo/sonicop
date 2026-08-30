@@ -407,8 +407,7 @@ fn pairs_on_same_line(pair: Node<'_>) -> bool {
         return false;
     };
     let mut cursor = parent.walk();
-    let lines: Vec<usize> = parent
-        .named_children(&mut cursor)
+    let lines: Vec<usize> = parent.named_children(&mut cursor)
         .filter(|child| child.kind_str() == "pair")
         .map(|child| child.start_position().row)
         .collect();

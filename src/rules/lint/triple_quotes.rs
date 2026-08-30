@@ -3,13 +3,14 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_dstr`: the only `dstr` written as one literal per quote is the run of adjacent literals
     // the grammar keeps as a `chained_string`.
     for node in context.nodes_of("chained_string") {
-        let mut cursor = node.walk();
-        let children: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
+        let _cursor = node.walk();
+        let children: Vec<Node<'_>> = named_children_iter(node, context).collect();
         let mut empty: Vec<Node<'_>> = children
             .iter()
             .copied()

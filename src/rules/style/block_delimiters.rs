@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 const MSG_MULTILINE: &str = "Avoid using `{...}` for multi-line blocks.";
 const MSG_SINGLE_LINE: &str = "Prefer `{...}` over `do...end` for single-line blocks.";
@@ -130,7 +131,7 @@ struct Block<'t> {
 }
 
 impl<'t> Block<'t> {
-    fn new(context: &RuleContext<'_>, node: Node<'t>) -> Option<Self> {
+    fn new(context: &'t RuleContext<'_>, node: Node<'t>) -> Option<Self> {
         let braces = node.kind_str() == "block";
         let call = node.parent()?;
         // `-> { }` is a block whose call is `lambda` upstream, however the arrow is written.
@@ -141,8 +142,8 @@ impl<'t> Block<'t> {
                 .map(|method| context.source.node_text(method).to_owned())
                 .unwrap_or_default(),
         };
-        let mut cursor = node.walk();
-        let children: Vec<Node<'t>> = node.children(&mut cursor).collect();
+        let _cursor = node.walk();
+        let children: Vec<Node<'t>> = all_children_iter(node, context).collect();
         let begin = *children
             .iter()
             .find(|child| !child.is_named() && matches!(child.kind_str(), "{" | "do"))?;

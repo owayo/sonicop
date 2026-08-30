@@ -6,6 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const MSG_WITH_SAFE_ASSIGNMENT_ALLOWED: &str = "Use `==` if you meant to do a comparison or wrap the expression in parentheses to \
      indicate you meant to assign in a condition.";
@@ -191,8 +192,8 @@ fn traverse(
         }
         Shape::Other => {}
     }
-    let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let children: Vec<Node<'_>> = named_children_iter(node, context).collect();
     for child in children {
         traverse(child, context, allow_safe, reported, offenses);
     }

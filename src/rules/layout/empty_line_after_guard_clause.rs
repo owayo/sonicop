@@ -215,8 +215,7 @@ fn if_branch<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
             // A `then` clause holding more than one statement is a `begin` upstream, which is
             // never a guard clause.
             let mut cursor = branch.walk();
-            let mut statements = branch
-                .named_children(&mut cursor)
+            let mut statements = branch.named_children(&mut cursor)
                 .filter(|child| !matches!(child.kind_str(), "heredoc_body" | "comment"));
             let first = statements.next()?;
             statements.next().is_none().then_some(first)
@@ -279,8 +278,7 @@ fn next_statement<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, bool)> {
         _ => return None,
     };
     let mut cursor = parent.walk();
-    let statements: Vec<Node<'tree>> = parent
-        .named_children(&mut cursor)
+    let statements: Vec<Node<'tree>> = parent.named_children(&mut cursor)
         .filter(|child| {
             !matches!(
                 child.kind_str(),
@@ -382,8 +380,7 @@ fn is_and(text: &str, node: Node<'_>) -> bool {
 
 fn call_arguments<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = node.walk();
-    let Some(list) = node
-        .children(&mut cursor)
+    let Some(list) = node.children(&mut cursor)
         .find(|child| child.kind_str() == "argument_list")
     else {
         return Vec::new();

@@ -4,16 +4,17 @@ use crate::diagnostic::Offense;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < RubyVersion::new(2, 7) {
         return;
     }
     for case in context.nodes_of("case_match") {
-        let mut cursor = case.walk();
+        let _cursor = case.walk();
         let mut catch_all_found = false;
         let mut else_clause = None;
-        for branch in case.named_children(&mut cursor) {
+        for branch in named_children_iter(case, context) {
             match branch.kind_str() {
                 "else" => else_clause = Some(branch),
                 "in_clause" => {
@@ -59,8 +60,7 @@ fn is_catch_all(pattern: Node<'_>) -> bool {
         "parenthesized_pattern" => pattern.named_child(0).is_some_and(is_catch_all),
         "alternative_pattern" => {
             let mut cursor = pattern.walk();
-            pattern
-                .named_children(&mut cursor)
+            pattern.named_children(&mut cursor)
                 .any(|alternative| is_catch_all(alternative))
         }
         _ => false,

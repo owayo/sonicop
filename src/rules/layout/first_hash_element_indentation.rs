@@ -11,6 +11,8 @@ use super::support::{
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -93,9 +95,9 @@ fn first_pair<'tree>(hash: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 fn separator_style(context: &RuleContext<'_>, first: Node<'_>) -> bool {
-    let mut cursor = first.walk();
-    let rocket = first
-        .children(&mut cursor)
+    let _cursor = first.walk();
+    let rocket = all_children_of(first, context)
+        .into_iter()
         .any(|child| child.kind_str() == "=>");
     let key = if rocket {
         "EnforcedHashRocketStyle"
@@ -109,9 +111,9 @@ fn separator_style(context: &RuleContext<'_>, first: Node<'_>) -> bool {
 }
 
 fn longest_key_overhang(context: &RuleContext<'_>, hash: Node<'_>) -> i64 {
-    let mut cursor = hash.walk();
-    let lengths: Vec<i64> = hash
-        .named_children(&mut cursor)
+    let _cursor = hash.walk();
+    let lengths: Vec<i64> = named_children_of(hash, context)
+        .into_iter()
         .filter(|child| child.kind_str() == "pair")
         .filter_map(|pair| pair.field("key"))
         .map(|key| context.source.text()[key.byte_range()].chars().count() as i64)

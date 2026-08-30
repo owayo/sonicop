@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::send_node::{Argument, arguments, send_range};
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 const MSG_EQUALITY: &str = "Avoid equality comparisons of floats as they are unreliable.";
 const MSG_INEQUALITY: &str = "Avoid inequality comparisons of floats as they are unreliable.";
@@ -61,7 +62,7 @@ fn case_conditions(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec
             if pattern.kind_str() != "pattern" {
                 continue;
             }
-            let Some(condition) = named_children_of(pattern, context).into_iter().next() else {
+            let Some(condition) = named_children_iter(pattern, context).next() else {
                 continue;
             };
             if is_float(condition, context) && !literal_safe(condition, context) {

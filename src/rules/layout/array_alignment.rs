@@ -101,8 +101,7 @@ fn inspect(
 /// `node.children`, where a run of `key: value` pairs is a single `hash` value upstream.
 fn elements(node: Node<'_>) -> Vec<Range<usize>> {
     let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node
-        .named_children(&mut cursor)
+    let children: Vec<Node<'_>> = node.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect();
     let mut elements = Vec::new();

@@ -91,8 +91,7 @@ fn is_dir_glob(receiver: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn glob_arguments<'tree>(receiver: Node<'tree>) -> Vec<Node<'tree>> {
     if receiver.kind_str() == "element_reference" {
         let mut cursor = receiver.walk();
-        return receiver
-            .named_children(&mut cursor)
+        return receiver.named_children(&mut cursor)
             .filter(|child| {
                 child.kind_str() != "comment"
                     && receiver

@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 
 use super::literals::literal_type;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// `INVALID_TYPES`: the literals that name a value rather than a class, so that `rescue` raises a
 /// `TypeError` when it tries to match against them.
@@ -21,8 +22,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(list) = clause.field("exceptions") else {
             continue;
         };
-        let mut cursor = list.walk();
-        let exceptions: Vec<Node<'_>> = list.named_children(&mut cursor).collect();
+        let _cursor = list.walk();
+        let exceptions: Vec<Node<'_>> = named_children_iter(list, context).collect();
         let invalid: Vec<&Node<'_>> = exceptions
             .iter()
             .filter(|exception| is_invalid(**exception, context))

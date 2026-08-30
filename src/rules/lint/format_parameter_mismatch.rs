@@ -9,6 +9,7 @@ use crate::rules::send_node::{arguments, is_plain_send};
 use super::format_string::{is_valid, parse};
 use super::literals::literal_type;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG_INVALID: &str = "Format string is invalid because formatting sequence types \
      (numbered, named or unnumbered) are mixed.";
@@ -222,9 +223,9 @@ fn count_matches(call: &Call<'_>, context: &RuleContext<'_>) -> Count {
             .is_some_and(|first| first.first.kind_str() == "array")
     {
         let list = call.given[0].first;
-        let mut cursor = list.walk();
-        let passed = list
-            .named_children(&mut cursor)
+        let _cursor = list.walk();
+        let passed = named_children_of(list, context)
+            .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .count();
         let Some(receiver) = call.receiver else {

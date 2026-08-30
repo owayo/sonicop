@@ -9,6 +9,7 @@ use crate::rules::node_ext::NodeExt;
 use super::node_equality::identical;
 use super::statements::{body_children, statements};
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// One branch, with what upstream would report it at.
 struct Branch<'tree> {
@@ -135,8 +136,8 @@ fn branches<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Br
     let mut collected = Vec::new();
     match node.kind_str() {
         "case" | "case_match" => {
-            let mut cursor = node.walk();
-            for clause in node.named_children(&mut cursor) {
+            let _cursor = node.walk();
+            for clause in named_children_iter(node, context) {
                 match clause.kind_str() {
                     "when" | "in_clause" => collected.push(Branch {
                         nodes: clause.field("body").map(statements).unwrap_or_default(),

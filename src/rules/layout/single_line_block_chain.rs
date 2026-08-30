@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 const MSG: &str = "Put method call on a separate line if chained to a single line block.";
 
@@ -73,10 +74,10 @@ fn block_of<'tree>(receiver: Node<'tree>) -> Option<Node<'tree>> {
 fn dot_of<'tree>(
     node: Node<'tree>,
     receiver: Node<'_>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .filter(|child| !child.is_named() && child.start_byte() >= receiver.end_byte())
         .find(|child| DOTS.contains(&context.source.node_text(*child)))
 }

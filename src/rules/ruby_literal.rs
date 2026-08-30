@@ -9,6 +9,7 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// The names a method may be given that are not identifiers, which Ruby writes a symbol of bare.
 const OPERATOR_NAMES: &[&str] = &[
@@ -99,8 +100,8 @@ pub(crate) fn string_value(node: Node<'_>, context: &RuleContext<'_>) -> String 
     let raw = context.source.node_text(node);
     let verbatim = raw.starts_with('\'') || raw.starts_with("%q") || raw.starts_with(":'");
     let mut value = String::new();
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
+    let _cursor = node.walk();
+    for child in named_children_iter(node, context) {
         match child.kind_str() {
             "string_content" if verbatim => {
                 push_verbatim(context.source.node_text(child), &mut value);

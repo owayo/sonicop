@@ -194,8 +194,7 @@ fn delimiters<'tree>(parameters: Node<'tree>) -> (Option<Node<'tree>>, Option<No
 
 fn block_arguments<'tree>(parameters: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = parameters.walk();
-    parameters
-        .named_children(&mut cursor)
+    parameters.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }

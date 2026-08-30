@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{is_plain_send, string_text};
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_of;
 
 const FOR_ARRAY: &str =
     " Or, if they were intended to be separate array elements, separate them with a comma.";
@@ -92,9 +93,9 @@ fn display(node: Node<'_>, context: &RuleContext<'_>) -> String {
 /// nothing to `str_type?` -- so the recursion joins an empty string for it. Showing the source
 /// instead puts `#{...}` in a message that upstream writes without it.
 fn str_content(node: Node<'_>, context: &RuleContext<'_>) -> String {
-    let mut cursor = node.walk();
-    let parts: Vec<String> = node
-        .children(&mut cursor)
+    let _cursor = node.walk();
+    let parts: Vec<String> = all_children_of(node, context)
+        .into_iter()
         .filter(|child| child.is_named() && child.kind_str() != "interpolation")
         .map(|child| match child.kind_str() {
             // **`str_content` reads the value, not the source.** A `\` closing a line joins it to

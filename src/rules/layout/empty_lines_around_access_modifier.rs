@@ -270,8 +270,7 @@ fn enclosing_body<'tree>(node: Node<'tree>) -> Option<Body<'tree>> {
         return None;
     }
     let mut cursor = container.walk();
-    let statements: Vec<Node<'tree>> = container
-        .named_children(&mut cursor)
+    let statements: Vec<Node<'tree>> = container.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "rescue" | "ensure" | "else"))
         .collect();
     let wrapped_in_begin = statements.len() > 1;

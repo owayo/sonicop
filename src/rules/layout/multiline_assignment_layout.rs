@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::lint::blocks::BlockArgs;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 const NEW_LINE_OFFENSE: &str = "Right hand side of multi-line assignment is on the same line as \
                                 the assignment operator `=`.";
@@ -157,10 +158,10 @@ fn block_of(
 }
 
 /// `node.loc.operator`: the `=` or `+=` the assignment was written with.
-fn operator<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+fn operator<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
     let left = node.field("left")?;
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .filter(|child| !child.is_named() && child.start_byte() >= left.end_byte())
         .find(|child| context.source.node_text(*child).ends_with('='))
 }

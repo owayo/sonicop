@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_iter;
 
 const MSG: &str = "Remove the space before the opening brackets.";
 
@@ -72,8 +73,8 @@ fn index_gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usize, usize)
 }
 
 /// `node.loc.selector`, which for an index read begins at the `[`.
-fn opening_bracket<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+fn opening_bracket<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .find(|child| !child.is_named() && context.source.node_text(*child) == "[")
 }

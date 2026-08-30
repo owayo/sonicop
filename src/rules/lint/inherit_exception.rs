@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The indirect inheritance the cop can also report needs `AllCops/UseProjectIndex` and the
@@ -103,9 +104,9 @@ fn shadowed_by_a_sibling_definition(
     let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    let mut cursor = parent.walk();
-    parent
-        .named_children(&mut cursor)
+    let _cursor = parent.walk();
+    named_children_of(parent, context)
+        .into_iter()
         .take_while(|sibling| sibling.id() != node.id())
         .any(|sibling| {
             matches!(sibling.kind_str(), "class" | "module")

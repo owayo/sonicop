@@ -3,6 +3,7 @@
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("when") {
@@ -23,9 +24,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if super::nodes::children_in(body, context).is_empty() {
             continue;
         }
-        let mut cursor = node.walk();
-        let conditions: Vec<&str> = node
-            .named_children(&mut cursor)
+        let conditions: Vec<&str> = named_children_of(node, context)
+            .into_iter()
             .filter(|child| child.kind_str() == "pattern")
             .map(|pattern| context.source.node_text(pattern))
             .collect();

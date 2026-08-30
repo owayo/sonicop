@@ -8,6 +8,8 @@ use crate::rules::RuleContext;
 use crate::rules::lint::variable_force::Analysis;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::spurious_assignment_list;
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let configured: String = context
@@ -179,9 +181,9 @@ impl Rewrite<'_, '_> {
             && let Some(key) = node.field("key")
             && self.context.source.node_text(key) == self.name
         {
-            let mut cursor = node.walk();
-            if let Some(colon) = node
-                .children(&mut cursor)
+            let _cursor = node.walk();
+            if let Some(colon) = all_children_of(node, self.context)
+                .into_iter()
                 .find(|child| child.kind_str() == ":")
             {
                 let at = colon.end_byte();
@@ -193,8 +195,8 @@ impl Rewrite<'_, '_> {
     }
 
     fn walk_children(&mut self, node: Node<'_>) -> bool {
-        let mut cursor = node.walk();
-        let children: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
+        let _cursor = node.walk();
+        let children: Vec<Node<'_>> = named_children_iter(node, self.context).collect();
         children.into_iter().any(|child| self.walk(child))
     }
 }

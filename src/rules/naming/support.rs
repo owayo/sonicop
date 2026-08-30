@@ -8,6 +8,8 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
+use crate::rules::send_node::named_children_of;
 use crate::rules::support::spurious_assignment_list;
 use crate::source::SourceFile;
 
@@ -90,9 +92,9 @@ pub(super) fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
         .nodes_of("heredoc_beginning")
         .zip(bodies)
         .filter_map(|(opening, body)| {
-            let mut cursor = body.walk();
-            let terminator = body
-                .named_children(&mut cursor)
+            let _cursor = body.walk();
+            let terminator = named_children_of(body, context)
+                .into_iter()
                 .find(|child| child.kind_str() == "heredoc_end")?;
             let (body_line, _) = context.source.line_column(body.start_byte());
             let (end_line, _) = context.source.line_column(terminator.start_byte());
@@ -323,8 +325,8 @@ pub(super) fn class_emitter_method<'tree>(
     let Some(parent) = current.parent() else {
         return false;
     };
-    let mut cursor = parent.walk();
-    parent.named_children(&mut cursor).any(|child| {
+    let _cursor = parent.walk();
+    named_children_iter(parent, context).any(|child| {
         child.kind_str() == "class"
             && child
                 .field("name")

@@ -11,6 +11,7 @@ use super::comments_help::comment_search_lines;
 use crate::ruby_version::RubyVersion;
 
 use super::statements::statements;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Avoid `in` branches without a body.";
 
@@ -20,8 +21,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     let allow_comments: bool = context.setting("AllowComments").unwrap_or(true);
     for case in context.nodes_of("case_match") {
-        let mut cursor = case.walk();
-        let children: Vec<Node<'_>> = case.named_children(&mut cursor).collect();
+        let _cursor = case.walk();
+        let children: Vec<Node<'_>> = named_children_iter(case, context).collect();
         for (index, &branch) in children.iter().enumerate() {
             if branch.kind_str() != "in_clause" || has_body(branch) {
                 continue;

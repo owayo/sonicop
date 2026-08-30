@@ -2,6 +2,7 @@ use super::rescue_clause::{body, const_name, end};
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str =
     "Avoid rescuing the `Exception` class. Perhaps you meant to rescue `StandardError`?";
@@ -11,9 +12,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(exceptions) = node.field("exceptions") else {
             continue;
         };
-        let mut cursor = exceptions.walk();
-        let targets_exception = exceptions
-            .named_children(&mut cursor)
+        let _cursor = exceptions.walk();
+        let targets_exception = named_children_of(exceptions, context)
+            .into_iter()
             .any(|exception| const_name(exception, context.source).as_deref() == Some("Exception"));
         if !targets_exception {
             continue;

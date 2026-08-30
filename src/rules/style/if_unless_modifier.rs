@@ -818,7 +818,6 @@ static DISABLES_COP: LazyLock<Regex> = LazyLock::new(|| {
 /// parts are all plain text.
 fn is_static_regexp(regexp: Node<'_>) -> bool {
     let mut cursor = regexp.walk();
-    regexp
-        .named_children(&mut cursor)
+    regexp.named_children(&mut cursor)
         .all(|part| part.kind_str() != "interpolation")
 }

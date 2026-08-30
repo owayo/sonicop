@@ -17,7 +17,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// One ambiguity the lexer would have warned about.
 pub(super) struct Ambiguity<'tree> {
@@ -70,7 +70,7 @@ pub(super) fn scan<'tree>(
             continue;
         }
 
-        let Some(first) = named_children_of(list, context).into_iter().next() else {
+        let Some(first) = named_children_iter(list, context).next() else {
             continue;
         };
         let text = context.source.node_text(first);

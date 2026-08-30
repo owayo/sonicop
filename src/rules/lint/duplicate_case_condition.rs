@@ -5,15 +5,16 @@ use crate::rules::RuleContext;
 
 use super::node_equality::identical;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Duplicate `when` condition detected.";
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for case in context.nodes_of("case") {
         let mut seen: Vec<Node<'_>> = Vec::new();
-        let mut cursor = case.walk();
-        let branches: Vec<Node<'_>> = case
-            .named_children(&mut cursor)
+        let _cursor = case.walk();
+        let branches: Vec<Node<'_>> = named_children_of(case, context)
+            .into_iter()
             .filter(|child| child.kind_str() == "when")
             .collect();
         for branch in branches {
@@ -35,8 +36,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// condition, so what upstream reports is the node inside it.
 fn conditions<'tree>(branch: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = branch.walk();
-    branch
-        .named_children(&mut cursor)
+    branch.named_children(&mut cursor)
         .filter(|child| child.kind_str() == "pattern")
         .filter_map(|pattern| pattern.named_child(0))
         .collect()

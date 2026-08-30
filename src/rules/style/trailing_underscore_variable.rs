@@ -156,8 +156,7 @@ impl Cop<'_, '_> {
 /// The `=` of the assignment, which is where the left-hand side stops.
 fn operator(assignment: Node<'_>) -> Option<usize> {
     let mut cursor = assignment.walk();
-    assignment
-        .children(&mut cursor)
+    assignment.children(&mut cursor)
         .find(|child| !child.is_named() && child.kind_str() == "=")
         .map(|child| child.start_byte())
 }

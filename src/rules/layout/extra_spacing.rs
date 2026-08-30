@@ -19,6 +19,7 @@ use super::tokens::{Token, tokens};
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG_UNNECESSARY: &str = "Unnecessary spacing detected.";
 const MSG_UNALIGNED_ASGN: &str = "`=` is not aligned with the preceding assignment.";
@@ -287,8 +288,8 @@ fn previous_character(text: &str, offset: usize) -> Option<usize> {
 /// nothing but comments.
 fn is_blank(context: &RuleContext<'_>) -> bool {
     let root = context.root_node();
-    let mut cursor = root.walk();
-    !root
-        .named_children(&mut cursor)
+    let _cursor = root.walk();
+    !named_children_of(root, context)
+        .into_iter()
         .any(|child| child.kind_str() != "comment")
 }

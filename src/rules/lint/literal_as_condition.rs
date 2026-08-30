@@ -11,6 +11,7 @@ use super::literals::{is_basic_literal, is_falsey_literal, is_literal, is_truthy
 use super::statements::{Branch, statements};
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{named_children_of};
+use crate::rules::send_node::named_children_iter;
 
 /// The nodes whose `condition` the parser rewrites: a range there becomes a flip-flop and a regexp
 /// a match against `$_`, and neither is a literal any more.
@@ -365,7 +366,7 @@ fn check_case_condition(
 
 /// `primitive_array?`.
 fn primitive_array(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    named_children_of(node, context).into_iter().all(|child| {
+    named_children_iter(node, context).all(|child| {
         if child.kind_str() == "array" {
             primitive_array(child, context)
         } else {

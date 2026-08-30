@@ -5,6 +5,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// The enumerable methods a trailing `do` block was probably meant for.
 const BLOCK_METHODS: &[&str] = &[
@@ -203,7 +204,7 @@ fn check_do_block(
 fn trailing_block_method<'tree>(
     node: Node<'tree>,
     end: usize,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Node<'tree>> {
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
@@ -215,8 +216,8 @@ fn trailing_block_method<'tree>(
             return Some(current);
         }
         let start = stack.len();
-        let mut cursor = current.walk();
-        stack.extend(current.named_children(&mut cursor));
+        let _cursor = current.walk();
+        stack.extend(named_children_iter(current, context));
         stack[start..].reverse();
     }
     None

@@ -17,7 +17,7 @@ use tree_sitter::{Language, Node};
 
 use crate::rules::RuleContext;
 
-fn language() -> Language {
+pub(in crate::rules) fn language() -> Language {
     tree_sitter_ruby::LANGUAGE.into()
 }
 

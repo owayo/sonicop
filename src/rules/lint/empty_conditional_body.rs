@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 
 use super::statements::statements;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 /// The three conditionals whose branch can be written empty. A modifier form always has a body.
 const CONDITIONALS: &[&str] = &["if", "unless", "elsif"];
@@ -181,7 +182,7 @@ fn enclosing_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<
 /// `node.loc.begin`: the `then` or `;` the branch was introduced with. The grammar puts a `then`
 /// inside the branch it opens, but a `;` stays beside the condition -- and a branch holding nothing
 /// is no node at all, which leaves the `;` as the only trace of it.
-fn then_keyword<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+fn then_keyword<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
     if let Some(first) = node
         .field("consequence")
         .and_then(|branch| branch.child(0))
@@ -190,8 +191,8 @@ fn then_keyword<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<N
         return Some(first);
     }
     let condition = node.field("condition")?;
-    let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| {
+    let _cursor = node.walk();
+    all_children_iter(node, context).find(|child| {
         child.start_byte() >= condition.end_byte()
             && matches!(context.source.node_text(*child), "then" | ";")
     })

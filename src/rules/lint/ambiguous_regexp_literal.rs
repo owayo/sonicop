@@ -5,6 +5,8 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 use super::ambiguity::scan;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Ambiguous regexp literal. Parenthesize the method arguments if it's surely a \
      regexp literal, or add a whitespace to the right of the `/` if it should be a division.";
@@ -31,8 +33,8 @@ fn matches_a_static_regexp(owner: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(arguments) = owner.field("arguments") else {
         return false;
     };
-    let mut cursor = arguments.walk();
-    let Some(first) = arguments.named_children(&mut cursor).next() else {
+    let _cursor = arguments.walk();
+    let Some(first) = named_children_iter(arguments, context).next() else {
         return false;
     };
     if first.kind_str() != "binary"
@@ -47,9 +49,9 @@ fn matches_a_static_regexp(owner: Node<'_>, context: &RuleContext<'_>) -> bool {
         .field("left")
         .filter(|left| left.kind_str() == "regex")
         .is_some_and(|left| {
-            let mut cursor = left.walk();
-            !left
-                .named_children(&mut cursor)
+            let _cursor = left.walk();
+            !named_children_of(left, context)
+                .into_iter()
                 .any(|part| part.kind_str() == "interpolation")
         })
 }

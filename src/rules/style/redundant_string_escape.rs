@@ -7,6 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_of;
 
 /// One literal as `on_str` sees it: the text to scan, plus what the delimiters make of a backslash.
 struct Literal {
@@ -171,9 +172,9 @@ fn disabling_interpolation(source: &str, start: usize) -> bool {
 
 /// The delimiter written at one end of a literal, which the grammar keeps as an unnamed token.
 fn delimiter_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>, end: usize) -> &'a str {
-    let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node
-        .children(&mut cursor)
+    let _cursor = node.walk();
+    let children: Vec<Node<'_>> = all_children_of(node, context)
+        .into_iter()
         .filter(|c| !c.is_named())
         .collect();
     let token = match end {

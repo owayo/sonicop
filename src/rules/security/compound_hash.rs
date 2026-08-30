@@ -6,6 +6,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, is_plain_send, named_children, send_range, symbol_name};
+use crate::rules::send_node::all_children_iter;
 
 const COMBINATOR_IN_HASH_MSG: &str = "Use `[...].hash` instead of combining hash values manually.";
 const MONUPLE_HASH_MSG: &str =
@@ -186,8 +187,8 @@ fn element_count(node: Node<'_>) -> usize {
 
 /// The operator a node was written with, which the grammar leaves as an anonymous token.
 fn operator<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
+    let _cursor = node.walk();
+    all_children_iter(node, context)
         .find(|child| !child.is_named())
         .map(|child| context.source.node_text(child))
 }

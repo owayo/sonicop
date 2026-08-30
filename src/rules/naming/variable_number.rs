@@ -11,6 +11,7 @@ use super::support::{
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let style: String = context
@@ -178,8 +179,8 @@ fn collect_symbols<'tree>(
             // `alias foo bar` and `undef foo` name methods with symbols the parser invents; only
             // an alias between global variables does not.
             _ => {
-                let mut cursor = node.walk();
-                for child in node.named_children(&mut cursor) {
+                let _cursor = node.walk();
+                for child in named_children_iter(node, context) {
                     if matches!(
                         child.kind_str(),
                         "identifier" | "constant" | "operator" | "setter"
@@ -205,7 +206,6 @@ fn is_quoted_label(node: Node<'_>) -> bool {
         return false;
     }
     let mut cursor = parent.walk();
-    parent
-        .children(&mut cursor)
+    parent.children(&mut cursor)
         .any(|child| child.kind_str() == ":")
 }

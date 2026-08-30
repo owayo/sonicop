@@ -7,6 +7,7 @@ use crate::rules::RuleContext;
 
 use super::support::is_send_like;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let openers: Vec<Node<'_>> = context.nodes_of("heredoc_beginning").collect();
@@ -25,9 +26,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if heredoc_type(&text[opener.byte_range()]) == Some("<<") {
             continue;
         }
-        let mut cursor = body.walk();
-        let Some(delimiter) = body
-            .named_children(&mut cursor)
+        let _cursor = body.walk();
+        let Some(delimiter) = named_children_of(body, context)
+            .into_iter()
             .find(|child| child.kind_str() == "heredoc_end")
         else {
             continue;

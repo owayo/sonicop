@@ -11,6 +11,7 @@ use crate::rules::{push_named_children_in};
 use crate::rules::send_node::{arguments, is_string, pair_key_symbol, send_range, string_text};
 
 use super::support::gem_declarations;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Missing gem description comment.";
 
@@ -224,8 +225,8 @@ fn gem_options<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Vec<&'a str>
     };
     let pairs: Vec<Node<'_>> = match last.first().kind_str() {
         "hash" if last.parts().len() == 1 => {
-            let mut cursor = last.first().walk();
-            last.first().named_children(&mut cursor).collect()
+            let _cursor = last.first().walk();
+            named_children_iter(last.first(), context).collect()
         }
         _ => last.parts().to_vec(),
     };

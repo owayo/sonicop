@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 
 use super::statements::statements;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Do not return from an `ensure` block.";
 
@@ -26,8 +27,8 @@ fn collect(
     if node.kind_str() == "return" && !returns_from_inner_scope(node, ensure_node, context) {
         offenses.push(context.offense(MSG, node.byte_range()));
     }
-    let mut cursor = node.walk();
-    let children: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let children: Vec<Node<'_>> = named_children_iter(node, context).collect();
     for child in children {
         collect(child, ensure_node, context, offenses);
     }

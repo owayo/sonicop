@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// The node kinds a `sym` reaches tree-sitter as. A `%i[]` element is a `bare_symbol` instead,
 /// which is how the percent literal upstream exempts stays exempt.
@@ -53,8 +54,8 @@ fn boolean_name<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a 
 
 /// The text between the quotes, when that is all there is between them.
 fn quoted_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let mut cursor = node.walk();
-    let parts: Vec<Node<'_>> = node.named_children(&mut cursor).collect();
+    let _cursor = node.walk();
+    let parts: Vec<Node<'_>> = named_children_iter(node, context).collect();
     match parts.as_slice() {
         [content] if content.kind_str() == "string_content" => Some(context.source.node_text(*content)),
         _ => None,
@@ -68,8 +69,7 @@ fn colon_pair(pair: Node<'_>) -> bool {
 
 fn separator(pair: Node<'_>) -> Option<Node<'_>> {
     let mut cursor = pair.walk();
-    let separator = pair
-        .children(&mut cursor)
+    let separator = pair.children(&mut cursor)
         .find(|child| !child.is_named() && matches!(child.kind_str(), ":" | "=>"))?;
     Some(separator)
 }

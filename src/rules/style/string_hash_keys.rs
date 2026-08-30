@@ -5,6 +5,7 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::ruby_literal;
 use crate::rules::send_node;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Prefer symbols instead of strings as hash keys.";
 
@@ -62,8 +63,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// for the replacement resolves such an escape to a character, which loses the distinction.
 fn is_valid_encoding(key: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut bytes: Vec<u8> = Vec::new();
-    let mut cursor = key.walk();
-    for child in key.named_children(&mut cursor) {
+    let _cursor = key.walk();
+    for child in named_children_iter(key, context) {
         let text = context.source.node_text(child);
         match raw_byte(text).filter(|_| child.kind_str() == "escape_sequence") {
             Some(byte) => bytes.push(byte),

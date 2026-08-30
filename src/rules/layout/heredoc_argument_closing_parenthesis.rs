@@ -10,6 +10,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{Argument, arguments, heredoc_body, is_plain_send};
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Put the closing parenthesis for a method call with a HEREDOC parameter on the \
                    same line as the HEREDOC opening.";
@@ -73,7 +74,7 @@ fn extract_heredoc_argument<'tree>(
 }
 
 /// `extract_heredoc`: the heredoc a value is, opens a chain with, or holds under a hash key.
-fn extract_heredoc<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+fn extract_heredoc<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
     if node.kind_str() == "heredoc_beginning" {
         return Some(node);
     }
@@ -84,8 +85,8 @@ fn extract_heredoc<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Optio
     // the brace-less form, whose `hash` upstream builds and the grammar does not.
     let values: Vec<Node<'tree>> = match node.kind_str() {
         "hash" => {
-            let mut cursor = node.walk();
-            node.named_children(&mut cursor)
+            let _cursor = node.walk();
+            named_children_iter(node, context)
                 .filter(|child| child.kind_str() == "pair")
                 .filter_map(|pair| pair.field("value"))
                 .collect()
@@ -357,8 +358,8 @@ fn heredoc_terminator(node: Node<'_>, context: &RuleContext<'_>) -> Option<Range
         return None;
     }
     let body = heredoc_body(node, context)?;
-    let mut cursor = body.walk();
-    body.named_children(&mut cursor)
+    let _cursor = body.walk();
+    named_children_iter(body, context)
         .find(|child| child.kind_str() == "heredoc_end")
         .map(|child| child.byte_range())
 }

@@ -10,6 +10,8 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
+use crate::rules::send_node::named_children_of;
 
 /// The names `bare_access_modifier_declaration?` matches, interned so a visibility can be carried
 /// around as a `&'static str` rather than borrowed from the source it was read out of.
@@ -80,7 +82,7 @@ fn is_send_identifier(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = context.parent(node) else {
         return true;
     };
-    let field = field_name(node, parent);
+    let field = field_name(node, parent, context.ast_index());
     match parent.kind_str() {
         "call" => field != Some("method"),
         "method" | "singleton_method" => field != Some("name"),
@@ -106,7 +108,14 @@ fn is_send_identifier(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     }
 }
 
-fn field_name<'tree>(node: Node<'tree>, parent: Node<'tree>) -> Option<&'static str> {
+fn field_name<'tree>(
+    node: Node<'tree>,
+    parent: Node<'tree>,
+    index: &super::super::AstIndex<'_>,
+) -> Option<&'static str> {
+    if index.knows(node) {
+        return index.field_name_of(node);
+    }
     let mut cursor = parent.walk();
     if !cursor.goto_first_child() {
         return None;
@@ -193,9 +202,9 @@ fn branch_repeats_condition(
     context: &RuleContext<'_>,
 ) -> bool {
     let text = context.source.node_text(condition);
-    let mut cursor = conditional.walk();
-    let branches: Vec<Node<'_>> = conditional
-        .named_children(&mut cursor)
+    let _cursor = conditional.walk();
+    let branches: Vec<Node<'_>> = named_children_of(conditional, context)
+        .into_iter()
         .filter(|child| child.id() != condition.id())
         .collect();
     branches.into_iter().any(|branch| {
@@ -203,8 +212,8 @@ fn branch_repeats_condition(
         // statement is that statement, and one holding several is a `begin` no condition matches.
         let branch = match branch.kind_str() {
             "then" | "else" => {
-                let mut cursor = branch.walk();
-                let mut children = branch.named_children(&mut cursor);
+                let _cursor = branch.walk();
+                let mut children = named_children_iter(branch, context);
                 match (children.next(), children.next()) {
                     (Some(only), None) => only,
                     _ => return false,

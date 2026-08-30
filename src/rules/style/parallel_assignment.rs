@@ -354,8 +354,7 @@ fn index_arguments(cop: &Cop<'_, '_>, node: Node<'_>) -> Vec<String> {
 /// `modifier_range`: the keyword and the condition behind it, which becomes the head of the block.
 fn modifier_range(modifier: Node<'_>) -> Range<usize> {
     let mut cursor = modifier.walk();
-    let keyword = modifier
-        .children(&mut cursor)
+    let keyword = modifier.children(&mut cursor)
         .find(|child| !child.is_named())
         .map_or(modifier.start_byte(), |child| child.start_byte());
     keyword..modifier.end_byte()

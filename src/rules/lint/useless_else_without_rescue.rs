@@ -2,6 +2,7 @@ use crate::diagnostic::Offense;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "`else` without `rescue` is useless.";
 
@@ -24,9 +25,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !matches!(body.kind_str(), "begin" | "body_statement" | "block_body") {
             continue;
         }
-        let mut cursor = body.walk();
-        if body
-            .named_children(&mut cursor)
+        let _cursor = body.walk();
+        if named_children_of(body, context)
+            .into_iter()
             .any(|child| child.kind_str() == "rescue")
         {
             continue;

@@ -5,6 +5,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::symbol_name;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const ALTERNATIVE_PRIVATE: &str =
     "`private_class_method` or `private` inside a `class << self` block";
@@ -109,15 +110,15 @@ fn private_class_method_names(context: &RuleContext<'_>, node: Node<'_>) -> Vec<
                 .is_some_and(|method| context.source.node_text(method) == "private_class_method")
             && let Some(arguments) = current.field("arguments")
         {
-            let mut cursor = arguments.walk();
-            for argument in arguments.named_children(&mut cursor) {
+            let _cursor = arguments.walk();
+            for argument in named_children_iter(arguments, context) {
                 if let Some(name) = symbol_name(argument, context) {
                     names.push(name.to_owned());
                 }
             }
         }
-        let mut cursor = current.walk();
-        stack.extend(current.named_children(&mut cursor));
+        let _cursor = current.walk();
+        stack.extend(named_children_iter(current, context));
     }
     names
 }

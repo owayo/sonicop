@@ -1101,9 +1101,9 @@ fn is_receiverless_call(node: Node<'_>, index: &super::super::AstIndex<'_>) -> b
         return true;
     };
     match parent.kind_str() {
-        "call" => field_name(node, parent) != Some("method"),
-        "method" | "singleton_method" => field_name(node, parent) != Some("name"),
-        "assignment" | "operator_assignment" => field_name(node, parent) != Some("left"),
+        "call" => field_name(node, parent, index) != Some("method"),
+        "method" | "singleton_method" => field_name(node, parent, index) != Some("name"),
+        "assignment" | "operator_assignment" => field_name(node, parent, index) != Some("left"),
         "left_assignment_list"
         | "rest_assignment"
         | "destructured_left_assignment"
@@ -1119,8 +1119,8 @@ fn is_receiverless_call(node: Node<'_>, index: &super::super::AstIndex<'_>) -> b
         | "keyword_parameter"
         | "splat_parameter"
         | "hash_splat_parameter"
-        | "block_parameter" => field_name(node, parent) != Some("name"),
-        "for" => field_name(node, parent) != Some("pattern"),
+        | "block_parameter" => field_name(node, parent, index) != Some("name"),
+        "for" => field_name(node, parent, index) != Some("pattern"),
         _ => true,
     }
 }

@@ -136,8 +136,7 @@ fn last_heredoc(heredocs: &[(usize, Range<usize>)], receiver: Node<'_>) -> Optio
     }
     let arguments = receiver.field("arguments")?;
     let mut cursor = arguments.walk();
-    arguments
-        .named_children(&mut cursor)
+    arguments.named_children(&mut cursor)
         .filter(|argument| argument.kind_str() == "heredoc_beginning")
         .filter_map(|argument| terminator_of(argument.start_byte()))
         .max_by_key(|terminator| terminator.end)

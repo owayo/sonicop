@@ -308,6 +308,106 @@ pub(crate) fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     node.named_children(&mut cursor).collect()
 }
 
+/// A node's named children, walked without an allocation where the index knows the node.
+///
+/// [`named_children_of`] hands back a `Vec`, which is what a caller that indexes or measures the
+/// list needs. A caller that only iterates -- and most of them stop at the first match -- should
+/// not pay for one: collecting all of a node's children to answer `.any(…)` costs more than the
+/// cursor walk it replaced.
+pub(crate) enum NamedChildren<'a> {
+    /// The run the index recorded.
+    Recorded(std::slice::Iter<'a, Node<'a>>),
+    /// A node the index does not know, walked with a cursor and collected so the cursor does not
+    /// outlive the borrow.
+    Walked(std::vec::IntoIter<Node<'a>>),
+}
+
+impl<'a> Iterator for NamedChildren<'a> {
+    type Item = Node<'a>;
+
+    fn next(&mut self) -> Option<Node<'a>> {
+        match self {
+            Self::Recorded(iter) => iter.next().copied(),
+            Self::Walked(iter) => iter.next(),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::Recorded(iter) => iter.size_hint(),
+            Self::Walked(iter) => iter.size_hint(),
+        }
+    }
+}
+
+impl DoubleEndedIterator for NamedChildren<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Recorded(iter) => iter.next_back().copied(),
+            Self::Walked(iter) => iter.next_back(),
+        }
+    }
+}
+
+/// [`named_children_of`] for a caller that only iterates. See [`NamedChildren`].
+pub(crate) fn named_children_iter<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> NamedChildren<'tree> {
+    match context.named_children(node) {
+        Some(children) => NamedChildren::Recorded(children.iter()),
+        None => NamedChildren::Walked(named_children(node).into_iter()),
+    }
+}
+
+/// A node's children, named or not, walked without an allocation where the index knows the node.
+pub(crate) enum AllChildren<'a> {
+    Recorded(crate::rules::Children<'a>),
+    Walked(std::vec::IntoIter<Node<'a>>),
+}
+
+impl<'a> Iterator for AllChildren<'a> {
+    type Item = Node<'a>;
+
+    fn next(&mut self) -> Option<Node<'a>> {
+        match self {
+            Self::Recorded(iter) => iter.next(),
+            Self::Walked(iter) => iter.next(),
+        }
+    }
+}
+
+/// [`all_children_of`] for a caller that only iterates. See [`AllChildren`].
+pub(crate) fn all_children_iter<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> AllChildren<'tree> {
+    match context.children(node) {
+        Some(children) => AllChildren::Recorded(children),
+        None => {
+            let mut cursor = node.walk();
+            AllChildren::Walked(node.children(&mut cursor).collect::<Vec<_>>().into_iter())
+        }
+    }
+}
+
+/// Every child of `node`, named or not, answered from the file's index.
+///
+/// The same trade as [`named_children_of`]: one allocation and a memcpy against a tree cursor
+/// opened at the node and stepped over every child.
+pub(crate) fn all_children_of<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> Vec<Node<'tree>> {
+    match context.children(node) {
+        Some(children) => children.collect(),
+        None => {
+            let mut cursor = node.walk();
+            node.children(&mut cursor).collect()
+        }
+    }
+}
+
 /// [`named_children`] answered from the file's index, for a cop that has its context to hand.
 ///
 /// The list is copied out rather than borrowed so that this is a drop-in for the walk it replaces:

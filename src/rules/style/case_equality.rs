@@ -3,6 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Avoid the use of the case equality operator `===`.";
 
@@ -103,8 +104,8 @@ fn replacement(
     let _ = node;
     let source = context.source.node_text(left);
     if left.kind_str() == "parenthesized_statements" {
-        let mut cursor = left.walk();
-        let inner = left.named_children(&mut cursor).next()?;
+        let _cursor = left.walk();
+        let inner = named_children_iter(left, context).next()?;
         if inner.kind_str() != "range" {
             return None;
         }

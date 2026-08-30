@@ -4,6 +4,7 @@ use super::support::whitespace_before;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = context.source.text();
@@ -17,8 +18,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let block_braces: Vec<usize> = context
         .nodes_of("block")
         .filter_map(|node| {
-            let mut cursor = node.walk();
-            node.children(&mut cursor)
+            let _cursor = node.walk();
+            all_children_iter(node, context)
                 .find(|child| child.kind_str() == "{")
                 .map(|child| child.start_byte())
         })

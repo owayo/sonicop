@@ -8,6 +8,7 @@ use crate::rules::node_ext::NodeExt;
 
 use super::blocks::BlockArgs;
 use super::locals::LocalVariables;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut tracker = Tracker {
@@ -821,9 +822,9 @@ fn literal_arguments(context: &RuleContext<'_>, node: Node<'_>) -> Vec<String> {
     let Some(arguments) = node.field("arguments") else {
         return Vec::new();
     };
-    let mut cursor = arguments.walk();
+    let _cursor = arguments.walk();
     let mut names = Vec::new();
-    for argument in arguments.named_children(&mut cursor) {
+    for argument in named_children_iter(arguments, context) {
         match symbol_name(context.source.node_text(argument)) {
             Some(name) if matches!(argument.kind_str(), "simple_symbol" | "string") => {
                 names.push(name.to_owned());

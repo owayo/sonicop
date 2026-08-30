@@ -9,6 +9,7 @@ use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 const MSG: &str = "Sort files before requiring them.";
 
@@ -191,7 +192,7 @@ fn is_method_require(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node.kind_str() != "block_argument" {
         return false;
     }
-    let Some(call) = named_children_of(node, context).into_iter().next() else {
+    let Some(call) = named_children_iter(node, context).next() else {
         return false;
     };
     if call.kind_str() != "call"

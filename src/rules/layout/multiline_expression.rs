@@ -23,6 +23,7 @@ use super::support::{begins_its_line, character_column, line_indentation};
 use crate::rules::RuleContext;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 /// Which of the nodes upstream's parser builds for one piece of source this stands for.
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -1074,8 +1075,8 @@ fn is_numbered_block(context: &RuleContext<'_>, call: Node<'_>) -> bool {
         if matches!(node.kind_str(), "block" | "do_block") {
             continue;
         }
-        let mut cursor = node.walk();
-        stack.extend(node.named_children(&mut cursor));
+        let _cursor = node.walk();
+        stack.extend(named_children_iter(node, context));
     }
     false
 }

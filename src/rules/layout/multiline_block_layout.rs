@@ -131,8 +131,7 @@ fn argument_string(context: &RuleContext<'_>, arguments: Node<'_>) -> String {
 
 fn parameter_nodes<'tree>(arguments: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = arguments.walk();
-    arguments
-        .named_children(&mut cursor)
+    arguments.named_children(&mut cursor)
         .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         .collect()
 }

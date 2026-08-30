@@ -4,6 +4,7 @@ use super::support::constructor_call;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max: usize = context.setting("Max").unwrap_or(5);
@@ -32,9 +33,9 @@ fn report_optional_parameters(
     let count = node
         .field("parameters")
         .map_or(0, |parameters| {
-            let mut cursor = parameters.walk();
-            parameters
-                .named_children(&mut cursor)
+            let _cursor = parameters.walk();
+            named_children_of(parameters, context)
+                .into_iter()
                 .filter(|parameter| parameter.kind_str() == "optional_parameter")
                 .map(folded_parameter_count)
                 .sum()
@@ -60,11 +61,11 @@ fn report_parameter_count(
     if struct_or_data_initialize(context, node) {
         return;
     }
-    let mut cursor = node.walk();
+    let _cursor = node.walk();
     // An explicit block argument is never counted: making it implicit is a rename away, so
     // counting it would push authors toward a change the cop does not actually want.
-    let count: usize = node
-        .named_children(&mut cursor)
+    let count: usize = named_children_of(node, context)
+        .into_iter()
         .filter(|parameter| parameter.kind_str() != "block_parameter")
         .filter(|parameter| count_keywords || parameter.kind_str() != "keyword_parameter")
         .map(folded_parameter_count)

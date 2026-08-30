@@ -6,6 +6,8 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let prefixes: Vec<String> = context.setting("NamePrefix").unwrap_or_default();
@@ -73,8 +75,8 @@ fn dynamic_definition(
         return None;
     }
     let arguments = node.field("arguments")?;
-    let mut cursor = arguments.walk();
-    let first = arguments.named_children(&mut cursor).next()?;
+    let _cursor = arguments.walk();
+    let first = named_children_iter(arguments, context).next()?;
     Some((symbol_name(context, first)?, first.byte_range()))
 }
 
@@ -90,9 +92,9 @@ fn symbol_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
                 .to_owned(),
         ),
         "delimited_symbol" => {
-            let mut cursor = node.walk();
+            let _cursor = node.walk();
             let mut value = String::new();
-            for child in node.named_children(&mut cursor) {
+            for child in named_children_iter(node, context) {
                 if child.kind_str() != "string_content" {
                     return None;
                 }
@@ -173,9 +175,9 @@ fn sorbet_boolean_sig(context: &RuleContext<'_>, node: Node<'_>) -> bool {
             return;
         }
         found = inner.field("arguments").is_some_and(|arguments| {
-            let mut cursor = arguments.walk();
-            arguments
-                .named_children(&mut cursor)
+            let _cursor = arguments.walk();
+            named_children_of(arguments, context)
+                .into_iter()
                 .next()
                 .is_some_and(|type_node| context.source.node_text(type_node) == "T::Boolean")
         });

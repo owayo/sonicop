@@ -5,6 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::all_children_of;
 
 const MSG: &str = "Space inside range literal.";
 
@@ -14,9 +16,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_flip_flop(context, node) {
             continue;
         }
-        let mut cursor = node.walk();
-        let Some(operator) = node
-            .children(&mut cursor)
+        let _cursor = node.walk();
+        let Some(operator) = all_children_of(node, context)
+            .into_iter()
             .find(|child| matches!(child.kind_str(), ".." | "..."))
         else {
             continue;
@@ -83,9 +85,9 @@ fn is_flip_flop(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     while let Some(parent) = current.parent_of(context) {
         match parent.kind_str() {
             "parenthesized_statements" => {
-                let mut cursor = parent.walk();
-                if parent
-                    .named_children(&mut cursor)
+                let _cursor = parent.walk();
+                if named_children_of(parent, context)
+                    .into_iter()
                     .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
                     .count()
                     != 1

@@ -6,15 +6,17 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::ruby_version::RubyVersion;
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < RubyVersion::new(2, 7) {
         return;
     }
     for case in context.nodes_of("case_match") {
-        let mut cursor = case.walk();
+        let _cursor = case.walk();
         let mut seen: HashSet<String> = HashSet::new();
-        for branch in case.named_children(&mut cursor) {
+        for branch in named_children_iter(case, context) {
             if branch.kind_str() != "in_clause" {
                 continue;
             }
@@ -52,9 +54,9 @@ fn pattern_identity(branch: Node<'_>, pattern: Node<'_>, context: &RuleContext<'
 /// Upstream builds an alternation of three from an alternation of two, so its children are the run
 /// up to the last alternative and that last one -- not the flat list the grammar keeps.
 fn sorted_parts(pattern: Node<'_>, context: &RuleContext<'_>) -> Vec<String> {
-    let mut cursor = pattern.walk();
-    let parts: Vec<Node<'_>> = pattern
-        .named_children(&mut cursor)
+    let _cursor = pattern.walk();
+    let parts: Vec<Node<'_>> = named_children_of(pattern, context)
+        .into_iter()
         .filter(|child| child.kind_str() != "comment")
         .collect();
     let mut sources: Vec<String> = if pattern.kind_str() == "alternative_pattern" && parts.len() > 2

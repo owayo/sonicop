@@ -6,6 +6,7 @@ use super::empty_lines_around_body::{Target, body_container, body_of, check as c
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::all_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut targets = Vec::new();
@@ -45,8 +46,8 @@ fn check_endless(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<O
     let Some(body) = node.field("body") else {
         return;
     };
-    let mut cursor = node.walk();
-    let Some(assignment) = node.children(&mut cursor).find(|child| child.kind_str() == "=") else {
+    let _cursor = node.walk();
+    let Some(assignment) = all_children_iter(node, context).find(|child| child.kind_str() == "=") else {
         return;
     };
     let assignment_line = assignment.start_position().row + 1;

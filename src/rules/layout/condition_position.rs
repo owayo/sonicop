@@ -5,6 +5,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The modifier forms and the ternary have their own node kinds here, so reaching one of these
@@ -54,8 +55,8 @@ fn removal(context: &RuleContext<'_>, node: Node<'_>, condition: Node<'_>) -> Ed
     let body = node.field("consequence").or_else(|| node.field("body"));
     let body_start = body
         .and_then(|body| {
-            let mut cursor = body.walk();
-            body.named_children(&mut cursor)
+            let _cursor = body.walk();
+            named_children_iter(body, context)
                 .find(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         })
         .map(|first| first.start_byte());

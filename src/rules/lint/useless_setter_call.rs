@@ -10,6 +10,7 @@ use super::locals::LocalVariables;
 use super::statements::body_children;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::named_children_iter;
 
 /// `ASSIGNMENT_TYPES`: the variable kinds the tracker follows. A constant is deliberately missing.
 const ASSIGNMENT_TARGETS: &[&str] = &[
@@ -172,7 +173,7 @@ impl Tracker {
         } else {
             Vec::new()
         };
-        for (index, target) in named_children_of(targets, context).into_iter().enumerate() {
+        for (index, target) in named_children_iter(targets, context).enumerate() {
             if !ASSIGNMENT_TARGETS.contains(&target.kind_str()) {
                 continue;
             }

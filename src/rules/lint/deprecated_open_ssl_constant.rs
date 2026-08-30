@@ -223,7 +223,6 @@ fn sanitize_arguments(
 /// `loc.double_colon`: the `::` the name was written after.
 fn separator<'tree>(receiver: Node<'tree>, name: Node<'_>) -> Option<Node<'tree>> {
     let mut cursor = receiver.walk();
-    receiver
-        .children(&mut cursor)
+    receiver.children(&mut cursor)
         .find(|child| !child.is_named() && child.end_byte() <= name.start_byte())
 }

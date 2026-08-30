@@ -8,6 +8,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::layout::tokens::{Token, TokenKind, tokens};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Redundant line continuation.";
 
@@ -66,9 +67,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// continuation written after the last of them.
 fn ast_range(context: &RuleContext<'_>) -> Option<Range<usize>> {
     let root = context.root_node();
-    let mut cursor = root.walk();
-    let statements: Vec<Node<'_>> = root
-        .named_children(&mut cursor)
+    let _cursor = root.walk();
+    let statements: Vec<Node<'_>> = named_children_of(root, context)
+        .into_iter()
         // `__END__` and what follows it is `DATA`, not code: upstream's AST stops at the keyword,
         // so a `\` down there is out of the range the candidates are searched in.
         .filter(|child| !matches!(child.kind_str(), "comment" | "uninterpreted"))
