@@ -89,7 +89,7 @@ fn parameters(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let Some(list) = node.field("parameters") else {
         return String::new();
     };
-    let sources: Vec<&str> = super::nodes::children(list)
+    let sources: Vec<&str> = super::nodes::children_in(list, context)
         .into_iter()
         .map(|parameter| context.source.node_text(parameter))
         .collect();

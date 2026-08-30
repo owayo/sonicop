@@ -33,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn for_to_each(context: &RuleContext<'_>, node: Node<'_>) -> Option<Offense> {
     let variable = node.field("pattern")?;
     let value = node.field("value")?;
-    let collection = *super::nodes::children(value).first()?;
+    let collection = *super::nodes::children_in(value, context).first()?;
     let body = node.field("body")?;
     // `for_node.do?`: the head ends at the `do` when there is one, and at the collection otherwise.
     let end = match body.child(0).filter(|first| first.kind_str() == "do") {

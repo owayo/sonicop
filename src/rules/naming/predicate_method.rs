@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::push_named_children;
+use crate::rules::{push_named_children_in};
 use crate::rules::regex_cache;
 use crate::rules::send_node::named_children;
 
@@ -127,7 +127,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `return_values`: every value the body can hand back, with conditionals and `and`/`or` broken down
 /// into the values their branches hand back.
-fn return_values<'tree>(container: Node<'tree>, context: &RuleContext<'_>) -> Vec<Value<'tree>> {
+fn return_values<'tree>(container: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Value<'tree>> {
     let body = upstream_body(container);
     let mut values = Vec::new();
     // `Set.new(node.begin_type? ? [] : [extract_return_value(node)])`
@@ -140,7 +140,7 @@ fn return_values<'tree>(container: Node<'tree>, context: &RuleContext<'_>) -> Ve
         if current.kind_str() == "return" {
             values.push(extract_return_value(current, context));
         }
-        push_named_children(current, &mut stack);
+        push_named_children_in(current, context, &mut stack);
     }
     values.push(last_value_of(body, context));
     process(values, context)

@@ -3,9 +3,10 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
+use crate::rules::send_node::{arguments, string_text, symbol_name};
 
 use super::access_modifier::{bare_access_modifier, send_name};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("assignment") {
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parent) = node.parent_of(context) else {
             continue;
         };
-        let siblings = named_children(parent);
+        let siblings = named_children_of(parent, context);
         let Some(position) = siblings
             .iter()
             .position(|sibling| sibling.id() == node.id())

@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parameters) = node.field("parameters") else {
             continue;
         };
-        if super::nodes::children(parameters).is_empty() {
+        if super::nodes::children_in(parameters, context).is_empty() {
             continue;
         }
         let text = context.source.node_text(parameters);

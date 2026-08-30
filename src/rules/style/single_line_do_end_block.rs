@@ -82,7 +82,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// any and after the `do` when it does not.
 fn do_line(context: &RuleContext<'_>, block: Node<'_>) -> Option<usize> {
     if let Some(parameters) = block.field("parameters")
-        && !super::nodes::children(parameters).is_empty()
+        && !super::nodes::children_in(parameters, context).is_empty()
     {
         return Some(parameters.end_byte());
     }
@@ -120,7 +120,7 @@ fn trailing_heredoc(context: &RuleContext<'_>, block: Node<'_>) -> Option<usize>
                 }));
             }
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     last
 }
@@ -200,7 +200,7 @@ fn comment_within(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `safe_to_split?`.
 fn safe_to_split(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let mut stack: Vec<Node<'_>> = Vec::new();
-    crate::rules::push_named_children(node, &mut stack);
+    crate::rules::push_named_children_in(node, context, &mut stack);
     while let Some(child) = stack.pop() {
         if UNSAFE_TO_SPLIT.contains(&child.kind_str()) {
             return false;
@@ -220,7 +220,7 @@ fn safe_to_split(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         {
             return false;
         }
-        crate::rules::push_named_children(child, &mut stack);
+        crate::rules::push_named_children_in(child, context, &mut stack);
     }
     true
 }

@@ -18,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // **A lone `;` is an `empty_statement` here and no node at all upstream.** `def a; x = 1`
         // followed by `; end` ends its body at the assignment there, a line above the `end`.
-        let Some(last) = super::nodes::children(body)
+        let Some(last) = super::nodes::children_in(body, context)
             .into_iter()
             .rfind(|child| child.kind_str() != "empty_statement")
         else {

@@ -2,10 +2,11 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, first_line_range, named_children, send_range};
+use crate::rules::send_node::{arguments, first_line_range, send_range};
 
 use super::support::declarations;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// `SOURCE_BLOCK_NAMES`. A group declared under a different source, git remote, platform or path is
 /// a different group even when it goes by the same name.
@@ -71,7 +72,7 @@ fn attributes(node: Node<'_>, context: &RuleContext<'_>) -> String {
             // `group :a, foo: 1` and `group :a, foo: 1` agree however they were spaced.
             if parts.len() > 1 || parts[0].kind_str() == "hash" {
                 let mut pairs: Vec<String> = match parts[0].kind_str() == "hash" {
-                    true => named_children(parts[0]),
+                    true => named_children_of(parts[0], context),
                     false => parts.to_vec(),
                 }
                 .into_iter()

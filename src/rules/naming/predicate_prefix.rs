@@ -162,7 +162,7 @@ fn sorbet_boolean_sig(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         return false;
     };
     let mut found = false;
-    crate::rules::walk_named(body, &mut |inner| {
+    crate::rules::walk_named(body, context, &mut |inner| {
         if found || inner.kind_str() != "call" {
             return;
         }

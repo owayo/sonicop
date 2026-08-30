@@ -5,11 +5,12 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, is_plain_send, named_children};
+use crate::rules::send_node::{arguments, is_plain_send};
 
 use super::nil_methods::nil_methods;
 use super::node_equality;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Do not chain ordinary method call after safe navigation operator.";
 
@@ -129,7 +130,7 @@ fn read_chain<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Opti
             (node.field("operand")?, method, None, Vec::new())
         }
         _ => {
-            let children = named_children(node);
+            let children = named_children_of(node, context);
             (
                 *children.first()?,
                 "[]".to_owned(),

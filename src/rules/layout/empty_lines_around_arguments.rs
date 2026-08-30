@@ -84,7 +84,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
         "call" => {
             // An attribute write is one `:name=` send spanning the assignment, so the call on its
             // own is not what upstream inspects.
-            if is_assignment_target(node) {
+            if is_assignment_target(node, context) {
                 return None;
             }
             let list = child_of_kind(node, "argument_list");
@@ -100,7 +100,7 @@ fn send_view(context: &RuleContext<'_>, node: Node<'_>) -> Option<SendView> {
             })
         }
         "element_reference" => {
-            if is_assignment_target(node) {
+            if is_assignment_target(node, context) {
                 return None;
             }
             let bracket = child_of_kind(node, "[")?;
@@ -161,8 +161,8 @@ fn selector<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
         .filter(|method| !method.byte_range().is_empty())
 }
 
-fn is_assignment_target(node: Node<'_>) -> bool {
-    node.parent().is_some_and(|parent| {
+fn is_assignment_target(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    context.parent(node).is_some_and(|parent| {
         parent.kind_str() == "assignment" && parent.field("left") == Some(node)
     })
 }

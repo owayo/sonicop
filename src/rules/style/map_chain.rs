@@ -27,7 +27,7 @@ pub(super) fn is_mapping(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         [only] => {
             let argument = only.first();
             argument.kind_str() == "block_argument"
-                && super::nodes::children(argument)
+                && super::nodes::children_in(argument, context)
                     .first()
                     .is_some_and(|inner| {
                         crate::rules::send_node::symbol_name(*inner, context).is_some()

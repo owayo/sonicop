@@ -6,6 +6,7 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children};
 
 use super::node_equality::identical;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["call", "element_reference"]) {
@@ -41,12 +42,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `set_init_elements`, paired with the name the message calls the class by.
 fn set_init_elements<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(String, Vec<Node<'tree>>)> {
     if node.kind_str() == "element_reference" {
         let object = node.field("object")?;
         let name = set_class_name(object, context)?;
-        let elements = named_children(node)
+        let elements = named_children_of(node, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment" && child.id() != object.id())
             .collect();

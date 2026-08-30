@@ -4,12 +4,12 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::named_children;
 
 use super::literals::is_literal;
 use super::locals::LocalVariables;
 use super::statements::body_children;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// `ASSIGNMENT_TYPES`: the variable kinds the tracker follows. A constant is deliberately missing.
 const ASSIGNMENT_TARGETS: &[&str] = &[
@@ -106,7 +106,7 @@ impl Tracker {
         if self.process_assignment_node(node, context, locals) {
             return;
         }
-        for child in named_children(node) {
+        for child in named_children_of(node, context) {
             self.scan(child, context, locals);
         }
     }
@@ -168,11 +168,11 @@ impl Tracker {
     ) {
         let listed = matches!(right.kind_str(), "right_assignment_list" | "array");
         let values = if listed {
-            named_children(right)
+            named_children_of(right, context)
         } else {
             Vec::new()
         };
-        for (index, target) in named_children(targets).into_iter().enumerate() {
+        for (index, target) in named_children_of(targets, context).into_iter().enumerate() {
             if !ASSIGNMENT_TARGETS.contains(&target.kind_str()) {
                 continue;
             }

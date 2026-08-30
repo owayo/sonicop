@@ -21,9 +21,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `EnsureNode#branch` -- the *ensure* clause -- so the code it guards is never looked at. A body
 /// split by a `rescue` alone is a `rescue` node, every branch of which is followed.
 fn check_container(context: &RuleContext<'_>, container: Node<'_>, offenses: &mut Vec<Offense>) {
-    let children = super::nodes::children(container);
+    let children = super::nodes::children_in(container, context);
     if let Some(ensure) = children.iter().find(|child| child.kind_str() == "ensure") {
-        let statements = super::nodes::children(*ensure);
+        let statements = super::nodes::children_in(*ensure, context);
         check_statements(context, &statements, offenses);
         return;
     }
@@ -44,7 +44,7 @@ fn check_container(context: &RuleContext<'_>, container: Node<'_>, offenses: &mu
                 }
             }
             "else" => {
-                let statements = super::nodes::children(*clause);
+                let statements = super::nodes::children_in(*clause, context);
                 check_statements(context, &statements, offenses);
             }
             _ => {}
@@ -131,7 +131,7 @@ fn comments_between(context: &RuleContext<'_>, assignment: Node<'_>, reference: 
 fn check_branch(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<Offense>) {
     match node.kind_str() {
         "case" | "case_match" => {
-            for child in super::nodes::children(node) {
+            for child in super::nodes::children_in(node, context) {
                 match child.kind_str() {
                     "when" | "in_clause" => {
                         if let Some(body) = child.field("body") {
@@ -139,7 +139,7 @@ fn check_branch(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<Of
                         }
                     }
                     "else" => {
-                        let statements = super::nodes::children(child);
+                        let statements = super::nodes::children_in(child, context);
                         check_statements(context, &statements, offenses);
                     }
                     _ => {}

@@ -117,7 +117,7 @@ fn random_call(context: &RuleContext<'_>, node: Node<'_>) -> Option<Random> {
             format!("{source}.rand")
         }
     };
-    let arguments = super::nodes::children(node.field("arguments")?);
+    let arguments = super::nodes::children_in(node.field("arguments")?, context);
     let [argument] = arguments.as_slice() else {
         return None;
     };

@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(superclass) = node.field("superclass") else {
             continue;
         };
-        let parts = super::nodes::children(superclass);
+        let parts = super::nodes::children_in(superclass, context);
         let [parent] = parts.as_slice() else {
             continue;
         };

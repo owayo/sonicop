@@ -5,11 +5,12 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{is_plain_send, named_children, send_range};
+use crate::rules::send_node::{is_plain_send, send_range};
 use crate::rules::single_line::{
     descendants, is_suitable_as_single_line, last_byte, max_line_length, to_single_line,
 };
 use crate::rules::support::{Verification, verified_by_reparse};
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Redundant line break detected.";
 
@@ -293,7 +294,7 @@ fn is_top(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// an `or` is ever inspected.
 fn spine_has_send(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if is_logical(node, context) {
-        return named_children(node)
+        return named_children_of(node, context)
             .into_iter()
             .any(|child| spine_has_send(child, context));
     }

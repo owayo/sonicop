@@ -22,16 +22,17 @@ use crate::rules::support::{scope_kind, spurious_assignment_list};
 use crate::source::SourceFile;
 
 pub(in crate::rules) struct Locals {
-    lvars: HashSet<usize>,
+    lvars: crate::rules::IdSet,
 }
 
 impl Locals {
     pub(in crate::rules) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
         let mut walker = Walker {
             source: context.source,
+            index: context.ast_index(),
             fragments,
             stack: vec![Frame::new(false)],
-            lvars: HashSet::new(),
+            lvars: crate::rules::IdSet::default(),
         };
         walker.visit(context.root_node());
         Self {
@@ -63,9 +64,12 @@ impl Frame<'_> {
 
 struct Walker<'a> {
     source: &'a SourceFile,
+    /// The file's node index: `is_variable_read` asks for a parent on every identifier, and
+    /// `Node::parent` walks down from the root each time.
+    index: &'a super::super::AstIndex<'a>,
     fragments: &'a Fragments,
     stack: Vec<Frame<'a>>,
-    lvars: HashSet<usize>,
+    lvars: crate::rules::IdSet,
 }
 
 impl<'a> Walker<'a> {
@@ -330,7 +334,7 @@ impl<'a> Walker<'a> {
     }
 
     fn visit_identifier(&mut self, node: Node<'_>) {
-        if !is_variable_read(node) {
+        if !is_variable_read(node, self.index) {
             return;
         }
         if self.declared(self.text(node)) {
@@ -531,8 +535,8 @@ pub(super) fn folded_parameter_list<'tree>(value: Node<'tree>) -> Option<Node<'t
 
 /// Whether an identifier stands where the parser upstream would have built an `lvar`, rather than
 /// a name being declared, written or called.
-fn is_variable_read(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool {
+    let Some(parent) = index.parent(node) else {
         return true;
     };
     match parent.kind_str() {

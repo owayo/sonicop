@@ -14,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.arguments.one?`: the predicate takes exactly the key it asks about.
         let one_argument = node
             .field("arguments")
-            .is_some_and(|arguments| super::nodes::children(arguments).len() == 1);
+            .is_some_and(|arguments| super::nodes::children_in(arguments, context).len() == 1);
         if !one_argument {
             continue;
         }

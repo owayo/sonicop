@@ -94,6 +94,33 @@ each response may contain at most 5 MiB. `ureq` rejects a body whose length equa
 to `BodyWithConfig::limit`, so pass one byte beyond the logical maximum. Preserve tests for both the
 exact limit and the first rejected byte when changing this path.
 
+**Ask the index about the tree's shape, never the parser.** `Node::parent` walks down from the
+root comparing byte ranges, and `Node::named_children` / `Node::children` open a tree cursor on
+every call. A sampling profile of a run over RuboCop's own tree put 84% of the working CPU inside
+those two, and it was structure being re-derived rather than anything a cop decided. `AstIndex`
+records the answers on the walk it already makes:
+
+| Instead of | Use | Shape |
+|---|---|---|
+| `node.parent()` | `node.parent_of(context)`, `index.parent_in_tree(node)` | one array lookup |
+| `named_children(node)` | `named_children_of(node, context)` | a copy of a recorded slice |
+| `nodes::children(node)` | `nodes::children_in(node, context)` | the same, filtered |
+| a stack walk over descendants | `walk_named(node, context, &mut …)` | a slice of the pre-order list |
+| `node.children(&mut cursor)` | `context.children(node)` | an iterator over the pre-order list |
+
+A node the index does not know -- one of the extra trees `Metrics` parses to recover the fragments
+the grammar swallowed -- falls back to the parser, so every one of these answers the same list
+either way. `the_index_answers_what_the_parser_answers` holds the two to that.
+
+The cursor forms are still there, because a helper without a context in reach cannot use the index.
+**Reach for the index form when the context is at hand**; the difference is not small.
+
+**A pattern built from the configuration cannot live in a `LazyLock`, so it needs the cache.**
+`crate::rules::regex_cache::compiled` keeps a compiled pattern for the life of the process. Without
+it, a cop rebuilds the same automaton for every file: `Layout/LineLength`'s `URISchemes` regex was
+the single largest cop cost of a run until it went through the cache. `grep -n "Regex::new" src/`
+and check that every hit outside a `LazyLock` is either cached or unreachable in a default run.
+
 **Autocorrect writes to real source files.** Corrections go through a temp file so a killed writer
 cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
 test that inspects the file on disk afterwards, not just the reported offenses.

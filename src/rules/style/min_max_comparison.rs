@@ -80,11 +80,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `{(send $_lhs $COMPARISON_OPERATORS $_rhs) (begin (send $_lhs $COMPARISON_OPERATORS $_rhs))}`.
 fn comparison<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, &'static str, Node<'tree>)> {
     // `(begin ...)`: a condition written in parentheses.
     let node = match node.kind_str() {
-        "parenthesized_statements" => match super::nodes::children(node).as_slice() {
+        "parenthesized_statements" => match super::nodes::children_in(node, context).as_slice() {
             [only] => *only,
             _ => return None,
         },

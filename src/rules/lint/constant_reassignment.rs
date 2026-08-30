@@ -7,6 +7,7 @@ use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
 use crate::rules::support::spurious_assignment_list;
+use crate::rules::send_node::named_children_of;
 
 /// The parts of a constant path, as `each_path` walks them.
 struct ConstantPath {
@@ -45,7 +46,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             },
             _ => namespaces.clone(),
         };
-        let mut children = named_children(node);
+        let mut children = named_children_of(node, context);
         children.reverse();
         for child in children {
             stack.push((child, inner.clone()));

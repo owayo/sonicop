@@ -9,6 +9,7 @@ use super::locals::LocalVariables;
 use super::ranges::whole_lines;
 use super::statements::statements;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
@@ -66,7 +67,7 @@ fn block_pass_symbol<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option
     if node.kind_str() != "block_argument" {
         return None;
     }
-    symbol_name(named_children(node).first().copied()?, context)
+    symbol_name(named_children_of(node, context).first().copied()?, context)
 }
 
 fn correction(
@@ -257,7 +258,7 @@ fn reassigns(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     {
         return true;
     }
-    named_children(node)
+    named_children_of(node, context)
         .into_iter()
         .any(|child| reassigns(child, name, context))
 }
@@ -268,7 +269,7 @@ fn assigns_to(left: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
         "identifier" => context.source.node_text(left) == name,
         // `i, j = 1, 2` and `(i, j), k = [1, 2], 3` nest their targets.
         "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => {
-            named_children(left)
+            named_children_of(left, context)
                 .into_iter()
                 .any(|target| assigns_to(target, name, context))
         }

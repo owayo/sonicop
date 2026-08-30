@@ -57,7 +57,7 @@ fn invertible(
     context: &RuleContext<'_>,
 ) -> bool {
     match node.kind_str() {
-        "parenthesized_statements" => match super::nodes::children(node).as_slice() {
+        "parenthesized_statements" => match super::nodes::children_in(node, context).as_slice() {
             [only] => invertible(*only, inverses, context),
             _ => false,
         },
@@ -102,7 +102,7 @@ fn preferred_condition(
     context: &RuleContext<'_>,
 ) -> String {
     match node.kind_str() {
-        "parenthesized_statements" => match super::nodes::children(node).as_slice() {
+        "parenthesized_statements" => match super::nodes::children_in(node, context).as_slice() {
             [only] => format!("({})", preferred_condition(*only, inverses, context)),
             _ => context.source.node_text(node).to_owned(),
         },
@@ -198,7 +198,7 @@ fn invert(
 ) {
     match node.kind_str() {
         "parenthesized_statements" => {
-            if let [only] = super::nodes::children(node).as_slice() {
+            if let [only] = super::nodes::children_in(node, context).as_slice() {
                 invert(*only, inverses, context, edits);
             }
         }

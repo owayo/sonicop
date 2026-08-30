@@ -53,7 +53,7 @@ fn bracket_offense(
     if node.field("block").is_some() || !send_node::is_plain_send(node, context) {
         return None;
     }
-    let arguments = super::nodes::children(node.field("arguments")?);
+    let arguments = super::nodes::children_in(node.field("arguments")?, context);
     let [key] = arguments.as_slice() else {
         return None;
     };
@@ -84,7 +84,7 @@ fn fetch_offense(node: Node<'_>, context: &RuleContext<'_>) -> Option<Offense> {
     let (key, selector_start, safe_navigation) = match node.kind_str() {
         "element_reference" => {
             let object = node.field("object")?;
-            let indices = super::nodes::children(node);
+            let indices = super::nodes::children_in(node, context);
             let [_, key] = indices.as_slice() else {
                 return None;
             };
@@ -97,7 +97,7 @@ fn fetch_offense(node: Node<'_>, context: &RuleContext<'_>) -> Option<Offense> {
             if context.source.node_text(selector) != "[]" {
                 return None;
             }
-            let arguments = super::nodes::children(node.field("arguments")?);
+            let arguments = super::nodes::children_in(node.field("arguments")?, context);
             let [key] = arguments.as_slice() else {
                 return None;
             };

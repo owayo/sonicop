@@ -144,7 +144,7 @@ fn block_parameter(
     let Some(parameters) = parameters else {
         return implicit_parameter(context, locals, block);
     };
-    let written = super::nodes::children(parameters);
+    let written = super::nodes::children_in(parameters, context);
     let [only] = written.as_slice() else {
         return None;
     };
@@ -183,7 +183,7 @@ fn scan_implicit(
     uses_it: &mut bool,
     locals: &LocalVariables<'_, '_>,
 ) {
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         // A nested block's implicit parameters are its own.
         if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;
@@ -207,7 +207,7 @@ fn scan_implicit(
 /// passed to it.
 fn single_call(context: &RuleContext<'_>, block: Node<'_>, parameter: &str) -> Option<String> {
     let body = block.field("body")?;
-    let statements = super::nodes::children(body);
+    let statements = super::nodes::children_in(body, context);
     let [only] = statements.as_slice() else {
         return None;
     };

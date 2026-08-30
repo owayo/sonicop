@@ -36,7 +36,7 @@ pub(super) fn implicit(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 /// The part of the body that belongs to this block: a nested block's `_1` is that block's, not
 /// this one's.
 fn scan(context: &RuleContext<'_>, node: Node<'_>, numbered: &mut bool, it: &mut bool) {
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;
         }

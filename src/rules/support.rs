@@ -208,7 +208,7 @@ fn move_pos(
     }
 }
 
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 use crate::diagnostic::Edit;
 use crate::rules::RuleContext;
@@ -316,11 +316,7 @@ fn parses(text: &str) -> bool {
 }
 
 fn parse(text: &str) -> Option<tree_sitter::Tree> {
-    let mut parser = Parser::new();
-    parser
-        .set_language(&tree_sitter_ruby::LANGUAGE.into())
-        .ok()?;
-    let tree = parser.parse(text, None)?;
+    let tree = crate::parser::parse(text)?;
     if tree.root_node().has_error() || accepts_more_than_ruby(tree.root_node(), text) {
         return None;
     }
@@ -1108,11 +1104,40 @@ pub(crate) fn push_named_children<'tree>(node: Node<'tree>, stack: &mut Vec<Node
     stack[start..].reverse();
 }
 
-pub(crate) fn walk_named(node: Node<'_>, callback: &mut impl FnMut(Node<'_>)) {
+/// [`push_named_children`] answered from the file's index, for a walk that has the cop's context
+/// to hand. `Node::named_children` opens a tree cursor on every node it is asked about, which a
+/// sampling profile put first among a run's costs.
+pub(crate) fn push_named_children_in<'tree>(
+    node: Node<'tree>,
+    context: &'tree crate::rules::RuleContext<'_>,
+    stack: &mut Vec<Node<'tree>>,
+) {
+    match context.named_children(node) {
+        Some(children) => stack.extend(children.iter().rev().copied()),
+        None => push_named_children(node, stack),
+    }
+}
+
+/// Calls `callback` on `node` and on every named node below it, in depth-first pre-order.
+///
+/// The index records every subtree as one run of its pre-order node list, so the walk is a scan
+/// over a slice. A node the index does not know -- one of the extra trees `Metrics` parses -- is
+/// walked with the stack this used to use for everything.
+pub(crate) fn walk_named<'tree>(
+    node: Node<'tree>,
+    context: &'tree crate::rules::RuleContext<'_>,
+    callback: &mut impl FnMut(Node<'tree>),
+) {
+    if let Some(descendants) = context.named_descendants(node) {
+        for found in descendants {
+            callback(*found);
+        }
+        return;
+    }
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
         callback(current);
-        push_named_children(current, &mut stack);
+        push_named_children_in(current, context, &mut stack);
     }
 }
 

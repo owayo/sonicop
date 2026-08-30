@@ -191,7 +191,7 @@ fn is_ternary_condition_before_question_mark(context: &RuleContext<'_>, node: No
 
 /// `comment_above_close_paren_swallows_chain?`.
 fn comment_above_close_paren(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let Some(last) = super::nodes::children(node).last().copied() else {
+    let Some(last) = super::nodes::children_in(node, context).last().copied() else {
         return false;
     };
     let close = node.end_byte() - 1;

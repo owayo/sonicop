@@ -147,7 +147,7 @@ fn inverse_candidate(
     // `(send (begin $(call ...)) :!)`: the parentheses are the `begin` upstream builds.
     let (operand, parenthesized) = match negation.operand.kind_str() == "parenthesized_statements" {
         true => {
-            let children = super::nodes::children(negation.operand);
+            let children = super::nodes::children_in(negation.operand, context);
             let [only] = children.as_slice() else {
                 return None;
             };
@@ -225,7 +225,7 @@ fn inverse_block(
         return None;
     }
     let body = block.field("body")?;
-    let negated = *super::nodes::children(body).last()?;
+    let negated = *super::nodes::children_in(body, context).last()?;
     let negation = negated_expression(context, negated)?;
     ignored.push(negated.byte_range());
     let mut edits = vec![Edit {

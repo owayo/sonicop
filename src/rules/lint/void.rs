@@ -4,7 +4,7 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, named_children};
+use crate::rules::send_node::arguments;
 use crate::rules::support;
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
@@ -12,6 +12,7 @@ use super::literals::{is_literal, literal_type};
 use super::locals::LocalVariables;
 use super::statements::{Branch, begin_containers, body_children, has_clause, statements};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const SELF_MSG: &str = "`self` used in void context.";
 
@@ -341,7 +342,7 @@ impl Void<'_, '_> {
             return;
         }
         if matches!(expression.kind_str(), "case" | "case_match") {
-            for child in named_children(expression) {
+            for child in named_children_of(expression, self.context) {
                 match child.kind_str() {
                     "when" | "in_clause" => {
                         if let Branch::One(body) = Branch::of(child.field("body")) {
@@ -560,10 +561,10 @@ impl Void<'_, '_> {
     /// `entirely_literal?`.
     fn entirely_literal(&self, node: Node<'_>) -> bool {
         match node.kind_str() {
-            "array" | "string_array" | "symbol_array" => named_children(node)
+            "array" | "string_array" | "symbol_array" => named_children_of(node, self.context)
                 .into_iter()
                 .all(|child| self.entirely_literal(child)),
-            "hash" => named_children(node)
+            "hash" => named_children_of(node, self.context)
                 .into_iter()
                 .filter(|child| child.kind_str() == "pair")
                 .all(|pair| {

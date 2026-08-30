@@ -15,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `same_line_body?`: `while x do y` keeps its `do`, whatever follows on the next lines.
-        if super::nodes::children(body)
+        if super::nodes::children_in(body, context)
             .first()
             .is_some_and(|first| first.start_position().row == keyword.start_position().row)
         {

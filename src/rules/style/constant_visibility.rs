@@ -76,7 +76,7 @@ fn class_or_module_statements<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// names this constant.
 fn declares_visibility(statements: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     let siblings = if statements.kind_str() == "body_statement" {
-        super::nodes::children(statements)
+        super::nodes::children_in(statements, context)
     } else {
         // The class holds one statement, which is the assignment itself.
         Vec::new()
@@ -101,8 +101,8 @@ fn declares_visibility(statements: Node<'_>, name: &str, context: &RuleContext<'
         // literal is unwrapped, and only then.
         let written = match arguments.first() {
             Some(first) if first.kind_str() == "splat_argument" => {
-                match super::nodes::children(*first).first() {
-                    Some(inner) if inner.kind_str() == "array" => super::nodes::children(*inner),
+                match super::nodes::children_in(*first, context).first() {
+                    Some(inner) if inner.kind_str() == "array" => super::nodes::children_in(*inner, context),
                     _ => Vec::new(),
                 }
             }

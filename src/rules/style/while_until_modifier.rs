@@ -102,7 +102,7 @@ impl Cop<'_, '_> {
     fn single_line_as_modifier(&self, loop_node: &Loop<'_>) -> bool {
         if self.non_eligible_node(loop_node)
             || self.non_eligible_body(loop_node)
-            || non_eligible_condition(loop_node.condition)
+            || non_eligible_condition(loop_node.condition, self.context)
         {
             return false;
         }
@@ -184,13 +184,13 @@ impl Cop<'_, '_> {
             return None;
         }
         let list = body.field("arguments")?;
-        let arguments = super::nodes::children(list);
+        let arguments = super::nodes::children_in(list, self.context);
         let last = arguments.last()?;
         // `foo(bar:)` parks the pairs straight in the argument list, so the omitted value shows up
         // as a pair without one.
         let omitted = match last.kind_str() {
             "pair" => last.field("value").is_none(),
-            "hash" => super::nodes::children(*last)
+            "hash" => super::nodes::children_in(*last, self.context)
                 .last()
                 .is_some_and(|pair| pair.field("value").is_none()),
             _ => false,

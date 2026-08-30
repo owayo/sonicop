@@ -142,7 +142,7 @@ impl<'tree> Cop<'_, 'tree> {
         if splat.kind_str() != "splat_argument" {
             return false;
         }
-        let Some(value) = send_node::named_children(*splat).first().copied() else {
+        let Some(value) = send_node::named_children_of(*splat, self.context).first().copied() else {
             return false;
         };
         match value.kind_str() {

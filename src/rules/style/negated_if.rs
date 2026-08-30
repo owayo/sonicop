@@ -58,14 +58,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `single_negative?`: the condition, once its parentheses are peeled off, is one `!` applied to
 /// something that is not itself a negation. `not x` is the same `send` upstream, so it counts too.
 fn single_negative<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     condition: Node<'tree>,
 ) -> Option<send_node::Negation<'tree>> {
     let mut current = condition;
     // `condition = condition.children.last while condition.begin_type?`, with `(begin)` -- an
     // empty condition -- excluded before the loop even starts.
     while current.kind_str() == "parenthesized_statements" {
-        current = *super::nodes::children(current).last()?;
+        current = *super::nodes::children_in(current, context).last()?;
     }
     let found = send_node::negation(current, context)?;
     // `!(send _ :!)`: `!!x` negates a negation and is left alone. **The inner one may be written

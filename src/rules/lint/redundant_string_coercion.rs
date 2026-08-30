@@ -2,11 +2,12 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, named_children};
+use crate::rules::send_node::arguments;
 
 use super::locals::LocalVariables;
 use super::statements::statements;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The receiverless calls whose arguments coerce on their own.
 const PRINTERS: &[&str] = &["print", "puts", "warn"];
@@ -39,7 +40,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(list) = call.field("arguments") else {
             continue;
         };
-        for argument in named_children(list) {
+        for argument in named_children_of(list, context) {
             if let Some(offense) = coercion(argument, &context_name, context, &locals) {
                 offenses.push(offense);
             }

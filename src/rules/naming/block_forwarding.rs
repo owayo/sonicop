@@ -4,8 +4,9 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::push_named_children;
-use crate::rules::send_node::{named_children, send_range};
+use crate::rules::{push_named_children, push_named_children_in};
+use crate::rules::send_node::send_range;
+use crate::rules::send_node::named_children_of;
 
 /// `minimum_target_ruby_version 3.1`: anonymous block forwarding is 3.1 syntax.
 const MINIMUM: RubyVersion = RubyVersion::new(3, 1);
@@ -42,7 +43,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parameters) = node.field("parameters") else {
             continue;
         };
-        let Some(last) = named_children(parameters).last().copied() else {
+        let Some(last) = named_children_of(parameters, context).last().copied() else {
             continue;
         };
         if expected_style(node, last, anonymous, context) {
@@ -96,13 +97,13 @@ fn expected_style(
 fn forwarded_arguments<'tree>(
     node: Node<'tree>,
     last: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Vec<Node<'tree>>> {
     let unsafe_in_block = context.target_ruby_version() <= ANONYMOUS_IN_BLOCK_REJECTED_THROUGH;
     let name = context.source.node_text(last);
     let mut found = Vec::new();
     let mut stack = Vec::new();
-    push_named_children(node, &mut stack);
+    push_named_children_in(node, context, &mut stack);
     while let Some(current) = stack.pop() {
         if current.kind_str() == "block_argument" {
             // `invalidates_syntax?` is asked of every block pass, matching or not, and aborts the
@@ -111,14 +112,14 @@ fn forwarded_arguments<'tree>(
                 return None;
             }
             // `&:sym` forwards a symbol rather than the block parameter.
-            let symbolic = named_children(current).first().is_some_and(|child| {
+            let symbolic = named_children_of(current, context).first().is_some_and(|child| {
                 matches!(child.kind_str(), "simple_symbol" | "delimited_symbol")
             });
             if !symbolic && context.source.node_text(current) == name {
                 found.push(current);
             }
         }
-        push_named_children(current, &mut stack);
+        push_named_children_in(current, context, &mut stack);
     }
     Some(found)
 }
@@ -313,7 +314,7 @@ fn reads_as_variable(node: Node<'_>, name: Option<&str>, context: &RuleContext<'
         {
             return true;
         }
-        push_named_children(current, &mut stack);
+        push_named_children_in(current, context, &mut stack);
     }
     false
 }

@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if alternative.kind_str() != "else" {
             continue;
         }
-        let statements = super::nodes::children(alternative);
+        let statements = super::nodes::children_in(alternative, context);
         let [inner] = statements.as_slice() else {
             continue;
         };
@@ -139,7 +139,7 @@ fn branch_range(
     condition: Node<'_>,
 ) -> Option<Range<usize>> {
     let consequence = inner.field("consequence")?;
-    let statements = super::nodes::children(consequence);
+    let statements = super::nodes::children_in(consequence, context);
     let first = statements.first()?;
     let last = statements.last()?;
     let mut range = first.start_byte()..last.end_byte();
@@ -262,7 +262,7 @@ fn else_written(
 /// The source of everything a branch holds, which is one node upstream however many statements
 /// were written.
 fn statements_source(context: &RuleContext<'_>, branch: Node<'_>) -> Option<String> {
-    let statements = super::nodes::children(branch);
+    let statements = super::nodes::children_in(branch, context);
     let first = statements.first()?;
     let last = statements.last()?;
     Some(

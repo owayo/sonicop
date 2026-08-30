@@ -28,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parameters) = node.field("parameters") else {
             continue;
         };
-        let written = super::nodes::children(parameters);
+        let written = super::nodes::children_in(parameters, context);
         let (Some(first), Some(last)) = (written.first(), written.last()) else {
             continue;
         };

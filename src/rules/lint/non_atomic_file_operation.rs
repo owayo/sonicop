@@ -271,7 +271,7 @@ fn find_exist_call<'tree>(
             return Some(node);
         }
         let mut children = Vec::new();
-        crate::rules::push_named_children(node, &mut children);
+        crate::rules::push_named_children_in(node, context, &mut children);
         children.reverse();
         stack.extend(children);
     }

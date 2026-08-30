@@ -26,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parent) = node.parent() else {
             continue;
         };
-        let statements: Vec<Node<'_>> = super::nodes::children(parent)
+        let statements: Vec<Node<'_>> = super::nodes::children_in(parent, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .collect();

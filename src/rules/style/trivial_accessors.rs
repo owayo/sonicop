@@ -58,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .parent_of(context)
             .is_none_or(|parent| parent.kind_str() == "program")
             && node.parent_of(context).is_some_and(|parent| {
-                super::nodes::children(parent).len() == 1 && parent.kind_str() != "program"
+                super::nodes::children_in(parent, context).len() == 1 && parent.kind_str() != "program"
             })
         {
             continue;
@@ -215,7 +215,7 @@ fn looks_like_trivial_writer(context: &RuleContext<'_>, node: Node<'_>) -> bool 
     let Some(parameters) = parameters(node) else {
         return false;
     };
-    let written = super::nodes::children(parameters);
+    let written = super::nodes::children_in(parameters, context);
     let [only] = written.as_slice() else {
         return false;
     };

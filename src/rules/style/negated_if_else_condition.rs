@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `else_branch &&`: an `else` that holds nothing is no branch at all upstream, where an
         // empty body is `nil` rather than a node. The grammar still writes the `else` keyword as a
         // node, so asking whether the field is present answers a different question.
-        if alternative.kind_str() == "else" && super::nodes::children(alternative).is_empty() {
+        if alternative.kind_str() == "else" && super::nodes::children_in(alternative, context).is_empty() {
             continue;
         }
         let Some(condition) = node.field("condition").map(unwrap_parentheses) else {
@@ -118,7 +118,7 @@ fn swap_branches(
     // line goes away instead.
     if node
         .field("consequence")
-        .is_none_or(|branch| super::nodes::children(branch).is_empty())
+        .is_none_or(|branch| super::nodes::children_in(branch, context).is_empty())
     {
         let keyword = alternative.start_byte()..alternative.start_byte() + ELSE_LENGTH;
         return vec![replace(support::whole_lines(keyword, context), String::new())];

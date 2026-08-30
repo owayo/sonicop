@@ -62,7 +62,7 @@ struct Slice<'tree> {
 }
 
 impl<'tree> Slice<'tree> {
-    fn read(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Self> {
+    fn read(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Self> {
         match node.kind_str() {
             "element_reference" => {
                 // `ary[0..-1] = x` is a call to `:[]=`, which the cop does not restrict itself to.
@@ -70,7 +70,7 @@ impl<'tree> Slice<'tree> {
                 if is_assignment_target(node) {
                     return None;
                 }
-                let children = super::nodes::children(node);
+                let children = super::nodes::children_in(node, context);
                 let [_, argument] = children.as_slice() else {
                     return None;
                 };

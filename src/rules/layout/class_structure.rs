@@ -8,6 +8,7 @@ use crate::rules::lint::access_modifier::send_name;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, symbol_name};
 use crate::rules::visibility::{node_visibility, siblings, statements};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let expected: Vec<String> = context.setting("ExpectedOrder").unwrap_or_default();
@@ -204,7 +205,7 @@ fn is_private_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    named_children(parent).into_iter().any(|sibling| {
+    named_children_of(parent, context).into_iter().any(|sibling| {
         sibling.kind_str() == "call"
             && sibling
                 .field("method")

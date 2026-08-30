@@ -7,12 +7,13 @@ use tree_sitter::Node;
 
 use super::conditional::descendants;
 use super::nodes;
+use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
 /// `condition.each_node.any?(&:lvasgn_type?)`: a condition that binds a local cannot move behind
 /// the body that reads it.
-pub(super) fn non_eligible_condition(condition: Node<'_>) -> bool {
-    descendants(condition).into_iter().any(|node| {
+pub(super) fn non_eligible_condition(condition: Node<'_>, context: &RuleContext<'_>) -> bool {
+    descendants(condition, context).into_iter().any(|node| {
         matches!(node.kind_str(), "assignment" | "operator_assignment")
             && node.field("left").is_some_and(binds_local)
     })

@@ -90,7 +90,7 @@ where
     let mut stack: Vec<Node<'tree>> = super::nodes::children(node);
     std::iter::from_fn(move || {
         while let Some(current) = stack.pop() {
-            stack.extend(super::nodes::children(current));
+            stack.extend(super::nodes::children_in(current, context));
             if let Some(operator) = logical_operator(current, context)
                 && wanted.contains(&operator)
             {

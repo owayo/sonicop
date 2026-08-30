@@ -25,7 +25,7 @@ const STATEMENT_LISTS: &[&str] = &[
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for parent in context.nodes_of_any(STATEMENT_LISTS) {
-        let statements = super::nodes::children(parent);
+        let statements = super::nodes::children_in(parent, context);
         // `node.parent&.begin_type?`: one statement on its own is not wrapped in a `begin`.
         if statements.len() < 2 {
             continue;

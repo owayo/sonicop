@@ -195,7 +195,7 @@ fn replace_begin_with_statement(
     edits: &mut Vec<Edit>,
     anchor: &mut Option<Range<usize>>,
 ) {
-    let Some(first) = super::nodes::children(node).first().copied() else {
+    let Some(first) = super::nodes::children_in(node, context).first().copied() else {
         return;
     };
     let source = context.source.node_text(first);
@@ -238,7 +238,7 @@ fn correct_modifier_form(
     anchor: &mut Option<Range<usize>>,
 ) {
     let (Some(first), Some(keyword), Some(condition)) = (
-        super::nodes::children(node).first().copied(),
+        super::nodes::children_in(node, context).first().copied(),
         modifier_keyword(parent),
         parent.field("condition"),
     ) else {

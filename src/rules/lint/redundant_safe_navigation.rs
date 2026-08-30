@@ -2,13 +2,14 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
+use crate::rules::send_node::{arguments, string_text, symbol_name};
 
 use super::blocks::BLOCK_KINDS;
 use super::literals::{is_literal, literal_type};
 use super::nil_methods::NIL_METHODS;
 use super::nil_receiver::cant_be_nil;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Redundant safe navigation detected, use `.` instead.";
 const MSG_LITERAL: &str = "Redundant safe navigation with default literal detected.";
@@ -217,8 +218,8 @@ fn check_conversion_with_default(
         .field("block")
         .is_some_and(|block| BLOCK_KINDS.contains(&block.kind_str()));
     let matched = match context.source.node_text(method) {
-        "to_h" => right.kind_str() == "hash" && named_children(right).is_empty(),
-        "to_a" if !has_block => right.kind_str() == "array" && named_children(right).is_empty(),
+        "to_h" => right.kind_str() == "hash" && named_children_of(right, context).is_empty(),
+        "to_a" if !has_block => right.kind_str() == "array" && named_children_of(right, context).is_empty(),
         "to_i" if !has_block => {
             right.kind_str() == "integer" && context.source.node_text(right) == "0"
         }

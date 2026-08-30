@@ -45,7 +45,7 @@ pub(super) fn arguments<'a>(context: &'a RuleContext<'_>, node: Node<'_>) -> &'a
     let Some(parameters) = node.field("parameters") else {
         return "";
     };
-    match super::nodes::children(parameters).is_empty() {
+    match super::nodes::children_in(parameters, context).is_empty() {
         true => "",
         false => context.source.node_text(parameters),
     }

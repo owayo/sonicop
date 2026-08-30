@@ -35,7 +35,7 @@ fn implements_respond_to_missing(context: &RuleContext<'_>, node: Node<'_>) -> b
         return false;
     };
     let mut found = false;
-    crate::rules::walk_named(root, &mut |candidate| {
+    crate::rules::walk_named(root, context, &mut |candidate| {
         if found || candidate.kind_str() != node.kind_str() {
             return;
         }

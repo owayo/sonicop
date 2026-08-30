@@ -13,11 +13,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<String>("EnforcedStyle")
         .is_some_and(|style| style == "return_nil");
     for node in context.nodes_of("return") {
-        let written = super::nodes::children(node);
+        let written = super::nodes::children_in(node, context);
         let returns_nil = matches!(
             written.as_slice(),
             [list] if list.kind_str() == "argument_list"
-                && matches!(super::nodes::children(*list).as_slice(),
+                && matches!(super::nodes::children_in(*list, context).as_slice(),
                             [only] if only.kind_str() == "nil")
         );
         // `correct_style?`: only one of the two spellings is ever wrong, and a `return 1` is

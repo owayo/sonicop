@@ -72,7 +72,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if empty_if
             && node
                 .field("consequence")
-                .is_some_and(|then| !super::nodes::children(then).is_empty())
+                .is_some_and(|then| !super::nodes::children_in(then, context).is_empty())
         {
             continue;
         }

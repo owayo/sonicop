@@ -124,14 +124,14 @@ fn counts_into_hash(context: &RuleContext<'_>, block: Node<'_>) -> bool {
         && left
             .field("object")
             .is_some_and(|object| names(object, &hash, context))
-        && matches!(super::nodes::children(left).as_slice(),
+        && matches!(super::nodes::children_in(left, context).as_slice(),
             [_, index] if names(*index, &element, context))
 }
 
 /// The element and hash names a block takes, whether declared or numbered.
 fn two_parameters(context: &RuleContext<'_>, block: Node<'_>) -> Option<(String, String)> {
     match block.field("parameters") {
-        Some(parameters) => match super::nodes::children(parameters).as_slice() {
+        Some(parameters) => match super::nodes::children_in(parameters, context).as_slice() {
             [element, hash]
                 if element.kind_str() == "identifier" && hash.kind_str() == "identifier" =>
             {
@@ -223,7 +223,7 @@ fn counts_block_value(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 /// The one name a block reads its value by, declared or implicit.
 fn single_parameter(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
     match block.field("parameters") {
-        Some(parameters) => match super::nodes::children(parameters).as_slice() {
+        Some(parameters) => match super::nodes::children_in(parameters, context).as_slice() {
             [only] if only.kind_str() == "identifier" => {
                 Some(context.source.node_text(*only).to_owned())
             }
@@ -244,7 +244,7 @@ fn implicit_name(context: &RuleContext<'_>, block: Node<'_>) -> String {
         if node.kind_str() == "identifier" && context.source.node_text(node) == "it" {
             return "it".to_owned();
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     "_1".to_owned()
 }

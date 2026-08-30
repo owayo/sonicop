@@ -2,10 +2,10 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::named_children;
 
 use super::variable_force::{Analysis, Assignment, Declaration, Scope, Variable};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The scope kinds `method_argument?` and `block_argument?` accept: a `def`, a `defs`, and the
 /// `block` a literal lambda is one of.
@@ -172,7 +172,7 @@ fn uses_variable(
     {
         return true;
     }
-    named_children(node)
+    named_children_of(node, context)
         .into_iter()
         .any(|child| uses_variable(child, name, analysis, context))
 }

@@ -37,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `return unless node.else_branch`: upstream's `else_branch` is what the clause **holds**,
         // so a bare `else end` answers `nil`. The grammar keeps the empty clause as a node, and
         // taking its presence for a branch made `if cond then run else end` look convertible.
-        if !crate::rules::send_node::named_children(alternative)
+        if !crate::rules::send_node::named_children_of(alternative, context)
             .iter()
             .any(|child| child.kind_str() != "comment")
         {
@@ -150,7 +150,7 @@ fn branch(context: &RuleContext<'_>, node: Option<Node<'_>>) -> String {
         return "nil".to_owned();
     };
     let (source, node) = match node.kind_str() {
-        "then" | "else" => match super::nodes::children(node).as_slice() {
+        "then" | "else" => match super::nodes::children_in(node, context).as_slice() {
             [only] => (context.source.node_text(*only).to_owned(), Some(*only)),
             [] => return "nil".to_owned(),
             [first, .., last] => (
@@ -221,7 +221,7 @@ fn requires_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         && node
             .child(1)
             .is_some_and(|arguments| !context.source.node_text(arguments).starts_with('('))
-        && !super::nodes::children(node).is_empty()
+        && !super::nodes::children_in(node, context).is_empty()
 }
 
 /// `IfThenCorrector`: the same conditional written over several lines.
@@ -263,7 +263,7 @@ fn expanded(context: &RuleContext<'_>, node: Node<'_>, width: usize, column: usi
 
 /// The source of everything a `then` or `else` clause holds.
 fn clause_source(context: &RuleContext<'_>, clause: Node<'_>) -> String {
-    let written = super::nodes::children(clause);
+    let written = super::nodes::children_in(clause, context);
     match (written.first(), written.last()) {
         (Some(first), Some(last)) => context
             .source

@@ -5,10 +5,10 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
 
 use super::node_equality::identical;
 use super::statements::{body_children, statements};
+use crate::rules::send_node::named_children_of;
 
 /// One branch, with what upstream would report it at.
 struct Branch<'tree> {
@@ -53,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `on_rescue`: the clauses of one body, which the grammar keeps as siblings rather than under
     // a node of their own.
     for container in context.nodes_of_any(&["begin", "body_statement", "block_body", "do"]) {
-        let clauses: Vec<Node<'_>> = named_children(container)
+        let clauses: Vec<Node<'_>> = named_children_of(container, context)
             .into_iter()
             .filter(|child| matches!(child.kind_str(), "rescue" | "else"))
             .collect();
@@ -235,7 +235,7 @@ fn is_literal_branch(
         return true;
     }
     let mut all = true;
-    crate::rules::walk_named(only, &mut |node| {
+    crate::rules::walk_named(only, context, &mut |node| {
         if node.id() == only.id() || !all {
             return;
         }

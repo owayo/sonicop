@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // RuboCop keeps the enclosing class and block on instance variables that its callbacks fill in
     // as the walk reaches them, so what a modifier sees is whatever was visited last -- never
     // unwound on the way back out. A single pre-order pass reproduces that.
-    walk_named(context.root_node(), &mut |node| match node.kind_str() {
+    walk_named(context.root_node(), context, &mut |node| match node.kind_str() {
         "class" => {
             let header = node
                 .field("superclass")

@@ -193,7 +193,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
     match parent {
         UpstreamParent::Begin(parent) => match parent.kind_str() {
             "parenthesized_statements" | "interpolation" | "begin" => {
-                super::nodes::children(parent).len()
+                super::nodes::children_in(parent, context).len()
             }
             // A statement list the grammar wraps -- a `then`, an `else`, a definition's body --
             // is a `begin` of the statements it holds, less the clauses that are not statements
@@ -202,7 +202,7 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
         },
         UpstreamParent::Node(parent) => match parent.kind_str() {
             "array" | "string_array" | "symbol_array" | "exceptions" => {
-                super::nodes::children(parent).len()
+                super::nodes::children_in(parent, context).len()
             }
             "splat_argument"
             | "hash_splat_argument"
@@ -212,10 +212,10 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             | "begin_block"
             | "end_block" => 1,
             kind if JUMPS.contains(&kind) => {
-                super::nodes::children(parent)
+                super::nodes::children_in(parent, context)
                     .first()
                     .map_or(0, |list| match list.kind_str() {
-                        "argument_list" => super::nodes::children(*list).len(),
+                        "argument_list" => super::nodes::children_in(*list, context).len(),
                         _ => 1,
                     })
             }
@@ -255,7 +255,7 @@ const CONDITIONALS: &[&str] = &["if", "unless", "while", "until", "elsif"];
 
 /// `parens_allowed?`.
 fn parens_allowed(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    let children = super::nodes::children(node);
+    let children = super::nodes::children_in(node, context);
     // `empty_parentheses?`: `()` says something no rewrite could keep.
     if children.is_empty() {
         return true;
@@ -466,7 +466,7 @@ fn like_method_argument_parentheses(
     let Some(arguments) = argument_list(parent) else {
         return false;
     };
-    let list = super::nodes::children(arguments);
+    let list = super::nodes::children_in(arguments, context);
     if list.len() != 1 || list[0].id() != node.id() {
         return false;
     }
@@ -520,12 +520,12 @@ fn multiline_control_flow_statements(
 
 /// `check`.
 fn check_group<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
     node: Node<'tree>,
     pending: &mut Vec<(Node<'tree>, &'static str)>,
 ) {
-    let children = super::nodes::children(node);
+    let children = super::nodes::children_in(node, context);
     let Some(inner) = children.first().copied() else {
         return;
     };
@@ -1008,7 +1008,7 @@ fn body_range(context: &RuleContext<'_>, node: Node<'_>, inner: Node<'_>) -> boo
         return false;
     };
     let statements = match parent.kind_str() {
-        "parenthesized_statements" | "interpolation" | "begin" => super::nodes::children(parent),
+        "parenthesized_statements" | "interpolation" | "begin" => super::nodes::children_in(parent, context),
         _ => super::conditional::self_statements(parent),
     };
     let beginless = inner.field("begin").is_none()
@@ -1056,7 +1056,7 @@ fn keyword_with_redundant_parentheses(context: &RuleContext<'_>, node: Node<'_>)
                 None => has_own_parentheses(context, node),
             };
         }
-        _ => super::nodes::children(node),
+        _ => super::nodes::children_in(node, context),
     };
     // `only_begin_arg?`: the keyword's single argument is itself a parenthesized group.
     if let [only] = arguments.as_slice()
@@ -1213,7 +1213,7 @@ fn method_call_with_redundant_parentheses(
     if singular_parenthesized_parent(context, node) {
         return true;
     }
-    !call_has_arguments(call) || has_own_parentheses(context, call) || square_brackets(call)
+    !call_has_arguments(call) || has_own_parentheses(context, call) || square_brackets(call, context)
 }
 
 /// `singular_parenthesized_parent?`.
@@ -1230,14 +1230,14 @@ fn singular_parenthesized_parent(context: &RuleContext<'_>, node: Node<'_>) -> b
 }
 
 /// `square_brackets?`: an index written on something the parentheses cannot be part of.
-fn square_brackets(node: Node<'_>) -> bool {
+fn square_brackets(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node.kind_str() != "element_reference" {
         return false;
     }
     let Some(object) = node.field("object") else {
         return false;
     };
-    super::conditional::descendants(object)
+    super::conditional::descendants(object, context)
         .into_iter()
         .any(|descendant| match descendant.kind_str() {
             "string" | "array" | "string_array" | "symbol_array" | "hash" => true,

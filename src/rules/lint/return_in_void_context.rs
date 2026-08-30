@@ -2,8 +2,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::named_children;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// `SCOPE_CHANGING_METHODS`: a block handed to one of these gives the `return` a scope of its own.
 const SCOPE_CHANGING_METHODS: [&str; 3] = ["lambda", "define_method", "define_singleton_method"];
@@ -14,7 +14,7 @@ const COMPARISON_METHODS: [&str; 5] = ["==", "===", "!=", "<=", ">="];
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("return") {
         // `return_node.descendants.any?`: a bare `return` hands back nothing to discard.
-        if named_children(node).is_empty() {
+        if named_children_of(node, context).is_empty() {
             continue;
         }
         let Some(keyword) = node.child(0).filter(|child| child.kind_str() == "return") else {

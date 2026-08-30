@@ -7,7 +7,7 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::push_named_children;
+use crate::rules::{push_named_children_in};
 use crate::rules::send_node::{arguments, is_string, pair_key_symbol, send_range, string_text};
 
 use super::support::gem_declarations;
@@ -179,7 +179,7 @@ fn subtree_lines(node: Node<'_>, context: &RuleContext<'_>) -> HashSet<usize> {
             continue;
         }
         lines.insert(context.source.line_column(current.start_byte()).0);
-        push_named_children(current, &mut stack);
+        push_named_children_in(current, context, &mut stack);
     }
     lines
 }

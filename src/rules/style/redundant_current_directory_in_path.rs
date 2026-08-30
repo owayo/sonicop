@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let Some(argument) = node
             .field("arguments")
-            .and_then(|arguments| super::nodes::children(arguments).into_iter().next())
+            .and_then(|arguments| super::nodes::children_in(arguments, context).into_iter().next())
         else {
             continue;
         };
@@ -56,7 +56,7 @@ fn leading_path_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Opt
     if node.kind_str() != "string" {
         return None;
     }
-    let first = super::nodes::children(node).into_iter().next()?;
+    let first = super::nodes::children_in(node, context).into_iter().next()?;
     if first.kind_str() != "string_content" {
         return None;
     }

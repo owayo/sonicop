@@ -81,7 +81,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// define -- and a comparison with no argument at all cannot be reversed.
 fn operands<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>)> {
     if node.kind_str() == "binary" {
         return Some((
@@ -101,7 +101,7 @@ fn operands<'tree>(
     let selector = node.field("method")?;
     // `node.first_argument`: a further argument cannot reach a comparison operator, but the
     // grammar would let one through.
-    let arguments = super::nodes::children(node.field("arguments")?);
+    let arguments = super::nodes::children_in(node.field("arguments")?, context);
     let [only] = arguments.as_slice() else {
         return None;
     };

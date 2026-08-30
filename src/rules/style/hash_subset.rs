@@ -50,20 +50,26 @@ pub(super) fn check(
         if !arguments(node).is_empty() {
             continue;
         }
-        let parameters = super::nodes::children(match block.field("parameters") {
-            Some(parameters) => parameters,
-            None => continue,
-        });
+        let parameters = super::nodes::children_in(
+            match block.field("parameters") {
+                Some(parameters) => parameters,
+                None => continue,
+            },
+            context,
+        );
         let [key, value] = parameters.as_slice() else {
             continue;
         };
         if key.kind_str() != "identifier" || value.kind_str() != "identifier" {
             continue;
         }
-        let body = super::nodes::children(match block.field("body") {
-            Some(body) => body,
-            None => continue,
-        });
+        let body = super::nodes::children_in(
+            match block.field("body") {
+                Some(body) => body,
+                None => continue,
+            },
+            context,
+        );
         let [statement] = body.as_slice() else {
             continue;
         };
@@ -221,13 +227,13 @@ fn semantically_except(selector: &str, test: &Test<'_>) -> bool {
 /// `except_key_source`: the keys as the replacement writes them out.
 fn key_source(key: Node<'_>, context: &RuleContext<'_>) -> String {
     match key.kind_str() {
-        "array" => super::nodes::children(key)
+        "array" => super::nodes::children_in(key, context)
             .iter()
             .map(|value| context.source.node_text(*value).to_owned())
             .collect::<Vec<_>>()
             .join(", "),
         // `percent_literal?`: the elements are written bare, so each is spelled back as a literal.
-        "string_array" | "symbol_array" => super::nodes::children(key)
+        "string_array" | "symbol_array" => super::nodes::children_in(key, context)
             .iter()
             .map(|value| decorate_source(*value, context))
             .collect::<Vec<_>>()

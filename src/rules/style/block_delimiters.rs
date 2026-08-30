@@ -196,7 +196,7 @@ impl Cop<'_, '_> {
                 vec![right]
             }
             "element_reference" => {
-                let mut arguments = super::nodes::children(node);
+                let mut arguments = super::nodes::children_in(node, self.context);
                 if node.field("object").is_some() && !arguments.is_empty() {
                     arguments.remove(0);
                 }
@@ -409,7 +409,7 @@ impl Cop<'_, '_> {
         let Some(body) = block.body() else {
             return false;
         };
-        let clauses = super::nodes::children(body);
+        let clauses = super::nodes::children_in(body, self.context);
         if clauses.iter().any(|child| child.kind_str() == "ensure") {
             return true;
         }
@@ -489,7 +489,7 @@ impl Cop<'_, '_> {
         // `begin_required?`: a protected body needs its own `begin` once the keywords are gone.
         if block.multiline
             && let Some(body) = block.body()
-            && super::nodes::children(body)
+            && super::nodes::children_in(body, self.context)
                 .iter()
                 .any(|child| matches!(child.kind_str(), "rescue" | "ensure"))
         {

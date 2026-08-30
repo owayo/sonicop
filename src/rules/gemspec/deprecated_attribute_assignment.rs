@@ -3,9 +3,10 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::push_named_children;
-use crate::rules::send_node::{arguments, is_plain_send, named_children, top_level_constant};
+use crate::rules::{push_named_children_in};
+use crate::rules::send_node::{arguments, is_plain_send, top_level_constant};
 use crate::rules::support::whole_lines;
+use crate::rules::send_node::named_children_of;
 
 /// The attributes RubyGems deprecated, in the order upstream tries them. The order is what the cop
 /// reports, and it is also load-bearing for `+=`: see [`deprecated_attribute`].
@@ -87,7 +88,7 @@ fn is_specification(call: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// has. A destructured `|(a, b)|` yields `(a, b)`, which no receiver can be written as.
 fn block_parameter<'a>(call: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let parameters = call.field("block")?.field("parameters")?;
-    let first = named_children(parameters).first().copied()?;
+    let first = named_children_of(parameters, context).first().copied()?;
     Some(context.source.node_text(first))
 }
 
@@ -100,15 +101,15 @@ fn block_parameter<'a>(call: Node<'_>, context: &'a RuleContext<'_>) -> Option<&
 fn first_deprecated<'tree>(
     call: Node<'tree>,
     parameter: &str,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, &'static str)> {
     let mut stack = Vec::new();
-    push_named_children(call, &mut stack);
+    push_named_children_in(call, context, &mut stack);
     while let Some(node) = stack.pop() {
         if let Some(attribute) = deprecated_attribute(node, parameter, context) {
             return Some((node, attribute));
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
     None
 }

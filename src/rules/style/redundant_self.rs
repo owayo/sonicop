@@ -209,10 +209,10 @@ impl<'tree> Cop<'_, 'tree> {
 
     /// `add_scope`: every node under this one answers with the same list.
     fn add_scope(&mut self, node: Node<'tree>, scope: Scope) {
-        let mut stack = send_node::named_children(node);
+        let mut stack = send_node::named_children_of(node, self.context);
         while let Some(current) = stack.pop() {
             self.scopes.insert(current.id(), Scope::clone(&scope));
-            stack.extend(send_node::named_children(current));
+            stack.extend(send_node::named_children_of(current, self.context));
         }
     }
 
@@ -256,7 +256,7 @@ impl<'tree> Cop<'_, 'tree> {
         match left.kind_str() {
             // `on_masgn`: every name the left-hand side binds.
             "left_assignment_list" => {
-                for target in send_node::named_children(left) {
+                for target in send_node::named_children_of(left, self.context) {
                     let name = self.context.source.node_text(target).to_owned();
                     self.add_lhs_to_scopes(right, name);
                 }
@@ -290,13 +290,13 @@ impl<'tree> Cop<'_, 'tree> {
     }
 
     fn on_resbody(&mut self, node: Node<'tree>) {
-        let Some(variable) = send_node::named_children(node)
+        let Some(variable) = send_node::named_children_of(node, self.context)
             .into_iter()
             .find(|child| child.kind_str() == "exception_variable")
         else {
             return;
         };
-        let Some(name) = send_node::named_children(variable)
+        let Some(name) = send_node::named_children_of(variable, self.context)
             .first()
             .filter(|bound| bound.kind_str() == "identifier")
             .map(|bound| self.context.source.node_text(*bound).to_owned())
@@ -309,12 +309,12 @@ impl<'tree> Cop<'_, 'tree> {
     /// `add_match_var_scopes`: `in [Integer => n]` binds `n` for the branch.
     fn on_in_pattern(&mut self, node: Node<'tree>) {
         let mut names = Vec::new();
-        let mut stack = send_node::named_children(node);
+        let mut stack = send_node::named_children_of(node, self.context);
         while let Some(current) = stack.pop() {
             if is_match_var(current) {
                 names.push(self.context.source.node_text(current).to_owned());
             }
-            stack.extend(send_node::named_children(current));
+            stack.extend(send_node::named_children_of(current, self.context));
         }
         self.scope(node.id()).borrow_mut().extend(names);
     }
@@ -326,7 +326,7 @@ impl<'tree> Cop<'_, 'tree> {
             return;
         };
         let mut names = Vec::new();
-        let mut stack = send_node::named_children(node);
+        let mut stack = send_node::named_children_of(node, self.context);
         while let Some(current) = stack.pop() {
             if current.kind_str() == "assignment"
                 && let Some(left) = current.field("left")
@@ -334,14 +334,14 @@ impl<'tree> Cop<'_, 'tree> {
                 match left.kind_str() {
                     "identifier" => names.push(self.context.source.node_text(left).to_owned()),
                     "left_assignment_list" => names.extend(
-                        send_node::named_children(left)
+                        send_node::named_children_of(left, self.context)
                             .into_iter()
                             .map(|target| self.context.source.node_text(target).to_owned()),
                     ),
                     _ => {}
                 }
             }
-            stack.extend(send_node::named_children(current));
+            stack.extend(send_node::named_children_of(current, self.context));
         }
         for name in names {
             self.add_lhs_to_scopes(condition, name);
@@ -485,7 +485,7 @@ impl<'tree> Cop<'_, 'tree> {
         let mut current = node.parent_of(self.context);
         while let Some(visited) = current {
             if matches!(visited.kind_str(), "do_block" | "block" | "lambda") {
-                return send_node::named_children(visited)
+                return send_node::named_children_of(visited, self.context)
                     .iter()
                     .all(|child| child.kind_str() != "block_parameters");
             }

@@ -126,33 +126,35 @@ fn references(
     node: Node<'_>,
     name: &str,
 ) -> bool {
-    super::nodes::children(node).into_iter().any(|child| {
-        send_node::any_descendant(child, &mut |inner| {
-            inner.kind_str() == "identifier"
-                && context.source.node_text(inner) == name
-                && locals.is_lvar(inner)
+    super::nodes::children_in(node, context)
+        .into_iter()
+        .any(|child| {
+            send_node::any_descendant(child, &mut |inner| {
+                inner.kind_str() == "identifier"
+                    && context.source.node_text(inner) == name
+                    && locals.is_lvar(inner)
+            })
         })
-    })
 }
 
 /// `(block (call #hash_receiver? :each_with_object (hash)) (args (mlhs (arg _) (arg _)) (arg _memo))
 /// (call (lvar _memo) :[]= _ _))`.
 fn each_with_object<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
     let block = call_with_block(context, node, &["each_with_object"])?;
     empty_hash_argument(node)?;
     hash_receiver(context, node.field("receiver")?)?;
-    let parameters = super::nodes::children(node_parameters(block)?);
+    let parameters = super::nodes::children_in(node_parameters(block)?, context);
     let [destructured, memo] = parameters.as_slice() else {
         return None;
     };
     if destructured.kind_str() != "destructured_parameter" || memo.kind_str() != "identifier" {
         return None;
     }
-    let pair = super::nodes::children(*destructured);
+    let pair = super::nodes::children_in(*destructured, context);
     let [key, value] = pair.as_slice() else {
         return None;
     };
@@ -169,7 +171,7 @@ fn each_with_object<'tree>(
     {
         return None;
     }
-    let indices = super::nodes::children(target);
+    let indices = super::nodes::children_in(target, context);
     let [_, index] = indices.as_slice() else {
         return None;
     };
@@ -209,7 +211,7 @@ fn each_with_object<'tree>(
 
 /// `(send (const _ :Hash) :[] (block (call #hash_receiver? {:map :collect}) ...))`.
 fn hash_brackets_map<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
@@ -220,7 +222,7 @@ fn hash_brackets_map<'tree>(
     if !is_named_constant(context, object, "Hash") {
         return None;
     }
-    let indices = super::nodes::children(node);
+    let indices = super::nodes::children_in(node, context);
     let [_, mapping] = indices.as_slice() else {
         return None;
     };
@@ -240,7 +242,7 @@ fn hash_brackets_map<'tree>(
 
 /// `(call (block (call #hash_receiver? {:map :collect}) ...) :to_h)`.
 fn map_to_h<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
@@ -278,7 +280,7 @@ fn map_to_h<'tree>(
 
 /// `(block (call #hash_receiver? :to_h) (args (arg _) (arg _)) (array _ _))`.
 fn to_h_block<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
     half: Half,
 ) -> Option<Candidate<'tree>> {
@@ -306,7 +308,7 @@ fn to_h_block<'tree>(
 
 /// A `map`/`collect` block over a hash, and the halves of the pair it builds.
 fn mapping_block<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
     half: Half,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>, Node<'tree>)> {
@@ -322,11 +324,11 @@ fn mapping_block<'tree>(
 /// `(args (arg $_) (arg _val)) (array $_ $(lvar _val))`: the two parameters and the two-element
 /// array the block answers with.
 fn pair_block<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     block: Node<'tree>,
     half: Half,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>)> {
-    let parameters = super::nodes::children(node_parameters(block)?);
+    let parameters = super::nodes::children_in(node_parameters(block)?, context);
     let [key, value] = parameters.as_slice() else {
         return None;
     };
@@ -337,7 +339,7 @@ fn pair_block<'tree>(
     if body.kind_str() != "array" {
         return None;
     }
-    let elements = super::nodes::children(body);
+    let elements = super::nodes::children_in(body, context);
     let [first, second] = elements.as_slice() else {
         return None;
     };

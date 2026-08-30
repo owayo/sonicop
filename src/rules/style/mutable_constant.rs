@@ -180,7 +180,7 @@ impl<'tree> Cop<'_, 'tree> {
         self.context.target_ruby_version() <= RubyVersion::new(2, 7)
             && value.kind_str() == "parenthesized_statements"
             && matches!(
-                send_node::named_children(value).as_slice(),
+                send_node::named_children_of(value, self.context).as_slice(),
                 [only] if only.kind_str() == "range"
             )
     }
@@ -333,7 +333,7 @@ impl<'tree> Cop<'_, 'tree> {
         if node.kind_str() != "element_reference" {
             return false;
         }
-        let children = send_node::named_children(node);
+        let children = send_node::named_children_of(node, self.context);
         matches!(children.as_slice(), [receiver, _]
             if send_node::top_level_constant(*receiver, "ENV", self.context))
     }
@@ -367,7 +367,7 @@ impl<'tree> Cop<'_, 'tree> {
             let source = self.context.source.node_text(splat);
             let parenthesized = splat.kind_str() == "parenthesized_statements"
                 && matches!(
-                    send_node::named_children(splat).as_slice(),
+                    send_node::named_children_of(splat, self.context).as_slice(),
                     [only] if only.kind_str() == "range"
                 );
             let replacement = match parenthesized {

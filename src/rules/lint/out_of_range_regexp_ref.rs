@@ -6,6 +6,7 @@ use crate::rules::send_node::{arguments, named_children};
 
 use super::regexp::{captures, interpolates, pattern};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The methods that leave `$~` set, which is what makes a numbered reference after them valid.
 /// `RESTRICT_ON_SEND` is this list, so a call to anything else leaves the state alone.
@@ -71,7 +72,7 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
             }
         }
         "when" => {
-            walk.valid_ref = named_children(node)
+            walk.valid_ref = named_children_of(node, context)
                 .into_iter()
                 .filter(|child| child.kind_str() == "pattern")
                 .flat_map(named_children)
@@ -100,7 +101,7 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
     // conditional puts its condition after its body here and before it upstream, for the same
     // reason: the walk has to see them in the order the parser's children are listed.
     let block = node.field("block");
-    let mut children = named_children(node);
+    let mut children = named_children_of(node, context);
     if matches!(
         node.kind_str(),
         "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier"
@@ -198,7 +199,7 @@ fn is_capture_call(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 /// `regexp_first_argument?` and `regexp_receiver?`, which is what the state is taken from.
-fn regexp_operand<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
+fn regexp_operand<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
     let (name, first, receiver) = match node.kind_str() {
         "call" => (
             context
@@ -214,7 +215,7 @@ fn regexp_operand<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option
             node.field("right"),
             node.field("left"),
         ),
-        "element_reference" => ("[]", named_children(node).into_iter().nth(1), node.child(0)),
+        "element_reference" => ("[]", named_children_of(node, context).into_iter().nth(1), node.child(0)),
         _ => return None,
     };
     if let Some(first) = first

@@ -14,6 +14,7 @@ pub mod engine;
 mod formatter;
 mod magic_comment;
 mod nul_bytes;
+mod parser;
 mod profile;
 mod ruby_version;
 pub mod rules;

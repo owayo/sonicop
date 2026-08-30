@@ -308,6 +308,40 @@ pub(crate) fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     node.named_children(&mut cursor).collect()
 }
 
+/// [`named_children`] answered from the file's index, for a cop that has its context to hand.
+///
+/// The list is copied out rather than borrowed so that this is a drop-in for the walk it replaces:
+/// one allocation and a memcpy against a tree cursor opened at the node and stepped over every
+/// child. A node the index does not know is walked the old way.
+pub(crate) fn named_children_of<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> Vec<Node<'tree>> {
+    match context.named_children(node) {
+        Some(children) => children.to_vec(),
+        None => named_children_of(node, context),
+    }
+}
+
+/// [`named_children`] answered from the file's index, which recorded every node's children on the
+/// walk that built it.
+///
+/// `Node::named_children` opens a tree cursor and fills a fresh `Vec` on every call. A sampling
+/// profile of a run over RuboCop's own tree put the cursor iteration first and that `Vec` second,
+/// and neither answers anything the index did not already know.
+///
+/// A node the index does not know -- one of the extra trees `Metrics` parses to recover the
+/// fragments the grammar swallowed -- is walked the old way, so the answer is the same either way.
+pub(crate) fn named_children_in<'tree>(
+    node: Node<'tree>,
+    index: &'tree crate::rules::AstIndex<'tree>,
+) -> std::borrow::Cow<'tree, [Node<'tree>]> {
+    match index.named_children_of(node) {
+        Some(children) => std::borrow::Cow::Borrowed(children),
+        None => std::borrow::Cow::Owned(named_children(node)),
+    }
+}
+
 /// Whether any node in `node`'s subtree, including `node` itself, satisfies `predicate`. This is
 /// the search a node pattern writes with a leading backtick.
 pub(crate) fn any_descendant(node: Node<'_>, predicate: &mut impl FnMut(Node<'_>) -> bool) -> bool {

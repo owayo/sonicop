@@ -22,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if require_parentheses {
             // `node.arguments?`: an empty pair of parentheses declares no parameter at all, so
             // there is nothing to wrap.
-            if !parenthesized && !super::nodes::children(parameters).is_empty() {
+            if !parenthesized && !super::nodes::children_in(parameters, context).is_empty() {
                 offenses.push(missing(context, parameters));
             }
             continue;

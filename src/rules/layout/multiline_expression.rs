@@ -44,6 +44,10 @@ enum Role {
 pub(super) struct UpNode<'tree> {
     node: Node<'tree>,
     role: Role,
+    /// The file's node index, carried so that climbing to a parent is a lookup rather than a walk
+    /// down from the root of the tree. Every step of every chain this cop family follows asks for
+    /// one, and `Node::parent` was the largest cost of the three cops together.
+    index: &'tree crate::rules::AstIndex<'tree>,
 }
 
 /// The node types the ported code asks about by name.
@@ -114,11 +118,11 @@ fn block_of<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 
 /// Whether the call was fused into the setter `send` its assignment builds, which leaves it
 /// without a node of its own upstream.
-fn is_fused_setter_target(node: Node<'_>) -> bool {
+fn is_fused_setter_target(node: Node<'_>, index: &crate::rules::AstIndex<'_>) -> bool {
     if !matches!(node.kind_str(), "call" | "element_reference") {
         return false;
     }
-    node.parent().is_some_and(|parent| {
+    index.parent(node).is_some_and(|parent| {
         parent.kind_str() == "assignment"
             && parent
                 .field("left")
@@ -129,19 +133,20 @@ fn is_fused_setter_target(node: Node<'_>) -> bool {
 impl<'tree> UpNode<'tree> {
     /// The node a reference from elsewhere -- a receiver, an argument -- resolves to. A call
     /// written with a block is the `block` node there.
-    pub(super) fn of(node: Node<'tree>) -> Self {
+    pub(super) fn of(node: Node<'tree>, index: &'tree crate::rules::AstIndex<'tree>) -> Self {
         let role = if block_of(node).is_some() {
             Role::Block
         } else {
             Role::Plain
         };
-        Self { node, role }
+        Self { node, role, index }
     }
 
-    pub(super) fn plain(node: Node<'tree>) -> Self {
+    pub(super) fn plain(node: Node<'tree>, index: &'tree crate::rules::AstIndex<'tree>) -> Self {
         Self {
             node,
             role: Role::Plain,
+            index,
         }
     }
 
@@ -226,13 +231,19 @@ impl<'tree> UpNode<'tree> {
             return None;
         }
         match node.kind_str() {
-            "call" | "method_call" => node.field("receiver").map(Self::of),
-            "element_reference" => node.field("object").map(Self::of),
-            "binary" => node.field("left").map(Self::of),
-            "unary" => node.field("operand").map(Self::of),
+            "call" | "method_call" => node
+                .field("receiver")
+                .map(|receiver| Self::of(receiver, self.index)),
+            "element_reference" => node
+                .field("object")
+                .map(|object| Self::of(object, self.index)),
+            "binary" => node.field("left").map(|left| Self::of(left, self.index)),
+            "unary" => node
+                .field("operand")
+                .map(|operand| Self::of(operand, self.index)),
             "assignment" => {
                 let left = node.field("left")?;
-                Self::plain(left).receiver(context)
+                Self::plain(left, self.index).receiver(context)
             }
             _ => None,
         }
@@ -342,29 +353,29 @@ impl<'tree> UpNode<'tree> {
         }
         match self.node.kind_str() {
             "call" | "method_call" => match self.node.field("arguments") {
-                Some(list) => fold_arguments(list, &children_of(list)),
+                Some(list) => fold_arguments(list, &children_of(list), self.index),
                 None => Vec::new(),
             },
             "element_reference" => {
                 let indices: Vec<Node<'tree>> =
                     children_of(self.node).into_iter().skip(1).collect();
-                fold_arguments(self.node, &indices)
+                fold_arguments(self.node, &indices, self.index)
             }
             "binary" if plain_kind(context, self.node) == UpKind::Send => self
                 .node
                 .field("right")
-                .map_or_else(Vec::new, |right| vec![Self::of(right)]),
+                .map_or_else(Vec::new, |right| vec![Self::of(right, self.index)]),
             "assignment" => {
                 let Some(left) = self.node.field("left") else {
                     return Vec::new();
                 };
                 let mut arguments = if left.kind_str() == "element_reference" {
-                    Self::plain(left).arguments(context)
+                    Self::plain(left, self.index).arguments(context)
                 } else {
                     Vec::new()
                 };
                 if let Some(right) = self.node.field("right") {
-                    arguments.push(Self::of(right));
+                    arguments.push(Self::of(right, self.index));
                 }
                 arguments
             }
@@ -385,13 +396,14 @@ impl<'tree> UpNode<'tree> {
         (self.role == Role::Plain && block_of(self.node).is_some()).then_some(Self {
             node: self.node,
             role: Role::Block,
+            index: self.index,
         })
     }
 
     /// `BlockNode#send_node`.
     pub(super) fn send_node(self) -> Self {
         match self.role {
-            Role::Block => Self::plain(self.node),
+            Role::Block => Self::plain(self.node, self.index),
             _ => self,
         }
     }
@@ -431,7 +443,7 @@ impl<'tree> UpNode<'tree> {
 
     /// Whether the call was fused into the setter send its assignment builds.
     pub(super) fn is_fused_setter_target(self) -> bool {
-        self.role == Role::Plain && is_fused_setter_target(self.node)
+        self.role == Role::Plain && is_fused_setter_target(self.node, self.index)
     }
 
     /// One of the node's own fields, for the few places the ported code reads a part the model
@@ -449,6 +461,7 @@ impl<'tree> UpNode<'tree> {
                 return Some(Self {
                     node,
                     role: Role::Block,
+                    index: self.index,
                 });
             }
             let mut cursor = node.walk();
@@ -461,12 +474,12 @@ impl<'tree> UpNode<'tree> {
 
     pub(super) fn parent(self) -> Option<Self> {
         match self.role {
-            Role::Block | Role::Array => raw_parent(self.node),
+            Role::Block | Role::Array => raw_parent(self.node, self.index),
             Role::Hash => {
                 if self.node.kind_str() == "argument_list" {
-                    raw_parent(self.node)
+                    raw_parent(self.node, self.index)
                 } else {
-                    Some(Self::plain(self.node))
+                    Some(Self::plain(self.node, self.index))
                 }
             }
             Role::Plain => {
@@ -474,15 +487,17 @@ impl<'tree> UpNode<'tree> {
                     return Some(Self {
                         node: self.node,
                         role: Role::Block,
+                        index: self.index,
                     });
                 }
                 if is_lone_assigned_splat(self.node) {
                     return Some(Self {
                         node: self.node,
                         role: Role::Array,
+                        index: self.index,
                     });
                 }
-                raw_parent(self.node)
+                raw_parent(self.node, self.index)
             }
         }
     }
@@ -523,7 +538,11 @@ fn children_of<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
 }
 
 /// Groups a run of `key: value` pairs into the one `hash` argument upstream's parser folds it into.
-fn fold_arguments<'tree>(container: Node<'tree>, children: &[Node<'tree>]) -> Vec<UpNode<'tree>> {
+fn fold_arguments<'tree>(
+    container: Node<'tree>,
+    children: &[Node<'tree>],
+    own_index: &'tree crate::rules::AstIndex<'tree>,
+) -> Vec<UpNode<'tree>> {
     let mut arguments = Vec::new();
     let mut index = 0;
     while index < children.len() {
@@ -534,10 +553,11 @@ fn fold_arguments<'tree>(container: Node<'tree>, children: &[Node<'tree>]) -> Ve
             arguments.push(UpNode {
                 node: container,
                 role: Role::Hash,
+                index: own_index,
             });
             continue;
         }
-        arguments.push(UpNode::of(children[index]));
+        arguments.push(UpNode::of(children[index], own_index));
         index += 1;
     }
     arguments
@@ -563,32 +583,37 @@ fn hash_run_range(container: Node<'_>) -> Range<usize> {
 
 /// Climbs to the node upstream would call this one's parent, stepping over the containers the
 /// parser has no node for.
-fn raw_parent<'tree>(node: Node<'tree>) -> Option<UpNode<'tree>> {
+fn raw_parent<'tree>(
+    node: Node<'tree>,
+    index: &'tree crate::rules::AstIndex<'tree>,
+) -> Option<UpNode<'tree>> {
     let mut current = node;
     loop {
-        let parent = current.parent()?;
+        let parent = index.parent_in_tree(current)?;
         if parent.kind_str() == "block" || parent.kind_str() == "do_block" {
             // The body of a literal block hangs off the `block` node upstream, whose own parent is
             // the parent of the call the block was written on.
             return Some(UpNode {
-                node: parent.parent()?,
+                node: index.parent_in_tree(parent)?,
                 role: Role::Block,
+                index,
             });
         }
         if is_hash_element(current) && HASH_CONTAINERS.contains(&parent.kind_str()) {
             return Some(UpNode {
                 node: parent,
                 role: Role::Hash,
+                index,
             });
         }
         if TRANSPARENT.contains(&parent.kind_str())
-            || is_fused_setter_target(parent)
+            || is_fused_setter_target(parent, index)
             || is_defined_parentheses(parent)
         {
             current = parent;
             continue;
         }
-        return Some(UpNode::plain(parent));
+        return Some(UpNode::plain(parent, index));
     }
 }
 
@@ -974,7 +999,10 @@ impl<'tree> Mixin<'_, 'tree> {
     pub(super) fn assignment_rhs(&self, node: UpNode<'tree>) -> Option<UpNode<'tree>> {
         match node.kind(self.context) {
             UpKind::Send | UpKind::Csend => node.last_argument(self.context),
-            _ => node.node.field("right").map(UpNode::of),
+            _ => node
+                .node
+                .field("right")
+                .map(|right| UpNode::of(right, node.index)),
         }
     }
 

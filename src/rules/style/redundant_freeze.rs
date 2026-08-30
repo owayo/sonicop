@@ -132,7 +132,7 @@ fn operation_produces_immutable_object(
     if node.kind_str() != "parenthesized_statements" {
         return false;
     }
-    let children = super::nodes::children(node);
+    let children = super::nodes::children_in(node, context);
     let [only] = children.as_slice() else {
         return false;
     };

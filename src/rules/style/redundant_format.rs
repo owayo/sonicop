@@ -499,7 +499,7 @@ fn pair_value(context: &RuleContext<'_>, pair: Node<'_>) -> Option<(String, Valu
 /// `argument_value`, for the literals this cop can reproduce.
 fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
     let node = match node.kind_str() {
-        "parenthesized_statements" => *super::nodes::children(node).first()?,
+        "parenthesized_statements" => *super::nodes::children_in(node, context).first()?,
         _ => node,
     };
     let text = context.source.node_text(node);
@@ -545,7 +545,7 @@ fn argument_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
         "complex" => complex_value(text).map(Value::Complex),
         "hash" => {
             let mut held = Vec::new();
-            for pair in super::nodes::children(node) {
+            for pair in super::nodes::children_in(node, context) {
                 held.push(pair_value(context, pair)?);
             }
             Some(Value::Pairs(held))
@@ -601,7 +601,7 @@ fn computed_number(context: &RuleContext<'_>, node: Node<'_>) -> Option<Value> {
 /// interpolated contributes the source it was written as.
 fn dstr_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
     if node.kind_str() == "chained_string" {
-        return super::nodes::children(node)
+        return super::nodes::children_in(node, context)
             .into_iter()
             .map(|child| dstr_value(child, context))
             .collect();

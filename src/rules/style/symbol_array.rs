@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "percent".to_owned());
 
     for node in context.nodes_of("array") {
-        let items = nodes::children(node);
+        let items = nodes::children_in(node, context);
         if items.is_empty() || !items.iter().all(|item| is_symbol(context, *item)) {
             continue;
         }

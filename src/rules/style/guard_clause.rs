@@ -331,7 +331,7 @@ impl Cop<'_, '_> {
     /// The span of one branch, which is the whole statement list when it holds more than one.
     fn branch_range(&self, node: Node<'_>, field: &str) -> Option<Range<usize>> {
         let clause = node.field(field)?;
-        let statements = super::nodes::children(clause);
+        let statements = super::nodes::children_in(clause, self.context);
         let first = statements.first()?;
         let last = statements.last()?;
         Some(first.start_byte()..last.end_byte())
@@ -421,7 +421,7 @@ impl Cop<'_, '_> {
     /// *descendant* of the condition holds, while `if x, y = foo` writes two.
     fn assigned_locals(&self, condition: Node<'_>) -> Vec<String> {
         let mut names = Vec::new();
-        for inner in descendants(condition) {
+        for inner in descendants(condition, self.context) {
             if !matches!(inner.kind_str(), "assignment" | "operator_assignment") {
                 continue;
             }
@@ -454,13 +454,13 @@ impl Cop<'_, '_> {
         let body = body_of(consequence);
         let roots: Vec<Node<'_>> = match &body {
             Body::Missing => return Vec::new(),
-            Body::One(node) => super::nodes::children(*node),
+            Body::One(node) => super::nodes::children_in(*node, self.context),
             Body::Begin(statements) => statements.clone(),
         };
         let mut names = Vec::new();
         let mut pending: Vec<Node<'_>> = roots;
         while let Some(root) = pending.pop() {
-            for inner in descendants(root) {
+            for inner in descendants(root, self.context) {
                 if inner.kind_str() == "heredoc_beginning"
                     && let Some(body) = self.heredoc_body(inner)
                 {

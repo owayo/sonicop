@@ -5,11 +5,11 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::named_children;
 
 use super::exception_hierarchy::{compare, is_exception, is_system_call_error, resolve};
 use super::rescue_clause;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Do not shadow rescued Exceptions.";
 
@@ -60,7 +60,7 @@ fn evaluate_exceptions(clause: Node<'_>, context: &RuleContext<'_>) -> Group {
     let Some(list) = clause.field("exceptions") else {
         return vec![resolve("StandardError")];
     };
-    let listed: Vec<Node<'_>> = named_children(list);
+    let listed: Vec<Node<'_>> = named_children_of(list, context);
     if listed.is_empty() {
         return vec![resolve("StandardError")];
     }

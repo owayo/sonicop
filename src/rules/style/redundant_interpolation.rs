@@ -20,7 +20,7 @@ const NOT_ON_ITS_OWN: &[&str] = &["chained_string", "string_array", "symbol_arra
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("string") {
-        let children = super::nodes::children(node);
+        let children = super::nodes::children_in(node, context);
         let [interpolation] = children.as_slice() else {
             continue;
         };
@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_symbol_key(context, node) {
             continue;
         }
-        let embedded = super::nodes::children(*interpolation);
+        let embedded = super::nodes::children_in(*interpolation, context);
         // `use_match_pattern?`: `"#{x => y}"` binds a name rather than producing one. The test it
         // runs is `match_pattern_type?`, which `x in y` fails -- that is a `match_pattern_p`, and
         // `"#{42 in var}"` is reported like any other interpolation.

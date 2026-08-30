@@ -58,7 +58,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let whole = percent
             || arrays
                 .iter()
-                .any(|(_, array)| super::nodes::children(*array).is_empty());
+                .any(|(_, array)| super::nodes::children_in(*array, context).is_empty());
         let edits = if whole {
             match preferred {
                 Some(prefer) => vec![replace(range, prefer)],
@@ -103,11 +103,11 @@ fn replace(range: std::ops::Range<usize>, replacement: String) -> Edit {
 fn preferred_method(arrays: &[(ArrayKind, Node<'_>)], context: &RuleContext<'_>) -> Option<String> {
     let mut elements: Vec<String> = Vec::new();
     for (kind, array) in arrays {
-        for element in super::nodes::children(*array) {
+        for element in super::nodes::children_in(*array, context) {
             match kind {
                 ArrayKind::Bracketed => elements.push(context.source.node_text(element).to_owned()),
                 _ => {
-                    if super::nodes::children(element)
+                    if super::nodes::children_in(element, context)
                         .iter()
                         .any(|part| part.kind_str() == "interpolation")
                     {

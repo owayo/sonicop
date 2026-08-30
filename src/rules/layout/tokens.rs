@@ -182,8 +182,7 @@ impl Builder<'_, '_> {
                     self.push(node);
                     return;
                 }
-                let mut cursor = node.walk();
-                for child in node.children(&mut cursor) {
+                for child in children_of(self.context, node) {
                     self.walk(child);
                 }
             }
@@ -208,8 +207,7 @@ impl Builder<'_, '_> {
             return;
         }
         let mut offset = from;
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
+        for child in children_of(self.context, node) {
             if child.end_byte() <= from {
                 continue;
             }
@@ -229,8 +227,7 @@ impl Builder<'_, '_> {
 
     /// The two delimiters of an empty percent literal, emitted as neighbours.
     fn emit_delimiters(&mut self, node: Node<'_>, from: usize) {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
+        for child in children_of(self.context, node) {
             if child.end_byte() <= from {
                 continue;
             }
@@ -386,4 +383,16 @@ fn opens_a_command_argument(node: Node<'_>) -> bool {
         // lexer gives their opening bracket the ordinary `tLPAREN2` token this cop must inspect.
         .and_then(|list| list.parent())
         .is_some_and(|parent| parent.kind_str() == "call")
+}
+
+/// A node's children, from the file's index. Collected rather than iterated because the walk
+/// takes `&mut self`, and a list of nodes is far cheaper than the cursor walk it replaces.
+fn children_of<'node>(context: &'node RuleContext<'_>, node: Node<'node>) -> Vec<Node<'node>> {
+    match context.children(node) {
+        Some(children) => children.collect(),
+        None => {
+            let mut cursor = node.walk();
+            node.children(&mut cursor).collect()
+        }
+    }
 }

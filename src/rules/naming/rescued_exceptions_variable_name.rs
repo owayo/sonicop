@@ -80,7 +80,7 @@ fn reads_name(
     name: &str,
 ) -> bool {
     let mut found = false;
-    crate::rules::walk_named(node, &mut |current| {
+    crate::rules::walk_named(node, context, &mut |current| {
         found = found
             || (current.kind_str() == "identifier"
                 && context.source.node_text(current) == name

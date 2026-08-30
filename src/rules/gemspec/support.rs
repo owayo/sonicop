@@ -8,7 +8,8 @@ use crate::rules::RuleContext;
 use crate::rules::lint::blocks::BlockArgs;
 use crate::rules::lint::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, named_children, top_level_constant};
+use crate::rules::send_node::named_children_of;
+use crate::rules::send_node::{arguments, top_level_constant};
 
 /// The block parameter of `Gem::Specification.new do |spec|`, or `None` when the call is not one.
 ///
@@ -38,7 +39,7 @@ pub(super) fn specification_variable<'a>(
         return None;
     }
     let parameters = call.field("block")?.field("parameters")?;
-    match named_children(parameters).as_slice() {
+    match named_children_of(parameters, context).as_slice() {
         [only] if only.kind_str() == "identifier" => Some(context.source.node_text(*only)),
         _ => None,
     }

@@ -101,10 +101,18 @@ pub(crate) enum Phase {
     CacheKey,
     /// Reading a cached report back and turning it into offenses.
     CacheLoad,
+    /// `VariableForce`, built on the first cop of a file that asks for it.
+    Variables,
+    /// The code the grammar swallowed, recovered on the first cop that asks.
+    Fragments,
+    /// The Metrics cops' local-variable replay, built on the first cop that asks.
+    MetricLocals,
+    /// The lexer token stream, rebuilt on the first cop that asks.
+    LayoutTokens,
 }
 
 impl Phase {
-    const COUNT: usize = 13;
+    const COUNT: usize = 17;
     const NAMES: [&'static str; Self::COUNT] = [
         "read",
         "parse",
@@ -119,6 +127,10 @@ impl Phase {
         "shebang",
         "cache_key",
         "cache_load",
+        "variables",
+        "fragments",
+        "metric_locals",
+        "layout_tokens",
     ];
 }
 

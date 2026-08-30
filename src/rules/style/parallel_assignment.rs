@@ -97,7 +97,7 @@ impl Cop<'_, '_> {
         };
         let lhs_elements = assignments(left);
         let rhs_elements = match RHS_LISTS.contains(&rhs.kind_str()) {
-            true => super::nodes::children(rhs),
+            true => super::nodes::children_in(rhs, self.context),
             false => Vec::new(),
         };
 
@@ -122,7 +122,7 @@ impl Cop<'_, '_> {
         };
         // `contains_heredoc?`: splitting the assignment would drop the following lines into the
         // heredoc's body.
-        if descendants(rhs)
+        if descendants(rhs, self.context)
             .into_iter()
             .any(|inner| inner.kind_str() == "heredoc_beginning")
         {
@@ -177,7 +177,7 @@ impl Cop<'_, '_> {
             "identifier" | "instance_variable" | "global_variable" | "class_variable"
             | "constant" => {
                 let name = self.source(lhs);
-                descendants(rhs)
+                descendants(rhs, self.context)
                     .into_iter()
                     .any(|inner| self.reads_name(inner, name))
             }
@@ -209,7 +209,7 @@ impl Cop<'_, '_> {
         // `add_self_to_getters`: a bare name on the right is read as `self.name` before the
         // dependencies are worked out, so `self.a, self.b = b, a` is the swap it looks like.
         if receiver == "self"
-            && descendants(rhs).into_iter().any(|inner| {
+            && descendants(rhs, self.context).into_iter().any(|inner| {
                 inner.kind_str() == "identifier"
                     && self.source(inner) == method
                     // `(send nil? $_)`: a name the file never assigned is a call, not a variable.
@@ -218,7 +218,7 @@ impl Cop<'_, '_> {
         {
             return true;
         }
-        descendants(rhs).into_iter().any(|inner| {
+        descendants(rhs, self.context).into_iter().any(|inner| {
             matches!(inner.kind_str(), "call" | "method_call")
                 && inner
                     .field("receiver")
@@ -236,7 +236,7 @@ impl Cop<'_, '_> {
         };
         let object = self.source(object);
         let arguments = index_arguments(self, lhs);
-        descendants(rhs).into_iter().any(|inner| {
+        descendants(rhs, self.context).into_iter().any(|inner| {
             inner.kind_str() == "element_reference"
                 && inner
                     .field("object")
@@ -341,7 +341,7 @@ impl Cop<'_, '_> {
 }
 
 fn index_arguments(cop: &Cop<'_, '_>, node: Node<'_>) -> Vec<String> {
-    let mut arguments = super::nodes::children(node);
+    let mut arguments = super::nodes::children_in(node, cop.context);
     if node.field("object").is_some() && !arguments.is_empty() {
         arguments.remove(0);
     }
@@ -422,7 +422,7 @@ fn sole_statement_of_a_method(context: &RuleContext<'_>, node: Node<'_>) -> bool
     }
     rescue.parent_of(context).is_some_and(|body| {
         body.kind_str() == "body_statement"
-            && super::nodes::children(body).len() == 1
+            && super::nodes::children_in(body, context).len() == 1
             && body
                 .parent_of(context)
                 .is_some_and(|owner| matches!(owner.kind_str(), "method" | "singleton_method"))

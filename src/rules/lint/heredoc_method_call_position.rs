@@ -5,7 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, heredoc_body, named_children};
+use crate::rules::send_node::{arguments, heredoc_body};
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str =
     "Put a method call with a HEREDOC receiver on the same line as the HEREDOC opening.";
@@ -70,7 +71,7 @@ fn heredoc_receiver<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 /// `heredoc.location.heredoc_end.end_pos`: where the terminator line ends.
 fn heredoc_end(heredoc: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     let body = heredoc_body(heredoc, context)?;
-    named_children(body)
+    named_children_of(body, context)
         .into_iter()
         .find(|child| child.kind_str() == "heredoc_end")
         .map(|end| end.end_byte())

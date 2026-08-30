@@ -47,7 +47,7 @@ fn interpolates(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     } else {
         node
     };
-    super::nodes::children(literal)
+    super::nodes::children_in(literal, context)
         .iter()
         .any(|child| match child.kind_str() {
             "interpolation" => true,
@@ -113,7 +113,7 @@ fn unfreezing(
             if context.source.node_text(selector) != "new" {
                 return None;
             }
-            match super::nodes::children(parent).as_slice() {
+            match super::nodes::children_in(parent, context).as_slice() {
                 [only] if only.id() == node.id() => {}
                 _ => return None,
             }

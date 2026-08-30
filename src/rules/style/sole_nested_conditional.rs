@@ -118,7 +118,7 @@ fn use_variable_assignment_in_condition(
         return false;
     };
     let inner_source = context.source.node_text(inner);
-    super::conditional::descendants(condition)
+    super::conditional::descendants(condition, context)
         .into_iter()
         .filter(|descendant| descendant.kind_str() == "assignment")
         .filter_map(|assignment| assignment.field("left"))
@@ -399,7 +399,7 @@ fn add_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `assignment_in_and?`.
 fn assignment_in_and(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     is_and(context, node)
-        && super::conditional::descendants(node)
+        && super::conditional::descendants(node, context)
             .into_iter()
             .skip(1)
             .any(|descendant| matches!(descendant.kind_str(), "assignment" | "operator_assignment"))
@@ -413,7 +413,7 @@ fn call_shape(context: &RuleContext<'_>, node: Node<'_>) -> Option<(bool, bool, 
             let arguments = node.field("arguments");
             let parenthesized =
                 arguments.is_some_and(|list| context.source.node_text(list).starts_with('('));
-            let any = arguments.is_some_and(|list| !super::nodes::children(list).is_empty());
+            let any = arguments.is_some_and(|list| !super::nodes::children_in(list, context).is_empty());
             Some((any, parenthesized, false))
         }
         // `a[0]` is `(send a :[] 0)`: an argument, and no parentheses around it.
@@ -469,7 +469,7 @@ fn parenthesized_method_arguments(context: &RuleContext<'_>, node: Node<'_>) -> 
         return context.source.node_text(node).to_owned();
     };
     let call = context.source.slice(node.start_byte()..selector.end_byte());
-    let first = super::nodes::children(arguments)
+    let first = super::nodes::children_in(arguments, context)
         .first()
         .map_or(arguments.start_byte(), Node::start_byte);
     let rest = context.source.slice(first..node.end_byte());

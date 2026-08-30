@@ -204,9 +204,9 @@ fn is_lone_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         // `"#$!"` interpolates without a `begin`: upstream hangs the global off the `dstr` itself.
         "interpolation" => {
             context.source.node_text(node).starts_with("#{")
-                && super::nodes::children(node).len() == 1
+                && super::nodes::children_in(node, context).len() == 1
         }
-        "parenthesized_statements" => super::nodes::children(node).len() == 1,
+        "parenthesized_statements" => super::nodes::children_in(node, context).len() == 1,
         _ => false,
     }
 }

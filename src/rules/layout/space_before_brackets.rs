@@ -3,7 +3,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Remove the space before the opening brackets.";
 
@@ -56,7 +56,7 @@ fn index_gap(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usize, usize)
                 return None;
             }
             let arguments = node.field("arguments")?;
-            let children = named_children(arguments);
+            let children = named_children_of(arguments, context);
             let [argument] = children.as_slice() else {
                 return None;
             };

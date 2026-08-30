@@ -15,9 +15,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut reported: HashSet<(usize, usize)> = HashSet::new();
 
     for node in context.nodes_of("conditional") {
-        let nested: Vec<Node<'_>> = super::nodes::children(node)
+        let nested: Vec<Node<'_>> = super::nodes::children_in(node, context)
             .into_iter()
-            .flat_map(super::conditional::descendants)
+            .flat_map(|node| super::conditional::descendants(node, context))
             .filter(|descendant| descendant.kind_str() == "conditional")
             .collect();
         for descendant in nested {

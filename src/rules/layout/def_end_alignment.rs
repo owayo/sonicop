@@ -6,7 +6,7 @@ use tree_sitter::Node;
 
 use super::support::{effective_character_column, end_keyword, end_keyword_alignment};
 use crate::diagnostic::Offense;
-use crate::rules::{RuleContext, push_named_children};
+use crate::rules::{RuleContext, push_named_children_in};
 use crate::rules::node_ext::NodeExt;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -63,7 +63,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
             _ => {}
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
 }
 

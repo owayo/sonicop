@@ -8,11 +8,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["array", "return", "right_assignment_list"]) {
         let elements = match node.kind_str() {
             // A `return` holds its values in an argument list the parser has no node for.
-            "return" => match super::nodes::children(node).as_slice() {
-                [list] if list.kind_str() == "argument_list" => super::nodes::children(*list),
+            "return" => match super::nodes::children_in(node, context).as_slice() {
+                [list] if list.kind_str() == "argument_list" => super::nodes::children_in(*list, context),
                 _ => continue,
             },
-            _ => super::nodes::children(node),
+            _ => super::nodes::children_in(node, context),
         };
         let [low, high] = elements.as_slice() else {
             continue;

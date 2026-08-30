@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `node.loc.begin.line != node.if_branch&.loc&.line`: a body starting on the `then`'s own
         // line still needs it.
-        if super::nodes::children(consequence)
+        if super::nodes::children_in(consequence, context)
             .first()
             .is_some_and(|branch| branch.start_position().row == then.start_position().row)
         {

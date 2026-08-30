@@ -67,7 +67,7 @@ fn needs_quotes(
     let Some(body) = send_node::heredoc_body(node, context) else {
         return true;
     };
-    let children = super::nodes::children(body);
+    let children = super::nodes::children_in(body, context);
     let Some(end) = children
         .last()
         .filter(|last| last.kind_str() == "heredoc_end")

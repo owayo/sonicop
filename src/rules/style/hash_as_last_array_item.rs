@@ -142,8 +142,8 @@ fn trailing_comma(context: &RuleContext<'_>, end: usize) -> Option<usize> {
 }
 
 /// `array.values`: the elements, with the trailing key-value pairs folded into one hash.
-fn values<'tree>(context: &RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tree>> {
-    let children = super::nodes::children(array);
+fn values<'tree>(context: &'tree RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tree>> {
+    let children = super::nodes::children_in(array, context);
     let split = children.iter().position(|child| is_pair(*child));
     let (elements, pairs) = match split {
         Some(index) => children.split_at(index),
@@ -158,10 +158,10 @@ fn values<'tree>(context: &RuleContext<'_>, array: Node<'tree>) -> Vec<Value<'tr
             is_hash: element.kind_str() == "hash",
             braces: element.kind_str() == "hash",
             opens_with_splat: element.kind_str() == "hash"
-                && super::nodes::children(*element)
+                && super::nodes::children_in(*element, context)
                     .first()
                     .is_some_and(|first| first.kind_str() == "hash_splat_argument"),
-            empty: element.kind_str() == "hash" && super::nodes::children(*element).is_empty(),
+            empty: element.kind_str() == "hash" && super::nodes::children_in(*element, context).is_empty(),
         })
         .collect();
     let _ = context;

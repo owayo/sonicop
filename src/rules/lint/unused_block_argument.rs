@@ -68,7 +68,7 @@ fn message(
         .filter(|variable| block_argument(variable, scope))
         .collect();
     let none_referenced = !arguments.iter().any(|argument| argument.referenced);
-    let augmentation = if is_lambda(scope.node, context.source) {
+    let augmentation = if is_lambda(scope.node, context.source, context.ast_index()) {
         let mut message = underscore_message(name);
         if none_referenced {
             message.push_str(
@@ -77,7 +77,7 @@ fn message(
             );
         }
         message
-    } else if none_referenced && block_method(scope.node, context.source) != Some("define_method") {
+    } else if none_referenced && block_method(scope.node, context.source, context.ast_index()) != Some("define_method") {
         if arguments.len() > 1 {
             "You can omit all the arguments if you don't care about them.".to_owned()
         } else {

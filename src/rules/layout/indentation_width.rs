@@ -11,7 +11,7 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::{RuleContext, push_named_children};
+use crate::rules::{RuleContext, push_named_children_in};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
@@ -48,7 +48,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut stack = vec![context.root_node()];
     while let Some(node) = stack.pop() {
         checker.visit(node, offenses);
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
 }
 

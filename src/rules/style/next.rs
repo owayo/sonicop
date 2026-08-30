@@ -306,7 +306,7 @@ impl Cop<'_, '_> {
 
     /// `heredoc_lines`: `(body.line...body.last_line)` of every heredoc the node opens.
     fn heredoc_lines(&self, node: Node<'_>) -> Vec<usize> {
-        let beginnings: Vec<usize> = descendants(node)
+        let beginnings: Vec<usize> = descendants(node, self.context)
             .into_iter()
             .filter(|inner| inner.kind_str() == "heredoc_beginning")
             .map(|inner| inner.start_byte())

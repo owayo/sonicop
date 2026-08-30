@@ -205,7 +205,7 @@ fn uses_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         {
             return true;
         }
-        crate::rules::push_named_children(current, &mut stack);
+        crate::rules::push_named_children_in(current, context, &mut stack);
     }
     false
 }

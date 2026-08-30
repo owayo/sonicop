@@ -73,7 +73,7 @@ impl Literal {
         match node.kind_str() {
             // `Array[]` and `Hash[]`, which upstream reads as a call to `:[]` with no arguments.
             "element_reference" => {
-                if super::nodes::children(node).len() != 1 {
+                if super::nodes::children_in(node, context).len() != 1 {
                     return None;
                 }
                 let object = node.field("object")?;
@@ -182,7 +182,7 @@ fn named_constant(node: Node<'_>, context: &RuleContext<'_>) -> Option<Literal> 
 
 fn is_empty_array(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     node.kind_str() == "array"
-        && super::nodes::children(node).is_empty()
+        && super::nodes::children_in(node, context).is_empty()
         && context.source.node_text(node).starts_with('[')
 }
 

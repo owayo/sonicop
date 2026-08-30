@@ -5,8 +5,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
 use crate::rules::support;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Use empty line after multiline condition.";
 
@@ -98,11 +98,11 @@ fn block_delimiters(node: Node<'_>) -> Option<Range<usize>> {
 /// `on_case`: each `when` whose own list of conditions spans more than one line.
 fn when_branches(node: Node<'_>, context: &RuleContext<'_>) -> Vec<Offense> {
     let mut offenses = Vec::new();
-    for branch in named_children(node) {
+    for branch in named_children_of(node, context) {
         if branch.kind_str() != "when" {
             continue;
         }
-        let conditions: Vec<Node<'_>> = named_children(branch)
+        let conditions: Vec<Node<'_>> = named_children_of(branch, context)
             .into_iter()
             .filter(|child| child.kind_str() == "pattern")
             .collect();
@@ -123,7 +123,7 @@ fn when_branches(node: Node<'_>, context: &RuleContext<'_>) -> Vec<Offense> {
 
 /// `on_rescue`: each `resbody` that names more than one exception across more than one line.
 fn rescue_branch(node: Node<'_>, context: &RuleContext<'_>) -> Option<Offense> {
-    let exceptions = named_children(node.field("exceptions")?);
+    let exceptions = named_children_of(node.field("exceptions")?, context);
     // `multiline_rescue_exceptions?`: one exception is never enough.
     if exceptions.len() <= 1 {
         return None;
@@ -170,7 +170,7 @@ fn next_statement<'tree>(
     if !CONTAINERS.contains(&parent.kind_str()) {
         return None;
     }
-    let siblings: Vec<Node<'_>> = named_children(parent)
+    let siblings: Vec<Node<'_>> = named_children_of(parent, context)
         .into_iter()
         .filter(|child| child.kind_str() != "comment")
         .collect();

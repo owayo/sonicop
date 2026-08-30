@@ -4,6 +4,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{arguments, named_children, symbol_name};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
@@ -60,7 +61,7 @@ fn find_method_definition<'tree>(
 ) -> Option<Option<Node<'tree>>> {
     let mut current = node.parent_of(context);
     while let Some(ancestor) = current {
-        for child in named_children(ancestor) {
+        for child in named_children_of(ancestor, context) {
             if let Some(parameters) = definition_parameters(child, name, context) {
                 return Some(parameters);
             }

@@ -54,7 +54,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `on_case_match` does nothing: a `case ... in` raises when nothing matches, so it needs
         // no `else` to be complete.
         for node in context.nodes_of("case") {
-            if super::nodes::children(node)
+            if super::nodes::children_in(node, context)
                 .iter()
                 .any(|child| child.kind_str() == "else")
             {

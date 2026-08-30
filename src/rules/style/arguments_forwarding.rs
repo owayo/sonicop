@@ -11,7 +11,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
+use crate::rules::send_node::{named_children, named_children_of};
 
 /// `minimum_target_ruby_version 2.7`: `...` arrived in 2.7.
 const MINIMUM: RubyVersion = RubyVersion::new(2, 7);
@@ -329,13 +329,13 @@ impl<'tree> Cop<'_, 'tree> {
             .map(Arg::first)
             .filter(|argument| argument.kind_str() == "block_argument")
             .find(|argument| {
-                named_children(*argument).is_empty()
+                named_children_of(*argument, self.context).is_empty()
                     || name.is_some_and(|name| self.only_child_named(*argument, name))
             })
     }
 
     fn only_child_named(&self, node: Node<'tree>, name: &str) -> bool {
-        matches!(named_children(node).as_slice(),
+        matches!(named_children_of(node, self.context).as_slice(),
             [only] if only.kind_str() == "identifier"
                 && self.context.source.node_text(*only) == name)
     }
@@ -365,7 +365,7 @@ impl<'tree> Cop<'_, 'tree> {
             && matches!(list,
                 [.., rest, kwrest, block]
                     if rest.first().kind_str() == "splat_argument"
-                        && named_children(rest.first()).is_empty()
+                        && named_children_of(rest.first(), self.context).is_empty()
                     && matches!(hash_members(kwrest).as_slice(),
                         [only] if only.kind_str() == "hash_splat_argument"
                             && named_children(*only).is_empty())
@@ -744,7 +744,7 @@ impl<'tree> Cop<'_, 'tree> {
             "method_parameters" => node.byte_range(),
             _ => match node.field("arguments") {
                 Some(list) => list.byte_range(),
-                None => match named_children(node)
+                None => match named_children_of(node, self.context)
                     .into_iter()
                     .find(|child| child.kind_str() == "argument_list")
                 {

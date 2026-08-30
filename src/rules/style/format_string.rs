@@ -198,7 +198,7 @@ fn correction(context: &RuleContext<'_>, found: &Formatter<'_>, style: &str) -> 
     let receiver = found.receiver.clone()?;
     let args = match argument {
         Operand::Node(node) if matches!(node.kind_str(), "array" | "hash") => {
-            super::nodes::children(*node)
+            super::nodes::children_in(*node, context)
                 .iter()
                 .map(|child| context.source.node_text(*child))
                 .collect::<Vec<_>>()
@@ -250,7 +250,7 @@ fn to_percent(context: &RuleContext<'_>, found: &Formatter<'_>) -> Option<Edit> 
 fn format_single_parameter(context: &RuleContext<'_>, node: Node<'_>) -> String {
     // `format(fmt, *args)` prints what `fmt % args` does, so the splat comes off.
     if node.kind_str() == "splat_argument" {
-        return match super::nodes::children(node).first() {
+        return match super::nodes::children_in(node, context).first() {
             Some(inner) => format_single_parameter(context, *inner),
             None => context.source.node_text(node).to_owned(),
         };

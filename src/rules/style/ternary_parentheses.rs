@@ -123,7 +123,7 @@ fn parenthesized_modifier_condition(condition: Node<'_>) -> bool {
 /// `safe_assignment?`: `(begin {equals_asgn? #setter_method?})`, the parenthesized assignment that
 /// says the assignment was meant.
 fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
-    let children = super::nodes::children(condition);
+    let children = super::nodes::children_in(condition, context);
     let [only] = children.as_slice() else {
         return false;
     };
@@ -134,7 +134,7 @@ fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
 /// `complex_condition?`: a parenthesized condition is complex when anything written inside it is.
 fn complex_condition(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
     if condition.kind_str() == "parenthesized_statements" {
-        return super::nodes::children(condition)
+        return super::nodes::children_in(condition, context)
             .into_iter()
             .any(|child| complex_condition(context, child));
     }
@@ -170,7 +170,7 @@ fn non_complex_expression(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `unsafe_autocorrect?`: `and`, `or` and `not` all bind looser than the ternary, so the
 /// parentheses are what make the condition one.
 fn unsafe_autocorrect(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
-    super::nodes::children(condition)
+    super::nodes::children_in(condition, context)
         .into_iter()
         .any(|child| match child.kind_str() {
             "binary" | "unary" => child.field("operator").is_some_and(|operator| {
@@ -233,7 +233,7 @@ fn correct_parenthesized(context: &RuleContext<'_>, condition: Node<'_>) -> Vec<
             safe: true,
         });
     }
-    if let Some(call) = super::nodes::children(condition).last().copied() {
+    if let Some(call) = super::nodes::children_in(condition, context).last().copied() {
         edits.extend(parenthesize_condition_arguments(context, call));
     }
     edits

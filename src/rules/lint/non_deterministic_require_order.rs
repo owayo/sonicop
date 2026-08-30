@@ -3,11 +3,12 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{arguments, is_plain_send, named_children, send_range};
+use crate::rules::send_node::{arguments, is_plain_send, send_range};
 
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Sort files before requiring them.";
 
@@ -190,7 +191,7 @@ fn is_method_require(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node.kind_str() != "block_argument" {
         return false;
     }
-    let Some(call) = named_children(node).into_iter().next() else {
+    let Some(call) = named_children_of(node, context).into_iter().next() else {
         return false;
     };
     if call.kind_str() != "call"
@@ -226,7 +227,7 @@ fn requires_variable(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> b
             return true;
         }
     }
-    named_children(node)
+    named_children_of(node, context)
         .into_iter()
         .any(|child| requires_variable(child, name, context))
 }

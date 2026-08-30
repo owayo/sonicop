@@ -3,10 +3,11 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, is_plain_send, named_children};
+use crate::rules::send_node::{arguments, is_plain_send};
 
 use super::blocks::BlockArgs;
 use super::locals::LocalVariables;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Non-local exit from iterator, without return value. \
                    `next`, `break`, `Array#find`, `Array#any?`, etc. is preferred.";
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
     for node in context.nodes_of("return") {
         // `return_value?`: a `return` handing back a value leaves the iterator on purpose.
-        if !named_children(node).is_empty() {
+        if !named_children_of(node, context).is_empty() {
             continue;
         }
         let Some(keyword) = node.child(0).filter(|child| child.kind_str() == "return") else {

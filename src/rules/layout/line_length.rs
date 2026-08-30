@@ -35,16 +35,6 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         true => rbs_annotation_lines(context),
         false => HashSet::new(),
     };
-    let allow_uri: bool = context.setting("AllowURI").unwrap_or(true);
-    let allow_qualified_name: bool = context.setting("AllowQualifiedName").unwrap_or(true);
-    // `allowed_line?`: a line matching one of these is never long, whatever it holds.
-    let allowed_patterns =
-        crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
-    let uri_pattern = match context.setting::<Vec<String>>("URISchemes") {
-        Some(schemes) if !schemes.is_empty() => uri_regex(&schemes),
-        _ => URI.clone(),
-    };
-
     // RuboCop drops the `__END__` line and the data section behind it from the lines it walks, so
     // a long line down there is not a long line of code.
     let data_line = context
@@ -53,26 +43,39 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .map_or(usize::MAX, |node| node.start_position().row + 1);
     let last_line = context.source.line_count().min(data_line.saturating_sub(1));
 
-    // Building autocorrections walks a large part of the AST. Most files have no line over the
-    // limit, so first answer the one condition under which any of that work can be observed.
-    let has_candidate = (1..=last_line).any(|line_number| {
-        let raw = context.source.line(line_number);
-        let line = crate::rules::support::chomp(raw);
-        let length = line.chars().count() + indentation_difference(line);
-        length > max
-            && !(line_number == 1 && line.starts_with("#!"))
-            && !rbs_lines.contains(&line_number)
-            && !(context.in_heredoc(
-                context.source.line_start(line_number)
-                    ..context.source.line_start(line_number) + line.len(),
-            ) && (allow_all_heredocs || allowed_heredoc_lines.contains(&line_number)))
-    });
-    if !has_candidate {
+    // Building autocorrections walks a large part of the AST, and every break it finds is filed
+    // under a line. Only the lines that are over the limit are ever looked up again, so the lines
+    // are settled first and the walk below is held to them. Most files have none at all.
+    let candidate_lines: HashSet<usize> = (1..=last_line)
+        .filter(|line_number| {
+            let raw = context.source.line(*line_number);
+            let line = crate::rules::support::chomp(raw);
+            let length = line.chars().count() + indentation_difference(line);
+            length > max
+                && !(*line_number == 1 && line.starts_with("#!"))
+                && !rbs_lines.contains(line_number)
+                && !(context.in_heredoc(
+                    context.source.line_start(*line_number)
+                        ..context.source.line_start(*line_number) + line.len(),
+                ) && (allow_all_heredocs || allowed_heredoc_lines.contains(line_number)))
+        })
+        .collect();
+    if candidate_lines.is_empty() {
         return;
     }
 
+    let allow_uri: bool = context.setting("AllowURI").unwrap_or(true);
+    let allow_qualified_name: bool = context.setting("AllowQualifiedName").unwrap_or(true);
+    // `allowed_line?`: a line matching one of these is never long, whatever it holds.
+    let allowed_patterns =
+        crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
+    let uri_pattern = match context.setting::<Vec<String>>("URISchemes") {
+        Some(schemes) if !schemes.is_empty() => uri_regex(&schemes),
+        _ => &*URI,
+    };
+
     let allow_directives = allow_cop_directives(context);
-    let break_edits = line_break_edits(context, max);
+    let break_edits = line_break_edits(context, max, &candidate_lines);
     let directive_lines = directive_lines(context);
     let endless_method_lines = endless_method_lines(context);
 
@@ -122,10 +125,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             (max, without)
         } else if allow_uri || allow_qualified_name {
             let uri = allow_uri
-                .then(|| excessive_range(line, MatchKind::Uri, max, indent, &uri_pattern))
+                .then(|| excessive_range(line, MatchKind::Uri, max, indent, uri_pattern))
                 .flatten();
             let name = allow_qualified_name
-                .then(|| excessive_range(line, MatchKind::QualifiedName, max, indent, &uri_pattern))
+                .then(|| excessive_range(line, MatchKind::QualifiedName, max, indent, uri_pattern))
                 .flatten();
             if exempted(uri, name, length, max) {
                 continue;
@@ -451,14 +454,23 @@ static QUALIFIED_NAME: LazyLock<Regex> = LazyLock::new(|| {
 /// a `//` and the negative lookahead was only ever reachable without one.
 /// `URISchemes`: the schemes `URI::DEFAULT_PARSER.make_regexp` is built from. Hard-coding
 /// `https?` made a line holding any other scheme -- the config exists to name one -- too long.
-fn uri_regex(schemes: &[String]) -> Regex {
+/// The pattern is built from the configuration, so it cannot live in a `LazyLock` -- but the
+/// configuration does not change between files, and `URISchemes` is set in the default
+/// configuration, so this was compiling the RFC 2396 grammar once per file. It was the single
+/// largest cop cost in a run over RuboCop's own tree.
+fn uri_regex(schemes: &[String]) -> &'static Regex {
     let escaped: Vec<String> = schemes.iter().map(|scheme| regex::escape(scheme)).collect();
-    build_uri_regex(&escaped.join("|"))
+    crate::rules::regex_cache::compiled(&uri_regex_pattern(&escaped.join("|")))
+        .unwrap_or_else(|| &URI)
 }
 
 static URI: LazyLock<Regex> = LazyLock::new(|| build_uri_regex("https?"));
 
 fn build_uri_regex(schemes: &str) -> Regex {
+    Regex::new(&uri_regex_pattern(schemes)).unwrap()
+}
+
+fn uri_regex_pattern(schemes: &str) -> String {
     const ESCAPED: &str = r"%[a-fA-F\d]{2}";
     let uric_no_slash = format!(r"(?:[\-_.!~*'()a-zA-Z\d;?:@&=+$,]|{ESCAPED})");
     let uric = format!(r"(?:[\-_.!~*'()a-zA-Z\d;/?:@&=+$,\[\]]|{ESCAPED})");
@@ -470,10 +482,9 @@ fn build_uri_regex(schemes: &str) -> Regex {
     let pchar = format!(r"(?:[\-_.!~*'()a-zA-Z\d:@&=+$,]|{ESCAPED})");
     let segment = format!(r"{pchar}*(?:;{pchar}*)*");
     let abs_path = format!(r"/{segment}(?:/{segment})*");
-    Regex::new(&format!(
+    format!(
         r"(?:{schemes}):(?:{uric_no_slash}{uric}*|(?:(?://(?:(?:(?:{userinfo}@)?(?:{host}(?::(?-u:\d)*)?))?|{reg_name}))?(?:{abs_path})?)(?:\?{uric}*)?)(?:\#{uric}*)?"
-    ))
-    .unwrap()
+    )
 }
 
 /// Whether `URI.parse` accepts the string, which RuboCop uses to weed out RFC 2396 matches that
@@ -579,6 +590,7 @@ fn visit_order(node: Node<'_>, order: &HashMap<usize, u32>) -> (u32, u8) {
 fn line_break_edits(
     context: &RuleContext<'_>,
     max: usize,
+    lines: &HashSet<usize>,
 ) -> HashMap<usize, (Edit, std::ops::Range<usize>)> {
     let breaker = Breaker {
         context,
@@ -599,10 +611,10 @@ fn line_break_edits(
     // Reversed, so that the first semicolon on a line is the one whose position survives.
     if context.source.text().contains(';') {
         for offset in semicolon_break_positions(context).into_iter().rev() {
-            positions.insert(
-                context.source.line_column(offset).0,
-                (offset..(offset + 1), "\n".to_owned()),
-            );
+            let line = context.source.line_column(offset).0;
+            if lines.contains(&line) {
+                positions.insert(line, (offset..(offset + 1), "\n".to_owned()));
+            }
         }
     }
 
@@ -611,6 +623,9 @@ fn line_break_edits(
     // element a break would otherwise go in front of.
     if context.setting::<bool>("SplitStrings").unwrap_or(false) {
         for node in context.nodes_of_any(&["string", "bare_string"]) {
+            if !lines.contains(&(node.start_position().row + 1)) {
+                continue;
+            }
             let Some((offset, delimiter)) = breakable_string(context, node, max) else {
                 continue;
             };
@@ -626,28 +641,58 @@ fn line_break_edits(
         }
     }
 
+    // A break is filed under the line of a node the break goes in front of, which lies inside
+    // `node` -- except for a block, whose break is filed under the line the call it hangs off
+    // begins on, and that call can start earlier. A node spanning no over-long line has nothing to
+    // contribute, and finding that out costs two integers rather than a search for the element.
+    let mut candidates: Vec<Node<'_>> = context
+        .nodes_of_any(BREAKABLE_KINDS)
+        .filter(|node| {
+            let first = match matches!(node.kind_str(), "block" | "do_block") {
+                true => node
+                    .parent_of(context)
+                    .unwrap_or(*node)
+                    .start_position()
+                    .row,
+                false => node.start_position().row,
+            };
+            (first + 1..=node.end_position().row + 1).any(|line| lines.contains(&line))
+        })
+        .collect();
+    if candidates.is_empty() {
+        return finish(positions);
+    }
     let order = upstream_order(context.root_node());
-    let mut candidates: Vec<Node<'_>> = context.nodes_of_any(BREAKABLE_KINDS).collect();
     candidates.sort_by_key(|node| visit_order(*node, &order));
 
     for node in candidates {
         if matches!(node.kind_str(), "block" | "do_block") {
-            if let Some(offset) = breaker.block_break_position(node) {
-                // Upstream's block node starts at the receiver, not at the brace, so a call split
-                // over two lines files its break under the line the receiver is on.
-                let owner = node.parent_of(context).unwrap_or(node);
-                positions.insert(
-                    owner.start_position().row + 1,
-                    (offset..(offset + 1), "\n".to_owned()),
-                );
+            // Upstream's block node starts at the receiver, not at the brace, so a call split
+            // over two lines files its break under the line the receiver is on.
+            let owner = node.parent_of(context).unwrap_or(node);
+            let line = owner.start_position().row + 1;
+            if lines.contains(&line)
+                && let Some(offset) = breaker.block_break_position(node)
+            {
+                positions.insert(line, (offset..(offset + 1), "\n".to_owned()));
             }
         } else if let Some(element) = breaker.breakable_element(node) {
-            positions
-                .entry(element.start_position().row + 1)
-                .or_insert_with(|| (element.byte_range(), "\n".to_owned()));
+            let line = element.start_position().row + 1;
+            if lines.contains(&line) {
+                positions
+                    .entry(line)
+                    .or_insert_with(|| (element.byte_range(), "\n".to_owned()));
+            }
         }
     }
 
+    finish(positions)
+}
+
+/// Turns each recorded break into the insertion it stands for.
+fn finish(
+    positions: HashMap<usize, (std::ops::Range<usize>, String)>,
+) -> HashMap<usize, (Edit, std::ops::Range<usize>)> {
     positions
         .into_iter()
         .map(|(line, (anchor, replacement))| {

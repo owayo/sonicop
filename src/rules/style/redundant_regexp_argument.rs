@@ -46,7 +46,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let Some(argument) = node
             .field("arguments")
-            .and_then(|arguments| super::nodes::children(arguments).into_iter().next())
+            .and_then(|arguments| super::nodes::children_in(arguments, context).into_iter().next())
         else {
             continue;
         };

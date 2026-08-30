@@ -13,7 +13,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `!node.arguments?`: the list has to be empty, and `node.arguments.source_range` has to
         // exist, which for an empty list means the parentheses were written.
-        if !super::nodes::children(parameters).is_empty()
+        if !super::nodes::children_in(parameters, context).is_empty()
             || !context.source.node_text(parameters).starts_with('(')
         {
             continue;

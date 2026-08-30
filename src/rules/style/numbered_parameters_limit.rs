@@ -53,9 +53,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `each_descendant(:lvar)` filtered by `/\A_[1-9]\z/`.
 fn numbered_parameters(node: Node<'_>, context: &RuleContext<'_>) -> HashSet<String> {
     let mut found = HashSet::new();
-    let mut stack: Vec<Node<'_>> = super::nodes::children(node);
+    let mut stack: Vec<Node<'_>> = super::nodes::children_in(node, context);
     while let Some(current) = stack.pop() {
-        stack.extend(super::nodes::children(current));
+        stack.extend(super::nodes::children_in(current, context));
         if current.kind_str() != "identifier" {
             continue;
         }

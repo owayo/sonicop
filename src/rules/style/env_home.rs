@@ -24,7 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_assignment_target(node, context) {
             continue;
         }
-        let parts = super::nodes::children(node);
+        let parts = super::nodes::children_in(node, context);
         let [object, index] = parts.as_slice() else {
             continue;
         };

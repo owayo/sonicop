@@ -164,7 +164,7 @@ fn endless_correction(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
         .map_or("", |name| context.source.node_text(name));
     let arguments = node.field("parameters").map_or_else(
         || "()".to_owned(),
-        |list| match super::nodes::children(list).is_empty() {
+        |list| match super::nodes::children_in(list, context).is_empty() {
             true => "()".to_owned(),
             false => context.source.node_text(list).to_owned(),
         },
@@ -198,7 +198,7 @@ fn method_body_source(context: &RuleContext<'_>, node: Node<'_>, body: &Body) ->
     let (receiver, name, arguments) = match expression.kind_str() {
         "call" => {
             let list = expression.field("arguments")?;
-            let arguments = super::nodes::children(list);
+            let arguments = super::nodes::children_in(list, context);
             if arguments.is_empty() {
                 return None;
             }

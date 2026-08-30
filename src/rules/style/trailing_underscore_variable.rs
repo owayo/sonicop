@@ -35,7 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         //
         // A group that is only *part* of the list (`a, (b, _) = foo`) is a nested `mlhs` upstream
         // too, so only the sole-child case is unwrapped.
-        let left = match super::nodes::children(left).as_slice() {
+        let left = match super::nodes::children_in(left, context).as_slice() {
             [only] if only.kind_str() == "destructured_left_assignment" => *only,
             _ => left,
         };
@@ -81,7 +81,7 @@ impl Cop<'_, '_> {
         mlhs: Node<'_>,
         ranges: &mut Vec<Range<usize>>,
     ) {
-        let variables = super::nodes::children(mlhs);
+        let variables = super::nodes::children_in(mlhs, self.context);
         for variable in &variables {
             if variable.kind_str() == "destructured_left_assignment" {
                 self.unneeded_ranges(None, *variable, ranges);
@@ -146,7 +146,7 @@ impl Cop<'_, '_> {
     /// The name a target binds, unwrapping the splat that collects the rest.
     fn name(&self, variable: Node<'_>) -> Option<&str> {
         let named = match variable.kind_str() {
-            "rest_assignment" => super::nodes::children(variable).first().copied()?,
+            "rest_assignment" => super::nodes::children_in(variable, self.context).first().copied()?,
             _ => variable,
         };
         Some(self.context.source.node_text(named))

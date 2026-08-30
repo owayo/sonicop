@@ -44,7 +44,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let outer_arguments = super::nodes::children(arguments);
+        let outer_arguments = super::nodes::children_in(arguments, context);
         // `each_child_node(:call)` walks the receiver too, since it is a child of the send.
         let children = node
             .field("receiver")
@@ -57,7 +57,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             let Some(nested_arguments) = nested.field("arguments") else {
                 continue;
             };
-            let inner = super::nodes::children(nested_arguments);
+            let inner = super::nodes::children_in(nested_arguments, context);
             if inner.is_empty()
                 || nested_arguments
                     .child(0)

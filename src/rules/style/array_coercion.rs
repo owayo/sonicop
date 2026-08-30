@@ -8,14 +8,14 @@ use crate::rules::node_ext::NodeExt;
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // `(array (splat $_))`: a bracketed literal holding nothing but a splat.
     for node in context.nodes_of("array") {
-        let children = super::nodes::children(node);
+        let children = super::nodes::children_in(node, context);
         let [only] = children.as_slice() else {
             continue;
         };
         if only.kind_str() != "splat_argument" {
             continue;
         }
-        let Some(argument) = super::nodes::children(*only).into_iter().next() else {
+        let Some(argument) = super::nodes::children_in(*only, context).into_iter().next() else {
             continue;
         };
         let written = context.source.node_text(argument);
@@ -75,7 +75,7 @@ fn wraps_unless_array<'a>(
                 return None;
             }
             let consequence = node.field("consequence")?;
-            match super::nodes::children(consequence).as_slice() {
+            match super::nodes::children_in(consequence, context).as_slice() {
                 [only] => *only,
                 _ => return None,
             }
@@ -92,7 +92,7 @@ fn wraps_unless_array<'a>(
     if context.source.node_text(condition.field("method")?) != "is_a?" {
         return None;
     }
-    match super::nodes::children(condition.field("arguments")?).as_slice() {
+    match super::nodes::children_in(condition.field("arguments")?, context).as_slice() {
         [klass]
             if klass.kind_str() == "constant" && context.source.node_text(*klass) == "Array" => {}
         _ => return None,
@@ -109,7 +109,7 @@ fn wraps_unless_array<'a>(
     if value.kind_str() != "array" {
         return None;
     }
-    let wrapped = match super::nodes::children(value).as_slice() {
+    let wrapped = match super::nodes::children_in(value, context).as_slice() {
         [only] => *only,
         _ => return None,
     };

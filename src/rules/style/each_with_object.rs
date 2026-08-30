@@ -86,7 +86,7 @@ fn block_edits(
     parameters: Node<'_>,
     body: Node<'_>,
 ) -> Option<Vec<Edit>> {
-    let written = super::nodes::children(parameters);
+    let written = super::nodes::children_in(parameters, context);
     let [accumulator, element] = written.as_slice() else {
         return None;
     };
@@ -135,7 +135,7 @@ fn numbered_edits(
     }
     let mut edits = vec![rename(selector)];
     // `each_descendant`: the body itself is not among the nodes upstream renames.
-    for child in super::nodes::children(body) {
+    for child in super::nodes::children_in(body, context) {
         collect_swaps(context, child, &mut edits);
     }
     Some(edits)
@@ -165,7 +165,7 @@ fn collect_swaps(context: &RuleContext<'_>, node: Node<'_>, edits: &mut Vec<Edit
         });
         return;
     }
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         collect_swaps(context, child, edits);
     }
 }
@@ -198,7 +198,7 @@ fn numbered_parameters(context: &RuleContext<'_>, body: Node<'_>) -> usize {
 }
 
 fn scan(context: &RuleContext<'_>, node: Node<'_>, highest: &mut usize) {
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         // A nested block's numbered parameters are its own.
         if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;

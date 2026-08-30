@@ -42,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let statements = node
             .field("body")
             .map(|body| {
-                super::nodes::children(body)
+                super::nodes::children_in(body, context)
                     .into_iter()
                     .filter(|child| child.kind_str() != "comment")
                     .collect::<Vec<Node<'_>>>()
@@ -128,7 +128,7 @@ fn find_end_line(node: Node<'_>, context: &RuleContext<'_>) -> usize {
     let Some(parent) = node.parent().filter(|parent| parent.kind_str() != "program") else {
         return fallback;
     };
-    let siblings: Vec<Node<'_>> = super::nodes::children(parent)
+    let siblings: Vec<Node<'_>> = super::nodes::children_in(parent, context)
         .into_iter()
         .filter(|child| child.kind_str() != "comment")
         .collect();

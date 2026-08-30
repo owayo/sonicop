@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !holds_a_begin(parent) {
             continue;
         }
-        let statements: Vec<Node<'_>> = super::nodes::children(parent);
+        let statements: Vec<Node<'_>> = super::nodes::children_in(parent, context);
         for window in statements.windows(2) {
             let [sibling_container, container] = window else {
                 continue;
@@ -278,7 +278,7 @@ fn block_matches_block_pass(block: Node<'_>, send: Node<'_>, context: &RuleConte
     let Some(argument) = last_argument(send) else {
         return false;
     };
-    let Some(symbol) = super::nodes::children(argument).into_iter().next() else {
+    let Some(symbol) = super::nodes::children_in(argument, context).into_iter().next() else {
         return false;
     };
     send_node::symbol_name(symbol, context) == Some(method)
@@ -287,7 +287,7 @@ fn block_matches_block_pass(block: Node<'_>, send: Node<'_>, context: &RuleConte
 /// `symbol_proc_method?`: `(block _ (args (arg _name)) (send (lvar _name) $_method_name))`.
 fn symbol_proc_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let block = block_of(node)?;
-    let parameters = super::nodes::children(block.field("parameters")?);
+    let parameters = super::nodes::children_in(block.field("parameters")?, context);
     let [only] = parameters.as_slice() else {
         return None;
     };

@@ -14,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .setting::<String>("EnforcedStyle")
         .is_some_and(|style| style == "ternary");
     for node in context.nodes_of("interpolation") {
-        for child in super::nodes::children(node) {
+        for child in super::nodes::children_in(node, context) {
             if ternary_style {
                 ternary_correction(context, node, child, offenses);
             } else {

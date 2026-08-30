@@ -861,7 +861,7 @@ fn attr_with_writer(node: Node<'_>) -> bool {
 /// `literal_arguments` from answering.
 fn attr_first_name(context: &RuleContext<'_>, node: Node<'_>) -> Option<String> {
     let list = node.field("arguments")?;
-    let first = *crate::rules::send_node::named_children(list).first()?;
+    let first = *crate::rules::send_node::named_children_of(list, context).first()?;
     if !matches!(first.kind_str(), "simple_symbol" | "string") {
         return None;
     }

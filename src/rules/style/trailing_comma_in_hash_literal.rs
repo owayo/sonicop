@@ -5,7 +5,7 @@ use super::{nodes, trailing_comma};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("hash") {
-        let items = nodes::children(node);
+        let items = nodes::children_in(node, context);
         let Some(last) = items.last() else {
             continue;
         };

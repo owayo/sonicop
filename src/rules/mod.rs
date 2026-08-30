@@ -59,7 +59,7 @@ mod style;
 pub(crate) mod support;
 mod visibility;
 
-pub(crate) use support::{push_named_children, walk_named};
+pub(crate) use support::{push_named_children, push_named_children_in, walk_named};
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that
 /// inspects one file.
@@ -212,26 +212,37 @@ impl<'a> RuleContext<'a> {
 
     /// RuboCop's `VariableForce` result for this file, computed on the first cop that asks.
     pub(in crate::rules) fn variable_analysis(&self) -> &Analysis<'a> {
-        self.analysis
-            .get_or_init(|| Analysis::run(self.ast.root, self.source))
+        self.analysis.get_or_init(|| {
+            crate::profile::phase(crate::profile::Phase::Variables, || {
+                Analysis::run(self.ast, self.source)
+            })
+        })
     }
 
     /// The code the grammar read as something other than code, recovered once per file.
     pub(in crate::rules) fn fragments(&self) -> &Fragments {
-        self.fragments.get_or_init(|| Fragments::new(self))
+        self.fragments.get_or_init(|| {
+            crate::profile::phase(crate::profile::Phase::Fragments, || Fragments::new(self))
+        })
     }
 
     /// Which identifiers the Metrics cops read as local variables.
     pub(in crate::rules) fn metric_locals(&self) -> &Locals {
-        self.metric_locals
-            .get_or_init(|| Locals::new(self, self.fragments()))
+        self.metric_locals.get_or_init(|| {
+            crate::profile::phase(crate::profile::Phase::MetricLocals, || {
+                Locals::new(self, self.fragments())
+            })
+        })
     }
 
     /// RuboCop's lexer token stream for this file, reconstructed at most once however many cops
     /// inspect it.
     pub(in crate::rules) fn layout_tokens(&self) -> &[layout::tokens::Token] {
-        self.layout_tokens
-            .get_or_init(|| layout::tokens::build(self))
+        self.layout_tokens.get_or_init(|| {
+            crate::profile::phase(crate::profile::Phase::LayoutTokens, || {
+                layout::tokens::build(self)
+            })
+        })
     }
 }
 
@@ -308,6 +319,38 @@ impl<'a> RuleContext<'a> {
         self.ast.root
     }
 
+    /// The file's node index, for the helpers that answer structural questions -- a parent above
+    /// all -- outside a cop's own `check`.
+    pub(in crate::rules) fn ast_index(&self) -> &'a AstIndex<'a> {
+        self.ast
+    }
+
+    /// `Node::children` for a node of this file, answered from the index. See
+    /// [`AstIndex::children_of`].
+    pub(in crate::rules) fn children<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<Children<'node>> {
+        self.ast.children_of(node)
+    }
+
+    /// `Node::named_children` for a node of this file, answered from the index. See
+    /// [`AstIndex::named_children_of`].
+    pub(in crate::rules) fn named_children<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<&'node [Node<'node>]> {
+        self.ast.named_children_of(node)
+    }
+
+    /// Every named node of `node`'s subtree, `node` first. See [`AstIndex::named_descendants`].
+    pub(in crate::rules) fn named_descendants<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<&'node [Node<'node>]> {
+        self.ast.named_descendants(node)
+    }
+
     pub fn nodes(&self) -> impl Iterator<Item = Node<'a>> + '_ {
         self.ast.nodes.iter().copied()
     }
@@ -326,10 +369,12 @@ impl<'a> RuleContext<'a> {
     /// whole file would have seen them in.
     ///
     /// A single kind is by far the common case and is handed straight through: the per-kind lists
-    /// are already in source order, so there is nothing to merge and nothing to allocate.
+    /// are already in source order, so there is nothing to merge and **the list is borrowed**.
+    /// Copying it out cost an allocation and a memcpy of the whole list on every cop of every
+    /// file, and the list is thousands of entries wide for a kind as ordinary as `call`.
     pub fn nodes_of_any(&self, kinds: &[&str]) -> impl Iterator<Item = Node<'a>> + '_ {
-        let indices: Vec<u32> = match kinds {
-            [only] => self.ast.slice_of_kind(only).to_vec(),
+        let positions: std::borrow::Cow<'_, [u32]> = match kinds {
+            [only] => std::borrow::Cow::Borrowed(self.ast.slice_of_kind(only)),
             _ => {
                 // One allocation of the right size. `collect` from a `flat_map` cannot see the
                 // total ahead of time and grows the vector as it goes.
@@ -342,10 +387,10 @@ impl<'a> RuleContext<'a> {
                     indices.extend_from_slice(self.ast.slice_of_kind(kind));
                 }
                 indices.sort_unstable();
-                indices
+                std::borrow::Cow::Owned(indices)
             }
         };
-        indices.into_iter().map(|index| self.ast.named_node(index))
+        (0..positions.len()).map(move |at| self.ast.named_node(positions[at]))
     }
 
     pub fn protected_ranges(&self) -> &[Range<usize>] {
@@ -414,6 +459,42 @@ impl std::hash::Hasher for KindHasher {
 
 type KindMap = HashMap<&'static str, Vec<u32>, std::hash::BuildHasherDefault<KindHasher>>;
 
+/// The hash for a node id, which is the address tree-sitter stored the subtree at.
+///
+/// The keys are pointers into one arena: already well spread above the alignment, and never
+/// chosen by anything but the parser. Multiplying by the 64-bit golden ratio moves the low bits
+/// that alignment fixes into the top of the word, which is where the table reads from -- SipHash's
+/// four rounds buy nothing here and are asked for on every node of every file.
+#[derive(Default)]
+pub(crate) struct IdHasher(u64);
+
+impl std::hash::Hasher for IdHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.0 = (self.0 ^ u64::from(*byte)).wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        }
+    }
+
+    fn write_usize(&mut self, value: usize) {
+        self.0 = (value as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15);
+    }
+}
+
+type IdMap = HashMap<usize, u32, std::hash::BuildHasherDefault<IdHasher>>;
+
+/// The hasher every id-keyed table should be built with. See [`IdHasher`].
+pub(crate) type IdHash = std::hash::BuildHasherDefault<IdHasher>;
+
+/// A set of node ids.
+pub(crate) type IdSet = std::collections::HashSet<usize, IdHash>;
+
+/// A map from a node id.
+pub(crate) type IdKeyed<V> = HashMap<usize, V, IdHash>;
+
 pub(crate) struct AstIndex<'tree> {
     root: Node<'tree>,
     nodes: Vec<Node<'tree>>,
@@ -424,35 +505,92 @@ pub(crate) struct AstIndex<'tree> {
     protected_ranges: Vec<Range<usize>>,
     heredoc_ranges: Vec<Range<usize>>,
     comment_ranges: Vec<Range<usize>>,
-    /// Each node's parent, as its position in `nodes`, keyed by the node's own id. [`NO_PARENT`]
-    /// stands for the root, which has none.
+    /// Where each node sits in `nodes`, keyed by the node's own id. Both structural answers below
+    /// start here.
+    positions: IdMap,
+    /// Each node's parent, as its position in `nodes`. [`NO_PARENT`] stands for the root.
     ///
     /// `Node::parent` walks down from the root of the tree comparing byte ranges, which costs a
     /// pass over the children of every ancestor -- 43% of a run over RuboCop's own tree once the
     /// cheaper accessors were dealt with. The walk that builds this index already knows every
     /// node's parent, so recording it turns the question into one hash lookup.
+    parent_of: Vec<u32>,
+    /// Every node's named children, laid end to end, with `child_start[position]` naming where a
+    /// node's run begins and `child_start[position + 1]` where it ends.
     ///
-    /// Deferred because a run narrowed to a handful of cops may never ask. The map holds no
-    /// borrows, so it does not make `AstIndex` invariant the way a cache of nodes would.
-    parents: OnceCell<HashMap<usize, u32>>,
+    /// `Node::named_children` opens a tree cursor and collects into a fresh `Vec` on every call.
+    /// Both showed at the top of a sampling profile: the cursor iteration was the largest single
+    /// cost of a run and the collect the largest allocation. The walk that fills `nodes` already
+    /// visits every child, so the list is recorded rather than rebuilt.
+    named_children: Vec<Node<'tree>>,
+    child_start: Vec<u32>,
+    /// Where each node sits in `named_nodes`, or [`NOT_NAMED`] for one that is not named.
+    named_index: Vec<u32>,
+    /// How many nodes each node's subtree holds, itself included. `nodes` is in pre-order, so a
+    /// node's own children are found by stepping over one subtree at a time from the node after
+    /// it -- which is what lets [`Self::children_of`] answer without a tree cursor.
+    subtree_len: Vec<u32>,
+    /// How many named nodes each node's subtree holds, itself included.
+    ///
+    /// `named_nodes` is in pre-order, so a node's descendants are the run that begins where the
+    /// node itself sits and is this long -- which is what turns "every named node below this one"
+    /// from a stack-driven walk into a slice.
+    named_subtree: Vec<u32>,
 }
 
-/// The value [`AstIndex::parents`] carries for the root.
+/// One node's children, walked through the index's pre-order table. See
+/// [`AstIndex::children_of`].
+pub(in crate::rules) struct Children<'a> {
+    nodes: &'a [Node<'a>],
+    subtree_len: &'a [u32],
+    next: usize,
+    end: usize,
+}
+
+impl<'a> Iterator for Children<'a> {
+    type Item = Node<'a>;
+
+    fn next(&mut self) -> Option<Node<'a>> {
+        if self.next >= self.end {
+            return None;
+        }
+        let node = self.nodes[self.next];
+        self.next += self.subtree_len[self.next] as usize;
+        Some(node)
+    }
+}
+
+/// The value [`AstIndex::parent_of`] carries for the root.
 const NO_PARENT: u32 = u32::MAX;
+
+/// The value [`AstIndex::named_index`] carries for a node that is not named.
+const NOT_NAMED: u32 = u32::MAX;
 
 impl<'tree> AstIndex<'tree> {
     pub fn new(root: Node<'tree>) -> Self {
+        // The tree knows how many nodes it holds, so every per-node table is allocated once at the
+        // right size. Growing them by doubling costs a dozen reallocations and copies per file,
+        // and eight workers doing that at once is contention on the allocator rather than work.
+        let count = root.descendant_count();
         let mut index = Self {
             root,
-            nodes: Vec::new(),
-            named_nodes: Vec::new(),
+            nodes: Vec::with_capacity(count),
+            named_nodes: Vec::with_capacity(count),
             by_kind: KindMap::default(),
             protected_ranges: Vec::new(),
             heredoc_ranges: Vec::new(),
             comment_ranges: Vec::new(),
-            parents: OnceCell::new(),
+            positions: IdMap::with_capacity_and_hasher(count, Default::default()),
+            parent_of: Vec::with_capacity(count),
+            named_children: Vec::new(),
+            child_start: Vec::new(),
+            named_index: Vec::with_capacity(count),
+            subtree_len: Vec::new(),
+            named_subtree: Vec::new(),
         };
         index.collect(root);
+        index.index_children();
+        index.index_subtrees();
         index.protected_ranges.sort_by_key(|range| range.start);
         merge_touching_ranges(&mut index.protected_ranges);
         index.heredoc_ranges.sort_by_key(|range| range.start);
@@ -482,44 +620,146 @@ impl<'tree> AstIndex<'tree> {
     /// `Metrics`' recovered fragments are -- is asked of the parser itself, so the answer is the
     /// one `Node::parent` would have given whatever tree the node came from.
     fn parent<'node>(&'node self, node: Node<'node>) -> Option<Node<'node>> {
-        match self
-            .parents
-            .get_or_init(|| self.index_parents())
-            .get(&node.id())
-        {
-            Some(&NO_PARENT) => None,
-            Some(&index) => Some(self.nodes[index as usize]),
+        match self.positions.get(&node.id()) {
+            Some(&position) => match self.parent_of[position as usize] {
+                NO_PARENT => None,
+                index => Some(self.nodes[index as usize]),
+            },
             None => node.parent(),
         }
     }
 
-    /// Walks the tree once more, recording where each node hangs. The walk that filled `nodes`
-    /// cannot do it: most runs never ask, and a file's nodes outnumber the parents any one cop
-    /// looks up.
-    fn index_parents(&self) -> HashMap<usize, u32> {
-        let mut parents = HashMap::with_capacity(self.nodes.len());
-        let mut cursor = self.root.walk();
-        let mut ancestors: Vec<u32> = Vec::new();
-        let mut position = 0u32;
-        loop {
-            parents.insert(
-                cursor.node().id(),
-                ancestors.last().copied().unwrap_or(NO_PARENT),
-            );
-            let here = position;
-            position += 1;
-            if cursor.goto_first_child() {
-                ancestors.push(here);
+    /// The named nodes of one kind, in source order -- the same list [`RuleContext::nodes_of`]
+    /// hands a cop, for the helpers that hold an index rather than a context.
+    pub(in crate::rules) fn nodes_of_kind<'a>(
+        &'a self,
+        kind: &str,
+    ) -> impl Iterator<Item = Node<'tree>> + 'a {
+        self.of_kind(kind).map(|index| self.named_node(index))
+    }
+
+    /// Every child of `node`, named or not, in the order the parser wrote them.
+    ///
+    /// `Node::children` opens a tree cursor for each node it is asked about, and a sampling
+    /// profile of a run over RuboCop's own tree put that cursor's iteration first among every
+    /// cost. The pre-order table already holds the children: the first sits right after the node,
+    /// and each next one a whole subtree further on.
+    pub(in crate::rules) fn children_of<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<Children<'node>> {
+        let position = *self.positions.get(&node.id())? as usize;
+        Some(Children {
+            nodes: &self.nodes,
+            subtree_len: &self.subtree_len,
+            next: position + 1,
+            end: position + self.subtree_len[position] as usize,
+        })
+    }
+
+    /// Every named node of `node`'s subtree, `node` itself first and the rest in depth-first
+    /// pre-order -- the order a stack-driven walk produces.
+    ///
+    /// `named_nodes` is filled in that order, so the answer is a run of it rather than a walk.
+    pub(in crate::rules) fn named_descendants<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<&'node [Node<'node>]> {
+        let position = *self.positions.get(&node.id())? as usize;
+        let start = match self.named_index[position] {
+            NOT_NAMED => return None,
+            index => index as usize,
+        };
+        Some(&self.named_nodes[start..start + self.named_subtree[position] as usize])
+    }
+
+    /// The named children of a node of this file's tree, as they were recorded when the index was
+    /// built. A node the index does not know is walked with a cursor, which is what
+    /// `Node::named_children` would have done for every node.
+    pub(in crate::rules) fn named_children_of<'node>(
+        &'node self,
+        node: Node<'node>,
+    ) -> Option<&'node [Node<'node>]> {
+        let position = *self.positions.get(&node.id())? as usize;
+        let start = self.child_start[position] as usize;
+        let end = self.child_start[position + 1] as usize;
+        Some(&self.named_children[start..end])
+    }
+
+    /// [`Self::parent`] for a node of the tree this index was built from, answered without tying
+    /// the result to the borrow of the index.
+    ///
+    /// A helper that hands the parent back to its caller, and the variable force, which holds
+    /// nodes for as long as the file is inspected, both need the tree's own lifetime rather than
+    /// the shorter one `parent` gives.
+    /// The tree this index was built from.
+    pub(in crate::rules) fn root_node(&self) -> Node<'tree> {
+        self.root
+    }
+
+    pub(in crate::rules) fn parent_in_tree(&self, node: Node<'tree>) -> Option<Node<'tree>> {
+        match self.positions.get(&node.id()) {
+            Some(&position) => match self.parent_of[position as usize] {
+                NO_PARENT => None,
+                index => Some(self.nodes[index as usize]),
+            },
+            None => node.parent(),
+        }
+    }
+
+    /// Groups the named children of every node into one run each, from the parents the walk
+    /// recorded. A counting pass and a placing pass, so no node's list is grown as it fills.
+    fn index_children(&mut self) {
+        let count = self.nodes.len();
+        // One slot past the end, so a node's run is `child_start[i]..child_start[i + 1]` without
+        // a bounds check on the last node.
+        self.child_start = vec![0u32; count + 1];
+        for position in 0..count {
+            if self.named_index[position] == NOT_NAMED {
                 continue;
             }
-            loop {
-                if cursor.goto_next_sibling() {
-                    break;
-                }
-                if !cursor.goto_parent() {
-                    return parents;
-                }
-                ancestors.pop();
+            let parent = self.parent_of[position];
+            if parent == NO_PARENT {
+                continue;
+            }
+            self.child_start[parent as usize + 1] += 1;
+        }
+        for index in 1..=count {
+            self.child_start[index] += self.child_start[index - 1];
+        }
+        // `child_start` now holds each node's end; filling backwards from it leaves it holding
+        // the start again, which is the usual way to build a compressed adjacency list.
+        let total = self.child_start[count] as usize;
+        self.named_children = vec![self.root; total];
+        let mut cursor = self.child_start.clone();
+        for position in 0..count {
+            if self.named_index[position] == NOT_NAMED {
+                continue;
+            }
+            let parent = self.parent_of[position];
+            if parent == NO_PARENT {
+                continue;
+            }
+            let slot = &mut cursor[parent as usize];
+            self.named_children[*slot as usize] = self.nodes[position];
+            *slot += 1;
+        }
+    }
+
+    /// Counts the named nodes of every subtree. A node always sits before its children in
+    /// `nodes`, so one pass from the end folds each count into its parent's.
+    fn index_subtrees(&mut self) {
+        self.named_subtree = self
+            .named_index
+            .iter()
+            .map(|index| u32::from(*index != NOT_NAMED))
+            .collect();
+        self.subtree_len = vec![1u32; self.nodes.len()];
+        for position in (1..self.nodes.len()).rev() {
+            let parent = self.parent_of[position];
+            if parent != NO_PARENT {
+                self.named_subtree[parent as usize] += self.named_subtree[position];
+                self.subtree_len[parent as usize] += self.subtree_len[position];
             }
         }
     }
@@ -529,9 +769,15 @@ impl<'tree> AstIndex<'tree> {
     /// walk aborts the whole process on deeply nested input.
     fn collect(&mut self, root: Node<'tree>) {
         let mut cursor = root.walk();
+        let mut ancestors: Vec<u32> = Vec::new();
         loop {
-            self.visit(cursor.node());
+            let here = self.nodes.len() as u32;
+            self.visit(
+                cursor.node(),
+                ancestors.last().copied().unwrap_or(NO_PARENT),
+            );
             if cursor.goto_first_child() {
+                ancestors.push(here);
                 continue;
             }
             loop {
@@ -541,26 +787,37 @@ impl<'tree> AstIndex<'tree> {
                 if !cursor.goto_parent() {
                     return;
                 }
+                ancestors.pop();
             }
         }
     }
 
-    fn visit(&mut self, node: Node<'tree>) {
+    fn visit(&mut self, node: Node<'tree>, parent: u32) {
+        // Read once. Each call goes through the C API for the node's symbol, and this used to ask
+        // four times for every node of every file.
+        let kind = node.kind_str();
+        let named = node.is_named();
+        self.positions.insert(node.id(), self.nodes.len() as u32);
+        self.parent_of.push(parent);
+        self.named_index.push(match named {
+            true => self.named_nodes.len() as u32,
+            false => NOT_NAMED,
+        });
         self.nodes.push(node);
-        if node.is_named() {
+        if named {
             // A file with more than u32::MAX named nodes would need tens of gigabytes of source;
             // the cast cannot lose information for anything a parser will accept.
             let index = self.named_nodes.len() as u32;
             self.named_nodes.push(node);
-            self.by_kind.entry(node.kind_str()).or_default().push(index);
+            self.by_kind.entry(kind).or_default().push(index);
         }
-        if PROTECTED_LITERAL_KINDS.contains(&node.kind_str()) {
+        if PROTECTED_LITERAL_KINDS.contains(&kind) {
             self.protected_ranges.push(node.byte_range());
         }
-        if node.kind_str() == "heredoc_body" {
+        if kind == "heredoc_body" {
             self.heredoc_ranges.push(node.byte_range());
         }
-        if node.kind_str() == "comment" && !inside_literal_text(node) {
+        if kind == "comment" && !inside_literal_text(node) {
             self.comment_ranges.push(node.byte_range());
         }
     }
@@ -620,8 +877,9 @@ fn merge_touching_ranges(ranges: &mut Vec<Range<usize>>) {
 mod tests {
     use std::collections::HashSet;
 
-    use super::{merge_touching_ranges, rule_names, rules};
+    use super::{AstIndex, merge_touching_ranges, rule_names, rules};
     use crate::config::Config;
+    use crate::rules::node_ext::NodeExt;
     use crate::source::is_protected;
 
     #[test]
@@ -677,6 +935,90 @@ mod tests {
             assert!(!department.is_empty(), "{name} has an empty department");
             assert!(!cop.is_empty(), "{name} has an empty cop name");
         }
+    }
+
+    /// The index answers a parent and a child list from its own arrays rather than from the
+    /// parser, so the two have to agree for every node of a real file -- a cop reaching for either
+    /// would otherwise see a tree the grammar never built.
+    #[test]
+    fn the_index_answers_what_the_parser_answers() {
+        let source = "# frozen_string_literal: true\n                      class Foo < Bar\n                        def baz(a = 1, *rest, key:, &block)\n                          @x ||= a.map { |v| \"#{v}-#{rest.first}\" }\n                          text = <<~DOC\n    hello #{key}\n  DOC\n                          [1, 2].each_with_object({}) { |n, memo| memo[n] = n }\n                        rescue StandardError => error\n                          raise error\n                        ensure\n                          puts text\n                        end\n                      end\n";
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_ruby::LANGUAGE.into())
+            .expect("the Ruby grammar loads");
+        let tree = parser.parse(source, None).expect("the source parses");
+        let index = AstIndex::new(tree.root_node());
+
+        let mut seen = 0;
+        for node in &index.nodes {
+            let mut cursor = node.walk();
+            let expected: Vec<tree_sitter::Node<'_>> = node.named_children(&mut cursor).collect();
+            let recorded = index
+                .named_children_of(*node)
+                .expect("every node of this tree is indexed");
+            let mut all = node.walk();
+            let all_expected: Vec<tree_sitter::Node<'_>> = node.children(&mut all).collect();
+            let all_recorded: Vec<tree_sitter::Node<'_>> = index
+                .children_of(*node)
+                .expect("every node of this tree is indexed")
+                .collect();
+            assert_eq!(
+                all_recorded,
+                all_expected,
+                "{} reported different children",
+                node.kind_str()
+            );
+            assert_eq!(
+                recorded,
+                expected,
+                "{} reported different named children",
+                node.kind_str()
+            );
+            assert_eq!(
+                index.parent_in_tree(*node).map(|found| found.id()),
+                node.parent().map(|found| found.id()),
+                "{} reported a different parent",
+                node.kind_str()
+            );
+            seen += 1;
+        }
+        assert!(
+            seen > 100,
+            "the sample file should exercise more than {seen} nodes"
+        );
+    }
+
+    /// A node from another tree -- the extra parses `Metrics` makes to recover what the grammar
+    /// swallowed -- is not in the index, and both accessors have to fall back to the parser rather
+    /// than answer for a node they never saw.
+    #[test]
+    fn a_node_from_another_tree_falls_back_to_the_parser() {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_ruby::LANGUAGE.into())
+            .expect("the Ruby grammar loads");
+        let indexed = parser.parse("foo(1)\n", None).expect("the source parses");
+        let index = AstIndex::new(indexed.root_node());
+
+        let other = parser
+            .parse("bar(2, 3)\n", None)
+            .expect("the source parses");
+        let call = other
+            .root_node()
+            .named_child(0)
+            .expect("the program has a statement");
+        assert!(index.named_children_of(call).is_none());
+        let mut cursor = call.walk();
+        let expected: Vec<tree_sitter::Node<'_>> = call.named_children(&mut cursor).collect();
+        assert_eq!(
+            crate::rules::send_node::named_children_in(call, &index).into_owned(),
+            expected
+        );
+        assert_eq!(
+            index.parent_in_tree(call).map(|found| found.id()),
+            call.parent().map(|found| found.id())
+        );
     }
 
     /// The registry is a static built from the department tables, so iteration order cannot vary

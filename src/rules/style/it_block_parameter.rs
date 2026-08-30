@@ -42,7 +42,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 if style != "always" {
                     continue;
                 }
-                let names = super::nodes::children(parameters);
+                let names = super::nodes::children_in(parameters, context);
                 let [only] = names.as_slice() else {
                     continue;
                 };

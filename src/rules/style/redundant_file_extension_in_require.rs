@@ -21,13 +21,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(arguments) = node.field("arguments") else {
             continue;
         };
-        let [name] = super::nodes::children(arguments)[..] else {
+        let [name] = super::nodes::children_in(arguments, context)[..] else {
             continue;
         };
         // `$str_type?`: an interpolated or multi-line literal is a `dstr` upstream.
         if name.kind_str() != "string"
             || name.start_position().row != name.end_position().row
-            || super::nodes::children(name)
+            || super::nodes::children_in(name, context)
                 .iter()
                 .any(|child| child.kind_str() == "interpolation")
         {

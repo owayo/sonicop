@@ -52,7 +52,7 @@ pub(super) fn single_negative<'tree>(
 ) -> Option<send_node::Negation<'tree>> {
     // `empty_condition?` is `(begin)`: `while ()` has nothing to negate.
     if condition.kind_str() == "parenthesized_statements"
-        && super::nodes::children(condition).is_empty()
+        && super::nodes::children_in(condition, context).is_empty()
     {
         return None;
     }

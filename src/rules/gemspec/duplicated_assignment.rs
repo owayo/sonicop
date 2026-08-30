@@ -2,12 +2,13 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{first_line_range, is_plain_send, literal_key, named_children};
+use crate::rules::send_node::{first_line_range, is_plain_send, literal_key};
 
 use super::support::{
     enclosing_specification, first_specification_variable, is_literal, is_specification_receiver,
 };
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The specification block an assignment was made in, and the target it named. Two assignments
 /// are duplicates of one another only when both agree.
@@ -30,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `spec.a, spec.b = 1, 2` assigns through one node per target.
         let targets = match left.kind_str() {
-            "left_assignment_list" => named_children(left),
+            "left_assignment_list" => named_children_of(left, context),
             _ => vec![left],
         };
         for target in targets {
@@ -92,7 +93,7 @@ fn assignment<'tree>(
                 return None;
             }
             let method = context.source.node_text(object.field("method")?);
-            let indices = named_children(target);
+            let indices = named_children_of(target, context);
             let [index] = indices.get(1..)? else {
                 return None;
             };

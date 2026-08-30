@@ -37,7 +37,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
 
     for literal in literals(context) {
-        if surrounded_by_command_or_regexp(literal.anchor)
+        if surrounded_by_command_or_regexp(literal.anchor, context)
             || allowed_method(context, literal.anchor, &allowed_methods)
             || allowed_call_pattern(context, literal.anchor, &allowed_patterns)
         {
@@ -106,7 +106,7 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
         // `"%s" %[a]` is a `send` upstream: the second literal is the operator's argument, not a
         // string at all.
         if open.id() == close.id()
-            || (super::percent::is_modulo_operand(node)
+            || (super::percent::is_modulo_operand(node, context)
                 && context.source.node_text(node).starts_with('%'))
         {
             continue;
@@ -235,7 +235,7 @@ fn typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         .field("method")
         .is_some_and(|method| FORMAT_METHODS.contains(&context.source.node_text(method)));
     named
-        && super::nodes::children(parent)
+        && super::nodes::children_in(parent, context)
             .first()
             .is_some_and(|first| first.id() == node.id())
 }
@@ -259,13 +259,13 @@ fn enclosing_typical_context(context: &RuleContext<'_>, node: Node<'_>) -> bool 
 
 /// `format_string_token?`: a literal written inside a command or a regexp is none of this cop's
 /// business.
-fn surrounded_by_command_or_regexp(node: Node<'_>) -> bool {
-    let mut current = node.parent();
+fn surrounded_by_command_or_regexp(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let mut current = context.parent(node);
     while let Some(parent) = current {
         if matches!(parent.kind_str(), "subshell" | "regex") {
             return true;
         }
-        current = parent.parent();
+        current = context.parent(parent);
     }
     false
 }

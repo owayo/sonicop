@@ -10,22 +10,22 @@
 //! copy of the file with every other byte blanked out -- so its nodes carry the offsets they were
 //! written at and can be read against the original source like any others.
 
-use std::collections::HashSet;
 use std::ops::Range;
 
-use tree_sitter::{Node, Parser, Tree};
+use tree_sitter::{Node, Tree};
 
 use super::locals::named_children;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(in crate::rules) struct Fragments {
     /// The recovered parse, absent when the file holds nothing to recover.
     tree: Option<Tree>,
     /// The nodes whose text was swallowed, by node id.
-    hosts: HashSet<usize>,
+    hosts: crate::rules::IdSet,
     /// Of those, the ones standing for a `%` applied to the string before them.
-    operators: HashSet<usize>,
+    operators: crate::rules::IdSet,
 }
 
 impl Fragments {
@@ -43,7 +43,7 @@ impl Fragments {
             .collect();
         let percents: Vec<Node<'_>> = context
             .nodes_of("chained_string")
-            .flat_map(|chained| named_children(chained).into_iter().skip(1))
+            .flat_map(|chained| named_children_of(chained, context).into_iter().skip(1))
             .filter(|part| {
                 part.kind_str() == "string" && source[part.byte_range()].starts_with('%')
             })
@@ -51,13 +51,13 @@ impl Fragments {
         if comments.is_empty() && percents.is_empty() {
             return Self {
                 tree: None,
-                hosts: HashSet::new(),
-                operators: HashSet::new(),
+                hosts: crate::rules::IdSet::default(),
+                operators: crate::rules::IdSet::default(),
             };
         }
 
-        let mut hosts = HashSet::new();
-        let mut operators = HashSet::new();
+        let mut hosts = crate::rules::IdSet::default();
+        let mut operators = crate::rules::IdSet::default();
         let mut blanked = Blanked::new(source);
         for comment in comments {
             if blanked.write_interpolations(comment.byte_range()) {
@@ -175,11 +175,7 @@ impl<'a> Blanked<'a> {
             return None;
         }
         let text = String::from_utf8(self.bytes).ok()?;
-        let mut parser = Parser::new();
-        parser
-            .set_language(&tree_sitter_ruby::LANGUAGE.into())
-            .ok()?;
-        parser.parse(&text, None)
+        crate::parser::parse(&text)
     }
 }
 

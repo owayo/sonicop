@@ -33,7 +33,7 @@ pub(in crate::rules) fn send_name<'a>(
     context: &'a RuleContext<'_>,
 ) -> Option<&'a str> {
     match node.kind_str() {
-        "identifier" if is_send_identifier(node) => Some(context.source.node_text(node)),
+        "identifier" if is_send_identifier(node, context) => Some(context.source.node_text(node)),
         "call" if node.field("block").is_none() => {
             let method = node.field("method")?;
             crate::rules::send_node::is_plain_send(node, context)
@@ -76,8 +76,8 @@ pub(super) fn bare_access_modifier(
 /// What this cannot tell is a read of a local variable, which is an `lvar` upstream and a plain
 /// identifier here as well. Only a file that assigned `private` (or one of its siblings) to a
 /// local could be misread, and the name would have to be one of five.
-fn is_send_identifier(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn is_send_identifier(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    let Some(parent) = context.parent(node) else {
         return true;
     };
     let field = field_name(node, parent);

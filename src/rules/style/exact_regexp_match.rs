@@ -83,7 +83,7 @@ fn match_call<'tree>(
 /// sequences, so what is left is checking that the run between them holds nothing a regexp engine
 /// would read as syntax, and that no flag was written after the closing delimiter.
 fn exact_match_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
-    let parts = super::nodes::children(node);
+    let parts = super::nodes::children_in(node, context);
     let [start, literal, end] = parts.as_slice() else {
         return None;
     };

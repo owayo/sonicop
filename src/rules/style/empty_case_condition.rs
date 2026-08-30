@@ -15,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if is_unsupported_parent(context, node) {
             continue;
         }
-        let branches = super::nodes::children(node);
+        let branches = super::nodes::children_in(node, context);
         let whens: Vec<Node<'_>> = branches
             .iter()
             .copied()
@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .iter()
             .filter_map(|when| when.field("body"))
             .chain(branches.iter().copied().filter(|it| it.kind_str() == "else"));
-        if bodies.into_iter().any(holds_return) {
+        if bodies.into_iter().any(|body| holds_return(body, context)) {
             continue;
         }
         let (Some(case_keyword), Some(when_keyword)) = (node.child(0), first_when.child(0)) else {
@@ -109,9 +109,9 @@ fn is_unsupported_parent(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     }
 }
 
-fn holds_return(body: Node<'_>) -> bool {
+fn holds_return(body: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut found = false;
-    walk_named(body, &mut |node| {
+    walk_named(body, context, &mut |node| {
         found = found || node.kind_str() == "return";
     });
     found
@@ -148,7 +148,7 @@ fn correct_when_conditions(
     // the `case`, because the node it reaches for is not there.
     let nested = has_upstream_parent(case_node);
     for when in whens {
-        let conditions: Vec<Node<'_>> = super::nodes::children(*when)
+        let conditions: Vec<Node<'_>> = super::nodes::children_in(*when, context)
             .into_iter()
             .filter(|child| child.kind_str() == "pattern")
             .collect();
@@ -191,7 +191,7 @@ fn then_keyword<'tree>(when: Node<'tree>) -> Option<Node<'tree>> {
 /// once the conditions are joined with one.
 fn parenthesize(context: &RuleContext<'_>, condition: Node<'_>) -> String {
     let source = context.source.node_text(condition);
-    let inner = super::nodes::children(condition);
+    let inner = super::nodes::children_in(condition, context);
     let binds_looser = match inner.as_slice() {
         [only] => match only.kind_str() {
             "if" | "unless" | "if_modifier" | "unless_modifier" | "conditional" | "range" => true,

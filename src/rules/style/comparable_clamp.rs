@@ -128,7 +128,7 @@ fn check_min_max(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<O
     let Some(array) = node.field("receiver").filter(|r| r.kind_str() == "array") else {
         return;
     };
-    let elements = super::nodes::children(array);
+    let elements = super::nodes::children_in(array, context);
     if elements.len() != 2 {
         return;
     }
@@ -140,7 +140,7 @@ fn check_min_max(context: &RuleContext<'_>, node: Node<'_>, offenses: &mut Vec<O
             && arguments(element).is_empty()
             && element.field("block").is_none()
             && element.field("receiver").is_some_and(|receiver| {
-                receiver.kind_str() == "array" && super::nodes::children(receiver).len() == 2
+                receiver.kind_str() == "array" && super::nodes::children_in(receiver, context).len() == 2
             })
     };
     if inner(elements[0]) || inner(elements[1]) {

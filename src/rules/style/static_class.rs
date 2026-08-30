@@ -141,7 +141,7 @@ fn is_public(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(parent) = node.parent() else {
         return true;
     };
-    let siblings = super::nodes::children(parent);
+    let siblings = super::nodes::children_in(parent, context);
     let Some(position) = siblings.iter().position(|child| child.id() == node.id()) else {
         return true;
     };

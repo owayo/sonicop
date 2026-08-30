@@ -3,9 +3,10 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{has_interpolation, named_children, string_text, symbol_name};
+use crate::rules::send_node::{has_interpolation, string_text, symbol_name};
 
 use super::node_equality::numeric_value;
+use crate::rules::send_node::named_children_of;
 
 const MSG_CHARACTER_CLASS: &str =
     "Use a character class instead of interpolating an array in a regexp.";
@@ -21,7 +22,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        let Some(array) = named_children(node)
+        let Some(array) = named_children_of(node, context)
             .into_iter()
             .rfind(|child| child.kind_str() != "comment")
             // `%w[…]` and `%i[…]` are `array` nodes upstream. The grammar gives each percent form
@@ -30,7 +31,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         else {
             continue;
         };
-        let elements: Vec<Node<'_>> = named_children(array)
+        let elements: Vec<Node<'_>> = named_children_of(array, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .collect();

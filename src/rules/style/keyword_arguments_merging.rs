@@ -74,8 +74,8 @@ fn hash_splat<'tree>(argument: &Argument<'tree>) -> Option<Node<'tree>> {
 }
 
 /// `(send $_ :merge $...)`: the call the double splat spreads.
-fn merge_call<'tree>(splat: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    let parts = super::nodes::children(splat);
+fn merge_call<'tree>(splat: Node<'tree>, context: &'tree RuleContext<'_>) -> Option<Node<'tree>> {
+    let parts = super::nodes::children_in(splat, context);
     let [value] = parts.as_slice() else {
         return None;
     };

@@ -108,7 +108,7 @@ fn returns_nil(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     match node.kind_str() {
         "nil" => true,
         "return" | "next" | "break" => {
-            let arguments = super::nodes::children(node);
+            let arguments = super::nodes::children_in(node, context);
             let [list] = arguments.as_slice() else {
                 return false;
             };
@@ -116,7 +116,7 @@ fn returns_nil(node: Node<'_>, context: &RuleContext<'_>) -> bool {
                 return false;
             }
             let _ = context;
-            matches!(super::nodes::children(*list).as_slice(), [only] if only.kind_str() == "nil")
+            matches!(super::nodes::children_in(*list, context).as_slice(), [only] if only.kind_str() == "nil")
         }
         _ => false,
     }

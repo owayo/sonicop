@@ -109,7 +109,7 @@ fn removed_heredocs(
         let Some(body) = crate::rules::send_node::heredoc_body(opener, context) else {
             continue;
         };
-        let parts = super::nodes::children(body);
+        let parts = super::nodes::children_in(body, context);
         let Some(terminator) = parts.iter().find(|part| part.kind_str() == "heredoc_end") else {
             continue;
         };

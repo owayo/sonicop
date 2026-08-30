@@ -3,9 +3,9 @@ use std::ops::Range;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
 
 use super::tokens::tokens;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if !context.source.text().contains('\\') {
@@ -118,7 +118,7 @@ fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     // interpolations one `str` node, where the grammar splits it at every escape.
     for literal in context.nodes_of_any(&["regex", "subshell"]) {
         let mut run: Option<Range<usize>> = None;
-        for child in named_children(literal) {
+        for child in named_children_of(literal, context) {
             match child.kind_str() == "interpolation" {
                 true => ranges.extend(run.take()),
                 false => {

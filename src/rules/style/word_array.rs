@@ -47,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut matrix = HashMap::new();
 
     for node in context.nodes_of("array") {
-        let items = nodes::children(node);
+        let items = nodes::children_in(node, context);
         if items.is_empty() || !items.iter().all(|item| is_word(*item)) {
             continue;
         }
@@ -167,11 +167,11 @@ fn within_matrix_of_complex_content(
     if let Some(known) = cache.get(&parent.id()) {
         return *known;
     }
-    let rows = nodes::children(parent);
+    let rows = nodes::children_in(parent, context);
     let matrix = rows.iter().all(|row| row.kind_str() == "array")
         && rows
             .iter()
-            .any(|row| complex_content(&values(context, &nodes::children(*row)), word));
+            .any(|row| complex_content(&values(context, &nodes::children_in(*row, context)), word));
     cache.insert(parent.id(), matrix);
     matrix
 }

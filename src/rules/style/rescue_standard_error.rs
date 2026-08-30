@@ -49,7 +49,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(array (const {nil? cbase} :StandardError))`: the one name, unqualified or written from the
 /// root.
 fn only_standard_error(context: &RuleContext<'_>, list: Node<'_>) -> bool {
-    let exceptions = super::nodes::children(list);
+    let exceptions = super::nodes::children_in(list, context);
     let [only] = exceptions.as_slice() else {
         return false;
     };

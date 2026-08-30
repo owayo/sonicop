@@ -128,7 +128,7 @@ fn holds_interpolation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         if interpolates && current.id() != node.id() {
             return true;
         }
-        crate::rules::push_named_children(current, &mut stack);
+        crate::rules::push_named_children_in(current, context, &mut stack);
     }
     false
 }

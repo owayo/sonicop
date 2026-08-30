@@ -165,7 +165,7 @@ struct Push<'tree> {
 /// `each_block_with_push?`.
 fn each_block_with_push<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Push<'tree>> {
     if context.source.node_text(node.field("method")?) != "each" {
         return None;
@@ -190,7 +190,7 @@ fn each_block_with_push<'tree>(
             if matches!(parent.kind_str(), "block" | "do_block" | "begin") => {}
         UpstreamParent::Node(_) => return None,
     }
-    let body = super::nodes::children(block.field("body")?);
+    let body = super::nodes::children_in(block.field("body")?, context);
     let [statement] = body.as_slice() else {
         return None;
     };
@@ -273,16 +273,16 @@ fn is_empty_array_assignment(node: Node<'_>, context: &RuleContext<'_>) -> bool 
     };
     let empty_array = |node: Node<'_>| {
         matches!(node.kind_str(), "array" | "string_array" | "symbol_array")
-            && super::nodes::children(node).is_empty()
+            && super::nodes::children_in(node, context).is_empty()
     };
     if empty_array(value) {
         return true;
     }
     if value.kind_str() == "element_reference" {
-        return super::nodes::children(value)
+        return super::nodes::children_in(value, context)
             .first()
             .is_some_and(|object| super::nodes::is_top_level_constant(*object, "Array", context))
-            && super::nodes::children(value).len() == 1;
+            && super::nodes::children_in(value, context).len() == 1;
     }
     if value.kind_str() != "call" || value.field("block").is_some() {
         return false;
@@ -346,7 +346,7 @@ fn empty_array_tap<'tree>(
     declaration: Node<'tree>,
 ) -> Option<Node<'tree>> {
     let parameters = context.parent(declaration)?;
-    if parameters.kind_str() != "block_parameters" || super::nodes::children(parameters).len() != 1
+    if parameters.kind_str() != "block_parameters" || super::nodes::children_in(parameters, context).len() != 1
     {
         return None;
     }
@@ -356,7 +356,7 @@ fn empty_array_tap<'tree>(
         return None;
     }
     let receiver = call.field("receiver")?;
-    (receiver.kind_str() == "array" && super::nodes::children(receiver).is_empty()).then_some(call)
+    (receiver.kind_str() == "array" && super::nodes::children_in(receiver, context).is_empty()).then_some(call)
 }
 
 /// `tap_block_node.body == node`.

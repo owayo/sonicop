@@ -2,8 +2,9 @@ use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
-use crate::rules::send_node::{Argument, arguments, named_children, send_range};
+use crate::rules::send_node::{Argument, arguments, send_range};
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG_EQUALITY: &str = "Avoid equality comparisons of floats as they are unreliable.";
 const MSG_INEQUALITY: &str = "Avoid inequality comparisons of floats as they are unreliable.";
@@ -52,15 +53,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `on_case`: every condition of every `when` branch, taken on its own.
 fn case_conditions(node: Node<'_>, context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for branch in named_children(node) {
+    for branch in named_children_of(node, context) {
         if branch.kind_str() != "when" {
             continue;
         }
-        for pattern in named_children(branch) {
+        for pattern in named_children_of(branch, context) {
             if pattern.kind_str() != "pattern" {
                 continue;
             }
-            let Some(condition) = named_children(pattern).into_iter().next() else {
+            let Some(condition) = named_children_of(pattern, context).into_iter().next() else {
                 continue;
             };
             if is_float(condition, context) && !literal_safe(condition, context) {
@@ -110,7 +111,7 @@ fn is_float(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         // The parser folds a sign into the numeric literal it stands before.
         "unary" => signed_numeric(node, context).is_some_and(|operand| operand.kind_str() == "float"),
         "binary" | "call" => float_send(node, context),
-        "parenthesized_statements" => named_children(node)
+        "parenthesized_statements" => named_children_of(node, context)
             .into_iter()
             .next()
             .is_some_and(|first| is_float(first, context)),
@@ -167,7 +168,7 @@ fn literal_safe(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "nil" => true,
         "integer" | "float" | "rational" | "complex" => is_zero(node, context),
         "unary" => signed_numeric(node, context).is_some_and(|operand| is_zero(operand, context)),
-        "parenthesized_statements" => named_children(node)
+        "parenthesized_statements" => named_children_of(node, context)
             .into_iter()
             .next()
             .is_some_and(|first| literal_safe(first, context)),

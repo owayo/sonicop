@@ -1,6 +1,7 @@
 //! Reading a conditional the way upstream's `IfNode` presents it, plus the tree walks the cops
 //! around it share.
 
+use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use tree_sitter::Node;
 
@@ -42,7 +43,13 @@ pub(super) fn last_line(node: Node<'_>) -> usize {
 }
 
 /// The node and everything beneath it, in depth-first pre-order.
-pub(super) fn descendants<'t>(node: Node<'t>) -> Vec<Node<'t>> {
+///
+/// That is the order the index records its nodes in, so the answer is a copy of one run of it
+/// rather than a stack-driven walk that opens a cursor at every node.
+pub(super) fn descendants<'t>(node: Node<'t>, context: &'t RuleContext<'_>) -> Vec<Node<'t>> {
+    if let Some(found) = context.named_descendants(node) {
+        return found.to_vec();
+    }
     let mut stack = vec![node];
     let mut found = Vec::new();
     while let Some(current) = stack.pop() {

@@ -305,7 +305,7 @@ fn is_numbered_block(context: &RuleContext<'_>, block: Node<'_>) -> bool {
         return false;
     }
     let mut found = false;
-    crate::rules::walk_named(block, &mut |node| {
+    crate::rules::walk_named(block, context, &mut |node| {
         if found || node.kind_str() != "identifier" {
             return;
         }

@@ -53,7 +53,7 @@ pub(super) fn parse<'a>(
             if node.kind_str() != "block_argument" {
                 return None;
             }
-            let symbol = super::nodes::children(node);
+            let symbol = super::nodes::children_in(node, context);
             let [symbol] = symbol.as_slice() else {
                 return None;
             };
@@ -77,14 +77,14 @@ pub(super) fn block_calls<'tree>(
     arity: usize,
 ) -> Option<Vec<Range<usize>>> {
     let block = node.field("block")?;
-    let parameters = super::nodes::children(block.field("parameters")?);
+    let parameters = super::nodes::children_in(block.field("parameters")?, context);
     let [parameter] = parameters.as_slice() else {
         return None;
     };
     if parameter.kind_str() != "identifier" {
         return None;
     }
-    let body = super::nodes::children(block.field("body")?);
+    let body = super::nodes::children_in(block.field("body")?, context);
     let [statement] = body.as_slice() else {
         return None;
     };

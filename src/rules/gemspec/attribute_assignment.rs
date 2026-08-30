@@ -3,9 +3,10 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{is_plain_send, named_children};
+use crate::rules::send_node::is_plain_send;
 
 use super::support::{first_specification_variable, is_literal, is_specification_receiver};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let variable = first_specification_variable(context);
@@ -34,7 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // multiple assignment carries no value of its own, so it never matches upstream's
             // `(send _ :[]= literal? _)`, which insists on both an index and a value.
             "left_assignment_list" => {
-                for target in named_children(left) {
+                for target in named_children_of(left, context) {
                     if target.kind_str() == "call"
                         && let Some(attribute) = assigned_attribute(target, variable, context)
                     {
@@ -93,7 +94,7 @@ fn indexed_attribute<'a>(
     if !is_specification_receiver(receiver, variable, context) {
         return None;
     }
-    let indices = named_children(target);
+    let indices = named_children_of(target, context);
     let [index] = indices.get(1..)? else {
         return None;
     };

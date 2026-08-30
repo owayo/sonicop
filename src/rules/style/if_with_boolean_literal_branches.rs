@@ -115,7 +115,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn returns_boolean(node: Node<'_>, allowed: &[String], context: &RuleContext<'_>) -> bool {
     match node.kind_str() {
         // `(begin ...)`: a condition written in parentheses.
-        "parenthesized_statements" => match super::nodes::children(node).as_slice() {
+        "parenthesized_statements" => match super::nodes::children_in(node, context).as_slice() {
             [first, ..] => returns_boolean(*first, allowed, context),
             [] => false,
         },

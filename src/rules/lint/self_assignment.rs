@@ -7,6 +7,7 @@ use crate::rules::send_node::{arguments, named_children, send_range};
 use super::locals::LocalVariables;
 use super::node_equality::identical;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Self-assignment detected.";
 
@@ -224,10 +225,10 @@ fn multiple_self_assignment(left: Node<'_>, right: Node<'_>, context: &RuleConte
     // `rhs.array_type?`. `a, b = c` hands over one value rather than a list, and `a, b = *c` builds
     // an array holding a `splat`, which is no variable read.
     let values = match right.kind_str() {
-        "right_assignment_list" | "array" => named_children(right),
+        "right_assignment_list" | "array" => named_children_of(right, context),
         _ => return false,
     };
-    let targets = named_children(left);
+    let targets = named_children_of(left, context);
     targets.len() == values.len()
         && targets.iter().zip(&values).all(|(target, value)| {
             VARIABLE_KINDS.contains(&target.kind_str())

@@ -8,6 +8,7 @@ use crate::rules::send_node::{arguments, named_children};
 use super::blocks::{BLOCK_KINDS, BlockArgs};
 use super::locals::LocalVariables;
 use super::statements::statements;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let locals = LocalVariables::new(context);
@@ -58,7 +59,7 @@ fn argument_list(parameters: &[Node<'_>], context: &RuleContext<'_>) -> Vec<Stri
     let mut names = Vec::new();
     for parameter in parameters {
         if parameter.kind_str() == "destructured_parameter" {
-            names.extend(argument_list(&named_children(*parameter), context));
+            names.extend(argument_list(&named_children_of(*parameter, context), context));
             continue;
         }
         let node = parameter.field("name").unwrap_or(*parameter);
@@ -128,7 +129,7 @@ fn return_values<'tree>(
         {
             values.push(argument);
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     values
 }
@@ -230,7 +231,7 @@ fn lvar_used(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
         }
         // `(dstr (begin (lvar %1)))`: a string holding nothing but the variable.
         "string" => {
-            let parts: Vec<Node<'_>> = named_children(node)
+            let parts: Vec<Node<'_>> = named_children_of(node, context)
                 .into_iter()
                 .filter(|child| child.kind_str() != "comment")
                 .collect();
@@ -260,7 +261,7 @@ fn element_modified(body: Node<'_>, element: &str, context: &RuleContext<'_>) ->
         if modifies_element(node, element, context) {
             return true;
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     false
 }
@@ -330,7 +331,7 @@ fn holds_lvar(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
         if is_lvar_named(current, name, context) {
             return true;
         }
-        crate::rules::push_named_children(current, &mut stack);
+        crate::rules::push_named_children_in(current, context, &mut stack);
     }
     false
 }
@@ -377,7 +378,7 @@ fn expression_values(node: Node<'_>, context: &RuleContext<'_>) -> Vec<String> {
         let method = (current.kind_str() == "call")
             .then(|| current.field("method"))
             .flatten();
-        for child in named_children(current) {
+        for child in named_children_of(current, context) {
             if method.is_some_and(|method| method.id() == child.id()) {
                 continue;
             }

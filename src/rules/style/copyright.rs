@@ -135,7 +135,7 @@ fn has_code(context: &RuleContext<'_>) -> bool {
 }
 
 fn first_code_offset(context: &RuleContext<'_>) -> Option<usize> {
-    super::nodes::children(context.root_node())
+    super::nodes::children_in(context.root_node(), context)
         .into_iter()
         .find(|child| child.kind_str() != "comment")
         .map(|child| child.start_byte())

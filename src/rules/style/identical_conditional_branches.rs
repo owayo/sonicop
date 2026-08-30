@@ -45,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         check_branches(context, &locals, node, &branches, &mut reported, offenses);
     }
     for node in context.nodes_of_any(&["case", "case_match"]) {
-        let children = super::nodes::children(node);
+        let children = super::nodes::children_in(node, context);
         let Some(otherwise) = children.iter().find(|child| child.kind_str() == "else") else {
             continue;
         };
@@ -192,7 +192,7 @@ fn duplicated(
     // An assignment of something the condition reads cannot move above the condition.
     let assigned = context.source.node_text(value);
     condition(node).is_none_or(|condition| {
-        !super::nodes::children(condition).iter().any(|child| {
+        !super::nodes::children_in(condition, context).iter().any(|child| {
             is_variable(locals, *child) && context.source.node_text(*child) == assigned
         })
     })
@@ -212,7 +212,7 @@ fn check_expressions(
     // so here the emptiness has to be asked about instead of falling out of the tree.
     if expressions.iter().any(|expression| {
         expression.kind_str() == "parenthesized_statements"
-            && super::nodes::children(*expression).is_empty()
+            && super::nodes::children_in(*expression, context).is_empty()
     }) {
         return;
     }

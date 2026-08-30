@@ -77,7 +77,7 @@ fn report_file(
     if context.source.node_text(default_dir) != "__FILE__"
         || path.kind_str() != "string"
         || path.start_position().row != path.end_position().row
-        || super::nodes::children(path)
+        || super::nodes::children_in(path, context)
             .iter()
             .any(|child| child.kind_str() == "interpolation")
     {
@@ -158,7 +158,7 @@ fn file_expand_path<'tree>(
 /// `Pathname(x).parent.expand_path` and `Pathname.new(x).parent.expand_path`: the `.parent` call,
 /// the argument, and which of the two spellings it was.
 fn pathname_parent<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, Node<'tree>, bool)> {
     if node.field("arguments").is_some() {
@@ -178,7 +178,7 @@ fn pathname_parent<'tree>(
         return None;
     }
     let arguments = call.field("arguments")?;
-    let [argument] = super::nodes::children(arguments)[..] else {
+    let [argument] = super::nodes::children_in(arguments, context)[..] else {
         return None;
     };
     let method = call.field("method")?;

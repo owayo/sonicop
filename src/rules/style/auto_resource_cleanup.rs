@@ -61,7 +61,7 @@ fn cleans_up(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     };
     if parent.kind_str() == "program" {
-        let statements: Vec<Node<'_>> = super::nodes::children(parent)
+        let statements: Vec<Node<'_>> = super::nodes::children_in(parent, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .collect();

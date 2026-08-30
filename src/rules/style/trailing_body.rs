@@ -18,7 +18,7 @@ pub(super) fn check(
     let Some(body) = node.field("body") else {
         return;
     };
-    let statements = super::nodes::children(body);
+    let statements = super::nodes::children_in(body, context);
     let (Some(first), Some(last)) = (statements.first(), statements.last()) else {
         return;
     };

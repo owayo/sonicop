@@ -55,7 +55,7 @@ fn first_element_of_unpack<'tree>(
         // `x.unpack('h*')[0]` is a call to `:[]` upstream.
         "element_reference" => {
             let object = node.field("object")?;
-            let indices = super::nodes::children(node);
+            let indices = super::nodes::children_in(node, context);
             let index = match indices.as_slice() {
                 [_, only] => *only,
                 _ => return None,

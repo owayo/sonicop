@@ -57,11 +57,32 @@ pub(super) fn is_operator_method(name: &str) -> bool {
 }
 
 /// The node's children as upstream's AST holds them.
+///
+/// The list comes from the file's index rather than from a tree cursor opened here: this is one of
+/// the most-called helpers in the registry, and the cursor walk was among the largest single costs
+/// a sampling profile found.
 pub(super) fn children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
         .filter(|child| is_child(*child))
         .collect()
+}
+
+/// [`children`] answered from the file's index, for a caller that has the cop's context to hand.
+/// This is one of the most-called helpers in the registry, and the cursor walk `children` opens
+/// was among the largest single costs a sampling profile found.
+pub(super) fn children_in<'tree>(
+    node: Node<'tree>,
+    context: &'tree RuleContext<'_>,
+) -> Vec<Node<'tree>> {
+    match context.named_children(node) {
+        Some(found) => found
+            .iter()
+            .copied()
+            .filter(|child| is_child(*child))
+            .collect(),
+        None => children(node),
+    }
 }
 
 /// `ProcessedSource#contains_comment?`: whether a comment sits on any line the range spans. It

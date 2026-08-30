@@ -58,7 +58,7 @@ fn literals(context: &RuleContext<'_>) -> Vec<Literal> {
     for array in context.nodes_of("string_array") {
         let upper = delimiter_text(array, context, 0).starts_with("%W");
         let delimiters = array_delimiters(array, context);
-        for word in super::nodes::children(array) {
+        for word in super::nodes::children_in(array, context) {
             if word.kind_str() != "bare_string" {
                 continue;
             }
@@ -73,7 +73,7 @@ fn literals(context: &RuleContext<'_>) -> Vec<Literal> {
         }
     }
     for (opener, body) in heredocs(context) {
-        let Some(terminator) = super::nodes::children(body)
+        let Some(terminator) = super::nodes::children_in(body, context)
             .into_iter()
             .find(|child| child.kind_str() == "heredoc_end")
         else {

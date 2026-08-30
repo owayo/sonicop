@@ -53,7 +53,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(arguments) = node.field("arguments") else {
             continue;
         };
-        let written = super::nodes::children(arguments);
+        let written = super::nodes::children_in(arguments, context);
         let [only] = written.as_slice() else {
             continue;
         };

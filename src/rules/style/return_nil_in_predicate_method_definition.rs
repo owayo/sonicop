@@ -43,9 +43,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `body.each_descendant(:return)`: every `return` **below** the body. A body that is
         // itself a bare `return nil` is not a descendant of itself, so upstream misses it.
-        let mut stack: Vec<Node<'_>> = super::nodes::children(body);
+        let mut stack: Vec<Node<'_>> = super::nodes::children_in(body, context);
         while let Some(current) = stack.pop() {
-            stack.extend(super::nodes::children(current));
+            stack.extend(super::nodes::children_in(current, context));
             if current.kind_str() == "return" && returns_nil(current) {
                 offenses.push(replacement(context, current, "return false"));
             }

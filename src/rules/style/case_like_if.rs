@@ -183,7 +183,7 @@ fn collect_conditions(
     conditions: &mut Vec<String>,
 ) -> bool {
     if node.kind_str() == "parenthesized_statements" {
-        let Some(inner) = super::nodes::children(node).into_iter().next() else {
+        let Some(inner) = super::nodes::children_in(node, context).into_iter().next() else {
             return false;
         };
         return collect_conditions(context, inner, target, conditions);

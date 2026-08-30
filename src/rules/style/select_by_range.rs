@@ -140,7 +140,7 @@ fn find_range(statement: Node<'_>, context: &RuleContext<'_>) -> Option<String> 
     }
     let receiver = inner.field("receiver")?;
     let receiver = match receiver.kind_str() {
-        "parenthesized_statements" => super::nodes::children(receiver).first().copied()?,
+        "parenthesized_statements" => super::nodes::children_in(receiver, context).first().copied()?,
         _ => receiver,
     };
     Some(context.source.node_text(receiver).to_owned())

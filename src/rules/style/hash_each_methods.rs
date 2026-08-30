@@ -200,7 +200,7 @@ fn on_block_pass(context: &RuleContext<'_>, offenses: &mut Vec<Offense>, node: N
     if block_pass.kind_str() != "block_argument" {
         return;
     }
-    let symbol = send_node::named_children(block_pass);
+    let symbol = send_node::named_children_of(block_pass, context);
     if !matches!(symbol.as_slice(), [only] if send_node::symbol_name(*only, context).is_some()) {
         return;
     }

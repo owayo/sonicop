@@ -3,9 +3,10 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, named_children};
+use crate::rules::send_node::arguments;
 
 use super::statements::statements;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("rescue") {
@@ -23,7 +24,7 @@ fn is_last_branch(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return true;
     };
     let mut seen = false;
-    for sibling in named_children(parent) {
+    for sibling in named_children_of(parent, context) {
         if sibling.id() == node.id() {
             seen = true;
             continue;
@@ -92,7 +93,7 @@ fn uses_exception_variable_in_ensure(
     let Some(parent) = node.parent_of(context) else {
         return false;
     };
-    let Some(ensure_clause) = named_children(parent)
+    let Some(ensure_clause) = named_children_of(parent, context)
         .into_iter()
         .find(|child| child.kind_str() == "ensure")
     else {
@@ -100,7 +101,7 @@ fn uses_exception_variable_in_ensure(
     };
     let analysis = context.variable_analysis();
     let mut found = false;
-    crate::rules::walk_named(ensure_clause, &mut |inner| {
+    crate::rules::walk_named(ensure_clause, context, &mut |inner| {
         if found || inner.kind_str() != "identifier" || context.source.node_text(inner) != variable
         {
             return;

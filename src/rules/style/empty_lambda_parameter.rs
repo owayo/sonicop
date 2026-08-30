@@ -10,7 +10,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `empty_and_without_delimiters?`: parentheses were written around nothing.
-        if !super::nodes::children(parameters).is_empty() {
+        if !super::nodes::children_in(parameters, context).is_empty() {
             continue;
         }
         // `send_node.source_range.end_pos`: the end of the `->` the parameters follow.

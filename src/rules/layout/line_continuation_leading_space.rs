@@ -6,7 +6,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
+use crate::rules::send_node::named_children_of;
 
 /// Ruby's `\s`, which stays ASCII where this engine's would take in every Unicode blank.
 const BLANK: &str = r"[ \t\r\n\x0B\x0C]";
@@ -130,7 +130,7 @@ fn is_continuation(one: &str, line: usize, node: Node<'_>, context: &RuleContext
     if !one.ends_with("\\\n") {
         return false;
     }
-    named_children(node).into_iter().all(|child| {
+    named_children_of(node, context).into_iter().all(|child| {
         let first = context.source.line_column(child.start_byte()).0;
         let last = context.source.line_column(child.end_byte()).0;
         !((first..last).contains(&line) && first != last)
@@ -145,7 +145,7 @@ fn is_dynamic_string(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return true;
     }
     context.source.line_column(node.start_byte()).0 != context.source.line_column(node.end_byte()).0
-        || named_children(node)
+        || named_children_of(node, context)
             .iter()
             .any(|child| child.kind_str() == "interpolation")
 }

@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             || has_interpolation(node)
             || is_dstr(source)
             || quoted_label_key(node, context)
-            || !inside_interpolation(node)
+            || !inside_interpolation(node, context)
             || !wrong_quotes(source, single_quotes)
         {
             continue;

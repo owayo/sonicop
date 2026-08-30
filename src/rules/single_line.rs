@@ -14,7 +14,7 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
+use crate::rules::send_node::{named_children, named_children_of};
 
 /// `each_descendant(:if, :case, :kwbegin, :any_def, :rescue, :ensure)`: what a line the correction
 /// joins can never hold, since none of these constructs survives losing its line breaks.
@@ -108,7 +108,7 @@ fn is_unjoinable_string(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     // started with. `'\n'` spells a backslash and an `n`, which is why only an escape the grammar
     // recorded counts.
     context.source.node_text(node).contains('\n')
-        || named_children(node).iter().any(|child| {
+        || named_children_of(node, context).iter().any(|child| {
             child.kind_str() == "escape_sequence" && is_newline_escape(*child, context)
         })
 }
@@ -130,7 +130,7 @@ fn is_multiline_sequence_or_symbol(node: Node<'_>, context: &RuleContext<'_>) ->
         // A list of statements is upstream's `begin` only once more than one was written; a single
         // statement is itself.
         kind if SEQUENCES.contains(&kind) => {
-            named_children(node)
+            named_children_of(node, context)
                 .iter()
                 .filter(|child| child.kind_str() != "comment")
                 .count()
@@ -149,7 +149,7 @@ fn is_defined_parentheses(node: Node<'_>, context: &RuleContext<'_>) -> bool {
             && parent
                 .field("operator")
                 .is_some_and(|operator| context.source.node_text(operator) == "defined?")
-    }) && named_children(node)
+    }) && named_children_of(node, context)
         .iter()
         .filter(|child| child.kind_str() != "comment")
         .count()

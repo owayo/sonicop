@@ -11,9 +11,9 @@ use tree_sitter::Node;
 
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children;
 
 use super::regexp_tree::{self, Tree};
+use crate::rules::send_node::named_children_of;
 
 /// A regexp literal, parsed.
 pub(super) struct Pattern {
@@ -48,7 +48,7 @@ pub(super) fn parse(node: Node<'_>, context: &RuleContext<'_>) -> Option<Pattern
     let mut blanked = String::with_capacity(body.end - body.start);
     let mut interpolations = Vec::new();
     let mut cursor = body.start;
-    for child in named_children(node) {
+    for child in named_children_of(node, context) {
         if child.kind_str() != "interpolation" {
             continue;
         }

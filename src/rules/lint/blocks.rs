@@ -14,6 +14,7 @@ use crate::rules::send_node::named_children;
 
 use super::locals::LocalVariables;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The kinds tree-sitter writes a block as. A `lambda` is `-> { }`, which upstream also reaches
 /// through `on_block`.
@@ -87,7 +88,7 @@ fn scan(
     highest: &mut usize,
     it: &mut bool,
 ) {
-    for child in named_children(node) {
+    for child in named_children_of(node, context) {
         if BLOCK_KINDS.contains(&child.kind_str()) || child.kind_str() == "lambda" {
             continue;
         }

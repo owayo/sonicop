@@ -10,7 +10,6 @@ use ignore::WalkBuilder;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
-use tree_sitter::Parser;
 
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
@@ -992,12 +991,8 @@ fn inspect_planned(
     let length_as_read = text.len();
     let text = crate::nul_bytes::as_ruby_reads_it(&text).unwrap_or(text);
     let source = SourceFile::new(path, text).read_as_long_as(length_as_read);
-    let mut parser = Parser::new();
-    parser
-        .set_language(&tree_sitter_ruby::LANGUAGE.into())
-        .context("failed to initialize the Ruby parser")?;
     let tree = crate::profile::phase(crate::profile::Phase::Parse, || {
-        parser.parse(source.text(), None)
+        crate::parser::parse(source.text())
     })
     .context("Ruby parser returned no syntax tree")?;
     let ast = crate::profile::phase(crate::profile::Phase::Index, || {

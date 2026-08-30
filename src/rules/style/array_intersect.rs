@@ -131,7 +131,7 @@ fn block_form(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     // `(block ... (args (arg _key)) ...)` and the two implicit forms upstream lists beside it:
     // `numblock` names its parameter `_1`, `itblock` names it `it`.
     let key = match block.field("parameters") {
-        Some(parameters) => match super::nodes::children(parameters).as_slice() {
+        Some(parameters) => match super::nodes::children_in(parameters, context).as_slice() {
             [key] if key.kind_str() == "identifier" => {
                 Some(context.source.node_text(*key).to_owned())
             }
@@ -139,7 +139,7 @@ fn block_form(node: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
         },
         None => None,
     };
-    let body = super::nodes::children(block.field("body")?);
+    let body = super::nodes::children_in(block.field("body")?, context);
     let [statement] = body.as_slice() else {
         return None;
     };

@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .map(super::nodes::children)
             .unwrap_or_default();
         // The grammar hangs a `yield`'s arguments off it without a field name.
-        let yield_arguments = super::nodes::children(node)
+        let yield_arguments = super::nodes::children_in(node, context)
             .into_iter()
             .find(|child| child.kind_str() == "argument_list")
             .map(super::nodes::children)
@@ -92,7 +92,7 @@ fn yielding_block<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option
     if !matches!(body.kind_str(), "block_body" | "body_statement") {
         return None;
     }
-    match super::nodes::children(body).as_slice() {
+    match super::nodes::children_in(body, context).as_slice() {
         [only] if only.id() == node.id() => {}
         _ => return None,
     }
@@ -193,7 +193,7 @@ fn zsuper_arguments(
     if call.field("method")?.kind_str() != "super" {
         return None;
     }
-    let parameters = super::nodes::children(definition.field("parameters")?);
+    let parameters = super::nodes::children_in(definition.field("parameters")?, context);
     let written: Vec<String> = parameters
         .into_iter()
         .map(|parameter| match parameter.kind_str() {

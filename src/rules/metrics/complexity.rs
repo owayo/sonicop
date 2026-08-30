@@ -108,6 +108,9 @@ pub(super) enum Order {
 
 pub(super) struct Walk<'a> {
     source: &'a SourceFile,
+    /// The file's node index. The walk asks for a parent on every identifier it meets, and
+    /// `Node::parent` walks down from the root each time.
+    index: &'a super::super::AstIndex<'a>,
     locals: &'a Locals,
     fragments: &'a Fragments,
     order: Order,
@@ -122,6 +125,7 @@ impl<'a> Walk<'a> {
     ) -> Self {
         Self {
             source: context.source,
+            index: context.ast_index(),
             locals,
             fragments,
             order,
@@ -704,9 +708,10 @@ impl<'a> Walk<'a> {
 
     fn visit_block_argument<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         let mut emit = Emit::of(Kind::BlockPass, node);
-        emit.iterating = node
-            .parent()
-            .and_then(|arguments| arguments.parent())
+        emit.iterating = self
+            .index
+            .parent(node)
+            .and_then(|arguments| self.index.parent(arguments))
             .filter(|call| call.kind_str() == "call")
             .and_then(|call| self.iterating_call(call));
         self.around(emit, sink, |walk, sink| walk.children(node, sink));
@@ -829,7 +834,7 @@ impl<'a> Walk<'a> {
 
     /// Whether the identifier stands where the parser would have built `(send nil :name)`.
     fn receiverless_call(&self, node: Node<'_>) -> bool {
-        is_receiverless_call(node)
+        is_receiverless_call(node, self.index)
             && !self.locals.is_lvar(node)
             && !is_keyword_literal(self.text(node))
             && !self.is_implicit_block_parameter(node)
@@ -841,7 +846,7 @@ impl<'a> Walk<'a> {
         if self.text(node) != "it" {
             return false;
         }
-        let mut current = node.parent();
+        let mut current = self.index.parent(node);
         while let Some(parent) = current {
             if matches!(parent.kind_str(), "block" | "do_block") {
                 return parent.field("parameters").is_none();
@@ -852,7 +857,7 @@ impl<'a> Walk<'a> {
             ) {
                 return false;
             }
-            current = parent.parent();
+            current = self.index.parent(parent);
         }
         false
     }
@@ -1091,8 +1096,8 @@ fn collect_targets<'a>(node: Node<'a>, targets: &mut Vec<Node<'a>>) {
 
 /// Whether the identifier stands where the parser would have built `(send nil :name)` rather than
 /// a name being declared, written or called on something else.
-fn is_receiverless_call(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn is_receiverless_call(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool {
+    let Some(parent) = index.parent(node) else {
         return true;
     };
     match parent.kind_str() {

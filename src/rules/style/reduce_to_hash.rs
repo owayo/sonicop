@@ -95,12 +95,12 @@ struct Built<'tree> {
 fn hash_builder<'tree>(
     node: Node<'tree>,
     block: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     locals: &LocalVariables<'_, '_>,
 ) -> Option<Built<'tree>> {
     let folding = context.source.node_text(node.field("method")?) != "each_with_object";
     // `(hash)`: the seed has to be an empty literal.
-    let arguments = super::nodes::children(node.field("arguments")?);
+    let arguments = super::nodes::children_in(node.field("arguments")?, context);
     match arguments.as_slice() {
         [only] if only.kind_str() == "hash" && only.named_child_count() == 0 => {}
         _ => return None,
@@ -153,7 +153,7 @@ fn hash_builder<'tree>(
 fn subscript_assignment<'tree>(
     node: Node<'tree>,
     accumulator: &str,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     if node.kind_str() != "assignment" {
         return None;
@@ -166,7 +166,7 @@ fn subscript_assignment<'tree>(
     if context.source.node_text(object) != accumulator {
         return None;
     }
-    let indices = super::nodes::children(target);
+    let indices = super::nodes::children_in(target, context);
     let [_, key] = indices.as_slice() else {
         return None;
     };
@@ -178,7 +178,7 @@ fn reads(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
     if node.kind_str() == "identifier" && context.source.node_text(node) == name {
         return true;
     }
-    super::nodes::children(node)
+    super::nodes::children_in(node, context)
         .into_iter()
         .any(|child| reads(child, name, context))
 }
@@ -200,7 +200,7 @@ fn nested_match(
     {
         return true;
     }
-    super::nodes::children(node)
+    super::nodes::children_in(node, context)
         .into_iter()
         .any(|child| nested_match(child, context, locals))
 }

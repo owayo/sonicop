@@ -29,7 +29,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(kind) = ArrayKind::of(array) else {
             continue;
         };
-        let elements = super::nodes::children(array);
+        let elements = super::nodes::children_in(array, context);
         let [element] = elements.as_slice() else {
             continue;
         };

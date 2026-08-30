@@ -6,6 +6,7 @@ use crate::rules::send_node::{
     FILE_KEYWORD, arguments, is_plain_send, is_string, named_children, string_text,
 };
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let assignments: Vec<Node<'_>> = context
@@ -66,7 +67,7 @@ fn dynamic_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     {
         return true;
     }
-    named_children(node)
+    named_children_of(node, context)
         .into_iter()
         .any(|child| dynamic_descendant(child, context))
 }
@@ -74,7 +75,7 @@ fn dynamic_version(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 fn dynamic_descendant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     is_variable(node, context)
         || is_send(node, context)
-        || named_children(node)
+        || named_children_of(node, context)
             .into_iter()
             .any(|child| dynamic_descendant(child, context))
 }

@@ -11,6 +11,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::spurious_assignment_list;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let analysis = context.variable_analysis();
@@ -143,7 +144,7 @@ fn variable_like_invocation(
     match node.kind_str() {
         // A bare name standing where a value is read is a `send` upstream unless it resolved to a
         // local, and a read of a local is an `lvar` that contributes nothing of its own here.
-        "identifier" if is_variable_read(node) && !analysis.is_variable_reference(node) => {
+        "identifier" if is_variable_read(node, context.ast_index()) && !analysis.is_variable_reference(node) => {
             Some(context.source.node_text(node).to_owned())
         }
         "call" => {
@@ -354,7 +355,7 @@ fn reads_name(node: Node<'_>, name: &str, context: &RuleContext<'_>) -> bool {
                 .is_some_and(|method| method.id() == node.id());
         return !target && !method;
     }
-    named_children(node)
+    named_children_of(node, context)
         .into_iter()
         .any(|child| reads_name(child, name, context))
 }

@@ -3,10 +3,11 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::send_node::{
-    arguments, heredoc_body, is_plain_send, is_string, named_children, string_text,
+    arguments, heredoc_body, is_plain_send, is_string, string_text,
     top_level_constant,
 };
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of("call") {
@@ -53,7 +54,7 @@ fn safe(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         // with the interpolation itself has no literal part and stays unsafe.
         "string" => safe_argument(&leading_literal(node, context)),
         // `"a" "b"` reaches upstream as a `dstr` of the two literals, so the first one decides.
-        "chained_string" => named_children(node)
+        "chained_string" => named_children_of(node, context)
             .first()
             .is_some_and(|first| safe(*first, context)),
         "heredoc_beginning" => {
@@ -81,7 +82,7 @@ fn safe_argument(argument: &str) -> bool {
 /// every adjacent literal part into one `str`, so escapes and plain runs count together.
 fn leading_literal(node: Node<'_>, context: &RuleContext<'_>) -> String {
     let mut text = String::new();
-    for child in named_children(node) {
+    for child in named_children_of(node, context) {
         if child.kind_str() == "interpolation" {
             break;
         }
@@ -95,7 +96,7 @@ fn leading_literal(node: Node<'_>, context: &RuleContext<'_>) -> String {
 /// when it was opened with `<<~`.
 fn heredoc_leading_text(beginning: Node<'_>, context: &RuleContext<'_>) -> Option<String> {
     let body = heredoc_body(beginning, context)?;
-    let children = named_children(body);
+    let children = named_children_of(body, context);
     let boundary = |kinds: &[&str]| {
         children
             .iter()

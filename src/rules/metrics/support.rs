@@ -234,7 +234,7 @@ fn classlike_code_line_count(
         return 0;
     }
     let mut excluded_lines = HashSet::new();
-    walk_named(node, &mut |descendant| {
+    walk_named(node, context, &mut |descendant| {
         if descendant == node || !matches!(descendant.kind_str(), "class" | "module") {
             return;
         }

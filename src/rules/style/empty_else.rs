@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(keyword) = clause.child(0) else {
             continue;
         };
-        let body = super::nodes::children(clause);
+        let body = super::nodes::children_in(clause, context);
         let reportable = match body.as_slice() {
             [] => empty_style,
             [only] => nil_style && only.kind_str() == "nil",

@@ -14,7 +14,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parameters) = node.field("parameters") else {
             continue;
         };
-        let arguments = super::nodes::children(parameters);
+        let arguments = super::nodes::children_in(parameters, context);
         let optional: Vec<usize> = positions(&arguments, "optional_parameter");
         // `arg_type?`: only a plain argument counts. A destructuring `(a, b)` is an `mlhs`
         // upstream, and a keyword or splat argument is a type of its own.

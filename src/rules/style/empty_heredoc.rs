@@ -24,7 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = heredoc_body(node, context) else {
             continue;
         };
-        let Some(terminator) = super::nodes::children(body)
+        let Some(terminator) = super::nodes::children_in(body, context)
             .into_iter()
             .find(|child| child.kind_str() == "heredoc_end")
         else {

@@ -246,7 +246,7 @@ fn aligned_comment_lines(context: &RuleContext<'_>) -> HashSet<usize> {
 fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     let mut ranges = Vec::new();
     for elements in hash_literals(context) {
-        let Some(span) = hash_span(&elements) else {
+        let Some(span) = hash_span(&elements, context) else {
             continue;
         };
         if context.source.line_column(span.start).0 == context.source.line_column(span.end).0 {
@@ -265,10 +265,10 @@ fn ignored_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
 /// Where the `hash` node upstream builds for these elements begins and ends. A braced literal is a
 /// node of its own, whose braces count towards `single_line?`; a brace-less one is only the run of
 /// pairs the parser folded together.
-fn hash_span(elements: &[Node<'_>]) -> Option<Range<usize>> {
+fn hash_span(elements: &[Node<'_>], context: &RuleContext<'_>) -> Option<Range<usize>> {
     let first = elements.first()?;
     let last = elements.last()?;
-    match first.parent().filter(|parent| parent.kind_str() == "hash") {
+    match context.parent(*first).filter(|parent| parent.kind_str() == "hash") {
         Some(hash) => Some(hash.byte_range()),
         None => Some(first.start_byte()..last.end_byte()),
     }

@@ -80,7 +80,7 @@ fn method_name<'a>(call: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a s
 /// `find_previous_older_sibling`: the nearest `require` above that this one sorts before, with the
 /// search stopping at anything that is not a `require` of the same kind.
 fn find_previous_older_sibling<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     call: Node<'tree>,
     parent: Node<'tree>,
 ) -> Option<Node<'tree>> {
@@ -90,7 +90,7 @@ fn find_previous_older_sibling<'tree>(
         false => call,
     };
     let container = search.parent()?;
-    let statements = super::nodes::children(container);
+    let statements = super::nodes::children_in(container, context);
     let position = statements
         .iter()
         .position(|statement| statement.id() == search.id())?;

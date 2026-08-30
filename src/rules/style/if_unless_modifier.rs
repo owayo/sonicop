@@ -45,7 +45,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         if cop.defined_argument_is_undefined(&conditional)
-            || has_pattern_matching(conditional.condition)
+            || has_pattern_matching(conditional.condition, context)
         {
             continue;
         }
@@ -164,7 +164,7 @@ impl Cop<'_, '_> {
 
     /// `defined_nodes(condition).any? { |n| defined_argument_is_undefined?(node, n) }`.
     fn defined_argument_is_undefined(&self, conditional: &Conditional<'_>) -> bool {
-        defined_nodes(conditional.condition)
+        defined_nodes(conditional.condition, self.context)
             .into_iter()
             .any(|defined| self.argument_is_undefined(conditional.node, defined))
     }
@@ -227,7 +227,7 @@ impl Cop<'_, '_> {
     fn single_line_as_modifier(&self, conditional: &Conditional<'_>) -> bool {
         if self.non_eligible_node(conditional)
             || self.non_eligible_body(conditional)
-            || non_eligible_condition(conditional.condition)
+            || non_eligible_condition(conditional.condition, self.context)
         {
             return false;
         }
@@ -275,7 +275,7 @@ impl Cop<'_, '_> {
             return false;
         };
         let mut found = false;
-        crate::rules::walk_named(consequence, &mut |node| {
+        crate::rules::walk_named(consequence, self.context, &mut |node| {
             // `elsif` is written as a nested `if` upstream and does not count; here it is its own
             // kind, so only the four spellings of a real conditional are looked for.
             found |= matches!(
@@ -350,13 +350,13 @@ impl Cop<'_, '_> {
             return None;
         }
         let list = body.field("arguments")?;
-        let arguments = super::nodes::children(list);
+        let arguments = super::nodes::children_in(list, self.context);
         let last = arguments.last()?;
         // `foo(bar:)` parks the pairs straight in the argument list, so the omitted value shows up
         // as a pair without one.
         let omitted = match last.kind_str() {
             "pair" => last.field("value").is_none(),
-            "hash" => super::nodes::children(*last)
+            "hash" => super::nodes::children_in(*last, self.context)
                 .last()
                 .is_some_and(|pair| pair.field("value").is_none()),
             _ => false,
@@ -472,7 +472,7 @@ impl Cop<'_, '_> {
         };
         let line = first_line(conditional.node);
         let mut found = false;
-        crate::rules::walk_named(collection, &mut |node| {
+        crate::rules::walk_named(collection, self.context, &mut |node| {
             found |= node.id() != conditional.node.id()
                 && matches!(node.kind_str(), "if_modifier" | "unless_modifier")
                 && first_line(node) == line;
@@ -578,7 +578,7 @@ impl Cop<'_, '_> {
     /// block form.
     fn trailing_heredoc(&self, body: Node<'_>) -> Option<Heredoc> {
         let list = body.field("arguments")?;
-        let last = super::nodes::children(list).pop()?;
+        let last = super::nodes::children_in(list, self.context).pop()?;
         if last.kind_str() != "heredoc_beginning" {
             return None;
         }
@@ -639,9 +639,9 @@ fn has_dstr_ancestor(node: Node<'_>) -> bool {
 
 /// `pattern_matching_nodes(condition).any?`: `in` and `=>` bind names the modifier form would
 /// leave undefined.
-fn has_pattern_matching(condition: Node<'_>) -> bool {
+fn has_pattern_matching(condition: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut found = false;
-    crate::rules::walk_named(condition, &mut |node| {
+    crate::rules::walk_named(condition, context, &mut |node| {
         found |= matches!(node.kind_str(), "match_pattern" | "test_pattern");
     });
     found
@@ -649,7 +649,7 @@ fn has_pattern_matching(condition: Node<'_>) -> bool {
 
 /// `defined_nodes(condition)`: the condition itself when it is a `defined?`, its `defined?`
 /// descendants otherwise.
-fn defined_nodes(condition: Node<'_>) -> Vec<Node<'_>> {
+fn defined_nodes<'tree>(condition: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let is_defined = |node: Node<'_>| {
         node.kind_str() == "unary"
             && node
@@ -659,7 +659,7 @@ fn defined_nodes(condition: Node<'_>) -> Vec<Node<'_>> {
     if is_defined(condition) {
         return vec![condition];
     }
-    descendants(condition)
+    descendants(condition, context)
         .into_iter()
         .filter(|node| node.id() != condition.id() && is_defined(*node))
         .collect()

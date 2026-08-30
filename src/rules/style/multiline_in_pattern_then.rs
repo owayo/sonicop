@@ -39,7 +39,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if pattern.start_position().row != last_row {
             continue;
         }
-        if super::nodes::children(body)
+        if super::nodes::children_in(body, context)
             .first()
             .is_some_and(|first| first.start_position().row == node.start_position().row)
         {

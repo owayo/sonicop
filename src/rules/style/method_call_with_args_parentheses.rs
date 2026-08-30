@@ -45,7 +45,7 @@ fn require_parentheses(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(arguments) = argument_list(node) else {
             continue;
         };
-        let written = super::nodes::children(arguments);
+        let written = super::nodes::children_in(arguments, context);
         if written.is_empty() || is_parenthesized(node, arguments, context) {
             continue;
         }
@@ -265,7 +265,7 @@ impl Omission {
         if !is_parenthesized(node, arguments, context) {
             return false;
         }
-        let written = super::nodes::children(arguments);
+        let written = super::nodes::children_in(arguments, context);
         // Upstream's reparse settles this one: `foo()` is a call, `foo` is the local variable of
         // that name, and the two trees do not match. The comparison here cannot tell them apart,
         // so the candidate never reaches it.
@@ -401,7 +401,7 @@ fn hash_value_omission_needs_parentheses(
     };
     let omits_value = match last.kind_str() {
         "pair" => last.field("value").is_none(),
-        "hash" => super::nodes::children(*last)
+        "hash" => super::nodes::children_in(*last, context)
             .last()
             .is_some_and(|pair| pair.kind_str() == "pair" && pair.field("value").is_none()),
         _ => false,
@@ -569,7 +569,7 @@ fn call_in_logical_operators(node: Node<'_>, context: &RuleContext<'_>) -> bool 
     }
     matches!(parent.kind_str(), "call" | "element_reference")
         && argument_list(parent).is_some_and(|arguments| {
-            super::nodes::children(arguments)
+            super::nodes::children_in(arguments, context)
                 .into_iter()
                 .any(|argument| is_logical_operator(argument, context))
         })
@@ -727,7 +727,7 @@ fn inside_string_interpolation(node: Node<'_>, context: &RuleContext<'_>) -> boo
 fn descendants<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut out = Vec::new();
     let block = node.field("block").map(|block| block.id());
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         if Some(child.id()) == block {
             continue;
         }
@@ -746,7 +746,7 @@ fn collect<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>, out: &mut 
         out.push(body);
         collect(body, context, out);
     }
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         out.push(child);
         collect(child, context, out);
     }
@@ -775,7 +775,7 @@ fn parser_parent<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> O
         match parent.kind_str() {
             "argument_list" | "pattern" | "superclass" => current = parent,
             "program" | "body_statement" | "block_body" | "then" | "else" | "ensure" | "do" => {
-                if super::nodes::children(parent).len() > 1 {
+                if super::nodes::children_in(parent, context).len() > 1 {
                     return Some(parent);
                 }
                 current = parent;

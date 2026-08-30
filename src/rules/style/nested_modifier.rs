@@ -117,7 +117,7 @@ fn parenthesize_arguments(context: &RuleContext<'_>, node: Node<'_>) -> Option<S
     if selector.kind_str() == "operator" {
         return None;
     }
-    let arguments = super::nodes::children(node.field("arguments")?);
+    let arguments = super::nodes::children_in(node.field("arguments")?, context);
     if arguments.is_empty() {
         return None;
     }

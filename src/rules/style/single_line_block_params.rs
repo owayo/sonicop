@@ -46,7 +46,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `eligible_arguments?`: every parameter has to be a plain one. A block-local written
         // after a `;` is a `shadowarg` upstream, which fails `arg_type?` -- the grammar spells it
         // as another identifier in the same list and marks it only by the separator.
-        let written = super::nodes::children(list);
+        let written = super::nodes::children_in(list, context);
         if written.is_empty() || written.iter().any(|arg| arg.kind_str() != "identifier") {
             continue;
         }
@@ -125,12 +125,12 @@ fn rename_reads(
     locals: &LocalVariables<'_, '_>,
     edits: &mut Vec<Edit>,
 ) {
-    let mut stack: Vec<Node<'_>> = super::nodes::children(node)
+    let mut stack: Vec<Node<'_>> = super::nodes::children_in(node, context)
         .into_iter()
         .filter(|child| child.kind_str() != "block_parameters")
         .collect();
     while let Some(current) = stack.pop() {
-        stack.extend(super::nodes::children(current));
+        stack.extend(super::nodes::children_in(current, context));
         if current.kind_str() != "identifier" || !locals.is_lvar(current) {
             continue;
         }

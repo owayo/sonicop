@@ -240,7 +240,7 @@ fn adjust_str(context: &RuleContext<'_>, node: Node<'_>, encoding: LiteralEncodi
         },
         // `'a' 'b'`, `(...)` and `#{...}` are all a list of children upstream.
         "chained_string" | "parenthesized_statements" | "interpolation" => {
-            super::nodes::children(node)
+            super::nodes::children_in(node, context)
                 .into_iter()
                 .map(|child| adjust_str(context, child, encoding))
                 .collect()

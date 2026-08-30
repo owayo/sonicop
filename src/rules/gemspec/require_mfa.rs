@@ -5,13 +5,14 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::push_named_children;
+use crate::rules::{push_named_children_in};
 use crate::rules::send_node::{
     has_interpolation, is_plain_send, is_string, named_children, pair_key_symbol, string_text,
     symbol_name,
 };
 
 use super::support::{local_variables, specification_variable};
+use crate::rules::send_node::named_children_of;
 
 const KEY: &str = "rubygems_mfa_required";
 const MSG: &str = "`metadata['rubygems_mfa_required']` must be set to `'true'`.";
@@ -41,7 +42,7 @@ fn specifications_within<'a>(block: Node<'_>, context: &'a RuleContext<'_>) -> V
         if let Some(variable) = specification_variable(node, context) {
             found.push(variable);
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
     found
 }
@@ -84,7 +85,7 @@ fn report(
 fn metadata_value<'tree>(
     block: Node<'tree>,
     locals: &HashSet<&str>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Node<'tree>> {
     let mut stack = vec![block];
     while let Some(node) = stack.pop() {
@@ -102,7 +103,7 @@ fn metadata_value<'tree>(
                 return node.field("right");
             }
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
     None
 }
@@ -111,7 +112,7 @@ fn metadata_value<'tree>(
 /// hash gives the `rubygems_mfa_required` key.
 fn mfa_value<'tree>(
     metadata: Option<Node<'tree>>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Node<'tree>> {
     let metadata = metadata?;
     if is_string(metadata, context) {
@@ -122,7 +123,7 @@ fn mfa_value<'tree>(
         if node.kind_str() == "pair" && is_mfa_pair(node, context) {
             return node.field("value");
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
     None
 }
@@ -139,7 +140,7 @@ fn insertion(
         // `correct_metadata`: a new pair goes after the last one, or between the braces of an empty
         // hash. Metadata assigned anything other than a hash literal cannot be corrected at all.
         Some(hash) if hash.kind_str() == "hash" => {
-            let pairs: Vec<Node<'_>> = named_children(hash)
+            let pairs: Vec<Node<'_>> = named_children_of(hash, context)
                 .into_iter()
                 .filter(|child| child.kind_str() == "pair")
                 .collect();
@@ -183,7 +184,7 @@ fn insertion(
 fn last_metadata_assignment<'tree>(
     block: Node<'tree>,
     locals: &HashSet<&str>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<Node<'tree>> {
     let mut last = None;
     let mut stack = vec![block];
@@ -196,7 +197,7 @@ fn last_metadata_assignment<'tree>(
         {
             last = Some(node);
         }
-        push_named_children(node, &mut stack);
+        push_named_children_in(node, context, &mut stack);
     }
     last
 }

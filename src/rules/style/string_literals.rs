@@ -84,7 +84,7 @@ fn skipped(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if is_dstr(source) {
         return true;
     }
-    inside_interpolation(node) || quoted_label_key(node, context)
+    inside_interpolation(node, context) || quoted_label_key(node, context)
 }
 
 /// RuboCop's `on_dstr`, which only reports under `ConsistentQuotesInMultiline`: a literal the
@@ -286,10 +286,10 @@ pub(super) fn has_interpolation(node: Node<'_>) -> bool {
 /// RuboCop's `StringHelp#inside_interpolation?`: from the innermost interpolation outwards, is the
 /// literal owned by a `dstr`, `dsym` or `regexp`? The walk continues past the first interpolation
 /// because a command literal nested in a string -- `"#{`cmd #{'x'}`}"` -- is still inside one.
-pub(super) fn inside_interpolation(node: Node<'_>) -> bool {
+pub(super) fn inside_interpolation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let mut current = node;
     let mut interpolated = false;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = context.parent(current) {
         if parent.kind_str() == "interpolation" {
             interpolated = true;
         } else if interpolated && INTERPOLATION_OWNERS.contains(&parent.kind_str()) {

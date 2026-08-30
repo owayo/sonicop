@@ -136,7 +136,7 @@ fn range_offense(
 /// The receiver and the single index of a subscript, in both spellings of `[]`.
 fn subscript<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     match node.kind_str() {
         "element_reference" => {
@@ -161,7 +161,7 @@ fn subscript<'tree>(
                 return None;
             }
             let receiver = node.field("receiver")?;
-            let arguments = super::nodes::children(node.field("arguments")?);
+            let arguments = super::nodes::children_in(node.field("arguments")?, context);
             Some((receiver, *arguments.first()?))
         }
     }

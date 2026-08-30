@@ -3,7 +3,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{has_interpolation, named_children, string_text, symbol_name};
+use crate::rules::send_node::{has_interpolation, string_text, symbol_name};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let consistent = context
@@ -24,7 +25,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // pairs directly under the argument list. `on_hash` therefore has a second structural
         // spelling here even though no braces were written.
         for list in context.nodes_of("argument_list") {
-            let keys: Vec<Node<'_>> = named_children(list)
+            let keys: Vec<Node<'_>> = named_children_of(list, context)
                 .into_iter()
                 .filter(|child| child.kind_str() == "pair")
                 .filter_map(|pair| pair.field("key"))
@@ -76,8 +77,8 @@ fn conversion_correction(receiver: Node<'_>, context: &RuleContext<'_>) -> Optio
         // was written and strips the quotes around every part.
         "chained_string" => {
             let mut out = String::from(":\"");
-            for part in named_children(receiver) {
-                for inner in named_children(part) {
+            for part in named_children_of(receiver, context) {
+                for inner in named_children_of(part, context) {
                     out.push_str(context.source.node_text(inner));
                 }
             }
@@ -181,7 +182,7 @@ fn inconsistent_keys(
     hash: Node<'_>,
     ignored: &mut Vec<usize>,
 ) {
-    let keys: Vec<Node<'_>> = named_children(hash)
+    let keys: Vec<Node<'_>> = named_children_of(hash, context)
         .into_iter()
         .filter(|child| child.kind_str() == "pair")
         .filter_map(|pair| pair.field("key"))

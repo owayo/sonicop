@@ -384,7 +384,7 @@ fn parentheses_the_omission_needs(context: &RuleContext<'_>, pair: Node<'_>) -> 
         return None;
     }
     // Only the last pair carries the closing bracket, and only when it is the one being omitted.
-    let pairs = super::nodes::children(hash);
+    let pairs = super::nodes::children_in(hash, context);
     if pairs.last().is_none_or(|last| last.id() != pair.id()) {
         return None;
     }
@@ -405,7 +405,7 @@ fn parentheses_the_omission_needs(context: &RuleContext<'_>, pair: Node<'_>) -> 
     {
         return None;
     }
-    let first_argument = *super::nodes::children(arguments).first()?;
+    let first_argument = *super::nodes::children_in(arguments, context).first()?;
     // The closing bracket only lands right when the omitted pair ends the argument list.
     if arguments.end_byte() != pair.end_byte() {
         return None;
@@ -635,7 +635,7 @@ fn returned_bare_hash(node: Node<'_>, context: &RuleContext<'_>) -> Option<(usiz
     if context.parent(list)?.kind_str() != "return" {
         return None;
     }
-    let pairs: Vec<Node<'_>> = super::nodes::children(list)
+    let pairs: Vec<Node<'_>> = super::nodes::children_in(list, context)
         .into_iter()
         .filter(|child| child.kind_str() == "pair")
         .collect();
@@ -655,7 +655,7 @@ fn argument_without_space(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     // The comparison is against **the hash**, not the argument list. A parenthesized call has its
     // list start at the `(`, which always sits right after the selector, so comparing the list
     // would put a space into every `func(:a => 0)`.
-    let first = super::nodes::children(list)
+    let first = super::nodes::children_in(list, context)
         .into_iter()
         .find(|child| child.kind_str() == "pair");
     let Some(first) = first else {

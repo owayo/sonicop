@@ -15,13 +15,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .is_none_or(|style| style == "aligned");
 
     for ts in context.nodes_of_any(&["binary", "assignment"]) {
-        let node = UpNode::plain(ts);
+        let node = UpNode::plain(ts, context.ast_index());
         let checked = match node.kind(context) {
             // `on_and` / `on_or`.
             UpKind::And | UpKind::Or => {
                 let (Some(lhs), Some(rhs)) = (
-                    ts.field("left").map(UpNode::of),
-                    ts.field("right").map(UpNode::of),
+                    ts.field("left").map(|left| UpNode::of(left, context.ast_index())),
+                    ts.field("right").map(|right| UpNode::of(right, context.ast_index())),
                 ) else {
                     continue;
                 };

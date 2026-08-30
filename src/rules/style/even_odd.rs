@@ -21,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `{(send $_ :% (int 2)) (begin (send $_ :% (int 2)))}`.
         let modulo = match left.kind_str() {
-            "parenthesized_statements" => match super::nodes::children(left).as_slice() {
+            "parenthesized_statements" => match super::nodes::children_in(left, context).as_slice() {
                 [only] => *only,
                 _ => continue,
             },

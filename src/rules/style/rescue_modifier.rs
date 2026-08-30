@@ -132,7 +132,7 @@ fn heredoc_end(context: &RuleContext<'_>, operation: Node<'_>) -> Option<usize> 
         .map(send_node::Argument::first)
         .find(|argument| argument.kind_str() == "heredoc_beginning")?;
     let body = send_node::heredoc_body(beginning, context)?;
-    super::nodes::children(body)
+    super::nodes::children_in(body, context)
         .into_iter()
         .find(|child| child.kind_str() == "heredoc_end")
         .map(|terminator| terminator.end_byte())

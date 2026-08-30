@@ -47,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             if current.kind_str() == "binary" {
                 report(context, &locals, current, &mut reported, offenses);
             }
-            stack.extend(super::nodes::children(current));
+            stack.extend(super::nodes::children_in(current, context));
         }
     }
 }
@@ -270,7 +270,7 @@ fn correct_other(
     }
     // A bare `return` written as the right operand cannot be wrapped without changing what it
     // returns.
-    if super::nodes::children(node).is_empty()
+    if super::nodes::children_in(node, context).is_empty()
         && parent
             .field("right")
             .is_some_and(|right| right.id() == node.id())

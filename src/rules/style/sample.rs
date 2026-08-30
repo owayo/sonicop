@@ -79,7 +79,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `(call $_ ${:first :last :[] :at :slice} $...)`: the receiver, the selector's name and the
 /// arguments of a call that takes one element out of a collection.
 fn indexing<'tree>(
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, &'static str, Vec<Argument<'tree>>)> {
     if node.kind_str() == "element_reference" {
@@ -101,7 +101,7 @@ fn indexing<'tree>(
     };
     let written = node
         .field("arguments")
-        .map(|list| super::nodes::children(list))
+        .map(|list| super::nodes::children_in(list, context))
         .unwrap_or_default();
     Some((receiver, method, group(&written)))
 }
@@ -128,7 +128,7 @@ fn shuffle_call(
     }
     let written = node
         .field("arguments")
-        .map(|list| super::nodes::children(list))
+        .map(|list| super::nodes::children_in(list, context))
         .unwrap_or_default();
     let first = group(&written)
         .first()

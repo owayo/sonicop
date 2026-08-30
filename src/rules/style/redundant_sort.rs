@@ -85,7 +85,7 @@ fn redundant_sort<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Option
         // `sorted[0]` is a call to `:[]` upstream, whose selector is the bracket.
         "element_reference" => {
             let object = node.field("object")?;
-            let indices = super::nodes::children(node);
+            let indices = super::nodes::children_in(node, context);
             let index = match indices.as_slice() {
                 [_, only] => *only,
                 _ => return None,

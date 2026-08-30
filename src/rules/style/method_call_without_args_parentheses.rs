@@ -13,7 +13,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // `!node.arguments? && node.parenthesized?`: an empty `()`, which is the only argument list
         // that can go without changing what the call means.
-        if !super::nodes::children(list).is_empty()
+        if !super::nodes::children_in(list, context).is_empty()
             || !context.source.node_text(list).starts_with('(')
         {
             continue;
@@ -84,7 +84,7 @@ fn same_name_assignment(node: Node<'_>, name: &str, context: &RuleContext<'_>) -
             continue;
         }
         let assigned = match left.kind_str() {
-            "left_assignment_list" => super::nodes::children(left)
+            "left_assignment_list" => super::nodes::children_in(left, context)
                 .iter()
                 .any(|target| assignment_name(*target, context) == Some(name)),
             _ => assignment_name(left, context) == Some(name),

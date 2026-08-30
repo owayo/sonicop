@@ -49,7 +49,7 @@ pub(super) struct PercentLiteral {
 
 impl PercentLiteral {
     pub(super) fn new(node: Node<'_>, context: &RuleContext<'_>) -> Option<Self> {
-        if node.child_count() < 2 || is_modulo_operand(node) {
+        if node.child_count() < 2 || is_modulo_operand(node, context) {
             return None;
         }
         let begin = node.child(0)?;
@@ -127,8 +127,9 @@ pub(super) fn literal_segments<'a>(
 /// is modulo and `"%s" %[x]` is a `send` whose argument is an array. tree-sitter chains the two into
 /// one literal anyway, which would otherwise hand every such call a percent literal that upstream
 /// never saw.
-pub(super) fn is_modulo_operand(node: Node<'_>) -> bool {
-    node.parent()
+pub(super) fn is_modulo_operand(node: Node<'_>, context: &RuleContext<'_>) -> bool {
+    context
+        .parent(node)
         .is_some_and(|parent| parent.kind_str() == "chained_string")
         && node.prev_named_sibling().is_some()
 }

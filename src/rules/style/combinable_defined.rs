@@ -113,7 +113,7 @@ fn is_and(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 }
 
 /// `terms`: every descendant an `and` joins, which is what all of them have to be `defined?` for.
-fn terms<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Vec<Node<'tree>> {
+fn terms<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut found = Vec::new();
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
@@ -127,7 +127,7 @@ fn terms<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Vec<Node<'tree>
                 }
             }
         }
-        let mut children = super::nodes::children(current);
+        let mut children = super::nodes::children_in(current, context);
         children.reverse();
         stack.extend(children);
     }

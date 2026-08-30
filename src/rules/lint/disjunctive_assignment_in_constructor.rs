@@ -2,8 +2,8 @@ use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
-use crate::rules::send_node::named_children;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Unnecessary disjunctive assignment. Use plain assignment.";
 
@@ -20,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // A body with a `rescue` or an `ensure` is one node of that type upstream rather than the
         // `begin` this walks, so the very first line already fails the `or_asgn` test.
-        let lines = named_children(body);
+        let lines = named_children_of(body, context);
         if lines
             .iter()
             .any(|line| matches!(line.kind_str(), "rescue" | "ensure" | "else"))

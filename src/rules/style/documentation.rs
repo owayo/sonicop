@@ -127,7 +127,7 @@ fn include_statement_only_node(context: &RuleContext<'_>, node: Node<'_>) -> boo
     match node.kind_str() {
         // Upstream builds these with no children at all, so `children.all?` is vacuously true.
         "true" | "false" | "nil" | "self" | "redo" | "retry" => true,
-        "array" | "hash" | "begin" => super::nodes::children(node)
+        "array" | "hash" | "begin" => super::nodes::children_in(node, context)
             .into_iter()
             .all(|child| include_statement_only_node(context, child)),
         _ => false,

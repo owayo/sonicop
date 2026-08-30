@@ -146,7 +146,7 @@ fn comparison_with_nil<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<
             node.field("right")?,
         ),
         "call" => {
-            let arguments = super::nodes::children(node.field("arguments")?);
+            let arguments = super::nodes::children_in(node.field("arguments")?, context);
             let [only] = arguments.as_slice() else {
                 return None;
             };
@@ -183,7 +183,7 @@ fn is_predicate_method_result(context: &RuleContext<'_>, node: Node<'_>) -> bool
         return false;
     }
     // The body is the statement itself when it stands alone, and its last statement otherwise.
-    super::nodes::children(parent)
+    super::nodes::children_in(parent, context)
         .last()
         .is_some_and(|last| last.id() == node.id())
 }

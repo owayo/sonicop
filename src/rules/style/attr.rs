@@ -97,7 +97,7 @@ fn is_class_eval(context: &RuleContext<'_>, block: Node<'_>) -> bool {
 
 /// `each_descendant(:def).any? { |def_node| def_node.method?(:attr) }`.
 fn defines_attr(context: &RuleContext<'_>, node: Node<'_>) -> bool {
-    super::conditional::descendants(node)
+    super::conditional::descendants(node, context)
         .into_iter()
         .filter(|descendant| descendant.kind_str() == "method")
         .any(|definition| {

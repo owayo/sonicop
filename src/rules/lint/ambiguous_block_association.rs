@@ -4,6 +4,7 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 
 /// The enumerable methods a trailing `do` block was probably meant for.
 const BLOCK_METHODS: &[&str] = &[
@@ -84,7 +85,7 @@ fn check_brace_block_argument(
     let Some(arguments) = node.field("arguments") else {
         return;
     };
-    let list = named_children(arguments);
+    let list = named_children_of(arguments, context);
     let (Some(&first), Some(&last)) = (list.first(), list.last()) else {
         return;
     };
@@ -173,7 +174,7 @@ fn check_do_block(
     let Some(arguments) = call.field("arguments") else {
         return;
     };
-    let Some(&last) = named_children(arguments).last() else {
+    let Some(&last) = named_children_of(arguments, context).last() else {
         return;
     };
     if parenthesized(call, arguments, context) {
@@ -219,11 +220,6 @@ fn trailing_block_method<'tree>(
         stack[start..].reverse();
     }
     None
-}
-
-fn named_children<'tree>(node: Node<'tree>) -> Vec<Node<'tree>> {
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor).collect()
 }
 
 /// The block written on a call, which upstream holds one level above the call instead.

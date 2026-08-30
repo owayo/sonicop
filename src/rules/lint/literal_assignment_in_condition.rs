@@ -4,6 +4,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{has_interpolation, heredoc_body, named_children};
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&[
@@ -86,11 +87,11 @@ fn all_literals(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         "chained_string" | "subshell" => false,
         "string" => !has_interpolation(node),
         "heredoc_beginning" => is_single_line_heredoc(node, context),
-        "array" | "string_array" | "symbol_array" | "right_assignment_list" => named_children(node)
+        "array" | "string_array" | "symbol_array" | "right_assignment_list" => named_children_of(node, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .all(|value| all_literals(value, context)),
-        "hash" => named_children(node)
+        "hash" => named_children_of(node, context)
             .into_iter()
             .filter(|child| child.kind_str() != "comment")
             .all(|pair| {
@@ -123,7 +124,7 @@ fn is_single_line_heredoc(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(body) = heredoc_body(node, context) else {
         return false;
     };
-    let content: Vec<Node<'_>> = named_children(body)
+    let content: Vec<Node<'_>> = named_children_of(body, context)
         .into_iter()
         .filter(|child| child.kind_str() != "heredoc_end")
         .collect();

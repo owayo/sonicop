@@ -95,12 +95,12 @@ fn comparison<'tree>(
 /// `(begin (send _ :& _))`: the two operands of a parenthesized mask.
 fn masked<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>)> {
     if node.kind_str() != "parenthesized_statements" {
         return None;
     }
-    let inner = super::nodes::children(node);
+    let inner = super::nodes::children_in(node, context);
     let [inner] = inner.as_slice() else {
         return None;
     };

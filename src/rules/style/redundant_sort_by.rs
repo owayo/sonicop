@@ -30,7 +30,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let read = context.source.node_text(*statement);
         let message = match block.field("parameters") {
-            Some(parameters) => match super::nodes::children(parameters).as_slice() {
+            Some(parameters) => match super::nodes::children_in(parameters, context).as_slice() {
                 [only]
                     if only.kind_str() == "identifier" && context.source.node_text(*only) == read =>
                 {

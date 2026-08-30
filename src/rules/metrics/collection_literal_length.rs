@@ -6,6 +6,7 @@ use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::{named_children, top_level_constant};
+use crate::rules::send_node::named_children_of;
 
 const MSG: &str = "Avoid hard coding large quantities of data in code. \
                    Prefer reading the data from an external source.";
@@ -46,7 +47,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !top_level_constant(object, "Set", context) || is_assignment_target(node) {
             continue;
         }
-        let children = named_children(node);
+        let children = named_children_of(node, context);
         let indices = children.get(1..).unwrap_or_default();
         if fold_pairs(indices).len() >= threshold {
             offenses.push(context.offense(MSG, node.byte_range()));

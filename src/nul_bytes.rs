@@ -23,7 +23,7 @@
 
 use std::ops::Range;
 
-use tree_sitter::{Node, Parser};
+use tree_sitter::Node;
 
 /// The byte a NUL inside a comment is read as.
 ///
@@ -144,11 +144,7 @@ thread_local! {
 fn parse(text: &str) -> Option<tree_sitter::Tree> {
     #[cfg(test)]
     PARSES.with(|parses| parses.set(parses.get() + 1));
-    let mut parser = Parser::new();
-    parser
-        .set_language(&tree_sitter_ruby::LANGUAGE.into())
-        .ok()?;
-    parser.parse(text, None)
+    crate::parser::parse(text)
 }
 
 /// The nodes that hold the text of a literal. `%w` and `%i` wrap theirs in a `bare_string` or a

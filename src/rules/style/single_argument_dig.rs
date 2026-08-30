@@ -107,7 +107,7 @@ fn is_dig(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(arguments) = node.field("arguments") else {
         return false;
     };
-    let arguments = super::nodes::children(arguments);
+    let arguments = super::nodes::children_in(arguments, context);
     // `(call _ :dig !{hash block_pass}+)`: at least one argument that is neither a hash nor a
     // block pass. The grammar spells a brace-less hash as its own pairs and splats, and an
     // anonymous `**` as a lone `hash_splat_argument` -- all of them one `hash` upstream.

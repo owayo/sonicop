@@ -72,7 +72,7 @@ fn literal_parts<'tree>(
         _ => return None,
     };
     Some(
-        super::nodes::children(container)
+        super::nodes::children_in(container, context)
             .into_iter()
             .filter(|child| child.kind_str() != "heredoc_end")
             .collect(),

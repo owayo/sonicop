@@ -57,12 +57,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// The receiver, the single subscript and where the selector begins, for both spellings of `[]`.
 fn subscript<'tree>(
     node: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>, usize)> {
     match node.kind_str() {
         "element_reference" => {
             let object = node.field("object")?;
-            let children = super::nodes::children(node);
+            let children = super::nodes::children_in(node, context);
             let [_, index] = children.as_slice() else {
                 return None;
             };
@@ -75,7 +75,7 @@ fn subscript<'tree>(
                 return None;
             }
             let receiver = node.field("receiver")?;
-            let arguments = super::nodes::children(node.field("arguments")?);
+            let arguments = super::nodes::children_in(node.field("arguments")?, context);
             let [index] = arguments.as_slice() else {
                 return None;
             };

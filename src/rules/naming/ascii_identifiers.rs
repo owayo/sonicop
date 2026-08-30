@@ -18,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // unreported even when they hold non-ascii characters. tree-sitter has no such token
         // distinction: it reuses `identifier` for keyword-argument labels, which are `tLABEL`
         // upstream and must be skipped here to keep the two in step.
-        if is_keyword_argument_label(node) {
+        if is_keyword_argument_label(node, context) {
             continue;
         }
 
@@ -42,8 +42,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-fn is_keyword_argument_label(node: tree_sitter::Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn is_keyword_argument_label(node: tree_sitter::Node<'_>, context: &RuleContext<'_>) -> bool {
+    let Some(parent) = context.parent(node) else {
         return false;
     };
     matches!(parent.kind_str(), "keyword_parameter" | "pair")

@@ -16,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         for kwbegin in kwbegin_nodes(node) {
-            walk_named(kwbegin, &mut |inner| {
+            walk_named(kwbegin, context, &mut |inner| {
                 if inner.kind_str() != "return" || return_from_inner_scope(inner, kwbegin, context)
                 {
                     return;
@@ -84,7 +84,7 @@ fn return_from_inner_scope(node: Node<'_>, kwbegin: Node<'_>, context: &RuleCont
             return false;
         }
         if matches!(ancestor.kind_str(), "method" | "singleton_method" | "lambda")
-            || is_lambda(ancestor, context.source)
+            || is_lambda(ancestor, context.source, context.ast_index())
         {
             return true;
         }

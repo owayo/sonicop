@@ -4,9 +4,10 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{arguments, named_children, pair_key_symbol, top_level_constant};
+use crate::rules::send_node::{arguments, pair_key_symbol, top_level_constant};
 
 use super::statements::statements;
+use crate::rules::send_node::named_children_of;
 
 /// `EXPECTED_EXCEPTION_CLASSES`: the two the conversion itself raises.
 const EXPECTED_EXCEPTION_CLASSES: [&str; 4] = [
@@ -32,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
     // `begin Integer(x) rescue [classes]; [nil] end`, which the parser keeps as a `kwbegin`.
     for node in context.nodes_of("begin") {
-        let children = named_children(node);
+        let children = named_children_of(node, context);
         let [body, clause] = children.as_slice() else {
             continue;
         };
@@ -135,7 +136,7 @@ fn expected_exception_classes_only(clause: Node<'_>, context: &RuleContext<'_>) 
     let Some(exceptions) = clause.field("exceptions") else {
         return true;
     };
-    named_children(exceptions)
+    named_children_of(exceptions, context)
         .into_iter()
         .filter(|child| child.kind_str() != "comment")
         .all(|exception| EXPECTED_EXCEPTION_CLASSES.contains(&context.source.node_text(exception)))

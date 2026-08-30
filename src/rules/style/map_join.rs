@@ -82,7 +82,7 @@ fn maps_to_s(node: Node<'_>, context: &RuleContext<'_>) -> bool {
             [only] => {
                 let argument = only.first();
                 argument.kind_str() == "block_argument"
-                    && super::nodes::children(argument)
+                    && super::nodes::children_in(argument, context)
                         .first()
                         .is_some_and(|inner| symbol_name(*inner, context) == Some("to_s"))
             }
@@ -95,7 +95,7 @@ fn maps_to_s(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let Some(body) = block.field("body") else {
         return false;
     };
-    let body = super::nodes::children(body);
+    let body = super::nodes::children_in(body, context);
     let [statement] = body.as_slice() else {
         return false;
     };
@@ -103,7 +103,7 @@ fn maps_to_s(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return false;
     };
     match block.field("parameters") {
-        Some(parameters) => match super::nodes::children(parameters).as_slice() {
+        Some(parameters) => match super::nodes::children_in(parameters, context).as_slice() {
             [parameter] => {
                 parameter.kind_str() == "identifier"
                     && context.source.node_text(*parameter) == context.source.node_text(subject)

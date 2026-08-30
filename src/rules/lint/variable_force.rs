@@ -136,28 +136,31 @@ pub(in crate::rules) struct Scope<'tree> {
 }
 
 pub(in crate::rules) struct Analysis<'tree> {
+    /// The file's node index, which answers a parent with one hash lookup. `Node::parent` walks
+    /// down from the root, and the force asks for a parent on nearly every node it visits.
+    index: &'tree super::super::AstIndex<'tree>,
     /// Every scope, in the order they were left, which is the order the cops report in.
     pub scopes: Vec<Scope<'tree>>,
     pub variables: Vec<Variable<'tree>>,
     /// The identifiers that resolved to a local variable. tree-sitter cannot tell a read of a
     /// local from a receiverless call, and only the analysis knows which one the parser upstream
     /// would have built.
-    lvars: HashSet<usize>,
+    lvars: crate::rules::IdSet,
     /// The references Naming handlers see. This includes implicit numbered block parameters,
     /// which are local-variable reads but are not declarations VariableForce reports.
-    naming_references: HashSet<usize>,
+    naming_references: crate::rules::IdSet,
     /// The `foo()` calls whose name a local variable already holds. The parentheses make these
     /// calls whatever the name resolves to, so nothing here is an `lvar` -- but writing the same
     /// name without them would be one, which is the question a cop that drops parentheses asks.
-    shadowed_calls: HashSet<usize>,
+    shadowed_calls: crate::rules::IdSet,
     /// Receiverless call-name nodes whose spelling is already held by a local variable. Unlike
     /// `shadowed_calls`, this also records calls with arguments for syntax recovery such as
     /// `collection [0]`.
-    local_method_names: HashSet<usize>,
+    local_method_names: crate::rules::IdSet,
     /// The identifier nodes that RuboCop dispatches as variable definitions. Pattern bindings and
     /// explicit block-local variables deliberately stay out: upstream names them `match_var` and
     /// `shadowarg`, neither of which the Naming cops handle.
-    naming_definitions: HashSet<usize>,
+    naming_definitions: crate::rules::IdSet,
 }
 
 impl<'tree> Analysis<'tree> {
@@ -193,7 +196,7 @@ impl<'tree> Analysis<'tree> {
     /// declarations are naming definitions too, but an AST walk restricted to `lvasgn` does not
     /// visit them.
     pub(in crate::rules) fn is_local_assignment(&self, node: Node<'_>) -> bool {
-        self.is_naming_definition(node) && structural_definition(node)
+        self.is_naming_definition(node) && structural_definition(node, self.index)
     }
 
     /// Whether the parser would dispatch this node to a Naming variable-definition handler.
@@ -204,33 +207,39 @@ impl<'tree> Analysis<'tree> {
         matches!(
             node.kind_str(),
             "instance_variable" | "class_variable" | "global_variable"
-        ) && structural_definition(node)
+        ) && structural_definition(node, self.index)
     }
 
     pub(in crate::rules) fn is_definition(&self, node: Node<'_>) -> bool {
         self.is_naming_definition(node)
     }
 
-    pub(in crate::rules) fn run(root: Node<'tree>, source: &SourceFile) -> Self {
+    pub(in crate::rules) fn run(
+        index: &'tree super::super::AstIndex<'tree>,
+        source: &SourceFile,
+    ) -> Self {
+        let root = index.root_node();
         let mut force = Force {
+            index,
             source,
             scopes: Vec::new(),
             variables: Vec::new(),
             stack: Vec::new(),
             branches: Vec::new(),
             branch_index: HashMap::new(),
-            heredocs: heredoc_bodies(root),
-            scanned: HashSet::new(),
-            lvars: HashSet::new(),
-            naming_references: HashSet::new(),
-            shadowed_calls: HashSet::new(),
-            local_method_names: HashSet::new(),
-            naming_definitions: HashSet::new(),
+            heredocs: heredoc_bodies(index),
+            scanned: crate::rules::IdSet::default(),
+            lvars: crate::rules::IdSet::default(),
+            naming_references: crate::rules::IdSet::default(),
+            shadowed_calls: crate::rules::IdSet::default(),
+            local_method_names: crate::rules::IdSet::default(),
+            naming_definitions: crate::rules::IdSet::default(),
         };
         force.push_scope(root, true);
         force.process_children(root);
         force.pop_scope();
         Analysis {
+            index,
             scopes: force.scopes,
             variables: force.variables,
             lvars: force.lvars,
@@ -263,6 +272,7 @@ struct Frame<'tree> {
 }
 
 struct Force<'tree, 'a> {
+    index: &'tree super::super::AstIndex<'tree>,
     source: &'a SourceFile,
     scopes: Vec<Scope<'tree>>,
     variables: Vec<Variable<'tree>>,
@@ -272,14 +282,14 @@ struct Force<'tree, 'a> {
     /// Each heredoc's body, found from the `<<~X` that opened it. tree-sitter hangs the body off
     /// the enclosing statement, so a heredoc written inside a block would otherwise have its
     /// interpolations resolved in the wrong scope.
-    heredocs: HashMap<usize, Node<'tree>>,
+    heredocs: crate::rules::IdKeyed<Node<'tree>>,
     /// Nodes already walked in an outer scope, which the scope they sit in must not walk again.
-    scanned: HashSet<usize>,
-    lvars: HashSet<usize>,
-    naming_references: HashSet<usize>,
-    shadowed_calls: HashSet<usize>,
-    local_method_names: HashSet<usize>,
-    naming_definitions: HashSet<usize>,
+    scanned: crate::rules::IdSet,
+    lvars: crate::rules::IdSet,
+    naming_references: crate::rules::IdSet,
+    shadowed_calls: crate::rules::IdSet,
+    local_method_names: crate::rules::IdSet,
+    naming_definitions: crate::rules::IdSet,
 }
 
 // ---------------------------------------------------------------------------
@@ -305,8 +315,8 @@ fn mislexed_match_operator(node: Node<'_>, source: &SourceFile) -> bool {
 /// definition. Local identifiers are recorded during the force walk, but instance, class and
 /// global variables do not participate in local-variable resolution and are cheaper to classify
 /// directly from their parent.
-fn structural_definition(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn structural_definition(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool {
+    let Some(parent) = index.parent(node) else {
         return false;
     };
     match parent.kind_str() {
@@ -421,20 +431,33 @@ pub(super) fn body_node<'tree>(scope: &Scope<'tree>) -> Option<Node<'tree>> {
 }
 
 /// The call a block was written on, which names the method the block was passed to.
-pub(super) fn block_call<'tree>(scope_node: Node<'tree>) -> Option<Node<'tree>> {
+pub(super) fn block_call<'tree>(
+    scope_node: Node<'tree>,
+    index: &super::super::AstIndex<'tree>,
+) -> Option<Node<'tree>> {
     match scope_node.kind_str() {
-        "block" | "do_block" => scope_node.parent().filter(|node| node.kind_str() == "call"),
+        "block" | "do_block" => index
+            .parent_in_tree(scope_node)
+            .filter(|node| node.kind_str() == "call"),
         _ => None,
     }
 }
 
 /// `BlockNode#lambda?`: both `->() {}` and `lambda {}` reach RuboCop as a block on `lambda`.
-pub(super) fn is_lambda(scope_node: Node<'_>, source: &SourceFile) -> bool {
-    scope_node.kind_str() == "lambda" || block_method(scope_node, source) == Some("lambda")
+pub(super) fn is_lambda(
+    scope_node: Node<'_>,
+    source: &SourceFile,
+    index: &super::super::AstIndex<'_>,
+) -> bool {
+    scope_node.kind_str() == "lambda" || block_method(scope_node, source, index) == Some("lambda")
 }
 
-pub(super) fn block_method<'a>(scope_node: Node<'_>, source: &'a SourceFile) -> Option<&'a str> {
-    let call = block_call(scope_node)?;
+pub(super) fn block_method<'a>(
+    scope_node: Node<'_>,
+    source: &'a SourceFile,
+    index: &super::super::AstIndex<'_>,
+) -> Option<&'a str> {
+    let call = block_call(scope_node, index)?;
     Some(source.node_text(call.field("method")?))
 }
 
@@ -471,18 +494,17 @@ impl<'tree> Force<'tree, '_> {
         });
     }
 
+    /// A node's named children, taken from the file's index. The list borrows the index rather
+    /// than this walk, so a `&mut self` call inside the loop is still allowed.
+    fn children(&self, node: Node<'tree>) -> std::borrow::Cow<'tree, [Node<'tree>]> {
+        super::super::send_node::named_children_in(node, self.index)
+    }
+
     fn process_children(&mut self, node: Node<'tree>) {
-        let mut cursor = node.walk();
-        if !cursor.goto_first_child() {
-            return;
-        }
-        loop {
-            let child = cursor.node();
-            if child.is_named() && !self.scanned.contains(&child.id()) {
+        let children = self.children(node);
+        for child in children.iter().copied() {
+            if !self.scanned.contains(&child.id()) {
                 self.process_node(child);
-            }
-            if !cursor.goto_next_sibling() {
-                break;
             }
         }
     }
@@ -550,8 +572,9 @@ impl<'tree> Force<'tree, '_> {
     /// block node holding both the parameters and the body, so the inner node is not a scope.
     fn inline_block(&self, node: Node<'tree>) -> bool {
         node.kind_str() == "block"
-            && node
-                .parent()
+            && self
+                .index
+                .parent(node)
                 .is_some_and(|parent| parent.kind_str() == "lambda")
     }
 
@@ -724,7 +747,7 @@ impl<'tree> Force<'tree, '_> {
                     .push(node);
             }
             let assignment_node = self.variables[variable].assignments[index].node;
-            if in_modifier_conditional(assignment_node, node) {
+            if in_modifier_conditional(assignment_node, node, self.index) {
                 continue;
             }
             let Some(branch) = branch else { break };
@@ -879,7 +902,7 @@ impl<'tree> Force<'tree, '_> {
         // Only tree-sitter spells a method name with the same node type as a variable read; the
         // parser upstream turns `def foo` and `alias foo bar` into symbols. The receiver of
         // `def obj.foo` is a genuine read and stays.
-        if node.parent().is_some_and(|parent| {
+        if self.index.parent(node).is_some_and(|parent| {
             matches!(parent.kind_str(), "alias" | "undef" | "setter")
                 || (matches!(parent.kind_str(), "method" | "singleton_method")
                     && field_name(node, parent) == Some("name"))
@@ -1331,7 +1354,7 @@ impl<'tree> Force<'tree, '_> {
     fn mark_assignments_referenced_in_loop(&mut self, node: Node<'tree>) {
         let mut names = Vec::new();
         let mut assignments = HashSet::new();
-        collect_loop_references(node, self.source, &mut names, &mut assignments);
+        collect_loop_references(node, self.source, self.index, &mut names, &mut assignments);
         for name in names {
             let Some(variable) = self.find_variable(&name) else {
                 continue;
@@ -1350,7 +1373,7 @@ impl<'tree> Force<'tree, '_> {
             };
             for &index in &indices {
                 let assignment = &self.variables[variable].assignments[index];
-                if has_branch_ancestor(assignment.node) {
+                if has_branch_ancestor(assignment.node, self.index) {
                     self.variables[variable].assignments[index].referenced = true;
                 }
             }
@@ -1379,8 +1402,8 @@ impl<'tree> Force<'tree, '_> {
             if !top_level && current.id() == scope_node.id() {
                 return None;
             }
-            let parent = current.parent()?;
-            if let Some(role) = branch_role(current, parent)
+            let parent = self.index.parent_in_tree(current)?;
+            if let Some(role) = branch_role(current, parent, self.index)
                 && role.branched
             {
                 return Some(self.intern_branch(role, parent, scope_node, top_level));
@@ -1451,7 +1474,11 @@ fn implicit_numbered_parameter(name: &str) -> bool {
 
 /// Whether the child stands in a branch of the control structure above it, and how that branch
 /// behaves: `(may_run_incompletely, may_jump_to_other_branch, branched)`.
-fn branch_role<'tree>(child: Node<'tree>, parent: Node<'tree>) -> Option<BranchRole<'tree>> {
+fn branch_role<'tree>(
+    child: Node<'tree>,
+    parent: Node<'tree>,
+    index: &'tree super::super::AstIndex<'tree>,
+) -> Option<BranchRole<'tree>> {
     let field = field_name(child, parent);
     let always_run = BranchRole::always_run(child);
     let branched = BranchRole::branched(child);
@@ -1483,10 +1510,10 @@ fn branch_role<'tree>(child: Node<'tree>, parent: Node<'tree>) -> Option<BranchR
         // `begin … rescue … ensure … end` has no node of its own here: the clauses stand beside
         // the statements they guard. Upstream wraps those statements in one node, and the whole
         // main body is a single branch, so they all have to point at the same child.
-        _ if is_rescue_container(parent) => Some(match child.kind_str() {
+        _ if is_rescue_container(parent, index) => Some(match child.kind_str() {
             "rescue" | "else" => branched,
             "ensure" => always_run,
-            _ => BranchRole::branched(main_body_anchor(parent)?).escaping(),
+            _ => BranchRole::branched(main_body_anchor(parent, index)?).escaping(),
         }),
         _ => None,
     }
@@ -1531,20 +1558,31 @@ impl<'tree> BranchRole<'tree> {
 }
 
 /// The first statement of a `begin`'s main body, which stands for the whole of it.
-fn main_body_anchor<'tree>(container: Node<'tree>) -> Option<Node<'tree>> {
-    named_children(container)
-        .into_iter()
+fn main_body_anchor<'tree>(
+    container: Node<'tree>,
+    index: &'tree super::super::AstIndex<'tree>,
+) -> Option<Node<'tree>> {
+    super::super::send_node::named_children_in(container, index)
+        .iter()
+        .copied()
         .find(|child| !matches!(child.kind_str(), "rescue" | "else" | "ensure"))
 }
 
-fn is_rescue_container(node: Node<'_>) -> bool {
-    has_child_kind(node, "rescue") || has_child_kind(node, "ensure")
+fn is_rescue_container<'tree>(
+    node: Node<'tree>,
+    index: &'tree super::super::AstIndex<'tree>,
+) -> bool {
+    has_child_kind(node, "rescue", index) || has_child_kind(node, "ensure", index)
 }
 
-fn has_child_kind(node: Node<'_>, kind: &str) -> bool {
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor)
-        .any(|c| c.kind_str() == kind)
+fn has_child_kind<'tree>(
+    node: Node<'tree>,
+    kind: &str,
+    index: &'tree super::super::AstIndex<'tree>,
+) -> bool {
+    super::super::send_node::named_children_in(node, index)
+        .iter()
+        .any(|child| child.kind_str() == kind)
 }
 
 fn field_name(child: Node<'_>, parent: Node<'_>) -> Option<&'static str> {
@@ -1626,9 +1664,12 @@ fn contains_kind(node: Node<'_>, kind: &str) -> bool {
 
 /// The branch node types `reference_assignments` looks for: an assignment under one of them may
 /// be skipped on some iterations, so every one of them counts as read by the loop.
-fn has_branch_ancestor(node: Node<'_>) -> bool {
+fn has_branch_ancestor<'tree>(
+    node: Node<'tree>,
+    index: &'tree super::super::AstIndex<'tree>,
+) -> bool {
     let mut current = node;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = index.parent(current) {
         let branching = matches!(
             parent.kind_str(),
             "if" | "elsif"
@@ -1640,7 +1681,8 @@ fn has_branch_ancestor(node: Node<'_>) -> bool {
                 | "case_match"
                 | "rescue"
                 | "rescue_modifier"
-        ) || (parent.kind_str() != "program" && has_child_kind(parent, "rescue"));
+        ) || (parent.kind_str() != "program"
+            && has_child_kind(parent, "rescue", index));
         if branching {
             return true;
         }
@@ -1654,6 +1696,7 @@ fn has_branch_ancestor(node: Node<'_>) -> bool {
 fn collect_loop_references(
     node: Node<'_>,
     source: &SourceFile,
+    index: &super::super::AstIndex<'_>,
     names: &mut Vec<String>,
     assignments: &mut HashSet<String>,
 ) {
@@ -1696,15 +1739,15 @@ fn collect_loop_references(
             // target all wear the same node type here. A `for` variable and a rescue clause's
             // variable are `lvasgn` nodes that carry no value.
             "identifier" => {
-                if is_variable_read(child) {
+                if is_variable_read(child, index) {
                     names.push(source.node_text(child).to_owned());
-                } else if bare_assignment_target(child) {
+                } else if bare_assignment_target(child, index) {
                     assignments.insert(shape(child, None, source));
                 }
             }
             _ => {}
         }
-        collect_loop_references(child, source, names, assignments);
+        collect_loop_references(child, source, index, names, assignments);
     }
 }
 
@@ -1739,8 +1782,8 @@ fn identifier_words(text: &str) -> Vec<String> {
 
 /// Whether an identifier stands where the parser upstream would have built an `lvar`, rather than
 /// a name being declared, written or called.
-pub(super) fn is_variable_read(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+pub(super) fn is_variable_read(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool {
+    let Some(parent) = index.parent(node) else {
         return true;
     };
     match parent.kind_str() {
@@ -1782,8 +1825,8 @@ fn swallowed_by_escape(node: Node<'_>, source: &SourceFile) -> bool {
 }
 
 /// Whether an identifier is a write that stores no value of its own.
-fn bare_assignment_target(node: Node<'_>) -> bool {
-    let Some(parent) = node.parent() else {
+fn bare_assignment_target(node: Node<'_>, index: &super::super::AstIndex<'_>) -> bool {
+    let Some(parent) = index.parent(node) else {
         return false;
     };
     match parent.kind_str() {
@@ -1856,9 +1899,13 @@ fn named_captures(source: &str) -> Vec<String> {
 
 /// `in_modifier_conditional?`: an assignment made in `foo = 1 if bar` is not in scope to the left
 /// of the keyword, so a read there cannot be the one that uses it.
-fn in_modifier_conditional(assignment: Node<'_>, reference: Node<'_>) -> bool {
+fn in_modifier_conditional(
+    assignment: Node<'_>,
+    reference: Node<'_>,
+    index: &super::super::AstIndex<'_>,
+) -> bool {
     let mut current = assignment;
-    while let Some(parent) = current.parent() {
+    while let Some(parent) = index.parent(current) {
         if matches!(
             parent.kind_str(),
             "if_modifier" | "unless_modifier" | "while_modifier" | "until_modifier"
@@ -1879,10 +1926,13 @@ fn covers(container: Node<'_>, node: Node<'_>) -> bool {
 
 /// Each heredoc's body, paired with the `<<~X` that opened it. Both appear in the same order in
 /// the file, which is what makes matching them by position sound.
-fn heredoc_bodies(root: Node<'_>) -> HashMap<usize, Node<'_>> {
-    let mut beginnings = Vec::new();
-    let mut bodies = Vec::new();
-    collect_heredocs(root, &mut beginnings, &mut bodies);
+fn heredoc_bodies<'tree>(
+    index: &super::super::AstIndex<'tree>,
+) -> crate::rules::IdKeyed<Node<'tree>> {
+    // The index already groups the file's nodes by kind, so the recursive walk this used to make
+    // -- which allocated a vector of children at every node of the tree -- answers nothing new.
+    let mut beginnings: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_beginning").collect();
+    let mut bodies: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_body").collect();
     beginnings.sort_by_key(|node: &Node<'_>| node.start_byte());
     bodies.sort_by_key(|node: &Node<'_>| node.start_byte());
     beginnings
@@ -1890,19 +1940,4 @@ fn heredoc_bodies(root: Node<'_>) -> HashMap<usize, Node<'_>> {
         .zip(bodies)
         .map(|(beginning, body)| (beginning.id(), body))
         .collect()
-}
-
-fn collect_heredocs<'tree>(
-    node: Node<'tree>,
-    beginnings: &mut Vec<Node<'tree>>,
-    bodies: &mut Vec<Node<'tree>>,
-) {
-    match node.kind_str() {
-        "heredoc_beginning" => beginnings.push(node),
-        "heredoc_body" => bodies.push(node),
-        _ => {}
-    }
-    for child in named_children(node) {
-        collect_heredocs(child, beginnings, bodies);
-    }
 }

@@ -45,5 +45,5 @@ fn defines_a_method(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         return true;
     }
     node.field("arguments")
-        .is_some_and(|arguments| super::nodes::children(arguments).len() == 1)
+        .is_some_and(|arguments| super::nodes::children_in(arguments, context).len() == 1)
 }

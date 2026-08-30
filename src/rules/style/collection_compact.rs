@@ -109,7 +109,7 @@ fn matches(
     {
         let argument = argument.first();
         if argument.kind_str() == "block_argument" {
-            let inner = super::nodes::children(argument);
+            let inner = super::nodes::children_in(argument, context);
             return matches!(inner.as_slice(), [symbol]
                 if symbol_name(*symbol, context) == Some("nil?"));
         }
@@ -121,10 +121,10 @@ fn matches(
     let Some(block) = node.field("block") else {
         return false;
     };
-    let body = super::nodes::children(match block.field("body") {
+    let body = super::nodes::children_in(match block.field("body") {
         Some(body) => body,
         None => return false,
-    });
+    }, context);
     let [statement] = body.as_slice() else {
         return false;
     };
@@ -149,7 +149,7 @@ fn matches(
             if !locals.is_lvar(subject) {
                 return false;
             }
-            super::nodes::children(parameters)
+            super::nodes::children_in(parameters, context)
                 .last()
                 .is_some_and(|last| {
                     context.source.node_text(*last) == context.source.node_text(subject)

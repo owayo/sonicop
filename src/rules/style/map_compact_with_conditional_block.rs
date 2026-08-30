@@ -109,7 +109,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// `conditional_block`: the six shapes of a block that maps to `nil` for what it wants dropped.
 fn conditional_block<'tree>(
     mapping: Node<'tree>,
-    context: &RuleContext<'_>,
+    context: &'tree RuleContext<'_>,
 ) -> Option<(Node<'tree>, Node<'tree>, Node<'tree>, Position, bool)> {
     if mapping.kind_str() != "call" {
         return None;
@@ -121,14 +121,14 @@ fn conditional_block<'tree>(
         return None;
     }
     let block = mapping.field("block")?;
-    let parameters = super::nodes::children(block.field("parameters")?);
+    let parameters = super::nodes::children_in(block.field("parameters")?, context);
     let [parameter] = parameters.as_slice() else {
         return None;
     };
     if parameter.kind_str() != "identifier" {
         return None;
     }
-    let statements = super::nodes::children(block.field("body")?);
+    let statements = super::nodes::children_in(block.field("body")?, context);
     match statements.as_slice() {
         [only] => {
             let (condition, if_branch, else_branch, is_unless) = conditional(*only, context)?;

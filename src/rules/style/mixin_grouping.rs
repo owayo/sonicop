@@ -21,7 +21,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(body) = holder.field("body") else {
             continue;
         };
-        let statements = super::nodes::children(body);
+        let statements = super::nodes::children_in(body, context);
         for node in &statements {
             let Some(mixin) = Mixin::new(context, *node) else {
                 continue;

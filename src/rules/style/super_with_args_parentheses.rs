@@ -59,7 +59,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // A binary's right operand is the single argument; a list holds them all.
         let written = match node.kind_str() {
             "binary" => vec![arguments],
-            _ => super::nodes::children(arguments),
+            _ => super::nodes::children_in(arguments, context),
         };
         let (Some(first), Some(last)) = (written.first(), written.last()) else {
             continue;

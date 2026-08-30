@@ -38,7 +38,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     };
 
     for ts in context.nodes_of_any(&["call", "method_call", "assignment"]) {
-        let node = UpNode::plain(ts);
+        let node = UpNode::plain(ts, context.ast_index());
         if !matches!(node.kind(context), UpKind::Send | UpKind::Csend) {
             continue;
         }

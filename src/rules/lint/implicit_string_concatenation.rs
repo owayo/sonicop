@@ -3,7 +3,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{is_plain_send, named_children, string_text};
+use crate::rules::send_node::{is_plain_send, string_text};
+use crate::rules::send_node::named_children_of;
 
 const FOR_ARRAY: &str =
     " Or, if they were intended to be separate array elements, separate them with a comma.";
@@ -15,7 +16,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // adjacent literals build: the parts of `"a\nb"` are fragments of a single literal, and the
     // delimiter test upstream applies is what tells the two apart.
     for node in context.nodes_of("chained_string") {
-        let parts = named_children(node);
+        let parts = named_children_of(node, context);
         let suffix = suffix(node, context);
         for pair in parts.windows(2) {
             let (left, right) = (pair[0], pair[1]);

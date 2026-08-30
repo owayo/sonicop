@@ -533,7 +533,7 @@ fn and_with_rhs_or(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         return true;
     }
     right.kind_str() == "parenthesized_statements"
-        && matches!(super::nodes::children(right).as_slice(), [only] if is_or(context, *only))
+        && matches!(super::nodes::children_in(right, context).as_slice(), [only] if is_or(context, *only))
 }
 
 /// `find_matching_receiver_invocation`.
@@ -686,7 +686,7 @@ fn and_parts<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Vec<Part<'t
 fn and_inside_begin(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     send_node::any_descendant(node, &mut |candidate| {
         candidate.kind_str() == "parenthesized_statements"
-            && super::nodes::children(candidate)
+            && super::nodes::children_in(candidate, context)
                 .first()
                 .is_some_and(|first| is_and(context, *first))
     })

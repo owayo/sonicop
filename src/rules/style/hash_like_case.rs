@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or(3) as usize;
 
     for node in context.nodes_of("case") {
-        let branches = super::nodes::children(node);
+        let branches = super::nodes::children_in(node, context);
         let whens: Vec<Node<'_>> = branches
             .iter()
             .copied()
@@ -33,7 +33,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let mut conditions = Vec::new();
         let mut bodies = Vec::new();
         for when in &whens {
-            let children = super::nodes::children(*when);
+            let children = super::nodes::children_in(*when, context);
             let [pattern, body] = children.as_slice() else {
                 conditions.clear();
                 break;
@@ -42,8 +42,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 conditions.clear();
                 break;
             }
-            let patterns = super::nodes::children(*pattern);
-            let statements = super::nodes::children(*body);
+            let patterns = super::nodes::children_in(*pattern, context);
+            let statements = super::nodes::children_in(*body, context);
             let ([condition], [statement]) = (patterns.as_slice(), statements.as_slice()) else {
                 conditions.clear();
                 break;
@@ -88,14 +88,14 @@ fn recursive_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
                 .is_some_and(|operator| {
                     RECURSIVE_METHODS.contains(&context.source.node_text(operator))
                 })
-                && super::nodes::children(node)
+                && super::nodes::children_in(node, context)
                     .into_iter()
                     .all(|child| recursive_basic_literal(context, child))
         }
         "call" => {
             node.field("method")
                 .is_some_and(|method| RECURSIVE_METHODS.contains(&context.source.node_text(method)))
-                && super::nodes::children(node)
+                && super::nodes::children_in(node, context)
                     .into_iter()
                     .all(|child| recursive_basic_literal(context, child))
         }
@@ -107,10 +107,10 @@ fn recursive_basic_literal(context: &RuleContext<'_>, node: Node<'_>) -> bool {
         | "regex"
         | "subshell"
         | "boolean"
-        | "parenthesized_statements" => super::nodes::children(node)
+        | "parenthesized_statements" => super::nodes::children_in(node, context)
             .into_iter()
             .all(|child| recursive_basic_literal(context, child)),
-        "string" | "delimited_symbol" if is_interpolated(node) => super::nodes::children(node)
+        "string" | "delimited_symbol" if is_interpolated(node) => super::nodes::children_in(node, context)
             .into_iter()
             .all(|child| recursive_basic_literal(context, child)),
         _ => matches!(upstream_type(context, node), Some(name) if BASIC_LITERALS.contains(&name)),

@@ -154,7 +154,7 @@ fn is_hash_constant(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 /// an `itblock` reading `it`.
 fn block_argument(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> {
     if let Some(parameters) = block.field("parameters") {
-        let declared = super::nodes::children(parameters);
+        let declared = super::nodes::children_in(parameters, context);
         let [only] = declared.as_slice() else {
             return None;
         };
@@ -174,7 +174,7 @@ fn block_argument(context: &RuleContext<'_>, block: Node<'_>) -> Option<String> 
 /// How many numbered parameters the body reads, and whether it reads `it`. A nested block's names
 /// belong to that block, not to this one.
 fn scan_implicit(context: &RuleContext<'_>, node: Node<'_>, numbered: &mut usize, it: &mut bool) {
-    for child in super::nodes::children(node) {
+    for child in super::nodes::children_in(node, context) {
         if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
             continue;
         }

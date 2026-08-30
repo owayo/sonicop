@@ -101,7 +101,7 @@ fn check_class(
     if node.field("body").is_some() {
         return;
     }
-    let parts = super::nodes::children(superclass);
+    let parts = super::nodes::children_in(superclass, context);
     let [parent] = parts.as_slice() else {
         return;
     };

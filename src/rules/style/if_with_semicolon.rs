@@ -308,7 +308,7 @@ fn expression(context: &RuleContext<'_>, branch: (String, Option<Node<'_>>)) -> 
     let Some(list) = node.field("arguments") else {
         return source;
     };
-    let arguments = super::nodes::children(list);
+    let arguments = super::nodes::children_in(list, context);
     let (Some(first), Some(_)) = (arguments.first(), arguments.last()) else {
         return source;
     };

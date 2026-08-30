@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.pairs` lists the `pair` children alone -- a nested `**{…}` is a `kwsplat` and is
         // not one of them. Counting it as a pair made every hash holding one look rocket-written
         // and dropped the **outer** hash of `**{a: 1, **{b: 2}}` on the floor.
-        let written = super::nodes::children(node);
+        let written = super::nodes::children_in(node, context);
         let pairs: Vec<Node<'_>> = written
             .iter()
             .copied()
@@ -167,15 +167,15 @@ fn autocorrect(
 }
 
 /// `select_merge_method_nodes`, in the order `each_descendant` walks them.
-fn merge_calls<'tree>(splat: Node<'tree>, context: &RuleContext<'_>) -> Vec<Node<'tree>> {
+fn merge_calls<'tree>(splat: Node<'tree>, context: &'tree RuleContext<'_>) -> Vec<Node<'tree>> {
     let mut found = Vec::new();
     let mut stack: Vec<Node<'tree>> = Vec::new();
-    crate::rules::push_named_children(splat, &mut stack);
+    crate::rules::push_named_children_in(splat, context, &mut stack);
     while let Some(node) = stack.pop() {
         if node.kind_str() == "call" && mergeable(node, context) {
             found.push(node);
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     found.sort_by_key(Node::start_byte);
     found

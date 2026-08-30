@@ -10,7 +10,7 @@ const PARAMETER_LISTS: &[&str] = &["method_parameters", "block_parameters", "lam
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for list in context.nodes_of_any(PARAMETER_LISTS) {
-        let parameters = super::nodes::children(list);
+        let parameters = super::nodes::children_in(list, context);
         let keywords: Vec<usize> = (0..parameters.len())
             .filter(|index| parameters[*index].kind_str() == "keyword_parameter")
             .collect();

@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         };
         // Only the statements the body holds directly are looked at: a definition nested inside a
         // `begin` or a conditional is not a child of the class body upstream either.
-        for definition in super::nodes::children(body) {
+        for definition in super::nodes::children_in(body, context) {
             if definition.kind_str() != "singleton_method" {
                 continue;
             }

@@ -17,7 +17,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `empty_and_without_delimiters?`: bars were written around nothing.
-        if !super::nodes::children(parameters).is_empty() {
+        if !super::nodes::children_in(parameters, context).is_empty() {
             continue;
         }
         let Some(begin) = block.child(0) else {

@@ -13,7 +13,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(superclass) = node.field("superclass") else {
             continue;
         };
-        let Some(parent) = super::nodes::children(superclass).into_iter().next() else {
+        let Some(parent) = super::nodes::children_in(superclass, context).into_iter().next() else {
             continue;
         };
         if !is_struct_constructor(context, parent) {
@@ -94,7 +94,7 @@ fn correct_parent(
     // `class_node.body.nil?`: a body holding nothing but comments is no body upstream.
     if class_node
         .field("body")
-        .is_none_or(|body| super::nodes::children(body).is_empty())
+        .is_none_or(|body| super::nodes::children_in(body, context).is_empty())
     {
         edits.push(empty_body_removal(context, class_node, parent));
         return;
@@ -150,7 +150,7 @@ fn unparenthesized_arguments(context: &RuleContext<'_>, parent: Node<'_>) -> Opt
     if arguments.child(0).is_some_and(|open| open.kind_str() == "(") {
         return None;
     }
-    let joined = super::nodes::children(arguments)
+    let joined = super::nodes::children_in(arguments, context)
         .into_iter()
         .map(|argument| context.source.node_text(argument))
         .collect::<Vec<_>>()

@@ -78,7 +78,7 @@ fn definition_parameters(definition: Node<'_>, context: &RuleContext<'_>) -> Vec
         return Vec::new();
     };
     let mut found = Vec::new();
-    for child in super::nodes::children(list) {
+    for child in super::nodes::children_in(list, context) {
         match unfolded_defaults(child) {
             Some(names) => found.extend(names.into_iter().map(|name| Parameter {
                 kind: "optional_parameter".to_owned(),
@@ -280,7 +280,7 @@ fn block_reassigned(context: &RuleContext<'_>, definition: Node<'_>, name: &str)
         {
             return true;
         }
-        crate::rules::push_named_children(node, &mut stack);
+        crate::rules::push_named_children_in(node, context, &mut stack);
     }
     false
 }

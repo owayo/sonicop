@@ -12,7 +12,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(then) = super::conditional::token(body, &["then"]) else {
             continue;
         };
-        let conditions: Vec<_> = super::nodes::children(node)
+        let conditions: Vec<_> = super::nodes::children_in(node, context)
             .into_iter()
             .filter(|child| child.kind_str() == "pattern")
             .collect();
@@ -26,7 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `same_line?(when_node, when_node.body)`: a body on the `when`'s own line needs it too.
-        if super::nodes::children(body)
+        if super::nodes::children_in(body, context)
             .first()
             .is_some_and(|first| first.start_position().row == node.start_position().row)
         {

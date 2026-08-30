@@ -23,7 +23,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let (Some(pattern), Some(body)) = (node.field("pattern"), node.field("body")) else {
             continue;
         };
-        if super::nodes::children(body).is_empty() {
+        if super::nodes::children_in(body, context).is_empty() {
             continue;
         }
         let Some(separator) = super::conditional::token(body, &[";"]) else {
@@ -67,7 +67,7 @@ fn pattern_source(pattern: Node<'_>, context: &RuleContext<'_>) -> String {
 }
 
 fn collect(pattern: Node<'_>, context: &RuleContext<'_>, parts: &mut Vec<String>) {
-    for child in super::nodes::children(pattern) {
+    for child in super::nodes::children_in(pattern, context) {
         if child.kind_str() == "alternative_pattern" {
             collect(child, context, parts);
         } else {

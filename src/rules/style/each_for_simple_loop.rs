@@ -15,7 +15,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `on_block`, so a body reading `_1` or `it` is a node type this cop never sees.
         if block
             .field("parameters")
-            .is_some_and(|parameters| !super::nodes::children(parameters).is_empty())
+            .is_some_and(|parameters| !super::nodes::children_in(parameters, context).is_empty())
             || super::block_args::implicit(context, block)
         {
             continue;

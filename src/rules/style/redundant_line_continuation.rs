@@ -133,7 +133,7 @@ fn string_content_ranges(context: &RuleContext<'_>) -> Vec<Range<usize>> {
     let mut stack = vec![context.root_node()];
     while let Some(node) = stack.pop() {
         if !LITERALS.contains(&node.kind_str()) {
-            crate::rules::push_named_children(node, &mut stack);
+            crate::rules::push_named_children_in(node, context, &mut stack);
             continue;
         }
         // What an interpolation holds is code again, so it is cut out of the literal and walked.

@@ -7,12 +7,12 @@ use crate::rules::send_node::send_range;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for block in context.nodes_of_any(&["block", "do_block"]) {
-        let Some(call) = block.parent().filter(|parent| parent.kind_str() == "call") else {
+        let Some(call) = context.parent(block).filter(|parent| parent.kind_str() == "call") else {
             continue;
         };
         let send = send_range(call, context);
         // `node.send_node.each_node(:call)`, which stops at the first chained block it finds.
-        let Some(closing) = super::conditional::descendants(call)
+        let Some(closing) = super::conditional::descendants(call, context)
             .into_iter()
             .filter(|node| node.start_byte() < send.end)
             .find_map(|node| chained_block_end(node, context))

@@ -40,7 +40,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if condition.kind_str() != "parenthesized_statements" {
             continue;
         }
-        let children = super::nodes::children(condition);
+        let children = super::nodes::children_in(condition, context);
         let Some(first) = children.first().copied() else {
             continue;
         };
@@ -139,7 +139,7 @@ fn parens_required(context: &RuleContext<'_>, node: Node<'_>) -> bool {
 /// `safe_assignment?`: `(begin {equals_asgn? #setter_method?})`, the parenthesized assignment that
 /// says the assignment was meant.
 fn is_safe_assignment(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
-    let children = super::nodes::children(condition);
+    let children = super::nodes::children_in(condition, context);
     let [only] = children.as_slice() else {
         return false;
     };
@@ -187,7 +187,7 @@ fn unwrap(context: &RuleContext<'_>, condition: Node<'_>) -> Vec<Edit> {
 }
 
 fn comment_above_close_paren(context: &RuleContext<'_>, condition: Node<'_>) -> bool {
-    let Some(last) = super::nodes::children(condition).last().copied() else {
+    let Some(last) = super::nodes::children_in(condition, context).last().copied() else {
         return false;
     };
     let close = condition.end_byte() - 1;

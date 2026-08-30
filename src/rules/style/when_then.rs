@@ -20,7 +20,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         // `!node.body`: `when 1; end` writes the separator but no statement after it.
-        if super::nodes::children(body).is_empty() {
+        if super::nodes::children_in(body, context).is_empty() {
             continue;
         }
         let mut cursor = node.walk();
