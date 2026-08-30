@@ -242,52 +242,62 @@ once the 159 RuboCop ships as `Enabled: pending` and the 56 it ships as `Enabled
 aside; a default run reaches neither group on either side.) Times are the fastest of two
 warmed runs.
 
-| Corpus | Files | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
-|---|---:|---:|---:|---:|---:|
-| rubocop/rubocop | 1,765 | 12.71 s | **4.59 s** | 42.74 s | **13.75 s** |
-| mastodon/mastodon | 3,290 | 29.95 s | **6.48 s** | 37.60 s | **15.88 s** |
-| Homebrew/brew | 2,179 | 18.20 s | **4.31 s** | 38.72 s | **11.67 s** |
-| rails/rails | 3,551 | 52.55 s | **16.88 s** | 162.55 s | **63.97 s** |
-| ruby/ruby | 7,466 | 132.17 s | **43.10 s** | 199.78 s | **76.07 s** |
+| Corpus | Files | Offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
+|---|---:|---:|---:|---:|---:|---:|
+| rubocop/rubocop | 1,780 | 5,826 | 12.84 s | **2.49 s** | 46.09 s | **8.01 s** |
+| mastodon/mastodon | 3,292 | 15,293 | 18.66 s | **3.16 s** | 35.88 s | **7.10 s** |
+| Homebrew/brew | 2,296 | 51,527 | 19.58 s | **2.93 s** | 40.25 s | **6.65 s** |
+| rails/rails | 3,562 | 168,615 | 36.24 s | **8.79 s** | 87.41 s | **19.64 s** |
+| ruby/ruby | 7,477 | 765,975 | 97.46 s | **18.28 s** | 191.01 s | **40.58 s** |
 
-The gap is 2.8x to 4.6x in parallel and 2.4x to 3.3x single-process, so no single corpus summarizes
+The gap is 4.1x to 6.7x in parallel and 4.5x to 6.1x single-process, so no single corpus summarizes
 it. **Read the single-process column and treat the parallel one as indicative.** Measuring the same
 two binaries three times over a day put the single-process figures within 16% of each other every
 time, while the parallel ratio on RuboCop's own tree moved between 3.3x and 9.2x purely with what
 else the machine was doing. Single-process measures the engines; parallel measures the engines plus
 how well each one's scheduling happens to fit that tree on that run.
 
-The speed is not bought by skipping work: over those same 394 cops the two agree on **every offense**
-on RuboCop's own tree, on Rails and on Mastodon — 188,812 offenses with nothing on either side of the
-ledger — and autocorrect is byte-identical on the first and the last.
+The speed is not bought by skipping work. Over those same 394 cops the two find the **same number of
+offenses** on every corpus in the table, and on RuboCop's own tree and on Mastodon every one of them
+is at the same position with the same message and severity. Rails, at 168,615 offenses, differs in
+two of them — one `Style/CaseLikeIf` Sonicop reports and one `Metrics/AbcSize` it does not — and
+RuboCop's own tree differs in one offense's `correctable` flag. Autocorrect is byte-identical on the
+first and the last.
 
-Three details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
+Four details matter for reproducing this. RuboCop **silently turns `--parallel` off when combined
 with `--cache false`**, so its parallel runs here use a cache directory that is deleted before each
 run rather than disabled; timing it with `--cache false --parallel` measures a single process and
 overstates the difference. RuboCop's default is a single process, while Sonicop is parallel unless
-`--no-parallel` is passed. And both sides need a **cold** cache: Sonicop caches by default too, so a
-second run over the same tree answers from its own cache and measures nothing about the engine.
-Give each tool a throwaway cache root.
+`--no-parallel` is passed. Both sides need a **cold** cache: Sonicop caches by default too, so a
+second run over the same tree answers from its own cache and measures nothing about the engine —
+give each tool a throwaway cache root. And the cache root must be a **real path**: macOS `mktemp -d`
+returns `/var/folders/…`, whose `/var` is a symlink, and RuboCop refuses such a location and runs
+with no cache at all.
 
 ```bash
 # RuboCop, parallel, cold cache, its full default set of 394 cops
-rubocop --force-default-config --cache true --cache-root "$(mktemp -d)" \
+root=$(mktemp -d /private/tmp/bench.XXXXXX)
+rubocop --force-default-config --cache true --cache-root "$root" \
         --no-color --parallel -f quiet
 
 # Sonicop, cold cache
-sonicop --force-default-config --cache-root "$(mktemp -d)" --format quiet
+sonicop --force-default-config --cache-root "$root" --format quiet
 ```
 
+Writing the cache is part of these numbers, and it is not free: the index holds every offense with
+the source line it was found on, which is 336 MB over `ruby/ruby`. A second run against a warm cache
+answers in 1.88 s there, and in 0.42 s over Rails.
+
 Machine: Apple M2 (8 cores), Ruby 4.0.6 with YJIT available, RubyGems-installed RuboCop 1.89.0.
-The one-minute load average was 4.0 when the run started and 3.1 when it finished — the machine was
-in use, not idle. RuboCop's own tree was re-measured on its own afterwards, at load 3.7 rising to 4.0,
-because the first pass over it ran while a release build was still finishing and its numbers came out
-60% high; a row measured under a different load cannot sit in the same table as the others. Both tools
-ran under the same conditions, so the ratios hold, but the absolute
-seconds are not a floor: expect better on a quiet machine. Anything competing for cores inflates
-both sides, and not by the same factor on each, which is what makes the parallel column move as much
-as it does. If the absolute numbers matter to you, measure on an idle machine and record the load
-either side of the run — a figure without that context cannot be compared with another one.
+Measured on 2026-08-30 against the corpora at `rubocop_rubocop` 2693129, `mastodon_mastodon` b59ddc7,
+`Homebrew_brew` b42173b, `rails_rails` a19f07f and `ruby_ruby` 22e4a75. The one-minute load average
+was between 3.3 and 10.1 as each row was taken — most of it RuboCop's own parallel workers, which is
+inherent to measuring them. **The machine was in use, not idle.** Both tools ran back to back under
+the same conditions on each corpus, so the ratios hold, but the absolute seconds are not a floor:
+expect better on a quiet machine. Anything competing for cores inflates both sides, and not by the
+same factor on each, which is what makes the parallel column move as much as it does. If the
+absolute numbers matter to you, measure on an idle machine and record the load either side of the
+run — a figure without that context cannot be compared with another one.
 
 ## Development
 
