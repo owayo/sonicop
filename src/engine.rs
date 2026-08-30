@@ -553,7 +553,16 @@ fn persist_cache_index(path: &Path, index: &CacheIndex) -> bool {
     let Ok(mut temporary) = NamedTempFile::new_in(parent) else {
         return false;
     };
-    if serde_json::to_writer(temporary.as_file_mut(), index).is_err()
+    // **Buffered.** `serde_json::to_writer` hands the writer each token as it produces it, so an
+    // unbuffered `File` turns one index into millions of `write` calls. The index holds every
+    // offense of every file with the source line it was found on, which is 336 MB over `ruby/ruby`:
+    // writing it a token at a time cost 115 seconds of a 135-second run, nearly all of it blocked
+    // in the kernel rather than serializing.
+    let written = {
+        let mut writer = std::io::BufWriter::with_capacity(1 << 20, temporary.as_file_mut());
+        serde_json::to_writer(&mut writer, index).is_ok() && writer.flush().is_ok()
+    };
+    if !written
         || temporary.as_file_mut().flush().is_err()
         || temporary.as_file().sync_all().is_err()
     {

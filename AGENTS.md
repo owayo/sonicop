@@ -121,6 +121,14 @@ it, a cop rebuilds the same automaton for every file: `Layout/LineLength`'s `URI
 the single largest cop cost of a run until it went through the cache. `grep -n "Regex::new" src/`
 and check that every hit outside a `LazyLock` is either cached or unreachable in a default run.
 
+**The result cache index is one JSON file holding every offense, so it is written buffered.**
+It carries each offense's message and the source line it was found on, which comes to 336 MB over
+`ruby/ruby`. `serde_json::to_writer` hands the writer a token at a time, so pointing it at a bare
+`File` turns one index into millions of `write` calls -- 115 seconds of a 135-second run, all of it
+blocked in the kernel while `user` time stayed flat. A default run has the cache on, so this is the
+path most users are on and the one a `--cache false` comparison never measures. Keep the
+`BufWriter` in `persist_cache_index`, and record `real` beside `user` when timing this path.
+
 **Autocorrect writes to real source files.** Corrections go through a temp file so a killed writer
 cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
 test that inspects the file on disk afterwards, not just the reported offenses.
