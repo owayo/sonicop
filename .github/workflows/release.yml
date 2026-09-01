@@ -41,8 +41,12 @@ jobs:
           # 年は 2 桁。4 桁だとメジャーが 255 を超え、Windows MSI が扱えるバージョン範囲から外れる。
           # 月はゼロ埋めしない。SemVer は数値識別子の先頭ゼロを禁じており、Cargo は "26.08.100" を
           # `invalid leading zero in minor version number` で拒否する。
-          YEAR=$(date +%y)
-          MONTH=$(date +%-m)
+          # 採番は JST で切る。runner の TZ は UTC 固定なので、素の date だと JST 9/1 09:00 に
+          # 押したリリースが UTC 8/31 23:55 と読まれ、月替わりを跨げない (v26.8.113 が実例:
+          # 9 月最初のリリースが 26.9.100 でなく 8 月の連番になった)。JST は UTC より先行する
+          # ため、この固定で採番が過去へ戻ることはない。
+          YEAR=$(TZ=Asia/Tokyo date +%y)
+          MONTH=$(TZ=Asia/Tokyo date +%-m)
 
           # 版の正本は Cargo.toml。読み取りは gem 側と同じパーサに委ねる (別実装を置くと
           # [[bin]] の version を拾うような差異が生まれる)。
