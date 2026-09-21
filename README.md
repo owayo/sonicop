@@ -113,6 +113,8 @@ Reproduce either table with `scripts/conformance_table.rb`.
 
 ## Installation
 
+The gem is published on RubyGems: <https://rubygems.org/gems/sonicop>
+
 ```bash
 gem install sonicop
 ```

@@ -109,6 +109,8 @@ Ruby 3.4 依存の 4 Cop は 3.4 で別途比較し、メッセージと位置�
 
 ## インストール
 
+gem は RubyGems で公開しています: <https://rubygems.org/gems/sonicop>
+
 ```bash
 gem install sonicop
 ```
