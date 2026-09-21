@@ -105,7 +105,7 @@ struct Class {
 
 impl Pattern {
     fn read(node: Node<'_>, context: &RuleContext<'_>) -> Option<Self> {
-        let last = u32::try_from(node.child_count()).ok()?.checked_sub(1)?;
+        let last = node.child_count().checked_sub(1)?;
         let (opening, closing) = (node.child(0)?, node.child(last)?);
         if closing.start_byte() < opening.end_byte() {
             return None;

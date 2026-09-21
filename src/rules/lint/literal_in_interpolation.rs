@@ -344,7 +344,7 @@ fn symbol_content<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &'a str {
         _ => {
             let opener = node.child(0).map_or(0, |open| open.end_byte());
             let closer = node
-                .child(node.child_count().saturating_sub(1) as u32)
+                .child(node.child_count().saturating_sub(1))
                 .map_or(node.end_byte(), |close| close.start_byte());
             &context.source.text()[opener..closer.max(opener)]
         }
@@ -360,7 +360,7 @@ fn array_value(node: Node<'_>, context: &RuleContext<'_>) -> String {
         .child(0)
         .map_or(node.start_byte(), |open| open.end_byte());
     let closer = node
-        .child(node.child_count().saturating_sub(1) as u32)
+        .child(node.child_count().saturating_sub(1))
         .map_or(node.end_byte(), |close| close.start_byte());
     let words: Vec<String> = context.source.text()[opener..closer.max(opener)]
         .split_whitespace()

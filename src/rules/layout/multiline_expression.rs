@@ -209,7 +209,7 @@ impl<'tree> UpNode<'tree> {
                 block
                     .child_count()
                     .checked_sub(1)
-                    .and_then(|last| block.child(last as u32)),
+                    .and_then(|last| block.child(last)),
             )
         {
             return open.start_position().row == close.start_position().row;
@@ -426,7 +426,7 @@ impl<'tree> UpNode<'tree> {
     /// `block_node.loc.end`: the `}` or `end` the block closes with.
     pub(super) fn block_end(self) -> Option<Range<usize>> {
         let block = block_of(self.node)?;
-        let last = block.child(block.child_count().checked_sub(1)? as u32)?;
+        let last = block.child(block.child_count().checked_sub(1)?)?;
         matches!(last.kind_str(), "}" | "end").then(|| last.byte_range())
     }
 

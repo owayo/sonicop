@@ -198,7 +198,7 @@ fn check_right_brace(
 
 fn closing<'tree>(hash: Node<'tree>) -> Option<Node<'tree>> {
     let count = hash.child_count();
-    hash.child(u32::try_from(count).ok()?.checked_sub(1)?)
+    hash.child(count.checked_sub(1)?)
         .filter(|child| child.kind_str() == "}")
 }
 

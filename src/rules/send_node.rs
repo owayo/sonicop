@@ -207,7 +207,7 @@ pub(crate) fn string_text<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> &
     let text = context.source.node_text(node);
     let (Some(open), Some(close)) = (
         node.child(0),
-        node.child(node.child_count().saturating_sub(1) as u32),
+        node.child(node.child_count().saturating_sub(1)),
     ) else {
         return text;
     };

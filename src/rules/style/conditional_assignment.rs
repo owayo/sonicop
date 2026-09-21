@@ -651,7 +651,7 @@ fn literal_interiors(
         }
         let (Some(first), Some(last)) = (
             node.child(0),
-            node.child(u32::try_from(count).unwrap_or(0).saturating_sub(1)),
+            node.child(count.saturating_sub(1)),
         ) else {
             continue;
         };

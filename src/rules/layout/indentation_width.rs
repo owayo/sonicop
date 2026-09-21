@@ -750,7 +750,7 @@ fn has_kind(node: Node<'_>, kind: &str) -> bool {
 }
 
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let count = u32::try_from(node.child_count()).ok()?;
+    let count = node.child_count();
     node.child(count.checked_sub(1)?)
 }
 

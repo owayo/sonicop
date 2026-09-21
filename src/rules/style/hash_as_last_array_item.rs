@@ -109,7 +109,7 @@ fn unwrap(context: &RuleContext<'_>, array: Node<'_>, last: &Value<'_>) -> Offen
     if let Some(node) = last.node
         && let (Some(open), Some(close)) = (
             node.child(0),
-            node.child(node.child_count().saturating_sub(1) as u32),
+            node.child(node.child_count().saturating_sub(1)),
         )
     {
         edits.push(Edit {

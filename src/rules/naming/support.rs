@@ -47,7 +47,7 @@ fn field(node: Node<'_>) -> Option<&'static str> {
     }
     loop {
         if cursor.node().id() == node.id() {
-            return cursor.field_name();
+            return super::super::field_name_for_id(cursor.field_id());
         }
         if !cursor.goto_next_sibling() {
             return None;

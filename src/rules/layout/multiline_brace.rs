@@ -348,7 +348,7 @@ pub(super) fn delimiters<'tree>(
     let open = node
         .child(0)
         .filter(|child| openers.contains(&child.kind_str()))?;
-    let last = u32::try_from(node.child_count()).ok()?.checked_sub(1)?;
+    let last = node.child_count().checked_sub(1)?;
     let close = node
         .child(last)
         .filter(|child| child.start_byte() > open.start_byte())?;

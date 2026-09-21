@@ -108,7 +108,7 @@ fn semantic_change(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<Edit
         return None;
     }
     let keyword = (0..parent.child_count())
-        .filter_map(|index| parent.child(index as u32))
+        .filter_map(|index| parent.child(index))
         .find(|child| context.source.node_text(*child) == "unless")?;
     let receiver = node.field("receiver")?;
     Some(vec![

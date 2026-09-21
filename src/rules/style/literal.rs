@@ -419,7 +419,7 @@ pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<De
         "character" => Some(decode(text.trim_start_matches('?'), Quoting::Double, &[])),
         "string" | "delimited_symbol" | "subshell" => {
             let begin = node.child(0)?;
-            let close = node.child(node.child_count().saturating_sub(1) as u32)?;
+            let close = node.child(node.child_count().saturating_sub(1))?;
             if begin.id() == close.id() {
                 return None;
             }
@@ -443,7 +443,7 @@ pub(super) fn node_value(context: &RuleContext<'_>, node: Node<'_>) -> Option<De
             let opener = context.source.node_text(array.child(0)?);
             let closing = context
                 .source
-                .node_text(array.child(array.child_count().saturating_sub(1) as u32)?)
+                .node_text(array.child(array.child_count().saturating_sub(1))?)
                 .chars()
                 .next()?;
             let uppercase = opener

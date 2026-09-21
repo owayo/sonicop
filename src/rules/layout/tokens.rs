@@ -322,9 +322,7 @@ fn delimiter_kind(literal: Node<'_>, part: Node<'_>) -> TokenKind {
     if literal.kind_str() != "string" {
         return TokenKind::Other;
     }
-    let last = u32::try_from(literal.child_count())
-        .unwrap_or(0)
-        .saturating_sub(1);
+    let last = literal.child_count().saturating_sub(1);
     if literal.child(0) == Some(part) {
         return TokenKind::StringBegin;
     }

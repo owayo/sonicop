@@ -96,7 +96,7 @@ fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     while current.kind_str() == "elsif" {
         current = current.parent()?;
     }
-    let last = current.child(current.child_count().checked_sub(1)? as u32)?;
+    let last = current.child(current.child_count().checked_sub(1)?)?;
     (last.kind_str() == "end").then_some(last)
 }
 

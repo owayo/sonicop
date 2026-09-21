@@ -200,6 +200,6 @@ fn then_keyword<'tree>(node: Node<'tree>, context: &'tree RuleContext<'_>) -> Op
 
 /// `node.loc.end`: the `end` keyword, which an `elsif` borrows from the `if` it belongs to.
 fn end_keyword<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
-    let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+    let last = node.child(node.child_count().checked_sub(1)?)?;
     (context.source.node_text(last) == "end").then_some(last)
 }

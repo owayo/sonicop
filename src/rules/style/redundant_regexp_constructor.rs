@@ -67,7 +67,7 @@ fn literal_parts(node: Node<'_>, context: &RuleContext<'_>) -> Option<(String, S
         return None;
     }
     let opening = node.child(0)?;
-    let closing = node.child(u32::try_from(node.child_count().checked_sub(1)?).ok()?)?;
+    let closing = node.child(node.child_count().checked_sub(1)?)?;
     if opening.id() == closing.id() {
         return None;
     }

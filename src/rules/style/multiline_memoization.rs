@@ -27,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         let (Some(open), Some(close)) = (
             right.child(0),
-            right.child(right.child_count().saturating_sub(1) as u32),
+            right.child(right.child_count().saturating_sub(1)),
         ) else {
             continue;
         };

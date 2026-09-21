@@ -28,7 +28,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             // The offense covers the `rescue` keyword and what follows it, not the guarded body.
             "rescue_modifier" => {
                 let keyword = (0..node.child_count())
-                    .filter_map(|index| node.child(index as u32))
+                    .filter_map(|index| node.child(index))
                     .find(|child| context.source.node_text(*child) == "rescue");
                 match keyword {
                     Some(keyword) => keyword.start_byte()..node.end_byte(),

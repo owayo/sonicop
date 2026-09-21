@@ -1,5 +1,6 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::num::NonZeroU16;
 use std::ops::Range;
 use std::sync::LazyLock;
 
@@ -572,11 +573,19 @@ impl<'a> Iterator for Children<'a> {
 /// Every field name the grammar has, by field id, so a recorded id can be turned back into the
 /// `&'static str` the cops compare against.
 static FIELD_NAMES: LazyLock<Vec<Option<&'static str>>> = LazyLock::new(|| {
-    let language = node_ext::language();
-    (0..=language.field_count() as u16)
-        .map(|id| language.field_name_for_id(id))
+    (0..=node_ext::LANGUAGE.field_count() as u16)
+        .map(|id| node_ext::LANGUAGE.field_name_for_id(id))
         .collect()
 });
+
+/// The field name a field id stands for, for a node the index does not know.
+///
+/// `TreeCursor::field_name` answers the same question, but since tree-sitter 0.27 its answer
+/// borrows from the tree, and the callers hand the name on as `&'static str`. Going through the
+/// table keeps the lifetime and skips the C lookup besides.
+pub(in crate::rules) fn field_name_for_id(id: Option<NonZeroU16>) -> Option<&'static str> {
+    FIELD_NAMES.get(id?.get() as usize).copied().flatten()
+}
 
 /// The value [`AstIndex::parent_of`] carries for the root.
 const NO_PARENT: u32 = u32::MAX;
@@ -917,7 +926,7 @@ fn merge_touching_ranges(ranges: &mut Vec<Range<usize>>) {
 mod tests {
     use std::collections::HashSet;
 
-    use super::{AstIndex, merge_touching_ranges, rule_names, rules};
+    use super::{AstIndex, field_name_for_id, merge_touching_ranges, rule_names, rules};
     use crate::config::Config;
     use crate::rules::node_ext::NodeExt;
     use crate::source::is_protected;
@@ -1088,5 +1097,52 @@ mod tests {
         let first: Vec<&str> = rule_names().collect();
         let second: Vec<&str> = rules().map(|rule| rule.name).collect();
         assert_eq!(first, second);
+    }
+
+    /// The table has to answer what `TreeCursor::field_name` answers, for every node of a real
+    /// file and for a node of a tree the index never saw.
+    ///
+    /// Five cops read the field a node fills out of the table rather than off the cursor, because
+    /// since tree-sitter 0.27 the cursor's answer borrows from the tree while theirs is
+    /// `&'static str`. A field the table named differently would make a cop tell the two sides of
+    /// a range apart wrongly, which is what the field is there for.
+    #[test]
+    fn the_field_table_answers_what_the_cursor_answers() {
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&tree_sitter_ruby::LANGUAGE.into())
+            .expect("the Ruby grammar loads");
+        let tree = parser
+            .parse(
+                "class Foo\n  def bar(a = 1, &block)\n    @x ||= a.map { |v| v[1..] }\n\
+                 rescue StandardError => e\n    raise e if 10.. === a\n  end\nend\n",
+                None,
+            )
+            .expect("the source parses");
+
+        let mut stack = vec![tree.root_node()];
+        let (mut seen, mut named) = (0, 0);
+        while let Some(node) = stack.pop() {
+            let mut cursor = node.walk();
+            if !cursor.goto_first_child() {
+                continue;
+            }
+            loop {
+                assert_eq!(
+                    field_name_for_id(cursor.field_id()),
+                    cursor.field_name(),
+                    "field of {:?} under {node:?}",
+                    cursor.node()
+                );
+                seen += 1;
+                named += usize::from(cursor.field_name().is_some());
+                stack.push(cursor.node());
+                if !cursor.goto_next_sibling() {
+                    break;
+                }
+            }
+        }
+        assert!(seen > 30, "the sample has to reach a variety of children");
+        assert!(named > 10, "and enough of them have to fill a field");
     }
 }

@@ -833,7 +833,7 @@ fn endless_in_block_recovery(node: Node<'_>, context: &RuleContext<'_>, out: &mu
         return;
     };
     let Some(brace) = block
-        .child(block.child_count().saturating_sub(1) as u32)
+        .child(block.child_count().saturating_sub(1))
         .filter(|last| last.kind_str() == "}")
     else {
         return;

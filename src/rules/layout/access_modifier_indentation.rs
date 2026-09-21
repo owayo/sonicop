@@ -103,6 +103,6 @@ fn body_container<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 fn closing_brace<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+    let last = node.child(node.child_count().checked_sub(1)?)?;
     (last.kind_str() == "}").then_some(last)
 }

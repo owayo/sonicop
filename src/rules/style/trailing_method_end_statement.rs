@@ -7,7 +7,7 @@ const MSG: &str = "Place the end statement of a multi-line method on its own lin
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         let Some(end) = node
-            .child(node.child_count().saturating_sub(1) as u32)
+            .child(node.child_count().saturating_sub(1))
             .filter(|last| last.kind_str() == "end")
         else {
             continue;

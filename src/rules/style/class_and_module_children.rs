@@ -164,7 +164,7 @@ fn nested_correction(
     name: Node<'_>,
 ) -> Option<Vec<Edit>> {
     let keyword = node.child(0)?;
-    let closing = node.child(node.child_count().saturating_sub(1) as u32)?;
+    let closing = node.child(node.child_count().saturating_sub(1))?;
     if closing.kind_str() != "end" {
         return None;
     }
@@ -229,7 +229,7 @@ fn compact_correction(
     }
     let keyword = node.child(0)?;
     let inner_name = inner.field("name")?;
-    let inner_end = inner.child(inner.child_count().saturating_sub(1) as u32)?;
+    let inner_end = inner.child(inner.child_count().saturating_sub(1))?;
     if inner_end.kind_str() != "end" {
         return None;
     }

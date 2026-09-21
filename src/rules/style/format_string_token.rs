@@ -100,7 +100,7 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
 
     for node in context.nodes_of("string") {
         let Some(open) = node.child(0) else { continue };
-        let Some(close) = node.child(node.child_count().saturating_sub(1) as u32) else {
+        let Some(close) = node.child(node.child_count().saturating_sub(1)) else {
             continue;
         };
         // `"%s" %[a]` is a `send` upstream: the second literal is the operator's argument, not a
@@ -134,7 +134,7 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
             continue;
         };
         let end = node
-            .child(node.child_count().saturating_sub(1) as u32)
+            .child(node.child_count().saturating_sub(1))
             .filter(|child| child.kind_str() == "heredoc_end")
             .map_or(node.end_byte(), |child| child.start_byte());
         let quoted = context.source.node_text(*anchor).contains('\'');

@@ -114,7 +114,7 @@ impl<'a> Literal<'a> {
             return None;
         }
         let begin = node.child(0)?;
-        let close = node.child(node.child_count().saturating_sub(1) as u32)?;
+        let close = node.child(node.child_count().saturating_sub(1))?;
         if begin.id() == close.id() {
             return None;
         }

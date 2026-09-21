@@ -174,7 +174,10 @@ fn named_children_with_fields<'tree>(
     }
     loop {
         if cursor.node().is_named() {
-            children.push((cursor.field_name(), cursor.node()));
+            children.push((
+                super::super::field_name_for_id(cursor.field_id()),
+                cursor.node(),
+            ));
         }
         if !cursor.goto_next_sibling() {
             return children;
@@ -299,7 +302,7 @@ fn quoted_value(node: Node<'_>, context: &RuleContext<'_>) -> Option<Vec<u8>> {
         return None;
     }
     let open = node.child(0)?;
-    let close = node.child(u32::try_from(node.child_count()).ok()?.saturating_sub(1))?;
+    let close = node.child(node.child_count().saturating_sub(1))?;
     if open.id() == close.id() || close.start_byte() < open.end_byte() {
         return None;
     }

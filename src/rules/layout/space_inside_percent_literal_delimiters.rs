@@ -92,7 +92,7 @@ fn push(
 /// The literal's opening and closing delimiter spans.
 fn delimiters(node: Node<'_>) -> Option<(Range<usize>, Range<usize>)> {
     let first = node.child(0)?;
-    let last = node.child(u32::try_from(node.child_count()).ok()?.saturating_sub(1))?;
+    let last = node.child(node.child_count().saturating_sub(1))?;
     if first.end_byte() > last.start_byte() {
         return None;
     }

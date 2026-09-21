@@ -98,9 +98,9 @@ fn report(
 fn closing_end(node: Node<'_>, context: &RuleContext<'_>) -> Option<usize> {
     let mut current = Some(node);
     while let Some(candidate) = current {
-        let last = u32::try_from(candidate.child_count())
-            .ok()
-            .and_then(|count| count.checked_sub(1))
+        let last = candidate
+            .child_count()
+            .checked_sub(1)
             .and_then(|index| candidate.child(index));
         if let Some(last) = last
             && !last.is_named()

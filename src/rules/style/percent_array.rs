@@ -31,7 +31,7 @@ pub(super) fn elements(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Element
     let Some(begin) = node.child(0) else {
         return Vec::new();
     };
-    let Some(close) = node.child(node.child_count().saturating_sub(1) as u32) else {
+    let Some(close) = node.child(node.child_count().saturating_sub(1)) else {
         return Vec::new();
     };
     if begin.id() == close.id() {
@@ -256,7 +256,7 @@ pub(super) fn percent_values(
     };
     let opener = context.source.node_text(begin);
     let closing = node
-        .child(node.child_count().saturating_sub(1) as u32)
+        .child(node.child_count().saturating_sub(1))
         .and_then(|close| context.source.node_text(close).chars().next())
         .unwrap_or(']');
     let quoting = match opener.chars().nth(1) {
@@ -286,7 +286,7 @@ pub(super) fn bracketed_replacement(
         .child(0)
         .map_or(node.start_byte(), |child| child.end_byte());
     let end = node
-        .child(node.child_count().saturating_sub(1) as u32)
+        .child(node.child_count().saturating_sub(1))
         .map_or(node.end_byte(), |child| child.start_byte());
     let leading = &text[begin..items[0].range.start];
     let between = match items.len() >= 2 {

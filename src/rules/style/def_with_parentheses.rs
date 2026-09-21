@@ -49,7 +49,7 @@ fn parentheses_required(context: &RuleContext<'_>, node: Node<'_>, parameters: N
     }
     let single_line = node.start_position().row == node.end_position().row;
     let endless = !node
-        .child(node.child_count().saturating_sub(1) as u32)
+        .child(node.child_count().saturating_sub(1))
         .is_some_and(|last| last.kind_str() == "end");
     if single_line && !endless {
         return true;

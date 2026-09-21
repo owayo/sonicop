@@ -265,7 +265,7 @@ fn last_argument<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 
 /// The closing bracket of a literal, which is where the range upstream searches ends.
 pub(super) fn closing_bracket<'tree>(node: Node<'tree>, bracket: &str) -> Option<Node<'tree>> {
-    let last = node.child(node.child_count().saturating_sub(1) as u32)?;
+    let last = node.child(node.child_count().saturating_sub(1))?;
     (last.kind_str() == bracket).then_some(last)
 }
 

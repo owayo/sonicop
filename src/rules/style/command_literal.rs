@@ -18,7 +18,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.heredoc?`: a `<<`CMD`` opens a heredoc, which the grammar spells as its own node.
         let (Some(open), Some(close)) = (
             node.child(0),
-            node.child(node.child_count().saturating_sub(1) as u32),
+            node.child(node.child_count().saturating_sub(1)),
         ) else {
             continue;
         };

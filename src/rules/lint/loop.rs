@@ -24,8 +24,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             Some(keyword) => keyword,
             None => continue,
         };
-        let last = u32::try_from(body.child_count())
-            .unwrap_or(0)
+        let last = body.child_count()
             .saturating_sub(1);
         let (Some(open), Some(close)) = (body.child(0), body.child(last)) else {
             continue;

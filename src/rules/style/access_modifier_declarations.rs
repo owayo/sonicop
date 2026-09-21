@@ -384,7 +384,7 @@ impl<'tree> Cop<'_, 'tree> {
         let mut current = node;
         while let Some(parent) = current.parent() {
             if matches!(parent.kind_str(), "class" | "module" | "singleton_class") {
-                let last = u32::try_from(parent.child_count()).ok()?.checked_sub(1)?;
+                let last = parent.child_count().checked_sub(1)?;
                 return parent.child(last).filter(|end| end.kind_str() == "end");
             }
             current = parent;

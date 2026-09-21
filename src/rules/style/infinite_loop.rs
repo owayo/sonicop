@@ -138,7 +138,7 @@ fn correct(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<Edit>> {
     }
     // `post_condition_loop?`: a `begin ... end` body runs once before the condition is read.
     if body.kind_str() == "begin" {
-        let last = u32::try_from(body.child_count()).ok()?.checked_sub(1)?;
+        let last = body.child_count().checked_sub(1)?;
         let (open, close) = (body.child(0)?, body.child(last)?);
         if open.kind_str() != "begin" || close.kind_str() != "end" {
             return None;

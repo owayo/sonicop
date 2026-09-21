@@ -80,7 +80,7 @@ fn correct_parent(
 ) {
     if let Some(block) = parent.field("block") {
         // The call already carries a block: its `end` closes the class instead.
-        let Some(end) = block.child(block.child_count().saturating_sub(1) as u32) else {
+        let Some(end) = block.child(block.child_count().saturating_sub(1)) else {
             return;
         };
         edits.push(Edit {

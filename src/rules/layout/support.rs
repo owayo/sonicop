@@ -487,10 +487,7 @@ pub(super) fn string_interiors(
         if count < 2 {
             continue;
         }
-        let (Some(first), Some(last)) = (
-            node.child(0),
-            node.child(u32::try_from(count).unwrap_or(0).saturating_sub(1)),
-        ) else {
+        let (Some(first), Some(last)) = (node.child(0), node.child(count.saturating_sub(1))) else {
             continue;
         };
         if first.end_byte() <= last.start_byte() {
@@ -810,7 +807,7 @@ pub(super) fn end_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
 }
 
 fn last_child<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)
+    node.child(node.child_count().checked_sub(1)?)
 }
 
 /// `start_line_range`: the line an offset sits on, without its indentation or its trailing blanks.

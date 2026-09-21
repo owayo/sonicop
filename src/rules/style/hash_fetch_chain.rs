@@ -120,6 +120,6 @@ fn is_empty_default(argument: &Argument<'_>, context: &RuleContext<'_>) -> bool 
 /// The `)` that closes a call's argument list.
 fn closing_paren(node: Node<'_>) -> Option<usize> {
     let list = node.field("arguments")?;
-    let last = list.child(list.child_count().checked_sub(1)? as u32)?;
+    let last = list.child(list.child_count().checked_sub(1)?)?;
     (last.kind_str() == ")").then(|| last.end_byte())
 }

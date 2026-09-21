@@ -179,6 +179,6 @@ fn closing_delimiter(list: Node<'_>) -> Option<usize> {
     if first.kind_str() != "(" {
         return None;
     }
-    let last = list.child(u32::try_from(list.child_count()).ok()?.checked_sub(1)?)?;
+    let last = list.child(list.child_count().checked_sub(1)?)?;
     (last.kind_str() == ")").then(|| last.start_byte())
 }

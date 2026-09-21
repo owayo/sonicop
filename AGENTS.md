@@ -115,6 +115,25 @@ either way. `the_index_answers_what_the_parser_answers` holds the two to that.
 The cursor forms are still there, because a helper without a context in reach cannot use the index.
 **Reach for the index form when the context is at hand**; the difference is not small.
 
+**The grammar lives in a `static`, and that is what makes a kind name `&'static str`.** Since
+tree-sitter 0.27 the name tables borrow from the `Language` they were read out of -- `Node::kind`,
+`TreeCursor::field_name`, `Language::node_kind_for_id` and `Language::field_name_for_id` all
+returned `&'static str` before it and return a tied borrow now. `NodeExt::kind_str` is compared
+against a literal at some 3,600 call sites and several helpers hand the field name on as
+`&'static str`, so the answer has to outlive the tree it came from. `node_ext::LANGUAGE` is the one
+`Language` the process holds; `KIND_NAMES` and `FIELD_NAMES` are built from it, and both keep
+answering `&'static str` because a `static` is never dropped. **Do not build a `Language` per call
+to read a name out of it** -- the borrow will not outlive the call.
+
+Two consequences worth knowing. `ERROR` and `_ERROR` carry ids above `node_kind_count()` (65535 and
+65534 against 368 kinds), so they are named by `kind_str`'s fallback rather than by the table, and
+`Lint/Syntax` rests on that name: `an_error_node_is_named_the_way_the_parser_names_it` holds it to
+what the parser says. And a field is read out of `FIELD_NAMES` by id rather than off the cursor --
+`crate::rules::field_name_for_id(cursor.field_id())`, which
+`the_field_table_answers_what_the_cursor_answers` holds to `TreeCursor::field_name`. Field ids mean
+the same thing in every tree built from the same grammar, so this holds for the extra trees
+`Metrics` parses too.
+
 **A pattern built from the configuration cannot live in a `LazyLock`, so it needs the cache.**
 `crate::rules::regex_cache::compiled` keeps a compiled pattern for the life of the process. Without
 it, a cop rebuilds the same automaton for every file: `Layout/LineLength`'s `URISchemes` regex was

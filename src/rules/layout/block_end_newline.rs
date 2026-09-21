@@ -69,7 +69,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// `node.loc.end`: the `}` or `end` the block closes with.
 fn closing_keyword<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+    let last = node.child(node.child_count().checked_sub(1)?)?;
     matches!(last.kind_str(), "}" | "end").then_some(last)
 }
 

@@ -7,11 +7,11 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::ruby_literal::{string_value, unescape};
+use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_iter;
 use crate::rules::send_node::{
     Argument, arguments, has_interpolation, heredoc_body, send_range, symbol_name,
 };
-use crate::rules::send_node::all_children_of;
-use crate::rules::send_node::named_children_iter;
 
 /// `RESTRICT_ON_SEND`.
 const FORMAT_METHODS: &[&str] = &["format", "sprintf"];

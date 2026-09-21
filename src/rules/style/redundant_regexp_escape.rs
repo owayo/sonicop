@@ -60,7 +60,7 @@ struct Literal {
 impl Literal {
     fn read(context: &RuleContext<'_>, node: Node<'_>) -> Option<Self> {
         let opening = node.child(0)?;
-        let closing = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+        let closing = node.child(node.child_count().checked_sub(1)?)?;
         if closing.start_byte() < opening.end_byte() {
             return None;
         }

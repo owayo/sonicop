@@ -394,7 +394,7 @@ fn csend_root_receiver<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> O
 fn is_safe_navigation(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     node.kind_str() == "call"
         && (0..node.child_count())
-            .filter_map(|index| node.child(index as u32))
+            .filter_map(|index| node.child(index))
             .any(|child| context.source.node_text(child) == "&.")
 }
 

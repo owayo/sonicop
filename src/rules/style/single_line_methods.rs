@@ -60,7 +60,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         }
         // An endless definition closes with its body rather than an `end`, and is already one line
         // by design.
-        let Some(closing) = node.child(node.child_count().saturating_sub(1) as u32) else {
+        let Some(closing) = node.child(node.child_count().saturating_sub(1)) else {
             continue;
         };
         if closing.kind_str() != "end" {

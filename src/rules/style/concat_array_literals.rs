@@ -128,7 +128,7 @@ fn preferred_method(arrays: &[(ArrayKind, Node<'_>)], context: &RuleContext<'_>)
 /// The `[` and the `]` of an array literal, which the correction drops.
 fn brackets(node: Node<'_>) -> Option<(std::ops::Range<usize>, std::ops::Range<usize>)> {
     let open = node.child(0)?;
-    let close = node.child(node.child_count().checked_sub(1)? as u32)?;
+    let close = node.child(node.child_count().checked_sub(1)?)?;
     (open.id() != close.id()).then(|| (open.byte_range(), close.byte_range()))
 }
 

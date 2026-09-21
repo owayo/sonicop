@@ -75,7 +75,7 @@ impl<'tree> Block<'_, 'tree> {
 
     /// `node.loc.end`: the `end` or the `}`.
     fn closing(&self) -> Option<Node<'tree>> {
-        let count = u32::try_from(self.braces.child_count()).ok()?;
+        let count = self.braces.child_count();
         self.braces.child(count.checked_sub(1)?)
     }
 

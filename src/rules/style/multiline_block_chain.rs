@@ -41,7 +41,7 @@ fn chained_block_end<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Opt
     if block.start_position().row == block.end_position().row {
         return None;
     }
-    block.child(block.child_count().checked_sub(1)? as u32)
+    block.child(block.child_count().checked_sub(1)?)
 }
 
 /// The receiver of the node, for the shapes the grammar writes a call with one in. `a && b` is an

@@ -1603,7 +1603,7 @@ fn field_name(
     }
     loop {
         if cursor.node().id() == child.id() {
-            return cursor.field_name();
+            return super::super::field_name_for_id(cursor.field_id());
         }
         if !cursor.goto_next_sibling() {
             return None;

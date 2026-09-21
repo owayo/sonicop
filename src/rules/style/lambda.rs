@@ -107,7 +107,7 @@ impl<'tree> Lambda<'tree> {
 
     fn block_end(&self) -> Option<Node<'tree>> {
         self.body
-            .child(self.body.child_count().saturating_sub(1) as u32)
+            .child(self.body.child_count().saturating_sub(1))
     }
 
     fn braces(&self) -> bool {

@@ -289,7 +289,7 @@ fn plain_body<'a>(
         ));
     }
     let first = node.child(0)?;
-    let last = node.child(node.child_count().saturating_sub(1) as u32)?;
+    let last = node.child(node.child_count().saturating_sub(1))?;
     if first.id() == last.id() {
         return None;
     }
@@ -443,7 +443,7 @@ fn written_on_one_line(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     let Some(first) = node.child(0) else {
         return true;
     };
-    let last = node.child(node.child_count().saturating_sub(1) as u32);
+    let last = node.child(node.child_count().saturating_sub(1));
     let Some(last) = last.filter(|last| last.id() != first.id()) else {
         return true;
     };

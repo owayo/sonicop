@@ -279,7 +279,7 @@ fn is_plain_string(node: Node<'_>) -> bool {
 
 /// `node.loc.end`: the `}` or `end` a hash or a block closes with.
 fn closing_delimiter<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
-    let last = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+    let last = node.child(node.child_count().checked_sub(1)?)?;
     matches!(last.kind_str(), "}" | "end").then_some(last)
 }
 

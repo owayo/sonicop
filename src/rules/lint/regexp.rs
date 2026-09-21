@@ -20,7 +20,7 @@ pub(super) struct Captures {
 /// The text between a regexp literal's delimiters, and whether it was written with the `x` flag.
 pub(super) fn pattern<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<(&'a str, bool)> {
     let opening = node.child(0)?;
-    let closing = node.child(u32::try_from(node.child_count()).ok()?.checked_sub(1)?)?;
+    let closing = node.child(node.child_count().checked_sub(1)?)?;
     if closing.start_byte() < opening.end_byte() {
         return None;
     }

@@ -176,7 +176,7 @@ fn corrections(
             safe: true,
         });
     } else if let Some(end) = conditional
-        .child(conditional.child_count().saturating_sub(1) as u32)
+        .child(conditional.child_count().saturating_sub(1))
         .filter(|end| context.source.node_text(*end) == "end")
     {
         edits.push(Edit {

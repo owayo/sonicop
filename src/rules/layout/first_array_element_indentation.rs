@@ -174,7 +174,7 @@ fn check_right_bracket(
 fn closing<'tree>(array: Node<'tree>) -> Option<Node<'tree>> {
     let count = array.child_count();
     array
-        .child(u32::try_from(count).ok()?.checked_sub(1)?)
+        .child(count.checked_sub(1)?)
         .filter(|child| matches!(child.kind_str(), "]" | ")"))
 }
 

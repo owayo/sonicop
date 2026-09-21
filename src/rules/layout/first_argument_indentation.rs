@@ -286,7 +286,7 @@ fn dispatch(context: &RuleContext<'_>, call: Node<'_>) -> Option<SendParent> {
 /// `node.loc.end`: the parenthesis a call's argument list closes with.
 fn closing_parenthesis<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
     let list = call.field("arguments")?;
-    let last = list.child(u32::try_from(list.child_count()).ok()?.checked_sub(1)?)?;
+    let last = list.child(list.child_count().checked_sub(1)?)?;
     (last.kind_str() == ")").then_some(last)
 }
 

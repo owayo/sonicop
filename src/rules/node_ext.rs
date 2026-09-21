@@ -17,9 +17,14 @@ use tree_sitter::{Language, Node};
 
 use crate::rules::RuleContext;
 
-pub(in crate::rules) fn language() -> Language {
-    tree_sitter_ruby::LANGUAGE.into()
-}
+/// The grammar itself, resolved once and kept for the life of the process.
+///
+/// Since tree-sitter 0.27 the name tables borrow from the `Language` they were read out of rather
+/// than being `&'static str` outright, so a `Language` built per call cannot outlive the name it
+/// hands back. Holding it in a `static` is what lets [`NodeExt::kind_str`] and `FIELD_NAMES` keep
+/// answering `&'static str`, which the several thousand call sites compare against.
+pub(in crate::rules) static LANGUAGE: LazyLock<Language> =
+    LazyLock::new(|| tree_sitter_ruby::LANGUAGE.into());
 
 /// The field ids the codebase asks for, resolved from the grammar once.
 ///
@@ -31,9 +36,8 @@ macro_rules! field_ids {
         struct FieldIds { $($field: u16,)+ }
 
         static FIELD_IDS: LazyLock<FieldIds> = LazyLock::new(|| {
-            let language = language();
             FieldIds {
-                $($field: language
+                $($field: LANGUAGE
                     .field_id_for_name($name)
                     .map_or(0, NonZeroU16::get),)+
             }
@@ -79,10 +83,9 @@ field_ids! {
 
 /// Every node kind the grammar can produce, indexed by the id `Node::kind_id` answers with.
 static KIND_NAMES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-    let language = language();
-    (0..language.node_kind_count())
+    (0..LANGUAGE.node_kind_count())
         .map(|id| {
-            language
+            LANGUAGE
                 .node_kind_for_id(id as u16)
                 .expect("every id below the count names a kind")
         })
@@ -106,10 +109,14 @@ impl<'tree> NodeExt<'tree> for Node<'tree> {
     fn kind_str(&self) -> &'static str {
         match KIND_NAMES.get(self.kind_id() as usize) {
             Some(kind) => kind,
-            // A kind the table does not carry cannot happen for a tree this grammar produced, but
-            // answering from the C API rather than panicking keeps a grammar upgrade from taking
-            // the run down.
-            None => self.kind(),
+            // `ERROR` and `_ERROR` carry ids above the kind count -- 65535 and 65534 against 368
+            // kinds -- so this arm is the ordinary path for them, and `ts_language_symbol_name`
+            // names both. It asks the grammar the same question `Node::kind` does, through the
+            // `static` so the answer is still `'static`. The `unwrap_or` is for an id neither the
+            // table nor the grammar knows, which no node this grammar produced can carry: `ERROR`
+            // is the honest name for a node that cannot be placed, and `Node::kind` would abort
+            // the run there.
+            None => LANGUAGE.node_kind_for_id(self.kind_id()).unwrap_or("ERROR"),
         }
     }
 
@@ -130,12 +137,12 @@ impl<'tree> NodeExt<'tree> for Node<'tree> {
 
 #[cfg(test)]
 mod tests {
-    use super::{NodeExt, language};
+    use super::{LANGUAGE, NodeExt};
     use tree_sitter::Parser;
 
     fn tree(source: &str) -> tree_sitter::Tree {
         let mut parser = Parser::new();
-        parser.set_language(&language()).unwrap();
+        parser.set_language(&LANGUAGE).unwrap();
         parser.parse(source, None).unwrap()
     }
 
@@ -186,5 +193,29 @@ mod tests {
     fn an_unknown_field_answers_none() {
         let tree = tree("a.b(1)\n");
         assert!(tree.root_node().field("nonexistent").is_none());
+    }
+
+    /// `ERROR` carries a kind id above the kind count, so it is the fallback arm of
+    /// [`NodeExt::kind_str`] that names it -- and `Lint/Syntax` rests on that name. The arm was a
+    /// call to `Node::kind` until tree-sitter 0.27 tied that answer's lifetime to the tree; this
+    /// holds the grammar's table to the same answer.
+    #[test]
+    fn an_error_node_is_named_the_way_the_parser_names_it() {
+        let tree = tree("def foo(\n");
+        let mut stack = vec![tree.root_node()];
+        let mut errors = 0;
+        while let Some(node) = stack.pop() {
+            if node.is_error() {
+                assert!(
+                    (node.kind_id() as usize) >= LANGUAGE.node_kind_count(),
+                    "an id the table carries would not reach the fallback arm"
+                );
+                assert_eq!(node.kind_str(), node.kind(), "kind of {node:?}");
+                errors += 1;
+            }
+            let mut cursor = node.walk();
+            stack.extend(node.children(&mut cursor));
+        }
+        assert!(errors > 0, "the sample has to reach an ERROR node");
     }
 }

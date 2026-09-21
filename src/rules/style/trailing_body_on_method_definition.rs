@@ -10,7 +10,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // `node.endless?`: a definition without an `end` has its body on the signature's line by
         // construction.
         if !node
-            .child(node.child_count().saturating_sub(1) as u32)
+            .child(node.child_count().saturating_sub(1))
             .is_some_and(|last| last.kind_str() == "end")
         {
             continue;
