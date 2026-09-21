@@ -157,8 +157,12 @@ fn with_comments_and_lines(context: &RuleContext<'_>, node: Node<'_>) -> Range<u
 /// above it.
 fn leading_comments(context: &RuleContext<'_>, node: Node<'_>) -> Vec<Range<usize>> {
     let source = context.source;
-    let (line, column) = source.line_column(node.start_byte());
-    if !source.line(line)[..column - 1].trim().is_empty() {
+    let (line, _) = source.line_column(node.start_byte());
+    // The column `line_column` reports counts characters, and the line is sliced by bytes, so what
+    // stands before the node is measured against the line's own start rather than that column -- a
+    // line opening with a multi-byte character would otherwise be sliced inside it.
+    let before = &source.line(line)[..node.start_byte() - source.line_start(line)];
+    if !before.trim().is_empty() {
         return Vec::new();
     }
     let mut comments = Vec::new();

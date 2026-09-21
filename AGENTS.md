@@ -70,6 +70,15 @@ arithmetic are pulled back to a boundary rather than sliced — see `SourceFile:
 `diagnostic::character_length`. Lengths reported to the user are counted in characters, because
 that is the unit RuboCop reports.
 
+**The column `line_column` returns is one of those characters, and `line` is sliced by bytes**, so
+`source.line(line)[..column - 1]` is the trap the two units make: it reads as "the text before the
+node" and is right for every ASCII line. Two cops carried it — `Style/AccessModifierDeclarations`
+and `Style/RequireOrder`, both asking whether anything precedes a node on its own line — and both
+aborted the run on a line opening with a multi-byte character. Measure against the line's own start
+instead, the way `rules/lint/cop_directives.rs` does:
+`[..node.start_byte() - source.line_start(line)]`. Both sides of that subtraction are byte offsets,
+so no unit converts.
+
 **Display width is generated, not written.** `src/display_width_table.rs` is produced from the
 `unicode-display_width` gem by `scripts/dump_display_width.rb`; do not hand-edit it. A hand-written
 table stood there before and drifted — it counted the combining marks U+3099/U+309A as two columns,

@@ -20372,6 +20372,27 @@ mod access_modifier_declarations {
             "#,
         );
     }
+
+    /// 同じ行の手前にマルチバイト文字があっても落ちない。
+    ///
+    /// 直上コメントの探索は「その行で修飾子より前に何か書かれているか」を見るが、
+    /// `line_column` が返す桁は**文字数**で、行は**バイト**で切る。桁をバイト位置として
+    /// 使うと `あ` の内側で切れて panic した。期待値は本家 1.89.0 の実測
+    /// (line 2 / column 3 / length 7)。
+    #[test]
+    fn a_multi_byte_character_before_the_modifier_neither_panics_nor_moves_the_offense() {
+        CopCase::new(
+            COP,
+            "class Foo\nあ;private def bar; end\nend\n".to_owned(),
+            vec![Annotation::new(
+                2,
+                3,
+                7,
+                "`private` should not be inlined in method definitions.",
+            )],
+        )
+        .run();
+    }
 }
 
 /// `Style/BisectedAttrAccessor`: 同じ属性の `attr_reader` と `attr_writer` は
@@ -35928,6 +35949,26 @@ mod style_tally_and_layout_of_statements {
         ] {
             CopCase::new("Style/RequireOrder", source.to_owned(), Vec::new()).run();
         }
+    }
+
+    /// 同じ行の手前にマルチバイト文字があっても落ちない。
+    ///
+    /// `Style/AccessModifierDeclarations` と同型の誤り —
+    /// `line_column` が返す**文字**の桁で、行を**バイト**で切っていた。期待値は
+    /// 本家 1.89.0 の実測 (line 1 / column 15 / length 13)。
+    #[test]
+    fn a_multi_byte_character_before_a_require_neither_panics_nor_moves_the_offense() {
+        CopCase::new(
+            "Style/RequireOrder",
+            "require \"ああ\"; require \"abc\"\n".to_owned(),
+            vec![Annotation::new(
+                1,
+                15,
+                13,
+                "Sort `require` in alphabetical order.",
+            )],
+        )
+        .run();
     }
 }
 

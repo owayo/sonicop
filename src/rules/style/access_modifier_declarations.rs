@@ -142,7 +142,10 @@ impl<'tree> Cop<'_, 'tree> {
         if splat.kind_str() != "splat_argument" {
             return false;
         }
-        let Some(value) = send_node::named_children_of(*splat, self.context).first().copied() else {
+        let Some(value) = send_node::named_children_of(*splat, self.context)
+            .first()
+            .copied()
+        else {
             return false;
         };
         match value.kind_str() {
@@ -459,8 +462,12 @@ impl<'tree> Cop<'_, 'tree> {
     /// code instead and never travels forward.
     fn leading_comments(&self, node: Node<'tree>) -> Vec<Range<usize>> {
         let source = self.context.source;
-        let (line, column) = source.line_column(node.start_byte());
-        if !source.line(line)[..column - 1].trim().is_empty() {
+        let (line, _) = source.line_column(node.start_byte());
+        // The column `line_column` reports counts characters, and the line is sliced by bytes, so
+        // what stands before the node is measured against the line's own start rather than that
+        // column -- a line opening with a multi-byte character would otherwise be sliced inside it.
+        let before = &source.line(line)[..node.start_byte() - source.line_start(line)];
+        if !before.trim().is_empty() {
             return Vec::new();
         }
         let mut comments = Vec::new();
