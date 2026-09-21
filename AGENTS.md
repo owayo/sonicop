@@ -143,6 +143,15 @@ what the parser says. And a field is read out of `FIELD_NAMES` by id rather than
 the same thing in every tree built from the same grammar, so this holds for the extra trees
 `Metrics` parses too.
 
+**A walk over a subtree is iterative, in a cop as much as in the index.** `AstIndex::collect` says
+why: a rayon worker's stack is far smaller than the main thread's, so a recursion deep enough to
+exhaust it aborts the whole process rather than failing one file. The tree nests once per operand
+of a chain and once per bracket of a nested literal, so the depth is the source's to choose —
+`Lint/UnreachableLoop` and `Lint/DuplicateHashKey` each went down on a generated file until their
+walks were rewritten around an explicit stack. `push_named_children` and `push_named_children_in`
+push a node's children so that popping yields them in source order; reach for one of those rather
+than calling the walk from inside itself.
+
 **A pattern built from the configuration cannot live in a `LazyLock`, so it needs the cache.**
 `crate::rules::regex_cache::compiled` keeps a compiled pattern for the life of the process. Without
 it, a cop rebuilds the same automaton for every file: `Layout/LineLength`'s `URISchemes` regex was

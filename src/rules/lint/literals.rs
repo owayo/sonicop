@@ -55,58 +55,99 @@ const RECURSIVE_METHODS: &[&str] = &["==", "===", "!=", "<=", ">=", ">", "<", "*
 /// Reachable from `style` too: `Style/YodaCondition` asks the same question of a comparison's two
 /// operands.
 pub(crate) fn recursive_basic_literal(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    match node.kind_str() {
-        kind if BASIC.contains(&kind) => true,
-        // `emit_file_line_as_literals`: the parser resolves these before a cop sees them, so what
-        // reaches one is the `str` or the `int` they stood for rather than the keyword.
-        "identifier" => matches!(context.source.node_text(node), "__FILE__" | "__LINE__"),
-        // A quoted literal interpolates or it does not, and only the plain one is basic -- but a
-        // `dstr` and a `dsym` are composite literals, so both answers come out the same here as
-        // long as everything interpolated into them is a literal too.
-        "string" | "delimited_symbol" => !has_interpolation(node) || all_children(node, context),
-        kind if COMPOSITE.contains(&kind) => all_children(node, context),
-        // `a && b` and `a || b` are `and`/`or` upstream, which recurse; every other binary operator
-        // is a `send`, which recurses only for the ten that keep a literal literal.
-        "binary" => {
-            let Some(operator) = node.field("operator") else {
-                return false;
-            };
-            let text = context.source.node_text(operator);
-            (matches!(text, "&&" | "and" | "||" | "or") || RECURSIVE_METHODS.contains(&text))
-                && all_children(node, context)
+    // The predicate is a conjunction over a subtree, so it is answered with a stack rather than by
+    // recursing: a nested literal nests the tree once per bracket, and this is asked of every hash
+    // key of every file. `AstIndex::collect` is iterative for the same reason -- a rayon worker's
+    // stack is far smaller than the main thread's, and a recursion deep enough to exhaust it aborts
+    // the process rather than failing one file. Nothing below has a side effect, so answering the
+    // queued questions in any order gives the same answer the nested `&&` gave.
+    let mut stack = vec![Question::Literal(node)];
+    while let Some(question) = stack.pop() {
+        match question {
+            Question::Literal(node) => match node.kind_str() {
+                kind if BASIC.contains(&kind) => {}
+                // `emit_file_line_as_literals`: the parser resolves these before a cop sees them,
+                // so what reaches one is the `str` or the `int` they stood for rather than the
+                // keyword.
+                "identifier" => {
+                    if !matches!(context.source.node_text(node), "__FILE__" | "__LINE__") {
+                        return false;
+                    }
+                }
+                // A quoted literal interpolates or it does not, and only the plain one is basic --
+                // but a `dstr` and a `dsym` are composite literals, so both answers come out the
+                // same here as long as everything interpolated into them is a literal too.
+                "string" | "delimited_symbol" => {
+                    if has_interpolation(node) {
+                        stack.push(Question::Children(node));
+                    }
+                }
+                kind if COMPOSITE.contains(&kind) => stack.push(Question::Children(node)),
+                // `a && b` and `a || b` are `and`/`or` upstream, which recurse; every other binary
+                // operator is a `send`, which recurses only for the ten that keep a literal
+                // literal.
+                "binary" => {
+                    let Some(operator) = node.field("operator") else {
+                        return false;
+                    };
+                    let text = context.source.node_text(operator);
+                    if !matches!(text, "&&" | "and" | "||" | "or")
+                        && !RECURSIVE_METHODS.contains(&text)
+                    {
+                        return false;
+                    }
+                    stack.push(Question::Children(node));
+                }
+                // The parser folds a leading sign into the literal it precedes; `!x` stays a
+                // `send`.
+                "unary" => {
+                    let Some(operator) = node.field("operator") else {
+                        return false;
+                    };
+                    if !matches!(context.source.node_text(operator), "-" | "+" | "!") {
+                        return false;
+                    }
+                    let Some(operand) = node.field("operand") else {
+                        return false;
+                    };
+                    stack.push(Question::Literal(operand));
+                }
+                "call" => {
+                    let literal_carrying = node.field("method").is_some_and(|method| {
+                        RECURSIVE_METHODS.contains(&context.source.node_text(method))
+                    });
+                    if !literal_carrying {
+                        return false;
+                    }
+                    stack.push(Question::Children(node));
+                }
+                _ => return false,
+            },
+            // `children.compact.all?(&:recursive_basic_literal?)`.
+            Question::Children(node) => {
+                for child in named_children_of(node, context) {
+                    match child.kind_str() {
+                        "comment" => {}
+                        // The parts a quoted literal is written from are not nodes upstream at all:
+                        // the text between the delimiters is the value, and only what is
+                        // interpolated is a child.
+                        "string_content" | "escape_sequence" | "heredoc_content" => {}
+                        "interpolation" => stack.push(Question::Children(child)),
+                        _ => stack.push(Question::Literal(child)),
+                    }
+                }
+            }
         }
-        // The parser folds a leading sign into the literal it precedes; `!x` stays a `send`.
-        "unary" => {
-            let Some(operator) = node.field("operator") else {
-                return false;
-            };
-            matches!(context.source.node_text(operator), "-" | "+" | "!")
-                && node
-                    .field("operand")
-                    .is_some_and(|operand| recursive_basic_literal(operand, context))
-        }
-        "call" => {
-            node.field("method")
-                .is_some_and(|method| RECURSIVE_METHODS.contains(&context.source.node_text(method)))
-                && all_children(node, context)
-        }
-        _ => false,
     }
+    true
 }
 
-/// `children.compact.all?(&:recursive_basic_literal?)`.
-fn all_children(node: Node<'_>, context: &RuleContext<'_>) -> bool {
-    let _cursor = node.walk();
-    named_children_of(node, context)
-        .into_iter()
-        .filter(|child| child.kind_str() != "comment")
-        .all(|child| match child.kind_str() {
-            // The parts a quoted literal is written from are not nodes upstream at all: the text
-            // between the delimiters is the value, and only what is interpolated is a child.
-            "string_content" | "escape_sequence" | "heredoc_content" => true,
-            "interpolation" => all_children(child, context),
-            _ => recursive_basic_literal(child, context),
-        })
+/// One half of [`recursive_basic_literal`]'s question, queued rather than recursed into.
+enum Question<'tree> {
+    /// `node.recursive_basic_literal?`.
+    Literal(Node<'tree>),
+    /// `node.children.compact.all?(&:recursive_basic_literal?)`.
+    Children(Node<'tree>),
 }
 
 /// `node.const_type?`: a constant, however it was reached.

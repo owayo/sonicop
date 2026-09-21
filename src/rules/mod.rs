@@ -926,7 +926,9 @@ fn merge_touching_ranges(ranges: &mut Vec<Range<usize>>) {
 mod tests {
     use std::collections::HashSet;
 
-    use super::{AstIndex, field_name_for_id, merge_touching_ranges, rule_names, rules};
+    use super::{
+        AstIndex, RuleContext, field_name_for_id, merge_touching_ranges, rule_names, rules,
+    };
     use crate::config::Config;
     use crate::rules::node_ext::NodeExt;
     use crate::source::is_protected;
@@ -1087,6 +1089,27 @@ mod tests {
         assert_eq!(
             index.parent_in_tree(call).map(|found| found.id()),
             call.parent().map(|found| found.id())
+        );
+
+        // The same question asked through a context rather than the index. `named_children_of`
+        // recursed into itself here rather than walking, so a cop handing it a fragment node never
+        // returned.
+        let source = crate::source::SourceFile::new("test.rb", "foo(1)\n".to_owned());
+        let config = Config::load_with_options(None, std::path::Path::new("/"), true)
+            .expect("the vendored default configuration loads");
+        let rule = rules().next().expect("the registry is not empty");
+        let context = RuleContext::new(
+            &source,
+            &index,
+            &config,
+            rule,
+            crate::diagnostic::Severity::Convention,
+            false,
+        );
+        assert!(context.named_children(call).is_none());
+        assert_eq!(
+            crate::rules::send_node::named_children_of(call, &context),
+            expected
         );
     }
 

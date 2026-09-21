@@ -419,7 +419,7 @@ pub(crate) fn named_children_of<'tree>(
 ) -> Vec<Node<'tree>> {
     match context.named_children(node) {
         Some(children) => children.to_vec(),
-        None => named_children_of(node, context),
+        None => named_children(node),
     }
 }
 

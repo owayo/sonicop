@@ -1259,3 +1259,35 @@ fn breakable_source() -> String {
     ]
     .concat()
 }
+
+/// 長い連鎖式を条件に持つループでも、cop の走査がプロセスを落とさない。
+///
+/// `1+1+1+…` は左結合なので、木は項の数だけ深く入れ子になる。
+/// `Lint/UnreachableLoop` の子孫探索が再帰だった頃は、rayon のワーカースタック
+/// (メインスレッドよりずっと小さい) を食い潰して **1 ファイルの失敗ではなく
+/// プロセスの abort** になっていた。`AstIndex::collect` が反復なのと同じ理由で、
+/// cop 側の走査も反復でなければならない。
+///
+/// 実バイナリを起こすのは、この落ち方が in-process ハーネスではテストランナー
+/// ごと落としてしまい、どのケースが原因か読めなくなるため。
+#[test]
+fn a_deeply_nested_loop_condition_does_not_overflow_the_stack() {
+    let directory = project(&[]);
+    let condition = vec!["1"; 300_000].join("+");
+    let source = format!("while {condition}\n  break\nend\n");
+
+    let output = lint_stdin(directory.path(), "Lint/UnreachableLoop", &source)
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+
+    assert_eq!(
+        offense_tuples(&output)
+            .iter()
+            .map(|offense| offense.0.as_str())
+            .collect::<Vec<_>>(),
+        ["Lint/UnreachableLoop"],
+        "ループ 1 個ぶんの offense が出て、プロセスは生きていること"
+    );
+}

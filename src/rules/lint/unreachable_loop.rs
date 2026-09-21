@@ -268,11 +268,24 @@ fn is_loop_shape(node: Node<'_>, context: &RuleContext<'_>, allowed: &[&'static 
 }
 
 /// `each_descendant(:next, :redo).any?`, without descending into `skip`.
+///
+/// Iterative rather than recursive, for the reason `AstIndex::collect` is: a rayon worker's stack
+/// is far smaller than the main thread's, and a `while` condition written as one long chain nests
+/// as deeply as it is long -- a recursive walk aborts the whole process on it rather than failing
+/// one file.
 fn has_continue(node: Node<'_>, skip: Option<Node<'_>>) -> bool {
-    let mut cursor = node.walk();
-    node.named_children(&mut cursor)
-        .filter(|child| skip.is_none_or(|skip| skip.id() != child.id()))
-        .any(|child| CONTINUE.contains(&child.kind_str()) || has_continue(child, skip))
+    let mut stack = Vec::new();
+    crate::rules::push_named_children(node, &mut stack);
+    while let Some(current) = stack.pop() {
+        if skip.is_some_and(|skip| skip.id() == current.id()) {
+            continue;
+        }
+        if CONTINUE.contains(&current.kind_str()) {
+            return true;
+        }
+        crate::rules::push_named_children(current, &mut stack);
+    }
+    false
 }
 
 /// `conditional_continue_keyword?`: the last `or` written anywhere in the break statement, when its
@@ -285,16 +298,19 @@ fn conditional_continue(node: Node<'_>) -> bool {
         .is_some_and(|right| CONTINUE.contains(&right.kind_str()))
 }
 
+/// The last `or` of `node`'s subtree in depth-first pre-order, `node` itself excluded.
+///
+/// Iterative for the same reason [`has_continue`] is: `a or b or c or …` nests once per operand,
+/// and the recursion this replaced was as deep as the chain is long.
 fn last_or<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
     let mut found = None;
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
-        if is_or(child) {
-            found = Some(child);
+    let mut stack = Vec::new();
+    crate::rules::push_named_children(node, &mut stack);
+    while let Some(current) = stack.pop() {
+        if is_or(current) {
+            found = Some(current);
         }
-        if let Some(inner) = last_or(child) {
-            found = Some(inner);
-        }
+        crate::rules::push_named_children(current, &mut stack);
     }
     found
 }
