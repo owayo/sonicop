@@ -153,12 +153,11 @@ fn check_branches(
     }
     // Hoisting an assignment above the condition that reads what it assigns would change what the
     // condition sees.
-    if let Some(head) = heads.first() {
-        if let Some(assigned) = assigned_name(context, *head) {
-            if condition_value(context, node).as_deref() == Some(assigned) {
-                return;
-            }
-        }
+    if let Some(head) = heads.first()
+        && let Some(assigned) = assigned_name(context, *head)
+        && condition_value(context, node).as_deref() == Some(assigned)
+    {
+        return;
     }
     check_expressions(
         context,

@@ -142,10 +142,10 @@ fn less_indented(line: &str, outdent: bool) -> bool {
     if trimmed.starts_with([')', '}', ']']) {
         return true;
     }
-    if let Some(rest) = trimmed.strip_prefix("end") {
-        if !rest.starts_with(|character: char| character.is_alphanumeric() || character == '_') {
-            return true;
-        }
+    if let Some(rest) = trimmed.strip_prefix("end")
+        && !rest.starts_with(|character: char| character.is_alphanumeric() || character == '_')
+    {
+        return true;
     }
     outdent && bare_access_modifier(trimmed)
 }

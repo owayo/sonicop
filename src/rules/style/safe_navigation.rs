@@ -109,10 +109,10 @@ fn on_if(
                 safe: false,
             });
         }
-        if !is_safe_navigation(context, method_call) {
-            if let Some(dot) = dot_of(method_call) {
-                edits.push(insertion(dot.start_byte(), "&"));
-            }
+        if !is_safe_navigation(context, method_call)
+            && let Some(dot) = dot_of(method_call)
+        {
+            edits.push(insertion(dot.start_byte(), "&"));
         }
     };
     corrections(&mut edits);
@@ -241,10 +241,9 @@ fn add_safe_nav_to_all_methods_in_chain(
         if !ancestor.is_block
             && is_send(context, ancestor.node)
             && !is_operator_method(context, ancestor.node)
+            && let Some(dot) = dot_of(ancestor.node)
         {
-            if let Some(dot) = dot_of(ancestor.node) {
-                edits.push(insertion(dot.start_byte(), "&"));
-            }
+            edits.push(insertion(dot.start_byte(), "&"));
         }
         if same_as_chain(&ancestor, chain) {
             break;
@@ -669,15 +668,16 @@ fn and_parts<'tree>(context: &RuleContext<'_>, node: Node<'tree>) -> Vec<Part<'t
     if let Some(operator) = node.field("operator") {
         parts.push(Part::Operator(operator.byte_range()));
     }
-    if let Some(right) = node.field("right") {
-        if !and_inside_begin(context, right) {
-            parts.push(Part::Node(right));
-        }
+    if let Some(right) = node.field("right")
+        && !and_inside_begin(context, right)
+    {
+        parts.push(Part::Node(right));
     }
-    if let Some(left) = node.field("left") {
-        if !is_and(context, left) && !and_inside_begin(context, left) {
-            parts.push(Part::Node(left));
-        }
+    if let Some(left) = node.field("left")
+        && !is_and(context, left)
+        && !and_inside_begin(context, left)
+    {
+        parts.push(Part::Node(left));
     }
     parts
 }

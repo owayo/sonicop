@@ -66,18 +66,16 @@ fn autocorrect(
 ) -> Vec<Edit> {
     // `"#@foo"` interpolates without a `begin`: the variable is the string's only child upstream.
     let short_form = !context.source.node_text(interpolation).starts_with("#{");
-    if short_form {
-        if let [only] = embedded {
-            return vec![replace(
-                node,
-                format!("{}.to_s", context.source.node_text(*only)),
-            )];
-        }
+    if short_form && let [only] = embedded {
+        return vec![replace(
+            node,
+            format!("{}.to_s", context.source.node_text(*only)),
+        )];
     }
-    if let [only] = embedded {
-        if let Some(source) = stands_for_itself(context, *only) {
-            return vec![replace(node, format!("{source}.to_s"))];
-        }
+    if let [only] = embedded
+        && let Some(source) = stands_for_itself(context, *only)
+    {
+        return vec![replace(node, format!("{source}.to_s"))];
     }
     // `autocorrect_other`: the delimiters become the parentheses the `to_s` is called on.
     let Some((open, close)) = delimiters(node) else {

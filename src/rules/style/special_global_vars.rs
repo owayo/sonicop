@@ -167,10 +167,10 @@ fn requires_library(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     if node.kind_str() != "call" {
         return false;
     }
-    if let Some(receiver) = node.field("receiver") {
-        if !send_node::top_level_constant(receiver, "Kernel", context) {
-            return false;
-        }
+    if let Some(receiver) = node.field("receiver")
+        && !send_node::top_level_constant(receiver, "Kernel", context)
+    {
+        return false;
     }
     if node
         .field("method")

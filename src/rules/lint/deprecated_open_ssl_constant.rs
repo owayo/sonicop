@@ -165,7 +165,9 @@ fn algorithm_name(openssl_class: &str, name: &str) -> String {
         return name.to_owned();
     }
     name.as_bytes()
-        .chunks_exact(3)
+        .as_chunks::<3>()
+        .0
+        .iter()
         .map(|chunk| String::from_utf8_lossy(chunk).into_owned())
         .collect::<Vec<String>>()
         .join("-")

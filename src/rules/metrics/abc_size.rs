@@ -222,7 +222,7 @@ fn format_g4(value: f64) -> String {
     if digits.len() > PRECISION {
         let rest = digits[PRECISION + 1..].iter().any(|digit| *digit != 0);
         let tie = digits[PRECISION] == 5 && !rest;
-        let even = digits[PRECISION - 1] % 2 == 0;
+        let even = digits[PRECISION - 1].is_multiple_of(2);
         let round_up = digits[PRECISION] > 5 || (digits[PRECISION] == 5 && rest) || (tie && !even);
         // A tie the value approaches from above keeps the zeros: `dtoa` takes its rounding branch
         // but declines to move a digit that is already even.

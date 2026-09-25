@@ -156,7 +156,7 @@ fn escape_bare_quotes(value: &str) -> String {
                 backslashes += 1;
                 out.push('\\');
             }
-            '\'' if backslashes % 2 == 0 => {
+            '\'' if backslashes.is_multiple_of(2) => {
                 out.push_str("\\'");
                 backslashes = 0;
             }

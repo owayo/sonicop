@@ -63,10 +63,10 @@ fn on_block(
     // `kv_each(node) { |target, method| register_kv_offense(target, method) and return }`: the
     // walk goes on when the offense was declined, which is how `keys.each { |k, v| }` still
     // reaches the unused-argument check.
-    if let Some((inner, method)) = kv_each(context, node) {
-        if register_kv_offense(context, offenses, node, inner, method) {
-            return;
-        }
+    if let Some((inner, method)) = kv_each(context, node)
+        && register_kv_offense(context, offenses, node, inner, method)
+    {
+        return;
     }
     let Some((key, value)) = each_arguments(context, node, block) else {
         return;
@@ -78,13 +78,12 @@ fn on_block(
 fn handleable(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     // `use_array_converter_method_as_preceding?`: `hash.to_a.each { |k, v| }` walks an array of
     // pairs, where both block arguments mean something else.
-    if let Some(preceding) = node.field("receiver") {
-        if preceding.kind_str() == "call"
-            && method_name(context, preceding)
-                .is_some_and(|name| ARRAY_CONVERTER_METHODS.contains(&name))
-        {
-            return false;
-        }
+    if let Some(preceding) = node.field("receiver")
+        && preceding.kind_str() == "call"
+        && method_name(context, preceding)
+            .is_some_and(|name| ARRAY_CONVERTER_METHODS.contains(&name))
+    {
+        return false;
     }
     let Some(root) = root_receiver(node) else {
         return false;
@@ -330,12 +329,12 @@ fn local_reads<'a>(
         // `foo(bar:)` is `(pair (sym :bar) (lvar :bar))` once `bar` is a local, and the name a
         // block parameter binds always is one -- the grammar leaves the value unwritten, so the
         // read has no node of its own to find.
-        if node.kind_str() == "pair" && node.field("value").is_none() {
-            if let Some(key) = node.field("key") {
-                if let Some(name) = send_node::symbol_name(key, context) {
-                    found.push(name);
-                }
-            }
+        if node.kind_str() == "pair"
+            && node.field("value").is_none()
+            && let Some(key) = node.field("key")
+            && let Some(name) = send_node::symbol_name(key, context)
+        {
+            found.push(name);
         }
         false
     });

@@ -44,38 +44,34 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             });
             expression_before_body = arguments.end_byte();
         }
-        if let Some(body) = &body {
-            if context.source.line_column(expression_before_body).0
+        if let Some(body) = &body
+            && context.source.line_column(expression_before_body).0
                 == context.source.line_column(body.start).0
-            {
-                let column = character_column(context, parser_node_start(node));
-                edits.push(Edit {
-                    start: body.start,
-                    end: body.start,
-                    replacement: format!(
-                        "\n  {}",
-                        " ".repeat(usize::try_from(column).unwrap_or(0))
-                    ),
-                    safe: true,
-                });
-            }
+        {
+            let column = character_column(context, parser_node_start(node));
+            edits.push(Edit {
+                start: body.start,
+                end: body.start,
+                replacement: format!("\n  {}", " ".repeat(usize::try_from(column).unwrap_or(0))),
+                safe: true,
+            });
         }
 
         // Only one of the two can report: an argument list running past the delimiter's line has
         // pushed the body off that line as well.
-        if let Some(arguments) = arguments.filter(|_| !on_beginning_line) {
-            if !line_break_necessary(context, node, arguments, maximum) {
-                offenses.push(
-                    context
-                        .offense(ARG_MSG, arguments.byte_range())
-                        .corrected_by_all(edits.clone()),
-                );
-            }
+        if let Some(arguments) = arguments.filter(|_| !on_beginning_line)
+            && !line_break_necessary(context, node, arguments, maximum)
+        {
+            offenses.push(
+                context
+                    .offense(ARG_MSG, arguments.byte_range())
+                    .corrected_by_all(edits.clone()),
+            );
         }
-        if let Some(body) = body {
-            if open.start_position().row == context.source.line_column(body.start).0 - 1 {
-                offenses.push(context.offense(MSG, body).corrected_by_all(edits));
-            }
+        if let Some(body) = body
+            && open.start_position().row == context.source.line_column(body.start).0 - 1
+        {
+            offenses.push(context.offense(MSG, body).corrected_by_all(edits));
         }
     }
 }

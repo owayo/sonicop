@@ -193,11 +193,10 @@ fn is_simplecov_directive(comment: &str) -> bool {
     };
     let rest = rest.trim_start();
     for mode in ["disable", "enable"] {
-        if let Some(tail) = rest.strip_prefix(mode) {
-            if !tail.starts_with(|character: char| character.is_alphanumeric() || character == '_')
-            {
-                return true;
-            }
+        if let Some(tail) = rest.strip_prefix(mode)
+            && !tail.starts_with(|character: char| character.is_alphanumeric() || character == '_')
+        {
+            return true;
         }
     }
     false

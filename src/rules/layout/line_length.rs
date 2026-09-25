@@ -389,10 +389,11 @@ fn excessive_range(
 fn extended_end(line: &str, mut end: usize) -> usize {
     // A YARD link -- `# {Some Title}[https://example.com/page]` -- is one unit, so a line that
     // closes with `}` carries the end past the last brace before the word extension below.
-    if line.ends_with('}') && line[..line.len() - 1].contains('{') {
-        if let Some(offset) = line[end..].rfind('}') {
-            end += offset + 1;
-        }
+    if line.ends_with('}')
+        && line[..line.len() - 1].contains('{')
+        && let Some(offset) = line[end..].rfind('}')
+    {
+        end += offset + 1;
     }
     let rest = &line[end..];
     if rest.starts_with(|character| !is_ruby_space_char(character)) {
@@ -571,12 +572,11 @@ fn upstream_order(root: Node<'_>) -> HashMap<usize, u32> {
 /// Where a candidate sorts, with a block placed just ahead of the call it belongs to: upstream's
 /// block node stands where the grammar puts the call, and the call is its first child.
 fn visit_order(node: Node<'_>, order: &HashMap<usize, u32>) -> (u32, u8) {
-    if matches!(node.kind_str(), "block" | "do_block") {
-        if let Some(parent) = node.parent() {
-            if let Some(index) = order.get(&parent.id()) {
-                return (*index, 0);
-            }
-        }
+    if matches!(node.kind_str(), "block" | "do_block")
+        && let Some(parent) = node.parent()
+        && let Some(index) = order.get(&parent.id())
+    {
+        return (*index, 0);
     }
     (order.get(&node.id()).copied().unwrap_or(u32::MAX), 1)
 }
@@ -898,10 +898,10 @@ impl Breaker<'_, '_> {
     /// still have room to be spread out; if they do, breaking this one would be redundant.
     fn contained_by_multiline_collection_that_could_be_broken_up(&self, node: Node<'_>) -> bool {
         for ancestor in Ancestors::of(node) {
-            if let Some(elements) = self.ancestor_elements(ancestor) {
-                if elements.len() >= 2 {
-                    return children_could_be_broken_up(&elements);
-                }
+            if let Some(elements) = self.ancestor_elements(ancestor)
+                && elements.len() >= 2
+            {
+                return children_could_be_broken_up(&elements);
             }
         }
         false

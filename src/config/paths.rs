@@ -426,16 +426,16 @@ pub(super) fn project_relative(path: &Path, root: &Path) -> Option<PathBuf> {
     // directory answers the same question without asking the filesystem anything; `Components`
     // drops the `.` segments a walk introduces, and the join is folded again because a leading `..`
     // only has something to cancel once the working directory is in front of it.
-    if path.is_relative() {
-        if let Some(joined) = working_directory().map(|cwd| cwd.join(path)) {
-            let joined = without_parent_segments(&joined);
-            let joined = joined.as_ref();
-            if let Ok(relative) = joined.strip_prefix(root) {
-                return Some(relative.to_path_buf());
-            }
-            if let Ok(relative) = strip_verbatim(joined).strip_prefix(strip_verbatim(root)) {
-                return Some(relative.to_path_buf());
-            }
+    if path.is_relative()
+        && let Some(joined) = working_directory().map(|cwd| cwd.join(path))
+    {
+        let joined = without_parent_segments(&joined);
+        let joined = joined.as_ref();
+        if let Ok(relative) = joined.strip_prefix(root) {
+            return Some(relative.to_path_buf());
+        }
+        if let Ok(relative) = strip_verbatim(joined).strip_prefix(strip_verbatim(root)) {
+            return Some(relative.to_path_buf());
         }
     }
     let resolved = fs::canonicalize(path).ok()?;

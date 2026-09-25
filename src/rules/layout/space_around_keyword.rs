@@ -133,10 +133,10 @@ impl Reporter<'_, '_> {
                         self.end_keyword(end, offenses);
                     }
                 }
-                if node.kind_str() != "for" {
-                    if let Some(keyword) = node.child(0).filter(|child| !child.is_named()) {
-                        self.keyword(node, keyword, offenses);
-                    }
+                if node.kind_str() != "for"
+                    && let Some(keyword) = node.child(0).filter(|child| !child.is_named())
+                {
+                    self.keyword(node, keyword, offenses);
                 }
             }
             "while_modifier" | "until_modifier" | "if_modifier" | "unless_modifier"

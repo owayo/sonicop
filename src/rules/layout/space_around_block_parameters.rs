@@ -88,14 +88,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             );
         }
 
-        if let Some(body) = body_start(node) {
-            if close.end_byte() == body {
-                offenses.push(
-                    context
-                        .offense("Space after closing `|` missing.", close.byte_range())
-                        .corrected_by(insert(close.end_byte())),
-                );
-            }
+        if let Some(body) = body_start(node)
+            && close.end_byte() == body
+        {
+            offenses.push(
+                context
+                    .offense("Space after closing `|` missing.", close.byte_range())
+                    .corrected_by(insert(close.end_byte())),
+            );
         }
 
         for argument in each_argument(&arguments) {

@@ -170,10 +170,10 @@ fn register_offense(
     }
 
     // `use_modifier_form_after_multiline_begin_block?`.
-    if let Some(parent) = parent.filter(|parent| is_modifier_conditional(*parent, node)) {
-        if node.start_position().row != node.end_position().row {
-            correct_modifier_form(context, node, parent, &mut edits, &mut anchor);
-        }
+    if let Some(parent) = parent.filter(|parent| is_modifier_conditional(*parent, node))
+        && node.start_position().row != node.end_position().row
+    {
+        correct_modifier_form(context, node, parent, &mut edits, &mut anchor);
     }
 
     edits.push(removal_of(end_keyword.byte_range()));

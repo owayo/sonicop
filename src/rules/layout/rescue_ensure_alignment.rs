@@ -95,10 +95,10 @@ fn alignment_node<'tree>(
     }) {
         return Some(assignment);
     }
-    if matches!(ancestor.kind_str(), "method" | "singleton_method") {
-        if let Some(modifier) = parent.filter(|parent| is_access_modifier(context, *parent)) {
-            return Some(modifier);
-        }
+    if matches!(ancestor.kind_str(), "method" | "singleton_method")
+        && let Some(modifier) = parent.filter(|parent| is_access_modifier(context, *parent))
+    {
+        return Some(modifier);
     }
     Some(ancestor)
 }
@@ -143,12 +143,11 @@ fn aligned_with_line_break_method(
     };
     let open_line = context.source.line_column(open.start_byte()).0;
     let keyword_column = character_column(context, keyword.start_byte());
-    if let Some(dot) = send.field("operator") {
-        if context.source.line_column(dot.start_byte()).0 == open_line
-            && character_column(context, dot.start_byte()) == keyword_column
-        {
-            return true;
-        }
+    if let Some(dot) = send.field("operator")
+        && context.source.line_column(dot.start_byte()).0 == open_line
+        && character_column(context, dot.start_byte()) == keyword_column
+    {
+        return true;
     }
     let selector = send
         .field("method")

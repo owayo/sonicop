@@ -83,10 +83,10 @@ impl Checker<'_, '_> {
     fn visit(&mut self, node: Node<'_>, offenses: &mut Vec<Offense>) {
         match node.kind_str() {
             "method" | "singleton_method" => {
-                if !self.ignored.contains(&node.id()) {
-                    if let Some(keyword) = child_of_kind(node, "def") {
-                        self.check_body(keyword.byte_range(), node, offenses);
-                    }
+                if !self.ignored.contains(&node.id())
+                    && let Some(keyword) = child_of_kind(node, "def")
+                {
+                    self.check_body(keyword.byte_range(), node, offenses);
                 }
             }
             "class" | "module" | "singleton_class" => self.on_class(node, offenses),
@@ -119,12 +119,12 @@ impl Checker<'_, '_> {
             _ => {}
         }
         // `on_rescue` checks the `else` of a body that also has `rescue` clauses.
-        if is_statement_container(node) && has_kind(node, "rescue") {
-            if let Some(branch) = child_of_kind(node, "else") {
-                if let Some(keyword) = child_of_kind(branch, "else") {
-                    self.check_container(keyword.byte_range(), Some(branch), offenses);
-                }
-            }
+        if is_statement_container(node)
+            && has_kind(node, "rescue")
+            && let Some(branch) = child_of_kind(node, "else")
+            && let Some(keyword) = child_of_kind(branch, "else")
+        {
+            self.check_container(keyword.byte_range(), Some(branch), offenses);
         }
     }
 

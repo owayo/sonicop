@@ -110,10 +110,10 @@ impl Checker<'_, '_> {
     fn base_range_of_if(&self, node: Node<'_>) -> Range<usize> {
         let mut current = Some(node);
         while let Some(candidate) = current {
-            if matches!(candidate.kind_str(), "if" | "unless") {
-                if let Some(keyword) = candidate.child(0) {
-                    return keyword.byte_range();
-                }
+            if matches!(candidate.kind_str(), "if" | "unless")
+                && let Some(keyword) = candidate.child(0)
+            {
+                return keyword.byte_range();
             }
             current = candidate
                 .parent_of(self.context)

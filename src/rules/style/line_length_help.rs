@@ -198,10 +198,11 @@ fn excessive_uri_range(line: &str, max: usize, indent: usize) -> Option<(usize, 
 fn extended_end(line: &str, mut end: usize) -> usize {
     // A YARD link -- `# {Some Title}[https://example.com/page]` -- is one unit, so a line that
     // closes with `}` carries the end past the last brace before the word extension below.
-    if line.ends_with('}') && line[..line.len() - 1].contains('{') {
-        if let Some(offset) = line[end..].rfind('}') {
-            end += offset + 1;
-        }
+    if line.ends_with('}')
+        && line[..line.len() - 1].contains('{')
+        && let Some(offset) = line[end..].rfind('}')
+    {
+        end += offset + 1;
     }
     let rest = &line[end..];
     if rest.starts_with(|character| !is_ruby_space_char(character)) {

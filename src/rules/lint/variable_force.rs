@@ -696,12 +696,12 @@ impl<'tree> Force<'tree, '_> {
             .assignments
             .last()
             .map(|last| last.branch);
-        if !captured && previous == Some(branch) {
-            if let Some(last) = self.variables[variable].assignments.last_mut() {
-                if !last.referenced {
-                    last.reassigned = true;
-                }
-            }
+        if !captured
+            && previous == Some(branch)
+            && let Some(last) = self.variables[variable].assignments.last_mut()
+            && !last.referenced
+        {
+            last.reassigned = true;
         }
         self.variables[variable].assignments.push(Assignment {
             name,

@@ -85,10 +85,10 @@ fn is_historic_date(node: Node<'_>, context: &RuleContext<'_>) -> bool {
 
 /// `node.loc.name` of a constant: the name without the `::` a `cbase` puts in front of it.
 fn constant_name<'tree>(node: Node<'tree>) -> Node<'tree> {
-    if node.kind_str() == "scope_resolution" {
-        if let Some(name) = node.field("name") {
-            return name;
-        }
+    if node.kind_str() == "scope_resolution"
+        && let Some(name) = node.field("name")
+    {
+        return name;
     }
     node
 }

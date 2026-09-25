@@ -60,15 +60,15 @@ fn removal(context: &RuleContext<'_>, node: Node<'_>, condition: Node<'_>) -> Ed
                 .find(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
         })
         .map(|first| first.start_byte());
-    if let Some(start) = body_start {
-        if context.source.line_column(start).0 == condition.end_position().row + 1 {
-            return Edit {
-                start: condition.start_byte(),
-                end: start,
-                replacement: String::new(),
-                safe: true,
-            };
-        }
+    if let Some(start) = body_start
+        && context.source.line_column(start).0 == condition.end_position().row + 1
+    {
+        return Edit {
+            start: condition.start_byte(),
+            end: start,
+            replacement: String::new(),
+            safe: true,
+        };
     }
     let first = context.source.line_column(condition.start_byte()).0;
     let last = condition.end_position().row + 1;

@@ -90,10 +90,10 @@ fn styles(context: &RuleContext<'_>, key: &str) -> Vec<Style> {
         .unwrap_or_else(|| vec!["key".to_owned()]);
     let mut styles: Vec<Style> = Vec::new();
     for value in configured {
-        if let Some(style) = Style::parse(&value) {
-            if !styles.contains(&style) {
-                styles.push(style);
-            }
+        if let Some(style) = Style::parse(&value)
+            && !styles.contains(&style)
+        {
+            styles.push(style);
         }
     }
     if styles.is_empty() {

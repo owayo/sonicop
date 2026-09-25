@@ -85,21 +85,21 @@ fn redundant_each<'tree>(
         return None;
     }
     // An `each` written in front of another enumeration method, which is the one to keep.
-    if name == "each" && node.field("block").is_none() {
-        if let Some(parent) = node.parent().filter(|parent| {
+    if name == "each"
+        && node.field("block").is_none()
+        && let Some(parent) = node.parent().filter(|parent| {
             parent.kind_str() == "call"
                 && parent
                     .field("receiver")
                     .is_some_and(|inner| inner.id() == node.id())
-        }) {
-            let following = parent
-                .field("method")
-                .map(|method| context.source.node_text(method));
-            if following
-                .is_some_and(|method| RESTRICTED.contains(&method) || method == "reverse_each")
-            {
-                return Some(parent);
-            }
+        })
+    {
+        let following = parent
+            .field("method")
+            .map(|method| context.source.node_text(method));
+        if following.is_some_and(|method| RESTRICTED.contains(&method) || method == "reverse_each")
+        {
+            return Some(parent);
         }
     }
     // Otherwise the method in front of this one is what makes it redundant.

@@ -538,12 +538,11 @@ pub(super) fn argument_literals<'tree>(
         for part in argument.parts {
             let mut stack = vec![part];
             while let Some(node) = stack.pop() {
-                if kinds.contains(&node.kind_str()) {
-                    if let Some(open) = literal_opening(node) {
-                        if context.source.line_column(open.start_byte()).0 == parenthesis_line {
-                            found.push((node, parenthesis));
-                        }
-                    }
+                if kinds.contains(&node.kind_str())
+                    && let Some(open) = literal_opening(node)
+                    && context.source.line_column(open.start_byte()).0 == parenthesis_line
+                {
+                    found.push((node, parenthesis));
                 }
                 if is_send_like(context, node) {
                     continue;
@@ -603,21 +602,22 @@ pub(super) fn indent_base(
             IndentBase::LeftBraceOrBracket,
         );
     }
-    if let Some(pair) = parent_pair(open, first) {
-        if key_and_value_begin_on_same_line(pair) && right_sibling_begins_later(pair) {
-            return (
-                character_column(context, pair.start_byte()),
-                IndentBase::ParentHashKey,
-            );
-        }
+    if let Some(pair) = parent_pair(open, first)
+        && key_and_value_begin_on_same_line(pair)
+        && right_sibling_begins_later(pair)
+    {
+        return (
+            character_column(context, pair.start_byte()),
+            IndentBase::ParentHashKey,
+        );
     }
-    if let Some(parenthesis) = parenthesis {
-        if style == "special_inside_parentheses" {
-            return (
-                character_column(context, parenthesis.start_byte()) + 1,
-                IndentBase::FirstColumnAfterLeftParenthesis,
-            );
-        }
+    if let Some(parenthesis) = parenthesis
+        && style == "special_inside_parentheses"
+    {
+        return (
+            character_column(context, parenthesis.start_byte()) + 1,
+            IndentBase::FirstColumnAfterLeftParenthesis,
+        );
     }
     (
         line_indentation(context, open.start_byte()),
