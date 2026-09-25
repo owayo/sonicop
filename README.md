@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/sonicop_logo_header.png" width="128" alt="sonicop">
+  <img src="docs/images/sonicop_logo_header.png" width="320" alt="sonicop">
 </p>
 
 <h1 align="center">sonicop</h1>
