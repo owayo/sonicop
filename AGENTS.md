@@ -36,23 +36,26 @@ Never write an expectation from Sonicop's current output — that bakes today's 
 
 ## Commands
 
-The Makefile is the single entry point; `Rakefile` holds only gem packaging and version syncing.
+The Makefile is the single entry point; `Rakefile` holds only gem packaging and version syncing. Tool versions (Rust and Ruby) are pinned in `mise.toml`, and every target runs its tools through `mise exec`; `make help` lists every target.
 
 ```bash
+make setup            # install the pinned toolchain (mise) and fetch dependencies
 make build            # cargo build
 make test             # Rust + Ruby wrapper tests
-make check            # version check, fmt, clippy -D warnings, all tests  <- the gate CI runs
+make check            # fmt-check, clippy -D warnings, version check
+make ci               # check + test + build, install and run the source gem  <- the gate CI runs
 make install          # build --release and install to /usr/local/bin
 ```
 
-`make check` is what CI runs. Run it before saying anything is done.
+`make ci` is what CI runs. Run it before saying anything is done.
 
 ## Conventions
 
 **Comment language.** Production code under `src/` is documented in English; tests under `tests/`,
-the build tooling (`Makefile`, `Rakefile`, CI workflows) and `known_divergences.yml` are in
-Japanese. In-file `#[cfg(test)]` blocks follow whichever the surrounding file already uses. Match
-the file you are editing rather than converting it.
+the `Rakefile`, the comments in the CI workflows and `known_divergences.yml` are in Japanese. The
+`Makefile` is in English, the language of `README.md`, so that `make help` matches the README's
+Development table. In-file `#[cfg(test)]` blocks follow whichever the surrounding file already uses.
+Match the file you are editing rather than converting it.
 
 **Comments say why, not what.** The existing comments name the upstream RuboCop method being
 mirrored, or record the measurement behind a decision. That is the house style — a comment
@@ -213,7 +216,9 @@ all, so the hook also wraps `CopHelper#_investigate` and `Commissioner#investiga
 Running the suite needs upstream's development bundle, which the pinned tree at
 `~/tmp/rubocop-v1.89.0` does not ship with. `bundle install` fails there under Ruby 4 — install
 `rspec`, `webmock` and `mcp` as plain gems and drive RSpec through
-`ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(ARGV)'` instead.
+`ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(ARGV)'` instead. The Makefile does
+not know where the upstream tree, the capture hook and the generator live; pass them as
+`UPSTREAM_SPEC_TREE=`, `SPEC_CAPTURE_HOOK=` and `SPEC_FIXTURE_GEN=`.
 
 As of 2026-08-23 all **11,300** recorded cases match, across the **555** cops the specs reach, with
 no entry in `spec_known_divergences.yml`. A difference appearing there is a regression, not a
