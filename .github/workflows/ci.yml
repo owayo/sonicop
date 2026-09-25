@@ -58,8 +58,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # RubyGems の platform gem (arm64-darwin / x64-mingw-ucrt) を作る release.yml の build と同じランナーでテストするため版を固定する (上げるときは release.yml と下の build も同時に上げる。macos-14 は 2026-11-02 に廃止予定: actions/runner-images#13518)
-        os: [macos-14, windows-2025]
+        # RubyGems の platform gem (arm64-darwin / x86_64-darwin / x64-mingw-ucrt) を作る release.yml の build と同じランナーでテストするため版を固定する (上げるときは release.yml と下の build も同時に上げる)
+        os: [macos-15, windows-2025]
     steps:
       # Windows のランナーは既定で LF を CRLF に変えて checkout する。release.yml の build と同じく LF のまま取る
       - name: Keep LF line endings
@@ -101,22 +101,28 @@ jobs:
         include:
           # x86_64-linux: バイナリはビルドしたランナーの glibc 以上を要求するので、ubuntu-latest の更新で要求が黙って上がらないよう版を固定する
           - os: ubuntu-24.04
-            binary: target/release/sonicop
+            target: x86_64-unknown-linux-gnu
+            binary: target/x86_64-unknown-linux-gnu/release/sonicop
             platform: x86_64-linux
           - os: ubuntu-24.04-arm
-            binary: target/release/sonicop
+            target: aarch64-unknown-linux-gnu
+            binary: target/aarch64-unknown-linux-gnu/release/sonicop
             platform: aarch64-linux
-          # x86_64-darwin: Intel のランナーでそのままビルドする (macos-latest は Apple Silicon)
-          - os: macos-15-intel
-            binary: target/release/sonicop
+          # x86_64-darwin: Apple Silicon のランナーでクロスコンパイルする。Intel のランナーには mise の
+          # ビルド済みの Ruby が無く、Ruby をソースから作るだけで 10 分以上かかる
+          - os: macos-15
+            target: x86_64-apple-darwin
+            binary: target/x86_64-apple-darwin/release/sonicop
             platform: x86_64-darwin
           # arm64-darwin: native がテストしているのと同じランナーで作る
-          - os: macos-14
-            binary: target/release/sonicop
+          - os: macos-15
+            target: aarch64-apple-darwin
+            binary: target/aarch64-apple-darwin/release/sonicop
             platform: arm64-darwin
           # x64-mingw-ucrt: native がテストしているのと同じランナーで作る
           - os: windows-2025
-            binary: target/release/sonicop.exe
+            target: x86_64-pc-windows-msvc
+            binary: target/x86_64-pc-windows-msvc/release/sonicop.exe
             platform: x64-mingw-ucrt
     steps:
       # Windows のランナーは既定で LF を CRLF に変えて checkout する。release.yml の build と同じく LF のまま取り、
@@ -128,8 +134,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # mise.toml の ruby は Linux と Apple Silicon の macOS ではビルド済みのもの、Intel の macOS ではソースから、
-      # Windows では RubyInstaller から入る
+      # mise.toml の ruby は Linux と macOS ではビルド済みのもの、Windows では RubyInstaller から入る
       - uses: jdx/mise-action@v4
         with:
           minimum_release_age: 14d
@@ -139,8 +144,25 @@ jobs:
         with:
           key: ${{ matrix.platform }}
 
+      # mise.toml の rust はホストのツールチェーンと components だけを入れるので、配布のターゲットを足す
+      - name: Add the Rust target
+        run: rustup target add ${{ matrix.target }}
+
       - name: Build
-        run: cargo build --release --locked
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      # クロスコンパイルした Intel 向けのバイナリが x86_64 だけを含み、Rosetta の上で動くことを確かめる
+      # (tree-sitter の C のコードもターゲット向けにコンパイルされているか)。最低の macOS の版も記録に出す
+      - name: Check the Intel macOS binary
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        env:
+          BINARY: ${{ matrix.binary }}
+        run: |
+          set -euo pipefail
+          test "$(lipo -archs "$BINARY")" = x86_64
+          otool -l "$BINARY" | grep -A4 -E 'LC_BUILD_VERSION|LC_VERSION_MIN_MACOSX'
+          arch -x86_64 "$BINARY" --version
 
       # package_gem は出来上がった gem の platform と libexec の中身を事後に確かめるので、
       # ソース gem に落ちた場合はここで失敗する
