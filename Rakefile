@@ -63,9 +63,9 @@ namespace :gem do
   end
 end
 
-desc 'Run every local quality gate (delegates to make)'
+desc 'Run fmt-check, clippy, the version check and the tests (delegates to make)'
 task :check do
-  sh 'make check'
+  sh 'make check test'
 end
 
 task default: :check
