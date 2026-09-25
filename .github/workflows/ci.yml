@@ -1,68 +1,148 @@
+# sonicop の CI。検査の中身は Makefile の ci が決め、ここには OS ごとの準備だけを置く。
+#
+# - quality: Linux で make setup と make ci を実行する (fmt-check・clippy・版の一致・Rust と Ruby のテスト・
+#   source gem の導入と実行)
+# - native: RubyGems の platform gem を作るのと同じ macOS / Windows のランナーでテストする
+# - build: release.yml の build と同じ組で platform gem を作る。release.yml の dry_run では build が走らないので、
+#   配布物を作れることはここで確かめる
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   quality:
+    name: Quality
+    # macOS と Windows のテストは native が platform gem と同じランナーで回す
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v7
         with:
-          components: clippy,rustfmt
+          persist-credentials: false
+
+      # ツールの版は mise.toml が正 (rust と ruby)。mise 本体は公開から 14 日以上たった最新の版を、署名付きの
+      # checksum で確かめて入れる。cache は切る (効いた回だけ clippy / rustfmt が欠ける。jdx/mise-action#215)
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+
+      # target/ と ~/.cargo のキャッシュ (鍵に rustc の版が入るので、mise.toml の rust を上げると作り直す)
       - uses: Swatinem/rust-cache@v2
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4"
-      # バイナリの --version は CARGO_PKG_VERSION 由来、gem の版は version.rb 由来なので、
-      # cargo 自身が読んだ版と gem が読む版を突き合わせて割れを検出する。
-      - name: Verify Cargo.toml and lib/sonicop/version.rb agree
-        shell: bash
-        run: |
-          cargo_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "sonicop") | .version')"
-          gem_version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
-          echo "Cargo.toml=${cargo_version} lib/sonicop/version.rb=${gem_version}"
-          test -n "${cargo_version}"
-          test "${cargo_version}" = "${gem_version}"
-      # 品質ゲートは Makefile に一本化してあるので、ローカルと同じ内容がそのまま走る。
-      - run: make check
-      - run: gem build sonicop.gemspec
-      - name: Install and execute source gem
-        shell: bash
-        run: |
-          version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
-          gem install "./sonicop-${version}.gem" --install-dir tmp/gems --no-document
-          GEM_HOME="${PWD}/tmp/gems" GEM_PATH="${PWD}/tmp/gems" tmp/gems/bin/sonicop --version
-      - uses: actions/upload-artifact@v6
+
+      - run: make setup
+      - run: make ci
+
+      # make ci の gem-check が作った source gem
+      - uses: actions/upload-artifact@v7
         with:
           name: source-gem
           path: sonicop-*.gem
 
   native:
+    name: Native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # RubyGems の platform gem (arm64-darwin / x64-mingw-ucrt) を作る release.yml の build と同じランナーでテストするため版を固定する (上げるときは release.yml と下の build も同時に上げる。macos-14 は 2026-11-02 に廃止予定: actions/runner-images#13518)
         os: [macos-14, windows-2025]
-    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      # tests/cli.rs は gem ラッパーを ruby で起動する。ランナー同梱の ruby に
-      # 暗黙依存させず、明示的に用意する。
-      - uses: ruby/setup-ruby@v1
+      # Windows のランナーは既定で LF を CRLF に変えて checkout する。release.yml の build と同じく LF のまま取る
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
         with:
-          ruby-version: "3.4"
+          persist-credentials: false
+
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Windows のランナーの make は MinGW の mingw32-make の写しで、レシピの POSIX シェル前提の解釈に癖があるので、
+      # make を通さず cargo と rake を直接呼ぶ。
       # `--no-fail-fast` は上の matrix の `fail-fast: false` とは別のもの。matrix 側は OS の
       # ジョブどうしが互いを打ち切らないという意味で、cargo 側は test binary どうしが互いを
       # 打ち切らないという意味。片方だけだと、Windows で lib の 1 件が落ちた時点で
       # tests/cops.rs が走らず、「失敗 1 件」が「少なくとも 1 件」の意味になる。
-      - run: cargo test --all-targets --locked --no-fail-fast
-      # find_binary のパス解決は OS 差が出るところなので、Windows / macOS でも回す。
-      - run: rake test:ruby
+      - name: Test
+        run: cargo test --all-targets --locked --no-fail-fast
+
+      # tests/cli.rs は gem ラッパーを ruby で起動する。find_binary のパス解決は OS 差が出るところなので、
+      # Windows / macOS でも回す
+      - name: Test the Ruby wrapper
+        run: rake test:ruby
+
+  build:
+    name: Build (${{ matrix.platform }})
+    needs: quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # release.yml の build と同じ組 (行を足したら両方に足す)
+        include:
+          # x86_64-linux: バイナリはビルドしたランナーの glibc 以上を要求するので、ubuntu-latest の更新で要求が黙って上がらないよう版を固定する
+          - os: ubuntu-24.04
+            binary: target/release/sonicop
+            platform: x86_64-linux
+          - os: ubuntu-24.04-arm
+            binary: target/release/sonicop
+            platform: aarch64-linux
+          # x86_64-darwin: Intel のランナーでそのままビルドする (macos-latest は Apple Silicon)
+          - os: macos-15-intel
+            binary: target/release/sonicop
+            platform: x86_64-darwin
+          # arm64-darwin: native がテストしているのと同じランナーで作る
+          - os: macos-14
+            binary: target/release/sonicop
+            platform: arm64-darwin
+          # x64-mingw-ucrt: native がテストしているのと同じランナーで作る
+          - os: windows-2025
+            binary: target/release/sonicop.exe
+            platform: x64-mingw-ucrt
+    steps:
+      # Windows のランナーは既定で LF を CRLF に変えて checkout する。release.yml の build と同じく LF のまま取り、
+      # gem に入れるファイルの改行を配布物とそろえる
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # mise.toml の ruby は Linux と Apple Silicon の macOS ではビルド済みのもの、Intel の macOS ではソースから、
+      # Windows では RubyInstaller から入る
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform }}
+
+      - name: Build
+        run: cargo build --release --locked
+
+      # package_gem は出来上がった gem の platform と libexec の中身を事後に確かめるので、
+      # ソース gem に落ちた場合はここで失敗する
+      - name: Build the platform gem
+        run: rake gem:platform BINARY=${{ matrix.binary }} GEM_PLATFORM=${{ matrix.platform }}

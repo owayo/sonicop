@@ -1,15 +1,22 @@
+# sonicop のリリース。配布物は RubyGems の gem (source gem と platform gem) で、GitHub の Release にも同じ gem を添付する。
+#
+# prepare-release (版を決めてコミットとタグを push) → verify-version (タグの中身の版を確かめる)
+#   → build (platform gem) と source-gem → release (GitHub の Release と RubyGems への公開) → release-summary
+#
+# dry_run では prepare-release だけが動く (build 以降は走らない)。platform gem を作れることは ci.yml の build で確かめる。
 name: Release
 
 on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Dry run (次のバージョンを算出するだけで、タグも公開もしない)"
+        description: "Dry run (compute the next version only; no commit, tag or release)"
         type: boolean
         default: false
 
+# 書き込みはジョブ単位で与える (版のコミットとタグの push、Release の作成と RubyGems への公開)
 permissions:
-  contents: write
+  contents: read
 
 # 2 本同時に走ると同じカウンタから別々のタグが生まれ、片方は永久に publish できない
 # バージョンになる。RubyGems は同一バージョンの再 push を受け付けないため直列化する。
@@ -17,30 +24,46 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   prepare-release:
+    name: Prepare release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ruby/setup-ruby@v1
+      # 本番は既定のブランチからだけ出す (ほかのブランチから出すと、既定のブランチに無いコミットにタグが付く)。
+      # dry_run はどのブランチでも動くので、workflow の変更をブランチで試せる
+      - name: Check the branch
+        if: ${{ !inputs.dry_run }}
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/${DEFAULT_BRANCH}" ]; then
+            echo "::error::Run the release from ${DEFAULT_BRANCH} (this run is on ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      # cargo update と rake (版の読み取りと version.rb の生成) を mise.toml の版で実行する
+      - uses: jdx/mise-action@v4
         with:
-          ruby-version: "3.4"
+          minimum_release_age: 14d
+          cache: false
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump version
+      - name: Bump the version
         id: bump
-        shell: bash
         run: |
-          # 年は 2 桁。4 桁だとメジャーが 255 を超え、Windows MSI が扱えるバージョン範囲から外れる。
+          set -euo pipefail
+          # 版は yy.m.counter。年は 2 桁。4 桁だとメジャーが 255 を超え、Windows MSI が扱えるバージョン範囲から外れる。
           # 月はゼロ埋めしない。SemVer は数値識別子の先頭ゼロを禁じており、Cargo は "26.08.100" を
-          # `invalid leading zero in minor version number` で拒否する。
+          # `invalid leading zero in minor version number` で拒否する。連番は 100 から (桁数が揃い、ファイル名の並びが崩れない)。
           # 採番は JST で切る。runner の TZ は UTC 固定なので、素の date だと JST 9/1 09:00 に
           # 押したリリースが UTC 8/31 23:55 と読まれ、月替わりを跨げない (v26.8.113 が実例:
           # 9 月最初のリリースが 26.9.100 でなく 8 月の連番になった)。JST は UTC より先行する
@@ -52,72 +75,84 @@ jobs:
           # [[bin]] の version を拾うような差異が生まれる)。
           CURRENT=$(ruby -Iscript -rsonicop_version -e 'print SonicopVersion.cargo_version')
           echo "Current version: ${CURRENT}"
-
-          # 同じ年月なら連番、月が変われば 100 から。100 始まりなのは、桁数が揃って
-          # ファイル名の並びが崩れないため。
-          if echo "${CURRENT}" | grep -qE '^[0-9]{2,4}\.[0-9]{1,2}\.[0-9]+$'; then
-            OLD_YEAR=$(echo "${CURRENT}" | cut -d. -f1)
-            OLD_MONTH=$(echo "${CURRENT}" | cut -d. -f2)
-            OLD_COUNTER=$(echo "${CURRENT}" | cut -d. -f3)
-            # 4 桁年で切られた過去バージョンからも移行できるようにする。
-            OLD_YEAR_2DIGIT=$(echo "${OLD_YEAR}" | sed 's/^20//')
-            if [ "${OLD_YEAR_2DIGIT}" = "${YEAR}" ] && [ "${OLD_MONTH}" = "${MONTH}" ]; then
-              NEW_COUNTER=$((OLD_COUNTER + 1))
-            else
-              NEW_COUNTER=100
+          COUNTER=100
+          if [[ "${CURRENT}" =~ ^([0-9]{2,4})\.([0-9]{1,2})\.([0-9]+)$ ]]; then
+            # 4 桁年で切られた過去バージョン (2026.9.105) からも続けて採番する
+            if [ "${BASH_REMATCH[1]#20}" = "${YEAR}" ] && [ "${BASH_REMATCH[2]}" = "${MONTH}" ]; then
+              COUNTER=$((BASH_REMATCH[3] + 1))
             fi
-          else
-            NEW_COUNTER=100
+          fi
+          VERSION="${YEAR}.${MONTH}.${COUNTER}"
+          TAG="v${VERSION}"
+          echo "Next version: ${VERSION}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null; then
+            echo "::error::Tag ${TAG} already exists. Check the version in Cargo.toml against the existing tags"
+            exit 1
           fi
 
-          NEW_VERSION="${YEAR}.${MONTH}.${NEW_COUNTER}"
-          echo "New version: ${NEW_VERSION}"
+          # [package] の version (ファイルで最初の `version = ` の行) だけを書き換える (依存の version は触らない)。
+          # `0,/re/` は GNU sed の拡張で、BSD sed では無言で何もしないため、書き換えの直後に gem 側のパーサで確かめる
+          sed -i "0,/^version = \"[^\"]*\"/s//version = \"${VERSION}\"/" Cargo.toml
+          test "$(ruby -Iscript -rsonicop_version -e 'print SonicopVersion.cargo_version')" = "${VERSION}"
+          # Cargo.lock は自分のパッケージの版だけを合わせる (lockfile を作り直すと全依存が最新へ
+          # 解決し直され、CI で確かめていない版が配布物に入る)
+          cargo update --workspace
+          # gem の版 (lib/sonicop/version.rb) は Cargo.toml から生成し、両者が一致することを確かめる
+          rake version:sync
+          rake version:check
+          git diff --stat
 
-          # Cargo.toml / Cargo.lock / version.rb の書き換えは rake に委ねる。sed で済ませると
-          # `0,/re/` が GNU 拡張のため BSD sed では無言で何もせず、失敗に気づくのが
-          # CI 終盤の照合になる。rake 側は対象が無ければその場で落ち、テストも付いている。
-          rake version:set VERSION="${NEW_VERSION}"
-
-          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Verify version files agree
-        run: rake version:check
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Commit and tag
         if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Cargo.toml Cargo.lock lib/sonicop/version.rb
-          git commit -m "Release ${{ steps.bump.outputs.tag }}"
-          git tag -a "${{ steps.bump.outputs.tag }}" -m "Release ${{ steps.bump.outputs.tag }}"
-          git push origin "${{ github.ref_name }}" "${{ steps.bump.outputs.tag }}"
+          git commit -m "Release ${TAG}"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          # ブランチとタグを 1 回で送る。--atomic で、ブランチが先に進んでいて片方だけが通ることを防ぐ
+          git push --atomic origin "HEAD:refs/heads/${DEFAULT_BRANCH}" "refs/tags/${TAG}"
 
-      - name: Dry run info
+      - name: Dry run
         if: ${{ inputs.dry_run }}
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
         run: |
-          echo "Dry run: タグも公開もしていない"
-          echo "Would release: ${{ steps.bump.outputs.tag }}"
+          echo "Dry run: would release ${TAG} (no commit, tag or release)"
+          git diff -- Cargo.toml Cargo.lock lib/sonicop/version.rb
 
   # tag / Cargo.toml / lib/sonicop/version.rb の三者一致を、何かをビルドする前に確かめる。
   # 採番は prepare-release が済ませているが、ここで見るのは「タグの中身が本当にその版か」。
   # 通さないと「gem 26.8.101 の中身が 26.8.100 と名乗る」状態のまま公開できてしまう。
   verify-version:
+    name: Verify the version
     needs: prepare-release
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare-release.outputs.tag }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: ruby/setup-ruby@v1
+          persist-credentials: false
+
+      - uses: jdx/mise-action@v4
         with:
-          ruby-version: "3.4"
+          minimum_release_age: 14d
+          cache: false
+
       - name: Verify tag, Cargo.toml, and version.rb agree
-        shell: bash
         env:
           TAG: ${{ needs.prepare-release.outputs.tag }}
         run: |
+          set -euo pipefail
           rake version:check
           cargo_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "sonicop") | .version')"
           gem_version="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
@@ -127,26 +162,35 @@ jobs:
           test "${TAG}" = "v${cargo_version}"
 
   source-gem:
+    name: Build the source gem
     needs: [prepare-release, verify-version]
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
+    env:
+      # source gem は ruby だけで組む (Rust のソースを同梱し、導入する側で Cargo がビルドする)
+      MISE_DISABLE_TOOLS: rust
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare-release.outputs.tag }}
-      - uses: ruby/setup-ruby@v1
+          persist-credentials: false
+
+      - uses: jdx/mise-action@v4
         with:
-          ruby-version: "3.4"
+          minimum_release_age: 14d
+          cache: false
+
       - name: Build source gem
-        shell: bash
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
+          set -euo pipefail
           built="$(ruby -Ilib -rsonicop/version -e 'print Sonicop::VERSION')"
           test "${VERSION}" = "${built}"
           rake gem
           test -f "sonicop-${VERSION}.gem"
-      - uses: actions/upload-artifact@v6
+
+      - uses: actions/upload-artifact@v7
         with:
           name: source-gem
           path: sonicop-*.gem
@@ -159,52 +203,72 @@ jobs:
   # 現状は Alpine 等には source gem を使わせるほうが安全。
   # musl gem を出すなら required_ruby_version を 3.1 以上へ上げること
   # (musl の区別は RubyGems 3.3.22 / Bundler 2.3.21 以降)。
-  platform-gem:
+  build:
+    name: Build (${{ matrix.platform }})
     needs: [prepare-release, verify-version]
     if: ${{ !inputs.dry_run }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # ci.yml の build と同じ組 (行を足したら両方に足す)
         include:
+          # x86_64-linux: バイナリはビルドしたランナーの glibc 以上を要求するので、ubuntu-latest の更新で要求が黙って上がらないよう版を固定する
           - os: ubuntu-24.04
             binary: target/release/sonicop
             platform: x86_64-linux
           - os: ubuntu-24.04-arm
             binary: target/release/sonicop
             platform: aarch64-linux
+          # x86_64-darwin: Intel のランナーでそのままビルドする (macos-latest は Apple Silicon)
           - os: macos-15-intel
             binary: target/release/sonicop
             platform: x86_64-darwin
+          # arm64-darwin: ci.yml の native がテストしているのと同じランナーで作る
           - os: macos-14
             binary: target/release/sonicop
             platform: arm64-darwin
+          # x64-mingw-ucrt: ci.yml の native がテストしているのと同じランナーで作る
           - os: windows-2025
             binary: target/release/sonicop.exe
             platform: x64-mingw-ucrt
-    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      # Windows のランナーは既定で LF を CRLF に変えて checkout する。ci.yml と同じく LF のまま取り、
+      # gem に入れるファイルの改行を CI で確かめたものとそろえる
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare-release.outputs.tag }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: ruby/setup-ruby@v1
+          persist-credentials: false
+
+      # ビルドのキャッシュ (rust-cache) は使わない。配布物を作るジョブがキャッシュを読むと、キャッシュを
+      # 書けるほかのジョブの汚染が配布物に入る
+      - uses: jdx/mise-action@v4
         with:
-          ruby-version: "3.4"
-      - run: cargo build --release --locked
+          minimum_release_age: 14d
+          cache: false
+
+      - name: Build
+        run: cargo build --release --locked
+
       # package_gem は生成された gem の platform と libexec 同梱を事後検証するので、
       # ソース gem に落ちた場合はここで失敗する。
       - name: Build platform gem
         run: rake gem:platform BINARY=${{ matrix.binary }} GEM_PLATFORM=${{ matrix.platform }}
+
       # ソース gem と同名になり得る glob を上げると merge-multiple で取り違えるため、
       # platform を含む名前だけに絞る。
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: gem-${{ matrix.platform }}
           path: sonicop-*-${{ matrix.platform }}.gem
           if-no-files-found: error
 
-  publish:
-    needs: [prepare-release, source-gem, platform-gem]
+  release:
+    name: Release
+    needs: [prepare-release, source-gem, build]
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     # RubyGems 側の trusted publisher は owner / repository / workflow / environment の
@@ -217,22 +281,37 @@ jobs:
       contents: write
       # OIDC トークンの発行。これが無いと RubyGems に身元を示せない。
       id-token: write
+    env:
+      # gem push に使うのは ruby だけ
+      MISE_DISABLE_TOOLS: rust
+    outputs:
+      gems: ${{ steps.collect.outputs.gems }}
     steps:
-      - uses: actions/download-artifact@v7
+      # mise.toml を読むためだけに checkout する (push しないのでトークンを残さない)
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare-release.outputs.tag }}
+          persist-credentials: false
+
+      # runner に入っている Ruby に依存すると、イメージ更新で gem コマンドの挙動が変わる。
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+
+      - uses: actions/download-artifact@v8
         with:
           path: gems
           merge-multiple: true
-      # runner に入っている Ruby に依存すると、イメージ更新で gem コマンドの挙動が変わる。
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.4"
+
       # RubyGems は同一バージョンの再 push を受け付けないため、取り違えは復旧できない。
       # push する前に、集めた成果物がこの版のものだけであることを確かめる。
       - name: Verify collected artifacts
-        shell: bash
+        id: collect
         env:
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
+          set -euo pipefail
           shopt -s nullglob
           packages=(gems/*.gem)
           printf '%s\n' "${packages[@]}"
@@ -247,21 +326,72 @@ jobs:
                 ;;
             esac
           done
-      # このジョブは成果物を集めるだけで checkout しないため、gh が対象リポジトリを
-      # git から推測できず `fatal: not a git repository` で落ちる。明示的に渡す。
+          echo "gems=$(cd gems && printf '%s ' *.gem)" >> "$GITHUB_OUTPUT"
+
+      # タイトルはタグ名だけ (--title を渡さない)。gh が対象リポジトリを git の設定から推測しないよう明示的に渡す
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.prepare-release.outputs.tag }}
         run: gh release create "${TAG}" gems/*.gem --generate-notes
+
       # 長期の API キーを置かず、この repository / workflow / environment から出た OIDC
       # トークンと引き換えに短命の資格情報を受け取る。gemspec が rubygems_mfa_required を
       # 立てている以上、API キー方式ではアカウントの MFA レベルを下げる必要があり、
       # そちらは公開鍵の管理と引き換えに保護を弱める取引になる。
       - uses: rubygems/configure-rubygems-credentials@v2.1.0
+
       - name: Publish RubyGems packages
         run: |
+          set -euo pipefail
           for package in gems/*.gem; do
             gem push "${package}"
           done
+
+  # ---- 結果のまとめ ------------------------------------------------------------------------
+  # 途中のジョブが落ちても、飛ばされても (dry_run を含む) 結果を書く
+  release-summary:
+    name: Release summary
+    needs: [prepare-release, verify-version, source-gem, build, release]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write the summary
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+          PREPARE_RESULT: ${{ needs.prepare-release.result }}
+          VERIFY_RESULT: ${{ needs.verify-version.result }}
+          SOURCE_GEM_RESULT: ${{ needs.source-gem.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+          GEMS: ${{ needs.release.outputs.gems }}
+        run: |
+          set -euo pipefail
+          {
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "## Dry run: ${TAG:-no version}"
+              echo
+              echo "prepare-release: ${PREPARE_RESULT}. Nothing was committed, tagged, released or pushed to RubyGems, and the gems were not built (ci.yml builds every platform gem)."
+              exit 0
+            fi
+            echo "## ${TAG:-no version}"
+            echo
+            echo "| Job | Result |"
+            echo "|---|---|"
+            echo "| prepare-release | ${PREPARE_RESULT} |"
+            echo "| verify-version | ${VERIFY_RESULT} |"
+            echo "| source-gem | ${SOURCE_GEM_RESULT} |"
+            echo "| build | ${BUILD_RESULT} |"
+            echo "| release (GitHub Release and RubyGems) | ${RELEASE_RESULT} |"
+            if [ "${RELEASE_RESULT}" = "success" ] && [ -n "${GEMS:-}" ]; then
+              echo
+              echo "Attached to ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG} and pushed to https://rubygems.org/gems/sonicop:"
+              echo
+              read -r -a gems <<< "${GEMS}"
+              for gem in "${gems[@]}"; do
+                echo "- \`${gem}\`"
+              done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
