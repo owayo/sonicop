@@ -2,7 +2,7 @@
 name = "sonicop"
 version = "26.9.100"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.98"
 description = "A fast, native RuboCop-compatible Ruby linter and formatter"
 license = "MIT"
 repository = "https://github.com/owayo/sonicop"

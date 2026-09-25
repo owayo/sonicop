@@ -27,5 +27,9 @@ target
 *.gem
 .DS_Store
 
+# Personal mise overrides (mise.toml is the shared toolchain)
+mise.local.toml
+.mise.local.toml
+
 # Agent worktrees, which are local scratch space rather than project content.
 .claude/
