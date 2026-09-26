@@ -219,12 +219,19 @@ impl Cop<'_, '_> {
         let Some(keyword) = token(node, &["if", "unless"]) else {
             return;
         };
-        let offense = self
-            .context
-            .offense(MSG.replace("%<example>s", &example), keyword.byte_range());
+        let offense = self.context.offense(
+            MSG.replace("%<example>s", &example.replace("\r\n", "\n")),
+            keyword.byte_range(),
+        );
         let has_else = node.field("alternative").is_some();
+        // 後置 if の左側は条件内の初回代入より先に解釈される。そこで読む変数が
+        // メソッド呼び出しに変わる場合、本家の補正は実行時に NameError を起こす。
+        let withhold_unsafe_modifier = replacement.is_none()
+            && self.context.correcting()
+            && self.guard_reads_newly_declared_local(node, condition, guard);
         offenses.push(match has_else && guard == Guard::None {
             true => offense,
+            false if withhold_unsafe_modifier => offense.corrected_by_all(Vec::new()),
             false => offense.corrected_by_all(self.autocorrect(
                 node,
                 condition,
@@ -232,6 +239,35 @@ impl Cop<'_, '_> {
                 guard,
             )),
         });
+    }
+
+    fn guard_reads_newly_declared_local(
+        &self,
+        node: Node<'_>,
+        condition: Node<'_>,
+        guard: Guard,
+    ) -> bool {
+        let field = match guard {
+            Guard::If => "consequence",
+            Guard::Else => "alternative",
+            Guard::None => return false,
+        };
+        let Some(branch) = node.field(field) else {
+            return false;
+        };
+        self.context
+            .variable_analysis()
+            .variables
+            .iter()
+            .any(|variable| {
+                let declaration = variable.declaration.byte_range();
+                condition.start_byte() <= declaration.start
+                    && declaration.end <= condition.end_byte()
+                    && variable.references.iter().any(|reference| {
+                        branch.start_byte() <= reference.node.start_byte()
+                            && reference.node.end_byte() <= branch.end_byte()
+                    })
+            })
     }
 
     /// `too_long_for_single_line?`: the guard would not fit where the conditional stands.
@@ -370,11 +406,9 @@ impl Cop<'_, '_> {
     /// `accepted_form?`: forms that either cannot become a guard or are already one.
     fn accepted_form(&self, node: Node<'_>, ending: bool) -> bool {
         self.accepted_if(node, ending)
-            || node
-                .field("condition")
-                .is_some_and(|condition| {
-                    condition.start_position().row != condition.end_position().row
-                })
+            || node.field("condition").is_some_and(|condition| {
+                condition.start_position().row != condition.end_position().row
+            })
             || matches!(
                 upstream_parent(node),
                 Some(UpstreamParent::Node(parent))

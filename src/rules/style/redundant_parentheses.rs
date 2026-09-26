@@ -1,6 +1,7 @@
 use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::lint::literals::{is_constant, literal_type};
 use crate::rules::lint::locals::LocalVariables;
@@ -212,14 +213,12 @@ fn parent_child_count(context: &RuleContext<'_>, node: Node<'_>) -> usize {
             | "interpolation"
             | "begin_block"
             | "end_block" => 1,
-            kind if JUMPS.contains(&kind) => {
-                super::nodes::children_in(parent, context)
-                    .first()
-                    .map_or(0, |list| match list.kind_str() {
-                        "argument_list" => super::nodes::children_in(*list, context).len(),
-                        _ => 1,
-                    })
-            }
+            kind if JUMPS.contains(&kind) => super::nodes::children_in(parent, context)
+                .first()
+                .map_or(0, |list| match list.kind_str() {
+                    "argument_list" => super::nodes::children_in(*list, context).len(),
+                    _ => 1,
+                }),
             // `(defined? x)` holds its expression alone; every other unary is a `send` with a
             // receiver and a selector.
             "unary" => match parent
@@ -650,10 +649,7 @@ fn is_block(node: Node<'_>) -> bool {
 /// `node.variable?`: an instance, class or global variable, or a bare name the parser resolved
 /// into a local variable read.
 /// The `(` … `)` a pin operator wrote around its value.
-fn pinned_parentheses(
-    node: Node<'_>,
-    context: &RuleContext<'_>,
-) -> Option<std::ops::Range<usize>> {
+fn pinned_parentheses(node: Node<'_>, context: &RuleContext<'_>) -> Option<std::ops::Range<usize>> {
     let _cursor = node.walk();
     let children: Vec<Node<'_>> = all_children_iter(node, context).collect();
     let open = children
@@ -691,7 +687,9 @@ fn is_implicit_block_parameter(context: &RuleContext<'_>, node: Node<'_>) -> boo
     let name = context.source.slice(node.byte_range());
     let numbered =
         matches!(name.as_bytes(), [b'_', digit] if digit.is_ascii_digit() && *digit != b'0');
-    if !(numbered || name == "it") {
+    if !((numbered && context.target_ruby_version() >= RubyVersion::new(2, 7))
+        || (name == "it" && context.target_ruby_version() >= RubyVersion::new(3, 4)))
+    {
         return false;
     }
     let mut ancestor = parent_node(context, node);
@@ -1009,7 +1007,9 @@ fn body_range(context: &RuleContext<'_>, node: Node<'_>, inner: Node<'_>) -> boo
         return false;
     };
     let statements = match parent.kind_str() {
-        "parenthesized_statements" | "interpolation" | "begin" => super::nodes::children_in(parent, context),
+        "parenthesized_statements" | "interpolation" | "begin" => {
+            super::nodes::children_in(parent, context)
+        }
         _ => super::conditional::self_statements(parent),
     };
     let beginless = inner.field("begin").is_none()
@@ -1214,7 +1214,9 @@ fn method_call_with_redundant_parentheses(
     if singular_parenthesized_parent(context, node) {
         return true;
     }
-    !call_has_arguments(call) || has_own_parentheses(context, call) || square_brackets(call, context)
+    !call_has_arguments(call)
+        || has_own_parentheses(context, call)
+        || square_brackets(call, context)
 }
 
 /// `singular_parenthesized_parent?`.

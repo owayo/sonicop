@@ -493,7 +493,7 @@ fn in_hash_literal(pair: Node<'_>, context: &RuleContext<'_>) -> bool {
     pair.parent_of(context).is_some_and(|parent| {
         matches!(
             parent.kind_str(),
-            "hash" | "argument_list" | "element_reference"
+            "hash" | "argument_list" | "element_reference" | "array"
         )
     })
 }
@@ -507,7 +507,7 @@ fn hash_groups<'tree>(context: &'tree RuleContext<'_>) -> Vec<Vec<Node<'tree>>> 
         };
         if !matches!(
             parent.kind_str(),
-            "hash" | "argument_list" | "element_reference"
+            "hash" | "argument_list" | "element_reference" | "array"
         ) {
             continue;
         }

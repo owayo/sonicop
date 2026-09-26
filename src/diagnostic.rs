@@ -247,11 +247,8 @@ impl Offense {
     }
 }
 
-/// The span's length in characters, which is the unit RuboCop reports.
-///
-/// Its parser addresses source by character, so a range over `なまえ` is 3 there and 9 here if the
-/// byte length is handed out instead. Offsets that a cop derived by arithmetic can land inside a
-/// character, so both ends are pulled back to a boundary rather than slicing and panicking.
+/// 本家が報告する文字単位の範囲長。CRLF は改行 1 文字として数える。
+/// 算術で求めたオフセットは文字の途中に落ち得るため、両端を文字境界まで戻す。
 fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
     let text = source.text();
     let mut start = start.min(text.len());
@@ -262,7 +259,13 @@ fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
     while end > start && !text.is_char_boundary(end) {
         end -= 1;
     }
-    text[start..end].chars().count()
+    let span = &text[start..end];
+    let crlf_count = span
+        .as_bytes()
+        .windows(2)
+        .filter(|pair| *pair == b"\r\n")
+        .count();
+    span.chars().count() - crlf_count
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -368,6 +371,18 @@ mod tests {
         let end = start + "なまえ".len();
         assert_eq!(character_length(&source, start, end), 3);
         assert_eq!(offense(start, end).location(&source).length, 3);
+    }
+
+    /// 本家は CRLF を改行 1 文字として扱い、複数行の offense 長に CR を足さない。
+    #[test]
+    fn crlf_counts_as_one_character_in_a_range() {
+        let source = source("begin\r\nrescue Exception\r\nend\r\n");
+        let end = "begin\r\nrescue Exception\r\n".len();
+        assert_eq!(
+            character_length(&source, 0, end),
+            "begin\nrescue Exception\n".len()
+        );
+        assert_eq!(character_length(&source, 5, 6), 1);
     }
 
     /// cop が算術で導いたオフセットは文字の途中に落ち得る。ここで panic すると実行全体が死ぬので、

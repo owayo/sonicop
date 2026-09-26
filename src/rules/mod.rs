@@ -594,7 +594,7 @@ const NO_PARENT: u32 = u32::MAX;
 const NOT_NAMED: u32 = u32::MAX;
 
 impl<'tree> AstIndex<'tree> {
-    pub fn new(root: Node<'tree>) -> Self {
+    pub fn new(root: Node<'tree>, source_text: &str) -> Self {
         // The tree knows how many nodes it holds, so every per-node table is allocated once at the
         // right size. Growing them by doubling costs a dozen reallocations and copies per file,
         // and eight workers doing that at once is contention on the allocator rather than work.
@@ -616,7 +616,7 @@ impl<'tree> AstIndex<'tree> {
             subtree_len: Vec::new(),
             named_subtree: Vec::new(),
         };
-        index.collect(root);
+        index.collect(root, source_text);
         index.index_children();
         index.index_subtrees();
         index.protected_ranges.sort_by_key(|range| range.start);
@@ -813,7 +813,7 @@ impl<'tree> AstIndex<'tree> {
     /// Visits every node in depth-first pre-order. Iterative on purpose: rayon
     /// worker stacks are far smaller than the main thread's, and a recursive
     /// walk aborts the whole process on deeply nested input.
-    fn collect(&mut self, root: Node<'tree>) {
+    fn collect(&mut self, root: Node<'tree>, source_text: &str) {
         let mut cursor = root.walk();
         let mut ancestors: Vec<u32> = Vec::new();
         loop {
@@ -823,6 +823,7 @@ impl<'tree> AstIndex<'tree> {
                 cursor.node(),
                 ancestors.last().copied().unwrap_or(NO_PARENT),
                 field,
+                source_text,
             );
             if cursor.goto_first_child() {
                 ancestors.push(here);
@@ -840,7 +841,7 @@ impl<'tree> AstIndex<'tree> {
         }
     }
 
-    fn visit(&mut self, node: Node<'tree>, parent: u32, field: u16) {
+    fn visit(&mut self, node: Node<'tree>, parent: u32, field: u16, source_text: &str) {
         // Read once. Each call goes through the C API for the node's symbol, and this used to ask
         // four times for every node of every file.
         let kind = node.kind_str();
@@ -867,7 +868,14 @@ impl<'tree> AstIndex<'tree> {
             self.heredoc_ranges.push(node.byte_range());
         }
         if kind == "comment" && !inside_literal_text(node) {
-            self.comment_ranges.push(node.byte_range());
+            let mut range = node.byte_range();
+            // tree-sitter は CRLF の CR まで comment に含めるが、本家の lexer は含めない。
+            if source_text.as_bytes().get(range.end.saturating_sub(1)) == Some(&b'\r')
+                && source_text.as_bytes().get(range.end) == Some(&b'\n')
+            {
+                range.end -= 1;
+            }
+            self.comment_ranges.push(range);
         }
     }
 }
@@ -999,7 +1007,7 @@ mod tests {
             .set_language(&tree_sitter_ruby::LANGUAGE.into())
             .expect("the Ruby grammar loads");
         let tree = parser.parse(source, None).expect("the source parses");
-        let index = AstIndex::new(tree.root_node());
+        let index = AstIndex::new(tree.root_node(), source);
 
         let mut seen = 0;
         for node in &index.nodes {
@@ -1070,7 +1078,7 @@ mod tests {
             .set_language(&tree_sitter_ruby::LANGUAGE.into())
             .expect("the Ruby grammar loads");
         let indexed = parser.parse("foo(1)\n", None).expect("the source parses");
-        let index = AstIndex::new(indexed.root_node());
+        let index = AstIndex::new(indexed.root_node(), "foo(1)\n");
 
         let other = parser
             .parse("bar(2, 3)\n", None)

@@ -69,7 +69,6 @@ pub(super) fn scan<'tree>(
         if KEYWORDS_WITHOUT_ARGUMENTS.contains(&owner.kind_str()) {
             continue;
         }
-
         let Some(first) = named_children_iter(list, context).next() else {
             continue;
         };
@@ -137,11 +136,13 @@ fn binary_operands<'tree>(
         if !prefixes.contains(&context.source.node_text(operator)) {
             continue;
         }
-        // A local variable on the left makes this arithmetic, exactly as it does for the lexer.
-        if left.kind_str() != "identifier" || context.variable_analysis().names_a_local(left) {
+        // 左辺がローカル変数なら二項演算であり、本家の字句解析も警告しない。
+        if left.kind_str() != "identifier"
+            || context.variable_analysis().is_variable_reference(left)
+        {
             continue;
         }
-        // `do_something&.* -1` is a `csend`, which `on_send` never reaches.
+        // `do_something&.* -1` は `csend` であり、本家の `on_send` は処理しない。
         if !crate::rules::send_node::is_plain_send(node, context) {
             continue;
         }

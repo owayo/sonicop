@@ -61,16 +61,17 @@
 # 括弧内は測定に使ったコーパスの commit。CONFORMANCE.md の表と同じものを指す。
 # 既定設定では TargetRubyVersion がコーパスごとに 2.7 / 3.3 / 4.0 に解決されるので、
 # 版依存の挙動はこの 3 つの範囲では踏めている。
-# 死守ライン (`fullfmt.sh` の `-A` バイト比較) で、意図して割れているファイル。
+# 死守ライン (`fullfmt.sh` の `-a` / `-A` バイト比較) で、意図して割れているファイル。
 #
 # **除外しない。差分そのものを期待値として監視する。** 両者の出力のハッシュを固定して
 # あるので、**同じファイルが別の理由で変わったら気づける**。除外にすると、そこが
 # どう変わっても静かになる。
 #
-# 読み方: `既知 4 / 新規 0` なら通過。`新規` が 1 でもあれば退行。
+# `mode: safe` は -a、mode を省いた項目は -A。別々にハッシュを固定する。
+# 読み方: `既知 N / 新規 0` なら通過。`新規` が 1 でもあれば退行。
 # ハッシュが動いた既知は「同じファイルが別の理由で割れた」なので、これも止める。
 #
-# **数字だけを報告しない。**「4 件割れている」と読まれる。必ず「既知 4 / 新規 0」と書く。
+# **数字だけを報告しない。** 必ず「既知 N / 新規 0」と書く。
 autocorrect_divergences:
   - id: interpolation-check-percent-brace
     corpus: rubocop_rubocop
@@ -102,12 +103,81 @@ autocorrect_divergences:
     rubocop_sha256: 5d93f5a44a49e490
     sonicop_sha256: 3be80e05f158a5f9
     reason: 同上 (安全網の発火。本家の -A 出力は SyntaxError)
+  - id: safety-net-mastodon-friends-of-friends-safe
+    mode: safe
+    corpus: mastodon_mastodon
+    path: app/models/account_suggestions/friends_of_friends_source.rb
+    rubocop_sha256: d05ca342c18f0aa9
+    sonicop_sha256: ae1b5cce6c23ba26
+    reason: 本家の -a 出力も構文エラーになるため、移植版は書き戻しを見送る
+  - id: safety-net-mastodon-account-summary-safe
+    mode: safe
+    corpus: mastodon_mastodon
+    path: app/models/account_summary.rb
+    rubocop_sha256: d1bf059718079691
+    sonicop_sha256: a71e0ccb80346ac6
+    reason: 本家の -a 出力も構文エラーになるため、移植版は書き戻しを見送る
+  - id: safety-net-mastodon-notify-service-safe
+    mode: safe
+    corpus: mastodon_mastodon
+    path: app/services/notify_service.rb
+    rubocop_sha256: 5d93f5a44a49e490
+    sonicop_sha256: 3be80e05f158a5f9
+    reason: 本家の -a 出力も構文エラーになるため、移植版は書き戻しを見送る
+  - id: parallel-assignment-implicit-self-getter-safe
+    mode: safe
+    corpus: rails_rails
+    path: actionview/lib/action_view/helpers/capture_helper.rb
+    rubocop_sha256: b3e68290e681213e
+    sonicop_sha256: 99c85520c49e7607
+    reason: setter を先に実行する本家の -a は旧バッファを失う。Claude の実行検証で確認済み
+  - id: guard-clause-first-assignment-safe
+    mode: safe
+    corpus: rails_rails
+    path: activerecord/test/cases/adapter_test.rb
+    rubocop_sha256: 45881be0ff3b6177
+    sonicop_sha256: 81250c7ab1f3d310
+    reason: >-
+      本家の -a は条件内の初回代入を後置 if の右へ動かす。左の raise error は
+      メソッド呼び出しになり、実行時に NameError を起こす。移植版は補正を見送る。
+  - id: safety-net-rails-action-mailbox-safe
+    mode: safe
+    corpus: rails_rails
+    path: guides/bug_report_templates/action_mailbox.rb
+    rubocop_sha256: 4895825407a2e34b
+    sonicop_sha256: 4978e26cc660b85d
+    reason: 本家の -a は routing の正規表現とハッシュ引数を結ぶ括弧を移し、構文エラーにする
+  - id: safety-net-rails-plugin-generator-safe
+    mode: safe
+    corpus: rails_rails
+    path: railties/lib/rails/generators/rails/plugin/plugin_generator.rb
+    rubocop_sha256: 312f00c3af00ebab
+    sonicop_sha256: a3834960a0b9672a
+    reason: 本家の -a は有効だったファイルを構文エラーにする。移植版はその補正を見送る
+  - id: parallel-assignment-implicit-self-getter
+    corpus: rails_rails
+    path: actionview/lib/action_view/helpers/capture_helper.rb
+    rubocop_sha256: 8a3725617ba0ba29
+    sonicop_sha256: f8ea8511e2bc9968
+    reason: 本家の -A も setter と getter の順序を逆にし、旧バッファを失う
+  - id: safety-net-rails-action-mailbox
+    corpus: rails_rails
+    path: guides/bug_report_templates/action_mailbox.rb
+    rubocop_sha256: 4895825407a2e34b
+    sonicop_sha256: 4978e26cc660b85d
+    reason: 本家の -A 出力は構文エラー。移植版は有効なファイルを保持する
+  - id: safety-net-rails-plugin-generator
+    corpus: rails_rails
+    path: railties/lib/rails/generators/rails/plugin/plugin_generator.rb
+    rubocop_sha256: a88fc5f34ba8dab7
+    sonicop_sha256: a3834960a0b9672a
+    reason: 本家の -A 出力は構文エラー。移植版は有効なファイルを保持する
 
 blind_spots:
   # --- CRLF 改行 (2026-08-18) ---
-  # **既存 5 コーパスに CRLF を含む `.rb` は 0 ファイル。`tests/` の cop テストにも本家 spec にも
-  # 1 つも無い。**3 つの独立した検査が揃って同じ形を欠いていたので、CRLF の欠陥は 1 件も
-  # 測られていなかった。`#79` (既定でしか届かない設定値) と同型で、掃引を足しても届かない。
+  # 2026-08-18 時点、既存 5 コーパスに CRLF を含む `.rb` は 0 ファイルで、手書きテストと
+  # 本家 spec にも無かった。3 つの検査が同じ形を欠き、CRLF の欠陥を測れていなかった。
+  # 現在は `tests/cli.rs` と `src/diagnostic.rs` に CRLF の範囲・メッセージの回帰がある。
   #
   # 埋め方は「コーパスを増やす」ではなく **`scripts/crlf_probe.sh` で既存の入力に形を作る**。
   # これで見つかって直したもの (計 249 件):
@@ -118,6 +188,8 @@ blind_spots:
   #   Layout/EmptyLinesAround*      222 件。空行を空行と認識しない
   #   Style/CommentAnnotation         3 件。`# FIXME\r` が「キーワード + 何か」に見えた
   # 直しは `support::chomp` に 20 箇所を寄せた。個別に書くと必ずどこかが漏れる。
+  # 2026-09-27 には複数行 offense の `length`、`Layout/EndOfLine` の終端位置、
+  # `Lint/Debugger` のメッセージでも CRLF 正規化の差を見つけ、最小例で固定した。
   #
   # --- ★ Style/RedundantParentheses は本家側の取りこぼし (合わせない) ---
   # CRLF では本家がこの cop を報告しない。移植版は報告する (rails を CRLF 化して 119 件)。
@@ -139,11 +211,11 @@ blind_spots:
   # 線はここに 1 本だけ引く。下の 2 つは同じ族なので、同じ扱いにする。
   #
   #   1. 実コーパスの残差
-  #      Homebrew/brew@38ee325 の 2,179 ファイルで Lint/Syntax が missing 997 / excess 263。
+  #      Homebrew/brew@38ee325 の 2,179 ファイルで Lint/Syntax が missing 924 / excess 330
+  #      (2026-09-27、更新後バイナリで再測定)。
   #      **Lint/Syntax 以外は missing 0 / excess 0** (約 5 万 offense、multiset で照合)。
   #      Lint/Syntax を持つファイルの集合は 569 対 569 で完全一致し、食い違うのは
-  #      共有ファイル内の診断位置だけ。Sonicop-only の 263 位置は 135 ファイルにあり、
-  #      すべて同じファイル内の共通診断より後ろにある。Sonicop-only のファイルは 0。
+  #      共有ファイル内の診断位置だけで、Sonicop-only のファイルは 0。
   #      569 が構文エラーになるのは、Ruby 4.0 のコードベース (Library/Homebrew/.ruby-version
   #      = 4.0.6) を既定の 2.7 で測っているため。3.1 で測ると両者 0 件になる。
   #
@@ -464,6 +536,121 @@ blind_spots:
 # 見つからないうちは、構造差を抱える理由がない。
 
 divergences:
+  - cop: Layout/SpaceAroundOperators
+    case: crlf_autocorrect_preserves_line_endings
+    kind: correction
+    upstream: "x = 1\n"
+    sonicop: "x = 1\r\n"
+    note: >-
+      本家は補正時に CRLF を LF へ変えて書き戻す。`__END__` 後に `a\r\nb\r\n` を置き
+      `DATA.read.bytes` を測ると、本家の -a 後は CR が消え、実行時の値まで変わる。
+      移植版は変更範囲外のバイトを守るため CRLF を保つ。別プロバイダーの判定でも、
+      本家の I/O の副作用によるデータ変更として、意図的乖離を支持した。
+  - cop: Style/CaseLikeIf
+    case: style_case_like_if_nested_else_safety
+    kind: correction
+    upstream: |
+      case x
+      when 1
+        a
+      when 2
+        b
+      else
+        when 3
+          c
+        end
+      end
+    sonicop: |
+      if x == 1
+        a
+      elsif x == 2
+        b
+      else
+        if x == 3
+          c
+        end
+      end
+    note: >-
+      本家 1.89.0 は else 内の if も when に変え、Ruby 4.0.6 が SyntaxError とする
+      ファイルを -A で上書きする。文法側もこの構文を ERROR なしで受け取るため、
+      診断は一致させつつ補正だけ見送って元ファイルを保護する。別プロバイダーの
+      レビューでも、本家の出力が構文エラーであること、診断の互換性を保てることから、
+      独自の修正を加えず補正だけ見送る判断を支持した。-A の `corrected` も本家の
+      true に対して false となるが、`correctable` は一致させる。
+  - cop: Style/CaseLikeIf
+    case: style_case_like_if_nested_unless_safety
+    kind: correction
+    upstream: |
+      case x
+      when 1
+        a
+      when 2
+        b
+      else
+        when 3
+          c
+        end
+      end
+    sonicop: |
+      if x == 1
+        a
+      elsif x == 2
+        b
+      else
+        unless x == 3
+          c
+        end
+      end
+    note: >-
+      本家 1.89.0 は else 内の unless も if と同様に when へ置換し、
+      Ruby 4.0.6 が SyntaxError とするファイルを書き出す。検出と correctable は
+      一致させ、補正だけ見送る。上の if のケースと同じ安全上の判断を適用する。
+  - cop: Style/CaseLikeIf
+    case: style_case_like_if_nested_if_modifier_safety
+    kind: correction
+    upstream: |
+      case x
+      when 1
+        a
+      when 2
+        b
+      else
+        c when 3
+      end
+    sonicop: |
+      if x == 1
+        a
+      elsif x == 2
+        b
+      else
+        c if x == 3
+      end
+    note: >-
+      本家 1.89.0 は else 内の修飾子付き if を `c when 3` に変え、構文エラーの
+      ファイルを上書きする。診断を一致させ、補正だけ見送る。
+  - cop: Style/CaseLikeIf
+    case: style_case_like_if_nested_unless_modifier_safety
+    kind: correction
+    upstream: |
+      case x
+      when 1
+        a
+      when 2
+        b
+      else
+        c when 3
+      end
+    sonicop: |
+      if x == 1
+        a
+      elsif x == 2
+        b
+      else
+        c unless x == 3
+      end
+    note: >-
+      本家 1.89.0 は else 内の修飾子付き unless も `c when 3` に変え、構文エラーの
+      ファイルを上書きする。診断を一致させ、補正だけ見送る。
   # --- Style/EmptyLiteral ---
   # ★ 「本家に合わせない」の 2 種類目 (出力は valid だが意味が変わる)。冒頭の節を参照。
   #
@@ -486,10 +673,9 @@ divergences:
   # 本家のバグと判断した根拠は、本家自身が `.` では正しく `&.` でだけ間違えること。
   # 設計上の選択なら両方が同じ形になるはずで、そうなっていない。
   #
-  # ★ **この「本家のバグ」判定は second opinion を取っていない。** 私たちの手順では
-  # 別プロバイダ (`ai-second-opinion` / codex) に判定させることになっているが、
-  # 2026-08-17 時点で codex エージェントが使えず、team-lead の判断だけで決めた。
-  # **後から見直せるように、取っていないことをここに残す。**
+  # 2026-09-27 に ai-second-opinion / Claude で再判定した。本家コード自身が「ブロックと
+  # 引数のハッシュは違う」と明記し、同じ欠陥を super では既に直している点を確認した。
+  # 引数が 2 つなら本家の -a は構文エラーのファイルを書き出すことも実測した。
   - cop: Style/EmptyLiteral
     case: style_empty_literal_safe_navigation_argument
     kind: correction
@@ -503,7 +689,49 @@ divergences:
       本家は `%i[send super zsuper]` に csend を書いていないため、`&.` の呼び出しでだけ
       括弧を付けずに置き換える。出力は valid な Ruby だが `{}` がブロックとして解釈され、
       意味が変わる。本家自身が `.` では括弧を付けるので見落としと判断し、寄せない。
-      **second opinion 未取得** (codex が使えず team-lead の判断のみ)。
+      2026-09-27 の ai-second-opinion / Claude も、本家自身の意図と
+      2 引数での構文破壊を根拠に、安全のためこの乖離を維持すると判定した。
+  - cop: Style/EmptyLiteral
+    case: style_empty_literal_safe_navigation_two_arguments
+    kind: correction
+    upstream: |
+      recv&.foo {}, 1
+    sonicop: |
+      recv&.foo({}, 1)
+    note: >-
+      本家の -a は safe navigation の Hash.new をブロックへ変え、後続の引数との組み合わせで
+      構文エラーを作る。2026-09-27 に本家と移植版の書き戻しを実測し、
+      ai-second-opinion / Claude の判定に従って元の引数の意味を守る。
+  - cop: Style/ParallelAssignment
+    case: style_parallel_assignment_implicit_self_getter
+    kind: correction
+    upstream: |
+      def f
+        self.output_buffer = buf
+        old_buffer = output_buffer
+      end
+    sonicop: |
+      def f
+        old_buffer = output_buffer
+        self.output_buffer = buf
+      end
+    note: >-
+      `self.output_buffer, old_buffer = buf, output_buffer` の本家補正は setter の後で
+      getter を読むため、old_buffer に新しい値が入る。補正前は旧値を保存する。
+      本家は検出時には暗黙 self の getter と setter の依存を認識するが、補正時にその
+      変換を省いている。2026-09-27 の ai-second-opinion / Claude は実行結果を確認し、
+      意味を壊す順序を再現しないと判定した。
+  - cop: Style/GuardClause
+    case: style_guard_clause_new_local_in_condition
+    kind: correction
+    upstream: "def configure(failures)\n  raise error if error = failures.pop\n    \n  \n    super()\n  \nend\n"
+    sonicop: "def configure(failures)\n  if error = failures.pop\n    raise error\n  else\n    super()\n  end\nend\n"
+    note: >-
+      条件で初めて代入する `error` を後置 if の左側へ動かすと、Ruby は `raise error` を
+      変数参照ではなくメソッド呼び出しとして構文解析し、実行時に NameError になる。
+      本家はさらに未使用代入を消すが、破壊の原因は GuardClause の移動そのもの。
+      2026-09-27 の ai-second-opinion / Claude が両者の補正を実行して確認したため、
+      その変数を読むガード節では補正だけを見送る。
   # --- Style/MethodCallWithArgsParentheses (EnforcedStyle: omit_parentheses) ---
   # tree-sitter は Ruby の command call の文法制約を持たない。括弧を外した結果が Ruby として
   # 通らない形でも ERROR ノードを作らずに受理するので、再パース検証 (`accepts_more_than_ruby`)

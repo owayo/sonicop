@@ -18,7 +18,7 @@ path = "src/main.rs"
 anyhow = "1.0.104"
 blake3 = "1.8.7"
 clap = { version = "4.6.6", features = ["derive", "wrap_help"] }
-encoding_rs = "0.8.35"
+encoding_rs = "0.8.42"
 fs2 = "0.4.3"
 globset = "0.4.20"
 ignore = "0.4.33"
@@ -30,7 +30,7 @@ serde_yaml_ng = "0.10"
 shell-words = "1.1.1"
 tempfile = "3.27.0"
 tree-sitter = "0.27.0"
-tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", tag = "v26.8.103" }
+tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", tag = "v26.9.100" }
 ureq = { version = "3.4.1", default-features = false, features = ["native-tls"] }
 
 [dev-dependencies]

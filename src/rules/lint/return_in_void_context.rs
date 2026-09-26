@@ -38,15 +38,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn enclosing_void_method<'a>(node: Node<'_>, context: &'a RuleContext<'_>) -> Option<&'a str> {
     let mut ancestor = node.parent_of(context);
     while let Some(current) = ancestor {
-        // `context_node&.def_type?` lists `:def` alone -- `def self.initialize` is a `defs`, and
-        // its return value is not thrown away the way a constructor's is.
+        // 本家では `def self.initialize` の戻り値は保持するが、特異メソッドの setter は捨てる。
         if current.kind_str() == "singleton_method" {
-            return None;
+            let name = context.source.node_text(current.field("name")?);
+            return (name.ends_with('=') && !COMPARISON_METHODS.contains(&name)).then_some(name);
         }
         if current.kind_str() == "method" {
-            let name = context
-                .source
-                .node_text(current.field("name")?);
+            let name = context.source.node_text(current.field("name")?);
             let void = name == "initialize"
                 || (name.ends_with('=') && !COMPARISON_METHODS.contains(&name));
             return void.then_some(name);

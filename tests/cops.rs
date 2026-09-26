@@ -591,6 +591,21 @@ mod lint {
         expect_no_offenses("Lint/DuplicateMethods", "def foo\nend\n");
     }
 
+    /// 本家は `class <<` の受け手がローカル変数なら再定義として追跡しない。
+    #[test]
+    fn duplicate_methods_distinguishes_local_and_send_receivers() {
+        expect_no_offenses(
+            "Lint/DuplicateMethods",
+            "object = Object.new\nclass << object\n  def x; end\nend\nobject = Object.new\nclass << object\n  def x; end\nend\n",
+        );
+        CopCase::annotated(
+            "Lint/DuplicateMethods",
+            "class << helper\n  def x; end\nend\nclass << helper\n  def x; end\n  ^^^^^ Method `helper.x` is defined at both example.rb:2 and example.rb:5.\nend\n",
+        )
+        .locations(&[(5, 3, 5, 7)])
+        .run();
+    }
+
     /// 本家は名前空間付きのメソッド名とファイルパスを文言に出し、`def` キーワードから
     /// メソッド名の末尾までを指す。
     #[test]
@@ -2216,6 +2231,20 @@ mod style {
             "Style/HashSyntax",
             "puts({ :a => 1 })\n",
             "puts({ a: 1 })\n",
+        );
+    }
+
+    /// 配列の末尾に置いた暗黙のハッシュも本家は検査する。
+    #[test]
+    fn hash_syntax_checks_pair_in_array() {
+        expect_offense(
+            "Style/HashSyntax",
+            "a = [:partial_input => true]\n     ^^^^^^^^^^^^^^^^^ Use the new Ruby 1.9 hash syntax.\n",
+        );
+        expect_correction(
+            "Style/HashSyntax",
+            "a = [:partial_input => true]\n",
+            "a = [partial_input: true]\n",
         );
     }
 
@@ -7402,6 +7431,64 @@ mod style_rest {
 mod metrics_complexity {
     use super::*;
 
+    /// Ruby 3.4 より前の `it` は暗黙の引数ではなくメソッド呼び出し。
+    #[test]
+    fn abc_size_counts_it_by_target_ruby_version() {
+        for (version, vector) in [("2.7", "<0, 4, 1> 4.12"), ("3.4", "<0, 3, 0> 3")] {
+            CopCase::annotated(
+                "Metrics/AbcSize",
+                &format!(
+                    "def foo\n^^^^^^^ Assignment Branch Condition size for `foo` is too high. [{vector}/1]\n  xs.map {{ format(it) }}\nend\n"
+                ),
+            )
+            .config("Metrics/AbcSize:\n  Max: 1\n")
+            .target_ruby(version)
+            .locations(&[(1, 1, 3, 3)])
+            .run();
+        }
+    }
+
+    /// メソッド名の `it` は Ruby 3.4 でもブロックの暗黙引数ではない。
+    #[test]
+    fn method_named_it_does_not_hide_block_complexity() {
+        for (cop, message) in [
+            (
+                "Metrics/AbcSize",
+                "Assignment Branch Condition size for `foo` is too high. [<0, 3, 1> 3.16/1]",
+            ),
+            (
+                "Metrics/CyclomaticComplexity",
+                "Cyclomatic complexity for `foo` is too high. [2/1]",
+            ),
+        ] {
+            CopCase::annotated(
+                cop,
+                &format!("def foo(xs)\n^^^^^^^^^^^ {message}\n  xs.each {{ bar.it }}\nend\n"),
+            )
+            .config(&format!("{cop}:\n  Max: 1\n"))
+            .target_ruby("3.4")
+            .locations(&[(1, 1, 3, 3)])
+            .run();
+        }
+    }
+
+    /// `_1` も導入前の Ruby 2.6 ではメソッド呼び出しとして数える。
+    #[test]
+    fn abc_size_counts_numbered_parameters_by_target_ruby_version() {
+        for (version, vector) in [("2.6", "<0, 4, 1> 4.12"), ("2.7", "<0, 3, 0> 3")] {
+            CopCase::annotated(
+                "Metrics/AbcSize",
+                &format!(
+                    "def foo\n^^^^^^^ Assignment Branch Condition size for `foo` is too high. [{vector}/1]\n  xs.map {{ format(_1) }}\nend\n"
+                ),
+            )
+            .config("Metrics/AbcSize:\n  Max: 1\n")
+            .target_ruby(version)
+            .locations(&[(1, 1, 3, 3)])
+            .run();
+        }
+    }
+
     /// 実測: `[<4, 3, 2> 5.39/2]` / 1:1-7:3 / length 110
     #[test]
     fn abc_size_reports_the_whole_definition_with_its_vector() {
@@ -7884,8 +7971,7 @@ mod interpolation_check {
                        if you need interpolation.";
 
     /// 本家は `%{...}` を式の直後にも書くが、そこでは `%` が剰余演算子に読まれてファイルが
-    /// 壊れる (`'a ' \\` の継続の後に `%{b}` を置くと `'a ' % {b}`)。offense は立てたまま、
-    /// 書き換えだけを見送る。**本家に合わせると ruby -c が通らなくなる。**
+    /// 壊れる。correctable は本家と合わせ、危険な書き換えだけを見送る。
     #[test]
     fn a_percent_brace_is_not_offered_where_the_percent_would_be_an_operator() {
         CopCase::new(
@@ -7894,8 +7980,21 @@ mod interpolation_check {
             Vec::new(),
         )
         .without_offense_check()
+        .locations(&[(2, 4, 2, 16)])
+        .correctable(true)
         .corrected("it 'a ' \\\n   '`x(\"#{p}\")`' do\nend\n")
         .run();
+    }
+
+    /// 前行の式は連結文字列ではないため、本家と同じ `%{...}` 補正を行う。
+    #[test]
+    fn a_previous_line_does_not_prevent_percent_brace_correction() {
+        expect_correction(COP, "foo()\n'\"q\" #{b}'\n", "foo()\n%{\"q\" #{b}}\n");
+        CopCase::new(COP, "'a' '\"q\" #{b}'\n".to_owned(), Vec::new())
+            .without_offense_check()
+            .correctable(true)
+            .corrected("'a' '\"q\" #{b}'\n")
+            .run();
     }
 
     #[test]
@@ -12106,6 +12205,16 @@ mod hash_compare_by_identity {
             expect_no_offenses(COP, "class C\n  def bar\n    return 1\n  end\nend\n");
             // 値を返さない `return` は対象外。
             expect_no_offenses(COP, "class C\n  def baz=(v)\n    return\n  end\nend\n");
+        }
+
+        /// 特異メソッドでも setter の戻り値だけは呼び出し側へ返らない。
+        #[test]
+        fn singleton_setter_is_void_but_singleton_initialize_is_not() {
+            expect_offense(
+                COP,
+                "def self.foo=(x)\n  return x\n  ^^^^^^ Do not return a value in `foo=`.\nend\n",
+            );
+            expect_no_offenses(COP, "def self.initialize\n  return 1\nend\n");
         }
 
         /// スコープを移すブロックの中は別のメソッドの本体になる。
@@ -17894,6 +18003,26 @@ mod style_batch_a {
         );
     }
 
+    /// 同じ `end` から始まる候補は、最後のブロック呼び出しまでを報告する。
+    #[test]
+    fn multiline_block_chain_keeps_the_outermost_range() {
+        CopCase::annotated(
+            "Style/MultilineBlockChain",
+            r#"
+            x.map do |a|
+              a
+            end.reject { |a| true }
+            ^^^^^^^^^^^^^^^^^^^^^^^ Avoid multi-line chains of blocks.
+               .sort_by do |a|
+                 a
+               end
+            "#,
+        )
+        .locations(&[(3, 1, 4, 11)])
+        .lengths(&[35])
+        .run();
+    }
+
     #[test]
     fn multiline_if_modifier_expands_the_modifier() {
         expect_correction(
@@ -19283,6 +19412,61 @@ mod case_like_if {
         );
         expect_no_offenses(COP, "if x == 1\n  a\nelsif x == 2\n  b\nend\n");
         expect_no_offenses(COP, "if x\n  a\nelsif y\n  b\nelsif z\n  c\nend\n");
+    }
+
+    /// `else` 内の単独の `if` も本家は条件として調べる。
+    #[test]
+    fn a_nested_if_in_else_must_be_convertible_too() {
+        expect_no_offenses(
+            COP,
+            "if x == 1\n  a\nelse\n  if x == 2\n    b\n  elsif x == 3\n    c\n  end\nend\n",
+        );
+        expect_no_offenses(
+            COP,
+            "if x == false\n  a\nelsif x == :unsafe\n  b\nelse\n  if y\n    c\n  end\nend\n",
+        );
+        expect_offense(
+            COP,
+            r#"
+            if x == 1
+            ^^^^^^^^^ Convert `if-elsif` to `case-when`.
+              a
+            elsif x == 2
+              b
+            else
+              if x == 3
+                c
+              end
+            end
+            "#,
+        );
+    }
+
+    /// 本家は `unless` と修飾子付き条件式も `if_type?` として枝に数える。
+    #[test]
+    fn unless_and_modifier_in_else_follow_upstream_branch_counting() {
+        for ending in [
+            "c if x == 3",
+            "c unless x == 3",
+            "unless x == 3\n    c\n  end",
+        ] {
+            let source = format!("if x == 1\n  a\nelsif x == 2\n  b\nelse\n  {ending}\nend\n");
+            expect_offense(
+                COP,
+                &format!(
+                    "if x == 1\n^^^^^^^^^ Convert `if-elsif` to `case-when`.\n{}",
+                    &source["if x == 1\n".len()..]
+                ),
+            );
+        }
+        for ending in ["d if y", "unless y\n    d\n  end"] {
+            expect_no_offenses(
+                COP,
+                &format!(
+                    "if x == 1\n  a\nelsif x == 2\n  b\nelsif x == 3\n  c\nelse\n  {ending}\nend\n"
+                ),
+            );
+        }
     }
 }
 
@@ -22693,6 +22877,24 @@ mod redundant_parentheses {
 
     const COP: &str = "Style/RedundantParentheses";
 
+    /// `_1` と `it` はそれぞれ導入前にはブロックの暗黙変数ではない。
+    #[test]
+    fn implicit_parameter_parentheses_follow_the_target_ruby_version() {
+        for (name, version, message) in [
+            ("it", "2.7", "Don't use parentheses around block body."),
+            ("it", "3.4", "Don't use parentheses around a variable."),
+            ("_1", "2.6", "Don't use parentheses around block body."),
+            ("_1", "2.7", "Don't use parentheses around a variable."),
+        ] {
+            CopCase::annotated(
+                COP,
+                &format!("def foo\n  xs.map {{ ({name}) }}\n           ^^^^ {message}\nend\n"),
+            )
+            .target_ruby(version)
+            .run();
+        }
+    }
+
     /// `ParenthesesCorrector` の主経路は本家の `remove_close_paren`、つまり
     /// `range_with_surrounding_space(side: :left, newlines: newlines)` で、`continuations` は
     /// 既定の `false` のまま。**行継続の `\` は残る。**
@@ -22775,14 +22977,14 @@ mod redundant_parentheses {
         );
     }
 
-    /// `redundant_parentheses_spec.rb:976`, "parens around a numblock body".
+    /// `redundant_parentheses_spec.rb:976` の numblock 本体のケース。
     ///
-    /// An implicit block parameter is a local variable to upstream's parser, but nothing assigns
-    /// it, so the name table built from assignments cannot know it and it read as a method call.
+    /// 暗黙のブロック引数は本家ではローカル変数だが、代入が無いため
+    /// 代入から作る名前表だけではメソッド呼び出しとの区別が付かない。
     #[test]
     fn an_implicit_block_parameter_is_a_variable() {
-        for name in ["_1", "_2", "it"] {
-            expect_offense(
+        for (name, version) in [("_1", "2.7"), ("_2", "2.7"), ("it", "3.4")] {
+            CopCase::annotated(
                 COP,
                 &format!(
                     r#"
@@ -22793,12 +22995,13 @@ mod redundant_parentheses {
             "#,
                 )
                 .replace("^^^^^^^^^", &"^".repeat(name.len() + 7)),
-            );
+            )
+            .target_ruby(version)
+            .run();
         }
     }
 
-    /// The same names outside a block really are method calls, which is what makes the enclosing
-    /// block the whole of the question rather than the spelling of the name.
+    /// 同じ名前でもブロックの外側ならメソッド呼び出しなので、綴りだけで判定しない。
     #[test]
     fn an_implicit_block_parameter_outside_a_block_is_a_call() {
         expect_offense(

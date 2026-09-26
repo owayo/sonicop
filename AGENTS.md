@@ -51,11 +51,10 @@ make install          # build --release and install to /usr/local/bin
 
 ## Conventions
 
-**Comment language.** Production code under `src/` is documented in English; tests under `tests/`,
-the `Rakefile`, the comments in the CI workflows and `known_divergences.yml` are in Japanese. The
-`Makefile` is in English, the language of `README.md`, so that `make help` matches the README's
-Development table. In-file `#[cfg(test)]` blocks follow whichever the surrounding file already uses.
-Match the file you are editing rather than converting it.
+**Comment language.** Write comments in Japanese in code and tests changed for this project. When
+an existing comment in the edited section is relevant to the change, translate it where useful.
+Do not translate unrelated files just to make a language-only diff. The `Makefile` stays in English
+so that `make help` matches the README's Development table.
 
 **Comments say why, not what.** The existing comments name the upstream RuboCop method being
 mirrored, or record the measurement behind a decision. That is the house style — a comment
@@ -172,6 +171,30 @@ path most users are on and the one a `--cache false` comparison never measures. 
 **Autocorrect writes to real source files.** Corrections go through a temp file so a killed writer
 cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
 test that inspects the file on disk afterwards, not just the reported offenses.
+
+**`Style/CaseLikeIf` has an unsafe upstream correction.** For an `if`/`elsif` chain whose `else`
+contains another `if`, `unless`, or a modifier form of either, RuboCop reports an offense but
+rewrites the inner keyword to `when` after the `else`. Ruby rejects the result. The grammar
+currently accepts it without an error node, so the general syntax guard cannot detect it. Keep
+the diagnostic compatible and withhold that correction; the intentional differences are recorded
+in `tests/conformance/known_divergences.yml` and covered by a CLI test that checks the file on disk.
+
+**A guard clause can change a local variable into a method call.** If the condition first assigns
+`error`, converting `if error = value; raise error; end` to `raise error if error = value` moves the
+read before Ruby has parsed the declaration. RuboCop's correction raises `NameError` at runtime;
+the later `Lint/UselessAssignment` correction only removes an assignment that is already unused.
+Keep the offense but withhold this correction when the guard reads a variable first declared in
+its condition. A variable declared earlier in the scope still permits the upstream correction.
+Register the intentional difference in the divergence manifest for each correction mode where it
+actually occurs; full `-A` runs can take another correction path and converge to identical bytes.
+
+**Preserve CRLF bytes when correcting a CRLF file.** RuboCop's source buffer normalizes CRLF to LF;
+its writeback then changes even the bytes after `__END__`, which changes `DATA.read`. Sonicop keeps
+the original line ending format on disk. After a correction it re-inspects LF text, as RuboCop does,
+so later passes still find the same offenses. New lines inserted by corrections must become CRLF
+before writeback. The intentional byte difference is recorded in the divergence manifest.
+The tree-sitter comment node includes the `\r` in CRLF, while RuboCop's comment token excludes it.
+Trim that byte from indexed comment ranges before cops calculate offense locations or source text.
 
 ## Adding a cop test
 
@@ -316,7 +339,10 @@ looked single-line.
 `CONFORMANCE.md` records offense-by-offense comparisons against five pinned corpora (18,251 files).
 The commits are pinned because the numbers move with them. Anything that changes file discovery or
 path matching can move the target-file lists, so re-measure after touching `src/config/paths.rs`.
-That run is long — hand it to a human rather than starting it inside an agent session.
+The behavioral oracle stays RuboCop 1.89.0 even when the corpus checkout has advanced to a later
+release. If a measurement script's version guard reads that checkout as its source version, put the
+installed 1.89.0 gem's `lib/rubocop/version.rb` in a temporary `CORPUS_ROOT` and pass the pinned
+corpus by absolute path. Keep the guard enabled and record the gem version and corpus commit.
 
 ## Versioning
 

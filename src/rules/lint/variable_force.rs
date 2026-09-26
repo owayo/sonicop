@@ -523,13 +523,11 @@ impl<'tree> Force<'tree, '_> {
             "while" | "until" | "while_modifier" | "until_modifier" | "for" => {
                 self.process_loop(node);
             }
-            // `foo = 1 if bar` runs its condition first, but tree-sitter writes the body first.
+            // `foo = 1 if bar` は条件を先に評価するが、構文木には本文が先に現れる。
             "if_modifier" | "unless_modifier" => {
-                // The parser registers a local the moment it *reads* the assignment, so the `paths`
-                // in `paths = [paths] unless paths.is_a?(Array)` is an `lvar` on both sides of the
-                // keyword -- which is the whole of what `Style/ArrayCoercion` matches on. Declaring
-                // the names the body writes, with no assignment behind them yet, gets that spelling
-                // right while the walk below still reaches them in execution order.
+                // 本家は代入を読む時点で変数名を登録する。`paths = [paths] unless
+                // paths.is_a?(Array)` の `paths` はキーワードの両側で lvar になる。
+                // 本文の代入名だけ先に宣言し、代入の実行順は後続の走査で扱う。
                 if let Some(body) = node.field("body") {
                     self.declare_lexically(body);
                 }
@@ -730,7 +728,7 @@ impl<'tree> Force<'tree, '_> {
         self.mark_assignments_read(variable, node);
     }
 
-    /// The rest of `Variable#reference!`: which of the writes so far the read consumed.
+    /// `Variable#reference!` の残り。参照がどの代入を読んだかを記録する。
     fn mark_assignments_read(&mut self, variable: usize, node: Node<'tree>) {
         self.variables[variable].referenced = true;
         let reference_branch = self.branch_of(node);
@@ -740,14 +738,20 @@ impl<'tree> Force<'tree, '_> {
             if branch.is_some_and(|branch| consumed.contains(&branch)) {
                 continue;
             }
+            let assignment_node = self.variables[variable].assignments[index].node;
+            let conditional_assignment = in_modifier_conditional(assignment_node, node, self.index);
+            if conditional_assignment
+                && self.variables[variable].declaration.start_byte() >= assignment_node.start_byte()
+            {
+                continue;
+            }
             if !self.exclusive(branch, reference_branch) {
                 self.variables[variable].assignments[index].referenced = true;
                 self.variables[variable].assignments[index]
                     .references
                     .push(node);
             }
-            let assignment_node = self.variables[variable].assignments[index].node;
-            if in_modifier_conditional(assignment_node, node, self.index) {
+            if conditional_assignment {
                 continue;
             }
             let Some(branch) = branch else { break };
@@ -1908,8 +1912,7 @@ fn named_captures(source: &str) -> Vec<String> {
     names
 }
 
-/// `in_modifier_conditional?`: an assignment made in `foo = 1 if bar` is not in scope to the left
-/// of the keyword, so a read there cannot be the one that uses it.
+/// `in_modifier_conditional?`: 条件内の初回代入より左にある参照は、その値を読めない。
 fn in_modifier_conditional(
     assignment: Node<'_>,
     reference: Node<'_>,

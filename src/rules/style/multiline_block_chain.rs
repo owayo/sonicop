@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use tree_sitter::Node;
 
 use crate::diagnostic::Offense;
@@ -6,8 +7,12 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::send_range;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let mut candidates = Vec::new();
     for block in context.nodes_of_any(&["block", "do_block"]) {
-        let Some(call) = context.parent(block).filter(|parent| parent.kind_str() == "call") else {
+        let Some(call) = context
+            .parent(block)
+            .filter(|parent| parent.kind_str() == "call")
+        else {
             continue;
         };
         let send = send_range(call, context);
@@ -19,11 +24,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         else {
             continue;
         };
-        offenses.push(context.offense(
+        candidates.push(context.offense(
             "Avoid multi-line chains of blocks.",
             closing.start_byte()..send.end,
         ));
     }
+    // 同じ `end` から始まる内外のブロックでは、本家は外側の送信範囲を報告する。
+    candidates.sort_by_key(|offense| (offense.start, Reverse(offense.end)));
+    candidates.dedup_by_key(|offense| offense.start);
+    offenses.extend(candidates);
 }
 
 /// The `end` or `}` of a multiline block standing where the receiver of `node` was written, which

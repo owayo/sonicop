@@ -6123,6 +6123,40 @@ fn catalogue() -> Vec<CopCase> {
         .corrected("recv&.foo {}\n")
         .correctable(true),
         CopCase::annotated(
+            "Style/EmptyLiteral",
+            "recv&.foo Hash.new, 1\n          ^^^^^^^^ Use hash literal `{}` instead of `Hash.new`.\n",
+        )
+        .id("style_empty_literal_safe_navigation_two_arguments")
+        .corrected("recv&.foo {}, 1\n")
+        .correctable(true),
+        CopCase::annotated(
+            "Style/ParallelAssignment",
+            &format!(
+                "def f\n  self.output_buffer, old_buffer = buf, output_buffer\n  {} Do not use parallel assignment.\nend\n",
+                "^".repeat(51)
+            ),
+        )
+        .id("style_parallel_assignment_implicit_self_getter")
+        .corrected_verbatim(
+            "def f\n  self.output_buffer = buf\n  old_buffer = output_buffer\nend\n",
+        )
+        .correctable(true),
+        CopCase::annotated(
+            "Style/GuardClause",
+            "def configure(failures)\n  if error = failures.pop\n  ^^ Use a guard clause (`raise error if error = failures.pop`) instead of wrapping the code inside a conditional expression.\n    raise error\n  else\n    super()\n  end\nend\n",
+        )
+        .id("style_guard_clause_new_local_in_condition")
+        .corrected_verbatim(
+            "def configure(failures)\n  raise error if error = failures.pop\n    \n  \n    super()\n  \nend\n",
+        )
+        .correctable(true),
+        CopCase::annotated(
+            "Lint/UselessAssignment",
+            "def run(failures)\n  raise error if error = failures.pop\n                 ^^^^^ Useless assignment to variable - `error`.\nend\n",
+        )
+        .id("lint_useless_assignment_modifier_condition_before_body")
+        .correctable(true),
+        CopCase::annotated(
             "Style/CommentAnnotation",
             r#"
             # TODO make better
@@ -6521,6 +6555,42 @@ fn catalogue() -> Vec<CopCase> {
         .id("style_redundant_parentheses")
         .corrected("x = 1\n")
         .correctable(true),
+        CopCase::annotated(
+            "Style/CaseLikeIf",
+            "if x == 1\n^^^^^^^^^ Convert `if-elsif` to `case-when`.\n  a\nelsif x == 2\n  b\nelse\n  if x == 3\n    c\n  end\nend\n",
+        )
+        .id("style_case_like_if_nested_else_safety")
+        .correctable(true)
+        .corrected("case x\nwhen 1\n  a\nwhen 2\n  b\nelse\n  when 3\n    c\n  end\nend\n"),
+        CopCase::annotated(
+            "Style/CaseLikeIf",
+            "if x == 1\n^^^^^^^^^ Convert `if-elsif` to `case-when`.\n  a\nelsif x == 2\n  b\nelse\n  unless x == 3\n    c\n  end\nend\n",
+        )
+        .id("style_case_like_if_nested_unless_safety")
+        .correctable(true)
+        .corrected("case x\nwhen 1\n  a\nwhen 2\n  b\nelse\n  when 3\n    c\n  end\nend\n"),
+        CopCase::annotated(
+            "Style/CaseLikeIf",
+            "if x == 1\n^^^^^^^^^ Convert `if-elsif` to `case-when`.\n  a\nelsif x == 2\n  b\nelse\n  c if x == 3\nend\n",
+        )
+        .id("style_case_like_if_nested_if_modifier_safety")
+        .correctable(true)
+        .corrected("case x\nwhen 1\n  a\nwhen 2\n  b\nelse\n  c when 3\nend\n"),
+        CopCase::annotated(
+            "Style/CaseLikeIf",
+            "if x == 1\n^^^^^^^^^ Convert `if-elsif` to `case-when`.\n  a\nelsif x == 2\n  b\nelse\n  c unless x == 3\nend\n",
+        )
+        .id("style_case_like_if_nested_unless_modifier_safety")
+        .correctable(true)
+        .corrected("case x\nwhen 1\n  a\nwhen 2\n  b\nelse\n  c when 3\nend\n"),
+        CopCase::new(
+            "Layout/SpaceAroundOperators",
+            "x=1\r\n",
+            Vec::new(),
+        )
+        .id("crlf_autocorrect_preserves_line_endings")
+        .without_offense_check()
+        .corrected_verbatim("x = 1\n"),
     ]
 }
 

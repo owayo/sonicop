@@ -4,8 +4,8 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children_of;
 use crate::rules::send_node::named_children_iter;
+use crate::rules::send_node::named_children_of;
 
 /// The enumerable methods a trailing `do` block was probably meant for.
 const BLOCK_METHODS: &[&str] = &[
@@ -115,7 +115,7 @@ fn check_brace_block_argument(
          `{inner}` method call.",
         context.source.node_text(last)
     );
-    let offense = context.offense(message, node.byte_range());
+    let offense = context.offense(message.replace("\r\n", "\n"), node.byte_range());
     // Upstream replaces only the space before the argument list and hangs the closing paren off
     // the last argument, rather than rewriting the whole list:
     //

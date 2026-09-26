@@ -231,6 +231,10 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         let Some(receiver) = sclass.field("value") else {
             return;
         };
+        // 本家の sclass 側は send だけを追跡し、ローカル変数を受けた定義は数えない。
+        if receiver.kind_str() == "identifier" && self.locals.is_lvar(receiver) {
+            return;
+        }
         // `singleton_receiver_node.send_type?` -- and a bare `blah` **is** a send upstream. The
         // grammar spells a receiverless call as an `identifier`, so `class << blah` never reached
         // the check and every method defined in it went unrecorded.

@@ -1005,7 +1005,7 @@ fn inspect_planned(
     })
     .context("Ruby parser returned no syntax tree")?;
     let ast = crate::profile::phase(crate::profile::Phase::Index, || {
-        AstIndex::new(tree.root_node())
+        AstIndex::new(tree.root_node(), source.text())
     });
     // `opted_in_standby_cops`: a cop the configuration switched off is put back on duty for this
     // file when an `enable` directive names it. The names are read once and used twice -- to pick
@@ -1524,17 +1524,19 @@ pub fn discover_targets_with_store(
             continue;
         }
 
-        // RuboCop resolves targets from `AllCops/Include` and `AllCops/Exclude` alone and never reads
-        // `.gitignore`. Honouring it here would silently drop files that git itself still tracks —
-        // a checkout whose `.gitignore` lists `bin/*` for binstubs keeps a committed `bin/console`,
-        // and the ignore crate has no view of the index to notice that.
-        // RuboCop globs with `File::FNM_DOTMATCH`, so a hidden file under a visible directory is a
-        // target like any other; only a path whose *first* component is hidden is shortcut away, and
-        // `Config::path_included` does that. What keeps the walk cheap is pruning the directories
-        // the configuration excludes outright, which is what upstream's `wanted_dir_patterns` does
-        // before it descends.
+        // 本家は対象を `AllCops/Include` と `AllCops/Exclude` だけで決め、`.gitignore` は読まない。
+        // これを読むと、`bin/*` が無視されても追跡中の `bin/console` まで落としてしまう。
+        // ignore クレートには Git の索引が見えないため、その区別はできない。
+        // 本家の glob は `File::FNM_DOTMATCH` を使う。可視ディレクトリ内の隠しファイルは
+        // 対象で、最初のパス成分が隠しの場合だけ `Config::path_included` で除く。
+        // 探索前の除外ディレクトリ枝刈りは、本家の `wanted_dir_patterns` に合わせる。
         let mut walked = Vec::new();
-        let pruned = configs.root().clone();
+        // 本家の TargetFinder は探索を始めるディレクトリの設定を全候補に適用する。
+        // 配下の別設定は、そこを探索起点に指定したときだけ対象選択へ反映する。
+        let discovery_config = crate::profile::phase(crate::profile::Phase::ConfigLookup, || {
+            configs.for_path(&root)
+        })?;
+        let pruned = discovery_config.clone();
         let mut builder = WalkBuilder::new(&root);
         builder
             .filter_entry(move |entry| {
@@ -1567,18 +1569,15 @@ pub fn discover_targets_with_store(
             if !entry.file_type().is_some_and(|kind| kind.is_file()) {
                 continue;
             }
-            let config = crate::profile::phase(crate::profile::Phase::ConfigLookup, || {
-                configs.for_path(path)
-            })?;
             let verdict = crate::profile::phase(crate::profile::Phase::PathMatch, || {
-                let included = config.path_included(path);
-                if config.path_excluded(path) {
+                let included = discovery_config.path_included(path);
+                if discovery_config.path_excluded(path) {
                     return Verdict::Drop;
                 }
                 if included {
                     return Verdict::Keep;
                 }
-                if config.path_hidden(path) {
+                if discovery_config.path_hidden(path) {
                     return Verdict::Drop;
                 }
                 Verdict::AskShebang
@@ -2613,6 +2612,29 @@ fn withhold_unparsable(
     })
 }
 
+/// 元の改行がすべて CRLF なら、書き戻しでもその形式を保つ。
+fn uses_crlf_only(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let mut found = false;
+    for (index, byte) in bytes.iter().enumerate() {
+        if *byte == b'\n' {
+            if index == 0 || bytes[index - 1] != b'\r' {
+                return false;
+            }
+            found = true;
+        }
+    }
+    found
+}
+
+/// 本家と同じ LF の中間結果を、元ファイルの CRLF へ戻す。
+fn restore_crlf(mut outcome: CorrectionOutcome, preserve_crlf: bool) -> CorrectionOutcome {
+    if preserve_crlf && outcome.rewritten && outcome.rollback.is_none() {
+        outcome.text = outcome.text.replace("\r\n", "\n").replace('\n', "\r\n");
+    }
+    outcome
+}
+
 pub fn correct_file(
     mut report: FileReport,
     mode: CorrectMode,
@@ -2632,6 +2654,7 @@ pub fn correct_file(
     }
 
     let original = text.clone();
+    let preserve_crlf = uses_crlf_only(&original);
     // A file the parser already rejected cannot be made worse by correcting it, and RuboCop does
     // correct such files. Only a source that started out valid is protected.
     let started_valid = !holds_fatal_syntax(&report);
@@ -2673,9 +2696,15 @@ pub fn correct_file(
                 config,
                 selection,
                 &plan,
-            );
+            )
+            .map(|outcome| restore_crlf(outcome, preserve_crlf));
         }
         log.record_pass(&mut report, directive_pass);
+        // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
+        // 最終的な書き戻しだけは元の改行形式へ戻し、DATA のバイト列を守る。
+        if preserve_crlf {
+            corrected = corrected.replace("\r\n", "\n");
+        }
         rewritten |= corrected != text;
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
@@ -2703,7 +2732,8 @@ pub fn correct_file(
                 config,
                 selection,
                 &plan,
-            );
+            )
+            .map(|outcome| restore_crlf(outcome, preserve_crlf));
         }
 
         sources.push(corrected_digest);
@@ -2733,30 +2763,25 @@ pub fn correct_until_stable(
     }
 }
 
-/// The bytes to write back for corrected source, in the encoding the file was read in.
+/// 修正後のソースを、読み込んだときの符号化で書き戻す。
 ///
-/// This is the one place Sonicop knowingly departs from RuboCop. RuboCop's runner ends in a plain
-/// `File.write`, so a corrected Shift_JIS file comes back out as UTF-8 while its magic comment still
-/// claims Shift_JIS -- a file that no longer loads. Reproducing that faithfully would mean shipping
-/// data loss on purpose, which is further than drop-in compatibility reaches. The divergence is
-/// recorded in `tests/conformance/known_divergences.yml`.
+/// 本家の runner は最後に単純な `File.write` を呼ぶため、Shift_JIS のファイルも
+/// 修正後は UTF-8 で書き戻され、マジックコメントと実際の符号化が食い違う。
+/// 元ファイルを壊さないため、ここは意図的に本家と異なる。理由は
+/// `tests/conformance/known_divergences.yml` に記録している。
 ///
-/// That protection only applies to a file that named an encoding where the reader could see it.
-/// [`decoded_source`] reads the declaration from the first line (the second under a shebang) and
-/// nowhere else, but `Lint/OrderedMagicComments` can move one onto the first line during the
-/// correction loop -- so the corrected text can carry a declaration the reader never applied.
-/// `decoded_as_declared` asks the file on disk, and is only asked once a declaration is found.
-/// Encoding such a file to the label it names rewrites bytes no cop asked to change: rails'
-/// `1_currencies_have_symbols.rb` declares `ISO-8859-15` and holds a UTF-8 `€`, and turning those
-/// three bytes into `\xa4` changes what the program says as surely as editing the literal would.
+/// この保護を適用するのは、読み込み時に符号化宣言が見えていたファイルだけ。
+/// `decoded_source` が宣言を読むのは 1 行目、shebang があれば 2 行目までだが、
+/// `Lint/OrderedMagicComments` は補正中に宣言を 1 行目へ移せる。
+/// `decoded_as_declared` はディスク上の原本を調べ、宣言が見つかった場合にだけ呼ぶ。
+/// 補正後の宣言に合わせて符号化すると、cop が触れていないバイトまで変わる。
 ///
-/// `Err` when the correction cannot be represented in that encoding, so the caller leaves the file
-/// alone rather than writing a lossy approximation.
+/// 修正結果を元の符号化で表せない場合は `Err` を返し、元ファイルを残す。
 fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> Result<Vec<u8>> {
     let Some(label) = encoding_declaration(contents) else {
         return Ok(contents.as_bytes().to_vec());
     };
-    // A binary source was read one byte to one character, so it goes back out the same way.
+    // binary ソースは読み込み時と同じく 1 バイトを 1 文字として書き戻す。
     if is_binary_label(&label) {
         return match contents.chars().all(|character| (character as u32) < 0x100) {
             true => Ok(contents.chars().map(|character| character as u8).collect()),

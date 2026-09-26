@@ -1,4 +1,4 @@
-use crate::diagnostic::Offense;
+use crate::diagnostic::{Offense, OffenseSnapshot};
 use crate::rules::RuleContext;
 
 /// Reports only, like RuboCop: this cop has no autocorrector upstream.
@@ -46,11 +46,53 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         } else {
             "Carriage return character detected."
         };
-        // The offense covers the whole line, terminator included, rather than just the carriage
-        // return: RuboCop builds it as `source_range(buffer, line, 0, line.length)`.
+        // 本家は生の行長を CRLF 正規化済みの SourceBuffer に渡して範囲を作る。
+        // CR が消えた分だけ終端が次の行へ進む場合がある。
         let range = context.source.line_range(line_number);
-        offenses.push(context.offense(message, range));
+        let mut offense = context.offense(message, range);
+        let mut location = offense.location(context.source);
+        (location.last_line, location.last_column) =
+            normalized_buffer_end(context.source.text(), offense.start, line.chars().count());
+        location.length = line.chars().count();
+        offense.snapshot = Some(OffenseSnapshot {
+            location,
+            source_line: line.to_owned(),
+        });
+        offenses.push(offense);
         // A file's line endings are almost always all alike, so RuboCop stops after the first.
         break;
     }
+}
+
+/// 生の行長を CRLF 正規化後のバッファへ適用したときの終端位置。
+fn normalized_buffer_end(text: &str, start: usize, raw_length: usize) -> (usize, usize) {
+    let prefix = &text[..start];
+    let start_in_buffer = prefix.chars().count()
+        - prefix
+            .as_bytes()
+            .windows(2)
+            .filter(|pair| *pair == b"\r\n")
+            .count();
+    let end_in_buffer = start_in_buffer + raw_length;
+    let mut line = 1;
+    let mut column: usize = 1;
+    let mut consumed = 0;
+    let mut characters = text.chars().peekable();
+    while consumed < end_in_buffer {
+        let Some(character) = characters.next() else {
+            column += end_in_buffer - consumed;
+            break;
+        };
+        if character == '\r' && characters.peek() == Some(&'\n') {
+            continue;
+        }
+        consumed += 1;
+        if character == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    (line, column.saturating_sub(1).max(1))
 }

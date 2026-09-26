@@ -16,6 +16,7 @@ use std::collections::HashSet;
 use tree_sitter::Node;
 
 use super::fragments::Fragments;
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::{scope_kind, spurious_assignment_list};
@@ -29,6 +30,7 @@ impl Locals {
     pub(in crate::rules) fn new(context: &RuleContext<'_>, fragments: &Fragments) -> Self {
         let mut walker = Walker {
             source: context.source,
+            target_ruby: context.target_ruby_version(),
             index: context.ast_index(),
             fragments,
             stack: vec![Frame::new(false)],
@@ -64,6 +66,7 @@ impl Frame<'_> {
 
 struct Walker<'a> {
     source: &'a SourceFile,
+    target_ruby: RubyVersion,
     /// The file's node index: `is_variable_read` asks for a parent on every identifier, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
@@ -176,9 +179,9 @@ impl<'a> Walker<'a> {
             }
         }
         self.stack.push(Frame::new(block));
-        // A block written without parameters that reaches for `_1` gets them implicitly, and the
-        // parser upstream reads every such name as a variable of that block.
-        if block && node.field("parameters").is_none() {
+        // Ruby 2.7 以降だけ `_1` をブロックの暗黙引数として解釈する。
+        if block && node.field("parameters").is_none() && self.target_ruby >= RubyVersion::new(2, 7)
+        {
             for name in NUMBERED_PARAMETERS {
                 self.declare(name);
             }

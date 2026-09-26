@@ -277,7 +277,13 @@ fn check_deferred(
 /// `source_range(buffer, line, 0)`: column zero of the line, one character long.
 fn line_head(context: &RuleContext<'_>, line: usize) -> std::ops::Range<usize> {
     let start = context.source.line_start(line);
-    let end = (start + 1).min(context.source.text().len());
+    // 本家の SourceBuffer では空行の CRLF は 1 文字で、範囲の終端は次の行にある。
+    let width = if context.source.line(line).starts_with("\r\n") {
+        2
+    } else {
+        1
+    };
+    let end = (start + width).min(context.source.text().len());
     start..end
 }
 

@@ -6,7 +6,7 @@ use crate::rules::node_ext::NodeExt;
 
 const MSG: &str = "Convert `if-elsif` to `case-when`.";
 
-/// `Node::LITERALS`, as the grammar spells them.
+/// 文法上で `Node::LITERALS` に対応するノード種別。
 const LITERALS: &[&str] = &[
     "string",
     "chained_string",
@@ -36,10 +36,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or(3) as usize;
 
     for node in context.nodes_of("if") {
-        let branches = branch_conditions(node);
-        // `elsif_conditional?` and `min_branches_count?`: the chain has to be an `if`/`elsif` one
-        // with enough arms to be worth a `case`.
-        if branches.len() < 2 || branch_count(node) < minimum {
+        let (branches, nested_else_if) = branch_conditions(node);
+        // 本家の `elsif_conditional?` と `min_branches_count?` に合わせ、
+        // `elsif` を持ち、指定数以上の枝がある場合だけ調べる。
+        if branches.len() < 2
+            || node
+                .field("alternative")
+                .is_none_or(|alternative| alternative.kind_str() != "elsif")
+            || branch_count(node) < minimum
+        {
             continue;
         }
         let Some(target) = find_target(context, branches[0]) else {
@@ -62,6 +67,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if per_branch.len() != branches.len() {
             continue;
         }
+        if nested_else_if {
+            // 本家は else 内の if まで when に変え、Ruby として無効なファイルを書き出す。
+            // 診断は合わせるが、この形の補正は元ファイルを守るため見送る。
+            let mut offense = context.offense(MSG, node.byte_range());
+            offense.correctable = true;
+            offenses.push(offense);
+            continue;
+        }
         let indent = " ".repeat(node.start_position().column);
         let mut edits = vec![Edit {
             start: node.start_byte(),
@@ -70,7 +83,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             safe: true,
         }];
         for (condition, conditions) in branches.iter().zip(&per_branch) {
-            let Some(keyword) = condition.parent_of(context).and_then(|parent| parent.child(0)) else {
+            let Some(keyword) = condition
+                .parent_of(context)
+                .and_then(|parent| parent.child(0))
+            else {
                 continue;
             };
             edits.push(Edit {
@@ -88,14 +104,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `if_conditional_branches`: the arms a conditional chain has, which is what `MinBranchesCount`
-/// is counted against. **A ternary is an `if` upstream**, so an `else` holding one contributes its
-/// own arm -- `if a / elsif b / else c ? d : e` has three, not two.
+/// 本家の `if_conditional_branches`。`MinBranchesCount` はこの枝数を数える。
+/// 本家では三項演算子も `if` なので、`else` 内の三項演算子も 1 枝に数える。
 fn branch_count(node: Node<'_>) -> usize {
     let mut count = 0;
     let mut current = Some(node);
     while let Some(branch) = current {
-        if !matches!(branch.kind_str(), "if" | "elsif" | "conditional") {
+        if !matches!(
+            branch.kind_str(),
+            "if" | "elsif" | "unless" | "if_modifier" | "unless_modifier" | "conditional"
+        ) {
             break;
         }
         count += 1;
@@ -112,30 +130,48 @@ fn branch_count(node: Node<'_>) -> usize {
     count
 }
 
-/// `branch_conditions`: the condition of every `if`/`elsif` in the chain.
-fn branch_conditions<'t>(node: Node<'t>) -> Vec<Node<'t>> {
+/// `branch_conditions`: `else` 内の単独の `if` も含め、連なる条件を集める。
+fn branch_conditions<'t>(node: Node<'t>) -> (Vec<Node<'t>>, bool) {
     let mut conditions = Vec::new();
+    let mut nested_else_if = false;
     let mut current = Some(node);
     while let Some(branch) = current {
-        if !matches!(branch.kind_str(), "if" | "elsif") {
+        if !matches!(
+            branch.kind_str(),
+            "if" | "elsif" | "unless" | "if_modifier" | "unless_modifier"
+        ) {
             break;
         }
         let Some(condition) = branch.field("condition") else {
             break;
         };
         conditions.push(condition);
-        current = branch.field("alternative");
+        current = match branch.field("alternative") {
+            Some(alternative) if alternative.kind_str() == "else" => {
+                match super::nodes::children(alternative).as_slice() {
+                    [only]
+                        if matches!(
+                            only.kind_str(),
+                            "if" | "unless" | "if_modifier" | "unless_modifier"
+                        ) =>
+                    {
+                        nested_else_if = true;
+                        Some(*only)
+                    }
+                    _ => None,
+                }
+            }
+            other => other,
+        };
     }
-    conditions
+    (conditions, nested_else_if)
 }
 
 /// `find_target`: what the `case` would be written about.
 fn find_target<'t>(context: &RuleContext<'_>, node: Node<'t>) -> Option<Node<'t>> {
     match node.kind_str() {
         // `find_target` reaches for the *first* statement here, unlike `deparenthesize`.
-        "parenthesized_statements" => {
-            find_target(context, *super::nodes::children(node).first()?)
-        }
+        "parenthesized_statements" => find_target(context, *super::nodes::children(node).first()?),
         _ => {
             let call = Call::new(context, node)?;
             if call.is_or() {
@@ -254,9 +290,7 @@ impl<'a, 't> Call<'a, 't> {
     fn new(context: &'a RuleContext<'_>, node: Node<'t>) -> Option<Self> {
         match node.kind_str() {
             "binary" => Some(Self {
-                method: context
-                    .source
-                    .node_text(node.field("operator")?),
+                method: context.source.node_text(node.field("operator")?),
                 receiver: node.field("left"),
                 argument: node.field("right"),
             }),
@@ -266,9 +300,7 @@ impl<'a, 't> Call<'a, 't> {
                     .map(super::nodes::children)
                     .unwrap_or_default();
                 Some(Self {
-                    method: context
-                        .source
-                        .node_text(node.field("method")?),
+                    method: context.source.node_text(node.field("method")?),
                     receiver: node.field("receiver"),
                     argument: arguments.first().copied(),
                 })

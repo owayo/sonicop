@@ -131,6 +131,21 @@ fn syntax_gates_beginless_ranges_at_ruby_2_7() {
 }
 
 #[test]
+fn endless_method_with_a_command_rhs_is_valid_syntax() {
+    let directory = project_with_ruby(&[], "4.0");
+    let output = lint_stdin(
+        directory.path(),
+        "Lint/Syntax",
+        "def foo = puts \"hello\"\n",
+    )
+    .success()
+    .get_output()
+    .stdout
+    .clone();
+    assert_offenses(&output, &[]);
+}
+
+#[test]
 fn safe_autocorrect_updates_a_file_atomically() {
     let directory = project(&[("example.rb", "value=10000  \n")]);
 
@@ -147,6 +162,327 @@ fn safe_autocorrect_updates_a_file_atomically() {
     assert_eq!(
         fs::read_to_string(directory.path().join("example.rb")).unwrap(),
         "value = 10_000\n"
+    );
+}
+
+#[test]
+fn case_like_if_does_not_write_invalid_ruby() {
+    for nested in [
+        "if x == 3\n    c\n  end",
+        "unless x == 3\n    c\n  end",
+        "c if x == 3",
+        "c unless x == 3",
+    ] {
+        let source = format!("if x == 1\n  a\nelsif x == 2\n  b\nelse\n  {nested}\nend\n");
+        let directory = project(&[("example.rb", &source)]);
+
+        command(directory.path())
+            .args(["-A", "--only", "Style/CaseLikeIf", "example.rb"])
+            .assert()
+            .code(1);
+
+        assert_eq!(
+            fs::read_to_string(directory.path().join("example.rb")).unwrap(),
+            source
+        );
+    }
+}
+
+#[test]
+fn safe_autocorrect_keeps_hash_arguments_in_safe_navigation_calls() {
+    let directory = project(&[("example.rb", "recv&.foo Hash.new, 1\n")]);
+    command(directory.path())
+        .args(["-a", "--only", "Style/EmptyLiteral", "example.rb"])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        b"recv&.foo({}, 1)\n"
+    );
+}
+
+#[test]
+fn guard_clause_does_not_move_a_first_assignment_behind_its_read() {
+    let before = "def configure(failures)\n  if error = failures.pop\n    raise error\n  else\n    super()\n  end\nend\n";
+    let directory = project(&[("example.rb", before)]);
+    command(directory.path())
+        .args(["-a", "--only", "Style/GuardClause", "example.rb"])
+        .assert()
+        .code(1);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        before.as_bytes()
+    );
+}
+
+#[test]
+fn guard_clause_can_move_a_read_of_an_existing_local() {
+    let before = "def configure(failures)\n  error = nil\n  if error = failures.pop\n    raise error\n  else\n    super()\n  end\nend\n";
+    let directory = project(&[("example.rb", before)]);
+    command(directory.path())
+        .args(["-a", "--only", "Style/GuardClause", "example.rb"])
+        .assert()
+        .success();
+    let after = fs::read_to_string(directory.path().join("example.rb")).unwrap();
+    assert!(
+        after.contains("raise error if error = failures.pop"),
+        "{after}"
+    );
+}
+
+#[test]
+fn local_variable_before_plus_is_not_an_ambiguous_call() {
+    let directory = project(&[("example.rb", "def run\n  [1].collect { |i| i +'1' }\nend\n")]);
+    command(directory.path())
+        .args(["--only", "Lint/AmbiguousOperator", "example.rb"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn modifier_body_does_not_use_a_variable_first_assigned_in_its_condition() {
+    let directory = project(&[(
+        "example.rb",
+        "def run(failures)\n  raise error if error = failures.pop\nend\n",
+    )]);
+    let output = command(directory.path())
+        .args(["--only", "Lint/UselessAssignment", "example.rb"])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert!(
+        String::from_utf8_lossy(&output).contains("Lint/UselessAssignment"),
+        "{}",
+        String::from_utf8_lossy(&output)
+    );
+}
+
+#[test]
+fn modifier_body_uses_a_variable_declared_before_its_condition() {
+    let directory = project(&[(
+        "example.rb",
+        "def run(value)\n  puts value if value = 1\nend\n",
+    )]);
+    command(directory.path())
+        .args(["--only", "Lint/UselessAssignment", "example.rb"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn modifier_body_keeps_a_prior_assignment_referenced() {
+    let directory = project(&[(
+        "example.rb",
+        "def run(receiver)\n  value = nil\n  puts value if (value = receiver.call) != ''\nend\n",
+    )]);
+    command(directory.path())
+        .args(["--only", "Lint/UselessAssignment", "example.rb"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn directory_discovery_uses_the_starting_directories_config() {
+    let directory = project(&[
+        (
+            "nested/.rubocop.yml",
+            "AllCops:\n  Exclude:\n    - skip.rb\n",
+        ),
+        ("nested/keep.rb", "x = 1\n"),
+        ("nested/skip.rb", "x = 1\n"),
+    ]);
+    let root = command(directory.path())
+        .args(["-L", "."])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(root, b"nested/keep.rb\nnested/skip.rb\n");
+
+    let nested = command(directory.path())
+        .args(["-L", "nested"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(nested, b"nested/keep.rb\n");
+}
+
+#[test]
+fn crlf_range_length_and_end_location_match_rubocop() {
+    let directory = project(&[(
+        "example.rb",
+        "# frozen_string_literal: true\r\n\r\nputs 1\r\n",
+    )]);
+    let output = command(directory.path())
+        .args([
+            "--only",
+            "Layout/EndOfLine",
+            "--format",
+            "json",
+            "example.rb",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    let found = offenses(&output);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].location.last_line, 3);
+    assert_eq!(found[0].location.last_column, 1);
+    assert_eq!(found[0].location.length, 31);
+}
+
+#[test]
+fn crlf_in_debugger_message_is_normalized() {
+    let directory = project(&[("example.rb", "binding\r\n  .pry\r\n")]);
+    let output = command(directory.path())
+        .args(["--only", "Lint/Debugger", "--format", "json", "example.rb"])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    let found = offenses(&output);
+    assert_eq!(found.len(), 1);
+    assert_eq!(
+        found[0].message,
+        "Remove debugger entry point `binding\n  .pry`."
+    );
+    assert_eq!(found[0].location.length, 14);
+}
+
+#[test]
+fn crlf_comments_and_blank_lines_match_rubocop_locations() {
+    let cases = [
+        (
+            "Layout/LeadingCommentSpace",
+            "#foo\r\n",
+            "Missing space after `#`.",
+            (1, 1, 1, 4, 4),
+        ),
+        (
+            "Style/CommentedKeyword",
+            "def foo # bar\r\nend\r\n",
+            "Do not place comments on the same line as the `def` keyword.",
+            (1, 9, 1, 13, 5),
+        ),
+        (
+            "Layout/EmptyLinesAroundModuleBody",
+            "module A\r\n\r\n  x\r\nend\r\n",
+            "Extra empty line detected at module body beginning.",
+            (2, 1, 3, 1, 1),
+        ),
+    ];
+    for (cop, source, message, location) in cases {
+        let directory = project(&[("example.rb", source)]);
+        let output = command(directory.path())
+            .args(["--only", cop, "--format", "json", "example.rb"])
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        let found = offenses(&output);
+        assert_eq!(found.len(), 1, "{cop}");
+        assert_eq!(found[0].message, message, "{cop}");
+        let at = &found[0].location;
+        assert_eq!(
+            (
+                at.start_line,
+                at.start_column,
+                at.last_line,
+                at.last_column,
+                at.length
+            ),
+            location,
+            "{cop}"
+        );
+    }
+}
+
+#[test]
+fn crlf_inside_cop_messages_matches_rubocop() {
+    let cases = [
+        (
+            "Lint/AmbiguousBlockAssociation",
+            "foo a.map { |x|\r\n  x\r\n}\r\n",
+            "Parenthesize the param `a.map { |x|\n  x\n}` to make sure that the block will be associated with the `a.map` method call.",
+        ),
+        (
+            "Style/GuardClause",
+            "def f\r\n  if a\r\n    b or\r\n      raise(E)\r\n  else\r\n    c\r\n  end\r\n  d\r\nend\r\n",
+            "Use a guard clause (`b or\n      raise(E) if a`) instead of wrapping the code inside a conditional expression.",
+        ),
+    ];
+    for (cop, source, message) in cases {
+        let directory = project(&[("example.rb", source)]);
+        let output = command(directory.path())
+            .args(["--only", cop, "--format", "json", "example.rb"])
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        let found = offenses(&output);
+        assert_eq!(found.len(), 1, "{cop}");
+        assert_eq!(found[0].message, message, "{cop}");
+    }
+}
+
+#[test]
+fn autocorrect_preserves_crlf_in_the_data_section() {
+    let source = b"x=1\r\nputs DATA.read.bytes.join(',')\r\n__END__\r\na\r\nb\r\n";
+    let directory = project(&[("example.rb", std::str::from_utf8(source).unwrap())]);
+    command(directory.path())
+        .args(["-a", "--only", "Layout/SpaceAroundOperators", "example.rb"])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        b"x = 1\r\nputs DATA.read.bytes.join(',')\r\n__END__\r\na\r\nb\r\n"
+    );
+}
+
+#[test]
+fn autocorrect_inserts_crlf_in_a_crlf_file() {
+    let directory = project(&[("example.rb", "# frozen_string_literal: true\r\nx = 1\r\n")]);
+    command(directory.path())
+        .args([
+            "-a",
+            "--only",
+            "Layout/EmptyLineAfterMagicComment",
+            "example.rb",
+        ])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        b"# frozen_string_literal: true\r\n\r\nx = 1\r\n"
+    );
+}
+
+#[test]
+fn autocorrect_rechecks_crlf_as_rubocop_does() {
+    let source = "x=1\r\n\r\n\r\n# header\r\nputs x\r\n";
+    let directory = project(&[("example.rb", source)]);
+    command(directory.path())
+        .args([
+            "-a",
+            "--only",
+            "Layout/SpaceAroundOperators,Layout/EmptyLines",
+            "example.rb",
+        ])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        b"x = 1\r\n\r\n# header\r\nputs x\r\n"
     );
 }
 

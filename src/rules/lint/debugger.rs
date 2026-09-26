@@ -74,10 +74,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             "call" => send_range(node, context),
             _ => node.byte_range(),
         };
+        // 本家の SourceBuffer は CRLF を LF に正規化してメッセージへ埋め込む。
         offenses.push(context.offense(
             format!(
                 "Remove debugger entry point `{}`.",
-                context.source.slice(range.clone())
+                context.source.slice(range.clone()).replace("\r\n", "\n")
             ),
             range,
         ));

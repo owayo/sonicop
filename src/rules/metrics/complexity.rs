@@ -19,6 +19,7 @@ use super::locals::{
     Locals, field_name, folded_parameter_list, is_keyword_literal, named_children, operator,
     split_match_operator,
 };
+use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::support::spurious_assignment_list;
@@ -108,6 +109,7 @@ pub(super) enum Order {
 
 pub(super) struct Walk<'a> {
     source: &'a SourceFile,
+    target_ruby: RubyVersion,
     /// The file's node index. The walk asks for a parent on every identifier it meets, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
@@ -125,6 +127,7 @@ impl<'a> Walk<'a> {
     ) -> Self {
         Self {
             source: context.source,
+            target_ruby: context.target_ruby_version(),
             index: context.ast_index(),
             locals,
             fragments,
@@ -319,8 +322,8 @@ impl<'a> Walk<'a> {
             self.visit_bare_call(node, sink);
             return;
         };
-        if self.is_numbered_block(block) {
-            // A block using `_1` is a `numblock`, which none of these cops counts.
+        if self.is_implicit_parameter_block(block) {
+            // `_1` と `it` を暗黙の引数として使うブロックは本家では numblock / itblock。
             self.visit_bare_call(node, sink);
             self.visit_block_body(block, sink);
             return;
@@ -394,12 +397,12 @@ impl<'a> Walk<'a> {
                 None => {}
             }
         };
-        // `-> { _1 }` is a `numblock`, which is not one of the types these cops count.
-        let numbered = node.field("parameters").is_none()
+        // 暗黙の引数を使う lambda は通常の block として数えない。
+        let implicit = node.field("parameters").is_none()
             && node
                 .field("body")
-                .is_some_and(|body| self.is_numbered_block(body));
-        if numbered {
+                .is_some_and(|body| self.is_implicit_parameter_block(body));
+        if implicit {
             parts(self, sink);
             return;
         }
@@ -843,7 +846,7 @@ impl<'a> Walk<'a> {
     /// `it` inside a block that declares no parameters is that block's parameter -- an `itblock`
     /// upstream, where the name is a variable rather than a call.
     fn is_implicit_block_parameter(&self, node: Node<'_>) -> bool {
-        if self.text(node) != "it" {
+        if self.target_ruby < RubyVersion::new(3, 4) || self.text(node) != "it" {
             return false;
         }
         let mut current = self.index.parent(node);
@@ -862,27 +865,30 @@ impl<'a> Walk<'a> {
         false
     }
 
-    /// Whether a block takes its parameters implicitly through `_1`, which makes it a `numblock`
-    /// rather than a `block`, and so uncounted. A numbered parameter belongs to the innermost
-    /// block around it, so a nested block's `_1` is that block's, not this one's.
-    fn is_numbered_block(&self, block: Node<'_>) -> bool {
+    /// 暗黙の引数は最も内側の block に属し、本家では通常の block として数えない。
+    fn is_implicit_parameter_block(&self, block: Node<'_>) -> bool {
         if block.field("parameters").is_some() {
             return false;
         }
         block
             .field("body")
-            .is_some_and(|body| self.holds_numbered_parameter(body))
+            .is_some_and(|body| self.holds_implicit_parameter(body))
     }
 
-    fn holds_numbered_parameter(&self, node: Node<'_>) -> bool {
+    fn holds_implicit_parameter(&self, node: Node<'_>) -> bool {
         named_children(node).into_iter().any(|child| {
             if matches!(child.kind_str(), "block" | "do_block" | "lambda") {
                 return false;
             }
             if child.kind_str() == "identifier" {
-                return is_numbered_parameter(self.text(child));
+                if !is_receiverless_call(child, self.index) {
+                    return false;
+                }
+                let name = self.text(child);
+                return (self.target_ruby >= RubyVersion::new(2, 7) && is_numbered_parameter(name))
+                    || (self.target_ruby >= RubyVersion::new(3, 4) && name == "it");
             }
-            self.holds_numbered_parameter(child)
+            self.holds_implicit_parameter(child)
         })
     }
 }

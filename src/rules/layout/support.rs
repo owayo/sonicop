@@ -99,7 +99,16 @@ pub(super) fn comments(context: &RuleContext<'_>) -> Vec<Range<usize>> {
             node.parent_of(context)
                 .is_none_or(|parent| parent.kind_str() != "heredoc_body")
         })
-        .map(|node| node.byte_range())
+        .map(|node| {
+            let mut range = node.byte_range();
+            let bytes = context.source.text().as_bytes();
+            if bytes.get(range.end.saturating_sub(1)) == Some(&b'\r')
+                && bytes.get(range.end) == Some(&b'\n')
+            {
+                range.end -= 1;
+            }
+            range
+        })
         .collect()
 }
 
