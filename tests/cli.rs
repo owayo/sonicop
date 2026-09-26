@@ -314,10 +314,13 @@ fn directory_discovery_uses_the_starting_directories_config() {
 
 #[test]
 fn crlf_range_length_and_end_location_match_rubocop() {
-    let directory = project(&[(
-        "example.rb",
-        "# frozen_string_literal: true\r\n\r\nputs 1\r\n",
-    )]);
+    let directory = project(&[
+        (
+            "example.rb",
+            "# frozen_string_literal: true\r\n\r\nputs 1\r\n",
+        ),
+        (".rubocop.yml", "Layout/EndOfLine:\n  EnforcedStyle: lf\n"),
+    ]);
     let output = command(directory.path())
         .args([
             "--only",
