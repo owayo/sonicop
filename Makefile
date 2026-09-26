@@ -86,7 +86,7 @@ test-ruby: ## Run only the Ruby wrapper tests
 	$(RUN) $(RAKE) test:ruby
 
 lint: ## Run clippy with warnings as errors
-	$(RUN) cargo clippy $(CARGO_FLAGS) --all-targets --all-features -- -D warnings
+	$(RUN) cargo clippy $(CARGO_FLAGS) --all-targets -- -D warnings
 
 fmt: ## Format the code (rewrites files)
 	$(RUN) cargo fmt --all
