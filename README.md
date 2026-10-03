@@ -173,27 +173,27 @@ Autocorrect is also compared on separate copies of each project. Some difference
 
 ## Performance
 
-Measured on 2026-09-27 with the latest stable Ruby 4.0.7 and RuboCop 1.91.0 on an Apple M2 (8 cores). This is a speed comparison with the newer gem; [conformance](#conformance) still uses RuboCop 1.89.0 as the behavioral specification. RuboCop 1.91.0 has 613 cops and Sonicop implements the 609 from 1.89.0. Each has 394 default-enabled cops, but one name differs in each set. For timing, RuboCop excludes `Lint/CopDirectiveSyntax` and Sonicop excludes `Style/DoubleCopDisableDirective`, leaving the **same 393 default-enabled cop names**.
+Measured on 2026-10-04 with the latest stable Ruby 4.0.7 and RuboCop 1.91.0 on an Apple M2 (8 cores). This is a speed comparison with the newer gem; [conformance](#conformance) still uses RuboCop 1.89.0 as the behavioral specification. RuboCop 1.91.0 has 613 cops and Sonicop implements the 609 from 1.89.0. Each has 394 default-enabled cops, but one name differs in each set. For timing, RuboCop excludes `Lint/CopDirectiveSyntax` and Sonicop excludes `Style/DoubleCopDisableDirective`, leaving the **same 393 default-enabled cop names**.
 
-Both use `--force-default-config`, and their target path sets were checked before timing. Ruby's two files that make RuboCop abort are omitted **from both tools** in the timing copy; that row covers 7,464 of its 7,466 targets. Times are the fastest of two cold runs per condition. Parallel RuboCop uses `--parallel --cache true` with a fresh real-path cache root for each run; parallel Sonicop uses its default parallel execution with a fresh root. Single-process runs use `--cache false` on both sides and `--no-parallel` on Sonicop. Exit status and inspected-file counts were checked for every run.
+Both use `--force-default-config`, and their target path sets were checked before timing. Ruby's two files that make RuboCop abort are omitted **from both tools** in the timing copy; that row covers 7,464 of its 7,466 targets. Times are the fastest of two cold runs per condition. Parallel RuboCop uses `--parallel --cache true` with a fresh real-path cache root for each run; parallel Sonicop uses its default parallel execution with a fresh root. Single-process runs use `--cache false` on both sides and `--no-parallel` on Sonicop. Full inspected-file counts were checked in JSON runs, and exit status was recorded for every timing run.
 
 | Corpus | Revision | Files | RuboCop offenses | Sonicop offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 17.02 s | 2.25 s | 158.62 s | 21.22 s |
-| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 16.45 s | 2.42 s | 125.86 s | 22.36 s |
-| Homebrew/brew | `38ee325` | 2,179 | 49,926 | 49,326 | 15.71 s | 2.37 s | 132.17 s | 20.27 s |
-| rails/rails | `62b5458` | 3,551 | 167,899 | 167,760 | 32.84 s | 7.34 s | 300.27 s | 60.17 s |
-| ruby/ruby | `3349f41` | 7,464 | 763,186 | 761,189 | 82.64 s | 16.64 s | 776.44 s | 113.71 s |
+| rails/rails | `62b5458` | 3,551 | 167,899 | 167,760 | 36.70 s | 7.12 s | 93.50 s | 23.31 s |
+| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 20.98 s | 2.34 s | 53.55 s | 7.91 s |
+| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 16.42 s | 2.39 s | 38.33 s | 7.74 s |
+| Homebrew/brew | `38ee325` | 2,179 | 49,926 | 49,326 | 18.50 s | 2.58 s | 42.70 s | 7.62 s |
+| ruby/ruby | `3349f41` | 7,464 | 763,186 | 761,186 | 152.90 s | 18.07 s | 297.97 s | 54.32 s |
 
 The offense columns are measured under these exact timing conditions. The newer RuboCop may have changed cop behavior since the 1.89.0 conformance reference, so equal cop names alone do not guarantee equal work. Read the offense counts alongside the times, and use the single-process column to judge engine cost: parallel wall time also depends on machine scheduling. The load average before and after each corpus is recorded below; high load can make absolute times and ratios move.
 
 | Corpus | Before | After | Highest recorded sample |
 |---|---:|---:|---:|
-| rubocop/rubocop | 16.38 | 19.28 | 43.68 |
-| mastodon/mastodon | 19.28 | 18.65 | 26.13 |
-| Homebrew/brew | 18.65 | 18.69 | 22.94 |
-| rails/rails | 18.69 | 14.91 | 45.20 |
-| ruby/ruby | 14.91 | 18.51 | 45.85 |
+| rails/rails | 7.50 | 19.08 | 116.81 |
+| rubocop/rubocop | 13.41 | 27.13 | 51.63 |
+| mastodon/mastodon | 26.29 | 29.53 | 77.93 |
+| Homebrew/brew | 31.96 | 25.14 | 48.35 |
+| ruby/ruby | 21.18 | 11.64 | 248.83 |
 
 The machine remained busy with other OS activity. These are observed times under that load, not an idle-machine lower bound.
 

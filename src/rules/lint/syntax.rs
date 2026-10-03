@@ -60,15 +60,19 @@ struct Diagnostic {
     range: Range<usize>,
 }
 
-/// A source holding a NUL byte reaches every cop already rewritten the way Ruby's lexer reads one
-/// (see `crate::nul_bytes`), so there is nothing left to account for here.
+/// NUL バイトを含む入力は Ruby の字句解析に合わせて既に変換済みなので、
+/// この段階で追加の処理は不要（`crate::nul_bytes` を参照）。
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let target = context.target_ruby_version();
     let mut diagnostics = Vec::new();
     if context.root_node().has_error() {
         parse_errors(context, &mut diagnostics);
     }
+    let stop_after = spaced_index_assignment_without_local(context, &mut diagnostics);
     version_gated_syntax(context, target, &mut diagnostics);
+    if let Some(operator_start) = stop_after {
+        diagnostics.retain(|diagnostic| diagnostic.range.start <= operator_start);
+    }
     diagnostics.sort_by(|left, right| {
         (left.range.start, left.range.end).cmp(&(right.range.start, right.range.end))
     });
@@ -77,6 +81,86 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         offenses
             .push(context.offense(syntax_message(&diagnostic.reason, target), diagnostic.range));
     }
+}
+
+/// 空白付きの `value [0] = ...` は、既に宣言されたローカル変数なら添字代入、
+/// 未宣言ならメソッド呼び出しの引数であり、左辺にはできない。本家の字句解析と
+/// tree-sitter の構文木が分かれるため、変数解析の結果で補う。
+fn spaced_index_assignment_without_local(
+    context: &RuleContext<'_>,
+    out: &mut Vec<Diagnostic>,
+) -> Option<usize> {
+    let mut stop_after: Option<usize> = None;
+    for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
+        let Some(left) = node.field("left") else {
+            continue;
+        };
+        if left.kind_str() != "element_reference" {
+            continue;
+        }
+        let Some(object) = left.field("object") else {
+            continue;
+        };
+        if object.kind_str() != "identifier" {
+            continue;
+        }
+        let Some(open) = context
+            .children(left)
+            .and_then(|mut children| children.find(|child| child.kind_str() == "["))
+        else {
+            continue;
+        };
+        let gap = &context.source.text().as_bytes()[object.end_byte()..open.start_byte()];
+        // `_1` から `_9` の空白付き添字代入は Ruby 3.2 以降で有効になる。
+        // 変数解析は暗黙の番号付き引数を通常のローカル変数として記録しない。
+        let numbered_parameter = matches!(
+            context.source.node_text(object).as_bytes(),
+            [b'_', b'1'..=b'9']
+        );
+        if gap.is_empty()
+            || !gap.iter().all(|byte| matches!(*byte, b' ' | b'\t'))
+            || (numbered_parameter && context.target_ruby_version() >= RubyVersion::new(3, 2))
+            || context.variable_analysis().is_variable_reference(object)
+        {
+            continue;
+        }
+        let operator = if node.kind_str() == "operator_assignment" {
+            node.field("operator")
+        } else {
+            context
+                .children(node)
+                .and_then(|mut children| children.find(|child| child.kind_str() == "="))
+        };
+        let Some(operator) = operator else {
+            continue;
+        };
+        let reason = if node.kind_str() == "operator_assignment" {
+            "unexpected token tOP_ASGN"
+        } else {
+            "unexpected token tEQL"
+        };
+        let right_is_missing = node.field("right").is_none_or(|right| {
+            right.start_byte() == right.end_byte()
+                || context.children(node).is_some_and(|children| {
+                    children.into_iter().any(|child| {
+                        child.kind_str() == "ERROR"
+                            && child.start_byte() >= operator.end_byte()
+                            && child.start_byte() < right.start_byte()
+                    })
+                })
+        });
+        if right_is_missing {
+            // 本家は右辺の先頭を読めなければ、この代入の演算子を報告して復帰を止める。
+            stop_after = Some(stop_after.map_or(operator.start_byte(), |previous| {
+                previous.min(operator.start_byte())
+            }));
+        }
+        out.push(Diagnostic {
+            reason: reason.to_owned(),
+            range: operator.byte_range(),
+        });
+    }
+    stop_after
 }
 
 /// The errors the tree-sitter grammar itself rejected the file for.

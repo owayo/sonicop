@@ -146,6 +146,183 @@ fn endless_method_with_a_command_rhs_is_valid_syntax() {
 }
 
 #[test]
+fn when_keyword_is_rejected_as_an_argument_but_allowed_as_a_method() {
+    let directory = project_with_ruby(&[], "2.7");
+    let invalid = lint_stdin(directory.path(), "Lint/Syntax", "foo(when)\n")
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_offenses(
+        &invalid,
+        &[(
+            "Lint/Syntax",
+            1,
+            5,
+            &syntax_message("unexpected token kWHEN", "2.7"),
+        )],
+    );
+
+    let valid = lint_stdin(
+        directory.path(),
+        "Lint/Syntax",
+        "case value\nwhen 1\n  :one\nelse\n  object.when 2\nend\n",
+    )
+    .success()
+    .get_output()
+    .stdout
+    .clone();
+    assert_offenses(&valid, &[]);
+}
+
+#[test]
+fn spaced_index_assignment_requires_an_existing_local() {
+    let directory = project_with_ruby(&[("example.rb", "v [0] += 1\n")], "2.7");
+    for (source, token) in [
+        ("v [0] += 1\n", "tOP_ASGN"),
+        ("v [0] = 1\n", "tEQL"),
+        ("v [0] ||= 1\n", "tOP_ASGN"),
+    ] {
+        let output = lint_stdin(directory.path(), "Lint/Syntax", source)
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        assert_offenses(
+            &output,
+            &[(
+                "Lint/Syntax",
+                1,
+                7,
+                &syntax_message(&format!("unexpected token {token}"), "2.7"),
+            )],
+        );
+    }
+
+    for source in ["v = []\nv [0] += 1\n", "v[0] += 1\n"] {
+        let output = lint_stdin(directory.path(), "Lint/Syntax", source)
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        assert_offenses(&output, &[]);
+    }
+
+    command(directory.path())
+        .args(["-A", "--force-default-config", "example.rb"])
+        .assert()
+        .code(1);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        b"v [0] += 1\n"
+    );
+}
+
+#[test]
+fn spaced_index_assignment_with_missing_rhs_stops_recovery_at_operator() {
+    let directory = project_with_ruby(&[], "2.7");
+    for source in ["v [0] += ;\n", "v [0] =\n", "v [0] += ;\nfoo(when)\n"] {
+        let output = lint_stdin(directory.path(), "Lint/Syntax", source)
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        assert_offenses(
+            &output,
+            &[(
+                "Lint/Syntax",
+                1,
+                7,
+                &syntax_message(
+                    if source.contains("+=") {
+                        "unexpected token tOP_ASGN"
+                    } else {
+                        "unexpected token tEQL"
+                    },
+                    "2.7",
+                ),
+            )],
+        );
+    }
+
+    let earlier_error = lint_stdin(directory.path(), "Lint/Syntax", "foo(when)\nv [0] += ;\n")
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_offenses(
+        &earlier_error,
+        &[
+            (
+                "Lint/Syntax",
+                1,
+                5,
+                &syntax_message("unexpected token kWHEN", "2.7"),
+            ),
+            (
+                "Lint/Syntax",
+                2,
+                7,
+                &syntax_message("unexpected token tOP_ASGN", "2.7"),
+            ),
+        ],
+    );
+
+    let later_error = lint_stdin(directory.path(), "Lint/Syntax", "v [0] += 1\nfoo(when)\n")
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_offenses(
+        &later_error,
+        &[
+            (
+                "Lint/Syntax",
+                1,
+                7,
+                &syntax_message("unexpected token tOP_ASGN", "2.7"),
+            ),
+            (
+                "Lint/Syntax",
+                2,
+                5,
+                &syntax_message("unexpected token kWHEN", "2.7"),
+            ),
+        ],
+    );
+}
+
+#[test]
+fn numbered_parameter_index_assignment_follows_target_ruby_version() {
+    let source = "[[]].each { _1 [0] += 1 }\n";
+    let older = project_with_ruby(&[], "3.1");
+    let invalid = lint_stdin(older.path(), "Lint/Syntax", source)
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_offenses(
+        &invalid,
+        &[(
+            "Lint/Syntax",
+            1,
+            20,
+            &syntax_message("unexpected token tOP_ASGN", "3.1"),
+        )],
+    );
+
+    let newer = project_with_ruby(&[], "3.2");
+    for source in [source, "_1 [0] += 1\n", "[[]].each { _2 [0] += 1 }\n"] {
+        let valid = lint_stdin(newer.path(), "Lint/Syntax", source)
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        assert_offenses(&valid, &[]);
+    }
+}
+
+#[test]
 fn safe_autocorrect_updates_a_file_atomically() {
     let directory = project(&[("example.rb", "value=10000  \n")]);
 

@@ -1,6 +1,6 @@
 # RuboCop conformance
 
-Measured: 2026-09-27. The behavioral reference is **RuboCop 1.89.0 on Ruby 4.0.6**; Sonicop's vendored `config/default.yml` comes from that release. Both tools used `--force-default-config`. The current upstream gem may have more cops; a newer release is used only for the separate speed comparison in the README.
+Measured: 2026-10-04. The behavioral reference is **RuboCop 1.89.0 on Ruby 4.0.7**; Sonicop's vendored `config/default.yml` comes from that release. Both tools used `--force-default-config`. The current upstream gem may have more cops; a newer release is used only for the separate speed comparison in the README.
 
 ## Scope and method
 
@@ -12,7 +12,7 @@ The five public corpora below have **18,251** target files in total. RuboCop and
 |---|---|---:|---:|---:|
 | rubocop/rubocop | `f009b33` | 1,765 | 5,766 | 5,766 |
 | rails/rails | `62b5458` | 3,551 | 167,760 | 167,760 |
-| ruby/ruby | `3349f41` | 7,466 | 761,578 | 761,188 |
+| ruby/ruby | `3349f41` | 7,466 | 761,578 | 761,185 |
 | Homebrew/brew | `38ee325` | 2,179 | 49,920 | 49,326 |
 | mastodon/mastodon | `fad3685` | 3,290 | 15,286 | 15,286 |
 
@@ -24,15 +24,17 @@ Ruby's reference was assembled in chunks. RuboCop raises an invalid UTF-8 error 
 |---|---:|---:|---:|---|
 | rubocop/rubocop | 0 | 0 | 0 | Exact |
 | rails/rails | 0 | 0 | 0 | Exact |
-| ruby/ruby | 168 | 558 | 4 | Parser recovery, grammar and remaining cop differences |
+| ruby/ruby | 165 | 558 | 4 | Parser recovery, grammar and remaining cop differences |
 | Homebrew/brew | 330 | 924 | 0 | All positions differ in `Lint/Syntax` |
 | mastodon/mastodon | 0 | 0 | 0 | Exact |
 
-Homebrew has the same **569 syntax-error files** on both sides. The different `Lint/Syntax` positions are produced after error recovery; they do not represent different accepted-file sets there. Ruby has both parser and cop residue. Its four shared-position differences are two `correctable` flags, one range length, and one syntax message. These differences remain open and are not described as exact matches.
+Homebrew has the same **569 syntax-error files** on both sides. The different `Lint/Syntax` positions are produced after error recovery; they do not represent different accepted-file sets there. Ruby has both parser and cop residue. The updated tree-sitter grammar removed three false `Lint/Syntax` positions from the previous measurement without adding a new position. Ruby's four shared-position differences are two `correctable` flags, one range length, and one syntax message. These differences remain open and are not described as exact matches.
 
-A separate CRLF probe used the pinned `rubocop/rubocop` revision `f009b33`, converted 1,748 Ruby files in a copy, and inspected the same 1,765 target paths on both sides. The **7,514 offense records** matched in full, including range, message, severity and correctability; neither side had an extra record.
+A constructed invalid input, `v [0] += foo(when)`, also exposes the parser recovery gap: both tools reject the file, but Sonicop reports the later `when` diagnostic that RuboCop does not. This is recorded with the `Lint/Syntax` recovery blind spot in the divergence manifest, not counted as an exact result.
 
-The default configuration is the required baseline. Native project configurations were also attempted. Their plugin requirements stop RuboCop before inspection on four corpora, so no native-config agreement is claimed for them. For the Ruby corpus, a nested native-config run over `spec/ruby` inspected 4,435 files and matched offense by offense after a directory-discovery fix. Directory target discovery uses the configuration of the starting directory; the cop configuration is resolved for each inspected file.
+A separate CRLF probe used the pinned `rubocop/rubocop` revision `f009b33` and converted 1,748 Ruby files in a copy. An earlier offense-level comparison matched **7,514 records** in full, including range, message, severity and correctability. The 2026-10-04 rerun with the current binary inspected the same 1,765 target paths on both sides; the names and counts of all **36 firing cops** matched. The rerun did not compare individual offense fields.
+
+The default configuration is the required baseline. Native project configurations were also attempted. Their plugin requirements stop RuboCop before inspection on four corpora, so no native-config agreement is claimed for them. For the Ruby corpus, both tools discovered the same 7,466 native-config target paths. A nested native-config run over `spec/ruby` inspected 4,435 files and matched all four offenses, including their fields. Directory target discovery uses the configuration of the starting directory; the cop configuration is resolved for each inspected file.
 
 ## Autocorrect and safety
 

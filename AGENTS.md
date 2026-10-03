@@ -334,6 +334,18 @@ also mislead the cops that then do run: silencing the first one turned
 `Style/MultilineInPatternThen` into a false positive, because the pattern the grammar closed early
 looked single-line.
 
+**The grammar can also accept Ruby that `parser` rejects.** With a previously declared local,
+`value [0] += 1` is an index assignment; without that declaration, Ruby reads `value [0]` as a
+method call with an array argument and rejects the assignment operator. The tree-sitter grammar
+builds `operator_assignment` in both cases. `Lint/Syntax` uses the existing variable analysis to
+distinguish them. Check both sides against RuboCop when updating the grammar: fixing the valid
+case alone can turn a false syntax offense into a missing one on invalid source, allowing `-A` to
+rewrite a file RuboCop refuses to inspect. Numbered parameters (`_1` through `_9`) also need a
+version check: RuboCop accepts their spaced index assignment starting with target Ruby 3.2,
+including at top level; the variable analysis does not register implicit numbered parameters as
+ordinary locals. When the right-hand side is missing at the operator, RuboCop stops recovery at
+that operator; tree-sitter's later errors from the same expression must not become extra offenses.
+
 ## Conformance measurement
 
 `CONFORMANCE.md` records offense-by-offense comparisons against five pinned corpora (18,251 files).
