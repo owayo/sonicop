@@ -196,6 +196,38 @@ before writeback. The intentional byte difference is recorded in the divergence 
 The tree-sitter comment node includes the `\r` in CRLF, while RuboCop's comment token excludes it.
 Trim that byte from indexed comment ranges before cops calculate offense locations or source text.
 
+**YAML scalar types must follow Ruby's YAML 1.1 loader.** Plain `yes`/`no`/`on`/`off`
+and case variants of `true`/`false` are booleans; quoted strings and explicit string tags keep
+string values. `src/config/yaml_booleans.rs` scans tokens before serde_yaml so scalar styles,
+anchors and tag directives are preserved. The pinned unsafe-libyaml scanner's `mark.index` is a
+UTF-8 byte offset. Check the actual scanner's `READ`/`SKIP` width arithmetic before changing that
+assumption. A raw-YAML test must write the configuration directly: a YAML 1.2 serializer can drop
+the quotes around `no` and silently change the test's meaning. RuboCop 1.89.0 rejects a config
+with a UTF-8 BOM, so accepting one here would also be a compatibility change.
+
+**Configured String and Regexp patterns are different Ruby inputs.** Upstream interpolation
+keeps String alternation ungrouped while a Regexp's string representation groups it. For example,
+`Style/NumericLiterals`'s `\A#{regexp}\z` anchors `"123|123456"` differently from `/123|123456/`.
+Preserve tags and match upstream's real result before simplifying either pattern.
+
+**A visibility declaration can report an offense without any correction.** With
+`AllowModifiersOnSymbols: false`, `protected *METHOD_NAMES` has no corresponding definition
+node, so upstream's `def_nodes.any?` guard leaves it in place and reports `correctable: false`.
+Deleting that declaration and inserting a bare modifier later makes existing methods public.
+Test the file on disk and Ruby's actual method visibility, not just its syntax.
+
+**Line-length ranges use normalized character positions without clamping to a line.** Leading
+tabs can put their endpoints on the following line or past EOF. `reported_offset` maps those
+positions to original UTF-8 bytes. At a CRLF line's end it returns the boundary before `\r`,
+not between `\r` and `\n`; otherwise only `last_column` changes while counts, start positions
+and length still match. Keep LF/CRLF, endless-method and tab-crossing controls together.
+
+**Registration is not exercised coverage.** The full-field CLI sweep is documented in
+`docs/cop-conformance.md`. The three project-index cops currently have no indexed implementation.
+Do not count their index-disabled silence as an exact match. Generate README tables through
+`scripts/conformance_table.rb`; it compares complete nonempty runs, path sets and offense
+multisets with all fields and keeps differences in separate runs separate.
+
 ## Adding a cop test
 
 `tests/cops.rs` uses upstream's caret notation: the annotation points at the preceding source line,
