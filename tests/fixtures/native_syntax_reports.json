@@ -1,0 +1,4417 @@
+{
+  "reference": "RuboCop 1.89.0 / Prism 1.8.1 / Ruby 4.0.7",
+  "cases": [
+    {
+      "name": "group-0-c000.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c001.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c002.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 8,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c003.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token end\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 3,
+            "length": 3,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c004.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&block) { value }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "both block argument and literal block are passed\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 13,
+            "last_line": 1,
+            "last_column": 21,
+            "length": 9,
+            "line": 1,
+            "column": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c005.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(A); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a constant\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c006.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a class variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 3,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c007.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo($a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a global variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c008.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be an instance variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c009.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected `&`; no anonymous block parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c010.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(*)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous rest parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c011.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(**)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous keyword rest parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 6,
+            "length": 2,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c012.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "begin\n  value\nelse\n  other\nend\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "else without rescue is useless\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 4,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c013.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "class foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class or module name must be a constant literal\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 7,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 3,
+            "line": 1,
+            "column": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c014.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; class A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class definition in method body\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c015.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; module A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "module definition in method body\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c016.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo=(value) = value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "setter method cannot be defined in an endless method definition\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 8,
+            "length": 4,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c017.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "=begin\ntext\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "embedded document meets end of file (and they embark on a romantic journey)\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 5,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c018.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { |x| _1 }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "ordinary parameter is defined\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c019.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { _1; bar { _1 } }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "numbered parameter is already used in outer block\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c020.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a, a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "duplicated argument name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 1,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c021.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def 1.foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a delimiter to close the parameters\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 4,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 1,
+            "line": 1,
+            "column": 4
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected integer; expected a method name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c022.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "\"text\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c023.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; A = 1; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "dynamic constant assignment\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c024.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@@' without identifiers is not allowed as a class variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c025.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@' without identifiers is not allowed as an instance variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c026.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "$%\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "`$%' is not allowed as a global variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c027.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a = a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "circular argument reference a\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c028.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(_1); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "_1 is reserved for numbered parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c029.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "/a/z\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unknown regexp options: z\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 2,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c030.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c031.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c032.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c033.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "",
+      "offenses": []
+    },
+    {
+      "name": "group-0-c034.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo do\n  value\nend\n",
+      "offenses": []
+    },
+    {
+      "name": "group-0-c035.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "# coding: ascii-8bit\nvalue = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 4,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-0-c036.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  \"é\"",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 5,
+            "last_line": 2,
+            "last_column": 5,
+            "length": 1,
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c000.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c001.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c002.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 8,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c003.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token end\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 3,
+            "length": 3,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c004.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&block) { value }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "both block argument and literal block are passed\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 13,
+            "last_line": 1,
+            "last_column": 21,
+            "length": 9,
+            "line": 1,
+            "column": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c005.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(A); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a constant\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c006.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a class variable\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 3,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c007.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo($a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a global variable\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c008.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be an instance variable\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c009.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected `&`; no anonymous block parameter\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c010.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(*)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous rest parameter\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c011.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(**)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous keyword rest parameter\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 6,
+            "length": 2,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c012.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "begin\n  value\nelse\n  other\nend\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "else without rescue is useless\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 4,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c013.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "class foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class or module name must be a constant literal\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 7,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 3,
+            "line": 1,
+            "column": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c014.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; class A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class definition in method body\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c015.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; module A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "module definition in method body\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c016.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo=(value) = value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "setter method cannot be defined in an endless method definition\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 8,
+            "length": 4,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c017.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "=begin\ntext\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "embedded document meets end of file (and they embark on a romantic journey)\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 5,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c018.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { |x| _1 }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "ordinary parameter is defined\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c019.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { _1; bar { _1 } }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "numbered parameter is already used in outer block\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c020.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a, a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "duplicated argument name\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 1,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c021.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def 1.foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a delimiter to close the parameters\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 4,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 1,
+            "line": 1,
+            "column": 4
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected integer; expected a method name\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c022.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "\"text\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unterminated string meets end of file\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c023.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; A = 1; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "dynamic constant assignment\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c024.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@@' without identifiers is not allowed as a class variable name\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c025.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@' without identifiers is not allowed as an instance variable name\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c026.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "$%\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "`$%' is not allowed as a global variable name\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c027.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a = a); end\n",
+      "offenses": []
+    },
+    {
+      "name": "group-1-c028.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(_1); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "_1 is reserved for numbered parameter\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c029.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "/a/z\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unknown regexp options: z\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 2,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c030.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c031.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c032.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c033.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "",
+      "offenses": []
+    },
+    {
+      "name": "group-1-c034.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo do\n  value\nend\n",
+      "offenses": []
+    },
+    {
+      "name": "group-1-c035.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "# coding: ascii-8bit\nvalue = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 4,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-1-c036.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.4\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  \"é\"",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.4 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 5,
+            "last_line": 2,
+            "last_column": 5,
+            "length": 1,
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c000.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c001.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c002.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 8,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c003.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token end\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 3,
+            "length": 3,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c004.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&block) { value }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "both block argument and literal block are passed\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 13,
+            "last_line": 1,
+            "last_column": 21,
+            "length": 9,
+            "line": 1,
+            "column": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c005.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(A); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a constant\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c006.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a class variable\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 3,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c007.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo($a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a global variable\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c008.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be an instance variable\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c009.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected `&`; no anonymous block parameter\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c010.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(*)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous rest parameter\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c011.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(**)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous keyword rest parameter\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 6,
+            "length": 2,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c012.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "begin\n  value\nelse\n  other\nend\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "else without rescue is useless\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 4,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c013.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "class foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class or module name must be a constant literal\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 7,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 3,
+            "line": 1,
+            "column": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c014.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; class A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class definition in method body\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c015.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; module A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "module definition in method body\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c016.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo=(value) = value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "setter method cannot be defined in an endless method definition\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 8,
+            "length": 4,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c017.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "=begin\ntext\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "embedded document meets end of file (and they embark on a romantic journey)\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 5,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c018.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { |x| _1 }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "ordinary parameter is defined\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c019.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { _1; bar { _1 } }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "numbered parameter is already used in outer block\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c020.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a, a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "duplicated argument name\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 1,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c021.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def 1.foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a delimiter to close the parameters\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 4,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 1,
+            "line": 1,
+            "column": 4
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected integer; expected a method name\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c022.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "\"text\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unterminated string meets end of file\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c023.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; A = 1; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "dynamic constant assignment\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c024.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@@' without identifiers is not allowed as a class variable name\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c025.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@' without identifiers is not allowed as an instance variable name\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c026.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "$%\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "`$%' is not allowed as a global variable name\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c027.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a = a); end\n",
+      "offenses": []
+    },
+    {
+      "name": "group-2-c028.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(_1); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "_1 is reserved for numbered parameter\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c029.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "/a/z\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unknown regexp options: z\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 2,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c030.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c031.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c032.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c033.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "",
+      "offenses": []
+    },
+    {
+      "name": "group-2-c034.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo do\n  value\nend\n",
+      "offenses": []
+    },
+    {
+      "name": "group-2-c035.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "# coding: ascii-8bit\nvalue = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 4,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-2-c036.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.0\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  \"é\"",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 4.0 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 5,
+            "last_line": 2,
+            "last_column": 5,
+            "length": 1,
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c000.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c001.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c002.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 8,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c003.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token end\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 3,
+            "length": 3,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c004.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&block) { value }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "both block argument and literal block are passed\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 13,
+            "last_line": 1,
+            "last_column": 21,
+            "length": 9,
+            "line": 1,
+            "column": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c005.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(A); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a constant\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c006.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a class variable\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 3,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c007.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo($a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a global variable\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c008.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be an instance variable\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c009.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected `&`; no anonymous block parameter\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c010.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(*)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous rest parameter\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c011.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(**)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous keyword rest parameter\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 6,
+            "length": 2,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c012.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "begin\n  value\nelse\n  other\nend\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "else without rescue is useless\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 4,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c013.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "class foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class or module name must be a constant literal\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 7,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 3,
+            "line": 1,
+            "column": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c014.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; class A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class definition in method body\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c015.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; module A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "module definition in method body\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c016.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo=(value) = value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "setter method cannot be defined in an endless method definition\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 8,
+            "length": 4,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c017.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "=begin\ntext\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "embedded document meets end of file (and they embark on a romantic journey)\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 5,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c018.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { |x| _1 }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "ordinary parameter is defined\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c019.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { _1; bar { _1 } }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "numbered parameter is already used in outer block\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c020.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a, a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "duplicated argument name\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 1,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c021.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def 1.foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a delimiter to close the parameters\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 4,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 1,
+            "line": 1,
+            "column": 4
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected integer; expected a method name\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c022.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "\"text\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unterminated string meets end of file\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c023.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; A = 1; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "dynamic constant assignment\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c024.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@@' without identifiers is not allowed as a class variable name\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c025.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@' without identifiers is not allowed as an instance variable name\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c026.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "$%\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "`$%' is not allowed as a global variable name\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c027.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a = a); end\n",
+      "offenses": []
+    },
+    {
+      "name": "group-4-c028.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(_1); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "_1 is reserved for numbered parameter\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c029.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "/a/z\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unknown regexp options: z\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 2,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c030.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c031.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c032.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c033.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "",
+      "offenses": []
+    },
+    {
+      "name": "group-4-c034.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo do\n  value\nend\n",
+      "offenses": []
+    },
+    {
+      "name": "group-4-c035.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "# coding: ascii-8bit\nvalue = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 4,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-4-c036.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 4.1\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  \"é\"",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 4.1 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 5,
+            "last_line": 2,
+            "last_column": 5,
+            "length": 1,
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-5-missing-paren.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token $end\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-5-valid.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: default\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(1)\n",
+      "offenses": []
+    },
+    {
+      "name": "group-6-missing-paren.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_whitequark\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token $end\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-6-valid.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_whitequark\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(1)\n",
+      "offenses": []
+    },
+    {
+      "name": "group-7-c000.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c001.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c002.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 8,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c003.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected token end\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 3,
+            "length": 3,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c004.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&block) { value }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "both block argument and literal block are passed\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 13,
+            "last_line": 1,
+            "last_column": 21,
+            "length": 9,
+            "line": 1,
+            "column": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c005.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(A); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a constant\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c006.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a class variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 11,
+            "length": 3,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c007.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo($a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be a global variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c008.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(@a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "formal argument cannot be an instance variable\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c009.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(&)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unexpected `&`; no anonymous block parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c010.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(*)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous rest parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c011.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo(**)\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "no anonymous keyword rest parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 6,
+            "length": 2,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c012.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "begin\n  value\nelse\n  other\nend\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "else without rescue is useless\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 4,
+            "line": 3,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c013.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "class foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class or module name must be a constant literal\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 7,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 3,
+            "line": 1,
+            "column": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c014.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; class A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "class definition in method body\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c015.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; module A; end; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "module definition in method body\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c016.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo=(value) = value\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "setter method cannot be defined in an endless method definition\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 8,
+            "length": 4,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c017.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "=begin\ntext\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "embedded document meets end of file (and they embark on a romantic journey)\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 1,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 5,
+            "line": 2,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c018.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { |x| _1 }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "ordinary parameter is defined\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 2,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c019.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo { _1; bar { _1 } }\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "numbered parameter is already used in outer block\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 17,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 2,
+            "line": 1,
+            "column": 17
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c020.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a, a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "duplicated argument name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 12,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 1,
+            "line": 1,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c021.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def 1.foo; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a delimiter to close the parameters\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 4,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 1,
+            "line": 1,
+            "column": 4
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected integer; expected a method name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 5,
+            "last_line": 1,
+            "last_column": 5,
+            "length": 1,
+            "line": 1,
+            "column": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c022.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "\"text\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unterminated string meets end of file\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c023.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo; A = 1; end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "dynamic constant assignment\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 5,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c024.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@@' without identifiers is not allowed as a class variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c025.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "@\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "'@' without identifiers is not allowed as an instance variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c026.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "$%\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "`$%' is not allowed as a global variable name\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input; expected an expression after the operator\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 1,
+            "length": 1,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c027.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(a = a); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "circular argument reference a\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 9,
+            "length": 1,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c028.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "def foo(_1); end\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "_1 is reserved for numbered parameter\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 2,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c029.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "/a/z\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "unknown regexp options: z\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 3,
+            "last_line": 1,
+            "last_column": 4,
+            "length": 2,
+            "line": 1,
+            "column": 3
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c030.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c031.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c032.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "名前 = \"é\"\r\n(\r\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 1,
+            "length": 1,
+            "line": 2,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c033.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "",
+      "offenses": []
+    },
+    {
+      "name": "group-7-c034.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "foo do\n  value\nend\n",
+      "offenses": []
+    },
+    {
+      "name": "group-7-c035.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "# coding: ascii-8bit\nvalue = \"é\"\n(\n",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected a matching `)`\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 4,
+            "last_column": 1,
+            "length": 1,
+            "line": 3,
+            "column": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-7-c036.rb",
+      "yaml": "AllCops:\n  TargetRubyVersion: 3.3\n  ParserEngine: parser_prism\n  NewCops: disable\nLint/Syntax:\n  Enabled: true\n",
+      "source": "if true\n  \"é\"",
+      "offenses": [
+        {
+          "severity": "fatal",
+          "message": "expected an `end` to close the conditional clause\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 2,
+            "length": 2,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "fatal",
+          "message": "unexpected end-of-input, assuming it is closing the parent top level context\n(Using Ruby 3.3 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 5,
+            "last_line": 2,
+            "last_column": 5,
+            "length": 1,
+            "line": 2,
+            "column": 5
+          }
+        }
+      ]
+    }
+  ]
+}

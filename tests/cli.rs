@@ -57,6 +57,77 @@ fn reports_json_using_rubocop_shape() {
 }
 
 #[test]
+fn native_syntax_reports_match_recorded_upstream_without_ruby() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/native_syntax_reports.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 189);
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let source = case["source"].as_str().unwrap();
+        let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["yaml"].as_str().unwrap(),
+        )
+        .unwrap();
+        let output = command(directory.path())
+            .env("PATH", "")
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Lint/Syntax",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .assert()
+            .code(if case["offenses"].as_array().unwrap().is_empty() {
+                0
+            } else {
+                1
+            })
+            .get_output()
+            .stdout
+            .clone();
+        let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_eq!(found["summary"]["target_file_count"], 1, "{name}");
+        assert_eq!(found["summary"]["inspected_file_count"], 1, "{name}");
+        assert_eq!(found["files"][0]["offenses"], case["offenses"], "{name}");
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            source.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn an_unsupported_prism_target_fails_before_autocorrect() {
+    let source = "foo( 1 )\n";
+    let directory = project_with_ruby(&[("example.rb", source)], "3.2");
+    fs::write(
+        directory.path().join(".rubocop.yml"),
+        "AllCops:\n  TargetRubyVersion: 3.2\n  ParserEngine: parser_prism\n  NewCops: disable\n",
+    )
+    .unwrap();
+    let output = command(directory.path())
+        .args(["-A", "example.rb"])
+        .assert()
+        .code(2)
+        .get_output()
+        .clone();
+    assert!(String::from_utf8_lossy(&output.stderr).contains(
+        "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: 3.2"
+    ));
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
+}
+
+#[test]
 fn syntax_uses_gemspec_target_version_and_legacy_recovery_locations() {
     let directory = project_without_pinned_ruby(&[(
         "example.gemspec",

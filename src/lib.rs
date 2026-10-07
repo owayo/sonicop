@@ -15,6 +15,7 @@ mod formatter;
 mod magic_comment;
 mod nul_bytes;
 mod parser;
+mod prism;
 mod profile;
 mod ruby_version;
 pub mod rules;
