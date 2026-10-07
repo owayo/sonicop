@@ -163,11 +163,12 @@ fn reported_offset(source: &str, line_start: usize, column: usize) -> usize {
     let remaining = &source[line_start..];
     let mut characters = 0;
     for (offset, character) in remaining.char_indices() {
-        if character == '\r' && remaining[offset..].starts_with("\r\n") {
-            continue;
-        }
         if characters == column {
             return line_start + offset;
+        }
+        // 正規化後の改行直前は CR の手前へ対応させる。LF まで進めると終端桁だけ増える。
+        if character == '\r' && remaining[offset..].starts_with("\r\n") {
+            continue;
         }
         characters += 1;
     }

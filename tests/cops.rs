@@ -223,6 +223,32 @@ mod layout {
     }
 
     #[test]
+    fn line_length_maps_the_normalized_line_end_before_crlf() {
+        // 本家 1.89.0 の JSON から固定。行末で止まる範囲と次の行へ届く範囲を分けて測る。
+        for ending in ["\n", "\r\n"] {
+            for (source, location, length, correctable) in [
+                (format!("value = 12345{ending}"), (1, 13, 1, 13), 1, false),
+                (format!("def foo = 123{ending}"), (1, 13, 1, 13), 1, true),
+                (
+                    format!("\tvalue = 1234{ending}next_line{ending}"),
+                    (1, 12, 2, 1),
+                    3,
+                    false,
+                ),
+            ] {
+                CopCase::new("Layout/LineLength", source, Vec::new())
+                    .target_ruby("3.1")
+                    .config("Layout/LineLength:\n  Max: 12\n")
+                    .without_offense_check()
+                    .locations(&[location])
+                    .lengths(&[length])
+                    .correctable(correctable)
+                    .run();
+            }
+        }
+    }
+
+    #[test]
     fn line_length_does_not_split_a_string_containing_only_one_interpolation() {
         let expression = "a".repeat(49);
         for (prefix, correctable) in [("", false), ("prefix ", true)] {
