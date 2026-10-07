@@ -455,6 +455,68 @@ fn safe_autocorrect_updates_a_file_atomically() {
 }
 
 #[test]
+fn indentation_keeps_a_nested_begin_in_an_ensure_body_on_disk() {
+    // 本家 1.89.0 の lint / -a / -A の全診断と書き戻しを実測した最小再現。
+    let before = "foo do\n  value\nensure\n    begin\n      cleanup\n    rescue StandardError\n      nil\n    end\nend\n";
+    let after = "foo do\n  value\nensure\n  begin\n    cleanup\n  rescue StandardError\n    nil\n  end\nend\n";
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        for correcting in [false, true] {
+            let mut invocation = command(directory.path());
+            invocation.args([
+                "--cache",
+                "false",
+                "--only",
+                "Layout/IndentationWidth",
+                "-f",
+                "json",
+                "example.rb",
+            ]);
+            if correcting {
+                invocation.arg(mode);
+            }
+            let output = invocation
+                .assert()
+                .code(if correcting { 0 } else { 1 })
+                .get_output()
+                .stdout
+                .clone();
+            let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            assert_eq!(
+                found["files"][0]["offenses"],
+                serde_json::json!([{
+                    "severity": "convention",
+                    "message": "Use 2 (not 4) spaces for indentation.",
+                    "cop_name": "Layout/IndentationWidth",
+                    "corrected": correcting,
+                    "correctable": true,
+                    "location": {
+                        "start_line": 4, "start_column": 1,
+                        "last_line": 4, "last_column": 4,
+                        "length": 4, "line": 4, "column": 1
+                    }
+                }]),
+                "{mode}, correcting={correcting}"
+            );
+        }
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            after.as_bytes(),
+            "{mode}"
+        );
+        // 適正な字下げでは診断も二度目の書き換えも起きない。
+        command(directory.path())
+            .args([mode, "--only", "Layout/IndentationWidth", "example.rb"])
+            .assert()
+            .success();
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            after.as_bytes()
+        );
+    }
+}
+
+#[test]
 fn case_like_if_does_not_write_invalid_ruby() {
     for nested in [
         "if x == 3\n    c\n  end",
