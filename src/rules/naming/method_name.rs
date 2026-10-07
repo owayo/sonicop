@@ -26,6 +26,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         forbidden: context.setting("ForbiddenIdentifiers").unwrap_or_default(),
         // `forbidden_name?` is `forbidden_identifier? || forbidden_pattern?`.
         forbidden_patterns: super::support::forbidden_patterns(context),
+        allowed_patterns: super::support::forbidden_patterns_named(context, "AllowedPatterns"),
         reported: HashSet::new(),
         offenses,
     };
@@ -43,6 +44,7 @@ struct Check<'a, 'tree> {
     style: String,
     forbidden: Vec<String>,
     forbidden_patterns: Vec<&'static regex::Regex>,
+    allowed_patterns: Vec<&'static regex::Regex>,
     /// `Base#add_offense` drops a second offense at a range it already reported, and
     /// `attr_accessor :aB, :cD` reports both names over the same range.
     reported: HashSet<Range<usize>>,
@@ -57,7 +59,9 @@ impl Check<'_, '_> {
         // The `setter` node of `def foo=` spans `foo=`, which is exactly the name the parser
         // reports, so no node kind here needs its text rebuilt.
         let name = self.context.source.node_text(name_node).to_owned();
-        if OPERATOR_METHODS.contains(&name.as_str()) {
+        if self.allowed_patterns.iter().any(|pattern| pattern.is_match(&name))
+            || OPERATOR_METHODS.contains(&name.as_str())
+        {
             return;
         }
         if self.is_forbidden(&name) {
@@ -148,9 +152,11 @@ impl Check<'_, '_> {
             let Some(name) = self.literal_name(*argument) else {
                 continue;
             };
+            if self.allowed_patterns.iter().any(|pattern| pattern.is_match(&name)) {
+                continue;
+            }
             if self.is_forbidden(&name) {
-                // The quirk is upstream's: a forbidden attribute is reported against the *last*
-                // argument whichever of them was misnamed.
+                // 本家は、禁止された属性名がどの引数でも最後の引数に位置を付ける。
                 self.forbidden_offense(&name, last.byte_range());
             } else if !valid_name(&name, &self.style) {
                 self.style_offense(range_position(node));
@@ -159,6 +165,9 @@ impl Check<'_, '_> {
     }
 
     fn handle_method_name(&mut self, node: Node<'_>, name: &str, range: Range<usize>) {
+        if self.allowed_patterns.iter().any(|pattern| pattern.is_match(name)) {
+            return;
+        }
         if self.is_forbidden(name) {
             let forbidden_range = if node.kind_str() == "call" {
                 arguments(node)

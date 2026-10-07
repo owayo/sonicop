@@ -535,17 +535,45 @@ pub(crate) fn forbidden_patterns(context: &RuleContext<'_>) -> Vec<&'static Rege
     forbidden_patterns_named(context, "ForbiddenPatterns")
 }
 
-/// The same for any list of patterns a cop reads under its own key.
+/// cop 固有の設定名から、Ruby の文字列・Regexp を区別してコンパイルする。
 pub(crate) fn forbidden_patterns_named(
     context: &RuleContext<'_>,
     key: &str,
 ) -> Vec<&'static Regex> {
-    context
-        .setting::<Vec<serde_yaml_ng::Value>>(key)
-        .unwrap_or_default()
+    pattern_values_named(context, key)
         .iter()
         .filter_map(ruby_regex)
         .collect()
+}
+
+/// Regexp と文字列では本家の補間規則が違うため、アンカーを付ける cop は元の型も読む。
+pub(crate) fn pattern_values_named(
+    context: &RuleContext<'_>,
+    key: &str,
+) -> Vec<serde_yaml_ng::Value> {
+    let mut values = context
+        .setting::<Vec<serde_yaml_ng::Value>>(key)
+        .unwrap_or_default();
+    if key == "AllowedPatterns" {
+        // AllowedPattern は旧設定名も読み、旧 Methods に Regexp があれば文字列の項目もパターンにする。
+        values.extend(
+            context
+                .setting::<Vec<serde_yaml_ng::Value>>("IgnoredPatterns")
+                .unwrap_or_default(),
+        );
+        let deprecated: Vec<_> = ["IgnoredMethods", "ExcludedMethods"]
+            .into_iter()
+            .flat_map(|name| {
+                context
+                    .setting::<Vec<serde_yaml_ng::Value>>(name)
+                    .unwrap_or_default()
+            })
+            .collect();
+        if deprecated.iter().any(|value| matches!(value, serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "!ruby/regexp")) {
+            values.extend(deprecated);
+        }
+    }
+    values
 }
 
 #[cfg(test)]

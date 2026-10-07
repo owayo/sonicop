@@ -1,4 +1,3 @@
-use regex::Regex;
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
@@ -11,17 +10,12 @@ const MSG: &str = "Return `false` instead of `nil` in predicate methods.";
 /// too.
 const CONDITIONALS: [&str; 4] = ["if", "unless", "elsif", "conditional"];
 
-/// A predicate method that answers `nil` instead of `false`.
+/// 許可したメソッドを除き、述語メソッドの nil を本家と同じ範囲で報告する。
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed_methods = context
         .setting::<Vec<String>>("AllowedMethods")
         .unwrap_or_default();
-    let allowed_patterns: Vec<Regex> = context
-        .setting::<Vec<String>>("AllowedPatterns")
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|pattern| Regex::new(pattern).ok())
-        .collect();
+    let allowed_patterns = crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
     for node in context.nodes_of_any(&["method", "singleton_method"]) {
         let Some(name) = node.field("name") else {
             continue;

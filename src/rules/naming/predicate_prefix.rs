@@ -16,10 +16,18 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let macros: Vec<String> = context
         .setting("MethodDefinitionMacros")
         .unwrap_or_default();
-    // `UseSorbetSigs`: only a `def` whose preceding `sig` declares `returns(T::Boolean)` is a
-    // predicate candidate. A dynamic definition carries no signature, so the macros are skipped
-    // entirely under this setting -- "Dynamic methods are not supported with this configuration".
-    let use_sorbet_sigs: bool = context.setting("UseSorbetSigs").unwrap_or(false);
+    // `UseSorbetSigs` は直前の sig が returns(T::Boolean) を宣言する def だけを対象にする。
+    // 動的な定義にはシグネチャが無いため、マクロの検査をすべて省く。
+    // 本家は Ruby の真偽値で判定するため、文字列の "true" や "false" も有効になる。
+    let use_sorbet_sigs = context
+        .setting::<serde_yaml_ng::Value>("UseSorbetSigs")
+        .is_some_and(|mut value| {
+            // Psych は未知の YAML タグを無視するため、タグ付きの false も無効になる。
+            while let serde_yaml_ng::Value::Tagged(tagged) = value {
+                value = tagged.value;
+            }
+            !matches!(value, serde_yaml_ng::Value::Null | serde_yaml_ng::Value::Bool(false))
+        });
     // Every prefix is tried, but `add_offense` keeps only the first report at a range.
     let mut reported: HashSet<Range<usize>> = HashSet::new();
     let mut report = |offenses: &mut Vec<Offense>, name: &str, range: Range<usize>| {

@@ -163,6 +163,18 @@ fn nested_correction(
     node: Node<'_>,
     name: Node<'_>,
 ) -> Option<Vec<Edit>> {
+    let namespace = namespace_keyword(context, node, name);
+    let style_key = match namespace {
+        "class" => "EnforcedStyleForClasses",
+        _ => "EnforcedStyleForModules",
+    };
+    let namespace_style = context
+        .setting::<String>(style_key)
+        .or_else(|| context.setting("EnforcedStyle"));
+    // 作る外側の名前空間が compact 指定なら、次のパスで戻されるので本家も修正を控える。
+    if namespace_style.as_deref() == Some("compact") {
+        return None;
+    }
     let keyword = node.child(0)?;
     let closing = node.child(node.child_count().saturating_sub(1))?;
     if closing.kind_str() != "end" {
@@ -189,7 +201,7 @@ fn nested_correction(
         Edit {
             start: keyword.start_byte(),
             end: keyword.end_byte(),
-            replacement: namespace_keyword(context, node, name).to_owned(),
+            replacement: namespace.to_owned(),
             safe,
         },
         Edit {

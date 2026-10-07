@@ -45,32 +45,32 @@ Sonicop implements cops in the Bundler, Gemspec, Layout, Lint, Metrics, Migratio
 sonicop --show-cops
 ```
 
-**All 609 RuboCop 1.89 cops are implemented**, matched name for name against the upstream registry. That includes the 159 shipped as `Enabled: pending` and the 56 shipped as `Enabled: false`, which a default run does not reach on either side — name them with `--only` or switch them on in a configuration, exactly as with RuboCop. Unknown cop names still fail validation unless `--ignore-unrecognized-cops` is supplied.
+**All 609 RuboCop 1.89 cop names are registered**, matched name for name against the upstream registry. The three cops that require a project index currently support only the index-disabled path; their indexed behavior is not implemented. That includes the 159 shipped as `Enabled: pending` and the 56 shipped as `Enabled: false`, which a default run does not reach on either side — name them with `--only` or switch them on in a configuration, exactly as with RuboCop. Unknown cop names still fail validation unless `--ignore-unrecognized-cops` is supplied.
 
 ### Cop conformance
 
-All 609 cops switched on, on both sides, over the 37,491 cases RuboCop's own specs supply, each run at the `TargetRubyVersion` its spec asked for. A cop counts as an **exact match** only when its offenses agree completely: every position, message, severity and correctable flag, with nothing extra on either side.
+Measured on 2026-10-08 against RuboCop 1.89.0: **42,435 inputs in 1,545 configuration groups** from the upstream spec capture, preserving each group's `TargetRubyVersion`, filename type and Ruby configuration values. A cop counts as an **exact match** only when all offense records agree, including start and end positions, length, message, severity, correctability and duplicate records. Comparisons are kept separate for each run.
 
-The table below is the last complete spec sweep, measured on 2026-08-28. Later targeted fixes have not been folded into these counts; the table is not a claim that every cop is now exact.
+Six other configuration groups (161 inputs) are unmeasured: RuboCop's CLI rejects their null `EnforcedStyle` settings, although its spec helpers accept them. The table describes the measurable inputs, not every possible configuration.
 
 <!-- conformance:start -->
 | Department | Cops | Exercised | Exact match | Diverging |
 |---|---:|---:|---:|---:|
 | Bundler | 7 | 7 | **7 ✓** | 0 |
 | Gemspec | 10 | 10 | **10 ✓** | 0 |
-| Layout | 100 | 100 | 90 | 10 |
-| Lint | 157 | 157 | 147 | 10 |
+| Layout | 100 | 100 | **100 ✓** | 0 |
+| Lint | 157 | 154 | 153 | 1 |
 | Metrics | 10 | 10 | **10 ✓** | 0 |
 | Migration | 1 | 1 | **1 ✓** | 0 |
 | Naming | 19 | 19 | **19 ✓** | 0 |
 | Security | 7 | 7 | **7 ✓** | 0 |
-| Style | 298 | 298 | 288 | 10 |
-| **Total** | **609** | **609** | **579** | **30** |
+| Style | 298 | 298 | 296 | 2 |
+| **Total** | **609** | **606** | **603** | **3** |
 <!-- conformance:end -->
 
-**Read the *Exercised* column first.** A cop nothing here made fire contributes neither way — its silence is indistinguishable from agreement, so it would be counted as agreement without ever being asked. **Every one of the 609 fires here**, which is what makes the *Exact match* column mean what it says.
+**Read the *Exercised* column first.** Only 606 cops fire in this sweep. `Lint/DeprecatedReference`, `Lint/NameTypo` and `Lint/UnusedPrivateMethod` require a project index, which Sonicop does not yet provide. They are not counted as exact matches. The three measured cops still differing are `Lint/Syntax`, `Style/FormatStringToken` and `Style/RedundantArgument`.
 
-How every cop is reached, a separate direct oracle sweep over the upstream specs, and the measurement of non-default settings: [docs/cop-conformance.md](docs/cop-conformance.md).
+The measurement conditions and remaining gaps are described in [docs/cop-conformance.md](docs/cop-conformance.md).
 
 ## Installation
 
@@ -165,37 +165,45 @@ Cop *names* are checked: an unrecognised cop in a configuration file stops the r
 
 ## Conformance
 
-Sonicop implements **609 / 609** cops from its RuboCop 1.89.0 specification. On five pinned Ruby projects (18,251 target files), both tools discover the same path sets. Their default-config JSON reports match offense by offense on RuboCop's own tree (5,766 offenses), Rails (167,760) and Mastodon (15,286). Homebrew differs only in `Lint/Syntax` recovery positions: both reject the same 569 files. Ruby still has parser and cop differences; it is not counted as exact.
+Sonicop registers **609 / 609** cop names from its RuboCop 1.89.0 specification; project-index behavior is still missing for three of them. On five pinned Ruby projects (18,251 target files), both tools discover the same path sets. Their default-config JSON reports match offense by offense on RuboCop's own tree (5,766 offenses), Rails (167,760) and Mastodon (15,286). Homebrew differs only in `Lint/Syntax` recovery positions: both reject the same 569 files. Ruby still has parser and cop differences; it is not counted as exact.
 
 Autocorrect is also compared on separate copies of each project. Some differences are deliberate safety decisions: RuboCop can write invalid Ruby, lose a value through assignment order, or turn a local-variable read into a `NameError`. Each known difference is pinned by corrected-file hashes in [the divergence manifest](tests/conformance/known_divergences.yml). For the pinned trees, `-a` has 0 new differences and `-A` has 0 new differences among the four corpora RuboCop can finish; Ruby's reference aborts before a complete correction tree exists. The corrected trees are byte-identical on Homebrew, while the other known differences remain visible in the gate.
 
-[CONFORMANCE.md](CONFORMANCE.md) records the corpus commits, reference versions, exact offense fields, measured counts and limitations. The [cop conformance table](#cop-conformance) uses upstream spec cases to exercise all 609 cops; its 579 exact matches are a separate measurement and the remaining 30 are still open.
+[CONFORMANCE.md](CONFORMANCE.md) records the corpus commits, reference versions, exact offense fields, measured counts and limitations. The [cop conformance table](#cop-conformance) is a separate measurement: 606 cops fired, 603 matched exactly, three differed and three required unavailable project-index behavior. The goal of 609 exercised and exact cops remains open.
 
 ## Performance
 
-Measured on 2026-10-04 with the latest stable Ruby 4.0.7 and RuboCop 1.91.0 on an Apple M2 (8 cores). This is a speed comparison with the newer gem; [conformance](#conformance) still uses RuboCop 1.89.0 as the behavioral specification. RuboCop 1.91.0 has 613 cops and Sonicop implements the 609 from 1.89.0. Each has 394 default-enabled cops, but one name differs in each set. For timing, RuboCop excludes `Lint/CopDirectiveSyntax` and Sonicop excludes `Style/DoubleCopDisableDirective`, leaving the **same 393 default-enabled cop names**.
+Measured on 2026-10-08 with Ruby 4.0.7 (YJIT disabled) and RuboCop 1.91.0 on an Apple M2 (8 cores), using Sonicop commit `ca1de57`. [Conformance](#conformance) uses RuboCop 1.89.0. The newer gem has 613 cops; Sonicop implements the 609 from 1.89.0. Each defaults to 394 enabled cops, with one different name. RuboCop excludes `Lint/CopDirectiveSyntax` and Sonicop excludes `Style/DoubleCopDisableDirective` for timing, leaving **393 shared cop names**.
 
-Both use `--force-default-config`, and their target path sets were checked before timing. Ruby's two files that make RuboCop abort are omitted **from both tools** in the timing copy; that row covers 7,464 of its 7,466 targets. Times are the fastest of two cold runs per condition. Parallel RuboCop uses `--parallel --cache true` with a fresh real-path cache root for each run; parallel Sonicop uses its default parallel execution with a fresh root. Single-process runs use `--cache false` on both sides and `--no-parallel` on Sonicop. Full inspected-file counts were checked in JSON runs, and exit status was recorded for every timing run.
+Both use `--force-default-config`; target path sets and complete inspected-file counts were checked in JSON runs. Ruby's two files that abort RuboCop are omitted from both timing copies, covering 7,464 of its 7,466 targets. Every time below is **fastest / median**, in seconds, from two cold runs. Parallel RuboCop uses `--parallel --cache true` and a fresh real-path cache root; parallel Sonicop also uses a fresh root. Cache files were verified after every parallel run. Single-process runs disable caches, with `--no-parallel` on Sonicop. All timing runs exited with status 1 after reporting offenses.
 
 | Corpus | Revision | Files | RuboCop offenses | Sonicop offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| rails/rails | `62b5458` | 3,551 | 167,899 | 167,760 | 36.70 s | 7.12 s | 93.50 s | 23.31 s |
-| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 20.98 s | 2.34 s | 53.55 s | 7.91 s |
-| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 16.42 s | 2.39 s | 38.33 s | 7.74 s |
-| Homebrew/brew | `38ee325` | 2,179 | 49,926 | 49,326 | 18.50 s | 2.58 s | 42.70 s | 7.62 s |
-| ruby/ruby | `3349f41` | 7,464 | 763,186 | 761,186 | 152.90 s | 18.07 s | 297.97 s | 54.32 s |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| rails/rails | `62b5458` | 3,551 | 167,899 | 167,760 | 31.91 / 32.15 | 7.01 / 7.56 | 307.00 / 308.05 | 59.37 / 59.72 |
+| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 16.13 / 17.79 | 2.15 / 2.39 | 162.09 / 167.21 | 21.22 / 23.30 |
+| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 15.84 / 15.99 | 2.41 / 2.44 | 119.31 / 120.57 | 22.62 / 22.97 |
+| Homebrew/brew | `38ee325` | 2,179 | 49,926 | 49,326 | 16.12 / 16.22 | 2.37 / 2.40 | 127.63 / 129.47 | 19.39 / 20.09 |
+| ruby/ruby | `3349f41` | 7,464 | 763,186 | 761,186 | 79.96 / 81.06 | 14.93 / 16.36 | 692.99 / 698.78 | 96.85 / 102.63 |
 
-The offense columns are measured under these exact timing conditions. The newer RuboCop may have changed cop behavior since the 1.89.0 conformance reference, so equal cop names alone do not guarantee equal work. Read the offense counts alongside the times, and use the single-process column to judge engine cost: parallel wall time also depends on machine scheduling. The load average before and after each corpus is recorded below; high load can make absolute times and ratios move.
+Offense counts were collected under the same cop selection and configuration. Newer cop behavior changes the work performed, so these times do not establish equivalent-work speed ratios. Single-process CPU times below help distinguish engine cost from scheduling delays; parallel wall time also includes scheduling effects.
+
+| Corpus | RuboCop user CPU | Sonicop user CPU | RuboCop system CPU | Sonicop system CPU |
+| --- | --- | ---: | ---: | ---: |
+| rails/rails | 162.10 / 162.52 | 31.83 / 32.09 | 31.94 / 32.05 | 6.43 / 6.45 |
+| rubocop/rubocop | 88.46 / 91.19 | 11.41 / 12.31 | 14.13 / 15.11 | 2.26 / 2.35 |
+| mastodon/mastodon | 64.74 / 65.36 | 11.97 / 12.02 | 12.59 / 12.59 | 2.61 / 2.63 |
+| Homebrew/brew | 68.65 / 69.28 | 10.36 / 10.57 | 13.60 / 13.65 | 2.18 / 2.23 |
+| ruby/ruby | 379.22 / 383.38 | 53.25 / 55.57 | 66.76 / 67.12 | 10.21 / 10.95 |
+
+The machine remained busy with other OS activity. These are times observed under that load; they do not demonstrate an optimization against an earlier build. The recorded load averages are:
 
 | Corpus | Before | After | Highest recorded sample |
-|---|---:|---:|---:|
-| rails/rails | 7.50 | 19.08 | 116.81 |
-| rubocop/rubocop | 13.41 | 27.13 | 51.63 |
-| mastodon/mastodon | 26.29 | 29.53 | 77.93 |
-| Homebrew/brew | 31.96 | 25.14 | 48.35 |
-| ruby/ruby | 21.18 | 11.64 | 248.83 |
-
-The machine remained busy with other OS activity. These are observed times under that load, not an idle-machine lower bound.
+| --- | --- | ---: | ---: |
+| rails/rails | 14.69 | 17.18 | 26.37 |
+| rubocop/rubocop | 17.18 | 16.07 | 33.48 |
+| mastodon/mastodon | 16.07 | 16.17 | 25.26 |
+| Homebrew/brew | 16.17 | 19.35 | 34.06 |
+| ruby/ruby | 16.98 | 17.21 | 48.19 |
 
 ## Development
 

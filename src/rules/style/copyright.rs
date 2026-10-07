@@ -14,7 +14,7 @@ static COMMENT_PREFIX: LazyLock<Regex> =
 /// `/\A# */`, which each comment loses before it joins the notice being built.
 static LEADING_HASH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A# *").unwrap());
 
-/// A copyright notice must come before any code.
+/// 本家は検査のみでは corrector に編集を積まず、修正可能とは報告しない。
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let notice = context.setting::<String>("Notice").unwrap_or_default();
     if notice.is_empty() {
@@ -27,19 +27,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         return;
     }
     let message = format!("Include a copyright notice matching /{notice}/ before any code.");
-    // `processed_source.blank?`: a file with nothing but comments has no AST upstream, and the
-    // offense it gets is a global one.
+    // `processed_source.blank?`: コメントだけなら本家の AST は nil で、位置なしの指摘になる。
     let range = if has_code(context) { 0..1 } else { 0..0 };
     let offense = context.offense(message, range);
-    // `autocorrect`: the notice is written in before the first token that is neither a shebang nor
-    // an encoding comment. `verify_autocorrect_notice!` refuses one the pattern does not match, so
-    // a misconfigured notice raises rather than being inserted -- here it simply corrects nothing.
+    if !context.correcting() {
+        offenses.push(offense);
+        return;
+    }
+    // 本家の `verify_autocorrect_notice!` は notice がパターンに合わなければ挿入を拒む。
     let autocorrect_notice = context
         .setting::<String>("AutocorrectNotice")
         .unwrap_or_default();
     let normalized = normalized_notice(&autocorrect_notice);
-    // `verify_autocorrect_notice!` matches `autocorrect_notice.gsub(/^#\s*/, '')` -- the notice is
-    // checked **without** its comment marker, because the pattern is written against the text.
+    // 本家と同じくコメントの接頭辞を外した notice を検証する。
     let bare: String = normalized
         .lines()
         .map(|line| line.trim_start().trim_start_matches('#').trim_start())

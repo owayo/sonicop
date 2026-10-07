@@ -73,6 +73,84 @@ class ConformanceDiffTest < Minitest::Test
     assert_includes output, '完全一致'
   end
 
+  def test_range_differences_are_reported_at_shared_start_positions
+    %w[length last_line last_column].each do |field|
+      reference = offense('Layout/Common', 1)
+      candidate = offense('Layout/Common', 1)
+      candidate['location'][field] = 2
+      write_result(@reference, 'example.rb' => [reference])
+      write_result(@candidate, 'example.rb' => [candidate])
+
+      output, status, artifacts = compare
+
+      assert_equal 1, status.exitstatus, field
+      assert_includes output, 'offense field 差  : 1'
+      assert_includes File.read(File.join(artifacts, 'message_diff.tsv')), "example.rb\tLayout/Common\t1\t1"
+    end
+  end
+
+  def test_incomplete_json_is_not_reported_as_an_exact_match
+    write_result(@reference, 'example.rb' => [])
+    write_result(@candidate, 'example.rb' => [])
+    path = "#{@reference}.json"
+    document = JSON.parse(File.read(path))
+    document['summary']['target_file_count'] = 2
+    File.write(path, JSON.generate(document))
+
+    output, status, = compare
+
+    assert_equal 2, status.exitstatus
+    assert_includes output, '検査が不完全'
+    refute_includes output, '完全一致'
+  end
+
+  def test_identical_reports_with_multiple_ranges_at_one_position_match
+    first = offense('Layout/Common', 1)
+    second = offense('Layout/Common', 1)
+    second['location']['length'] = second['location']['last_column'] = 2
+    write_result(@reference, 'example.rb' => [first, second])
+    write_result(@candidate, 'example.rb' => [second, first])
+
+    output, status, = compare
+
+    assert_predicate status, :success?
+    assert_includes output, 'offense field 差  : 0'
+  end
+
+  def test_offense_multiplicity_at_one_position_is_compared
+    offense = offense('Layout/Common', 1)
+    write_result(@reference, 'example.rb' => [offense, offense])
+    write_result(@candidate, 'example.rb' => [offense])
+
+    output, status, = compare
+
+    assert_equal 1, status.exitstatus
+    assert_includes output, 'offense field 差  : 1'
+  end
+
+  def test_different_paths_without_offenses_are_not_reported_as_an_exact_match
+    write_result(@reference, 'reference.rb' => [])
+    write_result(@candidate, 'candidate.rb' => [])
+
+    output, status, = compare
+
+    assert_equal 2, status.exitstatus
+    assert_includes output, 'パス集合が異なります'
+    refute_includes output, '完全一致'
+  end
+
+  def test_null_range_values_are_not_reported_as_an_exact_match
+    invalid = offense('Layout/Common', 1)
+    invalid['location']['length'] = nil
+    write_result(@reference, 'example.rb' => [invalid])
+    write_result(@candidate, 'example.rb' => [invalid])
+
+    output, status, = compare
+
+    assert_equal 2, status.exitstatus
+    refute_includes output, '完全一致'
+  end
+
   private
 
   def fake_linter(name)
@@ -85,7 +163,8 @@ class ConformanceDiffTest < Minitest::Test
 
   def write_result(command, files)
     document = {
-      'files' => files.map { |path, offenses| { 'path' => path, 'offenses' => offenses } }
+      'files' => files.map { |path, offenses| { 'path' => path, 'offenses' => offenses } },
+      'summary' => { 'target_file_count' => files.length, 'inspected_file_count' => files.length }
     }
     File.write("#{command}.json", JSON.generate(document))
   end
@@ -100,7 +179,7 @@ class ConformanceDiffTest < Minitest::Test
       'severity' => severity,
       'correctable' => false,
       'message' => message,
-      'location' => { 'line' => line, 'column' => 1, 'length' => 1 }
+      'location' => { 'line' => line, 'column' => 1, 'last_line' => line, 'last_column' => 1, 'length' => 1 }
     }
   end
 

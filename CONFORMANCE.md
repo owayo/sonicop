@@ -1,18 +1,20 @@
 # RuboCop conformance
 
-Measured: 2026-10-04. The behavioral reference is **RuboCop 1.89.0 on Ruby 4.0.7**; Sonicop's vendored `config/default.yml` comes from that release. Both tools used `--force-default-config`. The current upstream gem may have more cops; a newer release is used only for the separate speed comparison in the README.
+Measured: 2026-10-08. The behavioral reference is **RuboCop 1.89.0 on Ruby 4.0.7**; Sonicop's vendored `config/default.yml` comes from that release. Both tools used `--force-default-config`. The current upstream gem may have more cops; a newer release is used only for the separate speed comparison in the README.
+
+`make ci` passed 2,249 Rust tests and 63 Ruby test runs (2,312 total), including **52 tests added for this maintenance**. The upstream fixture suite checks 37,085 recorded cases inside one Rust test; those case counts are separate from the test-function total.
 
 ## Scope and method
 
-Sonicop implements **609 / 609** RuboCop 1.89.0 cops, with the same names and no extras: 394 enabled, 159 pending, and 56 disabled by default. These are registry counts. A default run exercises only the enabled group. The separate [cop conformance table](README.md#cop-conformance) records which cops actually fired on upstream spec cases; a cop that stayed silent is never counted as an exact match.
+Sonicop registers **609 / 609** RuboCop 1.89.0 cop names, with the same names and no extras: 394 enabled, 159 pending, and 56 disabled by default. These are registry counts. A default run exercises only the enabled group. `Lint/DeprecatedReference`, `Lint/NameTypo` and `Lint/UnusedPrivateMethod` still lack the project-index path and are silent in this measurement. The separate [cop conformance table](README.md#cop-conformance) records which cops actually fired on upstream spec cases; a cop that stayed silent is never counted as an exact match.
 
-The five public corpora below have **18,251** target files in total. RuboCop and Sonicop resolve identical target *path sets* on all five. Each corpus is pinned to a commit; numbers from another revision are not interchangeable. For each common offense position `(cop, path, line, column)`, we also compare end line, end column, length, message, severity and correctability. Equal total offense counts alone do not establish a match.
+The five public corpora below have **18,251** target files in total. RuboCop and Sonicop resolve identical target *path sets* on all five. Each corpus is pinned to a commit; numbers from another revision are not interchangeable. For each common offense position `(cop, path, line, column)`, we also compare end line, end column, length, message, severity and correctability. Offense records are compared as multisets, so duplicates are retained. Equal total offense counts alone do not establish a match.
 
 | Corpus | Revision | Target files | RuboCop offenses | Sonicop offenses |
 |---|---|---:|---:|---:|
 | rubocop/rubocop | `f009b33` | 1,765 | 5,766 | 5,766 |
 | rails/rails | `62b5458` | 3,551 | 167,760 | 167,760 |
-| ruby/ruby | `3349f41` | 7,466 | 761,578 | 761,185 |
+| ruby/ruby | `3349f41` | 7,466 | 761,579 | 761,186 |
 | Homebrew/brew | `38ee325` | 2,179 | 49,920 | 49,326 |
 | mastodon/mastodon | `fad3685` | 3,290 | 15,286 | 15,286 |
 
@@ -28,13 +30,13 @@ Ruby's reference was assembled in chunks. RuboCop raises an invalid UTF-8 error 
 | Homebrew/brew | 330 | 924 | 0 | All positions differ in `Lint/Syntax` |
 | mastodon/mastodon | 0 | 0 | 0 | Exact |
 
-Homebrew has the same **569 syntax-error files** on both sides. The different `Lint/Syntax` positions are produced after error recovery; they do not represent different accepted-file sets there. Ruby has both parser and cop residue. The updated tree-sitter grammar removed three false `Lint/Syntax` positions from the previous measurement without adding a new position. Ruby's four shared-position differences are two `correctable` flags, one range length, and one syntax message. These differences remain open and are not described as exact matches.
+Homebrew has the same **569 syntax-error files** on both sides. The different `Lint/Syntax` positions are produced after error recovery; they do not represent different accepted-file sets there. Ruby has both parser and cop residue. Ruby's four shared-position differences are two `correctable` flags, one range length, and one syntax message. The full-record multiset has 169 Sonicop-only records and 562 RuboCop-only records after including those four differing positions. These differences remain open and are not described as exact matches.
 
-A constructed invalid input, `v [0] += foo(when)`, also exposes the parser recovery gap: both tools reject the file, but Sonicop reports the later `when` diagnostic that RuboCop does not. This is recorded with the `Lint/Syntax` recovery blind spot in the divergence manifest, not counted as an exact result.
+Command-style receivers in spaced index assignments are now diagnosed at their assignment operator, including constants and argumentless calls. Recovery follows the reference's scope: ordinary blocks and a missing right-hand side stop the remaining diagnostics, while recoverable method, class, conditional and lambda bodies still report later errors. These constructed cases are tested against actual RuboCop output; the broader parser recovery gap remains open.
 
-A separate CRLF probe used the pinned `rubocop/rubocop` revision `f009b33` and converted 1,748 Ruby files in a copy. An earlier offense-level comparison matched **7,514 records** in full, including range, message, severity and correctability. The 2026-10-04 rerun with the current binary inspected the same 1,765 target paths on both sides; the names and counts of all **36 firing cops** matched. The rerun did not compare individual offense fields.
+A separate CRLF probe prepared 1,749 `.rb` files and converted **1,748 files with line endings** in a copy of the pinned `rubocop/rubocop` revision `f009b33`. Both tools inspected the same 1,765 target paths. The full-record comparison covers **7,514 offenses**, including range ends, length, message, severity and correctability. This gate caught a 405-record end-column regression in the release candidate, which was corrected before publication. Counts alone would have missed it.
 
-The default configuration is the required baseline. Native project configurations were also attempted. Their plugin requirements stop RuboCop before inspection on four corpora, so no native-config agreement is claimed for them. For the Ruby corpus, both tools discovered the same 7,466 native-config target paths. A nested native-config run over `spec/ruby` inspected 4,435 files and matched all four offenses, including their fields. Directory target discovery uses the configuration of the starting directory; the cop configuration is resolved for each inspected file.
+The default configuration is the required baseline. Native project configurations were also attempted. Their missing plugin requirements stop RuboCop before inspection on four corpora: `rubocop-performance` on RuboCop, `rubocop-minitest` on Rails, `rubocop-capybara` on Mastodon and `rubocop-md` on Homebrew. No native-config agreement is claimed for those runs. For the Ruby corpus, both tools discovered the same 7,466 native-config target paths. A nested native-config run over `spec/ruby` inspected 4,435 files and matched all four offenses, including their fields. Directory target discovery uses the configuration of the starting directory; the cop configuration is resolved for each inspected file.
 
 ## Autocorrect and safety
 
@@ -52,7 +54,7 @@ RuboCop's own autocorrect can produce invalid Ruby in cases that Sonicop's synta
 
 For Ruby, both `-a` and `-A` exit unsuccessfully in RuboCop 1.89.0 on the source that also blocks its lint run. There is no complete corrected reference tree, so full-corpus autocorrect equality is unmeasured rather than assumed.
 
-On the four public corpora with complete corrected trees, a second Sonicop `-A` pass changed **0 files**. Syntax checks of files changed by either tool found **0 candidate-only invalid Ruby files**; RuboCop alone produced invalid Ruby in 1 file of its own tree, 2 Rails files and 3 Mastodon files. A partial Sonicop `-a` run over Ruby was stopped during a large conversion table; among the 206 changed Ruby files that were valid before correction, **0 became invalid**. This partial result does not stand in for a complete Ruby autocorrect comparison.
+On the four public corpora with complete corrected trees, a second Sonicop `-A` pass changed **0 files**. Syntax checks of files changed by either tool found **0 candidate-only invalid Ruby files**; RuboCop alone produced invalid Ruby in 1 file of its own tree, 2 Rails files and 3 Mastodon files. No complete Ruby corrected-tree or safety result is claimed from the interrupted reference.
 
 ## How to reproduce
 
@@ -68,4 +70,4 @@ sonicop --force-default-config --cache false -f json . > sonicop.json
 
 Use the `migrate-rubocop` measurement scripts for the actual comparison. Ruby needs their chunked `rcfull.py` reference. `fullfmt.sh` checks a clean source and compares copies, including both safe and unsafe correction. RuboCop 1.89.0 is the oracle for these conformance results even when a newer RuboCop is installed for timing.
 
-The real-code corpora cannot cover every branch: some cops are disabled by default, and some syntax shapes do not occur. The upstream spec fixture suite supplies deliberately constructed cases; README's *Exercised* column keeps coverage separate from correctness. The goal remains **Cops = Exercised = Exact match** in every department. The last complete spec sweep (2026-08-28) exercised 609 and matched 579 exactly, so that goal is still open. The table must be regenerated by `scripts/conformance_table.rb` from measured JSON, never edited by hand.
+The real-code corpora cannot cover every branch: some cops are disabled by default, and some syntax shapes do not occur. The upstream spec fixture suite supplies deliberately constructed cases; README's *Exercised* column keeps coverage separate from correctness. The goal remains **Cops = Exercised = Exact match** in every department. The 2026-10-08 full-field CLI sweep covered 42,435 measurable inputs across 1,545 configuration groups: 606 cops fired and 603 matched exactly. Three project-index cops remained unexercised, and `Lint/Syntax`, `Style/FormatStringToken` and `Style/RedundantArgument` still differed. Six other groups (161 inputs) were rejected by the reference CLI and are unmeasured, so that goal is still open. The table must be regenerated by `scripts/conformance_table.rb` from measured JSON, never edited by hand.

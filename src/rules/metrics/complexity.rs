@@ -1022,22 +1022,21 @@ fn literal_name<'a>(source: &'a SourceFile, node: Node<'_>) -> Option<&'a str> {
     }
 }
 
-/// `AllowedMethods` and `AllowedPatterns`, which every complexity cop consults before measuring.
+/// 複雑さを測る前に、本家と同じく許可メソッドと Ruby の正規表現を照合する。
 pub(super) struct Allowed {
     methods: Vec<String>,
-    patterns: Vec<regex::Regex>,
+    patterns: Vec<&'static regex::Regex>,
 }
 
 impl Allowed {
     pub(super) fn new(context: &RuleContext<'_>) -> Self {
         let methods = crate::rules::support::allowed_methods(context);
-        let patterns: Vec<String> = context.setting("AllowedPatterns").unwrap_or_default();
         Self {
             methods,
-            patterns: patterns
-                .iter()
-                .filter_map(|pattern| regex::Regex::new(pattern).ok())
-                .collect(),
+            patterns: crate::rules::naming::support::forbidden_patterns_named(
+                context,
+                "AllowedPatterns",
+            ),
         }
     }
 

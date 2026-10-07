@@ -27,6 +27,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .to_owned(),
         })
         .collect();
+    let patterns: Vec<_> = crate::rules::naming::support::pattern_values_named(context, "AllowedPatterns")
+        .iter().filter_map(|value| {
+            let pattern = crate::rules::naming::support::ruby_regex(value)?;
+            // Regexp の補間は括弧付き、文字列はそのまま。本家の文字列中の `|` の優先順位も保つ。
+            let anchored = match value {
+                serde_yaml_ng::Value::Tagged(_) => format!(r"\A(?:{})\z", pattern.as_str()),
+                _ => format!(r"\A{}\z", pattern.as_str()),
+            };
+            crate::rules::regex_cache::compiled(&anchored)
+        }).collect();
 
     for node in context.nodes_of_any(&["integer", "float"]) {
         // A rational or imaginary suffix makes a different literal upstream (`rational` / `complex`
@@ -45,6 +55,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // octal), which this cop does not know how to group.
         if integer.starts_with('0')
             || allowed.iter().any(|entry| entry == integer)
+            // 本家と同じアンカーを付けたパターンを整数部分に照合する。
+            || patterns.iter().any(|pattern| pattern.is_match(integer))
             || integer.chars().count() < min_digits
         {
             continue;

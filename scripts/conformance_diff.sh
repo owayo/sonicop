@@ -7,7 +7,7 @@
 #   - 共有構文エラーファイル内の Lint/Syntax = パーサ診断位置の差
 #   - それ以外で移植版だけが出した offense = 誤検出 (false positive)
 #   - それ以外で本家だけが出した offense   = 検出漏れ (false negative)
-#   - 位置は一致するがメッセージが違う = 文言差分
+#   - 位置は一致するが範囲・メッセージなどが違う = 項目差分
 # に分類する。構文エラーの受理判定は offense 位置とは別にファイル集合で比較する。
 set -euo pipefail
 
@@ -168,10 +168,32 @@ run_linter() {
     printf '%s の出力が JSON として読めません: %s\n' "$label" "$dest" >&2
     exit 2
   fi
+  # 本家は途中で中断しても整形式の JSON を返す。検査完了と対象パスの一意性を先に確認する。
+  if ! jq -e '
+    .summary.inspected_file_count as $n
+    | ($n | type == "number") and $n > 0 and $n == ($n | floor)
+      and $n == .summary.target_file_count
+      and (.files | type == "array") and (.files | length) == $n
+      and ([.files[].path] | unique | length) == $n
+      and all(.files[];
+        (.path | type == "string") and (.offenses | type == "array")
+        and all(.offenses[];
+          (.cop_name | type == "string") and (.message | type == "string")
+          and (.severity | type == "string") and (.correctable | type == "boolean")
+          and all(.location.line, .location.column, .location.last_line, .location.last_column, .location.length;
+            type == "number")))
+  ' "$dest" >/dev/null 2>&1; then
+    die "${label}の検査が不完全です: ${dest}"
+  fi
 }
 
 run_linter reference "$REFERENCE_CMD" "$OUT_DIR/reference.json"
 run_linter candidate "$CANDIDATE_CMD" "$OUT_DIR/candidate.json"
+
+# 発火しないファイルも比較対象の一部なので、offense の有無に関わらずパス集合を揃える。
+jq -r '.files[].path | sub("^\\./"; "")' "$OUT_DIR/reference.json" | LC_ALL=C sort >"$OUT_DIR/reference.paths"
+jq -r '.files[].path | sub("^\\./"; "")' "$OUT_DIR/candidate.json" | LC_ALL=C sort >"$OUT_DIR/candidate.paths"
+cmp -s "$OUT_DIR/reference.paths" "$OUT_DIR/candidate.paths" || die '対象ファイルのパス集合が異なります'
 
 # 1 offense = 1 行の TSV に正規化する。path は末尾一致で比較できるよう相対のまま扱う。
 normalize() {
@@ -183,13 +205,15 @@ normalize() {
           line: .location.line,
           column: .location.column,
           length: (.location.length // 0),
+          last_line: .location.last_line,
+          last_column: .location.last_column,
           severity: .severity,
           correctable: (.correctable // false),
           message: .message }
     ]
     | sort_by(.path, .line, .column, .cop)
     | .[]
-    | [.path, .cop, (.line|tostring), (.column|tostring), (.length|tostring), .severity, (.correctable|tostring), .message]
+    | [.path, .cop, (.line|tostring), (.column|tostring), (.length|tostring), .severity, (.correctable|tostring), .message, (.last_line|tostring), (.last_column|tostring)]
     | @tsv
   ' "$1"
 }
@@ -291,21 +315,35 @@ awk -F'\t' \
   { print > unexplained }
 ' "$OUT_DIR/matched.keys" "$OUT_DIR/syntax_recovery_candidate_only.tsv"
 
-# 位置が一致したものだけを対象に、severity / correctable / message の食い違いを拾う。
-# join は複合キーにタブを含められず直積になるため、awk の連想配列で突き合わせる。
-sort -u "$OUT_DIR/reference.tsv" >"$OUT_DIR/reference.sorted"
-sort -u "$OUT_DIR/candidate.tsv" >"$OUT_DIR/candidate.sorted"
+# 開始位置が一致しても範囲長や終端座標は別に確認する。開始位置だけでは範囲の相違を見落とす。
+# 同じ開始位置の offense は複数あり得るため、記録全体の多重集合で比較してから位置ごとに出す。
+LC_ALL=C sort "$OUT_DIR/reference.tsv" >"$OUT_DIR/reference.sorted"
+LC_ALL=C sort "$OUT_DIR/candidate.tsv" >"$OUT_DIR/candidate.sorted"
 awk -F'\t' '
-  NR == FNR {
+  {
     key = $1 SUBSEP $2 SUBSEP $3 SUBSEP $4
-    seen[key] = 1; severity[key] = $6; correctable[key] = $7; message[key] = $8
+    record_key[$0] = key
+    display[key] = $1 "\t" $2 "\t" $3 "\t" $4
+    fields = "[length=" $5 " end=" $9 ":" $10 "|" $6 "|" $7 "] " $8
+  }
+  FILENAME == ARGV[1] {
+    reference[$0]++; reference_positions[key] = 1
+    reference_fields[key] = reference_fields[key] fields "; "
     next
   }
   {
-    key = $1 SUBSEP $2 SUBSEP $3 SUBSEP $4
-    if (key in seen && (severity[key] != $6 || correctable[key] != $7 || message[key] != $8)) {
-      printf "%s\t%s\t%s\t%s\tref=[%s|%s] %s\tcand=[%s|%s] %s\n",
-        $1, $2, $3, $4, severity[key], correctable[key], message[key], $6, $7, $8
+    candidate[$0]++; candidate_positions[key] = 1
+    candidate_fields[key] = candidate_fields[key] fields "; "
+  }
+  END {
+    for (record in record_key) {
+      key = record_key[record]
+      if (reference[record] != candidate[record] && key in reference_positions && key in candidate_positions) {
+        differences[key] = 1
+      }
+    }
+    for (key in differences) {
+      printf "%s\tref=%s\tcand=%s\n", display[key], reference_fields[key], candidate_fields[key]
     }
   }
 ' "$OUT_DIR/reference.sorted" "$OUT_DIR/candidate.sorted" >"$OUT_DIR/message_diff.tsv"
@@ -337,7 +375,7 @@ printf 'reference-only pos : %s  (actionable=%s / shared syntax files=%s)\n' \
   "$reference_only_count" "$fn_count" "$reference_recovery_count"
 printf 'candidate recovery : after-shared=%s / without-earlier-shared=%s\n' \
   "$candidate_after_shared_count" "$candidate_without_earlier_shared_count"
-printf 'message/severity 差: %s\n' "$msg_count"
+printf 'offense field 差  : %s\n' "$msg_count"
 if [ "$ref_count" -gt 0 ]; then
   printf 'recall             : %s%%\n' "$((match_count * 100 / ref_count))"
 fi

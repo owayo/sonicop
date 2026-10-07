@@ -219,6 +219,125 @@ fn spaced_index_assignment_requires_an_existing_local() {
 }
 
 #[test]
+fn spaced_index_assignment_to_a_command_is_not_rewritten_on_disk() {
+    for source in [
+        "Foo [0] = 1\n",
+        "Foo::Bar [0] += 1\n",
+        "self.value [0] = 1\n",
+        "foo&.bar [0] = 1\n",
+        "::Foo [0] = 1\n",
+    ] {
+        for mode in ["-a", "-A"] {
+            let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+            let output = command(directory.path())
+                .args([
+                    mode,
+                    "--force-default-config",
+                    "--format",
+                    "json",
+                    "example.rb",
+                ])
+                .assert()
+                .code(1)
+                .get_output()
+                .stdout
+                .clone();
+            let found = offenses(&output);
+            assert_eq!(found.len(), 1);
+            assert_eq!(found[0].cop_name, "Lint/Syntax");
+            assert_eq!(found[0].severity, "fatal");
+            assert!(!found[0].correctable);
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+        }
+    }
+}
+
+#[test]
+fn visibility_splats_are_not_erased_by_autocorrect() {
+    let source =
+        "class Foo\n  METHOD_NAMES = [:bar]\n  def bar; end\n  protected *METHOD_NAMES\nend\n";
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(
+            &[
+                ("example.rb", source),
+                (
+                    ".rubocop.yml",
+                    "Style/AccessModifierDeclarations:\n  AllowModifiersOnSymbols: false\n",
+                ),
+            ],
+            "2.7",
+        );
+        let output = command(directory.path())
+            .args([
+                mode,
+                "--only",
+                "Style/AccessModifierDeclarations",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        let found = offenses(&output);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].cop_name, "Style/AccessModifierDeclarations");
+        assert!(!found[0].correctable);
+        // 本家は splat が指定した既存メソッドを動かせず、可視性の宣言も残す。
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            source.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn yaml_legacy_booleans_preserve_quoted_strings() {
+    for (value, count) in [
+        ("no", 1),
+        ("off", 1),
+        ("NO", 1),
+        ("Off", 1),
+        ("!<tag:yaml.org,2002:bool> off", 1),
+        ("!!str no", 0),
+        ("nO", 1),
+        ("oFf", 1),
+        ("fAlSe", 1),
+        ("!example no", 1),
+        ("!!bool 'off'", 1),
+        ("yes", 0),
+        ("on", 0),
+        ("'no'", 0),
+        ("'off'", 0),
+        ("'false'", 0),
+    ] {
+        let yaml = format!("Naming/PredicatePrefix:\n  UseSorbetSigs: {value}\n");
+        let directory = project_with_ruby(&[("example.rb", "def is_attr; end\n")], "2.7");
+        // YAML 1.2 のシリアライザを通すと 'no' の引用符が落ちるため、実際の設定をそのまま読む。
+        fs::write(directory.path().join(".rubocop.yml"), yaml).unwrap();
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Naming/PredicatePrefix",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .assert()
+            .code(if count == 0 { 0 } else { 1 })
+            .get_output()
+            .stdout
+            .clone();
+        assert_eq!(offenses(&output).len(), count, "UseSorbetSigs: {value}");
+    }
+}
+
+#[test]
 fn spaced_index_assignment_with_missing_rhs_stops_recovery_at_operator() {
     let directory = project_with_ruby(&[], "2.7");
     for source in ["v [0] += ;\n", "v [0] =\n", "v [0] += ;\nfoo(when)\n"] {
@@ -273,22 +392,15 @@ fn spaced_index_assignment_with_missing_rhs_stops_recovery_at_operator() {
         .get_output()
         .stdout
         .clone();
+    // 本家 1.89.0 の実出力では、右辺がある場合もこの代入で打ち切り、後続の `when` は報告しない。
     assert_offenses(
         &later_error,
-        &[
-            (
-                "Lint/Syntax",
-                1,
-                7,
-                &syntax_message("unexpected token tOP_ASGN", "2.7"),
-            ),
-            (
-                "Lint/Syntax",
-                2,
-                5,
-                &syntax_message("unexpected token kWHEN", "2.7"),
-            ),
-        ],
+        &[(
+            "Lint/Syntax",
+            1,
+            7,
+            &syntax_message("unexpected token tOP_ASGN", "2.7"),
+        )],
     );
 }
 
@@ -1805,5 +1917,98 @@ fn a_deeply_nested_loop_condition_does_not_overflow_the_stack() {
             .collect::<Vec<_>>(),
         ["Lint/UnreachableLoop"],
         "ループ 1 個ぶんの offense が出て、プロセスは生きていること"
+    );
+}
+
+/// 本家は def・class・begin・括弧の閉じ位置で復帰する。ブロック内や右辺欠落では後続を捨てる。
+#[test]
+fn command_assignment_errors_resume_only_at_upstream_recovery_boundaries() {
+    let directory = project(&[]);
+    for (source, expected) in [
+        (
+            "def m\n foo [0] = 1\n foo(when)\nend\n",
+            vec![(2, 10, "tEQL"), (3, 6, "kWHEN")],
+        ),
+        (
+            "class A\n foo [0] = 1\n bar [0] = 2\nend\n",
+            vec![(2, 10, "tEQL"), (3, 10, "tEQL")],
+        ),
+        (
+            "while x\n foo [0] = 1\nend\nfoo(when)\n",
+            vec![(2, 10, "tEQL"), (4, 5, "kWHEN")],
+        ),
+        (
+            "def m\n foo [0] = 1\n x = {a:}\nend\nbar [0] = 2\n",
+            vec![(2, 10, "tEQL"), (3, 9, "tRCURLY"), (5, 9, "tEQL")],
+        ),
+        (
+            "-> { foo [0] = 1 }\nfoo(when)\n",
+            vec![(1, 14, "tEQL"), (2, 5, "kWHEN")],
+        ),
+        (
+            "if true\n foo [0] = 1\nend\nfoo(when)\n",
+            vec![(2, 10, "tEQL"), (4, 5, "kWHEN")],
+        ),
+        (
+            "def m\n foo [0] = 1\nend\nfoo(when)\n",
+            vec![(2, 10, "tEQL"), (4, 5, "kWHEN")],
+        ),
+        (
+            "begin\n ::Foo [0]\nend\nbar [0] = 2\n",
+            vec![(2, 8, "tLBRACK"), (4, 9, "tEQL")],
+        ),
+        (
+            "x = (foo [0] = 1)\nfoo(when)\n",
+            vec![(1, 14, "tEQL"), (2, 5, "kWHEN")],
+        ),
+        (
+            "class A\n foo [0] = 1\nend\nclass B\n bar [0] = 2\nend\n",
+            vec![(2, 10, "tEQL"), (5, 10, "tEQL")],
+        ),
+        (
+            "class A\n foo {Foo [0] = 1}\n foo(when)\nend\nfoo(when)\n",
+            vec![(2, 15, "tEQL")],
+        ),
+        ("def m\n foo [0] =\nend\nfoo(when)\n", vec![(2, 10, "tEQL")]),
+    ] {
+        let output = lint_stdin(directory.path(), "Lint/Syntax", source)
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        let actual: Vec<_> = offense_tuples(&output)
+            .into_iter()
+            .map(|(_, line, column, message)| {
+                (line, column, message.split('\n').next().unwrap().to_owned())
+            })
+            .collect();
+        let expected: Vec<_> = expected
+            .into_iter()
+            .map(|(line, column, token)| (line, column, format!("unexpected token {token}")))
+            .collect();
+        assert_eq!(actual, expected, "{source}");
+    }
+}
+
+/// 本家の ConfigLoader は UTF-8 BOM を含む設定を拒否し、検査に進まない。
+#[test]
+fn a_bom_configuration_is_rejected_before_inspection() {
+    let directory = project(&[("example.rb", "def is_attr; end\n")]);
+    fs::write(
+        directory.path().join(".rubocop.yml"),
+        "\u{feff}Naming/PredicatePrefix:\n  UseSorbetSigs: no\n",
+    )
+    .unwrap();
+    let output = command(directory.path())
+        .args(["--only", "Naming/PredicatePrefix", "-f", "json"])
+        .assert()
+        .code(2)
+        .get_output()
+        .clone();
+    assert!(output.stdout.is_empty());
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("did not find expected <document start>")
     );
 }
