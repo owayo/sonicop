@@ -3,6 +3,7 @@ mod loader;
 mod paths;
 mod plugin;
 mod store;
+mod yaml_booleans;
 
 use std::collections::{HashMap, HashSet};
 use std::fs;

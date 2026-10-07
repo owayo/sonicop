@@ -7,15 +7,13 @@ use tree_sitter::Node;
 use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_iter;
 use crate::rules::support::Interpolations;
 use crate::rules::support::is_ruby_space_char;
 use crate::source::is_protected;
-use crate::rules::send_node::named_children_iter;
 
-/// `Layout/IndentationStyle`'s `IndentationWidth` is unset by default, so RuboCop falls back to
-/// `Layout/IndentationWidth`'s `Width`, which is 2. A cop only ever sees its own configuration
-/// here, so that fallback is spelled out: one leading tab is worth two columns, i.e. one extra
-/// column per tab.
+/// 本家は未設定の `IndentationStyle/IndentationWidth` を `IndentationWidth/Width` (2) で補う。
+/// 各 cop は自分の設定だけを読むため、先頭のタブ 1 個につき 1 桁分を加算する。
 const TAB_INDENTATION_WIDTH: usize = 2;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
@@ -107,11 +105,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // method -- so RuboCop reports it before any exemption gets a say, and reports the whole
         // line even when a cop directive is what pushed it over.
         let (start_column, reported) = if let Some(node) = endless_method_lines.get(&line_number) {
-            let range = line_start + byte_offset(line, max.saturating_sub(indent))
-                ..line_start + byte_offset(line, length);
+            let range = reported_offset(
+                context.source.text(),
+                line_start,
+                max.saturating_sub(indent),
+            )..reported_offset(context.source.text(), line_start, length);
             offenses.push(
                 context
                     .offense(format!("Line is too long. [{length}/{max}]"), range)
+                    .with_length(length.saturating_sub(max.saturating_sub(indent)))
                     .corrected_by(endless_method_edit(context, *node)),
             );
             continue;
@@ -142,8 +144,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let offense = context
             .offense(
                 format!("Line is too long. [{reported}/{max}]"),
-                line_start + byte_offset(line, start_column)
-                    ..line_start + byte_offset(line, reported),
+                reported_offset(context.source.text(), line_start, start_column)
+                    ..reported_offset(context.source.text(), line_start, reported),
             )
             .with_length(reported.saturating_sub(start_column));
         offenses.push(match break_edits.get(&line_number) {
@@ -155,12 +157,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// The byte offset of the `column`-th character, clamped to the end of the line.
-///
-/// Columns are counted the way RuboCop counts them -- characters plus the width a leading tab
-/// stands in for -- so a tab-indented line can name a column past its own last character. RuboCop
-/// then builds a range that runs into the following line; clamping keeps the reported range inside
-/// the line it describes.
+/// 本家は表示幅から作った範囲を行末で切らず、次の行や EOF の先まで報告する。
+/// 編集位置の `byte_offset` と分け、CRLF の正規化と UTF-8 の文字境界を保つ。
+fn reported_offset(source: &str, line_start: usize, column: usize) -> usize {
+    let remaining = &source[line_start..];
+    let mut characters = 0;
+    for (offset, character) in remaining.char_indices() {
+        if character == '\r' && remaining[offset..].starts_with("\r\n") {
+            continue;
+        }
+        if characters == column {
+            return line_start + offset;
+        }
+        characters += 1;
+    }
+    source.len() + column.saturating_sub(characters)
+}
+
+/// 編集位置は行内に限定する。報告用の範囲は `reported_offset` で本家に合わせる。
 fn byte_offset(line: &str, column: usize) -> usize {
     line.char_indices()
         .nth(column)
@@ -336,7 +350,8 @@ fn name_start(node: Node<'_>, object: Node<'_>) -> usize {
 
 fn is_endless_method(node: Node<'_>) -> bool {
     let mut cursor = node.walk();
-    !node.children(&mut cursor)
+    !node
+        .children(&mut cursor)
         .any(|child| child.kind_str() == "end")
 }
 
@@ -649,11 +664,12 @@ fn line_break_edits(
         .nodes_of_any(BREAKABLE_KINDS)
         .filter(|node| {
             let first = match matches!(node.kind_str(), "block" | "do_block") {
-                true => node
-                    .parent_of(context)
-                    .unwrap_or(*node)
-                    .start_position()
-                    .row,
+                true => {
+                    node.parent_of(context)
+                        .unwrap_or(*node)
+                        .start_position()
+                        .row
+                }
                 false => node.start_position().row,
             };
             (first + 1..=node.end_position().row + 1).any(|line| lines.contains(&line))
@@ -836,7 +852,8 @@ impl Breaker<'_, '_> {
         let mut cursor = container.walk();
         // A comment is a node of the tree but not of RuboCop's AST, and a heredoc's body hangs off
         // the argument list it was opened in rather than off the opener, so neither is an element.
-        let children: Vec<Node<'t>> = container.named_children(&mut cursor)
+        let children: Vec<Node<'t>> = container
+            .named_children(&mut cursor)
             .filter(|child| !matches!(child.kind_str(), "comment" | "heredoc_body"))
             .collect();
         // A literal hash's own pairs are its elements; only an argument list and an array literal
@@ -1176,9 +1193,12 @@ fn breakable_string(
         Some(b'"') => "\"",
         _ => return None,
     };
-    // `check_for_breakable_dstr` handles an interpolated literal separately, breaking only in front
-    // of a `#{`. Cutting one by width instead splits the marker itself -- `"…#" \ "{bbbb}"`.
+    // `check_for_breakable_dstr` は `#{` の手前で折る。幅だけで切ると補間を文字列に変えてしまう。
     if crate::rules::send_node::has_interpolation(node) {
+        // 本家の `breakable_dstr?` は子が補間 1 個だけの文字列を折らない。
+        if named_children_iter(node, context).count() == 1 {
+            return None;
+        }
         return breakable_dstr(context, node, max, delimiter)
             .or_else(|| breakable_string_part(context, node, max, delimiter));
     }

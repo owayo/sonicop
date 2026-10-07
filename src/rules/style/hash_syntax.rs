@@ -7,6 +7,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 use crate::rules::support;
 
 /// The symbol names the new syntax can spell without quoting them, as
@@ -606,7 +607,13 @@ fn ancestor_method_dispatch<'tree>(
 }
 
 fn is_parenthesized_call(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    // yield の引数は field 名を持たないが、括弧が省略値と修飾子の境界を守る点は同じ。
     node.field("arguments")
+        .or_else(|| {
+            named_children_of(node, context)
+                .into_iter()
+                .find(|child| child.kind_str() == "argument_list")
+        })
         .is_some_and(|list| context.source.node_text(list).starts_with('('))
 }
 

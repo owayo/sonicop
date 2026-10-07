@@ -210,13 +210,14 @@ impl<'tree> Cop<'_, 'tree> {
         !inlined && !self.grouped_definitions(node).is_empty()
     }
 
-    /// `right_siblings_same_inline_method?`: a later statement spelling the same modifier against
-    /// something of its own, which will be corrected in this one's place.
+    /// 本家の `right_siblings_same_inline_method?`。補正できる定義を持つ後続宣言だけが肩代わりする。
+    /// 名前を列挙できない splat では、手前の inline 定義を省く理由にならない。
     fn right_siblings_same_inline_method(&self, node: Node<'tree>, name: &str) -> bool {
         self.right_siblings(node).into_iter().any(|sibling| {
             self.modifier_name(sibling) == Some(name)
                 && !self.arguments(sibling).is_empty()
                 && !self.allowed(sibling)
+                && self.corresponding_definitions(sibling).is_some_and(|definitions| !definitions.is_empty())
         })
     }
 
@@ -251,6 +252,11 @@ impl<'tree> Cop<'_, 'tree> {
         // whatever it is moved the symbol `:bar` itself into the group and left the two methods
         // where they were.
         let definitions = self.corresponding_definitions(node)?;
+        // splat はメソッド名を静的に列挙できず、本家の `def_nodes.any?` も偽になる。
+        // 空の定義一覧で修正すると `protected *NAMES` を消して既存メソッドを public にしてしまう。
+        if definitions.is_empty() {
+            return None;
+        }
         let source = self.definition_source(node, &definitions);
         let removals: Vec<Edit> = definitions
             .iter()

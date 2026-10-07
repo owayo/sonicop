@@ -840,6 +840,7 @@ dependencies = [
  "tempfile",
  "tree-sitter",
  "tree-sitter-ruby",
+ "unsafe-libyaml",
  "ureq",
 ]
 
@@ -927,8 +928,8 @@ checksum = "ca0d1bf6fdd806e43ae5198f82f527056d359def39e54e67a0f478ac09dac081"
 
 [[package]]
 name = "tree-sitter-ruby"
-version = "26.10.100"
-source = "git+https://github.com/owayo/tree-sitter-ruby.git?tag=v26.10.100#0188e9602bb7d7d2efa39ce3a8b8164c66e96d1c"
+version = "26.10.101"
+source = "git+https://github.com/owayo/tree-sitter-ruby.git?tag=v26.10.101#6e5c464fbf0827b4ac09d229a2e49cdc33de8a74"
 dependencies = [
  "cc",
  "tree-sitter-language",

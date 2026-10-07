@@ -11,7 +11,7 @@ specification.** Where the two disagree, Sonicop is wrong unless the difference 
 That single rule decides most questions. Before changing behaviour, run the real thing and compare:
 
 ```bash
-rubocop --only <Cop/Name> --format json path.rb
+rubocop _1.89.0_ --only <Cop/Name> --format json path.rb
 sonicop --only <Cop/Name> --format json path.rb
 ```
 
@@ -346,7 +346,21 @@ including at top level; the variable analysis does not register implicit numbere
 ordinary locals. When the right-hand side is missing at the operator, RuboCop stops recovery at
 that operator; tree-sitter's later errors from the same expression must not become extra offenses.
 
+Constants and argumentless qualified calls have the same command-argument ambiguity:
+`Foo [0] = 1` and `self.value [0] = 1` are invalid, even if the constant is already defined.
+Calls closed by arguments or a block (`value() [0] = 1`, `value { 1 } [0] = 1`) remain valid.
+A root constant behaves differently: `::Foo [0]` is rejected at `[` even without an assignment.
+Compare both the rejection and the accepted controls with the pinned gem, and inspect the file
+on disk after both correction modes.
+
 ## Conformance measurement
+
+**Conformance tools must reject incomplete evidence.** `scripts/conformance_table.rb` compares
+offense multisets, including `length`, and includes the run identity in each key: a missing offense
+in one input must not cancel an extra offense in another. Both table and diff scripts require
+complete nonzero inspections and identical target path sets before comparing offenses. An
+unexercised cop is not exact. The table exits 0 only when every listed cop fired and matched,
+1 for differences or unexercised cops, and 2 when the measurement is incomplete.
 
 `CONFORMANCE.md` records offense-by-offense comparisons against five pinned corpora (18,251 files).
 The commits are pinned because the numbers move with them. Anything that changes file discovery or

@@ -191,6 +191,54 @@ mod layout {
             .run();
     }
 
+    /// タブの表示幅で作った範囲は行末を越える。本家の実測で EOF・CRLF・UTF-8 を固定する。
+    #[test]
+    fn line_length_reports_tab_ranges_beyond_the_current_line() {
+        for ending in ["\n", "\r\n"] {
+            for (source, location, length) in [
+                (format!("{}1{ending}", "\t".repeat(12)), (1, 1, 2, 11), 25),
+                (
+                    format!("\t\t\t\t# あいうえおかきくけこ{ending}1{ending}"),
+                    (1, 7, 3, 1),
+                    14,
+                ),
+            ] {
+                CopCase::new("Layout/LineLength", source, Vec::new())
+                    .config("Layout/LineLength:\n  Max: 10\n  AllowURI: false\n  AllowQualifiedName: false\n")
+                    .without_offense_check().locations(&[location]).lengths(&[length]).correctable(false).run();
+            }
+        }
+    }
+
+    #[test]
+    fn line_length_keeps_the_endless_method_length_past_eof() {
+        CopCase::new("Layout/LineLength", "\tdef foo = 12345", Vec::new())
+            .target_ruby("3.0")
+            .config("Layout/LineLength:\n  Max: 10\n")
+            .without_offense_check()
+            .locations(&[(1, 10, 1, 17)])
+            .lengths(&[8])
+            .correctable(true)
+            .run();
+    }
+
+    #[test]
+    fn line_length_does_not_split_a_string_containing_only_one_interpolation() {
+        let expression = "a".repeat(49);
+        for (prefix, correctable) in [("", false), ("prefix ", true)] {
+            let source = format!("\"{prefix}#{{{expression}}}\"\n");
+            let case = CopCase::new("Layout/LineLength", source.clone(), Vec::new())
+                .config("Layout/LineLength:\n  Max: 40\n  SplitStrings: true\n")
+                .without_offense_check()
+                .correctable(correctable);
+            if correctable {
+                case.run();
+            } else {
+                case.corrected_verbatim(&source).run();
+            }
+        }
+    }
+
     /// URI と修飾名の免除は「上限より前で始まり、行末で終わる」ことが条件で、
     /// 行末で終わらないものは超過部分の**直後**から報告される。`]` を巻き込んだ
     /// `String#chomp` は `\r\n` を **1 つの行末**として落とす。`\n` だけを落とすと `\r` が
@@ -2856,6 +2904,88 @@ mod syntax {
 
     fn accepted(source: &str, version: &str) -> CopCase {
         CopCase::new("Lint/Syntax", source, Vec::new()).target_ruby(version)
+    }
+
+    #[test]
+    fn spaced_index_assignment_rejects_constants_and_argumentless_calls() {
+        for (source, column, length, token) in [
+            ("Foo [0] = 1\n", 9, 1, "tEQL"),
+            ("Foo::Bar [0] = 1\n", 14, 1, "tEQL"),
+            ("self.value [0] = 1\n", 16, 1, "tEQL"),
+            ("foo.value [0] += 1\n", 15, 2, "tOP_ASGN"),
+            ("foo&.bar [0] = 1\n", 14, 1, "tEQL"),
+            ("Foo = []; Foo [0] = 1\n", 19, 1, "tEQL"),
+            ("Foo::bar [0] = 1\n", 14, 1, "tEQL"),
+            ("::Foo::Bar [0] = 1\n", 16, 1, "tEQL"),
+        ] {
+            at_2_7(source, vec![unexpected(1, column, length, token)]).run();
+        }
+    }
+
+    #[test]
+    fn spaced_index_assignment_keeps_completed_calls_and_variable_receivers_valid() {
+        // 呼び出しを引数やブロックで閉じれば、空白の後の `[` はコマンド引数にならない。
+        for source in [
+            "@a [0] = 1\n",
+            "$g [0] = 1\n",
+            "self [0] = 1\n",
+            "Foo[0] = 1\n",
+            "foo.bar[0] = 1\n",
+            "value = []; value [0] = 1\n",
+            "value [0], b = 1, 2\n",
+            "foo.value() [0] = 1\n",
+            "foo() [0] += 1\n",
+            "foo.value(1) [0] = 1\n",
+            "foo.bar { 1 } [0] = 1\n",
+            "foo.bar do 1 end [0] = 1\n",
+            "foo&.bar() [0] = 1\n",
+            "(foo.bar) [0] = 1\n",
+            "Foo::Bar [0]\n",
+            "Foo [0]\n",
+        ] {
+            accepted(source, "2.7").run();
+        }
+    }
+
+    #[test]
+    fn spaced_indexing_of_a_root_constant_reports_the_opening_bracket() {
+        for source in ["::Foo [0] = 1\n", "::Foo [0] += 1\n", "::Foo [0]\n"] {
+            at_2_7(source, vec![unexpected(1, 7, 1, "tLBRACK")]).run();
+        }
+        accepted("::Foo[0] = 1\n", "2.7").run();
+    }
+
+    #[test]
+    fn spaced_index_command_errors_stop_before_later_diagnostics() {
+        for source in [
+            "Foo [0] = 1\nBar [0] = 2\n",
+            "Foo [0] = 1\nend\n",
+            "Foo [0] = 1\nvalue [0] += 2\n",
+            "Foo [0] = 1\nBar::Baz {}\n",
+            "foo [0] = foo(when)\n",
+        ] {
+            at_2_7(source, vec![unexpected(1, 9, 1, "tEQL")]).run();
+        }
+        at_2_7(
+            "::Foo [0]\n::Bar [0]\n",
+            vec![unexpected(1, 7, 1, "tLBRACK")],
+        )
+        .run();
+    }
+
+    #[test]
+    fn earlier_version_error_withholds_later_command_assignment_errors() {
+        // Ruby 2.7 の省略ハッシュ値は、この引数配置ではファイル全体の回復を打ち切る。
+        at_2_7(
+            "render :json => {a:, b:}, :status => 404\nFoo [0] = 1\n",
+            vec![unexpected(1, 20, 1, "tCOMMA")],
+        )
+        .run();
+        at_2_7(
+            "render :json => {a:, b:}, :status => 404\n::Foo [0]\n",
+            vec![unexpected(1, 20, 1, "tCOMMA")],
+        )
+        .run();
     }
 
     /// 実測: `def type = :brew` → 1:10 tEQL / `def other = :y` → 3:11 tEQL
@@ -28169,6 +28299,24 @@ mod style_copyright {
 
     const COP: &str = "Style/Copyright";
 
+    #[test]
+    fn configured_notice_is_not_correctable_during_inspection() {
+        CopCase::annotated(COP, "puts 'hello'\n")
+            .config("Style/Copyright:\n  Notice: '^Copyright'\n  AutocorrectNotice: 'Copyright Example'\n")
+            .without_offense_check()
+            .correctable(false)
+            .run();
+    }
+
+    #[test]
+    fn configured_notice_is_inserted_during_correction() {
+        CopCase::annotated(COP, "puts 'hello'\n")
+            .config("Style/Copyright:\n  Notice: '^Copyright'\n  AutocorrectNotice: 'Copyright Example'\n")
+            .without_offense_check()
+            .corrected("# Copyright Example\nputs 'hello'\n")
+            .run();
+    }
+
     /// 位置はファイル先頭の 1 文字。既定の `AutocorrectNotice` は空なので補正は付かない。
     #[test]
     fn a_file_without_a_notice_is_reported() {
@@ -39660,5 +39808,172 @@ mod redundant_return_edit_shape {
             edits(source),
             vec![(at, at + "return".len(), "nil".to_owned())],
         );
+    }
+}
+
+mod configured_pattern_compatibility {
+    use super::*;
+
+    #[test]
+    fn deprecated_method_regexps_keep_their_pattern_semantics() {
+        for (pattern, quiet) in [("baz", true), ("other", false)] {
+            let report = CopCase::new("Metrics/BlockLength", "Foo::Bar.baz do\n  a = 1\n  a = 2\n  a = 3\nend\n".to_owned(), Vec::new())
+                .config(&format!("Metrics/BlockLength:\n  Max: 2\n  IgnoredMethods:\n    - !ruby/regexp /{pattern}/\n"))
+                .inspect();
+            assert_eq!(report.offenses.is_empty(), quiet);
+        }
+    }
+
+    #[test]
+    fn numeric_patterns_match_the_entire_integer_part() {
+        for (source, pattern, quiet) in [
+            ("12_34_5678\n", r"\d{2}_\d{2}_\d{4}", true),
+            ("1234_5678\n", r"\d{2}_\d{2}_\d{4}", false),
+            ("123456\n", "123|123456", true),
+            ("1234567\n", "123|123456", true),
+        ] {
+            let report = CopCase::new("Style/NumericLiterals", source.to_owned(), Vec::new())
+                .config(&format!(
+                    "Style/NumericLiterals:\n  AllowedPatterns: ['{pattern}']\n"
+                ))
+                .inspect();
+            assert_eq!(report.offenses.is_empty(), quiet, "{source}: {pattern}");
+        }
+        let report = CopCase::new("Style/NumericLiterals", "1234567\n".to_owned(), Vec::new())
+            .config("Style/NumericLiterals:\n  AllowedPatterns: [!ruby/regexp /123|123456/]\n")
+            .inspect();
+        assert_eq!(report.offenses.len(), 1);
+    }
+
+    /// splat の後続宣言には補正対象の定義が無く、手前の inline 定義の補正を肩代わりできない。
+    #[test]
+    fn a_visibility_splat_does_not_hide_an_earlier_inline_definition() {
+        let report = CopCase::new(
+            "Style/AccessModifierDeclarations",
+            "class Foo\n  protected def baz; end\n  protected *METHOD_NAMES\nend\n".to_owned(),
+            Vec::new(),
+        )
+        .config("Style/AccessModifierDeclarations:\n  AllowModifiersOnSymbols: false\n")
+        .inspect();
+        assert_eq!(report.offenses.len(), 2);
+        assert!(report.offenses[0].correctable);
+        assert!(!report.offenses[1].correctable);
+    }
+
+    #[test]
+    fn nested_namespace_correction_does_not_contradict_the_wrapper_style() {
+        let source = "class FooClass::BarClass\nend\n";
+        CopCase::new("Style/ClassAndModuleChildren", source.to_owned(), Vec::new())
+            .config("Style/ClassAndModuleChildren:\n  EnforcedStyle: compact\n  EnforcedStyleForClasses: nested\n")
+            .without_offense_check().correctable(false).corrected(source).run();
+        CopCase::new(
+            "Style/ClassAndModuleChildren",
+            source.to_owned(),
+            Vec::new(),
+        )
+        .without_offense_check()
+        .correctable(true)
+        .run();
+    }
+
+    #[test]
+    fn parenthesized_yield_allows_value_omission_before_a_modifier() {
+        CopCase::annotated(
+            "Style/HashSyntax",
+            "yield(value: value) unless foo\n             ^^^^^ Omit the hash value.\n",
+        )
+        .target_ruby("3.1")
+        .config("Style/HashSyntax:\n  EnforcedShorthandSyntax: always\n")
+        .corrected("yield(value:) unless foo\n")
+        .run();
+    }
+
+    // 本家の spec で実行した設定。タグ付き Regexp を文字列として読んでは一致しない。
+    #[test]
+    fn ruby_regexp_tags_exempt_only_matching_inputs() {
+        for (cop, source, settings, pattern) in [
+            (
+                "Lint/AmbiguousBlockAssociation",
+                "render json: queries.map do |q|\n  q.to_h\nend\n",
+                "",
+                r"^queries\.map",
+            ),
+            ("Lint/NumberConversion", "10.minutes.to_i\n", "", "min"),
+            (
+                "Metrics/AbcSize",
+                "def foo\n  bar.baz(:qux)\nend\n",
+                "  Max: 0\n",
+                "foo",
+            ),
+            (
+                "Metrics/CyclomaticComplexity",
+                "def foo\n  bar.baz(:qux)\nend\n",
+                "  Max: 0\n",
+                "foo",
+            ),
+            (
+                "Metrics/PerceivedComplexity",
+                "def foo\n  bar.baz(:qux)\nend\n",
+                "  Max: 0\n",
+                "foo",
+            ),
+            (
+                "Style/ReturnNilInPredicateMethodDefinition",
+                "def foo?\n  return nil if condition\n  bar?\nend\n",
+                "",
+                "foo",
+            ),
+        ] {
+            for (value, quiet) in [(pattern, true), ("does_not_match", false)] {
+                let config =
+                    format!("{cop}:\n{settings}  AllowedPatterns:\n    - !ruby/regexp /{value}/\n");
+                let report = CopCase::new(cop, source.to_owned(), Vec::new())
+                    .config(&config)
+                    .inspect();
+                assert_eq!(report.offenses.is_empty(), quiet, "{cop}: {value}");
+            }
+        }
+    }
+
+    #[test]
+    fn allowed_method_patterns_precede_forbidden_identifiers() {
+        for source in [
+            "def on_custom; end\n",
+            "alias on_custom original\n",
+            "define_method(:on_custom) {}\n",
+            "attr_reader :on_custom\n",
+            "attr_accessor :on_custom\n",
+            "attr_writer :on_custom\n",
+        ] {
+            CopCase::new("Naming/MethodName", source.to_owned(), Vec::new())
+                .config("Naming/MethodName:\n  EnforcedStyle: camelCase\n  ForbiddenIdentifiers: [on_custom]\n  AllowedPatterns: ['^on_']\n")
+                .run();
+            let report = CopCase::new("Naming/MethodName", source.to_owned(), Vec::new())
+                .config("Naming/MethodName:\n  EnforcedStyle: camelCase\n  ForbiddenIdentifiers: [on_custom]\n  AllowedPatterns: ['^other_']\n")
+                .inspect();
+            assert_eq!(report.offenses.len(), 1, "{source}");
+        }
+    }
+
+    #[test]
+    fn sorbet_option_uses_ruby_truthiness() {
+        for (value, quiet) in [
+            ("true", true),
+            ("'true'", true),
+            ("'false'", true),
+            ("false", false),
+            ("null", false),
+        ] {
+            let report = CopCase::new(
+                "Naming/PredicatePrefix",
+                "def is_attr; end\n".to_owned(),
+                Vec::new(),
+            )
+            .config(&format!(
+                "Naming/PredicatePrefix:\n  UseSorbetSigs: {value}\n"
+            ))
+            .inspect();
+            assert_eq!(report.offenses.is_empty(), quiet, "UseSorbetSigs: {value}");
+        }
     }
 }

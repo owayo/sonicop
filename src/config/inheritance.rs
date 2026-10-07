@@ -127,19 +127,20 @@ fn load_remote_with_inheritance(
 
 /// Parses one configuration document the way `ConfigLoader#load_yaml_configuration` does.
 ///
-/// Upstream normalises the parse result with `hash = yaml_tree_to_hash(yaml_tree) || {}` and then
-/// raises `ValidationError, "Malformed configuration in <path>"` unless what is left is a `Hash`.
-/// Both halves matter. An empty `.rubocop.yml` -- the most common way of saying "the defaults are
-/// fine" -- parses to `Value::Null`, and a stray scalar to `Value::String`; either one would then
-/// win the non-mapping arm of `merge_config` and *replace* the whole `default.yml`-derived
-/// configuration, silently re-enabling every cop and dropping `AllCops/Include` and
-/// `AllCops/Exclude` (so `node_modules` and friends start getting linted).
+/// 本家の `yaml_tree_to_hash(...) || {}` に合わせ、空の設定と false は既定値を残す。
+/// それ以外の scalar を許すと既定設定全体が置換され、Include / Exclude や無効 cop を失う。
 fn parse_yaml_configuration(contents: &str, origin: impl Display) -> Result<Value> {
+    // 本家の ConfigLoader は BOM 付き設定を YAML として拒否する。通常の UTF-8 設定とは区別する。
+    if contents.starts_with('\u{feff}') {
+        bail!(
+            "invalid YAML in {origin}: did not find expected <document start> at line 1 column 1"
+        );
+    }
+    let contents = super::yaml_booleans::normalize(contents);
     let value: Value =
-        serde_yaml_ng::from_str(contents).with_context(|| format!("invalid YAML in {origin}"))?;
+        serde_yaml_ng::from_str(&contents).with_context(|| format!("invalid YAML in {origin}"))?;
     match value {
-        // `nil` and `false` are Ruby's only falsy values, so they are exactly what `|| {}` swaps
-        // out for an empty hash.
+        // Ruby で偽となる nil / false だけを `|| {}` と同じ空の mapping にする。
         Value::Null | Value::Bool(false) => Ok(Value::Mapping(Mapping::new())),
         Value::Mapping(_) => Ok(value),
         _ => bail!("Malformed configuration in {origin}"),

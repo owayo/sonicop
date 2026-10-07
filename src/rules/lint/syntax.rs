@@ -68,11 +68,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.root_node().has_error() {
         parse_errors(context, &mut diagnostics);
     }
-    let stop_after = spaced_index_assignment_without_local(context, &mut diagnostics);
-    version_gated_syntax(context, target, &mut diagnostics);
-    if let Some(operator_start) = stop_after {
-        diagnostics.retain(|diagnostic| diagnostic.range.start <= operator_start);
-    }
+    let mut command_errors = Vec::new();
+    let command_stops = spaced_index_assignment_to_command(context, &mut command_errors);
+    let version_stop = version_gated_syntax(context, target, &mut diagnostics);
+    // 本家は本体の次の文から復帰するが、トップレベル・通常ブロック・右辺欠落では打ち切る。
+    diagnostics.retain(|diagnostic| !command_stops.iter().any(|range| range.contains(&diagnostic.range.start)));
+    diagnostics.extend(command_errors.into_iter().filter(|diagnostic| {
+        !command_stops.iter().any(|range| range.contains(&diagnostic.range.start))
+            && version_stop.is_none_or(|position| diagnostic.range.start <= position)
+    }));
     diagnostics.sort_by(|left, right| {
         (left.range.start, left.range.end).cmp(&(right.range.start, right.range.end))
     });
@@ -84,13 +88,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 /// 空白付きの `value [0] = ...` は、既に宣言されたローカル変数なら添字代入、
-/// 未宣言ならメソッド呼び出しの引数であり、左辺にはできない。本家の字句解析と
-/// tree-sitter の構文木が分かれるため、変数解析の結果で補う。
-fn spaced_index_assignment_without_local(
+/// 未宣言の名前・定数・引数なしの呼び出しならコマンド引数となり左辺にはできない。
+/// 本家の字句解析と tree-sitter の構文木が分かれるため、受け手と変数解析の結果で補う。
+fn spaced_index_assignment_to_command(
     context: &RuleContext<'_>,
     out: &mut Vec<Diagnostic>,
-) -> Option<usize> {
-    let mut stop_after: Option<usize> = None;
+) -> Vec<Range<usize>> {
+    let mut stops = Vec::new();
     for node in context.nodes_of_any(&["assignment", "operator_assignment"]) {
         let Some(left) = node.field("left") else {
             continue;
@@ -101,9 +105,6 @@ fn spaced_index_assignment_without_local(
         let Some(object) = left.field("object") else {
             continue;
         };
-        if object.kind_str() != "identifier" {
-            continue;
-        }
         let Some(open) = context
             .children(left)
             .and_then(|mut children| children.find(|child| child.kind_str() == "["))
@@ -111,17 +112,29 @@ fn spaced_index_assignment_without_local(
             continue;
         };
         let gap = &context.source.text().as_bytes()[object.end_byte()..open.start_byte()];
-        // `_1` から `_9` の空白付き添字代入は Ruby 3.2 以降で有効になる。
-        // 変数解析は暗黙の番号付き引数を通常のローカル変数として記録しない。
-        let numbered_parameter = matches!(
-            context.source.node_text(object).as_bytes(),
-            [b'_', b'1'..=b'9']
-        );
-        if gap.is_empty()
-            || !gap.iter().all(|byte| matches!(*byte, b' ' | b'\t'))
-            || (numbered_parameter && context.target_ruby_version() >= RubyVersion::new(3, 2))
-            || context.variable_analysis().is_variable_reference(object)
-        {
+        if gap.is_empty() || !gap.iter().all(|byte| matches!(*byte, b' ' | b'\t')) {
+            continue;
+        }
+        let command_like = match object.kind_str() {
+            "identifier" => {
+                // `_1` から `_9` は Ruby 3.2 以降で有効だが、変数解析に通常のローカルとして登録されない。
+                let numbered_parameter = matches!(
+                    context.source.node_text(object).as_bytes(),
+                    [b'_', b'1'..=b'9']
+                );
+                !(numbered_parameter && context.target_ruby_version() >= RubyVersion::new(3, 2))
+                    && !context.variable_analysis().is_variable_reference(object)
+            }
+            "constant" | "scope_resolution" => true,
+            // 括弧付きの引数やブロックで閉じた呼び出しは、空白の後でも通常の添字として読まれる。
+            "call" => object.field("arguments").is_none() && object.field("block").is_none(),
+            _ => false,
+        };
+        if !command_like {
+            continue;
+        }
+        if object.kind_str() == "scope_resolution" && object.field("scope").is_none() {
+            // 代入の有無に関わらず `[` が不正なので、下の添字参照の検査で報告する。
             continue;
         }
         let operator = if node.kind_str() == "operator_assignment" {
@@ -139,28 +152,55 @@ fn spaced_index_assignment_without_local(
         } else {
             "unexpected token tEQL"
         };
-        let right_is_missing = node.field("right").is_none_or(|right| {
-            right.start_byte() == right.end_byte()
-                || context.children(node).is_some_and(|children| {
-                    children.into_iter().any(|child| {
-                        child.kind_str() == "ERROR"
-                            && child.start_byte() >= operator.end_byte()
-                            && child.start_byte() < right.start_byte()
-                    })
-                })
-        });
-        if right_is_missing {
-            // 本家は右辺の先頭を読めなければ、この代入の演算子を報告して復帰を止める。
-            stop_after = Some(stop_after.map_or(operator.start_byte(), |previous| {
-                previous.min(operator.start_byte())
-            }));
+        if node.field("right").is_none() || command_abandons_file(node, context) {
+            stops.push(operator.start_byte() + 1..usize::MAX);
         }
         out.push(Diagnostic {
             reason: reason.to_owned(),
             range: operator.byte_range(),
         });
     }
-    stop_after
+    // `::Foo` はコマンド名にならないため、本家は代入演算子より前の空白付き `[` で拒否する。
+    for node in context.nodes_of("element_reference") {
+        let Some(object) = node.field("object") else {
+            continue;
+        };
+        if object.kind_str() != "scope_resolution" || object.field("scope").is_some() {
+            continue;
+        }
+        let Some(open) = context
+            .children(node)
+            .and_then(|mut children| children.find(|child| child.kind_str() == "["))
+        else {
+            continue;
+        };
+        let gap = &context.source.text().as_bytes()[object.end_byte()..open.start_byte()];
+        if !gap.is_empty() && gap.iter().all(|byte| matches!(*byte, b' ' | b'\t')) {
+            if command_abandons_file(node, context) {
+                stops.push(open.start_byte() + 1..usize::MAX);
+            }
+            out.push(Diagnostic {
+                reason: "unexpected token tLBRACK".to_owned(),
+                range: open.byte_range(),
+            });
+        }
+    }
+    stops
+}
+
+/// 本家がコマンド代入エラーでファイル全体を打ち切る文脈。
+/// def 等の本体と lambda は次の文へ復帰し、通常の呼び出しブロックは復帰しない。
+fn command_abandons_file<'a>(mut node: Node<'a>, context: &'a RuleContext<'_>) -> bool {
+    while let Some(parent) = node.parent_of(context) {
+        match parent.kind_str() {
+            "block" | "do_block" => {
+                return !parent.parent_of(context).is_some_and(|owner| owner.kind_str() == "lambda");
+            }
+            "lambda" | "method" | "singleton_method" | "class" | "singleton_class" | "module" | "begin" | "if" | "unless" | "while" | "until" | "for" | "case" | "case_match" | "parenthesized_statements" => return false,
+            _ => node = parent,
+        }
+    }
+    true
 }
 
 /// The errors the tree-sitter grammar itself rejected the file for.
@@ -279,11 +319,13 @@ fn opens_without_closing(error: Node<'_>) -> bool {
     depth > 0
 }
 
-fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mut Vec<Diagnostic>) {
-    // The parser blames tokens in the order it reads them, and one error takes the rest of the
-    // construct it was found in with it, so the gates have to be weighed in the order of the
-    // tokens they blame rather than the order their nodes are walked in: a nested pattern reaches
-    // its offending token before the pattern holding it reaches its own.
+fn version_gated_syntax(
+    context: &RuleContext<'_>,
+    target: RubyVersion,
+    out: &mut Vec<Diagnostic>,
+) -> Option<usize> {
+    // 本家はトークンを読む順に診断し、その構文の残りを回復時に捨てる。
+    // 入れ子のパターンでは内側の不正トークンを先に読むため、ノードの走査順ではなく位置で並べる。
     let mut gates: Vec<(Node<'_>, Gate)> = context
         .nodes()
         .filter_map(|node| feature_use(node, context).map(|gate| (node, gate)))
@@ -297,9 +339,9 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
     let mut recovered_through = 0;
     let mut resumed_at = None;
     let mut lost_its_definition = false;
-    let mut abandoned = false;
+    let mut abandoned = None;
     for (node, gate) in gates {
-        if abandoned {
+        if abandoned.is_some() {
             continue;
         }
         if let Some(region) = gate.recovery {
@@ -309,8 +351,8 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
             recovered_through = region;
         }
         if gate.abandons_file {
-            // The parser reads nothing more, so it never reaches the end of the input either.
-            abandoned = true;
+            // 後続の構文も EOF も読まない。手動で補う診断にも同じ停止位置を適用する。
+            abandoned = Some(gate.range.start);
         } else if gate.in_method_body {
             // The parser never gets the definition it was in back, so only the first such error
             // decides how the rest of the file is read.
@@ -351,6 +393,7 @@ fn version_gated_syntax(context: &RuleContext<'_>, target: RubyVersion, out: &mu
         let (reason, range) = end_of_input(context);
         out.push(Diagnostic { reason, range });
     }
+    abandoned
 }
 
 /// The statement holding `node`: the ancestor whose own parent holds a sequence of statements.

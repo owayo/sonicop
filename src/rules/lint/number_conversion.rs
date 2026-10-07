@@ -23,19 +23,14 @@ const CONVERSION_METHODS: [&str; 8] = [
 
 struct Allowed {
     methods: Vec<String>,
-    patterns: Vec<Regex>,
+    patterns: Vec<&'static Regex>,
     classes: Vec<String>,
 }
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let allowed = Allowed {
         methods: context.setting("AllowedMethods").unwrap_or_default(),
-        patterns: context
-            .setting::<Vec<String>>("AllowedPatterns")
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|pattern| Regex::new(pattern).ok())
-            .collect(),
+        patterns: crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns"),
         classes: context
             .setting("AllowedClasses")
             .unwrap_or_else(|| vec!["Time".to_owned(), "DateTime".to_owned()]),

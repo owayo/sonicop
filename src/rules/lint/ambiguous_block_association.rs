@@ -48,21 +48,17 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     }
 }
 
-/// `AllowedMethods` and `AllowedPatterns`, both empty by default.
+/// `AllowedPatterns` は文字列と Ruby の Regexp の両方を受け付ける。
 struct Allowed {
     methods: Vec<String>,
-    patterns: Vec<Regex>,
+    patterns: Vec<&'static Regex>,
 }
 
 impl Allowed {
     fn new(context: &RuleContext<'_>) -> Self {
-        let patterns: Vec<String> = context.setting("AllowedPatterns").unwrap_or_default();
         Self {
             methods: context.setting("AllowedMethods").unwrap_or_default(),
-            patterns: patterns
-                .iter()
-                .filter_map(|pattern| Regex::new(pattern).ok())
-                .collect(),
+            patterns: crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns"),
         }
     }
 
