@@ -11,9 +11,9 @@ use super::support::{
 };
 use crate::diagnostic::Offense;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::{RuleContext, push_named_children_in};
-use crate::rules::send_node::named_children_of;
 use crate::rules::send_node::all_children_of;
+use crate::rules::send_node::named_children_of;
+use crate::rules::{RuleContext, push_named_children_in};
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let width: i64 = context
@@ -27,7 +27,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             context,
             "AllowedPatterns",
         ),
-        relative_to_receiver: context.setting::<String>("EnforcedStyleAlignWith").as_deref()
+        relative_to_receiver: context
+            .setting::<String>("EnforcedStyleAlignWith")
+            .as_deref()
             == Some("relative_to_receiver"),
         outdented_modifiers: context
             .setting_of::<String>("Layout/AccessModifierIndentation", "EnforcedStyle")
@@ -200,7 +202,10 @@ impl Checker<'_, '_> {
         if !self.relative_to_receiver {
             return end;
         }
-        let Some(call) = node.parent_of(self.context).filter(|p| p.kind_str() == "call") else {
+        let Some(call) = node
+            .parent_of(self.context)
+            .filter(|p| p.kind_str() == "call")
+        else {
             return end;
         };
         let row = |byte: usize| self.context.source.line_column(byte).0;
@@ -696,20 +701,14 @@ fn is_statement_container(node: Node<'_>) -> bool {
 
 fn body_container<'tree>(owner: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = owner.walk();
-    owner.named_children(&mut cursor)
+    owner
+        .named_children(&mut cursor)
         .find(|child| matches!(child.kind_str(), "body_statement" | "block_body" | "do"))
 }
 
-/// Where the code a container holds ends, which is where upstream's node for it closes.
-///
-/// The grammar keeps three things inside the container that upstream's parser leaves out of the
-/// node: the `begin` and `end` keywords, a comment written after the last statement, and a
-/// heredoc's text (upstream's range holds the `<<~X` marker, and the text is protected from
-/// shifting separately). **A line past this point must not move** -- `end` because the indentation
-/// is measured against it, a trailing comment because upstream leaves it where it is.
-///
-/// The clause and body wrappers are walked through rather than measured, since a comment can sit
-/// at the end of any of them.
+/// 本家の本体ノードが終わる位置。終端の `end`、末尾コメント、heredoc 本文は含めない。
+/// `end` は字下げの基準であり、末尾コメントは本家も移動しない。heredoc 本文は別途保護する。
+/// 各節の末尾にもコメントが入り得るので、節と本体のラッパーは中身を調べる。
 fn content_end(node: Node<'_>) -> Option<usize> {
     const WRAPPERS: &[&str] = &[
         "rescue",
@@ -723,10 +722,11 @@ fn content_end(node: Node<'_>) -> Option<usize> {
     let mut cursor = node.walk();
     let mut end: Option<usize> = None;
     for child in node.children(&mut cursor) {
-        if matches!(
-            child.kind_str(),
-            "begin" | "end" | "comment" | "heredoc_body"
-        ) {
+        // 名前付きの `begin` は入れ子の文であり、無名の開始キーワードとは区別する。
+        // これを丸ごと除くと、ensure 本体の終端が本体の開始位置より前になる。
+        if matches!(child.kind_str(), "comment" | "heredoc_body")
+            || (!child.is_named() && matches!(child.kind_str(), "begin" | "end"))
+        {
             continue;
         }
         let reach = if WRAPPERS.contains(&child.kind_str()) {
