@@ -12,6 +12,12 @@ class GemspecTest < Minitest::Test
     Cargo.lock Cargo.toml build.rs
     config/default.yml licenses/NOTICE
     src/main.rs ext/sonicop/extconf.rb
+    licenses/PRISM.txt
+    crates/sonicop-prism-compat/Cargo.toml crates/sonicop-prism-compat/build.rs
+    crates/sonicop-prism-compat/shim.c crates/sonicop-prism-compat/rename.h
+    crates/sonicop-prism-compat/src/lib.rs
+    crates/sonicop-prism-compat/vendor/src/prism.c
+    crates/sonicop-prism-compat/vendor/include/prism.h
   ].freeze
 
   def setup
@@ -70,6 +76,20 @@ class GemspecTest < Minitest::Test
     spec = evaluate_gemspec
 
     assert_includes spec.files, 'build.rs'
+  end
+
+  # path 依存の C ライブラリが欠けると、ソース gem の install が Cargo の読込で失敗する。
+  # platform gem ではライセンスだけを共通配布し、ビルドに使わないソースを積まない。
+  def test_native_dependency_sources_and_licenses_are_packaged_in_the_right_gems
+    source = evaluate_gemspec
+    native_files = FIXTURE_FILES.grep(%r{\Acrates/})
+    native_files.each { |path| assert_includes source.files, path }
+    assert_includes source.files, 'licenses/PRISM.txt'
+
+    stub_executable(@root, 'libexec', 'sonicop')
+    platform = evaluate_gemspec(platform: 'x86_64-linux')
+    native_files.each { |path| refute_includes platform.files, path }
+    assert_includes platform.files, 'licenses/PRISM.txt'
   end
 
   # prebuilt 側は cargo を動かさないので、build script も死荷物にしかならない。

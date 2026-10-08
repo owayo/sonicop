@@ -82,6 +82,18 @@ tree-sitter-ruby -- https://github.com/owayo/tree-sitter-ruby -- MIT
   Linked as a dependency (see Cargo.toml). sonicop uses a fork; the grammar
   itself is derived from the original. Full text: licenses/TREE_SITTER_RUBY.txt
 
+Prism -- https://github.com/ruby/prism -- MIT
+  Copyright 2022-present, Shopify Inc.
+
+  crates/sonicop-prism-compat/vendor/
+      Unmodified C sources and headers from Prism 1.8.1 provide the syntax
+      diagnostics used by the specification version of RuboCop. A build-time
+      wrapper prefixes exported symbols so another Prism version can coexist.
+      The source gem carries these files; native platform gems carry the linked
+      executable. Both carry the complete licences in licenses/PRISM.txt,
+      including the UTF-8 state transition table by Bjoern Hoehrmann.
+      Source and acquisition details: crates/sonicop-prism-compat/PROVENANCE.md
+
 ================================================================================
 MIT License -- applies to RuboCop and to Ruby on Rails
 ================================================================================
