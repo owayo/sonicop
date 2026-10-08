@@ -1,0 +1,34 @@
+[
+  {
+    "name": "plain",
+    "source_hex": "2320636f64696e673a2063703933320a78203d202293fa967b220a",
+    "cops": "Style/FrozenStringLiteralComment",
+    "upstream_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f64696e673a2063703933320a78203d2022e697a5e69cac220a",
+    "exit": 0,
+    "syntax_exit": 0
+  },
+  {
+    "name": "combined",
+    "source_hex": "2320636f64696e673a2063703933320a78203d202293fa967b220a",
+    "cops": "Style/FrozenStringLiteralComment,Style/StringLiterals",
+    "upstream_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f64696e673a2063703933320a78203d2027e697a5e69cac270a",
+    "exit": 0,
+    "syntax_exit": 0
+  },
+  {
+    "name": "variant",
+    "source_hex": "2320636f64696e673a2063703933320a78203d2022ed40220a",
+    "cops": "Style/FrozenStringLiteralComment",
+    "upstream_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f64696e673a2063703933320a78203d2022e7ba8a220a",
+    "exit": 0,
+    "syntax_exit": 0
+  },
+  {
+    "name": "shebang",
+    "source_hex": "23212f7573722f62696e2f656e7620727562790a2320636f64696e673a2063703933320a78203d202293fa967b220a",
+    "cops": "Style/FrozenStringLiteralComment",
+    "upstream_hex": "23212f7573722f62696e2f656e7620727562790a232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f64696e673a2063703933320a78203d2022e697a5e69cac220a",
+    "exit": 0,
+    "syntax_exit": 0
+  }
+]

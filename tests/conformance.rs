@@ -6624,6 +6624,25 @@ fn catalogue() -> Vec<CopCase> {
         .id("crlf_autocorrect_preserves_line_endings")
         .without_offense_check()
         .corrected_verbatim("x = 1\n"),
+        CopCase::annotated(
+            "Style/ItBlockParameter",
+            "outer do |transaction|\n  real = transaction\n         ^^^^^^^^^^^ Use `it` block parameter.\n  inner do |transaction|\n    save = transaction\n           ^^^^^^^^^^^ Use `it` block parameter.\n  end\nend\n",
+        )
+        .id("style_it_block_parameter_nested_parameter_safe")
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n  Enabled: true\n")
+        .correct_mode(sonicop::engine::CorrectMode::Safe)
+        .correctable(true)
+        .corrected_verbatim("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n"),
+        CopCase::annotated(
+            "Style/ItBlockParameter",
+            "outer do |transaction|\n  real = transaction\n         ^^^^^^^^^^^ Use `it` block parameter.\n  inner do |transaction|\n    save = transaction\n           ^^^^^^^^^^^ Use `it` block parameter.\n  end\nend\n",
+        )
+        .id("style_it_block_parameter_nested_parameter_unsafe")
+        .target_ruby("3.4")
+        .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n  Enabled: true\n")
+        .correctable(true)
+        .corrected_verbatim("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n"),
     ]
 }
 
