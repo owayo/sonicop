@@ -34,6 +34,39 @@ const OMIT_PARENTHESES: &str =
 
 fn catalogue() -> Vec<CopCase> {
     vec![
+        // Whitequark は meta + hexadecimal の値を誤読する。本家の補正を再現すると
+        // 実行時の文字列が 0xE1 から 0x81 に変わるため、Ruby が読む値を保存する。
+        CopCase::annotated(
+            "Style/StringConcatenation",
+            "name = 'x'\nputs((\"\\M-\\x61\" + name).b.unpack1('H*'))\n      ^^^^^^^^^^^^^^^^ Prefer string interpolation to string concatenation.\n",
+        )
+        .id("style_string_concatenation_meta_hex_safety")
+        .correctable(true)
+        .corrected_verbatim("name = 'x'\nputs((\"\\x81#{name}\").b.unpack1('H*'))\n"),
+        // 本家は代入を消して裸のカンマ式を残し、`ruby -c` が拒否するファイルへ上書きする。
+        CopCase::annotated(
+            "Lint/UselessAssignment",
+            "result = foo, '\\n'\n^^^^^^ Useless assignment to variable - `result`.\n",
+        )
+        .id("lint_useless_assignment_implicit_array_safe")
+        .severity(Severity::Warning)
+        .corrected_verbatim("foo, '\\n'\n")
+        .correct_mode(sonicop::engine::CorrectMode::Safe),
+        CopCase::annotated(
+            "Lint/UselessAssignment",
+            "result = foo, '\\n'\n^^^^^^ Useless assignment to variable - `result`.\n",
+        )
+        .id("lint_useless_assignment_implicit_array_unsafe")
+        .severity(Severity::Warning)
+        .corrected_verbatim("foo, '\\n'\n"),
+        // 明示的な配列は代入を消しても有効なので、安全網が本家の修正を妨げてはいけない。
+        CopCase::annotated(
+            "Lint/UselessAssignment",
+            "result = [foo, '\\n']\n^^^^^^ Useless assignment to variable - `result`.\n",
+        )
+        .id("lint_useless_assignment_explicit_array_control")
+        .severity(Severity::Warning)
+        .corrected_verbatim("[foo, '\\n']\n"),
         // ---- Bundler ----
         // 部門ごと `Include` を持つので、対象になるのは Gemfile 系のファイルだけ。
         CopCase::annotated(

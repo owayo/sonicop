@@ -1,0 +1,16 @@
+設定値の型を区別する CLI 回帰ケース。
+期待値は RuboCop 1.89.0 / Ruby 4.0.7 の実行結果から記録した。
+各ケースの YAML とソースをそのままファイルに書き、次を実行する。
+
+rubocop --cache false --only <cop> --format json example.rb
+rubocop --cache false --only <cop> --format json -A example.rb
+
+TargetRubyVersion: 2.7、NewCops: disable、対象 cop の Enabled: true を設定する。
+診断は lint と -A の両方で全項目を保存し、corrected_source は -A 後のファイルの実バイト列を UTF-8 として記録した。
+引用符・タグ・YAML の %TAG 宣言を保持するため、設定の再シリアライズは行わない。
+104 ケースには Symbol と引用符付き文字列、バイナリタグと非厳密な Base64、
+ASCII-8BIT 宣言下の UTF-8 バイト列、次のキーを伴うブロックスカラー、
+control / meta エスケープと同じバイト列・異なるバイト列の設定を含む。
+Methods の Symbol と正常な隣接値、AllowedMethods の Symbol / String / binary、
+未知のタグを付けた Mode と通常の文字列・引用したコロンを持つ陰性対照も含む。
+本家が不正な UTF-8 バイト列として実行を中断した 2 入力は、期待値として記録していない。

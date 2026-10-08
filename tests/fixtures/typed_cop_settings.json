@@ -1,0 +1,3682 @@
+{
+  "reference": {
+    "rubocop": "1.89.0",
+    "ruby": "4.0.7"
+  },
+  "cases": [
+    {
+      "name": "format-0",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: :conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-1",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-2",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !ruby/symbol conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-3",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !unknown :conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-4",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: \":conservative\"\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-5",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !!str :conservative\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-6",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !ruby/symbol :conservative\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "hex-invalid",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "character-invalid",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(?\\x82)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument ?\\x82 is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 7,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument ?\\x82 is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 7,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "safe-navigation",
+      "cop": "Style/RedundantArgument",
+      "source": "foo&.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 8,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ],
+      "corrected_source": "foo&.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 8,
+            "line": 1,
+            "column": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "single-quoted-literal",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp('\\x82')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp('\\x82')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "unicode-escape",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\u0082\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\u0082\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "utf8-pair",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\xC2\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary woI=\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\xC2\\x82\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "binary-pair",
+      "cop": "Style/RedundantArgument",
+      "source": "# coding: binary\nfoo.chomp(\"\\xC2\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary woI=\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xC2\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 21,
+            "length": 12,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# coding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xC2\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 21,
+            "length": 12,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-unicode-escape",
+      "cop": "Style/RedundantArgument",
+      "source": "# coding: binary\nfoo.chomp(\"\\u0082\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary woI=\n",
+      "offenses": [],
+      "corrected_source": "# coding: binary\nfoo.chomp(\"\\u0082\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "ascii-invalid",
+      "cop": "Style/RedundantArgument",
+      "source": "# coding: US-ASCII\nfoo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# coding: US-ASCII\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "ascii-unicode",
+      "cop": "Style/RedundantArgument",
+      "source": "# coding: US-ASCII\nfoo.chomp(\"\\u0082\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary woI=\n",
+      "offenses": [],
+      "corrected_source": "# coding: US-ASCII\nfoo.chomp(\"\\u0082\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "utf8-nul",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x00\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary AA==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\x00\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "binary-nul",
+      "cop": "Style/RedundantArgument",
+      "source": "# coding: binary\nfoo.chomp(\"\\x00\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary AA==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x00\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# coding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x00\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "standard-tag",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "uri-tag",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !<tag:yaml.org,2002:binary> gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "missing-padding",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary gg\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "invalid-base64",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary g$g\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "internal-padding",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary g=g\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "leading-padding",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary ==gg\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-colon",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\x82\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary :gg\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\x82\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "text-unicode",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\u0082\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: \"\\u0082\"\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\u0082\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\u0082\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "text-newline",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: \"\\n\"\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-unknown-quoted",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !unknown \":conservative\"\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-symbol-alias",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !ruby/sym conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-local-string",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !str :conservative\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-ruby-string",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !ruby/string :conservative\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-int-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !!int :conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-null-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !!null :conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-quoted-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode:  :\"conservative\"\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-tag-symbol-colon",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !ruby/sym :conservative\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-greedy-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: :\"conservative\"suffix\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-inner-colon",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: :\"\":conservative\"\"\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "format-primary-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "%TAG ! tag:yaml.org,2002:\n---\nAllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: :conservative\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "format-primary-binary",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "%TAG ! tag:yaml.org,2002:\n---\nAllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  MaxUnannotatedPlaceholdersAllowed: 0\n  Mode: !binary gg==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-scalar-numeric",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\xD7m\\xF8\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary 1234\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xD7m\\xF8\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 22,
+            "length": 13,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xD7m\\xF8\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 22,
+            "length": 13,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-scalar-bool",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"}\\xA9l\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary false\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"}\\xA9l\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"}\\xA9l\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-scalar-null",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary ~\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 13,
+            "length": 4,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 13,
+            "length": 4,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-scalar-hex",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\xD3\\x1DE\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary 0x1F\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp(\"\\xD3\\x1DE\")\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-scalar-underscore",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\xD7\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary 1_0\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xD7\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\xD7\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-raw-double",
+      "cop": "Style/RedundantArgument",
+      "source": "# encoding: binary\nfoo.chomp(\"é\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary w6k=\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"é\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# encoding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"é\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-raw-single",
+      "cop": "Style/RedundantArgument",
+      "source": "# encoding: binary\nfoo.chomp('é')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary w6k=\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument 'é' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# encoding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument 'é' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-raw-percent",
+      "cop": "Style/RedundantArgument",
+      "source": "# encoding: binary\nfoo.chomp(%q(é))\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary w6k=\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument %q(é) is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# encoding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument %q(é) is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 17,
+            "length": 8,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "binary-raw-greek",
+      "cop": "Style/RedundantArgument",
+      "source": "# encoding: binary\nfoo.chomp(\"Σ\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary zqM=\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"Σ\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "# encoding: binary\nfoo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"Σ\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 15,
+            "length": 6,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-0-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary AQ==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\C-a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-0-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\C-a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-1-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\ca\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary AQ==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\ca\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-1-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\ca\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\ca\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-2-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary 4Q==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-2-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-3-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\C-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary gQ==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\C-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 20,
+            "length": 11,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\C-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 20,
+            "length": 11,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-3-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\C-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-\\C-a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-4-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-\\M-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary gQ==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\C-\\M-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 20,
+            "length": 11,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\C-\\M-a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 20,
+            "length": 11,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-4-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-\\M-a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\C-\\M-a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-5-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary fw==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-5-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-6-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\c?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary /w==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\c?\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\c?\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 19,
+            "length": 10,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-6-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\c?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-\\c?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-7-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\x7f\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Hw==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\x7f\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-7-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\x7f\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\x7f\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-9-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\n\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary ig==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 9,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\M-\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 9,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-9-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\n\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-\\n\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-10-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Bw==\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\c\\a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\c\\a\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 8,
+            "line": 1,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "control-meta-10-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\a\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\a\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-11-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\x61\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary 4Q==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-\\x61\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-11-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\M-\\x61\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\M-\\x61\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-12-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Hw==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-12-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-13-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\x3f\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Hw==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\x3f\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-13-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\c\\x3f\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\c\\x3f\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-14-matching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-\\M-?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary nw==\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\C-\\M-?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "control-meta-14-nonmatching",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\C-\\M-?\")\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary Qy1h\n",
+      "offenses": [],
+      "corrected_source": "foo.chomp(\"\\C-\\M-?\")\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "block-!!binary-|-",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary |-\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!binary-|-",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary |-\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!ruby/symbol-|-",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !ruby/symbol |-\n    conservative\n  MaxUnannotatedPlaceholdersAllowed: 0\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "block-!!binary->-",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary >-\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!binary->-",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary >-\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!ruby/symbol->-",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !ruby/symbol >-\n    conservative\n  MaxUnannotatedPlaceholdersAllowed: 0\n",
+      "offenses": [],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": []
+    },
+    {
+      "name": "block-!!binary-|",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary |\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!binary-|",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary |\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!ruby/symbol-|",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !ruby/symbol |\n    conservative\n  MaxUnannotatedPlaceholdersAllowed: 0\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!!binary->",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !!binary >\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!binary->",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.chomp(\"\\n\")\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    chomp: !binary >\n      Cg==\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.chomp\nfoo.join\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument \"\\n\" is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 10,
+            "last_line": 1,
+            "last_column": 15,
+            "length": 6,
+            "line": 1,
+            "column": 10
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "block-!ruby/symbol->",
+      "cop": "Style/FormatStringToken",
+      "source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !ruby/symbol >\n    conservative\n  MaxUnannotatedPlaceholdersAllowed: 0\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "'%<greetings>s'\nfoo('%<greetings>s')\n",
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 2,
+            "last_line": 1,
+            "last_column": 14,
+            "length": 13,
+            "line": 1,
+            "column": 2
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 2,
+            "start_column": 6,
+            "last_line": 2,
+            "last_column": 18,
+            "length": 13,
+            "line": 2,
+            "column": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "review-symbol-neighbor",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    custom: :foo\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.join\n"
+    },
+    {
+      "name": "review-symbol-match",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.custom(:foo)\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    custom: :foo\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument :foo is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 6,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument :foo is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 16,
+            "length": 6,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.custom\nfoo.join\n"
+    },
+    {
+      "name": "review-symbol-string-negative",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.custom('foo')\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    custom: :foo\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.custom('foo')\nfoo.join\n"
+    },
+    {
+      "name": "review-quoted-symbol-default",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.custom(':foo')\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    custom: \":foo\"\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument ':foo' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 8,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument ':foo' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 18,
+            "length": 8,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.custom\nfoo.join\n"
+    },
+    {
+      "name": "review-unknown-tag-default",
+      "cop": "Style/RedundantArgument",
+      "source": "foo.custom('foo')\nfoo.join('')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/RedundantArgument:\n  Enabled: true\n  Methods:\n    custom: !unknown foo\n    join: ''\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument 'foo' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 7,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Argument 'foo' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 11,
+            "last_line": 1,
+            "last_column": 17,
+            "length": 7,
+            "line": 1,
+            "column": 11
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Argument '' is redundant because it is implied by default.",
+          "cop_name": "Style/RedundantArgument",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 9,
+            "last_line": 2,
+            "last_column": 12,
+            "length": 4,
+            "line": 2,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "foo.custom\nfoo.join\n"
+    },
+    {
+      "name": "review-allowed-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - :format\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "format('%<x>s', x: 1)\n"
+    },
+    {
+      "name": "review-allowed-string",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - format\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "format('%{x}', x: 1)\n"
+    },
+    {
+      "name": "review-allowed-mixed",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\nsprintf('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - :sprintf\n    - format\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 13,
+            "length": 4,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 10,
+            "last_line": 2,
+            "last_column": 13,
+            "length": 4,
+            "line": 2,
+            "column": 10
+          }
+        }
+      ],
+      "corrected_source": "format('%{x}', x: 1)\nsprintf('%<x>s', x: 1)\n"
+    },
+    {
+      "name": "review-allowed-quoted-symbol",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - \":format\"\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer annotated tokens (like `%<foo>s`) over template tokens (like `%{foo}`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 1,
+            "start_column": 9,
+            "last_line": 1,
+            "last_column": 12,
+            "length": 4,
+            "line": 1,
+            "column": 9
+          }
+        }
+      ],
+      "corrected_source": "format('%<x>s', x: 1)\n"
+    },
+    {
+      "name": "review-allowed-unknown",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - !unknown format\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "format('%{x}', x: 1)\n"
+    },
+    {
+      "name": "review-allowed-binary",
+      "cop": "Style/FormatStringToken",
+      "source": "format('%{x}', x: 1)\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: annotated\n  AllowedMethods:\n    - !!binary Zm9ybWF0\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "format('%{x}', x: 1)\n"
+    },
+    {
+      "name": "review-unknown-conservative",
+      "cop": "Style/FormatStringToken",
+      "source": "foo('%<x>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !unknown conservative\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "foo('%<x>s')\n"
+    },
+    {
+      "name": "review-unknown-aggressive",
+      "cop": "Style/FormatStringToken",
+      "source": "foo('%<x>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !unknown aggressive\n",
+      "offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 5,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_offenses": [
+        {
+          "severity": "convention",
+          "message": "Prefer template tokens (like `%{foo}`) over annotated tokens (like `%<foo>s`).",
+          "cop_name": "Style/FormatStringToken",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 6,
+            "last_line": 1,
+            "last_column": 10,
+            "length": 5,
+            "line": 1,
+            "column": 6
+          }
+        }
+      ],
+      "corrected_source": "foo('%<x>s')\n"
+    },
+    {
+      "name": "review-unknown-quoted-colon",
+      "cop": "Style/FormatStringToken",
+      "source": "foo('%<x>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !unknown \":conservative\"\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "foo('%<x>s')\n"
+    },
+    {
+      "name": "review-binary-conservative",
+      "cop": "Style/FormatStringToken",
+      "source": "foo('%<x>s')\n",
+      "yaml": "AllCops:\n  TargetRubyVersion: 2.7\n  NewCops: disable\nStyle/FormatStringToken:\n  Enabled: true\n  EnforcedStyle: template\n  Mode: !!binary Y29uc2VydmF0aXZl\n",
+      "offenses": [],
+      "corrected_offenses": [],
+      "corrected_source": "foo('%<x>s')\n"
+    }
+  ]
+}
