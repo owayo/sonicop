@@ -551,14 +551,20 @@ fn useless_assignment_keeps_a_valid_implicit_array_rhs_on_disk() {
                     "-f",
                     "json",
                     mode,
+                    "--fail-level",
+                    "fatal",
                     "example.rb",
                 ])
                 .assert()
-                .code(if corrected { 0 } else { 1 })
+                .code(if corrected { 0 } else { 2 })
                 .get_output()
-                .stdout
                 .clone();
-            let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            assert_eq!(
+                String::from_utf8_lossy(&output.stderr).contains("introduced a syntax error"),
+                !corrected,
+                "{mode}: {before}"
+            );
+            let found: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
             let reported = found["files"][0]["offenses"].as_array().unwrap();
             assert_eq!(reported.len(), 1, "{mode}: {before}");
             assert_eq!(reported[0]["corrected"], corrected, "{mode}: {before}");

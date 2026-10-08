@@ -949,7 +949,8 @@ divergences:
       -a 後は裸のカンマ式になって構文エラーを起こし、本家自身も Lint/Syntax を報告する。
       2026-10-08 の ai-second-opinion / Claude Opus は、ドロップイン互換を踏まえても
       有効なファイルを壊す明白なバグと判定し、診断を保ちながら修正を適用しない案を支持した。
-      既存の構文安全網が原本を維持する。明示的な配列では本家と同じ修正をする対照も検査する。
+      構文安全網が原本と初期診断を維持し、stderr に拒否を示す。fail-level によらず終了 2
+      とし、後続ファイルを検査する。明示的な配列では本家と同じ修正をする対照も検査する。
   - cop: Lint/UselessAssignment
     case: lint_useless_assignment_implicit_array_unsafe
     kind: correction
@@ -958,6 +959,7 @@ divergences:
     note: >-
       同じ構文破壊は -A でも再現する。2026-10-08 に本家の実出力と ruby -c の失敗を
       確認し、別プロバイダーの Claude Opus の判定に従って書き戻しを拒む。
+      fail-level によらず終了 2 と stderr の拒否メッセージを検査し、原本と初期診断を保持する。
   - cop: Layout/SpaceAroundOperators
     case: crlf_autocorrect_preserves_line_endings
     kind: correction
