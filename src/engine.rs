@@ -1660,7 +1660,7 @@ type Combined = Result<Action, Clobbering>;
 /// That asymmetry is the whole point: two cops inserting at one offset both land, while two cops
 /// replacing the same text cannot, so reproducing RuboCop's output byte for byte means reproducing
 /// the tree rather than any single "keep one, drop the other" rule.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct Action {
     begin_pos: usize,
     end_pos: usize,
@@ -1818,12 +1818,64 @@ impl Action {
     }
 
     fn combine_children(mut self, children: &[Action]) -> Combined {
+        if self.merge_disjoint_children(children) {
+            return Ok(self);
+        }
         for child in children {
             if !self.append_disjoint_children(std::slice::from_ref(child)) {
                 self = self.place_in_hierarchy(child)?;
             }
         }
         Ok(self)
+    }
+
+    /// 交互に並ぶ別 cop の補正も、離れた兄弟だけなら階層を組み直す必要がない。
+    /// 入力同士と既存の子との境界を先に確認し、衝突時は親を変更せず通常経路へ返す。
+    fn merge_disjoint_children(&mut self, children: &[Action]) -> bool {
+        if self.replacement.is_some() || children.is_empty() {
+            return false;
+        }
+        let mut previous_end = None;
+        let mut existing = 0;
+        for child in children {
+            if child.is_empty()
+                || child.begin_pos > child.end_pos
+                || child.begin_pos < self.begin_pos
+                || child.end_pos > self.end_pos
+                || (child.begin_pos == self.begin_pos && child.end_pos == self.end_pos)
+                || previous_end.is_some_and(|end| end >= child.begin_pos)
+            {
+                return false;
+            }
+            while self
+                .children
+                .get(existing)
+                .is_some_and(|old| old.end_pos < child.begin_pos)
+            {
+                existing += 1;
+            }
+            if self
+                .children
+                .get(existing)
+                .is_some_and(|old| old.begin_pos <= child.end_pos)
+            {
+                return false;
+            }
+            previous_end = Some(child.end_pos);
+        }
+
+        let count = self.children.len() + children.len();
+        let mut old = std::mem::take(&mut self.children).into_iter().peekable();
+        let mut merged = Vec::with_capacity(count);
+        for child in children {
+            while old.peek().is_some_and(|old| old.end_pos < child.begin_pos) {
+                merged.push(old.next().expect("直前に存在を確認した子"));
+            }
+            merged.push(child.clone());
+        }
+        merged.extend(old);
+        self.children = merged;
+        true
     }
 
     fn place_in_hierarchy(&self, action: &Action) -> Combined {
@@ -2260,9 +2312,15 @@ pub fn corrected_text(
         }
         // `Team#merge_corrector!`: a cop whose corrections clash with what is already scheduled
         // loses every correction it asked for in this file, not just the one that clashed.
-        match run.clone().combine_children(&cop.children) {
-            Ok(merged) => {
+        let merged = if run.merge_disjoint_children(&cop.children) {
+            Ok(())
+        } else {
+            run.clone().combine_children(&cop.children).map(|merged| {
                 run = merged;
+            })
+        };
+        match merged {
+            Ok(()) => {
                 applied += placed.len();
                 trace_outcome("apply", cop_name);
                 if trace::enabled() {
@@ -3608,6 +3666,134 @@ mod tests {
             composed("abc", &[("", &[&[(3, 3, "x")], &[(3, 3, "y")]])]),
             "abcyx"
         );
+    }
+
+    #[test]
+    fn merging_disjoint_batches_matches_the_original_hierarchy() {
+        use super::Action;
+
+        let action = |begin, end, text: &str| Action {
+            begin_pos: begin,
+            end_pos: end,
+            insert_before: String::new(),
+            insert_after: String::new(),
+            replacement: Some(text.to_owned()),
+            children: Vec::new(),
+        };
+        // 置換・削除・空範囲の挿入・入れ子を持つアンカーを、旧階層構築と比較する。
+        for seed in 0..96 {
+            let mut original = Action::root();
+            let mut incoming = Vec::new();
+            for position in 0..24 {
+                let begin = position * 8;
+                let mut child = action(begin, begin + 1, "x");
+                match (position + seed) % 4 {
+                    0 => child.replacement = Some(String::new()),
+                    1 => {
+                        child.end_pos = begin;
+                        child.replacement = None;
+                        child.insert_before = "!".to_owned();
+                    }
+                    2 => {
+                        child.end_pos = begin + 3;
+                        child.replacement = None;
+                        child.insert_before = "[".to_owned();
+                        child.insert_after = "]".to_owned();
+                        child.children = vec![action(begin + 1, begin + 2, "y")];
+                    }
+                    _ => {}
+                }
+                if (position + seed) % 3 == 0 {
+                    incoming.push(child);
+                } else {
+                    original = original.place_in_hierarchy(&child).unwrap();
+                }
+            }
+            let mut expected = original.clone();
+            for child in &incoming {
+                expected = expected.place_in_hierarchy(child).unwrap();
+            }
+            assert!(original.merge_disjoint_children(&incoming));
+            assert_eq!(original, expected);
+        }
+
+        let mut parent = Action::root();
+        parent.begin_pos = 2;
+        parent.end_pos = 20;
+        parent.children = vec![action(4, 5, "a"), action(5, 6, "b")];
+        let endpoints = [action(2, 3, "c"), action(19, 20, "d")];
+        let mut expected = parent.clone();
+        for child in &endpoints {
+            expected = expected.place_in_hierarchy(child).unwrap();
+        }
+        assert!(parent.merge_disjoint_children(&endpoints));
+        assert_eq!(parent, expected);
+
+        for incoming in [
+            vec![action(3, 4, "touch")],
+            vec![action(4, 5, "clash")],
+            vec![action(3, 7, "nested")],
+            vec![action(12, 13, "later"), action(9, 10, "earlier")],
+            vec![action(21, 22, "outside")],
+            vec![action(2, 20, "parent")],
+        ] {
+            let before = parent.clone();
+            assert!(!parent.merge_disjoint_children(&incoming));
+            assert_eq!(parent, before);
+        }
+        parent.replacement = Some(String::new());
+        let before = parent.clone();
+        assert!(!parent.merge_disjoint_children(&[action(8, 9, "kept")]));
+        assert_eq!(parent, before);
+    }
+
+    #[test]
+    fn interleaved_cop_batches_keep_a_late_clash_atomic() {
+        let source = "a b\n".repeat(2048);
+        let mut offenses = Vec::new();
+        for (cop, offset, replacement) in [("Layout/A", 0, "A"), ("Layout/B", 2, "B")] {
+            for line in 0..2048 {
+                let start = line * 4 + offset;
+                offenses.push(
+                    Offense::new(cop, Severity::Convention, "test", start, start + 1).corrected_by(
+                        Edit {
+                            start,
+                            end: start + 1,
+                            replacement: replacement.to_owned(),
+                            safe: true,
+                        },
+                    ),
+                );
+            }
+        }
+        offenses.push(
+            Offense::new("Layout/C", Severity::Convention, "test", 0, source.len())
+                .corrected_by_all([
+                    Edit {
+                        start: 0,
+                        end: 1,
+                        replacement: "clash".to_owned(),
+                        safe: true,
+                    },
+                    Edit {
+                        start: source.len() - 1,
+                        end: source.len(),
+                        replacement: "must not land".to_owned(),
+                        safe: true,
+                    },
+                ]),
+        );
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", source),
+            offenses,
+        };
+        let (corrected, applied) =
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+        assert_eq!(corrected, "A B\n".repeat(2048));
+        assert_eq!(applied, 4096);
+        // 本家はチームの衝突で捨てた cop も corrected のまま報告する。
+        assert!(report.offenses.iter().all(|offense| offense.corrected));
     }
 
     /// Every expectation below is what `Parser::Source::TreeRewriter` produces under the policies
