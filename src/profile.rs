@@ -1,4 +1,6 @@
-//! Where a run spends its time, switched on by `SONICOP_PROFILE=1`.
+//! `SONICOP_PROFILE=1` で、各処理に掛かった経過時間を集計する。
+//! `Instant` の計測はスケジューリング待ちも含む。複数スレッドの合計なので、
+//! 実行全体の経過時間とも、プロセスの CPU 時間とも異なる。
 //!
 //! The registry holds hundreds of cops and every one of them is put to every file, so the question
 //! that decides what is worth optimizing is never "which cop is slow" but "what does a cop cost on
@@ -212,7 +214,7 @@ fn totals(slots: usize) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>, u64) {
     (rule_nanos, rule_calls, phase_nanos, phase_calls, dropped)
 }
 
-/// Writes the tally to stderr, slowest cop first.
+/// 集計結果を、経過時間の長い cop から順に stderr へ出す。
 pub(crate) fn report(names: &[&'static str]) {
     if !enabled() {
         return;
@@ -258,10 +260,9 @@ pub(crate) fn report(names: &[&'static str]) {
             nanos as f64 / count as f64 / 1e3
         );
     }
-    // The sum is CPU time over every worker, not elapsed time. Dividing it by the core count is
-    // the closest it comes to a wall-clock figure, and even that ignores what the phases cost.
+    // 待機を含む経過時間をスレッド間で足した値なので、CPU 時間として表示しない。
     eprintln!(
-        "cops total {:.3} s of CPU over {calls} invocations ({:.1} us each)",
+        "cops total {:.3} s of elapsed time summed across threads over {calls} invocations ({:.1} us each)",
         total as f64 / 1e9,
         total as f64 / calls.max(1) as f64 / 1e3
     );
