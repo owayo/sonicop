@@ -804,6 +804,125 @@ encoding_edit_provenance_divergences:
       示して終了 2、後続ファイルを続行する。stdin も原本を返す。本家を両モードで実測済み。
       仕様版更新時に再測定し、本家の補正が元の値を保つようになったら削除する。
 
+encoding_multipass_divergences:
+  - id: conditional-Shift_JIS-false-safe
+    condition: "false"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "safe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d206966202866616c736529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662066616c7365207468656e2022e3809c2220656c73652022efbd9e2220656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d206966202866616c736529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      本家は最初の補正で宣言を残した UTF-8 を書き、Shift_JIS の構文エラーで停止する。
+      移植版の旧実装は後の条件式補正で捨てる分岐の文字を由来と誤認し、追加した U+FF5E を
+      U+301C として黙って書き戻した。2026-10-08 の ai-second-opinion / Claude が反例を
+      確認し、追試でも由来継承と分岐限定による修正を承認した。複数パスでも由来不明の
+      文字を追跡し、条件式は残す分岐だけを由来とする。
+      false は追加文字が残るため原本と初期診断を保持して終了 2、後続ファイルを続行する。
+      true は追加文字が削除されるため原本由来のバイトで安全に補正して終了 0。
+      stdin と CRLF も同じ方針。両モードの本家実出力を固定しており、仕様版更新時に再測定し、
+      本家が元の値と符号化を保って補正できるようになったら登録を削除する。
+  - id: conditional-Shift_JIS-false-unsafe
+    condition: "false"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "unsafe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d206966202866616c736529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662066616c7365207468656e2022e3809c2220656c73652022efbd9e2220656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d206966202866616c736529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      本家は最初の補正で宣言を残した UTF-8 を書き、Shift_JIS の構文エラーで停止する。
+      移植版の旧実装は後の条件式補正で捨てる分岐の文字を由来と誤認し、追加した U+FF5E を
+      U+301C として黙って書き戻した。2026-10-08 の ai-second-opinion / Claude が反例を
+      確認し、追試でも由来継承と分岐限定による修正を承認した。複数パスでも由来不明の
+      文字を追跡し、条件式は残す分岐だけを由来とする。
+      false は追加文字が残るため原本と初期診断を保持して終了 2、後続ファイルを続行する。
+      true は追加文字が削除されるため原本由来のバイトで安全に補正して終了 0。
+      stdin と CRLF も同じ方針。両モードの本家実出力を固定しており、仕様版更新時に再測定し、
+      本家が元の値と符号化を保って補正できるようになったら登録を削除する。
+  - id: conditional-Shift_JIS-true-safe
+    condition: "true"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "safe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d20696620287472756529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662074727565207468656e2022e3809c2220656c73652022efbd9e2220656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d20228160220a"
+    upstream_exit: 1
+    sonicop_exit: 0
+    note: >-
+      本家は最初の補正で宣言を残した UTF-8 を書き、Shift_JIS の構文エラーで停止する。
+      移植版の旧実装は後の条件式補正で捨てる分岐の文字を由来と誤認し、追加した U+FF5E を
+      U+301C として黙って書き戻した。2026-10-08 の ai-second-opinion / Claude が反例を
+      確認し、追試でも由来継承と分岐限定による修正を承認した。複数パスでも由来不明の
+      文字を追跡し、条件式は残す分岐だけを由来とする。
+      false は追加文字が残るため原本と初期診断を保持して終了 2、後続ファイルを続行する。
+      true は追加文字が削除されるため原本由来のバイトで安全に補正して終了 0。
+      stdin と CRLF も同じ方針。両モードの本家実出力を固定しており、仕様版更新時に再測定し、
+      本家が元の値と符号化を保って補正できるようになったら登録を削除する。
+  - id: conditional-Shift_JIS-true-unsafe
+    condition: "true"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "unsafe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d20696620287472756529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662074727565207468656e2022e3809c2220656c73652022efbd9e2220656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d20228160220a"
+    upstream_exit: 1
+    sonicop_exit: 0
+    note: >-
+      本家は最初の補正で宣言を残した UTF-8 を書き、Shift_JIS の構文エラーで停止する。
+      移植版の旧実装は後の条件式補正で捨てる分岐の文字を由来と誤認し、追加した U+FF5E を
+      U+301C として黙って書き戻した。2026-10-08 の ai-second-opinion / Claude が反例を
+      確認し、追試でも由来継承と分岐限定による修正を承認した。複数パスでも由来不明の
+      文字を追跡し、条件式は残す分岐だけを由来とする。
+      false は追加文字が残るため原本と初期診断を保持して終了 2、後続ファイルを続行する。
+      true は追加文字が削除されるため原本由来のバイトで安全に補正して終了 0。
+      stdin と CRLF も同じ方針。両モードの本家実出力を固定しており、仕様版更新時に再測定し、
+      本家が元の値と符号化を保って補正できるようになったら登録を削除する。
+
+  - id: conditional-Shift_JIS-nested-safe
+    condition: "nested-true"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "safe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d20696620287472756529207468656e20696620287472756529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e6420656c7365206e696c20656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662074727565207468656e2069662074727565207468656e2022e3809c2220656c73652022efbd9e2220656e6420656c7365206e696c20656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d20228160220a"
+    upstream_exit: 1
+    sonicop_exit: 0
+    note: >-
+      本家は最初に UTF-8 を宣言を残して書き、構文エラーで終了 1 となる。
+      移植版は符号化を保つが、文字単位の保守的な由来継承では外側の条件式の補正が
+      原本の同じ文字まで追加扱いにし、内側の不要分岐を削除しても終了 2 にしていた。
+      2026-10-08 の Codex 追試で過剰拒否を確認した。非 ASCII を同じ順序・個数で
+      複写する補正をリテラルの評価と区別し、位置ごとの由来を引き継ぐ。
+      原本由来だけが残る最終出力を安全に書き戻し、LF/CRLF と file/stdin の両モードで
+      終了 0 を検査する。仕様版更新時に本家を再測定し、符号化が維持されたら削除する。
+  - id: conditional-Shift_JIS-nested-unsafe
+    condition: "nested-true"
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralAsCondition,Lint/LiteralInInterpolation,Style/ParenthesesAroundCondition"
+    mode: "unsafe"
+    source_hex: "2320636f64696e673a2053686966745f4a49530a78203d20696620287472756529207468656e20696620287472756529207468656e202281602220656c73652022237b225c757b666635657d227d2220656e6420656c7365206e696c20656e640a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d2069662074727565207468656e2069662074727565207468656e2022e3809c2220656c73652022efbd9e2220656e6420656c7365206e696c20656e640a"
+    sonicop_bytes_hex: "2320636f64696e673a2053686966745f4a49530a78203d20228160220a"
+    upstream_exit: 1
+    sonicop_exit: 0
+    note: >-
+      本家は最初に UTF-8 を宣言を残して書き、構文エラーで終了 1 となる。
+      移植版は符号化を保つが、文字単位の保守的な由来継承では外側の条件式の補正が
+      原本の同じ文字まで追加扱いにし、内側の不要分岐を削除しても終了 2 にしていた。
+      2026-10-08 の Codex 追試で過剰拒否を確認した。非 ASCII を同じ順序・個数で
+      複写する補正をリテラルの評価と区別し、位置ごとの由来を引き継ぐ。
+      原本由来だけが残る最終出力を安全に書き戻し、LF/CRLF と file/stdin の両モードで
+      終了 0 を検査する。仕様版更新時に本家を再測定し、符号化が維持されたら削除する。
+
 divergences:
   - cop: Layout/SpaceAroundOperators
     case: crlf_autocorrect_preserves_line_endings

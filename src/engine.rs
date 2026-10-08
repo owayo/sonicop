@@ -13,7 +13,9 @@ use tempfile::NamedTempFile;
 
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
-use crate::diagnostic::{FileReport, Location, Offense, OffenseSnapshot, Severity};
+use crate::diagnostic::{
+    CorrectionCharacterSource, FileReport, Location, Offense, OffenseSnapshot, Severity,
+};
 use crate::directives::{CommentConfig, CopRegistry, DirectiveState};
 use crate::magic_comment::MagicComment;
 use crate::rules::{AstIndex, DirectiveReview, Rule, RuleContext, rules};
@@ -1666,13 +1668,13 @@ struct Action {
     end_pos: usize,
     insert_before: String,
     replacement: Option<String>,
-    characters_from: Option<(usize, usize)>,
+    characters_from: Option<CorrectionCharacterSource>,
     insert_after: String,
     children: Vec<Action>,
 }
 
 // 補正の適用範囲と、値の文字が由来する範囲は別々に持つ。
-type Replacement<'a> = (usize, usize, &'a str, Option<(usize, usize)>);
+type Replacement<'a> = (usize, usize, &'a str, Option<CorrectionCharacterSource>);
 
 impl Action {
     /// The root upstream builds by widening the source range at both ends so that it contains every
@@ -1793,9 +1795,20 @@ impl Action {
             .clone()
             .or_else(|| self.replacement.clone());
         let characters_from = match (self.characters_from, action.characters_from) {
-            (Some((a, b)), Some((c, d))) => {
+            (Some(ours), Some(theirs)) => {
+                let (a, b) = ours.range();
+                let (c, d) = theirs.range();
                 let start = a.max(c);
-                Some((start, b.min(d).max(start)))
+                let end = b.min(d).max(start);
+                Some(
+                    if matches!(ours, CorrectionCharacterSource::Copied(..))
+                        && matches!(theirs, CorrectionCharacterSource::Copied(..))
+                    {
+                        CorrectionCharacterSource::Copied(start, end)
+                    } else {
+                        CorrectionCharacterSource::Candidates(start, end)
+                    },
+                )
             }
             (ours, theirs) => theirs.or(ours),
         };
@@ -2056,23 +2069,53 @@ impl Action {
             text.push_str(&source[last_end..begin.max(last_end)]);
             if let (Some(before), Some(after)) = (introduced, &mut provenance) {
                 // 削除された別範囲の文字で、追加された文字の由来を相殺させない。
-                let mut existing: HashMap<char, Vec<usize>> = HashMap::new();
-                let (origin_begin, origin_end) = characters_from.unwrap_or((begin, end));
-                for (offset, character) in source[origin_begin..origin_end].char_indices().rev() {
-                    if !character.is_ascii() {
-                        existing
-                            .entry(character)
-                            .or_default()
-                            .push(origin_begin + offset);
+                let (origin_begin, origin_end) =
+                    characters_from.map_or((begin, end), CorrectionCharacterSource::range);
+                let original = &source[origin_begin..origin_end];
+                let copied = matches!(characters_from, Some(CorrectionCharacterSource::Copied(..)))
+                    && original
+                        .chars()
+                        .filter(|character| !character.is_ascii())
+                        .eq(replacement
+                            .chars()
+                            .filter(|character| !character.is_ascii()));
+                if copied {
+                    // 同じ文字が複数あっても、範囲全体の複写は位置ごとの由来を保つ。
+                    let mut originals = original
+                        .char_indices()
+                        .filter(|(_, character)| !character.is_ascii());
+                    for (offset, character) in replacement.char_indices() {
+                        if !character.is_ascii() {
+                            let (old_offset, _) = originals.next().unwrap();
+                            if before.binary_search(&(origin_begin + old_offset)).is_ok() {
+                                after.push(text.len() + offset);
+                            }
+                        }
                     }
-                }
-                for (offset, character) in replacement.char_indices() {
-                    if character.is_ascii() {
-                        continue;
+                } else {
+                    let mut existing: HashMap<char, Vec<usize>> = HashMap::new();
+                    let mut generated = HashSet::new();
+                    for (offset, character) in source[origin_begin..origin_end].char_indices().rev()
+                    {
+                        if !character.is_ascii() {
+                            existing
+                                .entry(character)
+                                .or_default()
+                                .push(origin_begin + offset);
+                            if before.binary_search(&(origin_begin + offset)).is_ok() {
+                                generated.insert(character);
+                            }
+                        }
                     }
-                    let matched = existing.get_mut(&character).and_then(Vec::pop);
-                    if matched.is_none_or(|offset| before.binary_search(&offset).is_ok()) {
-                        after.push(text.len() + offset);
+                    for (offset, character) in replacement.char_indices() {
+                        if character.is_ascii() {
+                            continue;
+                        }
+                        let matched = existing.get_mut(&character).and_then(Vec::pop);
+                        // 同じ文字が原本と追加分にあれば、由来が曖昧なコピーで追加分を消さない。
+                        if matched.is_none() || generated.contains(&character) {
+                            after.push(text.len() + offset);
+                        }
                     }
                 }
             }
@@ -2681,7 +2724,7 @@ pub struct CorrectionOutcome {
     /// Team#updated_source_file? と同じく、実際のテキスト変更が書き戻しを決める。
     /// corrected_without_status の編集は診断の修正件数に入らないため、件数では代用できない。
     pub rewritten: bool,
-    /// 最終出力に残る、元の編集範囲に由来しない非 ASCII 文字。
+    /// 最終出力に残る、原本からの複写と確認できない非 ASCII 文字。
     pub(crate) introduced_non_ascii: bool,
     /// 本家は非収束をファイルごとに報告し、最後の補正を残して残りの検査を続ける。
     pub infinite_loop: Option<String>,
@@ -3991,6 +4034,24 @@ mod tests {
         assert_eq!(positions.as_deref(), Some([0].as_slice()));
         let (text, positions) = action(0, 3, "").rewrite(&text, positions.as_deref());
         assert_eq!(text, "日");
+        assert!(positions.unwrap().is_empty());
+        // 曖昧な全体置換は由来を消さず、明示された残す範囲なら正しく分けられる。
+        let mut selection = action(0, 5, "é");
+        let (_, positions) = selection.rewrite("é é", Some(&[3]));
+        assert_eq!(positions.as_deref(), Some([0].as_slice()));
+        selection.characters_from = Some(super::CorrectionCharacterSource::Candidates(0, 2));
+        let (_, positions) = selection.rewrite("é é", Some(&[3]));
+        assert!(positions.unwrap().is_empty());
+        selection.characters_from = Some(super::CorrectionCharacterSource::Candidates(3, 5));
+        let (_, positions) = selection.rewrite("é é", Some(&[3]));
+        assert_eq!(positions.as_deref(), Some([0].as_slice()));
+        let mut copy = action(0, 5, "'é é'");
+        copy.characters_from = Some(super::CorrectionCharacterSource::Copied(0, 5));
+        let (text, positions) = copy.rewrite("é é", Some(&[3]));
+        assert_eq!(positions.as_deref(), Some([4].as_slice()));
+        let mut first = action(0, text.len(), "é");
+        first.characters_from = Some(super::CorrectionCharacterSource::Copied(1, 3));
+        let (_, positions) = first.rewrite(&text, positions.as_deref());
         assert!(positions.unwrap().is_empty());
         // 非 ASCII を複写する置換や、取り消された挿入は新しい由来を作らない。
         let (text, positions) = action(0, 2, "'é'").rewrite("éx", Some(&[]));

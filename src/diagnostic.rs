@@ -77,6 +77,21 @@ pub struct OffenseSnapshot {
     pub source_line: String,
 }
 
+/// リテラルの評価と、非 ASCII を同じ順序・個数で複写する補正を区別する。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CorrectionCharacterSource {
+    Candidates(usize, usize),
+    Copied(usize, usize),
+}
+
+impl CorrectionCharacterSource {
+    pub(crate) fn range(self) -> (usize, usize) {
+        match self {
+            Self::Candidates(start, end) | Self::Copied(start, end) => (start, end),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Offense {
     pub cop_name: &'static str,
@@ -105,7 +120,7 @@ pub struct Offense {
     /// of everything else corrected in the file rather than a child of whatever covers the head.
     pub correction_anchor: Option<(usize, usize)>,
     /// 置換後の文字が実際に由来するソース範囲。補間の先行文など、捨てる範囲を除く。
-    pub(crate) correction_characters_from: Option<(usize, usize)>,
+    pub(crate) correction_characters_from: Option<CorrectionCharacterSource>,
     /// Set for edits the cop scheduled outside `add_offense`, which is where `Cop::Base#correct`
     /// puts a rewrite belonging to no single offense. The offense keeps the `:unsupported` status
     /// it was reported with -- neither `correctable` nor ever stamped corrected -- while the edits
@@ -167,7 +182,19 @@ impl Offense {
 
     /// 値を作る補正では、置換範囲と値の出典の範囲が一致しないことがある。
     pub(crate) fn correction_characters_from(mut self, range: Range<usize>) -> Self {
-        self.correction_characters_from = Some((range.start, range.end.max(range.start)));
+        self.correction_characters_from = Some(CorrectionCharacterSource::Candidates(
+            range.start,
+            range.end.max(range.start),
+        ));
+        self
+    }
+
+    /// ASCII の構文だけを変え、範囲内の非 ASCII をすべてそのまま複写する補正。
+    pub(crate) fn correction_copies_characters_from(mut self, range: Range<usize>) -> Self {
+        self.correction_characters_from = Some(CorrectionCharacterSource::Copied(
+            range.start,
+            range.end.max(range.start),
+        ));
         self
     }
 

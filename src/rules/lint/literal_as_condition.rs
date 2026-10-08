@@ -10,8 +10,8 @@ use crate::rules::send_node::named_children;
 use super::literals::{is_basic_literal, is_falsey_literal, is_literal, is_truthy_literal};
 use super::statements::{Branch, statements};
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::{named_children_of};
 use crate::rules::send_node::named_children_iter;
+use crate::rules::send_node::named_children_of;
 
 /// The nodes whose `condition` the parser rewrites: a range there becomes a flip-flop and a regexp
 /// a match against `$_`, and neither is a literal any more.
@@ -166,6 +166,7 @@ fn check_operator_keyword(node: Node<'_>, context: &RuleContext<'_>, offenses: &
                 replacement: context.source.node_text(right).to_owned(),
                 safe: true,
             })
+            .correction_copies_characters_from(right.byte_range())
     });
 }
 
@@ -403,7 +404,7 @@ fn has_binding(node: Node<'_>) -> bool {
     named_children(node).into_iter().any(has_binding)
 }
 
-/// `on_if`, whose correction leaves only the branch the literal condition selects.
+/// on_if はリテラルが選ぶ分岐だけを残す。文字の出典もその分岐に限る。
 fn check_if(
     node: Node<'_>,
     context: &RuleContext<'_>,
@@ -458,6 +459,13 @@ fn check_if(
             }
         }
     };
+    // 値の出典は残す分岐だけ。捨てる分岐で追加文字の由来を打ち消させない。
+    let character_source = surviving.clone().unwrap_or(0..0);
+    let character_source = if is_elsif {
+        with_comments(context, character_source)
+    } else {
+        character_source
+    };
     let offense = report(condition.byte_range(), context);
     let covered = ignored
         .iter()
@@ -474,6 +482,7 @@ fn check_if(
                 replacement,
                 safe: true,
             })
+            .correction_copies_characters_from(character_source)
     });
 }
 

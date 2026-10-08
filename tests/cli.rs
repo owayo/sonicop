@@ -2647,3 +2647,97 @@ fn an_active_legacy_declaration_preserves_the_original_character_bytes() {
         }
     }
 }
+
+/// 次のパスが条件式を広く置換しても、捨てる分岐で追加文字の由来を消さない。
+#[test]
+fn later_conditional_corrections_preserve_character_provenance() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["encoding_multipass_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 6);
+    for case in cases {
+        let condition = case["condition"].as_str().unwrap();
+        let mode = if case["mode"].as_str().unwrap() == "safe" {
+            "-a"
+        } else {
+            "-A"
+        };
+        let decode_hex = |hex: &str| {
+            (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect::<Vec<_>>()
+        };
+        for crlf in [false, true] {
+            let mut source = decode_hex(case["source_hex"].as_str().unwrap());
+            let mut expected = decode_hex(case["sonicop_bytes_hex"].as_str().unwrap());
+            if crlf {
+                let to_crlf = |bytes: Vec<u8>| {
+                    bytes
+                        .split(|byte| *byte == b'\n')
+                        .enumerate()
+                        .flat_map(|(index, line)| {
+                            let mut part = Vec::new();
+                            if index > 0 {
+                                part.extend_from_slice(b"\r\n");
+                            }
+                            part.extend_from_slice(line);
+                            part
+                        })
+                        .collect::<Vec<_>>()
+                };
+                source = to_crlf(source);
+                expected = to_crlf(expected);
+            }
+            for stdin in [false, true] {
+                let directory = project_with_ruby(&[], "2.7");
+                fs::write(directory.path().join("example.rb"), &source).unwrap();
+                let mut run = command(directory.path());
+                run.args([
+                    "--force-default-config",
+                    "--cache",
+                    "false",
+                    "--only",
+                    case["cops"].as_str().unwrap(),
+                    mode,
+                    "--fail-level",
+                    "fatal",
+                    "-f",
+                    "simple",
+                ]);
+                if stdin {
+                    run.args(["--stdin", "example.rb"])
+                        .write_stdin(source.clone());
+                } else {
+                    run.arg("example.rb");
+                }
+                let failed = condition == "false";
+                let output = run
+                    .assert()
+                    .code(case["sonicop_exit"].as_i64().unwrap() as i32)
+                    .get_output()
+                    .clone();
+                let wanted = &expected;
+                if stdin {
+                    assert!(output.stdout.ends_with(wanted), "{condition} {mode} {crlf}");
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        source
+                    );
+                } else {
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        *wanted
+                    );
+                }
+                assert_eq!(
+                    String::from_utf8_lossy(&output.stderr)
+                        .contains("cannot be written back as Shift_JIS"),
+                    failed
+                );
+            }
+        }
+    }
+}
