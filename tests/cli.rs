@@ -2083,3 +2083,505 @@ fn a_bom_configuration_is_rejected_before_inspection() {
             .contains("did not find expected <document start>")
     );
 }
+
+/// 本家の同名引数の一括置換は内側の引数宣言を残し、Prism が拒否する Ruby を作る。
+#[test]
+fn nested_it_autocorrect_rolls_back_the_file_and_keeps_inspecting() {
+    let source = "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    save = transaction\n  end\nend\n";
+    let config = "Style/ItBlockParameter:\n  EnforcedStyle: always\n  Enabled: true\n";
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(
+            &[
+                (".rubocop.yml", config),
+                ("example.rb", source),
+                ("other.rb", "foo do |value|\n  puts value\nend\n"),
+            ],
+            "3.4",
+        );
+        let lint = command(directory.path())
+            .args([
+                "--only",
+                "Style/ItBlockParameter",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Style/ItBlockParameter",
+                mode,
+                "--fail-level",
+                "fatal",
+                "-f",
+                "json",
+                "example.rb",
+                "other.rb",
+            ])
+            .assert()
+            .code(2)
+            .get_output()
+            .clone();
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("Autocorrection was not written to example.rb")
+        );
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            source.as_bytes()
+        );
+        assert_eq!(
+            fs::read_to_string(directory.path().join("other.rb")).unwrap(),
+            "foo do \n  puts it\nend\n"
+        );
+        let before: serde_json::Value = serde_json::from_slice(&lint).unwrap();
+        let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(before["files"][0], after["files"][0]);
+        assert_eq!(after["summary"]["inspected_file_count"], 2);
+        command(directory.path())
+            .args(["--only", "Style/ItBlockParameter", mode, "example.rb"])
+            .assert()
+            .code(2);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            source.as_bytes()
+        );
+    }
+}
+
+/// 保存時整形に使う stdin も、拒否した補正の代わりに元のバッファを返す。
+#[test]
+fn nested_it_autocorrect_returns_the_original_stdin_buffer() {
+    let source = "outer do |transaction|\n  real = transaction\n  inner do |transaction|\n    save = transaction\n  end\nend\n";
+    let directory = project_with_ruby(
+        &[(
+            ".rubocop.yml",
+            "Style/ItBlockParameter:\n  EnforcedStyle: always\n  Enabled: true\n",
+        )],
+        "3.4",
+    );
+    for mode in ["-a", "-A"] {
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Style/ItBlockParameter",
+                mode,
+                "--stdin",
+                "example.rb",
+                "--fail-level",
+                "fatal",
+                "-f",
+                "simple",
+            ])
+            .write_stdin(source)
+            .assert()
+            .code(2)
+            .get_output()
+            .clone();
+        assert!(
+            String::from_utf8_lossy(&output.stdout)
+                .ends_with(&format!("====================\n{source}"))
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("introduced a syntax error"));
+        assert!(!directory.path().join("example.rb").exists());
+    }
+}
+
+/// ASCII の原本で安全な Unicode エスケープを、生の非 ASCII バイトに書き換えない。
+#[test]
+fn an_unencodable_correction_preserves_the_file_and_finishes_the_json_report() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["encoding_writeback_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 7);
+    for case in cases {
+        for mode in ["-a", "-A"] {
+            let source = case["source"].as_str().unwrap();
+            let directory = project_with_ruby(
+                &[("example.rb", source), ("other.rb", "value = \"#{1}\"\n")],
+                "2.7",
+            );
+            let lint = command(directory.path())
+                .args([
+                    "--only",
+                    "Lint/LiteralInInterpolation",
+                    "-f",
+                    "json",
+                    "example.rb",
+                ])
+                .assert()
+                .code(1)
+                .get_output()
+                .stdout
+                .clone();
+            let output = command(directory.path())
+                .args([
+                    "--only",
+                    "Lint/LiteralInInterpolation",
+                    mode,
+                    "--fail-level",
+                    "fatal",
+                    "-f",
+                    "json",
+                    "example.rb",
+                    "other.rb",
+                ])
+                .assert()
+                .code(2)
+                .get_output()
+                .clone();
+            let refusal = format!(
+                "refusing to rewrite example.rb: the correction cannot be written back as {}",
+                case["encoding"].as_str().unwrap()
+            );
+            assert!(String::from_utf8_lossy(&output.stderr).contains(&refusal));
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+            assert_eq!(
+                fs::read_to_string(directory.path().join("other.rb")).unwrap(),
+                "value = \"1\"\n"
+            );
+            let before: serde_json::Value = serde_json::from_slice(&lint).unwrap();
+            let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(before["files"][0], after["files"][0]);
+            assert_eq!(after["summary"]["target_file_count"], 2);
+            assert_eq!(after["summary"]["inspected_file_count"], 2);
+            command(directory.path())
+                .args(["--only", "Lint/LiteralInInterpolation", mode, "example.rb"])
+                .assert()
+                .code(2);
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+        }
+    }
+}
+
+/// エディタが受け取る stdin の戻り値も、有効な原本のバイト列を保持する。
+#[test]
+fn an_unencodable_stdin_correction_returns_the_original_bytes() {
+    let source = "# coding: US-ASCII\nvalue = \"#{\"\\u00e9\"}\"\n";
+    let directory = project_with_ruby(&[], "2.7");
+    for mode in ["-a", "-A"] {
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Lint/LiteralInInterpolation",
+                mode,
+                "--stdin",
+                "example.rb",
+                "--fail-level",
+                "fatal",
+                "-f",
+                "simple",
+            ])
+            .write_stdin(source)
+            .assert()
+            .code(2)
+            .get_output()
+            .clone();
+        assert!(
+            output
+                .stdout
+                .ends_with(format!("====================\n{source}").as_bytes())
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("cannot be written back as US-ASCII")
+        );
+        assert!(!directory.path().join("example.rb").exists());
+    }
+    // 補正不要な binary バッファを UTF-8 に変換して返さない。
+    let binary = b"# coding: ASCII-8BIT\n# \xED\x40\nvalue = 1\n";
+    let output = command(directory.path())
+        .args([
+            "--only",
+            "Lint/LiteralInInterpolation",
+            "-a",
+            "--stdin",
+            "example.rb",
+            "-f",
+            "simple",
+        ])
+        .write_stdin(binary.as_slice())
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    assert!(output.ends_with(binary));
+}
+
+/// rollback 後も原本のディレクティブ診断を残す。--only ではこの集約 cop に届かない。
+#[test]
+fn a_syntax_rollback_keeps_the_original_directive_diagnostics() {
+    let source = "# rubocop:disable Style/RedundantReturn\nouter do |transaction|\n  consume transaction\n  inner do |transaction|\n    use transaction\n  end\nend\n# rubocop:enable Style/RedundantReturn\n";
+    for stdin in [false, true] {
+        for mode in ["-a", "-A"] {
+            let directory = project_with_ruby(
+                &[
+                    ("example.rb", source),
+                    (
+                        ".rubocop.yml",
+                        "AllCops:\n  NewCops: disable\nStyle/ItBlockParameter:\n  Enabled: true\n  EnforcedStyle: always\n",
+                    ),
+                ],
+                "3.4",
+            );
+            let lint = command(directory.path())
+                .args(["--cache", "false", "-f", "json", "example.rb"])
+                .assert()
+                .code(1)
+                .get_output()
+                .stdout
+                .clone();
+            let before: serde_json::Value = serde_json::from_slice(&lint).unwrap();
+            assert!(
+                before["files"][0]["offenses"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|offense| offense["cop_name"] == "Lint/RedundantCopDisableDirective")
+            );
+            let mut run = command(directory.path());
+            run.args([
+                "--cache",
+                "false",
+                mode,
+                "--fail-level",
+                "fatal",
+                "-f",
+                "json",
+            ]);
+            if stdin {
+                run.args(["--stdin", "example.rb"]).write_stdin(source);
+            } else {
+                run.arg("example.rb");
+            }
+            let output = run.assert().code(2).get_output().stdout.clone();
+            let after: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            assert_eq!(before["files"], after["files"]);
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+        }
+    }
+}
+
+/// 宣言が無効な位置へ動くときは、本家が実際に出す有効な UTF-8 バイトへ合わせる。
+#[test]
+fn a_displaced_encoding_declaration_uses_the_upstream_utf8_output() {
+    let records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/encoding_header_corrections.json")).unwrap();
+    for case in records.as_array().unwrap() {
+        let decode = |key: &str| {
+            let hex = case[key].as_str().unwrap();
+            (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect::<Vec<_>>()
+        };
+        let source = decode("source_hex");
+        let expected = decode("upstream_hex");
+        for stdin in [false, true] {
+            let directory = project_with_ruby(&[], "2.7");
+            fs::write(directory.path().join("example.rb"), &source).unwrap();
+            let mut run = command(directory.path());
+            run.args([
+                "--force-default-config",
+                "--cache",
+                "false",
+                "--only",
+                case["cops"].as_str().unwrap(),
+                "-A",
+                "-f",
+                "simple",
+            ]);
+            if stdin {
+                run.args(["--stdin", "example.rb"])
+                    .write_stdin(source.clone());
+            } else {
+                run.arg("example.rb");
+            }
+            let output = run.assert().code(0).get_output().clone();
+            if stdin {
+                assert!(output.stdout.ends_with(&expected));
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    source
+                );
+            } else {
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected
+                );
+                command(directory.path())
+                    .args([
+                        "--force-default-config",
+                        "--cache",
+                        "false",
+                        "--only",
+                        case["cops"].as_str().unwrap(),
+                        "-A",
+                        "example.rb",
+                    ])
+                    .assert()
+                    .code(0);
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected
+                );
+            }
+            assert!(!String::from_utf8_lossy(&output.stderr).contains("cannot be written back"));
+        }
+    }
+}
+
+/// 別の cop による非 ASCII の削除が、補間補正で追加された文字を相殺してはならない。
+#[test]
+fn unrelated_character_deletions_do_not_hide_an_unsafe_encoding_write() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["encoding_edit_provenance_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 8);
+    for case in cases {
+        let encoding = case["encoding"].as_str().unwrap();
+        let hex = case["source_hex"].as_str().unwrap();
+        let source = (0..hex.len())
+            .step_by(2)
+            .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+            .collect::<Vec<_>>();
+        let mode = if case["mode"].as_str().unwrap() == "safe" {
+            "-a"
+        } else {
+            "-A"
+        };
+        for stdin in [false, true] {
+            let directory = project_with_ruby(&[], "2.7");
+            fs::write(directory.path().join("example.rb"), &source).unwrap();
+            fs::write(directory.path().join("other.rb"), "value = \"#{1}\"\n").unwrap();
+            let mut run = command(directory.path());
+            run.args([
+                "--force-default-config",
+                "--cache",
+                "false",
+                "--only",
+                case["cops"].as_str().unwrap(),
+                mode,
+                "--fail-level",
+                "fatal",
+                "-f",
+                if stdin { "simple" } else { "json" },
+            ]);
+            if stdin {
+                run.args(["--stdin", "example.rb"])
+                    .write_stdin(source.clone());
+            } else {
+                run.args(["example.rb", "other.rb"]);
+            }
+            let output = run.assert().code(2).get_output().clone();
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source
+            );
+            assert!(
+                String::from_utf8_lossy(&output.stderr)
+                    .contains(&format!("cannot be written back as {encoding}"))
+            );
+            if stdin {
+                assert!(output.stdout.ends_with(&source));
+            } else {
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["summary"]["inspected_file_count"], 2);
+                assert_eq!(
+                    fs::read_to_string(directory.path().join("other.rb")).unwrap(),
+                    "value = \"1\"\n"
+                );
+            }
+        }
+    }
+}
+
+/// 宣言が有効なままなら、ASCII の引用符だけを直し、既存の非 ASCII バイトを保つ。
+#[test]
+fn an_active_legacy_declaration_preserves_the_original_character_bytes() {
+    let cases: &[(&str, &[u8])] = &[
+        ("cp932", b"\x93\xfa\x96\x7b"),
+        ("Shift_JIS", b"\x81\x60"),
+        ("ISO-8859-1", b"\x80"),
+        ("EUC-JP", b"\xa1\xc1"),
+        ("ASCII-8BIT", b"\xe9"),
+    ];
+    for (encoding, characters) in cases {
+        let mut source = format!("# coding: {encoding}\nx = \"").into_bytes();
+        source.extend_from_slice(characters);
+        source.extend_from_slice(b"\"\n");
+        let mut expected = format!("# coding: {encoding}\nx = '").into_bytes();
+        expected.extend_from_slice(characters);
+        expected.extend_from_slice(b"'\n");
+        for stdin in [false, true] {
+            for mode in ["-a", "-A"] {
+                let directory = project_with_ruby(&[], "2.7");
+                fs::write(directory.path().join("example.rb"), &source).unwrap();
+                let mut run = command(directory.path());
+                run.args([
+                    "--force-default-config",
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Style/StringLiterals",
+                    mode,
+                    "-f",
+                    "simple",
+                ]);
+                if stdin {
+                    run.args(["--stdin", "example.rb"])
+                        .write_stdin(source.clone());
+                } else {
+                    run.arg("example.rb");
+                }
+                let output = run.assert().code(0).get_output().stdout.clone();
+                if stdin {
+                    assert!(output.ends_with(&expected));
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        source
+                    );
+                } else {
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        expected
+                    );
+                    command(directory.path())
+                        .args([
+                            "--force-default-config",
+                            "--cache",
+                            "false",
+                            "--only",
+                            "Style/StringLiterals",
+                            mode,
+                            "example.rb",
+                        ])
+                        .assert()
+                        .code(0);
+                    assert_eq!(
+                        fs::read(directory.path().join("example.rb")).unwrap(),
+                        expected
+                    );
+                }
+            }
+        }
+    }
+}

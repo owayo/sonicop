@@ -1666,9 +1666,13 @@ struct Action {
     end_pos: usize,
     insert_before: String,
     replacement: Option<String>,
+    characters_from: Option<(usize, usize)>,
     insert_after: String,
     children: Vec<Action>,
 }
+
+// 補正の適用範囲と、値の文字が由来する範囲は別々に持つ。
+type Replacement<'a> = (usize, usize, &'a str, Option<(usize, usize)>);
 
 impl Action {
     /// The root upstream builds by widening the source range at both ends so that it contains every
@@ -1681,6 +1685,7 @@ impl Action {
             end_pos: usize::MAX,
             insert_before: String::new(),
             replacement: None,
+            characters_from: None,
             insert_after: String::new(),
             children: Vec::new(),
         }
@@ -1701,6 +1706,7 @@ impl Action {
             end_pos: edit.end,
             insert_before: String::new(),
             replacement: None,
+            characters_from: None,
             insert_after: String::new(),
             children: Vec::new(),
         };
@@ -1785,7 +1791,15 @@ impl Action {
             .replacement
             .clone()
             .or_else(|| self.replacement.clone());
+        let characters_from = match (self.characters_from, action.characters_from) {
+            (Some((a, b)), Some((c, d))) => {
+                let start = a.max(c);
+                Some((start, b.min(d).max(start)))
+            }
+            (ours, theirs) => theirs.or(ours),
+        };
         let merged = Self {
+            characters_from,
             insert_before: format!("{}{}", action.insert_before, self.insert_before),
             insert_after: format!("{}{}", self.insert_after, action.insert_after),
             ..self.clone()
@@ -1927,38 +1941,89 @@ impl Action {
             .unwrap_or(self.children.len())
     }
 
-    fn ordered_replacements<'a>(&'a self, replacements: &mut Vec<(usize, usize, &'a str)>) {
+    fn ordered_replacements<'a>(&'a self, replacements: &mut Vec<Replacement<'a>>) {
         if !self.insert_before.is_empty() {
-            replacements.push((self.begin_pos, self.begin_pos, &self.insert_before));
+            replacements.push((self.begin_pos, self.begin_pos, &self.insert_before, None));
         }
         if let Some(replacement) = &self.replacement {
-            replacements.push((self.begin_pos, self.end_pos, replacement));
+            replacements.push((
+                self.begin_pos,
+                self.end_pos,
+                replacement,
+                self.characters_from,
+            ));
         }
         for child in &self.children {
             child.ordered_replacements(replacements);
         }
         if !self.insert_after.is_empty() {
-            replacements.push((self.end_pos, self.end_pos, &self.insert_after));
+            replacements.push((self.end_pos, self.end_pos, &self.insert_after, None));
         }
     }
 
-    fn rewrite(&self, source: &str) -> String {
+    fn rewrite(&self, source: &str, introduced: Option<&[usize]>) -> (String, Option<Vec<usize>>) {
         let mut replacements = Vec::new();
         self.ordered_replacements(&mut replacements);
         let mut text = String::with_capacity(source.len());
+        let mut provenance = introduced.map(|_| Vec::new());
         let mut last_end = 0;
-        for (begin, end, replacement) in replacements {
+        for (begin, end, replacement, characters_from) in replacements {
             debug_assert!(
                 begin >= last_end,
                 "the action tree yielded overlapping edits"
             );
+            if let (Some(before), Some(after)) = (introduced, &mut provenance) {
+                copy_provenance(before, last_end, begin, text.len(), after);
+            }
             text.push_str(&source[last_end..begin.max(last_end)]);
+            if let (Some(before), Some(after)) = (introduced, &mut provenance) {
+                // 削除された別範囲の文字で、追加された文字の由来を相殺させない。
+                let mut existing: HashMap<char, Vec<usize>> = HashMap::new();
+                let (origin_begin, origin_end) = characters_from.unwrap_or((begin, end));
+                for (offset, character) in source[origin_begin..origin_end].char_indices().rev() {
+                    if !character.is_ascii() {
+                        existing
+                            .entry(character)
+                            .or_default()
+                            .push(origin_begin + offset);
+                    }
+                }
+                for (offset, character) in replacement.char_indices() {
+                    if character.is_ascii() {
+                        continue;
+                    }
+                    let matched = existing.get_mut(&character).and_then(Vec::pop);
+                    if matched.is_none_or(|offset| before.binary_search(&offset).is_ok()) {
+                        after.push(text.len() + offset);
+                    }
+                }
+            }
             text.push_str(replacement);
             last_end = end.max(last_end);
         }
+        if let (Some(before), Some(after)) = (introduced, &mut provenance) {
+            copy_provenance(before, last_end, source.len(), text.len(), after);
+        }
         text.push_str(&source[last_end..]);
-        text
+        (text, provenance)
     }
+}
+
+/// 変更していない範囲に残る文字の由来を、補正後のバイト位置へ移す。
+fn copy_provenance(
+    before: &[usize],
+    begin: usize,
+    end: usize,
+    output_begin: usize,
+    after: &mut Vec<usize>,
+) {
+    let first = before.partition_point(|offset| *offset < begin);
+    after.extend(
+        before[first..]
+            .iter()
+            .take_while(|offset| **offset < end)
+            .map(|offset| output_begin + offset - begin),
+    );
 }
 
 /// Where one action sits among the children of a node: which of them it nests inside, which of them
@@ -2181,22 +2246,34 @@ pub fn corrected_text(
     mode: CorrectMode,
     correcting: Correcting,
 ) -> (String, usize) {
+    let (text, count, _) = corrected_text_with_provenance(report, mode, correcting, None);
+    (text, count)
+}
+
+fn corrected_text_with_provenance(
+    report: &mut FileReport,
+    mode: CorrectMode,
+    correcting: Correcting,
+    introduced: Option<&[usize]>,
+) -> (String, usize, Option<Vec<usize>>) {
     if mode == CorrectMode::None {
-        return (report.source.text().to_owned(), 0);
+        return (
+            report.source.text().to_owned(),
+            0,
+            introduced.map(<[usize]>::to_vec),
+        );
     }
     let source = report.source.text();
 
     let candidates = correction_candidates(report, mode, correcting, source);
 
     let mut run = Action::root();
-    // Offenses whose own cop accepted their edits. RuboCop stamps an offense corrected while the
-    // cop is filling its corrector, before the team decides whether to take it, so an offense a
-    // skip or a clash later denies is still reported as corrected.
+    // 本家は cop が編集を積んだ時点で corrected を立てるため、後で skip や衝突で
+    // 補正を捨てても corrected の報告は残る。実際の適用数・文字の由来とは区別する。
     let mut corrected: Vec<usize> = Vec::new();
-    // Offenses whose edits actually reached the run's corrector, which is what says the pass
-    // changed anything and another one is worth running.
+    // 実行全体の corrector に届いた編集だけが、次のパスを走らせる根拠になる。
     let mut applied = 0;
-    // `Team#each_corrector`'s skip set. See [`autocorrect_incompatible_with`].
+    // `Team#each_corrector` の互換性宣言による skip。autocorrect_incompatible_with を参照。
     let mut skips: HashSet<&'static str> = HashSet::new();
     let mut rest = candidates.as_slice();
     if trace::enabled() {
@@ -2222,18 +2299,15 @@ pub fn corrected_text(
             continue;
         }
         corrected.extend(&placed);
-        // `Team#each_corrector` reads the corrector before merging it, so a cop that filled one
-        // bars the cops it declared itself incompatible with whatever the merge then does.
+        // 本家はマージの前に互換性宣言を読み、編集が後で衝突しても非互換 cop を見送る。
         skips.extend(autocorrect_incompatible_with(cop_name));
 
-        // A cop an earlier one declared itself incompatible with is passed over: its corrections
-        // wait for the pass after the one that provoked the incompatibility.
+        // 先行 cop が非互換と宣言した補正は、次のパスへ回す。
         if skipped {
             trace_outcome("skip ", cop_name);
             continue;
         }
-        // `Team#merge_corrector!`: a cop whose corrections clash with what is already scheduled
-        // loses every correction it asked for in this file, not just the one that clashed.
+        // Team#merge_corrector! と同じく、衝突した cop の補正はこのファイルで全件捨てる。
         match run.clone().combine_children(&cop.children) {
             Ok(merged) => {
                 run = merged;
@@ -2253,13 +2327,14 @@ pub fn corrected_text(
     }
 
     for index in &corrected {
-        // Edits a cop scheduled outside `add_offense` leave the offense's own status alone. See
-        // [`Offense::corrected_without_status`].
+        // add_offense の外で積まれた編集は診断の corrected を変えない。
+        // Offense::corrected_without_status を参照。
         if !report.offenses[*index].corrections_detached {
             report.offenses[*index].corrected = true;
         }
     }
-    (run.rewrite(source), applied)
+    let (text, provenance) = run.rewrite(source, introduced);
+    (text, applied, provenance)
 }
 
 fn correction_candidates(
@@ -2306,12 +2381,15 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
         // `combine` rather than `combine_children`: it is the entry point that drops an edit asking
         // for nothing at all, the way `Corrector#replace` and friends do.
         let anchor = anchor_range(&report.offenses[index], source);
-        let offense = report.offenses[index]
-            .corrections
-            .iter()
-            .try_fold(Action::root(), |tree, edit| {
-                tree.combine(&Action::from_edit(edit, anchor))
-            });
+        let offense =
+            report.offenses[index]
+                .corrections
+                .iter()
+                .try_fold(Action::root(), |tree, edit| {
+                    let mut action = Action::from_edit(edit, anchor);
+                    action.characters_from = report.offenses[index].correction_characters_from;
+                    tree.combine(&action)
+                });
         let Ok(offense) = offense else {
             if trace::enabled() {
                 eprintln!("      ★ この offense の中で衝突");
@@ -2522,6 +2600,8 @@ pub struct CorrectionOutcome {
     /// -- see [`Offense::corrected_without_status`] -- so the count of corrected offenses cannot
     /// stand in for it.
     pub rewritten: bool,
+    /// 最終出力に残る、元の編集範囲に由来しない非 ASCII 文字。
+    pub(crate) introduced_non_ascii: bool,
     /// Set when the passes never settled. RuboCop reports this per file, still writes the last
     /// corrected text, and keeps inspecting the rest of the run.
     pub infinite_loop: Option<String>,
@@ -2548,32 +2628,19 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
         .any(|offense| offense.severity == Severity::Fatal && offense.cop_name == "Lint/Syntax")
 }
 
-/// Refuses a correction that would leave the file unparsable, handing back the source as it was.
+/// 有効だった原本を構文エラーにする補正は、ファイル単位で全パスを取り消す。
 ///
-/// A cop can produce text Ruby rejects, and RuboCop writes it: `Layout/LineLength` folds a line
-/// that opens a heredoc and the body ends up before the rest of the statement. Both tools then
-/// agree byte for byte on a file that no longer loads, so the `-A` comparison calls it a match.
-/// **A byte match says "the same as upstream", not "correct".**
+/// 本家の Layout/LineLength は heredoc を開く行を折って構文エラーを作ることがある。
+/// バイト一致だけでは両者が同じように壊れた場合を見逃すため、補正後も検査する。
+/// 最初から無効だった入力には発火せず、警告だけでも補正を止めない。
 ///
-/// The guard is deliberately narrow. It asks only whether a source that parsed before parses
-/// after, so it cannot mistake a pre-existing error for one the correction introduced, and it
-/// cannot object to anything but the one failure it can name.
+/// Lint/Syntax と同じパーサ設定を使い、Ruby 3.3 以降の既定ではネイティブ Prism の
+/// 診断で判定する。旧版の Whitequark 設定では補助規則と tree-sitter の検査なので、
+/// 文法が受理しすぎる構文には保護が届かない。補正の安全性全般を保証するものではない。
 ///
-/// It also asks the wrong parser. Ruby raises `SyntaxError` for rules this grammar does not
-/// model, so text it accepts can still be rejected by Ruby — measured cases: a dynamic constant
-/// assignment (`def a; X = 1; end`), a repeated parameter name (`def a(x, x)`), and `break`,
-/// `next`, `redo` or `retry` where no loop or block encloses it. Each of those is a hole in the
-/// guard. So this **prevents the destructive writes it can detect**; it does not make correction
-/// safe in general, and the phrase to avoid when describing it is "guaranteed".
-///
-/// The corrections are dropped rather than reported as applied: the file on disk is the original,
-/// so calling them corrected would describe a state that does not exist anywhere.
-///
-/// `SONICOP_NO_SYNTAX_GUARD` turns the guard off. It exists because the guard fires exactly when
-/// this parser rejects the correction, which is not the same question as whether Ruby rejects it:
-/// the gap between the two parsers is the guard's false-positive rate, and with the guard on, the
-/// text needed to measure that rate never reaches disk. **A guard that cannot be switched off is a
-/// guard whose error rate cannot be quoted.** It is for measurement, not for use.
+/// ディスクには原本が残るため、適用されていない補正を corrected として報告しない。
+/// SONICOP_NO_SYNTAX_GUARD は、保護が止めた出力を本家と比較して誤拒否を測るためだけに
+/// 用意した。共有設定から全利用者の保護を外せないよう環境変数に限定している。
 fn withhold_unparsable(
     outcome: CorrectionOutcome,
     original: &str,
@@ -2589,21 +2656,21 @@ fn withhold_unparsable(
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
-    // The report describes text that will never exist on disk. Inspecting the original again is
-    // what the caller would have got with correction turned off, which is the state being kept.
+    // 書かない補正後のソースではなく、ディスクに残る原本の診断を返す。
     let report = inspect_planned(
         path.clone(),
         original.to_owned(),
         config,
         selection,
         plan,
-        false,
+        true,
     )?;
     Ok(CorrectionOutcome {
         report,
         text: original.to_owned(),
         corrected_count: 0,
         rewritten: false,
+        introduced_non_ascii: false,
         infinite_loop: outcome.infinite_loop,
         rollback: Some(format!(
             "Autocorrection was not written to {} because it introduced a syntax error.",
@@ -2648,6 +2715,7 @@ pub fn correct_file(
             text,
             corrected_count: 0,
             rewritten: false,
+            introduced_non_ascii: false,
             infinite_loop: None,
             rollback: None,
         });
@@ -2662,6 +2730,10 @@ pub fn correct_file(
     let mut log = CorrectionLog::default();
     let mut sources = vec![digest(&text)];
     let mut rewritten = false;
+    // UTF-8 の通常実行では追加の走査・確保を行わない。
+    let mut provenance = declared_label(original.as_bytes())
+        .filter(|label| is_legacy_label(label))
+        .map(|_| Vec::new());
     // Every pass re-inspects the same file under the same configuration, so the plan is resolved
     // once for the whole fixed-point loop.
     let plan = RulePlan::build(config, selection);
@@ -2672,13 +2744,22 @@ pub fn correct_file(
     // actually run. A cop that grows the file every time leaves exactly that many marks behind, and
     // an off-by-one here is visible in the file it gives up on.
     for pass in 0..MAX_CORRECTION_PASSES {
-        let (mut corrected, mut count) =
-            corrected_text(&mut report, mode, Correcting::ExceptDirectives);
+        let (mut corrected, mut count, mut next_provenance) = corrected_text_with_provenance(
+            &mut report,
+            mode,
+            Correcting::ExceptDirectives,
+            provenance.as_deref(),
+        );
         let mut directive_pass = false;
         if count == 0 && directives_pending {
             directives_pending = false;
             directive_pass = true;
-            (corrected, count) = corrected_text(&mut report, mode, Correcting::DirectivesOnly);
+            (corrected, count, next_provenance) = corrected_text_with_provenance(
+                &mut report,
+                mode,
+                Correcting::DirectivesOnly,
+                provenance.as_deref(),
+            );
         }
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
@@ -2688,6 +2769,9 @@ pub fn correct_file(
                     text,
                     corrected_count,
                     rewritten,
+                    introduced_non_ascii: provenance
+                        .as_ref()
+                        .is_some_and(|positions| !positions.is_empty()),
                     infinite_loop: None,
                     rollback: None,
                 },
@@ -2703,8 +2787,23 @@ pub fn correct_file(
         // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
         // 最終的な書き戻しだけは元の改行形式へ戻し、DATA のバイト列を守る。
         if preserve_crlf {
+            if let Some(positions) = &mut next_provenance {
+                let mut removed = corrected
+                    .match_indices("\r\n")
+                    .map(|(offset, _)| offset)
+                    .peekable();
+                let mut preceding = 0;
+                for position in positions {
+                    while removed.peek().is_some_and(|offset| *offset < *position) {
+                        preceding += 1;
+                        removed.next();
+                    }
+                    *position -= preceding;
+                }
+            }
             corrected = corrected.replace("\r\n", "\n");
         }
+        provenance = next_provenance;
         rewritten |= corrected != text;
 
         // Re-producing a source seen before means the passes are trading edits back and forth; the
@@ -2721,6 +2820,9 @@ pub fn correct_file(
                     text: corrected,
                     corrected_count,
                     rewritten,
+                    introduced_non_ascii: provenance
+                        .as_ref()
+                        .is_some_and(|positions| !positions.is_empty()),
                     infinite_loop: Some(format!(
                         "Infinite loop detected in {} and caused by {root_cause}",
                         path.display()
@@ -2763,6 +2865,22 @@ pub fn correct_until_stable(
     }
 }
 
+/// 書き込み前に判定できる符号化の拒否を、途中まで書いた可能性のある I/O エラーと区別する。
+#[derive(Debug)]
+pub(crate) struct CorrectionEncodingError(String);
+
+impl std::fmt::Display for CorrectionEncodingError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "the correction cannot be written back as {}",
+            self.0
+        )
+    }
+}
+
+impl std::error::Error for CorrectionEncodingError {}
+
 /// 修正後のソースを、読み込んだときの符号化で書き戻す。
 ///
 /// 本家の runner は最後に単純な `File.write` を呼ぶため、Shift_JIS のファイルも
@@ -2770,71 +2888,118 @@ pub fn correct_until_stable(
 /// 元ファイルを壊さないため、ここは意図的に本家と異なる。理由は
 /// `tests/conformance/known_divergences.yml` に記録している。
 ///
-/// この保護を適用するのは、読み込み時に符号化宣言が見えていたファイルだけ。
-/// `decoded_source` が宣言を読むのは 1 行目、shebang があれば 2 行目までだが、
-/// `Lint/OrderedMagicComments` は補正中に宣言を 1 行目へ移せる。
-/// `decoded_as_declared` はディスク上の原本を調べ、宣言が見つかった場合にだけ呼ぶ。
-/// 補正後の宣言に合わせて符号化すると、cop が触れていないバイトまで変わる。
+/// 符号化は原本から決める。Lint/OrderedMagicComments が宣言を 1 行目へ移しても、
+/// 読み込む時点で宣言が無ければ UTF-8 のバイトを別の符号化へ変換しない。
 ///
 /// 修正結果を元の符号化で表せない場合は `Err` を返し、元ファイルを残す。
-fn output_bytes(contents: &str, decoded_as_declared: impl FnOnce() -> bool) -> Result<Vec<u8>> {
-    let Some(label) = encoding_declaration(contents) else {
+fn output_bytes(contents: &str, original_label: Option<&str>) -> Result<Vec<u8>> {
+    let Some(label) = original_label else {
         return Ok(contents.as_bytes().to_vec());
     };
     // binary ソースは読み込み時と同じく 1 バイトを 1 文字として書き戻す。
-    if is_binary_label(&label) {
+    if is_binary_label(label) {
         return match contents.chars().all(|character| (character as u32) < 0x100) {
             true => Ok(contents.chars().map(|character| character as u8).collect()),
-            false => bail!("the correction cannot be written back as {label}"),
+            false => Err(CorrectionEncodingError(label.to_owned()).into()),
         };
     }
-    let Some(encoding) = encoding_for_ruby_label(&label) else {
+    // 646 など WHATWG が持たない別名も含め、Ruby の ASCII 制約を先に判定する。
+    if is_seven_bit_label(label) {
+        return if contents.is_ascii() {
+            Ok(contents.as_bytes().to_vec())
+        } else {
+            Err(CorrectionEncodingError(label.to_owned()).into())
+        };
+    }
+    let Some(encoding) = encoding_for_ruby_label(label) else {
         return Ok(contents.as_bytes().to_vec());
     };
-    if encoding == encoding_rs::UTF_8 || !decoded_as_declared() {
+    if encoding == encoding_rs::UTF_8 {
         return Ok(contents.as_bytes().to_vec());
     }
     let (bytes, _, unmappable) = encoding.encode(contents);
     match unmappable {
-        // `encode` substitutes what it cannot represent, so writing this would silently corrupt the
-        // very characters the correction was supposed to leave alone.
-        true => bail!("the correction cannot be written back as {label}"),
+        // 表せない文字を encode が代替しても、元のファイルを壊す書き戻しには使わない。
+        true => Err(CorrectionEncodingError(label.to_owned()).into()),
         false => Ok(bytes.into_owned()),
     }
 }
 
-/// Writes corrected source back over the file it was read from.
+/// WHATWG と Ruby の符号化表が異なる範囲では、新しい非 ASCII 文字を推測で符号化しない。
+/// 原本の再符号化がバイトを変える場合も拒否し、補正していない内容の消失を防ぐ。
+pub(crate) fn correction_bytes(
+    contents: &str,
+    original: &[u8],
+    introduced_non_ascii: Option<bool>,
+) -> Result<Vec<u8>> {
+    let original_label = declared_label(original);
+    let after = declared_label(contents.as_bytes());
+    // frozen コメント等で宣言が無効な位置へ移った場合、本家と同じ有効な UTF-8 を返す。
+    let output_label = original_label
+        .as_deref()
+        .filter(|_| after.as_deref().is_some_and(is_legacy_label));
+    if let Some(label) = output_label.filter(|label| is_legacy_label(label)) {
+        let same_encoding = after.as_ref().is_some_and(|after| {
+            label.eq_ignore_ascii_case(after) || (is_binary_label(label) && is_binary_label(after))
+        });
+        if !same_encoding && !contents.is_ascii() {
+            return Err(CorrectionEncodingError(label.to_owned()).into());
+        }
+        let Decoded::Text(decoded) = decoded_bytes(original.to_vec()) else {
+            return Err(CorrectionEncodingError(label.to_owned()).into());
+        };
+        if output_bytes(&decoded, Some(label))? != original {
+            return Err(CorrectionEncodingError(label.to_owned()).into());
+        }
+        // CLI は適用された編集の由来を渡す。編集情報のない公開 API は保守的に判定する。
+        let introduced = introduced_non_ascii.unwrap_or_else(|| {
+            // 編集範囲が不明な呼び出しでは、非 ASCII の変更を安全と断定できない。
+            !contents.is_ascii() && contents != decoded
+        });
+        if introduced {
+            return Err(CorrectionEncodingError(label.to_owned()).into());
+        }
+    }
+    let bytes = output_bytes(contents, output_label)?;
+    if matches!(decoded_bytes(bytes.clone()), Decoded::Undecodable(_)) {
+        let label = declared_label(&bytes).unwrap_or_else(|| "UTF-8".to_owned());
+        return Err(CorrectionEncodingError(label).into());
+    }
+    Ok(bytes)
+}
+
+fn is_legacy_label(label: &str) -> bool {
+    is_binary_label(label)
+        || is_seven_bit_label(label)
+        || encoding_for_ruby_label(label).is_some_and(|encoding| encoding != encoding_rs::UTF_8)
+}
+
+/// 原本の符号化を確認し、補正後のソースを同じパスへ書き戻す。
 ///
-/// Upstream ends in `File.write(path, ...)` (`cop/team.rb:180`), which is `O_WRONLY|O_CREAT|O_TRUNC`
-/// **on the path itself**. That matters twice, and neither is incidental: the open follows a
-/// symlink, so a corrected symlink stays a symlink and its target is what gets rewritten; and it
-/// keeps the inode, so every other name hard-linked to it sees the correction too.
+/// 本家の File.write は symlink を辿り、hard link の inode も保つ。リンクを
+/// temp file の rename で置き換えると別名が古い内容を参照し続けるため、リンク経由では
+/// 本家と同じ直接書き込みを使う。通常の単一リンクのファイルは、中断時の切り詰めを
+/// 防ぐため一時ファイルから置き換える。どちらも元の permission を保つ。
 ///
-/// Writing a temporary file beside the path and `rename(2)`-ing it over instead is atomic -- a
-/// killed writer cannot leave a half-written file -- but rename replaces the *directory entry*.
-/// A symlink is replaced by a regular file holding the corrected text while its target keeps the
-/// original, and a hard-linked inode is unlinked, dropping the link count and leaving every other
-/// name on the old text. Both are silent data loss in a repository laid out with shared files, and
-/// no message anywhere says the link is gone.
-///
-/// **So the two properties are traded per file rather than one chosen for all of them.** A plain
-/// file with a single link has no identity a rename can destroy, and that is nearly every file in
-/// nearly every run, so it keeps the atomic path. A symlink or a multiply-linked inode -- where a
-/// rename would be wrong however safe -- is written through in place, upstream's way, accepting
-/// that a process killed mid-write leaves it truncated. Correctness first: an interrupted write is
-/// recoverable from version control, a deleted hard link is not obviously *there* to recover.
-///
-/// Permissions survive either way: the temporary file is given the original's before it is
-/// persisted, and the in-place write never creates a new file to give permissions to.
+/// 編集の由来が分からない公開 API では、非 UTF-8 の非 ASCII 変更を保守的に拒否する。
+/// CLI は適用された編集の由来を持つ write_correction を使う。
 pub fn write_corrected(path: &Path, contents: &str) -> Result<()> {
-    // The file on disk is still the one that was read: the loop corrects in memory and writes once.
-    // What matters is whether the file *as read* named its own encoding, not whether the corrected
-    // text does: `Lint/OrderedMagicComments` can lift a declaration onto the first line, where the
-    // reader never saw it.
-    let bytes = output_bytes(contents, || {
-        fs::read(path).is_ok_and(|bytes| declared_label(&bytes).is_some())
-    })
-    .with_context(|| format!("refusing to rewrite {}", path.display()))?;
+    write_corrected_with_provenance(path, contents, None)
+}
+
+pub(crate) fn write_correction(path: &Path, outcome: &CorrectionOutcome) -> Result<()> {
+    write_corrected_with_provenance(path, &outcome.text, Some(outcome.introduced_non_ascii))
+}
+
+fn write_corrected_with_provenance(
+    path: &Path,
+    contents: &str,
+    introduced_non_ascii: Option<bool>,
+) -> Result<()> {
+    // メモリ上で全パスを終えてから書くため、ディスクには読み込み時の原本が残っている。
+    let original = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let bytes = correction_bytes(contents, &original, introduced_non_ascii)
+        .with_context(|| format!("refusing to rewrite {}", path.display()))?;
     if rename_would_lose_the_file(path) {
         return write_in_place(path, &bytes);
     }
@@ -3486,6 +3651,55 @@ mod tests {
     /// RuboCop's `Corrector` sets (`crossing_deletions: :accept`, `different_replacements: :raise`,
     /// `swallowed_insertions: :raise`), merged one cop at a time the way `Team` merges them.
     #[test]
+    fn legacy_character_provenance_follows_surviving_edits_across_passes() {
+        let action = |start, end, replacement: &str| {
+            super::Action::from_edit(
+                &Edit {
+                    start,
+                    end,
+                    replacement: replacement.to_owned(),
+                    safe: true,
+                },
+                (start, end),
+            )
+        };
+        let tree = super::Action::root()
+            .combine(&action(0, 2, ""))
+            .unwrap()
+            .combine(&action(3, 3, "é"))
+            .unwrap();
+        let (text, positions) = tree.rewrite("éx", Some(&[]));
+        assert_eq!(text, "xé");
+        assert_eq!(positions.as_deref(), Some([1].as_slice()));
+        let (text, positions) = action(0, 0, "_").rewrite(&text, positions.as_deref());
+        assert_eq!(text, "_xé");
+        assert_eq!(positions.as_deref(), Some([2].as_slice()));
+        let (text, positions) = action(0, text.len(), "'é'").rewrite(&text, positions.as_deref());
+        assert_eq!(text, "'é'");
+        assert_eq!(positions.as_deref(), Some([1].as_slice()));
+        let (text, positions) = action(1, 3, "").rewrite(&text, positions.as_deref());
+        assert_eq!(text, "''");
+        assert!(positions.unwrap().is_empty());
+        // 元の文字の並べ替えや、新しい文字の後続にある原本文字も由来を保つ。
+        let (_, positions) = action(0, 6, "本日").rewrite("日本", Some(&[]));
+        assert!(positions.unwrap().is_empty());
+        let (text, positions) = action(0, 3, "€日").rewrite("日", Some(&[]));
+        assert_eq!(positions.as_deref(), Some([0].as_slice()));
+        let (text, positions) = action(0, 3, "").rewrite(&text, positions.as_deref());
+        assert_eq!(text, "日");
+        assert!(positions.unwrap().is_empty());
+        // 非 ASCII を複写する置換や、取り消された挿入は新しい由来を作らない。
+        let (text, positions) = action(0, 2, "'é'").rewrite("éx", Some(&[]));
+        assert_eq!(text, "'é'x");
+        assert!(positions.unwrap().is_empty());
+        let kept = action(0, 2, "y");
+        assert!(kept.combine(&action(1, 1, "é")).is_err());
+        let (text, positions) = kept.rewrite("ab", Some(&[]));
+        assert_eq!(text, "y");
+        assert!(positions.unwrap().is_empty());
+    }
+
+    #[test]
     fn edits_compose_the_way_tree_rewriter_composes_them() {
         let source = "abcdefghij";
         // Two cops inserting at one offset both land, later text first -- the whole reason the
@@ -4027,18 +4241,62 @@ mod tests {
         // RuboCop would write UTF-8 here and leave the file claiming cp932, which no longer loads.
         let corrected = "# encoding: cp932\nx = '\u{65e5}\u{672c}'\n";
 
-        let bytes = output_bytes(corrected, || true).unwrap();
+        let bytes = output_bytes(corrected, Some("cp932")).unwrap();
 
         assert!(bytes.ends_with(b"x = '\x93\xfa\x96\x7b'\n"));
     }
 
     #[test]
     fn a_correction_that_the_declared_encoding_cannot_hold_is_refused() {
-        // Nothing in cp932 stands for an emoji, and substituting one silently would corrupt the
-        // very text the correction was meant to leave alone.
+        // cp932 にない絵文字を代替すると、補正とは無関係な元の文字まで失う。
         let corrected = "# encoding: cp932\nx = '\u{1f363}'\n";
 
-        assert!(output_bytes(corrected, || true).is_err());
+        assert!(output_bytes(corrected, Some("cp932")).is_err());
+    }
+
+    #[test]
+    fn a_seven_bit_write_refuses_non_ascii_and_preserves_the_file() {
+        for label in ["US-ASCII", "ASCII", "646"] {
+            let directory = tempdir().unwrap();
+            let path = directory.path().join("example.rb");
+            let original = format!("# coding: {label}\nx = '\\u00e9'\n");
+            std::fs::write(&path, &original).unwrap();
+            // encoding_rs では表せる é でも、Ruby の ASCII 宣言では 1 バイトも書けない。
+            let corrected = format!("# coding: {label}\nx = 'é'\n");
+            let error = write_corrected(&path, &corrected).unwrap_err();
+            assert!(error.is::<super::CorrectionEncodingError>());
+            assert_eq!(std::fs::read(&path).unwrap(), original.as_bytes());
+            let ascii = format!("# coding: {label}\nx = 1\n");
+            write_corrected(&path, &ascii).unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), ascii.as_bytes());
+        }
+    }
+
+    #[test]
+    fn a_legacy_write_keeps_original_multibyte_sequences_or_refuses_the_whole_write() {
+        for label in ["Shift_JIS", "Windows-31J"] {
+            let directory = tempdir().unwrap();
+            let path = directory.path().join("example.rb");
+            let mut original = format!("# coding: {label}\n# ").into_bytes();
+            original.extend_from_slice(b"\xED\x40\nx = 1\n");
+            std::fs::write(&path, &original).unwrap();
+            let Decoded::Text(decoded) = decoded_source(&path).unwrap() else {
+                panic!("原本の読み込みに失敗した");
+            };
+            let corrected = decoded.replace("x = 1", "x = 2");
+            assert!(write_corrected(&path, &corrected).is_err());
+            assert_eq!(std::fs::read(&path).unwrap(), original);
+        }
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        let mut original = b"# coding: cp932\nx = \"".to_vec();
+        original.extend_from_slice(b"\x93\xfa\x96\x7b\"\n");
+        std::fs::write(&path, &original).unwrap();
+        super::write_corrected_with_provenance(&path, "# coding: cp932\nx = '日本'\n", Some(false))
+            .unwrap();
+        let mut expected = b"# coding: cp932\nx = '".to_vec();
+        expected.extend_from_slice(b"\x93\xfa\x96\x7b'\n");
+        assert_eq!(std::fs::read(&path).unwrap(), expected);
     }
 
     #[test]
@@ -4048,7 +4306,7 @@ mod tests {
         // turn a three-character string into a one-character one -- a change no cop asked for.
         let corrected = "# coding: ISO-8859-15\nx = '\u{20ac}'\n";
 
-        let bytes = output_bytes(corrected, || false).unwrap();
+        let bytes = output_bytes(corrected, None).unwrap();
 
         assert_eq!(bytes, corrected.as_bytes());
     }

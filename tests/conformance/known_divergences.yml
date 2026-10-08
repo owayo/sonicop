@@ -343,16 +343,21 @@ blind_spots:
 # autocorrect のバイト一致は 4 コーパスすべてで確認済み
 # (rubocop/rubocop は -a と -A、rails/rails・Homebrew/brew・mastodon/mastodon は -A)。
 #
-# 意図的に本家と違えている箇所が 1 つだけある。本家の autocorrect は
+# 符号化の書き戻しは本家と意図的に異なる。本家の autocorrect は
 # lib/rubocop/runner.rb の File.write で終わるため、`# encoding: cp932` を宣言した
 # Shift_JIS のファイルを直すと UTF-8 のバイト列で上書きし、マジックコメントだけが
 # cp932 のまま残る。実測すると本家の出力は cp932 として読み直せず、ファイルが壊れる。
-# sonicop は宣言された符号化へ再符号化して書き戻す (src/engine.rs の output_bytes)。
+# sonicop は有効な宣言が補正後も残る場合、元の符号化を保つ。
+# Style/FrozenStringLiteralComment が宣言を無効な位置へ動かす場合は、本家の有効な UTF-8
+# に合わせる。通常の補正で元の非 UTF-8 バイトを変える必要がある場合は、全補正を拒否する。
+# encoding_rs と Ruby の表が異なるため、実際に適用された編集の元範囲から文字の由来を追う。
+# 新しい非 ASCII が最終出力に残るときは推測で符号化しない。別範囲の削除では相殺できない。
+# 途中で追加されてから削除された文字や、衝突で捨てた編集は拒否の根拠にしない。
 # 表現できない文字が出る場合は書き戻さず失敗させ、元のファイルに触れない。
 #
 # ただし**再符号化するのは、その宣言が読むときに実際に要ったファイルだけ**である。
-# decoded_source は UTF-8 を先に試すので、中身が UTF-8 で宣言だけ別のものになっている
-# ファイルは UTF-8 として読まれており、そのまま UTF-8 で書き戻す。宣言どおりに符号化すると
+# decoded_source は有効な宣言を先に適用する。補正前に宣言がコメントとして無効だった
+# ファイルは UTF-8 として読まれているので、そのまま UTF-8 で書き戻す。補正後の宣言で変換すると
 # cop が触っていないバイトが変わるうえ、Ruby は宣言を信じて読むので**文字列の中身が変わる**。
 # rails の activerecord/test/migrations/magic/1_currencies_have_symbols.rb が実例で、
 # `# coding: ISO-8859-15` と書きながら UTF-8 の `€` (e2 82 ac) を持つ。本家はこの 3 バイトを
@@ -537,6 +542,267 @@ blind_spots:
 # **再挑戦する前にここを読むこと。** `ruby -c` に両者の出力を通せば 1 分で確かめられる。
 # 直すなら `final_pos` をループにする側の変更になるので、**実データで壊れている例を先に見つけること。**
 # 見つからないうちは、構造差を抱える理由がない。
+
+# 符号化宣言と矛盾する本家の補正を再現しない。tests/cli.rs が全入力を両モードで検査する。
+# 本家の出力は RuboCop 1.89.0 / Ruby 4.0.7 の実測から記録し、原本の保持と失敗報告を監視する。
+encoding_writeback_divergences:
+  - id: latin
+    cop: Lint/LiteralInInterpolation
+    encoding: "US-ASCII"
+    source: "# coding: US-ASCII\nvalue = \"#{\"\\u00e9\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2055532d41534349490a76616c7565203d2022c3a9220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: japanese
+    cop: Lint/LiteralInInterpolation
+    encoding: "US-ASCII"
+    source: "# coding: US-ASCII\nvalue = \"#{\"\\u{3042}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2055532d41534349490a76616c7565203d2022e38182220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: latin1_euro
+    cop: Lint/LiteralInInterpolation
+    encoding: "ISO-8859-1"
+    source: "# coding: ISO-8859-1\nvalue = \"#{\"\\u{20ac}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2049534f2d383835392d310a76616c7565203d2022e282ac220a"
+    upstream_exit: 0
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: sjis_tilde
+    cop: Lint/LiteralInInterpolation
+    encoding: "Shift_JIS"
+    source: "# coding: Shift_JIS\nvalue = \"#{\"\\u{ff5e}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: sjis_circled_one
+    cop: Lint/LiteralInInterpolation
+    encoding: "Shift_JIS"
+    source: "# coding: Shift_JIS\nvalue = \"#{\"\\u{2460}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022e291a0220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: eucjp_tilde
+    cop: Lint/LiteralInInterpolation
+    encoding: "EUC-JP"
+    source: "# coding: EUC-JP\nvalue = \"#{\"\\u{ff5e}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a204555432d4a500a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+  - id: binary_unicode
+    cop: Lint/LiteralInInterpolation
+    encoding: "ASCII-8BIT"
+    source: "# coding: ASCII-8BIT\nvalue = \"#{\"\\u{3042}\"}\"\n"
+    upstream_bytes_hex: "2320636f64696e673a2041534349492d384249540a76616c7565203d2022e38182220a"
+    upstream_exit: 0
+    sonicop_exit: 2
+    modes: [safe, unsafe]
+    note: >-
+      本家は Unicode エスケープを生の UTF-8 にし、元の符号化宣言を残す。
+      ASCII では無効な Ruby、ISO-8859-1 では異なる文字列になり、Shift_JIS と EUC-JP では
+      encoding_rs と Ruby の符号化表の違いでも値が変わる。binary の Unicode 文字列も
+      元の文字エンコーディングを失う。2026-10-08 の ai-second-opinion / Claude は
+      データ破壊を再現せず、新しい非 ASCII を推測で符号化しない方針を承認した。
+      移植版は原本のバイトと初期診断を返し、corrected を false とし、存在しない fatal は
+      報告しない。stderr に符号化の拒否を示し、fail-level によらず終了 2、他ファイルは続行する。
+      stdin も原本を返す。仕様版更新時に本家を再測定し、安全に直れば登録を削除する。
+
+encoding_edit_provenance_divergences:
+  - id: mixed-Shift_JIS-safe
+    encoding: "Shift_JIS"
+    cops: "Lint/DuplicateRequire,Lint/LiteralInInterpolation"
+    mode: safe
+    source_hex: "2320636f64696e673a2053686966745f4a49530a7265717569726520228160220a7265717569726520228160220a76616c7565203d2022237b225c757b666635657d227d220a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a726571756972652022e3809c220a726571756972652022e3809c220a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      別範囲から非 ASCII を削除しても、補間補正が挿入する Unicode の安全性は保証できない。
+      本家は元の符号化宣言を残して UTF-8 を書き、Shift_JIS は構文エラーになる。
+      ISO-8859-1 の文字列も異なる値になる。encoding_rs に任せる旧実装では削除と追加が
+      全体の文字数を相殺し、Shift_JIS の全角チルダが波ダッシュ、ISO-8859-1 の Euro が
+      制御文字になる。2026-10-08 の ai-second-opinion / Claude は編集範囲ごとに由来を
+      検査して原本を保護する方針を承認した。移植版は全補正を拒否し、stdin も元バイトを返す。
+      stderr に失敗を出し終了 2、他ファイルを続行する。本家の実出力を両モードで測定済み。
+      仕様版更新時に再検証し、本家が原本の値を保つようになったら削除する。
+  - id: mixed-Shift_JIS-unsafe
+    encoding: "Shift_JIS"
+    cops: "Lint/DuplicateRequire,Lint/LiteralInInterpolation"
+    mode: unsafe
+    source_hex: "2320636f64696e673a2053686966745f4a49530a7265717569726520228160220a7265717569726520228160220a76616c7565203d2022237b225c757b666635657d227d220a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a726571756972652022e3809c220a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      別範囲から非 ASCII を削除しても、補間補正が挿入する Unicode の安全性は保証できない。
+      本家は元の符号化宣言を残して UTF-8 を書き、Shift_JIS は構文エラーになる。
+      ISO-8859-1 の文字列も異なる値になる。encoding_rs に任せる旧実装では削除と追加が
+      全体の文字数を相殺し、Shift_JIS の全角チルダが波ダッシュ、ISO-8859-1 の Euro が
+      制御文字になる。2026-10-08 の ai-second-opinion / Claude は編集範囲ごとに由来を
+      検査して原本を保護する方針を承認した。移植版は全補正を拒否し、stdin も元バイトを返す。
+      stderr に失敗を出し終了 2、他ファイルを続行する。本家の実出力を両モードで測定済み。
+      仕様版更新時に再検証し、本家が原本の値を保つようになったら削除する。
+  - id: mixed-ISO-8859-1-safe
+    encoding: "ISO-8859-1"
+    cops: "Lint/DuplicateRequire,Lint/LiteralInInterpolation"
+    mode: safe
+    source_hex: "2320636f64696e673a2049534f2d383835392d310a72657175697265202280220a72657175697265202280220a76616c7565203d2022237b225c757b323061637d227d220a"
+    upstream_bytes_hex: "2320636f64696e673a2049534f2d383835392d310a726571756972652022c280220a726571756972652022c280220a76616c7565203d2022e282ac220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      別範囲から非 ASCII を削除しても、補間補正が挿入する Unicode の安全性は保証できない。
+      本家は元の符号化宣言を残して UTF-8 を書き、Shift_JIS は構文エラーになる。
+      ISO-8859-1 の文字列も異なる値になる。encoding_rs に任せる旧実装では削除と追加が
+      全体の文字数を相殺し、Shift_JIS の全角チルダが波ダッシュ、ISO-8859-1 の Euro が
+      制御文字になる。2026-10-08 の ai-second-opinion / Claude は編集範囲ごとに由来を
+      検査して原本を保護する方針を承認した。移植版は全補正を拒否し、stdin も元バイトを返す。
+      stderr に失敗を出し終了 2、他ファイルを続行する。本家の実出力を両モードで測定済み。
+      仕様版更新時に再検証し、本家が原本の値を保つようになったら削除する。
+  - id: mixed-ISO-8859-1-unsafe
+    encoding: "ISO-8859-1"
+    cops: "Lint/DuplicateRequire,Lint/LiteralInInterpolation"
+    mode: unsafe
+    source_hex: "2320636f64696e673a2049534f2d383835392d310a72657175697265202280220a72657175697265202280220a76616c7565203d2022237b225c757b323061637d227d220a"
+    upstream_bytes_hex: "2320636f64696e673a2049534f2d383835392d310a726571756972652022c280220a76616c7565203d2022e282ac220a"
+    upstream_exit: 0
+    sonicop_exit: 2
+    note: >-
+      別範囲から非 ASCII を削除しても、補間補正が挿入する Unicode の安全性は保証できない。
+      本家は元の符号化宣言を残して UTF-8 を書き、Shift_JIS は構文エラーになる。
+      ISO-8859-1 の文字列も異なる値になる。encoding_rs に任せる旧実装では削除と追加が
+      全体の文字数を相殺し、Shift_JIS の全角チルダが波ダッシュ、ISO-8859-1 の Euro が
+      制御文字になる。2026-10-08 の ai-second-opinion / Claude は編集範囲ごとに由来を
+      検査して原本を保護する方針を承認した。移植版は全補正を拒否し、stdin も元バイトを返す。
+      stderr に失敗を出し終了 2、他ファイルを続行する。本家の実出力を両モードで測定済み。
+      仕様版更新時に再検証し、本家が原本の値を保つようになったら削除する。
+  - id: same-scope-Shift_JIS-safe
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralInInterpolation"
+    mode: safe
+    source_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022237b20228160223b20225c757b666635657d22207d220a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      同じ補間内でも先行文は値の由来にならない。置換範囲全体から文字を拾うと、捨てる
+      先行文字列の文字が Unicode エスケープから生成された文字を相殺し、値を変えてしまう。
+      Shift_JIS は U+FF5E が U+301C、ISO-8859-1 は Euro が制御文字になる。
+      本家も宣言を残して UTF-8 を書くので Shift_JIS は構文エラー、ISO-8859-1 は値が変わる。
+      2026-10-08 の Codex レビューで最小例を確認し、Claude が承認した符号化保護の範囲として
+      元バイトを保持する。補間の最後のリテラルだけを文字の由来として渡す。stderr に拒否を
+      示して終了 2、後続ファイルを続行する。stdin も原本を返す。本家を両モードで実測済み。
+      仕様版更新時に再測定し、本家の補正が元の値を保つようになったら削除する。
+  - id: same-scope-Shift_JIS-unsafe
+    encoding: "Shift_JIS"
+    cops: "Lint/LiteralInInterpolation"
+    mode: unsafe
+    source_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022237b20228160223b20225c757b666635657d22207d220a"
+    upstream_bytes_hex: "2320636f64696e673a2053686966745f4a49530a76616c7565203d2022efbd9e220a"
+    upstream_exit: 1
+    sonicop_exit: 2
+    note: >-
+      同じ補間内でも先行文は値の由来にならない。置換範囲全体から文字を拾うと、捨てる
+      先行文字列の文字が Unicode エスケープから生成された文字を相殺し、値を変えてしまう。
+      Shift_JIS は U+FF5E が U+301C、ISO-8859-1 は Euro が制御文字になる。
+      本家も宣言を残して UTF-8 を書くので Shift_JIS は構文エラー、ISO-8859-1 は値が変わる。
+      2026-10-08 の Codex レビューで最小例を確認し、Claude が承認した符号化保護の範囲として
+      元バイトを保持する。補間の最後のリテラルだけを文字の由来として渡す。stderr に拒否を
+      示して終了 2、後続ファイルを続行する。stdin も原本を返す。本家を両モードで実測済み。
+      仕様版更新時に再測定し、本家の補正が元の値を保つようになったら削除する。
+  - id: same-scope-ISO-8859-1-safe
+    encoding: "ISO-8859-1"
+    cops: "Lint/LiteralInInterpolation"
+    mode: safe
+    source_hex: "2320636f64696e673a2049534f2d383835392d310a76616c7565203d2022237b202280223b20225c757b323061637d22207d220a"
+    upstream_bytes_hex: "2320636f64696e673a2049534f2d383835392d310a76616c7565203d2022e282ac220a"
+    upstream_exit: 0
+    sonicop_exit: 2
+    note: >-
+      同じ補間内でも先行文は値の由来にならない。置換範囲全体から文字を拾うと、捨てる
+      先行文字列の文字が Unicode エスケープから生成された文字を相殺し、値を変えてしまう。
+      Shift_JIS は U+FF5E が U+301C、ISO-8859-1 は Euro が制御文字になる。
+      本家も宣言を残して UTF-8 を書くので Shift_JIS は構文エラー、ISO-8859-1 は値が変わる。
+      2026-10-08 の Codex レビューで最小例を確認し、Claude が承認した符号化保護の範囲として
+      元バイトを保持する。補間の最後のリテラルだけを文字の由来として渡す。stderr に拒否を
+      示して終了 2、後続ファイルを続行する。stdin も原本を返す。本家を両モードで実測済み。
+      仕様版更新時に再測定し、本家の補正が元の値を保つようになったら削除する。
+  - id: same-scope-ISO-8859-1-unsafe
+    encoding: "ISO-8859-1"
+    cops: "Lint/LiteralInInterpolation"
+    mode: unsafe
+    source_hex: "2320636f64696e673a2049534f2d383835392d310a76616c7565203d2022237b202280223b20225c757b323061637d22207d220a"
+    upstream_bytes_hex: "2320636f64696e673a2049534f2d383835392d310a76616c7565203d2022e282ac220a"
+    upstream_exit: 0
+    sonicop_exit: 2
+    note: >-
+      同じ補間内でも先行文は値の由来にならない。置換範囲全体から文字を拾うと、捨てる
+      先行文字列の文字が Unicode エスケープから生成された文字を相殺し、値を変えてしまう。
+      Shift_JIS は U+FF5E が U+301C、ISO-8859-1 は Euro が制御文字になる。
+      本家も宣言を残して UTF-8 を書くので Shift_JIS は構文エラー、ISO-8859-1 は値が変わる。
+      2026-10-08 の Codex レビューで最小例を確認し、Claude が承認した符号化保護の範囲として
+      元バイトを保持する。補間の最後のリテラルだけを文字の由来として渡す。stderr に拒否を
+      示して終了 2、後続ファイルを続行する。stdin も原本を返す。本家を両モードで実測済み。
+      仕様版更新時に再測定し、本家の補正が元の値を保つようになったら削除する。
 
 divergences:
   - cop: Layout/SpaceAroundOperators
@@ -806,3 +1072,45 @@ divergences:
       (Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)
     sonicop: (検出なし)
     note: 本家は正規表現リテラルを Ruby の Regexp.new に通し、Onigmo の例外文面をそのまま診断にする。移植には Onigmo の検証とメッセージ生成が要る (実コーパスでは ruby/ruby の test/ruby/enc/test_windows_1252.rb だけが踏む)
+  - cop: Style/ItBlockParameter
+    case: style_it_block_parameter_nested_parameter_safe
+    kind: correction
+    upstream: "outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n"
+    sonicop: |
+      outer do |transaction|
+        real = transaction
+        inner do |transaction|
+          save = transaction
+        end
+      end
+    note: >-
+      RuboCop 1.89.0 の Style/ItBlockParameter は同名引数を持つ内側の参照まで it に置き換え、
+      内側の引数宣言を残す。TargetRubyVersion 3.4 の本家自身が次のパスで 4:12、長さ 2 の
+      Lint/Syntax fatal を出し、ruby -c も拒否する。2026-10-08 の ai-second-opinion / Claude は
+      ドロップイン互換より有効な原本の保持を優先し、自己誘発構文エラーの書き込み拒否を承認した。
+      移植版はこのファイルの全補正を戻すため元のバイト列と未補正の診断を返し、corrected は false、
+      存在しない Lint/Syntax fatal は出さない。stderr に補正失敗を明示し、fail-level によらず
+      終了コード 2 を返す。本家の終了コードは 1。stdin も元のバッファを返し、他のファイルは処理する。
+      本家の lib/rubocop/cop/style/it_block_parameter.rb と実出力を確認済み。
+      仕様版の更新時に再検証し、本家が有効な補正を出すようになったら登録を削除する。
+  - cop: Style/ItBlockParameter
+    case: style_it_block_parameter_nested_parameter_unsafe
+    kind: correction
+    upstream: "outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n"
+    sonicop: |
+      outer do |transaction|
+        real = transaction
+        inner do |transaction|
+          save = transaction
+        end
+      end
+    note: >-
+      RuboCop 1.89.0 の Style/ItBlockParameter は同名引数を持つ内側の参照まで it に置き換え、
+      内側の引数宣言を残す。TargetRubyVersion 3.4 の本家自身が次のパスで 4:12、長さ 2 の
+      Lint/Syntax fatal を出し、ruby -c も拒否する。2026-10-08 の ai-second-opinion / Claude は
+      ドロップイン互換より有効な原本の保持を優先し、自己誘発構文エラーの書き込み拒否を承認した。
+      移植版はこのファイルの全補正を戻すため元のバイト列と未補正の診断を返し、corrected は false、
+      存在しない Lint/Syntax fatal は出さない。stderr に補正失敗を明示し、fail-level によらず
+      終了コード 2 を返す。本家の終了コードは 1。stdin も元のバッファを返し、他のファイルは処理する。
+      本家の lib/rubocop/cop/style/it_block_parameter.rb と実出力を確認済み。
+      仕様版の更新時に再検証し、本家が有効な補正を出すようになったら登録を削除する。

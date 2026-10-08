@@ -1,0 +1,10 @@
+期待値の出典: RuboCop 1.89.0 の実出力
+測定日: 2026-10-08
+Ruby: 4.0.7
+設定: --force-default-config --cache false
+補正: --only の cop 集合を各レコードに記録し -A で実行
+入力と出力: source_hex / upstream_hex はファイルの生バイト
+全 4 ケースの出力を ruby -c で検査し、終了 0 を確認した。
+CP932 宣言が有効でなくなる位置へ動くため、出力は本家と同じ UTF-8。
+符号化表の別表現 ED40 と shebang を含める。
+tests/cli.rs でディスクと stdin の実バイトを突き合わせる。

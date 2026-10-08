@@ -104,6 +104,8 @@ pub struct Offense {
     /// `insert_before(processed_source.buffer.source_range, ...)`, so its insertion is the parent
     /// of everything else corrected in the file rather than a child of whatever covers the head.
     pub correction_anchor: Option<(usize, usize)>,
+    /// 置換後の文字が実際に由来するソース範囲。補間の先行文など、捨てる範囲を除く。
+    pub(crate) correction_characters_from: Option<(usize, usize)>,
     /// Set for edits the cop scheduled outside `add_offense`, which is where `Cop::Base#correct`
     /// puts a rewrite belonging to no single offense. The offense keeps the `:unsupported` status
     /// it was reported with -- neither `correctable` nor ever stamped corrected -- while the edits
@@ -140,6 +142,7 @@ impl Offense {
             justification: None,
             corrections: Vec::new(),
             correction_anchor: None,
+            correction_characters_from: None,
             corrections_detached: false,
             snapshot: None,
             length_override: None,
@@ -159,6 +162,12 @@ impl Offense {
     /// `insert_after` range is not the range they reported. See [`Offense::correction_anchor`].
     pub fn corrections_anchored_at(mut self, range: Range<usize>) -> Self {
         self.correction_anchor = Some((range.start, range.end.max(range.start)));
+        self
+    }
+
+    /// 値を作る補正では、置換範囲と値の出典の範囲が一致しないことがある。
+    pub(crate) fn correction_characters_from(mut self, range: Range<usize>) -> Self {
+        self.correction_characters_from = Some((range.start, range.end.max(range.start)));
         self
     }
 
