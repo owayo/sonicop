@@ -1660,7 +1660,7 @@ type Combined = Result<Action, Clobbering>;
 /// That asymmetry is the whole point: two cops inserting at one offset both land, while two cops
 /// replacing the same text cannot, so reproducing RuboCop's output byte for byte means reproducing
 /// the tree rather than any single "keep one, drop the other" rule.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct Action {
     begin_pos: usize,
     end_pos: usize,
@@ -1761,10 +1761,8 @@ impl Action {
         }
     }
 
-    /// Upstream's `Action#with`, which drops the children of any action that carries a replacement
-    /// -- the replacement covers their whole range, so the text they acted on is gone. Losing a
-    /// deletion that way is silent; losing an insertion is the `swallowed_insertions` clobbering
-    /// that RuboCop's `Corrector` asks to be raised.
+    /// 本家の `Action#with` は置換に含まれる子を捨てる。削除は黙って失われるが、
+    /// 挿入を飲み込む場合は RuboCop の `swallowed_insertions` と同じ衝突にする。
     fn with(&self, children: Vec<Action>, replacement: Option<String>) -> Combined {
         let children = match replacement.is_some() {
             true if children.iter().any(Action::inserts) => return Err(Clobbering),
@@ -1772,15 +1770,18 @@ impl Action {
             false => children,
         };
         Ok(Self {
+            begin_pos: self.begin_pos,
+            end_pos: self.end_pos,
+            insert_before: self.insert_before.clone(),
+            insert_after: self.insert_after.clone(),
             replacement,
+            characters_from: self.characters_from,
             children,
-            ..self.clone()
         })
     }
 
-    /// Two actions on the same range. The later insertion wraps around the earlier one, and a
-    /// replacement supersedes an absent one -- but RuboCop asks for `different_replacements` to be
-    /// raised, so two cops replacing the same text with different text clobber.
+    /// 同じ範囲の挿入は後の文字列が外側へ回る。異なる置換は本家の
+    /// different_replacements と同じ衝突にする。値の出典も置換と一緒に保つ。
     fn merge(&self, action: &Action) -> Combined {
         if let (Some(ours), Some(theirs)) = (&self.replacement, &action.replacement)
             && ours != theirs
@@ -1808,10 +1809,87 @@ impl Action {
         merged.combine_children(&action.children)
     }
 
-    fn combine_children(self, children: &[Action]) -> Combined {
-        children
-            .iter()
-            .try_fold(self, |parent, child| parent.place_in_hierarchy(child))
+    /// 既存の子より後ろに離れた補正だけは、階層も衝突判定も変わらず末尾に足せる。
+    /// 同じ位置の挿入は後から来た文字列が外側になるため、接する範囲も通常経路へ回す。
+    /// 全件を先に調べ、失敗時には途中まで追加しない。
+    fn append_disjoint_children(&mut self, children: &[Action]) -> bool {
+        if self.replacement.is_some() || children.is_empty() {
+            return false;
+        }
+        let mut previous_end = self.children.last().map(|child| child.end_pos);
+        for child in children {
+            if child.begin_pos > child.end_pos
+                || child.begin_pos < self.begin_pos
+                || child.end_pos > self.end_pos
+                || previous_end.is_some_and(|end| end >= child.begin_pos)
+            {
+                return false;
+            }
+            previous_end = Some(child.end_pos);
+        }
+        self.children.extend_from_slice(children);
+        true
+    }
+
+    fn combine_children(mut self, children: &[Action]) -> Combined {
+        if self.merge_disjoint_children(children) {
+            return Ok(self);
+        }
+        for child in children {
+            if !self.append_disjoint_children(std::slice::from_ref(child)) {
+                self = self.place_in_hierarchy(child)?;
+            }
+        }
+        Ok(self)
+    }
+
+    /// 交互に並ぶ別 cop の補正も、離れた兄弟だけなら階層を組み直す必要がない。
+    /// 入力同士と既存の子との境界を先に確認し、衝突時は親を変更せず通常経路へ返す。
+    fn merge_disjoint_children(&mut self, children: &[Action]) -> bool {
+        if self.replacement.is_some() || children.is_empty() {
+            return false;
+        }
+        let mut previous_end = None;
+        let mut existing = 0;
+        for child in children {
+            if child.is_empty()
+                || child.begin_pos > child.end_pos
+                || child.begin_pos < self.begin_pos
+                || child.end_pos > self.end_pos
+                || (child.begin_pos == self.begin_pos && child.end_pos == self.end_pos)
+                || previous_end.is_some_and(|end| end >= child.begin_pos)
+            {
+                return false;
+            }
+            while self
+                .children
+                .get(existing)
+                .is_some_and(|old| old.end_pos < child.begin_pos)
+            {
+                existing += 1;
+            }
+            if self
+                .children
+                .get(existing)
+                .is_some_and(|old| old.begin_pos <= child.end_pos)
+            {
+                return false;
+            }
+            previous_end = Some(child.end_pos);
+        }
+
+        let count = self.children.len() + children.len();
+        let mut old = std::mem::take(&mut self.children).into_iter().peekable();
+        let mut merged = Vec::with_capacity(count);
+        for child in children {
+            while old.peek().is_some_and(|old| old.end_pos < child.begin_pos) {
+                merged.push(old.next().expect("直前に存在を確認した子"));
+            }
+            merged.push(child.clone());
+        }
+        merged.extend(old);
+        self.children = merged;
+        true
     }
 
     fn place_in_hierarchy(&self, action: &Action) -> Combined {
@@ -2308,9 +2386,15 @@ fn corrected_text_with_provenance(
             continue;
         }
         // Team#merge_corrector! と同じく、衝突した cop の補正はこのファイルで全件捨てる。
-        match run.clone().combine_children(&cop.children) {
-            Ok(merged) => {
+        let merged = if run.merge_disjoint_children(&cop.children) {
+            Ok(())
+        } else {
+            run.clone().combine_children(&cop.children).map(|merged| {
                 run = merged;
+            })
+        };
+        match merged {
+            Ok(()) => {
                 applied += placed.len();
                 trace_outcome("apply", cop_name);
                 if trace::enabled() {
@@ -2362,10 +2446,9 @@ fn correction_candidates(
     candidates
 }
 
-/// Builds one cop's corrector and returns the offenses whose edits it accepted.
+/// cop の corrector を組み立て、補正を受け入れた offense を返す。
 fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (Action, Vec<usize>) {
-    // An offense that cannot be placed is the cop error RuboCop reports and steps over, so it costs
-    // that offense alone rather than discarding the rest of the cop's corrections.
+    // 本家は配置できない offense だけを捨て、同じ cop の残りの補正は保つ。
     let mut cop = Action::root();
     let mut placed = Vec::new();
     for &index in group {
@@ -2378,8 +2461,7 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
                 );
             }
         }
-        // `combine` rather than `combine_children`: it is the entry point that drops an edit asking
-        // for nothing at all, the way `Corrector#replace` and friends do.
+        // `Corrector#replace` と同様、何もしない編集を除く入口の `combine` を使う。
         let anchor = anchor_range(&report.offenses[index], source);
         let offense =
             report.offenses[index]
@@ -2394,22 +2476,23 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
             if trace::enabled() {
                 eprintln!("      ★ この offense の中で衝突");
             }
-            // The guard that names a corrector written twice over. Reaching it from here covers
-            // every cop; the cop-side path only sees the four that reparse their own correction.
+            // 同じ corrector への二重書き込みを、再解析する cop に限らずここで監視する。
             trace::overlap(report, index, "offense-tree");
             continue;
         };
         if offense.children.is_empty() {
             continue;
         }
-        let Ok(merged) = cop.clone().combine_children(&offense.children) else {
-            if trace::enabled() {
-                eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
-            }
-            trace::overlap(report, index, "cop-tree");
-            continue;
-        };
-        cop = merged;
+        if !cop.append_disjoint_children(&offense.children) {
+            let Ok(merged) = cop.clone().combine_children(&offense.children) else {
+                if trace::enabled() {
+                    eprintln!("      ★ cop の corrector に入らなかった (この offense だけ捨てた)");
+                }
+                trace::overlap(report, index, "cop-tree");
+                continue;
+            };
+            cop = merged;
+        }
         placed.push(index);
         trace_edits(
             report.offenses[index].cop_name,
@@ -2590,27 +2673,21 @@ impl CorrectionLog {
     }
 }
 
-/// The result of driving autocorrect to a fixed point.
+/// 補正が収束するまで反復した結果と、書き戻しの成否。
 pub struct CorrectionOutcome {
     pub report: FileReport,
     pub text: String,
     pub corrected_count: usize,
-    /// `Team#updated_source_file?`: whether any pass produced text differing from what it ran on,
-    /// which is what decides the file is written back. Not every rewrite is credited to an offense
-    /// -- see [`Offense::corrected_without_status`] -- so the count of corrected offenses cannot
-    /// stand in for it.
+    /// Team#updated_source_file? と同じく、実際のテキスト変更が書き戻しを決める。
+    /// corrected_without_status の編集は診断の修正件数に入らないため、件数では代用できない。
     pub rewritten: bool,
     /// 最終出力に残る、元の編集範囲に由来しない非 ASCII 文字。
     pub(crate) introduced_non_ascii: bool,
-    /// Set when the passes never settled. RuboCop reports this per file, still writes the last
-    /// corrected text, and keeps inspecting the rest of the run.
+    /// 本家は非収束をファイルごとに報告し、最後の補正を残して残りの検査を続ける。
     pub infinite_loop: Option<String>,
-    /// Set when the corrections were withheld because writing them would have left a file Ruby can
-    /// no longer parse. The text is then the source exactly as it was read.
-    ///
-    /// This is not an offense. Reporting it as `Lint/Syntax` would point at a syntax error the
-    /// reader cannot find, because the file on disk is the one that parses. It is an autocorrect
-    /// failure: nothing was corrected, and the run must not end in success.
+    /// 有効な原本を構文エラーにする補正を取り消したときに設定する。
+    /// ディスクには有効な原本が残るため、存在しない Lint/Syntax は報告しない。
+    /// 未補正の診断を返し、補正失敗として終了する。
     pub rollback: Option<String>,
 }
 
@@ -2723,8 +2800,7 @@ pub fn correct_file(
 
     let original = text.clone();
     let preserve_crlf = uses_crlf_only(&original);
-    // A file the parser already rejected cannot be made worse by correcting it, and RuboCop does
-    // correct such files. Only a source that started out valid is protected.
+    // 本家は無効な入力も補正するため、元から有効だったファイルだけを保護する。
     let started_valid = !holds_fatal_syntax(&report);
     let path = report.path.clone();
     let mut log = CorrectionLog::default();
@@ -2734,15 +2810,12 @@ pub fn correct_file(
     let mut provenance = declared_label(original.as_bytes())
         .filter(|label| is_legacy_label(label))
         .map(|_| Vec::new());
-    // Every pass re-inspects the same file under the same configuration, so the plan is resolved
-    // once for the whole fixed-point loop.
+    // 全パスで同じファイル・設定を使うため、規則の計画は反復前に一度だけ解決する。
     let plan = RulePlan::build(config, selection);
-    // `Runner#add_redundant_disables` runs once, after the loop has settled, and the loop that
-    // follows it does not carry the directive cop at all.
+    // Runner#add_redundant_disables は収束後に一度だけ走り、その後の反復には持ち込まない。
     let mut directives_pending = plan.checks_directives();
-    // `Runner#loop_until_no_offense` raises once a **201st** pass is asked for, so 200 of them
-    // actually run. A cop that grows the file every time leaves exactly that many marks behind, and
-    // an off-by-one here is visible in the file it gives up on.
+    // 本家は 201 パス目の要求時に止めるため、実際には 200 回だけ補正する。
+    // ファイルを増やす cop では一回のずれが残る内容を変える。
     for pass in 0..MAX_CORRECTION_PASSES {
         let (mut corrected, mut count, mut next_provenance) = corrected_text_with_provenance(
             &mut report,
@@ -2806,8 +2879,7 @@ pub fn correct_file(
         provenance = next_provenance;
         rewritten |= corrected != text;
 
-        // Re-producing a source seen before means the passes are trading edits back and forth; the
-        // repeat tells us which pass the cycle closed on.
+        // 既出のソースへ戻ったら、補正を交換し続ける循環として起点を報告する。
         let corrected_digest = digest(&corrected);
         let repeated = sources.iter().position(|seen| *seen == corrected_digest);
         if pass + 1 == MAX_CORRECTION_PASSES || repeated.is_some() {
@@ -3645,6 +3717,238 @@ mod tests {
             offenses,
         };
         corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0
+    }
+
+    #[test]
+    fn disjoint_corrections_keep_a_clashing_offense_atomic() {
+        let source = "a\n".repeat(2048);
+        // 本家の Corrector に各 a の置換を積んだ実出力は、全行 b になる。
+        let mut offenses: Vec<_> = (0..2048)
+            .map(|line| {
+                let start = line * 2;
+                Offense::new("Layout/A", Severity::Convention, "test", start, start + 1)
+                    .corrected_by_all([Edit {
+                        start,
+                        end: start + 1,
+                        replacement: "b".to_owned(),
+                        safe: true,
+                    }])
+            })
+            .collect();
+        // 新しい範囲の編集を先に渡しても、同じ offense の衝突があれば両方を捨てる。
+        offenses.push(
+            Offense::new("Layout/A", Severity::Convention, "test", 0, source.len())
+                .corrected_by_all([
+                    Edit {
+                        start: source.len() - 1,
+                        end: source.len(),
+                        replacement: "*".to_owned(),
+                        safe: true,
+                    },
+                    Edit {
+                        start: 0,
+                        end: 1,
+                        replacement: "c".to_owned(),
+                        safe: true,
+                    },
+                ]),
+        );
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", source),
+            offenses,
+        };
+        let (corrected, applied) =
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+        assert_eq!(corrected, "b\n".repeat(2048));
+        assert_eq!(applied, 2048);
+        assert!(
+            report.offenses[..2048]
+                .iter()
+                .all(|offense| offense.corrected)
+        );
+        assert!(!report.offenses[2048].corrected);
+    }
+
+    #[test]
+    fn appending_disjoint_corrections_preserves_wrapping_and_empty_ranges() {
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", "abc".to_owned()),
+            offenses: vec![
+                Offense::new("Layout/A", Severity::Convention, "test", 0, 1).corrected_by(Edit {
+                    start: 0,
+                    end: 1,
+                    replacement: "A".to_owned(),
+                    safe: true,
+                }),
+                Offense::new("Layout/A", Severity::Convention, "test", 2, 3).corrected_by(Edit {
+                    start: 2,
+                    end: 2,
+                    replacement: "(".to_owned(),
+                    safe: true,
+                }),
+                Offense::new("Layout/A", Severity::Convention, "test", 2, 3).corrected_by(Edit {
+                    start: 2,
+                    end: 2,
+                    replacement: ")".to_owned(),
+                    safe: true,
+                }),
+                Offense::new("Layout/A", Severity::Convention, "test", 1, 3).corrected_by_all([
+                    Edit {
+                        start: 1,
+                        end: 1,
+                        replacement: "[".to_owned(),
+                        safe: true,
+                    },
+                    Edit {
+                        start: 3,
+                        end: 3,
+                        replacement: "]".to_owned(),
+                        safe: true,
+                    },
+                ]),
+            ],
+        };
+        // RuboCop 1.89.0 の Corrector に同じアンカーを渡して得た順序を固定する。
+        let (corrected, applied) =
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+        assert_eq!(corrected, "A[b)(c]");
+        assert_eq!(applied, 4);
+        assert!(report.offenses.iter().all(|offense| offense.corrected));
+        assert_eq!(
+            composed("abc", &[("", &[&[(3, 3, "x")], &[(3, 3, "y")]])]),
+            "abcyx"
+        );
+    }
+
+    #[test]
+    fn merging_disjoint_batches_matches_the_original_hierarchy() {
+        use super::Action;
+
+        let action = |begin, end, text: &str| Action {
+            begin_pos: begin,
+            end_pos: end,
+            insert_before: String::new(),
+            insert_after: String::new(),
+            replacement: Some(text.to_owned()),
+            characters_from: None,
+            children: Vec::new(),
+        };
+        // 置換・削除・空範囲の挿入・入れ子を持つアンカーを、旧階層構築と比較する。
+        for seed in 0..96 {
+            let mut original = Action::root();
+            let mut incoming = Vec::new();
+            for position in 0..24 {
+                let begin = position * 8;
+                let mut child = action(begin, begin + 1, "x");
+                match (position + seed) % 4 {
+                    0 => child.replacement = Some(String::new()),
+                    1 => {
+                        child.end_pos = begin;
+                        child.replacement = None;
+                        child.insert_before = "!".to_owned();
+                    }
+                    2 => {
+                        child.end_pos = begin + 3;
+                        child.replacement = None;
+                        child.insert_before = "[".to_owned();
+                        child.insert_after = "]".to_owned();
+                        child.children = vec![action(begin + 1, begin + 2, "y")];
+                    }
+                    _ => {}
+                }
+                if (position + seed) % 3 == 0 {
+                    incoming.push(child);
+                } else {
+                    original = original.place_in_hierarchy(&child).unwrap();
+                }
+            }
+            let mut expected = original.clone();
+            for child in &incoming {
+                expected = expected.place_in_hierarchy(child).unwrap();
+            }
+            assert!(original.merge_disjoint_children(&incoming));
+            assert_eq!(original, expected);
+        }
+
+        let mut parent = Action::root();
+        parent.begin_pos = 2;
+        parent.end_pos = 20;
+        parent.children = vec![action(4, 5, "a"), action(5, 6, "b")];
+        let endpoints = [action(2, 3, "c"), action(19, 20, "d")];
+        let mut expected = parent.clone();
+        for child in &endpoints {
+            expected = expected.place_in_hierarchy(child).unwrap();
+        }
+        assert!(parent.merge_disjoint_children(&endpoints));
+        assert_eq!(parent, expected);
+
+        for incoming in [
+            vec![action(3, 4, "touch")],
+            vec![action(4, 5, "clash")],
+            vec![action(3, 7, "nested")],
+            vec![action(12, 13, "later"), action(9, 10, "earlier")],
+            vec![action(21, 22, "outside")],
+            vec![action(2, 20, "parent")],
+        ] {
+            let before = parent.clone();
+            assert!(!parent.merge_disjoint_children(&incoming));
+            assert_eq!(parent, before);
+        }
+        parent.replacement = Some(String::new());
+        let before = parent.clone();
+        assert!(!parent.merge_disjoint_children(&[action(8, 9, "kept")]));
+        assert_eq!(parent, before);
+    }
+
+    #[test]
+    fn interleaved_cop_batches_keep_a_late_clash_atomic() {
+        let source = "a b\n".repeat(2048);
+        let mut offenses = Vec::new();
+        for (cop, offset, replacement) in [("Layout/A", 0, "A"), ("Layout/B", 2, "B")] {
+            for line in 0..2048 {
+                let start = line * 4 + offset;
+                offenses.push(
+                    Offense::new(cop, Severity::Convention, "test", start, start + 1).corrected_by(
+                        Edit {
+                            start,
+                            end: start + 1,
+                            replacement: replacement.to_owned(),
+                            safe: true,
+                        },
+                    ),
+                );
+            }
+        }
+        offenses.push(
+            Offense::new("Layout/C", Severity::Convention, "test", 0, source.len())
+                .corrected_by_all([
+                    Edit {
+                        start: 0,
+                        end: 1,
+                        replacement: "clash".to_owned(),
+                        safe: true,
+                    },
+                    Edit {
+                        start: source.len() - 1,
+                        end: source.len(),
+                        replacement: "must not land".to_owned(),
+                        safe: true,
+                    },
+                ]),
+        );
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", source),
+            offenses,
+        };
+        let (corrected, applied) =
+            corrected_text(&mut report, CorrectMode::All, Correcting::Everything);
+        assert_eq!(corrected, "A B\n".repeat(2048));
+        assert_eq!(applied, 4096);
+        // 本家はチームの衝突で捨てた cop も corrected のまま報告する。
+        assert!(report.offenses.iter().all(|offense| offense.corrected));
     }
 
     /// Every expectation below is what `Parser::Source::TreeRewriter` produces under the policies
