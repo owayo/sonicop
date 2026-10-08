@@ -409,6 +409,170 @@ fn yaml_legacy_booleans_preserve_quoted_strings() {
 }
 
 #[test]
+fn typed_cop_settings_match_recorded_upstream_reports_and_disk_bytes() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/typed_cop_settings.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert_eq!(cases.len(), 104);
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let cop = case["cop"].as_str().unwrap();
+        let directory =
+            project_with_ruby(&[("example.rb", case["source"].as_str().unwrap())], "2.7");
+        // 引用符とタグの区別を試すので、YAML の再シリアライズを経由しない。
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["yaml"].as_str().unwrap(),
+        )
+        .unwrap();
+        for (correcting, expected_key) in [(false, "offenses"), (true, "corrected_offenses")] {
+            let expected = &case[expected_key];
+            let uncorrected = expected
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["corrected"] != true);
+            let mut invocation = command(directory.path());
+            invocation.args([
+                "--cache",
+                "false",
+                "--only",
+                cop,
+                "-f",
+                "json",
+                "example.rb",
+            ]);
+            if correcting {
+                invocation.arg("-A");
+            }
+            let output = invocation
+                .assert()
+                .code(if uncorrected { 1 } else { 0 })
+                .get_output()
+                .stdout
+                .clone();
+            let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            assert_eq!(found["summary"]["target_file_count"], 1, "{name}");
+            assert_eq!(found["summary"]["inspected_file_count"], 1, "{name}");
+            assert_eq!(
+                &found["files"][0]["offenses"], expected,
+                "{name}, {expected_key}"
+            );
+        }
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            case["corrected_source"].as_str().unwrap().as_bytes(),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn string_concatenation_preserves_meta_hex_values_on_disk() {
+    for (target, literal, corrected) in [
+        ("2.7", "\\M-\\x61", "\\xE1"),
+        ("3.3", "\\M-\\x61", "\\xE1"),
+        ("2.7", "\\x61", "a"),
+        ("2.7", "\\M-a", "\\xE1"),
+    ] {
+        let before = format!("name = 'x'\nputs((\"{literal}\" + name).b.unpack1('H*'))\n");
+        for mode in ["-a", "-A"] {
+            let directory = project_with_ruby(&[("example.rb", &before)], target);
+            let applied = mode == "-A";
+            let output = command(directory.path())
+                .args([
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Style/StringConcatenation",
+                    "-f",
+                    "json",
+                    mode,
+                    "example.rb",
+                ])
+                .assert()
+                .code(if applied { 0 } else { 1 })
+                .get_output()
+                .stdout
+                .clone();
+            let document: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            let reported = document["files"][0]["offenses"].as_array().unwrap();
+            assert_eq!(reported.len(), 1, "{target}: {literal}: {mode}");
+            assert_eq!(reported[0]["corrected"], applied);
+            assert_eq!(reported[0]["correctable"], true);
+            assert_eq!(reported[0]["location"]["line"], 2);
+            assert_eq!(reported[0]["location"]["column"], 7);
+            let after = if applied {
+                format!("name = 'x'\nputs((\"{corrected}#{{name}}\").b.unpack1('H*'))\n")
+            } else {
+                before.clone()
+            };
+            // 0xE1 のエスケープをファイル上で固定し、別の cop の補正に隠れない形で検査する。
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                after.as_bytes()
+            );
+            if applied {
+                command(directory.path())
+                    .args([
+                        "--cache",
+                        "false",
+                        "--only",
+                        "Style/StringConcatenation",
+                        "-A",
+                        "example.rb",
+                    ])
+                    .assert()
+                    .success();
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    after.as_bytes()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn useless_assignment_keeps_a_valid_implicit_array_rhs_on_disk() {
+    for mode in ["-a", "-A"] {
+        for (before, after, corrected) in [
+            ("result = foo, '\\n'\n", "result = foo, '\\n'\n", false),
+            ("result = [foo, '\\n']\n", "[foo, '\\n']\n", true),
+            ("result = foo\n", "foo\n", true),
+        ] {
+            let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+            let output = command(directory.path())
+                .args([
+                    "--cache",
+                    "false",
+                    "--only",
+                    "Lint/UselessAssignment",
+                    "-f",
+                    "json",
+                    mode,
+                    "example.rb",
+                ])
+                .assert()
+                .code(if corrected { 0 } else { 1 })
+                .get_output()
+                .stdout
+                .clone();
+            let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            let reported = found["files"][0]["offenses"].as_array().unwrap();
+            assert_eq!(reported.len(), 1, "{mode}: {before}");
+            assert_eq!(reported[0]["corrected"], corrected, "{mode}: {before}");
+            assert_eq!(reported[0]["correctable"], true, "{mode}: {before}");
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                after.as_bytes(),
+                "{mode}: {before}"
+            );
+        }
+    }
+}
+
+#[test]
 fn spaced_index_assignment_with_missing_rhs_stops_recovery_at_operator() {
     let directory = project_with_ruby(&[], "2.7");
     for source in ["v [0] += ;\n", "v [0] =\n", "v [0] += ;\nfoo(when)\n"] {

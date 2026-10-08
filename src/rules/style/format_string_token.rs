@@ -8,13 +8,11 @@ use crate::rules::RuleContext;
 use super::format_sequences::{Sequence, SequenceStyle, sequences};
 use crate::rules::node_ext::NodeExt;
 
-/// The methods whose first argument is a format string, which is what `aggressive` mode still
-/// treats as a place where an unannotated token is worth reporting.
+/// `aggressive` でも書式文字列として判定する、先頭引数が書式になるメソッド。
 const FORMAT_METHODS: &[&str] = &["format", "sprintf", "printf"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    // Every sequence this cop can report starts with `%`. Avoid collecting and splitting every
-    // string literal in files that cannot possibly contain one.
+    // 診断対象はすべて `%` で始まるため、それがないファイルでは文字列の収集を省く。
     if !context.source.text().contains('%') {
         return;
     }
@@ -27,12 +25,50 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let max_unannotated: usize = context
         .setting("MaxUnannotatedPlaceholdersAllowed")
         .unwrap_or(1);
-    let conservative = context
-        .setting::<String>("Mode")
-        .is_some_and(|mode| mode == "conservative");
-    let allowed_methods: Vec<String> = context.setting("AllowedMethods").unwrap_or_default();
-    // `allowed_method?(name) || matches_allowed_pattern?(name)`: both are matched against the
-    // **enclosing call's method name**, not against the string.
+    // 本家は String と Symbol の両方に `to_sym` を呼ぶ。引用した ":conservative" は別名になる。
+    let conservative =
+        context
+            .setting::<serde_yaml_ng::Value>("Mode")
+            .is_some_and(|mode| match mode {
+                serde_yaml_ng::Value::String(name) => name == "conservative",
+                serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "ruby/symbol" => {
+                    tagged.value.as_str() == Some("conservative")
+                }
+                serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "binary" => tagged
+                    .value
+                    .as_str()
+                    .and_then(|encoded| super::redundant_argument::decode_binary(encoded).ok())
+                    .is_some_and(|bytes| bytes == b"conservative"),
+                // Psych は未知の scalar タグを無視し、値を通常の String として解決する。
+                serde_yaml_ng::Value::Tagged(tagged)
+                    if tagged.tag != "binary" && tagged.tag != "ruby/regexp" =>
+                {
+                    tagged.value.as_str() == Some("conservative")
+                }
+                _ => false,
+            });
+    // 本家はメソッド名の String と直接比較する。Symbol を String にデシリアライズすると
+    // 設定が許可していない呼び出しまで診断対象から外れてしまう。
+    let allowed_methods: Vec<String> = context
+        .setting::<Vec<serde_yaml_ng::Value>>("AllowedMethods")
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|value| match value {
+            serde_yaml_ng::Value::String(name) => Some(name),
+            serde_yaml_ng::Value::Tagged(tagged) if tagged.tag == "binary" => tagged
+                .value
+                .as_str()
+                .and_then(|encoded| super::redundant_argument::decode_binary(encoded).ok())
+                .and_then(|bytes| String::from_utf8(bytes).ok()),
+            serde_yaml_ng::Value::Tagged(tagged)
+                if !tagged.tag.to_string().starts_with("!ruby/") =>
+            {
+                tagged.value.as_str().map(str::to_owned)
+            }
+            _ => None,
+        })
+        .collect();
+    // `allowed_method?` と `matches_allowed_pattern?` は文字列ではなく、それを囲む呼び出し名を見る。
     let allowed_patterns =
         crate::rules::naming::support::forbidden_patterns_named(context, "AllowedPatterns");
 
@@ -43,17 +79,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         {
             continue;
         }
-        // `format_string_in_typical_context?` reads the node `on_str` was handed: for a literal the
-        // parser split into parts that is the enclosing `dstr`, which is never a call's argument.
-        // `format_string_context?` is `format_string_in_typical_context?(node) || any ancestor
-        // `dstr` in one`. The anchor **is** the node upstream asks about, whether the parser split
-        // it into parts or not -- requiring a single part made every interpolated format string
-        // uncorrectable, and `format("c#{b}%{template}")` was reported and then left alone.
+        // 本家の `format_string_in_typical_context?` は `on_str` が受け取るノードを調べる。
+        // 補間で分割された文字列は、呼び出しの引数ではない `dstr` の子になる。
+        // anchor は本家が調べるノードなので、分割数が一つであることを要求してはいけない。
+        // 以前の条件では `format("c#{b}%{template}")` を報告しても修正できなかった。
         let typical = typical_context(context, literal.anchor);
-        // Whether the parser cut the literal into parts, which is what puts a `dstr` between each
-        // part and the call.
-        let split = literal.parts.len() > 1
-            || crate::rules::send_node::has_interpolation(literal.anchor);
+        // 補間で分割されると、各文字列部分と呼び出しの間に `dstr` が入る。
+        let split =
+            literal.parts.len() > 1 || crate::rules::send_node::has_interpolation(literal.anchor);
         let correctable = typical || enclosing_typical_context(context, literal.anchor);
 
         for part in &literal.parts {
@@ -65,13 +98,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .into_iter()
                 .filter(|sequence| sequence.style != SequenceStyle::Percent)
                 .filter(|sequence| {
-                    // `allowed_string?`: an unannotated token outside a format call is left alone,
-                    // and `conservative` mode extends that to every token.
-                    //
-                    // **The node `on_str` is handed is the part, not the literal.** A `"#{x} %s"`
-                    // splits into a `dstr` of parts, and a part's parent is that `dstr` rather
-                    // than the call -- so `format_string_in_typical_context?` is false there and
-                    // every unannotated token in an interpolated format string is allowed.
+                    // 本家の `allowed_string?` は書式呼び出しの外にある無注釈 token を許し、
+                    // conservative ではすべての token を許す。`on_str` が受け取るのは
+                    // 文字列全体ではなく部分なので、補間された部分の親は呼び出しではない。
                     let allowed = sequence.style == SequenceStyle::Unannotated || conservative;
                     !(allowed && !(typical && !split))
                 })

@@ -9,6 +9,60 @@ use tree_sitter::Node;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
 
+#[cfg(test)]
+mod tests {
+    use super::{Quoting, decode_bytes};
+
+    #[test]
+    fn control_and_meta_escapes_match_ruby_bytes() {
+        // Ruby 4.0.7 の各リテラルを eval し、String#bytes で得た値。
+        for (written, expected) in [
+            (r"\C-a", 1),
+            (r"\ca", 1),
+            (r"\M-a", 225),
+            (r"\M-\C-a", 129),
+            (r"\C-\M-a", 129),
+            (r"\c?", 127),
+            (r"\M-\c?", 255),
+            (r"\c\x7f", 31),
+            (r"\C-\xE1", 129),
+            (r"\M-\n", 138),
+            (r"\c\a", 7),
+            (r"\M-\x61", 225),
+            (r"\c\?", 31),
+            (r"\c\x3f", 31),
+            (r"\C-\M-?", 159),
+        ] {
+            assert_eq!(
+                decode_bytes(written, Quoting::Double, &[], false, false),
+                [expected]
+            );
+            assert_eq!(
+                decode_bytes(written, Quoting::Single, &[], false, false),
+                written.as_bytes()
+            );
+        }
+    }
+
+    #[test]
+    fn modified_escapes_preserve_whitequark_lexer_values() {
+        // parser 3.3.12.0 の Ruby27 で str.value.bytes を採取した値。
+        for (written, expected) in [
+            (r"\M-\x61", vec![129]),
+            (r"\M-\x7f", vec![159]),
+            (r"\M-\141", vec![177, 52, 49]),
+            (r"\C-\M-?", vec![255]),
+            (r"\c\M-?", vec![255]),
+        ] {
+            assert_eq!(
+                decode_bytes(written, Quoting::Double, &[], false, true),
+                expected,
+                "{written}"
+            );
+        }
+    }
+}
+
 /// How a literal's body escapes what it holds.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum Quoting {
@@ -30,7 +84,7 @@ pub(super) struct Decoded {
 
 /// The value of a literal body, as the parser hands it to a cop.
 pub(super) fn decode(body: &str, quoting: Quoting, delimiters: &[char]) -> Decoded {
-    let bytes = decode_bytes(body, quoting, delimiters);
+    let bytes = decode_bytes(body, quoting, delimiters, false, false);
     match String::from_utf8(bytes) {
         Ok(value) => Decoded { value, valid: true },
         Err(error) => Decoded {
@@ -40,12 +94,18 @@ pub(super) fn decode(body: &str, quoting: Quoting, delimiters: &[char]) -> Decod
     }
 }
 
-fn decode_bytes(body: &str, quoting: Quoting, delimiters: &[char]) -> Vec<u8> {
+fn decode_bytes(
+    body: &str,
+    quoting: Quoting,
+    delimiters: &[char],
+    binary_source: bool,
+    parser_whitequark: bool,
+) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::with_capacity(body.len());
     let mut characters = body.chars().peekable();
     while let Some(character) = characters.next() {
         if character != '\\' {
-            push_char(character, &mut out);
+            push_source_char(character, &mut out, binary_source);
             continue;
         }
         let Some(next) = characters.next() else {
@@ -55,26 +115,41 @@ fn decode_bytes(body: &str, quoting: Quoting, delimiters: &[char]) -> Vec<u8> {
         match quoting {
             Quoting::Single => match next {
                 '\\' => out.push(b'\\'),
-                _ if delimiters.contains(&next) => push_char(next, &mut out),
+                _ if delimiters.contains(&next) => push_source_char(next, &mut out, binary_source),
                 _ => {
                     out.push(b'\\');
-                    push_char(next, &mut out);
+                    push_source_char(next, &mut out, binary_source);
                 }
             },
             Quoting::Word => match next {
                 '\\' => out.push(b'\\'),
                 _ if next.is_whitespace() || delimiters.contains(&next) => {
-                    push_char(next, &mut out)
+                    push_source_char(next, &mut out, binary_source)
                 }
                 _ => {
                     out.push(b'\\');
-                    push_char(next, &mut out);
+                    push_source_char(next, &mut out, binary_source);
                 }
             },
-            Quoting::Double => decode_double_escape(next, &mut characters, &mut out),
+            Quoting::Double => decode_double_escape(
+                next,
+                &mut characters,
+                &mut out,
+                binary_source,
+                parser_whitequark,
+            ),
         }
     }
     out
+}
+
+fn push_source_char(character: char, out: &mut Vec<u8>, binary_source: bool) {
+    // binary ソースは engine が 1 バイトを 1 文字へ写しているため、UTF-8 として再符号化しない。
+    if binary_source && let Ok(byte) = u8::try_from(u32::from(character)) {
+        out.push(byte);
+    } else {
+        push_char(character, out);
+    }
 }
 
 fn push_char(character: char, out: &mut Vec<u8>) {
@@ -86,6 +161,8 @@ fn decode_double_escape(
     next: char,
     characters: &mut std::iter::Peekable<std::str::Chars<'_>>,
     out: &mut Vec<u8>,
+    binary_source: bool,
+    parser_whitequark: bool,
 ) {
     match next {
         'n' => out.push(b'\n'),
@@ -97,6 +174,9 @@ fn decode_double_escape(
         'b' => out.push(0x08),
         'e' => out.push(0x1b),
         's' => out.push(b' '),
+        'c' | 'C' | 'M' => {
+            decode_modified_escape(next, characters, out, binary_source, parser_whitequark);
+        }
         '\n' => {}
         'u' => decode_unicode(characters, out),
         'x' => {
@@ -130,8 +210,82 @@ fn decode_double_escape(
             }
             out.push(value as u8);
         }
-        other => push_char(other, out),
+        other => push_source_char(other, out, binary_source),
     }
+}
+
+/// 修飾子の鎖は反復で読み、内側から control/meta のビット操作を適用する。
+/// 裸の `?` だけが DEL になり、`\?` や `\x3f` は通常の control 操作になる。
+fn decode_modified_escape(
+    mut modifier: char,
+    characters: &mut std::iter::Peekable<std::str::Chars<'_>>,
+    out: &mut Vec<u8>,
+    binary_source: bool,
+    parser_whitequark: bool,
+) {
+    let mut modifiers = Vec::with_capacity(2);
+    let mut hex_escape = false;
+    let (mut byte, question) = loop {
+        if modifier != 'c' {
+            if characters.peek() != Some(&'-') {
+                push_source_char(modifier, out, binary_source);
+                return;
+            }
+            characters.next();
+        }
+        modifiers.push(modifier);
+        let Some(character) = characters.next() else {
+            return;
+        };
+        if character == '\\' {
+            let Some(escaped) = characters.next() else {
+                return;
+            };
+            if matches!(escaped, 'c' | 'C' | 'M') {
+                modifier = escaped;
+                continue;
+            }
+            let mut value = Vec::with_capacity(4);
+            // 旧 lexer の meta/control 後の 8 進表記は、最初の数字だけを文字として読む。
+            // 16 進表記では meta 単独でも slash_c_char が先に呼ばれる。
+            if parser_whitequark && matches!(escaped, '0'..='7') {
+                value.push(escaped as u8);
+            } else {
+                hex_escape = escaped == 'x';
+                decode_double_escape(escaped, characters, &mut value, binary_source, false);
+            }
+            let Some(byte) = value.first().copied() else {
+                return;
+            };
+            break (byte, false);
+        }
+        let mut value = Vec::with_capacity(4);
+        push_source_char(character, &mut value, binary_source);
+        break (value[0], character == '?');
+    };
+    if parser_whitequark {
+        let control = hex_escape || modifiers.iter().any(|modifier| *modifier != 'M');
+        if control {
+            byte = if question { 0x7f } else { byte & 0x9f };
+        }
+        if modifiers.contains(&'M') {
+            byte |= 0x80;
+        }
+        out.push(byte);
+        return;
+    }
+    for (position, modifier) in modifiers.iter().rev().enumerate() {
+        if *modifier == 'M' {
+            byte |= 0x80;
+        } else {
+            byte = if position == 0 && question {
+                0x7f
+            } else {
+                byte & 0x9f
+            };
+        }
+    }
+    out.push(byte);
 }
 
 fn decode_unicode(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, out: &mut Vec<u8>) {
@@ -257,12 +411,61 @@ pub(super) fn inspect_body(value: &str) -> String {
     escape_string(value).replace('"', "\\\"")
 }
 
-/// The value of a literal body as the bytes the parser put in the string.
-///
-/// A `\xFF` escape names a byte no character stands for, so a cop that writes the value back out
-/// has to keep the bytes rather than the lossy text [`decode`] hands it.
+/// `\xFF` は UTF-8 の文字にならないため、値を書き戻す用途では [`decode`] の損失変換を避ける。
 pub(super) fn decode_raw(body: &str, quoting: Quoting, delimiters: &[char]) -> Vec<u8> {
-    decode_bytes(body, quoting, delimiters)
+    decode_bytes(body, quoting, delimiters, false, false)
+}
+
+/// `String#inspect` で invalid UTF-8 を再現できるよう、ノードの値をバイト列で読む。
+pub(super) fn node_bytes(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<u8>> {
+    let text = context.source.node_text(node);
+    let binary_source = crate::engine::declared_literal_encoding(context.source.text())
+        == crate::engine::LiteralEncoding::Binary;
+    let parser_whitequark = match context
+        .setting_of::<String>("AllCops", "ParserEngine")
+        .as_deref()
+    {
+        Some("parser_whitequark") => true,
+        Some("parser_prism") => false,
+        _ => context.target_ruby_version() < crate::ruby_version::RubyVersion::new(3, 3),
+    };
+    if node.kind_str() == "character" {
+        return Some(decode_bytes(
+            text.strip_prefix('?')?,
+            Quoting::Double,
+            &[],
+            binary_source,
+            parser_whitequark,
+        ));
+    }
+    if node.kind_str() != "string" {
+        return None;
+    }
+    let (begin, close) = match context.children(node) {
+        Some(mut children) => (children.next()?, children.last()?),
+        None => {
+            let mut cursor = node.walk();
+            let mut children = node.children(&mut cursor);
+            (children.next()?, children.last()?)
+        }
+    };
+    let opener = context.source.node_text(begin);
+    let body = &context.source.text()[begin.end_byte()..close.start_byte()];
+    let quoting = if opener.starts_with('\'') || opener.starts_with("%q") {
+        Quoting::Single
+    } else {
+        Quoting::Double
+    };
+    Some(decode_bytes(
+        body,
+        quoting,
+        &[
+            opener.chars().next_back()?,
+            context.source.node_text(close).chars().next()?,
+        ],
+        binary_source,
+        parser_whitequark,
+    ))
 }
 
 /// `string.inspect` without its quotes, for a value that is not text throughout: `inspect` spells
