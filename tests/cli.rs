@@ -2327,6 +2327,127 @@ fn comment_spacing_preserves_the_ruby_entry_point_of_a_polyglot_script() {
 }
 
 #[test]
+fn the_upstream_correction_limit_reports_partial_progress_on_disk() {
+    // RuboCop 1.89.0 の実測値。200 パスで終了しても、それまでの補正は書き戻す。
+    // 収束した成功と区別できるよう、診断・終了コード・次回実行の実バイトを合わせて確認する。
+    let before = format!("{}value\n{}", "run do\n".repeat(205), "end\n".repeat(205));
+    let directory = project_with_ruby(&[("example.rb", &before)], "2.7");
+    let path = directory.path().join("example.rb");
+    let run = || {
+        command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Layout/IndentationWidth,Layout/BlockAlignment",
+                "-A",
+                "example.rb",
+            ])
+            .output()
+            .unwrap()
+    };
+    let first = run();
+    assert_eq!(first.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&first.stderr).contains("Infinite loop"));
+    assert_eq!(fs::read(&path).unwrap().len(), 86_261);
+
+    let mut expected = String::new();
+    for depth in 0..205 {
+        expected.push_str(&format!("{}run do\n", "  ".repeat(depth)));
+    }
+    expected.push_str(&format!("{}value\n", "  ".repeat(205)));
+    for depth in (0..205).rev() {
+        expected.push_str(&format!("{}end\n", "  ".repeat(depth)));
+    }
+    for _ in 0..2 {
+        let output = run();
+        assert_eq!(output.status.code(), Some(0));
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
+        assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+    }
+}
+
+#[test]
+fn bom_frozen_comments_match_recorded_upstream_fields_and_bytes() {
+    let cases: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/frozen_string_bom_cases.json")).unwrap();
+    for case in cases.as_array().unwrap() {
+        let before = case["before"].as_str().unwrap();
+        let after = case["after"].as_str().unwrap();
+        let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nStyle/FrozenStringLiteralComment:\n  EnforcedStyle: {}\n",
+                case["style"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Style/FrozenStringLiteralComment",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(json["files"][0]["offenses"], case["offenses"], "{case}");
+        let expected_exit = i32::try_from(case["exit"].as_i64().unwrap()).unwrap();
+        for _ in 0..2 {
+            command(directory.path())
+                .args([
+                    "--only",
+                    "Style/FrozenStringLiteralComment",
+                    "-A",
+                    "example.rb",
+                ])
+                .assert()
+                .code(expected_exit);
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                after.as_bytes()
+            );
+        }
+    }
+}
+
+#[test]
+fn a_frozen_comment_after_bom_encoding_converges_on_disk() {
+    for header in [
+        "\u{feff}# encoding: utf-8",
+        "\u{feff}#!/usr/bin/env ruby\n# encoding: utf-8",
+    ] {
+        for ending in ["\n", "\r\n"] {
+            for mode in ["-a", "-A"] {
+                let before = format!("{header}\nputs 'hello'\n").replace('\n', ending);
+                let corrected = format!("{header}\n# frozen_string_literal: true\nputs 'hello'\n")
+                    .replace('\n', ending);
+                let expected = if mode == "-A" { &corrected } else { &before };
+                let directory = project_with_ruby(&[("example.rb", &before)], "2.7");
+                let path = directory.path().join("example.rb");
+                for _ in 0..2 {
+                    command(directory.path())
+                        .args([
+                            "--only",
+                            "Style/FrozenStringLiteralComment",
+                            mode,
+                            "example.rb",
+                        ])
+                        .assert()
+                        .code(if mode == "-A" { 0 } else { 1 });
+                    assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn empty_interpolation_cannot_mix_source_encodings() {
     for header in [
         "# coding: US-ASCII",
@@ -2338,12 +2459,18 @@ fn empty_interpolation_cannot_mix_source_encodings() {
         "\u{feff}# coding: US-ASCII",
         "  # coding: US-ASCII",
         "# vim: set fileencoding=us-ascii :",
+        "# -*- encoding: US-ASCII -*-",
+        "#!/usr/bin/env ruby\n# coding: US-ASCII",
     ] {
         assert_legacy_autocorrect_rollback(
             "Lint/EmptyInterpolation",
             &format!("{header}\n\"/\\u1234#{{ }}\\x80/\"\n"),
         );
     }
+    assert_legacy_autocorrect_rollback(
+        "Lint/EmptyInterpolation",
+        "# coding: 646\r\n\"/\\u1234#{ }\\x80/\"\r\n",
+    );
 }
 
 #[test]

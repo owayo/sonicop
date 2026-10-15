@@ -1,0 +1,596 @@
+[
+  {
+    "name": "encoding",
+    "style": "always",
+    "before": "﻿# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "encoding",
+    "style": "always_true",
+    "before": "﻿# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing magic comment `# frozen_string_literal: true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "encoding",
+    "style": "never",
+    "before": "﻿# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿# encoding: utf-8\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "true",
+    "style": "always",
+    "before": "﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "true",
+    "style": "always_true",
+    "before": "﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing magic comment `# frozen_string_literal: true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "true",
+    "style": "never",
+    "before": "﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "false",
+    "style": "always",
+    "before": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "false",
+    "style": "always_true",
+    "before": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing magic comment `# frozen_string_literal: true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "false",
+    "style": "never",
+    "before": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "plain",
+    "style": "always",
+    "before": "﻿puts 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿puts 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "plain",
+    "style": "always_true",
+    "before": "﻿puts 'hello'\n",
+    "after": "# frozen_string_literal: true\n﻿puts 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing magic comment `# frozen_string_literal: true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "plain",
+    "style": "never",
+    "before": "﻿puts 'hello'\n",
+    "after": "﻿puts 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "shebang",
+    "style": "always",
+    "before": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "shebang",
+    "style": "always_true",
+    "before": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Missing magic comment `# frozen_string_literal: true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 1,
+          "last_line": 1,
+          "last_column": 1,
+          "length": 1,
+          "line": 1,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "shebang",
+    "style": "never",
+    "before": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\nputs 'hello'\n",
+    "after": "﻿#!/usr/bin/env ruby\n# encoding: utf-8\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "double_false",
+    "style": "always",
+    "before": "﻿# frozen_string_literal: false\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: false\n# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "double_false",
+    "style": "always_true",
+    "before": "﻿# frozen_string_literal: false\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Frozen string literal comment must be set to `true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 2,
+          "last_line": 1,
+          "last_column": 31,
+          "length": 30,
+          "line": 1,
+          "column": 2
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "double_false",
+    "style": "never",
+    "before": "﻿# frozen_string_literal: false\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Unnecessary frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 2,
+          "last_line": 1,
+          "last_column": 31,
+          "length": 30,
+          "line": 1,
+          "column": 2
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "double_true_false",
+    "style": "always",
+    "before": "﻿# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "double_true_false",
+    "style": "always_true",
+    "before": "﻿# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Frozen string literal comment must be set to `true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 2,
+          "last_line": 1,
+          "last_column": 30,
+          "length": 29,
+          "line": 1,
+          "column": 2
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "double_true_false",
+    "style": "never",
+    "before": "﻿# frozen_string_literal: true\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Unnecessary frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 2,
+          "last_line": 1,
+          "last_column": 30,
+          "length": 29,
+          "line": 1,
+          "column": 2
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "comment_false",
+    "style": "always",
+    "before": "﻿# hello\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# hello\n# frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "comment_false",
+    "style": "always_true",
+    "before": "﻿# hello\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# hello\n# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Frozen string literal comment must be set to `true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 2,
+          "start_column": 1,
+          "last_line": 2,
+          "last_column": 30,
+          "length": 30,
+          "line": 2,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "comment_false",
+    "style": "never",
+    "before": "﻿# hello\n# frozen_string_literal: false\nputs 'hello'\n",
+    "after": "﻿# hello\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Unnecessary frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 2,
+          "start_column": 1,
+          "last_line": 2,
+          "last_column": 30,
+          "length": 30,
+          "line": 2,
+          "column": 1
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "empty",
+    "style": "always",
+    "before": "﻿",
+    "after": "﻿",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "empty",
+    "style": "always_true",
+    "before": "﻿",
+    "after": "﻿",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "empty",
+    "style": "never",
+    "before": "﻿",
+    "after": "﻿",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "empty_line",
+    "style": "always",
+    "before": "﻿\n",
+    "after": "﻿\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "empty_line",
+    "style": "always_true",
+    "before": "﻿\n",
+    "after": "﻿\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "empty_line",
+    "style": "never",
+    "before": "﻿\n",
+    "after": "﻿\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "whitespace",
+    "style": "always",
+    "before": "﻿ \t\n",
+    "after": "﻿ \t\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "whitespace",
+    "style": "always_true",
+    "before": "﻿ \t\n",
+    "after": "﻿ \t\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "whitespace",
+    "style": "never",
+    "before": "﻿ \t\n",
+    "after": "﻿ \t\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "indented",
+    "style": "always",
+    "before": "  # frozen_string_literal: false\nputs 'hello'\n",
+    "after": "  # frozen_string_literal: false\nputs 'hello'\n",
+    "offenses": [],
+    "exit": 0
+  },
+  {
+    "name": "indented",
+    "style": "always_true",
+    "before": "  # frozen_string_literal: false\nputs 'hello'\n",
+    "after": "# frozen_string_literal: true\nputs 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Frozen string literal comment must be set to `true`.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 1,
+          "last_column": 32,
+          "length": 30,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "exit": 0
+  },
+  {
+    "name": "indented",
+    "style": "never",
+    "before": "  # frozen_string_literal: false\nputs 'hello'\n",
+    "after": "  puts 'hello'\n",
+    "offenses": [
+      {
+        "severity": "convention",
+        "message": "Unnecessary frozen string literal comment.",
+        "cop_name": "Style/FrozenStringLiteralComment",
+        "corrected": false,
+        "correctable": true,
+        "location": {
+          "start_line": 1,
+          "start_column": 3,
+          "last_line": 1,
+          "last_column": 32,
+          "length": 30,
+          "line": 1,
+          "column": 3
+        }
+      }
+    ],
+    "exit": 0
+  }
+]

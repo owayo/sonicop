@@ -6747,6 +6747,8 @@ fn catalogue() -> Vec<CopCase> {
         ("bom", "\u{feff}# coding: US-ASCII", "2.7"),
         ("leading", "  # coding: US-ASCII", "2.7"),
         ("vim", "# vim: set fileencoding=us-ascii :", "2.7"),
+        ("emacs", "# -*- encoding: US-ASCII -*-", "2.7"),
+        ("shebang", "#!/usr/bin/env ruby\n# coding: US-ASCII", "2.7"),
     ] {
         for (mode, correction) in [
             ("safe", sonicop::engine::CorrectMode::Safe),
@@ -6759,6 +6761,24 @@ fn catalogue() -> Vec<CopCase> {
                 .correct_mode(correction)
                 .corrected_verbatim(&format!("{header}\n\"/\\u1234\\x80/\"\n")));
         }
+    }
+    // キャレット用の処理を通さず、CRLF の原本と本家が書く LF をそのまま比較する。
+    for (mode, correction) in [
+        ("safe", sonicop::engine::CorrectMode::Safe),
+        ("unsafe", sonicop::engine::CorrectMode::All),
+    ] {
+        cases.push(
+            CopCase::new(
+                "Lint/EmptyInterpolation",
+                "# coding: 646\r\n\"/\\u1234#{ }\\x80/\"\r\n",
+                Vec::new(),
+            )
+            .id(&format!("syntax_guard_encoding_alias_crlf_{mode}"))
+            .target_ruby("2.7")
+            .without_offense_check()
+            .correct_mode(correction)
+            .corrected_verbatim("# coding: 646\n\"/\\u1234\\x80/\"\n"),
+        );
     }
     cases
 }

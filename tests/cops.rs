@@ -2272,6 +2272,26 @@ mod style {
         );
     }
 
+    #[test]
+    fn frozen_comment_after_a_bom_encoding_line_is_seen() {
+        let cop = "Style/FrozenStringLiteralComment";
+        expect_no_offenses(
+            cop,
+            "\u{feff}# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+        );
+        expect_correction(
+            cop,
+            "\u{feff}# encoding: utf-8\nputs 'hello'\n",
+            "\u{feff}# encoding: utf-8\n# frozen_string_literal: true\nputs 'hello'\n",
+        );
+        // 本家は BOM 付きの行自体をマジックコメントとしては認識しない。
+        expect_correction(
+            cop,
+            "\u{feff}# frozen_string_literal: true\nputs 'hello'\n",
+            "# frozen_string_literal: true\n\u{feff}# frozen_string_literal: true\nputs 'hello'\n",
+        );
+    }
+
     /// Ruby's `\s` is the six ASCII characters, so the space upstream's magic-comment patterns
     /// allow after the `#` is an ASCII one. Rust's `\s` is Unicode White_Space -- 25 characters --
     /// and it read an ideographic space as a magic comment upstream does not recognise, so the file

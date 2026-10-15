@@ -183,7 +183,7 @@ def main():
     if candidate_only:
         say("本家との比較は未測定。候補側の完全な補正記録と有効な原本だけで安全性を検査する")
     targets = changed(source, ported, upstream)
-    say(f"{name}: -A で変わった .rb は {len(targets)} 件。ruby -c にかける")
+    say(f"{name}: 補正で変わった .rb は {len(targets)} 件。ruby -c にかける")
 
     buckets = {}
     with ThreadPoolExecutor(max_workers=8) as pool:

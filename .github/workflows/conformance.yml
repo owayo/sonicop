@@ -1,13 +1,8 @@
 name: Corpus conformance
 
 on:
-  # 起動行の消去と無害な補正の対照を含め、同じコミットの補正を検証する。
+  # 長時間の測定は対象コミットを明示して起動し、結果を文書へ記録する。
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/conformance.yml'
-      - 'scripts/conformance/**'
-      - 'mise.conformance.toml'
 
 permissions:
   contents: read
@@ -149,7 +144,14 @@ jobs:
               if mode == "unsafe":
                   before = hashes(work)
                   run_correction("second-pass", "-A")
-                  assert before == hashes(work), "二度目の補正でファイルが変わった"
+                  after = hashes(work)
+                  changed = sorted(path for path in before.keys() | after.keys()
+                                   if before.get(path) != after.get(path))
+                  (output / "idempotence.json").write_text(json.dumps({
+                      "changed": [{"path": path, "before": before.get(path), "after": after.get(path)}
+                                  for path in changed]
+                  }, indent=2))
+                  assert not changed, f"二度目の補正でファイルが変わった: {changed}"
           PY
       - uses: actions/upload-artifact@v7
         if: always()
