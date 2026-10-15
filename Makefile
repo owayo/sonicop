@@ -65,6 +65,11 @@ project-index-fixtures: ## Record index and filename-dependent expectations usin
 benchmark: ## Compare five pinned corpora with the installed RuboCop (ARGS="--output tmp/benchmark --repeats 2")
 	$(RUN) ruby scripts/benchmark.rb $(ARGS)
 
+.PHONY: corpus-check
+
+corpus-check: ## Compare correction bytes and safety (MISE_ENV=conformance; set CORPUS and gate paths)
+	$(RUN) bash scripts/conformance/run.sh "$(CORPUS)"
+
 .PHONY: help setup build release run test test-ruby lint fmt fmt-check check ci version-sync version-check gem gem-check gem-platform cop-coverage spec-capture spec-fixtures install uninstall clean
 
 ## Setup

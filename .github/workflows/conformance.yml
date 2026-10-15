@@ -1,0 +1,86 @@
+name: Corpus conformance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/conformance.yml'
+      - 'scripts/conformance/**'
+      - 'mise.conformance.toml'
+
+permissions:
+  contents: read
+
+env:
+  MISE_ENV: conformance
+
+jobs:
+  corpus:
+    name: Corpus (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: rubocop_rubocop
+            repository: rubocop/rubocop
+            revision: f009b338048ea0ade9d6d88cf358111092c8f12c
+          - name: rails_rails
+            repository: rails/rails
+            revision: 62b545861ef3edf472149504d92631ff7f88804f
+          - name: mastodon_mastodon
+            repository: mastodon/mastodon
+            revision: fad36853ce17045829040f8f76506dfb51d773f2
+          - name: Homebrew_brew
+            repository: Homebrew/brew
+            revision: 38ee3253f5920e4a533c8f956bedb3ae96b12a9c
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: make release
+      - run: gem install rubocop -v 1.89.0 --no-document
+      - run: python3 -m unittest discover -s scripts/conformance -p 'test_*.py'
+      - name: Prepare pinned corpus and oracle version
+        env:
+          CORPUS: ${{ matrix.name }}
+          REPOSITORY: ${{ matrix.repository }}
+          REVISION: ${{ matrix.revision }}
+        run: |
+          source="$RUNNER_TEMP/corpora/$CORPUS"
+          mkdir -p "$source" "$RUNNER_TEMP/oracle/rubocop_rubocop/lib/rubocop"
+          git -C "$source" init -q
+          git -C "$source" fetch -q --depth=1 "https://github.com/$REPOSITORY.git" "$REVISION"
+          git -C "$source" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$source" rev-parse HEAD)" = "$REVISION"
+          version_file=$(ruby -e 'gem "rubocop", "1.89.0"; puts Gem::Specification.find_by_name("rubocop", "1.89.0").full_gem_path + "/lib/rubocop/version.rb"')
+          cp "$version_file" "$RUNNER_TEMP/oracle/rubocop_rubocop/lib/rubocop/version.rb"
+      - name: Compare correction bytes, syntax and idempotence
+        env:
+          CORPUS: ${{ matrix.name }}
+          GATE_CORPUS_ROOT: ${{ runner.temp }}/corpora
+          GATE_ORACLE_ROOT: ${{ runner.temp }}/oracle
+          OUT_DIR: ${{ runner.temp }}/corpus-check
+          SONICOP: ${{ github.workspace }}/target/release/sonicop
+        run: make corpus-check CORPUS="$CORPUS"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: corpus-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/corpus-check/*.json
+            ${{ runner.temp }}/corpus-check/*.txt
+            ${{ runner.temp }}/corpus-check/*.err
+            ${{ runner.temp }}/corpus-check/*.log
+            ${{ runner.temp }}/corpus-check/*.exit
+            ${{ runner.temp }}/corpus-check/*/*.log
+            ${{ runner.temp }}/corpus-check/*/*.exit
+            ${{ runner.temp }}/corpus-check/*/*.txt
+            ${{ runner.temp }}/corpus-check/*/*.json
+            ${{ runner.temp }}/corpus-check/*/*.err

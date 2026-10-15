@@ -27,6 +27,10 @@ target
 *.gem
 .DS_Store
 
+# コーパス検証ツールの実行で生成されるローカルキャッシュ。
+__pycache__/
+.ruff_cache/
+
 # Personal mise overrides (mise.toml is the shared toolchain)
 mise.local.toml
 .mise.local.toml
