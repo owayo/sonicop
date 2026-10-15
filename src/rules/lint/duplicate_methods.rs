@@ -260,8 +260,7 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
             && rescue_scope(node).is_none()
             && enclosing_def(node).is_none()
             && !self.self_aliased.contains(method_name);
-        // A definition nested inside another method only takes effect when that method runs, so it
-        // is tracked under the enclosing method's name.
+        // メソッド内の定義は外側が実行されて初めて有効になるため、外側の名前で区別する。
         let mut key = match enclosing_def(node) {
             Some(enclosing) => match self.name_text(enclosing) {
                 Some(name) => format!("{name}.{method_name}"),
@@ -283,6 +282,18 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
                     })
                 })
             {
+                // Windows の短い作業パスと、索引が返す長いパスを同じルートとして扱う。
+                #[cfg(windows)]
+                let prior = prior
+                    .canonicalize()
+                    .ok()
+                    .zip(self.context.config.cwd().canonicalize().ok())
+                    .and_then(|(path, cwd)| {
+                        path.strip_prefix(cwd)
+                            .ok()
+                            .map(std::path::Path::to_path_buf)
+                    })
+                    .unwrap_or(prior);
                 let prior = crate::formatter::smart_path(&prior, self.context.config.cwd());
                 let path = self.context.display_path();
                 offenses.push(self.context.offense(
