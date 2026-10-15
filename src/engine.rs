@@ -2764,13 +2764,12 @@ pub struct CorrectionOutcome {
     pub rollback: Option<String>,
 }
 
-/// Switches off the guard below. **Measurement only** -- see `withhold_unparsable`.
+/// 下の構文保護を外す測定専用の設定。`withhold_unparsable` を参照。
 ///
-/// It is read from the environment rather than the configuration on purpose: `.rubocop.yml` is
-/// committed and shared, so a project could turn the guard off for everyone who checks it out.
+/// 共有される .rubocop.yml で全利用者の保護を無効にできないよう、環境変数に限る。
 pub const NO_SYNTAX_GUARD: &str = "SONICOP_NO_SYNTAX_GUARD";
 
-/// Whether a report carries the fatal `Lint/Syntax` offense that says the source did not parse.
+/// 解析不能を示す fatal の Lint/Syntax が報告されているか。
 fn holds_fatal_syntax(report: &FileReport) -> bool {
     report
         .offenses
@@ -2784,9 +2783,9 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
 /// バイト一致だけでは両者が同じように壊れた場合を見逃すため、補正後も検査する。
 /// 最初から無効だった入力には発火せず、警告だけでも補正を止めない。
 ///
-/// Lint/Syntax と同じパーサ設定を使い、Ruby 3.3 以降の既定ではネイティブ Prism の
-/// 診断で判定する。旧版の Whitequark 設定では補助規則と tree-sitter の検査なので、
-/// 文法が受理しすぎる構文には保護が届かない。補正の安全性全般を保証するものではない。
+/// Lint/Syntax の判定に加え、ネイティブ Prism でスクリプトとしての構文も比較する。
+/// 旧版の診断には tree-sitter が受理しすぎる構文があるため、診断の互換性とは分ける。
+/// 構文が通ったまま値や制御の意味が変わる補正までは検出できない。
 ///
 /// ディスクには原本が残るため、適用されていない補正を corrected として報告しない。
 /// SONICOP_NO_SYNTAX_GUARD は、保護が止めた出力を本家と比較して誤拒否を測るためだけに
@@ -2799,10 +2798,15 @@ fn withhold_unparsable(
     selection: &Selection,
     plan: &RulePlan,
 ) -> Result<CorrectionOutcome> {
-    if !started_valid || !outcome.rewritten || !holds_fatal_syntax(&outcome.report) {
+    if !started_valid || !outcome.rewritten {
         return Ok(outcome);
     }
     if selection.skip_syntax_guard || std::env::var_os(NO_SYNTAX_GUARD).is_some() {
+        return Ok(outcome);
+    }
+    if !holds_fatal_syntax(&outcome.report)
+        && !crate::prism::would_invalidate(original, &outcome.text, config.target_ruby_version())
+    {
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
@@ -2917,24 +2921,26 @@ pub fn correct_file(
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
             return withhold_unparsable(
-                CorrectionOutcome {
-                    report,
-                    text,
-                    corrected_count,
-                    rewritten,
-                    introduced_non_ascii: provenance
-                        .as_ref()
-                        .is_some_and(|positions| !positions.is_empty()),
-                    infinite_loop: None,
-                    rollback: None,
-                },
+                restore_crlf(
+                    CorrectionOutcome {
+                        report,
+                        text,
+                        corrected_count,
+                        rewritten,
+                        introduced_non_ascii: provenance
+                            .as_ref()
+                            .is_some_and(|positions| !positions.is_empty()),
+                        infinite_loop: None,
+                        rollback: None,
+                    },
+                    preserve_crlf,
+                ),
                 &original,
                 started_valid,
                 config,
                 selection,
                 &plan,
-            )
-            .map(|outcome| restore_crlf(outcome, preserve_crlf));
+            );
         }
         log.record_pass(&mut report, directive_pass);
         // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
@@ -2967,27 +2973,29 @@ pub fn correct_file(
             let root_cause = log.root_cause(loop_start);
             let (report, corrected_count) = log.merge_into(report);
             return withhold_unparsable(
-                CorrectionOutcome {
-                    report,
-                    text: corrected,
-                    corrected_count,
-                    rewritten,
-                    introduced_non_ascii: provenance
-                        .as_ref()
-                        .is_some_and(|positions| !positions.is_empty()),
-                    infinite_loop: Some(format!(
-                        "Infinite loop detected in {} and caused by {root_cause}",
-                        path.display()
-                    )),
-                    rollback: None,
-                },
+                restore_crlf(
+                    CorrectionOutcome {
+                        report,
+                        text: corrected,
+                        corrected_count,
+                        rewritten,
+                        introduced_non_ascii: provenance
+                            .as_ref()
+                            .is_some_and(|positions| !positions.is_empty()),
+                        infinite_loop: Some(format!(
+                            "Infinite loop detected in {} and caused by {root_cause}",
+                            path.display()
+                        )),
+                        rollback: None,
+                    },
+                    preserve_crlf,
+                ),
                 &original,
                 started_valid,
                 config,
                 selection,
                 &plan,
-            )
-            .map(|outcome| restore_crlf(outcome, preserve_crlf));
+            );
         }
 
         sources.push(corrected_digest);

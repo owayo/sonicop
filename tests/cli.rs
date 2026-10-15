@@ -2248,6 +2248,190 @@ fn prism_frees_deep_left_associative_trees_on_parallel_workers() {
     assert_eq!(found.summary.offense_count, 0);
 }
 
+/// 診断が旧パーサの設定でも、最後にスクリプトとして壊れた出力はディスクへ書かない。
+fn assert_legacy_autocorrect_rollback(cop: &str, source: &str) {
+    for version in ["2.7", "3.3"] {
+        for mode in ["-a", "-A"] {
+            let directory = project_with_ruby(
+                &[("example.rb", source), ("other.rb", "puts :ok\n")],
+                version,
+            );
+            let before = command(directory.path())
+                .args(["--only", cop, "-f", "json", "example.rb"])
+                .assert()
+                .code(1)
+                .get_output()
+                .stdout
+                .clone();
+            for _ in 0..2 {
+                let output = command(directory.path())
+                    .args(["--only", cop, mode, "-f", "json", "example.rb", "other.rb"])
+                    .assert()
+                    .code(2)
+                    .get_output()
+                    .clone();
+                assert!(String::from_utf8_lossy(&output.stderr).contains(
+                    "Autocorrection was not written to example.rb because it introduced a syntax error."
+                ));
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    source.as_bytes()
+                );
+                let before: serde_json::Value = serde_json::from_slice(&before).unwrap();
+                let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(before["files"][0], after["files"][0]);
+                assert_eq!(after["summary"]["inspected_file_count"], 2);
+            }
+        }
+    }
+}
+
+#[test]
+fn multiple_assignment_conditions_are_not_written_without_required_parentheses() {
+    assert_legacy_autocorrect_rollback(
+        "Style/Semicolon,Style/ParenthesesAroundCondition",
+        "until (parent, base = File.split(path); parent == path or parent == \".\")\n  puts base\nend\n",
+    );
+}
+
+#[test]
+fn block_parameter_reflow_does_not_write_an_invalid_trailing_comma() {
+    assert_legacy_autocorrect_rollback(
+        "Layout/MultilineBlockLayout",
+        "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  puts b, e, pre, post\nend\n",
+    );
+}
+
+#[test]
+fn defined_expressions_keep_the_begin_required_by_a_modifier_loop() {
+    assert_legacy_autocorrect_rollback(
+        "Style/RedundantBegin",
+        "defined?(begin\n  value while condition\nend)\n",
+    );
+}
+
+#[test]
+fn removing_a_false_post_loop_does_not_leave_a_top_level_break() {
+    assert_legacy_autocorrect_rollback(
+        "Lint/LiteralAsCondition",
+        "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n",
+    );
+}
+
+#[test]
+fn comment_spacing_preserves_the_ruby_entry_point_of_a_polyglot_script() {
+    assert_legacy_autocorrect_rollback(
+        "Layout/LeadingCommentSpace",
+        "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nputs :ok\n",
+    );
+}
+
+#[test]
+fn legacy_script_validation_rejects_broken_lambdas_and_operator_calls() {
+    assert_legacy_autocorrect_rollback("Style/Lambda", "a = lambda { || 1 }\n");
+    assert_legacy_autocorrect_rollback("Style/OperatorMethodCall", "a + b.+(c)\n");
+}
+
+#[test]
+fn empty_regexp_correction_is_withheld_only_in_unsafe_mode() {
+    let source = "/#{[]}/\n";
+    let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+    command(directory.path())
+        .args(["--only", "Lint/ArrayLiteralInRegexp", "-a", "example.rb"])
+        .assert()
+        .code(1);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
+    command(directory.path())
+        .args(["--only", "Lint/ArrayLiteralInRegexp", "-A", "example.rb"])
+        .assert()
+        .code(2);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
+}
+
+#[test]
+fn legacy_syntax_rollback_returns_the_original_stdin_buffer() {
+    let source = "begin\n  break\nend while false\n";
+    let directory = project_with_ruby(&[], "2.7");
+    let output = command(directory.path())
+        .args([
+            "--only",
+            "Lint/LiteralAsCondition",
+            "-a",
+            "--stdin",
+            "example.rb",
+            "-f",
+            "simple",
+        ])
+        .write_stdin(source)
+        .assert()
+        .code(2)
+        .get_output()
+        .clone();
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .ends_with(&format!("====================\n{source}"))
+    );
+    assert!(!directory.path().join("example.rb").exists());
+}
+
+#[test]
+fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
+    let source =
+        "#!/bin/sh\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nvalue=1\n";
+    for newline in ["\n", "\r\n"] {
+        let source = source.replace('\n', newline);
+        let expected = source.replace("value=1", "value = 1");
+        let directory = project_with_ruby(&[("example.rb", &source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Layout/SpaceAroundOperators", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+        let source = format!(
+            "#!/bin/sh{newline}# comment {newline}exec ruby -x \"$0\" \"$@\" if false{newline}#!ruby{newline}puts :ok{newline}"
+        );
+        let expected = source.replace("# comment ", "# comment");
+        fs::write(directory.path().join("example.rb"), &source).unwrap();
+        command(directory.path())
+            .args(["--only", "Layout/TrailingWhitespace", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn a_semicolon_in_a_heredoc_name_is_not_a_line_break() {
+    let source = "module Example\n  class Test\n    def run\n      items.each do\n        assert_in_out_err([\"-W0\", *ARGV], <<-\"end;\", [\"[1, 1, 1, 400, nil, nil, nil, nil, nil, nil, nil]\"], [], bug13305)\n          puts :ok\n        end;\n      end\n    end\n  end\nend\n";
+    // 本家の Layout/LineLength 単独の補正は、終端名の前で折って heredoc を保つ。
+    let expected = source.replacen("<<-", "\n<<-", 1);
+    for newline in ["\n", "\r\n"] {
+        let source = source.replace('\n', newline);
+        let expected = expected.replace('\n', newline);
+        let directory = project_with_ruby(&[("example.rb", &source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Layout/LineLength", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
 #[test]
 fn prism_frees_deep_trees_discarded_during_error_recovery() {
     // 不正な代入先は pm_parse の途中で破棄されるので、最後の解放だけを直してもここで落ちる。

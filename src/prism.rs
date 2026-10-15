@@ -110,18 +110,7 @@ pub(crate) fn diagnostics(context: &RuleContext<'_>) -> Option<Vec<Diagnostic>> 
     {
         return None;
     }
-    // convert_for_prism の版指定をそのまま使う。3.3.0 と 3.3.1 は別の設定である。
-    let version = if target == RubyVersion::new(3, 3) {
-        "3.3.1"
-    } else if target == RubyVersion::new(3, 4) {
-        "3.4.0"
-    } else if target == RubyVersion::new(4, 0) || target == RubyVersion::new(3, 5) {
-        "4.0.0"
-    } else if target == RubyVersion::new(4, 1) {
-        "4.1.0"
-    } else {
-        "latest"
-    };
+    let version = parser_version(target);
     debug_assert_eq!(sonicop_prism_compat::version(), "1.8.1");
     let source = context.source.text();
     let input = Input::new(source);
@@ -147,6 +136,89 @@ pub(crate) fn diagnostics(context: &RuleContext<'_>) -> Option<Vec<Diagnostic>> 
                 Diagnostic {
                     reason,
                     range: input.displayed_range(range),
+                }
+            })
+            .collect(),
+    )
+}
+
+// convert_for_prism の版指定をそのまま使う。3.3.0 と 3.3.1 は別の設定である。
+fn parser_version(target: RubyVersion) -> &'static str {
+    if target == RubyVersion::new(3, 3) {
+        "3.3.1"
+    } else if target == RubyVersion::new(3, 4) {
+        "3.4.0"
+    } else if target == RubyVersion::new(4, 0) || target == RubyVersion::new(3, 5) {
+        "4.0.0"
+    } else if target == RubyVersion::new(4, 1) {
+        "4.1.0"
+    } else {
+        "latest"
+    }
+}
+
+/// 診断用パーサが受理しすぎても、有効な原本を実行不能なファイルへ上書きしない。
+pub(crate) fn would_invalidate(original: &str, corrected: &str, target: RubyVersion) -> bool {
+    // latest では対象版で合法な構文まで拒み得る。3.3 未満は Prism の対応下限を使い、
+    // 原本を同じ設定で受理できた場合だけ、出力のエラーを新しい破壊と判断する。
+    let version = parser_version(target.max(RubyVersion::new(3, 3)));
+    let prefix_changed = ruby_script_launcher(original)
+        .is_some_and(|launcher| Some(launcher) != ruby_script_launcher(corrected));
+    (prefix_changed || script_has_errors(corrected, version))
+        && !script_has_errors(original, version)
+}
+
+fn script_has_errors(source: &str, version: &str) -> bool {
+    let input = Input::new(source);
+    !sonicop_prism_compat::parse_script(&input.bytes, version, input.binary)
+        .expect("Prism supports every configured Ruby version")
+        .is_empty()
+}
+
+/// Ruby の -x 探索前の部分はシェル等にも読まれるため、Ruby の死んだ式でも削除しない。
+fn ruby_script_prefix(source: &str) -> Option<&str> {
+    let mut lines = source.split_inclusive('\n');
+    let first = lines.next()?;
+    if !first.starts_with("#!") || first.contains("ruby") {
+        return None;
+    }
+    let mut end = first.len();
+    for line in lines {
+        end += line.len();
+        if line.starts_with("#!") && line.contains("ruby") {
+            return Some(&source[..end]);
+        }
+    }
+    None
+}
+
+/// コメントの補正は許すが、カーネルの起動行・シェルの実行行・Ruby の開始行を保つ。
+fn ruby_script_launcher(source: &str) -> Option<Vec<&str>> {
+    let prefix = ruby_script_prefix(source)?;
+    let lines: Vec<_> = prefix.lines().collect();
+    // シェルの <<- の終端では、行頭のタブと空白が等価ではない。
+    let heredoc = prefix.contains("<<");
+    Some(
+        lines
+            .iter()
+            .enumerate()
+            .filter(|(position, line)| {
+                *position == 0
+                    || *position + 1 == lines.len()
+                    || (!line.trim().is_empty() && !line.trim_start().starts_with('#'))
+            })
+            .map(|(position, line)| {
+                let line = if !heredoc && position > 0 && position + 1 < lines.len() {
+                    line.trim_start_matches([' ', '\t'])
+                } else {
+                    *line
+                };
+                let trimmed = line.trim_end_matches([' ', '\t']);
+                // バックスラッシュの後の空白を消すと、シェルでは行継続へ変わる。
+                if trimmed.ends_with('\\') {
+                    line
+                } else {
+                    trimmed
                 }
             })
             .collect(),
@@ -205,6 +277,72 @@ fn translated_message(kind: &str, written: &str, native: String) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::{ruby_script_prefix, script_has_errors, would_invalidate};
+    use crate::ruby_version::RubyVersion;
+
+    #[test]
+    fn correction_validation_keeps_the_target_grammar_and_requires_a_valid_original() {
+        let original = "a[0] = value\n";
+        let corrected = "a[&block] = value\n";
+        assert!(!would_invalidate(
+            original,
+            corrected,
+            RubyVersion::new(3, 3)
+        ));
+        assert!(would_invalidate(
+            original,
+            corrected,
+            RubyVersion::new(3, 4)
+        ));
+        assert!(!would_invalidate("if\n", "break\n", RubyVersion::new(2, 7)));
+        // 診断用の部分式設定は従来どおりだが、実行するファイルの break は拒否する。
+        assert!(
+            sonicop_prism_compat::parse(b"break\n", "3.3.1", false)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(script_has_errors("break\n", "3.3.1"));
+    }
+
+    #[test]
+    fn polyglot_launchers_preserve_the_prefix_but_allow_ruby_body_corrections() {
+        let prefix = "#!/bin/sh\nexec ruby -x \"$0\" \"$@\" if false\n#!ruby -w\n";
+        let original = format!("{prefix}puts(1)\n");
+        let body_only = format!("{prefix}puts 1\n");
+        let commented = original.replacen("exec", "# comment\n\n  exec", 1);
+        assert!(!would_invalidate(
+            &original,
+            &commented,
+            RubyVersion::new(2, 7)
+        ));
+        let lost_launcher = "#!/bin/sh\n#!ruby -w\nputs 1\n";
+        let lost_entry = "#!/bin/sh\n# !ruby -w\nputs 1\n";
+        assert_eq!(ruby_script_prefix(&original), Some(prefix));
+        assert!(!would_invalidate(
+            &original,
+            &body_only,
+            RubyVersion::new(2, 7)
+        ));
+        assert!(would_invalidate(
+            &original,
+            lost_launcher,
+            RubyVersion::new(2, 7)
+        ));
+        assert!(would_invalidate(
+            &original,
+            lost_entry,
+            RubyVersion::new(2, 7)
+        ));
+        for first in [
+            "#!/usr/bin/env ruby\n",
+            "#!/usr/bin/env jruby\n",
+            "#!/bin/sh # ruby\n",
+        ] {
+            assert_eq!(ruby_script_prefix(&format!("{first}puts 1\n")), None);
+        }
+        assert_eq!(ruby_script_prefix("#!/bin/sh\nputs 1\n"), None);
+    }
+
     #[test]
     fn native_prism_abi_accepts_each_translation_parser_version() {
         assert_eq!(sonicop_prism_compat::version(), "1.8.1");

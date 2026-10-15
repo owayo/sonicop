@@ -13159,7 +13159,12 @@ mod lambda {
         expect_correction(COP, "a = lambda { 1 }\n", "a = -> { 1 }\n");
         expect_correction(COP, "a = lambda { |x; y| x }\n", "a = ->(x; y) { x }\n");
         // 引数のない `||` は引数無しと同じ扱い。
-        expect_correction(COP, "a = lambda { || 1 }\n", "a = -> { || 1 }\n");
+        // 本家は空の引数記号を残して構文を壊す。実際の書き戻し拒否は CLI と差分台帳で検証する。
+        CopCase::new(COP, "a = lambda { || 1 }\n", Vec::new())
+            .without_offense_check()
+            .without_syntax_guard()
+            .corrected_verbatim("a = -> { || 1 }\n")
+            .run();
     }
 
     #[test]
@@ -31193,13 +31198,20 @@ mod lint_array_literal_in_regexp {
              ^^^^^^^^^ Use a character class instead of interpolating an array in a regexp.
             "#,
         );
-        expect_correction(
+        // 空配列の本家出力 /[]/ は構文エラー。ここは補正列、CLI は書き戻し拒否を測る。
+        CopCase::new(
             COP,
             "/#{[1, 2]}/\n/#{['a', 'b']}/\n/#{[:a, :b]}/\n/#{['ab', 'cd']}/\n\
              /#{[1, 'a', nil, true]}/\n/x#{[1, 2]}y/\n/#{[]}/\n/#{[1]}/\n/#{['.', '*']}/\n",
+            Vec::new(),
+        )
+        .without_offense_check()
+        .without_syntax_guard()
+        .corrected_verbatim(
             "/[12]/\n/[ab]/\n/[ab]/\n/(?:ab|cd)/\n/(?:1|a|nil|true)/\n/x[12]y/\n/[]/\n/[1]/\n\
              /[\\.\\*]/\n",
-        );
+        )
+        .run();
     }
 
     /// リテラルでない要素は置き換え先が決められないので、別のメッセージで報告だけする。
@@ -34215,7 +34227,12 @@ mod style_operator_method_call {
         expect_correction(COP, "foo.+(\n  bar\n).baz\n", "(foo + bar).baz\n");
         // 引数の位置にあるものは包まない。
         expect_correction(COP, "baz(foo.+(bar))\n", "baz(foo +(bar))\n");
-        expect_correction(COP, "a + b.+(c)\n", "a + b +(c)\n");
+        // 本家の補正自体は写すが、コマンド引数へ読み替わるこの形は書き戻し時に拒否する。
+        CopCase::new(COP, "a + b.+(c)\n", Vec::new())
+            .without_offense_check()
+            .without_syntax_guard()
+            .corrected_verbatim("a + b +(c)\n")
+            .run();
         expect_correction(COP, "x[foo.+(bar)]\n", "x[foo +(bar)]\n");
     }
 

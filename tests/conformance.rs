@@ -34,6 +34,87 @@ const OMIT_PARENTHESES: &str =
 
 fn catalogue() -> Vec<CopCase> {
     vec![
+        CopCase::annotated("Style/Lambda", "a = lambda { || 1 }\n    ^^^^^^ Use the `-> { ... }` lambda literal syntax for single line lambdas.\n")
+            .id("syntax_guard_legacy_lambda_safe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("a = -> { || 1 }\n"),
+        CopCase::annotated("Style/Lambda", "a = lambda { || 1 }\n    ^^^^^^ Use the `-> { ... }` lambda literal syntax for single line lambdas.\n")
+            .id("syntax_guard_legacy_lambda_unsafe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("a = -> { || 1 }\n"),
+        CopCase::annotated("Lint/ArrayLiteralInRegexp", "/#{[]}/\n ^^^^^ Use a character class instead of interpolating an array in a regexp.\n")
+            .id("syntax_guard_legacy_empty_regexp_unsafe")
+            .target_ruby("2.7")
+            .severity(Severity::Warning)
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("/[]/\n"),
+        CopCase::annotated("Style/OperatorMethodCall", "a + b.+(c)\n     ^ Redundant dot detected.\n")
+            .id("syntax_guard_legacy_operator_safe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("a + b +(c)\n"),
+        CopCase::annotated("Style/OperatorMethodCall", "a + b.+(c)\n     ^ Redundant dot detected.\n")
+            .id("syntax_guard_legacy_operator_unsafe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("a + b +(c)\n"),
+        // 本家は有効な原本を不正なスクリプトにする。拒否する差分を毎回監視する。
+        CopCase::annotated("Style/Semicolon", "until (parent, base = File.split(path); parent == path or parent == \".\")\n                                      ^ Do not use semicolons to terminate expressions.\n  puts base\nend\n")
+            .id("syntax_guard_legacy_multiple_safe")
+            .target_ruby("2.7")
+            .cops(&["Style/Semicolon","Style/ParenthesesAroundCondition"])
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("until parent, base = File.split(path)\n parent == path or parent == \".\"\n  puts base\nend\n"),
+        CopCase::annotated("Style/Semicolon", "until (parent, base = File.split(path); parent == path or parent == \".\")\n                                      ^ Do not use semicolons to terminate expressions.\n  puts base\nend\n")
+            .id("syntax_guard_legacy_multiple_unsafe")
+            .target_ruby("2.7")
+            .cops(&["Style/Semicolon","Style/ParenthesesAroundCondition"])
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("until parent, base = File.split(path)\n parent == path or parent == \".\"\n  puts base\nend\n"),
+        CopCase::annotated("Layout/MultilineBlockLayout", "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Block argument expression is not on the same line as the block start.\n  puts b, e, pre, post\nend\n")
+            .id("syntax_guard_legacy_block_args_safe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("[1].each do |b, e = \"end\", pre = nil, post = nil,|\n  puts b, e, pre, post\nend\n"),
+        CopCase::annotated("Layout/MultilineBlockLayout", "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Block argument expression is not on the same line as the block start.\n  puts b, e, pre, post\nend\n")
+            .id("syntax_guard_legacy_block_args_unsafe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("[1].each do |b, e = \"end\", pre = nil, post = nil,|\n  puts b, e, pre, post\nend\n"),
+        CopCase::annotated("Layout/LeadingCommentSpace", "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\n^^^^^^ Missing space after `#`.\nputs :ok\n")
+            .id("syntax_guard_legacy_polyglot_safe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n# !ruby\nputs :ok\n"),
+        CopCase::annotated("Layout/LeadingCommentSpace", "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\n^^^^^^ Missing space after `#`.\nputs :ok\n")
+            .id("syntax_guard_legacy_polyglot_unsafe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n# !ruby\nputs :ok\n"),
+        CopCase::annotated("Style/RedundantBegin", "defined?(begin\n         ^^^^^ Redundant `begin` block detected.\n  value while condition\nend)\n")
+            .id("syntax_guard_legacy_defined_safe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("defined?(\n  value while condition\n)\n"),
+        CopCase::annotated("Style/RedundantBegin", "defined?(begin\n         ^^^^^ Redundant `begin` block detected.\n  value while condition\nend)\n")
+            .id("syntax_guard_legacy_defined_unsafe")
+            .target_ruby("2.7")
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("defined?(\n  value while condition\n)\n"),
+        CopCase::annotated("Lint/LiteralAsCondition", "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n          ^^^^^ Literal `false` appeared as a condition.\n")
+            .id("syntax_guard_legacy_break_safe")
+            .target_ruby("2.7")
+            .severity(Severity::Warning)
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("if now\n    break if year\n    year = now.year\n  end\n"),
+        CopCase::annotated("Lint/LiteralAsCondition", "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n          ^^^^^ Literal `false` appeared as a condition.\n")
+            .id("syntax_guard_legacy_break_unsafe")
+            .target_ruby("2.7")
+            .severity(Severity::Warning)
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("if now\n    break if year\n    year = now.year\n  end\n"),
         // Whitequark は meta + hexadecimal の値を誤読する。本家の補正を再現すると
         // 実行時の文字列が 0xE1 から 0x81 に変わるため、Ruby が読む値を保存する。
         CopCase::annotated(

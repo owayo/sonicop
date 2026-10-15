@@ -1,6 +1,7 @@
 name: Corpus conformance
 
 on:
+  # リリース前は同じコミットの補正とスクリプト検査をまとめて実行する。
   workflow_dispatch:
   pull_request:
     paths:
@@ -84,3 +85,71 @@ jobs:
             ${{ runner.temp }}/corpus-check/*/*.txt
             ${{ runner.temp }}/corpus-check/*/*.json
             ${{ runner.temp }}/corpus-check/*/*.err
+
+  ruby-safety:
+    name: Ruby corpus candidate safety
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: make release
+      - name: Prepare pinned Ruby corpus
+        run: |
+          source="$RUNNER_TEMP/corpora/ruby_ruby"
+          mkdir -p "$source"
+          git -C "$source" init -q
+          git -C "$source" fetch -q --depth=1 https://github.com/ruby/ruby.git 3349f4107d268658fdf8cc6b979fbb1c923e597f
+          git -C "$source" checkout -q --detach FETCH_HEAD
+      - name: Check candidate corrections independently of an incomplete reference run
+        env:
+          SONICOP: ${{ github.workspace }}/target/release/sonicop
+          CORPUS_ROOT: ${{ runner.temp }}/corpora
+          SAFETY_OUTPUT: ${{ runner.temp }}/ruby-safety
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, shutil, subprocess, sys
+          sys.path.insert(0, "scripts/conformance")
+          import guards, syntaxcheck
+          binary = os.environ["SONICOP"]
+          print(guards.fingerprint(binary), flush=True)
+          source = pathlib.Path(os.environ["CORPUS_ROOT"]) / "ruby_ruby"
+          root = pathlib.Path(os.environ["SAFETY_OUTPUT"])
+          def hashes(tree):
+              return {str(p.relative_to(tree)): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in tree.rglob("*") if p.is_file() and not p.is_symlink()}
+          for mode, flag in [("safe", "-a"), ("unsafe", "-A")]:
+              output = root / mode
+              output.mkdir(parents=True)
+              work = output / "ff-port-ruby_ruby"
+              shutil.copytree(source, work, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+              def run_correction(suffix, option):
+                  with (output / (suffix + ".json")).open("wb") as out, (output / (suffix + ".err")).open("wb") as err:
+                      result = subprocess.run([binary, "--force-default-config", "--cache", "false", option, "-f", "json", "."], cwd=work, stdout=out, stderr=err)
+                  (output / (suffix + ".exit")).write_text(str(result.returncode) + "\n")
+                  assert result.returncode in (0, 1, 2), result.returncode
+                  paths = syntaxcheck.complete_paths(output / (suffix + ".json"))
+                  assert len(paths) == 7466, len(paths)
+                  print(mode, suffix, result.returncode, len(paths), flush=True)
+              run_correction("ff-sc-ruby_ruby", flag)
+              env = dict(os.environ, OUT_DIR=str(output))
+              subprocess.run([sys.executable, "scripts/conformance/syntaxcheck.py", "ruby_ruby", "--candidate-only"], env=env, check=True)
+              if mode == "unsafe":
+                  before = hashes(work)
+                  run_correction("second-pass", "-A")
+                  assert before == hashes(work), "二度目の補正でファイルが変わった"
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ruby-candidate-safety
+          path: |
+            ${{ runner.temp }}/ruby-safety/*/*.json
+            ${{ runner.temp }}/ruby-safety/*/*.err
+            ${{ runner.temp }}/ruby-safety/*/*.exit

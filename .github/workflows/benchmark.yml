@@ -1,6 +1,7 @@
 name: Benchmark
 
 on:
+  # 構文保護の変更後も、固定したコミットの通常検査を計測する。
   workflow_dispatch:
   pull_request:
     paths:

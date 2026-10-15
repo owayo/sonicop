@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""`-A` が生んだファイルを `ruby -c` に通し、どちら側が壊したかで仕分ける。
 
-  syntaxcheck.py <コーパス名>
+  syntaxcheck.py <コーパス名> [--candidate-only]
     fullfmt.sh が残した ff-up-<name> / ff-port-<name> を、原本と突き合わせて検査する
 
 **バイト一致は「本家と同じ」の証拠であって「正しい」の証拠ではない。**
@@ -34,16 +34,15 @@ r"""`-A` が生んだファイルを `ruby -c` に通し、どちら側が壊し
   OUT_DIR      fullfmt.sh の出力先 (既定: バイナリのパスから導いた既定値を探す)
 """
 
+import json
 import os
 import re
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+# 呼び出し側の mise が選んだ Ruby を使う。別の導入先を優先すると検査条件が変わる。
 ENV = dict(os.environ)
-for _dir in ("/opt/homebrew/lib/ruby/gems/4.0.0/bin", "/opt/homebrew/opt/ruby/bin"):
-    if os.path.isdir(_dir):
-        ENV["PATH"] = _dir + ":" + ENV["PATH"]
 
 CORPUS_ROOT = os.environ.get("CORPUS_ROOT", os.path.expanduser("~/tmp/source"))
 
@@ -140,18 +139,49 @@ def changed(source, ported, upstream):
     return found
 
 
+def complete_paths(report):
+    """途中終了した本家の複製を、補正済みの全体として分類しない。"""
+    with open(report, encoding="utf-8") as handle:
+        data = json.load(handle)
+    files = data.get("files", [])
+    summary = data.get("summary", {})
+    target = summary.get("target_file_count")
+    inspected = summary.get("inspected_file_count")
+    paths = {item["path"] for item in files}
+    if (
+        not isinstance(target, int)
+        or target <= 0
+        or inspected != target
+        or len(files) != target
+        or len(paths) != target
+    ):
+        raise RuntimeError(f"構文検査の補正記録が不完全: {report}")
+    return paths
+
+
 def main():
     """コーパス名を受け取り、`-A` の出力を仕分けて報告する。"""
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--candidate-only"):
+        raise RuntimeError("usage: syntaxcheck.py <corpus> [--candidate-only]")
     name = sys.argv[1]
+    candidate_only = len(sys.argv) == 3
     source = os.path.join(CORPUS_ROOT, name)
     base = out_dir()
-    upstream = os.path.join(base, f"ff-up-{name}")
+    # 本家が完走しないコーパスでは、互換性を主張せず候補側の安全性だけを独立して測る。
+    upstream = source if candidate_only else os.path.join(base, f"ff-up-{name}")
     ported = os.path.join(base, f"ff-port-{name}")
     for path in (source, upstream, ported):
         if not os.path.isdir(path):
             say(f"{path} が無い。先に fullfmt.sh を回すこと。")
             raise SystemExit(2)
 
+    candidate_paths = complete_paths(os.path.join(base, f"ff-sc-{name}.json"))
+    if not candidate_only and candidate_paths != complete_paths(
+        os.path.join(base, f"ff-rc-{name}.json")
+    ):
+        raise RuntimeError("構文検査の対象パス集合が一致していない")
+    if candidate_only:
+        say("本家との比較は未測定。候補側の完全な補正記録と有効な原本だけで安全性を検査する")
     targets = changed(source, ported, upstream)
     say(f"{name}: -A で変わった .rb は {len(targets)} 件。ruby -c にかける")
 
@@ -181,6 +211,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, RuntimeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
         say(str(error))
         raise SystemExit(2) from error

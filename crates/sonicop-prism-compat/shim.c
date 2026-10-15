@@ -7,14 +7,15 @@ typedef void (*sonicop_prism_diagnostic_callback)(void *, size_t, size_t, const 
 /* Ruby 側の C 構造体を Rust で再宣言せず、診断の値だけを同期的に渡す。 */
 int sonicop_prism_compat_parse(const uint8_t *source, size_t length,
                              const char *version, size_t version_length,
-                             bool binary,
+                             bool binary, bool main_script,
                              sonicop_prism_diagnostic_callback callback, void *data) {
     pm_options_t options = {0};
     if (!pm_options_version_set(&options, version, version_length)) {
         pm_options_free(&options);
         return -1;
     }
-    pm_options_partial_script_set(&options, true);
+    pm_options_partial_script_set(&options, !main_script);
+    pm_options_main_script_set(&options, main_script);
     /* Translation::Parser の encoding:false は、復号済み UTF-8 の宣言を再解釈しない。 */
     if (!binary) {
         pm_options_encoding_set(&options, "UTF-8");

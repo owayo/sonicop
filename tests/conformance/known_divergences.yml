@@ -1269,3 +1269,192 @@ divergences:
       終了コード 2 を返す。本家の終了コードは 1。stdin も元のバッファを返し、他のファイルは処理する。
       本家の lib/rubocop/cop/style/it_block_parameter.rb と実出力を確認済み。
       仕様版の更新時に再検証し、本家が有効な補正を出すようになったら登録を削除する。
+
+  # 書き戻し時の補助 Prism 検査と polyglot 起動用 prefix の保護。
+  - cop: Style/Semicolon
+    case: syntax_guard_legacy_multiple_safe
+    kind: correction
+    upstream: "until parent, base = File.split(path)\n parent == path or parent == \".\"\n  puts base\nend\n"
+    sonicop: "until (parent, base = File.split(path); parent == path or parent == \".\")\n  puts base\nend\n"
+    note: >-
+      Style/Semicolon が条件内の区切りを改行へ変えた後、Style/ParenthesesAroundCondition が必要な括弧を除く。裸の複数代入を until 条件へ残し Ruby が拒否する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Style/Semicolon
+    case: syntax_guard_legacy_multiple_unsafe
+    kind: correction
+    upstream: "until parent, base = File.split(path)\n parent == path or parent == \".\"\n  puts base\nend\n"
+    sonicop: "until (parent, base = File.split(path); parent == path or parent == \".\")\n  puts base\nend\n"
+    note: >-
+      Style/Semicolon が条件内の区切りを改行へ変えた後、Style/ParenthesesAroundCondition が必要な括弧を除く。裸の複数代入を until 条件へ残し Ruby が拒否する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Layout/MultilineBlockLayout
+    case: syntax_guard_legacy_block_args_safe
+    kind: correction
+    upstream: "[1].each do |b, e = \"end\", pre = nil, post = nil,|\n  puts b, e, pre, post\nend\n"
+    sonicop: "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  puts b, e, pre, post\nend\n"
+    note: >-
+      本家 Layout/MultilineBlockLayout が既定値付き引数を do の行へ移す際、末尾に不正なカンマを作る。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Layout/MultilineBlockLayout
+    case: syntax_guard_legacy_block_args_unsafe
+    kind: correction
+    upstream: "[1].each do |b, e = \"end\", pre = nil, post = nil,|\n  puts b, e, pre, post\nend\n"
+    sonicop: "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  puts b, e, pre, post\nend\n"
+    note: >-
+      本家 Layout/MultilineBlockLayout が既定値付き引数を do の行へ移す際、末尾に不正なカンマを作る。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Layout/LeadingCommentSpace
+    case: syntax_guard_legacy_polyglot_safe
+    kind: correction
+    upstream: "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n# !ruby\nputs :ok\n"
+    sonicop: "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nputs :ok\n"
+    note: >-
+      本家 Layout/LeadingCommentSpace は複合スクリプトの #!ruby を # !ruby に変え、Ruby のスクリプト開始位置を失わせる。ruby -c も no Ruby script found in input と失敗する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      Ruby の開始行までの prefix はシェルからも読まれるため、起動用の exec だけを失う変更も拒否する。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Layout/LeadingCommentSpace
+    case: syntax_guard_legacy_polyglot_unsafe
+    kind: correction
+    upstream: "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n# !ruby\nputs :ok\n"
+    sonicop: "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nputs :ok\n"
+    note: >-
+      本家 Layout/LeadingCommentSpace は複合スクリプトの #!ruby を # !ruby に変え、Ruby のスクリプト開始位置を失わせる。ruby -c も no Ruby script found in input と失敗する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      Ruby の開始行までの prefix はシェルからも読まれるため、起動用の exec だけを失う変更も拒否する。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Style/RedundantBegin
+    case: syntax_guard_legacy_defined_safe
+    kind: correction
+    upstream: "defined?(\n  value while condition\n)\n"
+    sonicop: "defined?(begin\n  value while condition\nend)\n"
+    note: >-
+      本家 Style/RedundantBegin は defined? の中の修飾子ループに必要な begin/end を取り除き、不正な式を作る。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Style/RedundantBegin
+    case: syntax_guard_legacy_defined_unsafe
+    kind: correction
+    upstream: "defined?(\n  value while condition\n)\n"
+    sonicop: "defined?(begin\n  value while condition\nend)\n"
+    note: >-
+      本家 Style/RedundantBegin は defined? の中の修飾子ループに必要な begin/end を取り除き、不正な式を作る。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Lint/LiteralAsCondition
+    case: syntax_guard_legacy_break_safe
+    kind: correction
+    upstream: "if now\n    break if year\n    year = now.year\n  end\n"
+    sonicop: "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n"
+    note: >-
+      本家 Lint/LiteralAsCondition は偽の後置ループの本体だけを残し、ループの外に break を移す。Ruby は Invalid break と拒否する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Lint/LiteralAsCondition
+    case: syntax_guard_legacy_break_unsafe
+    kind: correction
+    upstream: "if now\n    break if year\n    year = now.year\n  end\n"
+    sonicop: "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n"
+    note: >-
+      本家 Lint/LiteralAsCondition は偽の後置ループの本体だけを残し、ループの外に break を移す。Ruby は Invalid break と拒否する。
+      TargetRubyVersion 2.7 の本家 1.89.0 の実出力と Ruby 4.0.7 の ruby -c で確認した。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でも有効な原本を
+      実行不能にする書き込みは再現せず、ファイル単位で拒否することを支持した。
+      診断用のパーサ選択は変えず、補正の最後だけ対象版（Prism の下限は 3.3）で比較する。
+      同じ設定で原本が有効な場合だけ拒否し、原本と未補正の診断、stderr の理由、終了 2 を返す。
+      構文が有効なまま意味だけが変わる一般の補正は、この保護の対象には含めない。
+  - cop: Style/Lambda
+    case: syntax_guard_legacy_lambda_safe
+    kind: correction
+    upstream: "a = -> { || 1 }\n"
+    sonicop: "a = lambda { || 1 }\n"
+    note: >-
+      本家 1.89.0 の TargetRubyVersion 2.7 の実出力は Ruby 4.0.7 と Parser::Ruby27 の両方が拒否する。
+      2026-10-15 の ai-second-opinion / Claude は、原本の読み込みを妨げない入力が
+      ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
+      空引数の || が lambda リテラルの本体先頭へ残る。
+      診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。
+  - cop: Style/Lambda
+    case: syntax_guard_legacy_lambda_unsafe
+    kind: correction
+    upstream: "a = -> { || 1 }\n"
+    sonicop: "a = lambda { || 1 }\n"
+    note: >-
+      本家 1.89.0 の TargetRubyVersion 2.7 の実出力は Ruby 4.0.7 と Parser::Ruby27 の両方が拒否する。
+      2026-10-15 の ai-second-opinion / Claude は、原本の読み込みを妨げない入力が
+      ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
+      空引数の || が lambda リテラルの本体先頭へ残る。
+      診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。
+  - cop: Lint/ArrayLiteralInRegexp
+    case: syntax_guard_legacy_empty_regexp_unsafe
+    kind: correction
+    upstream: "/[]/\n"
+    sonicop: "/#{[]}/\n"
+    note: >-
+      本家 1.89.0 の TargetRubyVersion 2.7 の実出力は Ruby 4.0.7 と Parser::Ruby27 の両方が拒否する。
+      2026-10-15 の ai-second-opinion / Claude は、原本の読み込みを妨げない入力が
+      ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
+      空配列から空の文字クラス /[]/ を作る。安全な -a では補正されず、本家と一致する。
+      診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。
+  - cop: Style/OperatorMethodCall
+    case: syntax_guard_legacy_operator_safe
+    kind: correction
+    upstream: "a + b +(c)\n"
+    sonicop: "a + b.+(c)\n"
+    note: >-
+      本家 1.89.0 の TargetRubyVersion 2.7 の実出力は Ruby 4.0.7 と Parser::Ruby27 の両方が拒否する。
+      2026-10-15 の ai-second-opinion / Claude は、原本の読み込みを妨げない入力が
+      ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
+      二項演算子の右辺が括弧なしコマンド呼び出しに変わる。構文が有効な対照は拒否しない。
+      診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。
+  - cop: Style/OperatorMethodCall
+    case: syntax_guard_legacy_operator_unsafe
+    kind: correction
+    upstream: "a + b +(c)\n"
+    sonicop: "a + b.+(c)\n"
+    note: >-
+      本家 1.89.0 の TargetRubyVersion 2.7 の実出力は Ruby 4.0.7 と Parser::Ruby27 の両方が拒否する。
+      2026-10-15 の ai-second-opinion / Claude は、原本の読み込みを妨げない入力が
+      ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
+      二項演算子の右辺が括弧なしコマンド呼び出しに変わる。構文が有効な対照は拒否しない。
+      診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。

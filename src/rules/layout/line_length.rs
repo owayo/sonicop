@@ -741,12 +741,18 @@ fn comment_lines(context: &RuleContext<'_>) -> HashSet<usize> {
     lines
 }
 
-/// The offset just after each semicolon that has something else behind it on its line.
+/// 同じ行の後ろに式が続くセミコロンの直後を返す。
 fn semicolon_break_positions(context: &RuleContext<'_>) -> Vec<usize> {
     let ranges = context.protected_ranges();
-    // `$;`, `?;` and `:";"` spell a semicolon inside a single token, which is not a `tSEMI`.
+    // `$;`・`?;`・`:";"` や heredoc の引用された終端名は tSEMI トークンではない。
+    // `<<-"end;"` の途中を折ると、引用符を閉じられずファイル全体が壊れる。
     let tokens: Vec<std::ops::Range<usize>> = context
-        .nodes_of_any(&["global_variable", "character", "delimited_symbol"])
+        .nodes_of_any(&[
+            "global_variable",
+            "character",
+            "delimited_symbol",
+            "heredoc_beginning",
+        ])
         .map(|node| node.byte_range())
         .collect();
     let interpolations = Interpolations::new(context);

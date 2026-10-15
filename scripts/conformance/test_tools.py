@@ -3,6 +3,7 @@
 import contextlib
 import hashlib
 import io
+import json
 import pathlib
 import subprocess
 import sys
@@ -92,6 +93,81 @@ class MeasurementToolsTest(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(process.returncode, 2)
+
+    def test_complete_syntax_record_has_positive_unique_paths(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            report = pathlib.Path(scratch) / "report.json"
+            report.write_text(
+                json.dumps(
+                    {
+                        "files": [{"path": "sample.rb"}],
+                        "summary": {"target_file_count": 1, "inspected_file_count": 1},
+                    }
+                )
+            )
+            self.assertEqual(syntaxcheck.complete_paths(report), {"sample.rb"})
+
+    def test_incomplete_or_empty_syntax_record_is_rejected(self):
+        for inspected, target, files in [
+            (1, 2, [{"path": "a.rb"}]),
+            (0, 0, []),
+            (2, 2, [{"path": "a.rb"}, {"path": "a.rb"}]),
+        ]:
+            with (
+                self.subTest(inspected=inspected, target=target),
+                tempfile.TemporaryDirectory() as scratch,
+            ):
+                report = pathlib.Path(scratch) / "report.json"
+                report.write_text(
+                    json.dumps(
+                        {
+                            "files": files,
+                            "summary": {
+                                "target_file_count": target,
+                                "inspected_file_count": inspected,
+                            },
+                        }
+                    )
+                )
+                with self.assertRaises(RuntimeError):
+                    syntaxcheck.complete_paths(report)
+
+    def test_candidate_safety_mode_needs_no_upstream_but_rejects_broken_output(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = pathlib.Path(scratch)
+            source = root / "source/example"
+            output = root / "output"
+            candidate = output / "ff-port-example"
+            source.mkdir(parents=True)
+            candidate.mkdir(parents=True)
+            (source / "sample.rb").write_text("value = 1\n")
+            report = output / "ff-sc-example.json"
+            report.write_text(
+                json.dumps(
+                    {
+                        "files": [{"path": "sample.rb"}],
+                        "summary": {"target_file_count": 1, "inspected_file_count": 1},
+                    }
+                )
+            )
+            for text, expected in [("value = 2\n", 0), ("value = (\n", 1)]:
+                (candidate / "sample.rb").write_text(text)
+                process = subprocess.run(
+                    [
+                        sys.executable,
+                        str(pathlib.Path(syntaxcheck.__file__)),
+                        "example",
+                        "--candidate-only",
+                    ],
+                    env={
+                        "CORPUS_ROOT": str(root / "source"),
+                        "OUT_DIR": str(output),
+                        "PATH": syntaxcheck.ENV["PATH"],
+                    },
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(process.returncode, expected, process.stderr)
 
     def rollback_fixture(self, root, message=None):
         manifest = self.fixture(root)
