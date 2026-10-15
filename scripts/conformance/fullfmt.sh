@@ -49,11 +49,7 @@ _slug=$(printf '%s' "$SONICOP_BIN" | tr -c 'A-Za-z0-9' '-' | sed 's/--*/-/g; s/^
 OUT_DIR="${OUT_DIR:-${TMPDIR:-/tmp}/rubocop-conformance/$_slug}"
 MODE="${MODE:--A}"
 
-# Homebrew の Ruby を優先する (システム ruby 2.6 では本家が起動しない)。
-for _dir in /opt/homebrew/lib/ruby/gems/*/bin /opt/homebrew/opt/ruby/bin; do
-  [ -d "$_dir" ] && PATH="$_dir:$PATH"
-done
-export PATH
+# mise など呼び出し元が固定した Ruby を、別の導入先で上書きしない。
 
 # **裸の名前は必ず CORPUS_ROOT の下。パスは必ずパス。** 優先順位を決めるのではなく
 # 曖昧さを消す — verify.sh と fullfmt.sh で優先順位が逆になっていて、カレントに
@@ -73,6 +69,8 @@ fi
 [ -x "$SONICOP_BIN" ] || { echo "移植版バイナリが無い ($SONICOP_BIN)" >&2; exit 2; }
 
 mkdir -p "$OUT_DIR"
+# 補正コマンドは複製へ cd するため、JSON の --out に相対パスを渡さない。
+OUT_DIR=$(cd "$OUT_DIR" && pwd -P) || exit 2
 WORK="$OUT_DIR/work-$LABEL"
 UP="$OUT_DIR/ff-up-$LABEL"
 PORT="$OUT_DIR/ff-port-$LABEL"
@@ -165,7 +163,8 @@ fi
 
 # `git reset --hard` は必ず -C で名指しする。裸で打つと cwd 依存で移植版のリポジトリを巻き戻す。
 git -C "$WORK" reset --hard -q 2>/dev/null || exit 2
-( cd "$WORK" && $RUBOCOP --force-default-config --cache false --no-color "$MODE" ) \
+( cd "$WORK" && $RUBOCOP --force-default-config --cache false --no-color "$MODE" \
+    --format progress --format json --out "$OUT_DIR/ff-rc-$LABEL.json" ) \
   > "$OUT_DIR/ff-rc-$LABEL.log" 2> "$OUT_DIR/ff-rc-$LABEL.err"
 rc_status=$?
 echo "$rc_status" > "$OUT_DIR/ff-rc-$LABEL.exit"
@@ -173,7 +172,8 @@ echo "  rubocop: $(grep -E 'files inspected' "$OUT_DIR/ff-rc-$LABEL.log" | tail 
 snapshot "$UP" || exit 2
 
 git -C "$WORK" reset --hard -q 2>/dev/null || exit 2
-( cd "$WORK" && "$SONICOP_BIN" --force-default-config "$MODE" ) \
+( cd "$WORK" && "$SONICOP_BIN" --force-default-config "$MODE" \
+    --format progress --format json --out "$OUT_DIR/ff-sc-$LABEL.json" ) \
   > "$OUT_DIR/ff-sc-$LABEL.log" 2> "$OUT_DIR/ff-sc-$LABEL.err"
 sc_status=$?
 echo "$sc_status" > "$OUT_DIR/ff-sc-$LABEL.exit"

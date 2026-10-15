@@ -49,22 +49,21 @@ for mode in safe unsafe; do
   python3 "$script_root/ff_gate.py" "$corpus" "$out" "$manifest" "$mode" \
     > "$out/known-differences.log" 2>&1
   cat "$out/known-differences.log"
+  # safe と unsafe の両方で、同じ構文破壊を写した場合も止める。
+  result=0
+  CORPUS_ROOT="$source_root" OUT_DIR="$out" \
+    python3 "$script_root/syntaxcheck.py" "$corpus" > "$out/syntax.log" 2>&1 || result=$?
+  echo "$result" > "$out/syntax.exit"
+  cat "$out/syntax.log"
+  [ "$result" -le 1 ] || exit 2
+  if [ "$result" = 1 ] && ! grep -q '本家だけ壊れた' "$out/syntax.log"; then
+    echo '構文検査が正常な分類結果を返していない' >&2
+    exit 2
+  fi
+  if grep -Eq '移植版だけ壊れた|両方壊れた' "$out/syntax.log"; then
+    exit 1
+  fi
 done
-
-# 元が有効な .rb だけを評価し、両者が同じ構文エラーを作る場合も失敗にする。
-result=0
-CORPUS_ROOT="$source_root" OUT_DIR="$output_root/unsafe" \
-  python3 "$script_root/syntaxcheck.py" "$corpus" > "$output_root/syntax.log" 2>&1 || result=$?
-echo "$result" > "$output_root/syntax.exit"
-cat "$output_root/syntax.log"
-[ "$result" -le 1 ] || exit 2
-if [ "$result" = 1 ] && ! grep -q '本家だけ壊れた' "$output_root/syntax.log"; then
-  echo '構文検査が正常な分類結果を返していない' >&2
-  exit 2
-fi
-if grep -Eq '移植版だけ壊れた|両方壊れた' "$output_root/syntax.log"; then
-  exit 1
-fi
 
 # 二度目の -A が同じツリーを保つことを、対象外のファイルも含むハッシュで確かめる。
 ported="$output_root/unsafe/ff-port-$corpus"

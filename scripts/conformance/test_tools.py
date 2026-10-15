@@ -169,6 +169,41 @@ class MeasurementToolsTest(unittest.TestCase):
                 )
                 self.assertEqual(process.returncode, expected, process.stderr)
 
+    def test_comparative_syntax_mode_requires_both_complete_matching_reports(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = pathlib.Path(scratch)
+            source = root / "source/example"
+            output = root / "output"
+            for directory in [source, output / "ff-port-example", output / "ff-up-example"]:
+                directory.mkdir(parents=True)
+                (directory / "sample.rb").write_text("value = 1\n")
+            complete = {
+                "files": [{"path": "sample.rb"}],
+                "summary": {"target_file_count": 1, "inspected_file_count": 1},
+            }
+            (output / "ff-sc-example.json").write_text(json.dumps(complete))
+            reference = output / "ff-rc-example.json"
+            # 本家の記録が無い・途中終了・別集合の場合は、複製の中身が同じでも失敗する。
+            for data, expected in [
+                (None, 2),
+                ({"files": [], "summary": {"target_file_count": 1, "inspected_file_count": 0}}, 2),
+                ({**complete, "files": [{"path": "other.rb"}]}, 2),
+                (complete, 0),
+            ]:
+                if data is not None:
+                    reference.write_text(json.dumps(data))
+                process = subprocess.run(
+                    [sys.executable, str(pathlib.Path(syntaxcheck.__file__)), "example"],
+                    env={
+                        "CORPUS_ROOT": str(root / "source"),
+                        "OUT_DIR": str(output),
+                        "PATH": syntaxcheck.ENV["PATH"],
+                    },
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(process.returncode, expected, process.stderr)
+
     def rollback_fixture(self, root, message=None):
         manifest = self.fixture(root)
         work = root / "work"
