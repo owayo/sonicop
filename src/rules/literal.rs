@@ -1,8 +1,6 @@
-//! Reading and writing Ruby string and symbol literals.
+//! Ruby の文字列・シンボルの値と表記を相互に変換する。
 //!
-//! A cop that rewrites `['a', 'b']` into `%w[a b]` has to work in values rather than in source:
-//! upstream reads the parsed content out of the node and writes a fresh literal around it. These
-//! are the two halves of that -- the parser's unescaping, and `Util#to_string_literal`'s escaping.
+//! 配列の書き換えも索引 cop の動的定義の判定も、ソースの字面ではなくエスケープ後の値を使う。
 
 use tree_sitter::Node;
 
@@ -416,9 +414,8 @@ pub(super) fn decode_raw(body: &str, quoting: Quoting, delimiters: &[char]) -> V
     decode_bytes(body, quoting, delimiters, false, false)
 }
 
-/// `String#inspect` で invalid UTF-8 を再現できるよう、ノードの値をバイト列で読む。
-pub(super) fn node_bytes(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<u8>> {
-    let text = context.source.node_text(node);
+/// マジックコメントと対象 Ruby による、リテラルの読み方を共有する。
+fn source_reading(context: &RuleContext<'_>) -> (bool, bool) {
     let binary_source = crate::engine::declared_literal_encoding(context.source.text())
         == crate::engine::LiteralEncoding::Binary;
     let parser_whitequark = match context
@@ -429,6 +426,46 @@ pub(super) fn node_bytes(context: &RuleContext<'_>, node: Node<'_>) -> Option<Ve
         Some("parser_prism") => false,
         _ => context.target_ruby_version() < crate::ruby_version::RubyVersion::new(3, 3),
     };
+    (binary_source, parser_whitequark)
+}
+
+/// 補間の両側を別々の str ノードとして読む。通常の文字列と同じ版・符号化の規則を使う。
+pub(super) fn double_quoted_fragment(context: &RuleContext<'_>, body: &str) -> Vec<u8> {
+    let (binary_source, parser_whitequark) = source_reading(context);
+    decode_bytes(body, Quoting::Double, &[], binary_source, parser_whitequark)
+}
+
+/// %w/%i と %W/%I は同じ要素ノードを使うため、配列の開始記号から引用規則を決める。
+pub(super) fn word_fragment(context: &RuleContext<'_>, node: Node<'_>, body: &str) -> Vec<u8> {
+    let Some(parent) = node.parent_of(context) else {
+        return body.as_bytes().to_vec();
+    };
+    let Some(mut children) = context.children(parent) else {
+        return body.as_bytes().to_vec();
+    };
+    let (Some(first), Some(last)) = (children.next(), children.last()) else {
+        return body.as_bytes().to_vec();
+    };
+    let opener = context.source.node_text(first);
+    let quoting = if opener.starts_with("%W") || opener.starts_with("%I") {
+        Quoting::Double
+    } else {
+        Quoting::Word
+    };
+    let delimiters: Vec<_> = opener
+        .chars()
+        .next_back()
+        .into_iter()
+        .chain(context.source.node_text(last).chars().next())
+        .collect();
+    let (binary_source, parser_whitequark) = source_reading(context);
+    decode_bytes(body, quoting, &delimiters, binary_source, parser_whitequark)
+}
+
+/// ソースの符号化と対象 Ruby のパーサに従い、文字列をバイト列として読む。
+pub(super) fn node_bytes(context: &RuleContext<'_>, node: Node<'_>) -> Option<Vec<u8>> {
+    let text = context.source.node_text(node);
+    let (binary_source, parser_whitequark) = source_reading(context);
     if node.kind_str() == "character" {
         return Some(decode_bytes(
             text.strip_prefix('?')?,

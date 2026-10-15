@@ -239,6 +239,22 @@ fn compact_correction(
     if inner_style == "nested" {
         return None;
     }
+    if context.project_index().is_some_and(|project| {
+        project.with(|index| {
+            crate::rules::lint::project_index_help::resolve_constant(index, name, context)
+                .is_none_or(|owner| {
+                    !index.namespace(owner)
+                        || !index.defined_elsewhere(
+                            owner,
+                            context.source.path(),
+                            context.source.line_column(node.start_byte()).0,
+                            false,
+                        )
+                })
+        })
+    }) {
+        return None;
+    }
     let keyword = node.child(0)?;
     let inner_name = inner.field("name")?;
     let inner_end = inner.child(inner.child_count().saturating_sub(1))?;
@@ -357,6 +373,14 @@ fn namespace_keyword(context: &RuleContext<'_>, node: Node<'_>, name: Node<'_>) 
     let Some(scope) = name.field("scope") else {
         return "module";
     };
+    if let Some(kind) = context.project_index().and_then(|project| {
+        project.with(|index| {
+            crate::rules::lint::project_index_help::resolve_constant(index, scope, context)
+                .and_then(|owner| index.namespace_kind(owner))
+        })
+    }) {
+        return kind;
+    }
     let wanted = normalized(context.source.node_text(scope));
     let Some(sibling) = previous_statement(node) else {
         return "module";

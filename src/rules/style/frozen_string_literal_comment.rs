@@ -4,22 +4,25 @@ use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::layout::tokens::{Token, TokenKind};
 
 const MSG_MISSING: &str = "Missing frozen string literal comment.";
 const MSG_MISSING_TRUE: &str = "Missing magic comment `# frozen_string_literal: true`.";
 const MSG_UNNECESSARY: &str = "Unnecessary frozen string literal comment.";
 const MSG_DISABLED: &str = "Frozen string literal comment must be set to `true`.";
 
-/// `minimum_target_ruby_version 2.3`: the frozen string literal comment is only valid in Ruby 2.3+.
+/// 本家の `minimum_target_ruby_version 2.3` に合わせる。
 const MINIMUM: RubyVersion = RubyVersion::new(2, 3);
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM {
         return;
     }
-    // `processed_source.tokens.empty?`: a file of nothing but a data section has no tokens at
-    // all, and the cop returns before it looks for a comment.
-    if crate::rules::support::code_before_data(context).trim().is_empty() {
+    // 本家はトークンのないファイルを調べない。BOM だけの入力やデータ節だけの入力も含む。
+    if without_initial_bom(crate::rules::support::code_before_data(context), 1)
+        .trim()
+        .is_empty()
+    {
         return;
     }
     let style: String = context
@@ -28,10 +31,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
     match style.as_str() {
         "never" => {
-            // `ensure_no_comment` asks `frozen_string_literal_comment_exists?`, which reads only
-            // the **leading** comments -- a magic comment written after code does not reach Ruby,
-            // so there is nothing unnecessary to remove. The offense itself is then placed on the
-            // comment found anywhere, which is what `specified_comment` returns.
+            // 本家の `ensure_no_comment` は先頭のコメントだけで有効性を判定する。
+            // コードの後ろの宣言は Ruby に届かないため、不要な宣言としては削除しない。
+            // 診断位置には、別途 `specified_comment` が見つけた最初の宣言を使う。
             let leading = leading_comments(context)
                 .any(|(_, line)| MagicComment::parse(line).valid_literal_value());
             if !leading {
@@ -46,8 +48,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             }
         }
         "always_true" => {
-            // The setting has to be named *and* set to `true`; naming it and disabling it is its own
-            // offense, reported on the comment rather than at the head of the file.
+            // false の宣言は欠落と区別し、ファイル先頭ではなくコメント上に報告する。
             if !leading_comments(context)
                 .any(|(_, line)| MagicComment::parse(line).frozen_string_literal_specified())
             {
@@ -56,23 +57,24 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .any(|(_, line)| MagicComment::parse(line).frozen_string_literal_enabled())
                 && let Some(comment) = specified_comment(context)
             {
+                let line = context.source.line_column(comment.start).0;
+                let replacement_range =
+                    context.source.line_start(line)..line_content_end(context, line);
                 offenses.push(
                     context
                         .offense(MSG_DISABLED, comment.clone())
                         .corrected_by(Edit {
-                            start: comment.start,
-                            end: comment.end,
-                            // `MagicComment#new_frozen_string_literal(true)` keeps the comment's
-                            // own shape -- `# -*- frozen_string_literal: false -*-` becomes the
-                            // same line with `true`, not a plain one.
+                            start: replacement_range.start,
+                            end: replacement_range.end,
+                            // 本家は定型コメントで行全体を置換するため、BOM や字下げは残さない。
                             replacement: enabled_form(context.source.slice(comment.clone())),
                             safe: false,
-                        }),
+                        })
+                        .corrections_anchored_at(replacement_range),
                 );
             }
         }
-        // RuboCop only counts a comment that actually reaches Ruby: the value has to be `true` or
-        // `false`, so `# frozen_string_literal: yes` leaves the file still missing one.
+        // 本家は Ruby が認識する true / false だけを数えるため、yes は宣言の欠落になる。
         _ => {
             if !leading_comments(context)
                 .any(|(_, line)| MagicComment::parse(line).valid_literal_value())
@@ -84,16 +86,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
-    // The offense is reported at the head of the file, as RuboCop does: the comment is missing from
-    // the file, not from a particular line. Only the insertion point moves, since the comment goes
-    // after a shebang and an encoding comment rather than displacing them. `source_range` defaults
-    // to a length of one, so the reported range covers the first character instead of collapsing to
-    // a caret.
-    // The range the correction hangs off is not the reported one: upstream passes `line_range` of
-    // the comment it follows, or the whole buffer when there is none. That range decides whether
-    // the insertion nests inside another cop's correction or wraps it, so it has to be declared.
+    // 本家はファイル先頭の 1 文字に欠落を報告し、挿入先だけを shebang・符号化宣言の後ろへ動かす。
+    // 補正のアンカーは診断範囲とは異なり、直前の宣言行かバッファ全体になる。
+    // 他 cop の編集との包含関係が変わるため、この範囲を明示する。
     let (edit, anchor) = match last_special_comment_line(context) {
-        // Inserted at the end of that line's text, so the newline already there ends the new line.
+        // 元の行末文字を、新しく挿入する宣言行の行末として使う。
         Some(line_number) => {
             let end = line_content_end(context, line_number);
             (
@@ -116,8 +113,7 @@ fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
             0..context.source.text().len(),
         ),
     };
-    // `source_range` counts a length of one in characters, so the range has to span the whole first
-    // character -- a byte order mark is three bytes and still just one of them.
+    // 本家の長さは文字単位なので、3 バイトの BOM も先頭の 1 文字として範囲に含める。
     let first_character = context
         .source
         .text()
@@ -130,35 +126,107 @@ fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
         .corrections_anchored_at(anchor)
 }
 
-/// The shebang and the encoding comment the new comment has to follow. RuboCop only recognizes a
-/// UTF-8 encoding comment here, since that is the only one its `Style/Encoding` pattern matches.
+/// 本家はコメントに限定せず、先頭トークンの値で挿入先を決める。
 fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
-    let first = (1..=context.source.line_count())
-        .find(|line_number| !context.source.line(*line_number).trim().is_empty())?;
-
+    let mut tokens = context.layout_tokens().iter();
+    let first = tokens.next()?;
     let mut special = None;
-    let mut candidate = first;
-    if context.source.line(first).trim_start().starts_with("#!") {
-        special = Some(first);
-        candidate = first + 1;
-    }
-    if candidate <= context.source.line_count()
-        && is_utf8_encoding_comment(context.source.line(candidate))
+    let candidate = if token_text(first, context).starts_with(b"#!") {
+        special = Some(first.line);
+        tokens.next().filter(|next| {
+            if first.is_comment() {
+                return true;
+            }
+            let gap = context.source.slice(first.range.end..next.range.start);
+            let prism = match context.setting_of::<String>("AllCops", "ParserEngine").as_deref() {
+                Some("parser_whitequark") => false,
+                Some("parser_prism") => true,
+                _ => context.target_ruby_version() >= RubyVersion::new(3, 3),
+            };
+            let tail = &context.source.text()[next.range.end..];
+            let terminated = tail.starts_with('\n') || tail.starts_with("\r\n");
+            token_precedes_newline(gap, next.is_comment(), prism, terminated)
+        })
+    } else {
+        Some(first)
+    };
+    if let Some(token) = candidate
+        && is_utf8_encoding_comment(&token_text(token, context))
     {
-        special = Some(candidate);
+        special = Some(token.line);
     }
     special
 }
 
-fn is_utf8_encoding_comment(line: &str) -> bool {
+/// 次のトークンが tNL より先に返る条件を、本家の字句器に合わせる。
+fn token_precedes_newline(gap: &str, comment: bool, prism: bool, terminated: bool) -> bool {
+    use std::sync::LazyLock;
+
+    static PREFIX: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]|\\\n)*").expect("token whitespace pattern must compile")
+    });
+    static WHITEQUARK: LazyLock<regex::Regex> = LazyLock::new(|| {
+        // parser の lexer.rl: (c_space* w_space_comment '\n')+。行継続にはもう一つ改行が要る。
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]*(?:[ \t\r\x0c\x0b]+|\\\n)\n)*[ \t\r\x0c\x0b]*\z")
+            .expect("whitequark lookahead pattern must compile")
+    });
+    static PRISM: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]|\\\n)*\z").expect("Prism lookahead pattern must compile")
+    });
+    // 本家の source buffer は CRLF を正規化してから字句器へ渡す。
+    let normalized = match gap.contains("\r\n") {
+        true => std::borrow::Cow::Owned(gap.replace("\r\n", "\n")),
+        false => std::borrow::Cow::Borrowed(gap),
+    };
+    let start = PREFIX.find(&normalized).expect("empty prefix always matches").end();
+    if start == normalized.len() {
+        return true;
+    }
+    let Some(tail) = normalized[start..].strip_prefix('\n') else {
+        return false;
+    };
+    // whitequark は EOF で閉じるコメントを、保留中の改行より後に返す。
+    comment && (prism || terminated) && if prism {
+        PRISM.is_match(tail)
+    } else {
+        WHITEQUARK.is_match(tail)
+    }
+}
+
+fn token_text<'a>(token: &Token, context: &'a RuleContext<'_>) -> std::borrow::Cow<'a, [u8]> {
+    // tSTRING の text は引用符を含まず、エスケープも解決済み。
+    // %q や補間付きリテラルの開始トークンは文字列全体とは区別する。
+    let raw = context.source.slice(token.range.clone());
+    if (token.kind == TokenKind::String
+        || (token.kind == TokenKind::Other && raw.starts_with('%')))
+        && let Some(node) = context
+            .nodes_of("string")
+            .find(|node| node.byte_range() == token.range)
+    {
+        if token.kind == TokenKind::String {
+            return crate::rules::literal::node_bytes(context, node)
+                .unwrap_or_else(|| raw.as_bytes().to_vec())
+                .into();
+        }
+        // 共有列は percent 文字列を一つの Other にまとめる場合があるが、
+        // 本家の先頭トークンは %q{ などの開始区切りだけを持つ。
+        if let Some(opener) = context.children(node).and_then(|mut children| children.next()) {
+            return context.source.node_text(opener).as_bytes().into();
+        }
+    }
+    raw.as_bytes().into()
+}
+
+fn is_utf8_encoding_comment(text: &[u8]) -> bool {
     static PATTERN: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"#.*coding(?-u:\s)?[:=](?-u:\s)?(?:UTF|utf)-8")
             .expect("encoding comment pattern must compile")
     });
-    PATTERN.is_match(line)
+    // 本家の Token#text.valid_encoding? を保つ。\xFF を Unicode の文字に変換しない。
+    std::str::from_utf8(text).is_ok_and(|line| PATTERN.is_match(line))
 }
 
-/// The end of a line's text, before its newline, which is where RuboCop's `line_range` stops.
+/// 本家の `line_range` と同じく、改行の手前で範囲を止める。
 fn line_content_end(context: &RuleContext<'_>, line_number: usize) -> usize {
     let range = context.source.line_range(line_number);
     range.start
@@ -169,12 +237,11 @@ fn line_content_end(context: &RuleContext<'_>, line_number: usize) -> usize {
             .len()
 }
 
-/// Removes the comment along with the line it sits on, so no blank line is left behind.
+/// 本家の side: :right と同じく、コメントより前の BOM や空白は消さない。
 fn remove_comment(context: &RuleContext<'_>, comment: Range<usize>) -> Edit {
     let line_number = context.source.line_column(comment.start).0;
-    let start = context.source.line_start(line_number);
-    // `range_with_surrounding_space(node.pos, side: :right)`: the blank lines the comment left
-    // behind go with it, so removing it does not open a gap at the head of the file.
+    let start = comment.start;
+    // コメントの後ろの改行と空白を含め、削除後に先頭の空行を残さない。
     let text = context.source.text();
     let mut end = context.source.line_range(line_number).end;
     while text[end..]
@@ -192,56 +259,73 @@ fn remove_comment(context: &RuleContext<'_>, comment: Range<usize>) -> Edit {
     }
 }
 
-/// The comment lines above the first line that holds code, paired with their line number. Blank
-/// lines between comments belong to the span, so this is a line range rather than a run of comments.
+/// 本家は最初の非コメントトークンで区切るが、判定には BOM を含む元の行を渡す。
+/// BOM 付きの宣言行で打ち切ると、後続のコメントを毎パス追加し続けてしまう。
 fn leading_comments<'a>(
     context: &'a RuleContext<'_>,
 ) -> impl Iterator<Item = (usize, &'a str)> + 'a {
     let first_code = (1..=context.source.line_count()).find(|line_number| {
-        let line = context.source.line(*line_number).trim();
+        let line = without_initial_bom(context.source.line(*line_number), *line_number).trim();
         !line.is_empty() && !line.starts_with('#')
     });
     let end = first_code.unwrap_or(context.source.line_count() + 1);
     (1..end).map(|line_number| (line_number, context.source.line(line_number)))
 }
 
-/// The first comment anywhere in the file that names the setting, which is what the `never` style
-/// removes and the `always_true` style rewrites.
+fn without_initial_bom(line: &str, line_number: usize) -> &str {
+    if line_number == 1 {
+        line.strip_prefix('\u{feff}').unwrap_or(line)
+    } else {
+        line
+    }
+}
+
+/// 本家が削除・置換する最初のコメントトークンを、BOM を含まない範囲で返す。
 fn specified_comment(context: &RuleContext<'_>) -> Option<Range<usize>> {
     (1..=context.source.line_count()).find_map(|line_number| {
         let line = context.source.line(line_number);
-        let trimmed = line.trim();
+        let token_line = without_initial_bom(line, line_number);
+        // コメントトークンは末尾の空白も含むため、診断範囲から削ってはいけない。
+        let trimmed = token_line.trim_start().trim_end_matches(['\r', '\n']);
         if !trimmed.starts_with('#')
             || !MagicComment::parse(trimmed).frozen_string_literal_specified()
         {
             return None;
         }
-        let start = context.source.line_start(line_number) + (line.len() - line.trim_start().len());
+        let start =
+            context.source.line_start(line_number) + (line.len() - token_line.trim_start().len());
         Some(start..start + trimmed.len())
     })
 }
 
-/// `MagicComment#new_frozen_string_literal(true)`: the value changes and nothing else does.
+/// 本家の new_frozen_string_literal は、Emacs / 通常コメントそれぞれの定型へ置き換える。
 fn enabled_form(comment: &str) -> String {
-    let mut out = String::with_capacity(comment.len());
-    let mut rest = comment;
-    while let Some(index) = rest.find("frozen_string_literal") {
-        let (before, after) = rest.split_at(index + "frozen_string_literal".len());
-        out.push_str(before);
-        let value_start = after
-            .find(|character: char| character != ':' && character != ' ' && character != '=')
-            .unwrap_or(after.len());
-        out.push_str(&after[..value_start]);
-        let tail = &after[value_start..];
-        let value_end = tail
-            .find(|character: char| !character.is_ascii_alphanumeric())
-            .unwrap_or(tail.len());
-        out.push_str("true");
-        rest = &tail[value_end..];
+    match MagicComment::parse(comment) {
+        MagicComment::Emacs(_) => "# -*- frozen_string_literal: true -*-".to_owned(),
+        _ => "# frozen_string_literal: true".to_owned(),
     }
-    out.push_str(rest);
-    match out.is_empty() {
-        true => "# frozen_string_literal: true".to_owned(),
-        false => out,
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn lookahead_matches_recorded_native_token_order() {
+        let cases: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/frozen_string_token_gaps.json"
+        )).unwrap();
+        for case in cases["cases"].as_array().unwrap() {
+            for (index, condition) in cases["conditions"].as_array().unwrap().iter().enumerate() {
+                assert_eq!(
+                    super::token_precedes_newline(
+                        case["gap"].as_str().unwrap(),
+                        true,
+                        condition["engine"] == "parser_prism",
+                        condition["terminated"].as_bool().unwrap(),
+                    ),
+                    case["comment_precedes_newline"][index].as_bool().unwrap(),
+                    "{case} / {condition}"
+                );
+            }
+        }
     }
 }

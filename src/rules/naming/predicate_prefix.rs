@@ -6,8 +6,8 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
-use crate::rules::send_node::named_children_of;
 use crate::rules::send_node::named_children_iter;
+use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let prefixes: Vec<String> = context.setting("NamePrefix").unwrap_or_default();
@@ -26,7 +26,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             while let serde_yaml_ng::Value::Tagged(tagged) = value {
                 value = tagged.value;
             }
-            !matches!(value, serde_yaml_ng::Value::Null | serde_yaml_ng::Value::Bool(false))
+            !matches!(
+                value,
+                serde_yaml_ng::Value::Null | serde_yaml_ng::Value::Bool(false)
+            )
         });
     // Every prefix is tried, but `add_offense` keeps only the first report at a range.
     let mut reported: HashSet<Range<usize>> = HashSet::new();
@@ -61,6 +64,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(name_node) = node.field("name") else {
             continue;
         };
+        if crate::rules::lint::project_index_help::overrides_inherited_method(node, context) {
+            continue;
+        }
         let name = context.source.node_text(name_node).to_owned();
         report(offenses, &name, name_node.byte_range());
     }

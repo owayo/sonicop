@@ -1,0 +1,9 @@
+RuboCop 1.89.0 / Ruby 4.0.7、2026-10-15 に Registry.global の各クラスへ
+support_autocorrect? を問い合わせた実測値。609 cop 全件を実際の登録順に保存する。
+
+再生成:
+ruby -rjson -e 'gem "rubocop", "1.89.0"; require "rubocop"; puts JSON.pretty_generate(RuboCop::Cop::Registry.global.map { |cop| [cop.cop_name, cop.support_autocorrect?] })'
+
+個々の offense が correctable かどうかとは異なる。補正ループ中、本家は
+補正機能を持たない cop を実行せず、最後のパスの未補正 offense は原因一覧に残す。
+登録順は部門内の名前順とも異なる。InfiniteCorrectionLoop の原因一覧はこの順になる。

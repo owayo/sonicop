@@ -1,0 +1,86 @@
+[
+  {
+    "cop": "Bundler/GemFilename",
+    "config": {
+      "AllCops": {
+        "NewCops": "disable",
+        "TargetRubyVersion": 3.3
+      },
+      "Bundler/GemFilename": {
+        "Enabled": true
+      }
+    },
+    "expected": [
+      {
+        "path": "gems.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "`gems.rb` file was found but `Gemfile` is required (file path: {root}/gems.rb).",
+            "cop_name": "Bundler/GemFilename",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 0,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ],
+    "files": {
+      "gems.rb": "source \"https://rubygems.org\"\n"
+    },
+    "targets": [
+      "gems.rb"
+    ],
+    "origin": "constructed/filename-dependent"
+  },
+  {
+    "cop": "Lint/RequireRelativeSelfPath",
+    "config": {
+      "AllCops": {
+        "NewCops": "disable",
+        "TargetRubyVersion": 3.3
+      },
+      "Lint/RequireRelativeSelfPath": {
+        "Enabled": true
+      }
+    },
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Remove the `require_relative` that requires itself.",
+            "cop_name": "Lint/RequireRelativeSelfPath",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 26,
+              "length": 26,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ],
+    "files": {
+      "current.rb": "require_relative \"current\"\n"
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "origin": "constructed/filename-dependent"
+  }
+]

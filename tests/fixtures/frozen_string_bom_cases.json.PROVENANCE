@@ -1,0 +1,13 @@
+RuboCop 1.89.0 / Ruby 4.0.7、2026-10-15 に CLI の実出力を記録。
+
+BOM と UTF-8 宣言、shebang、先頭の frozen_string_literal コメント、
+複数のコメント、空入力、空白、字下げ、コード行末の符号化宣言、
+shebang と宣言の間の空行、コメント末尾の空白を通常形式と Emacs 形式の定型化、percent 文字列と正規表現を組み合わせた 無効な復号バイトの陰性対照を含む 31 入力を、always / always_true / never で検査する。
+各入力を example.rb にそのまま書き、次のコマンドで補正前の診断全項目を取得した。
+
+rubocop _1.89.0_ --cache false --config config.yml --only Style/FrozenStringLiteralComment --format json example.rb
+
+config.yml は AllCops/NewCops: disable、TargetRubyVersion: 2.7 と
+Style/FrozenStringLiteralComment/EnforcedStyle を指定する。
+同じコマンドに -A を加えた後の実ファイルを after、終了コードを exit に記録する。
+原本の BOM は削除せず、before / after は実際の UTF-8 バイトを文字列として保持する。

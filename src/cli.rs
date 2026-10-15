@@ -11,9 +11,10 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
-    correction_bytes, discover_targets_with_store, inspect_files, inspect_files_with_store_cached,
-    inspect_stdin, is_mandatory_cop, offense_count, write_correction,
+    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection,
+    correct_file_with_original, correction_bytes, discover_targets_with_store, inspect_files,
+    inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop, offense_count,
+    write_correction,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -401,7 +402,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 
     let correct_mode = cli.correct_mode();
-    let selection = build_selection(&cli, &config, correct_mode)?;
+    let mut selection = build_selection(&cli, &config, correct_mode)?;
     let result_cache = result_cache(&cli, &cwd, &selection, &config)?;
     if !cli.list_target_files {
         warn_unimplemented_enabled(&config, &selection);
@@ -412,7 +413,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         &cli,
         &cwd,
         &configs,
-        &selection,
+        &mut selection,
         parallel,
         result_cache.as_ref(),
     )?;
@@ -515,6 +516,7 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
         // **No flag turns this on from the command line.** The guard is switched off for tests
         // only, and even then per case; a run reaches the environment variable or nothing.
         skip_syntax_guard: false,
+        project_index: None,
     })
 }
 
@@ -529,6 +531,7 @@ fn result_cache(
     // gets measured at all.
     let profiling = std::env::var_os("SONICOP_PROFILE").is_some();
     let enabled = cli.cache.as_deref() != Some("false")
+        && !crate::ProjectIndex::enabled(config)
         && !selection.correcting
         && cli.stdin.is_none()
         && !cli.profile
@@ -580,7 +583,7 @@ fn inspect_inputs(
     cli: &Cli,
     cwd: &Path,
     configs: &ConfigStore,
-    selection: &Selection,
+    selection: &mut Selection,
     parallel: bool,
     cache: Option<&ResultCache>,
 ) -> Result<Inspection> {
@@ -592,6 +595,7 @@ fn inspect_inputs(
             cli.force_exclusion,
             cli.only_recognized_file_types,
         )?;
+        *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
             for path in targets {
                 println!("{}", smart_path(&path, cwd));
@@ -623,6 +627,7 @@ fn inspect_inputs(
     if !cli.paths.is_empty() {
         bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
     }
+    *selection = selection.with_project_index(std::slice::from_ref(stdin_path), configs)?;
     // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
     let mut bytes = Vec::new();
     io::stdin()
@@ -664,7 +669,19 @@ fn apply_corrections(
         let original_stdin_report = stdin_original.map(|_| report.clone());
         let path = report.path.clone();
         let target_config = configs.for_path(&path)?;
-        let outcome = correct_file(report, correct_mode, &target_config, selection)?;
+        // 通常の lint は再読込しない。補正だけ、Ruby が実際に読む符号化を保護に渡す。
+        let disk_original = if stdin_original.is_none() && correct_mode != CorrectMode::None {
+            Some(fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?)
+        } else {
+            None
+        };
+        let outcome = correct_file_with_original(
+            report,
+            correct_mode,
+            &target_config,
+            selection,
+            stdin_original.or(disk_original.as_deref()),
+        )?;
         if let Some(message) = &outcome.infinite_loop {
             // 本家は反復が収束しないファイルでも最後の補正を書き、残りの処理を続ける。
             eprintln!("{message}");
@@ -1037,12 +1054,32 @@ fn show_cops(filter: &str, config: &Config) {
         if let Some(description) = config.description(name) {
             println!(
                 "  Description: {}",
-                description.lines().next().unwrap_or("")
+                quoted_yaml_description(description.lines().next().unwrap_or(""))
             );
         }
         println!("  Enabled: {}", config.rule_enabled(name));
         println!("  Implemented: {}", implemented.contains(name));
     }
+}
+
+fn quoted_yaml_description(description: &str) -> String {
+    use std::fmt::Write as _;
+
+    // JSON の引用で no などの暗黙変換を防ぎ、YAML 1.1 が拒否・正規化する文字も逃がす。
+    let quoted = serde_json::to_string(description).expect("string descriptions must serialize");
+    let mut escaped = String::with_capacity(quoted.len());
+    for character in quoted.chars() {
+        if matches!(
+            character,
+            '\u{7f}'..='\u{9f}' | '\u{2028}' | '\u{2029}' | '\u{fffe}' | '\u{ffff}'
+        ) {
+            write!(&mut escaped, "\\u{:04X}", u32::from(character))
+                .expect("writing to a string cannot fail");
+        } else {
+            escaped.push(character);
+        }
+    }
+    escaped
 }
 
 fn show_docs_urls(filter: &str, config: &Config) {

@@ -1,0 +1,18 @@
+Inputs: the project-index examples in RuboCop's specs, collected by running RSpec.
+The recording includes the three index-dependent Lint cops and the other cops
+whose behavior changes when a project index is available.
+Corpus commit: f009b33 (see CONFORMANCE.md for the full pinned revision).
+The capture retains both the inspected source and every file supplied to build_index.
+Origins beginning with constructed/ are minimal regression and negative-control
+inputs for file discovery, method-call shapes, comment association, constant
+resolution, cross-file definitions and changes to references in other files.
+
+Expected reports: RuboCop 1.89.0 CLI with rubydex 0.4.1, using the recorded
+TargetRubyVersion and cop configuration, explicit Enabled: true and UseProjectIndex: true.
+Each invocation inspects the recorded target after indexing the whole temporary project.
+Reports include all offense fields and paths; normal tests need neither Ruby nor rubydex.
+
+Regenerate the reports with:
+  make project-index-fixtures
+
+Upstream inputs are distributed under RuboCop's MIT license; see NOTICE.

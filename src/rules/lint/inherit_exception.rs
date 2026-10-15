@@ -17,6 +17,29 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         _ => "StandardError",
     };
     for node in context.nodes_of_any(&["class", "call"]) {
+        if node.kind_str() == "class"
+            && let Some(parent) = node
+                .field("superclass")
+                .and_then(|node| node.named_child(0))
+            && !is_exception(parent, context)
+        {
+            let via = context.project_index().and_then(|project| {
+                project.with(|index| {
+                    super::project_index_help::resolve_constant(index, parent, context)
+                        .and_then(|owner| index.exception_ancestor(owner))
+                })
+            });
+            if let Some(via) = via {
+                // 継承元の定義を変更しなければ直らないため、本家も補正を付けない。
+                offenses.push(context.offense(
+                    format!(
+                        "Inherit from `{preferred}` instead of `Exception` (inherited via `{via}`)."
+                    ),
+                    parent.byte_range(),
+                ));
+            }
+            continue;
+        }
         // `on_send` は `csend` に呼ばれない。`Class&.new(Exception)` は本家が構造的に見ないので、
         // ここで落とさないと過剰検出になる。`class` の枝には関係しない。
         if node.kind_str() == "call" && !crate::rules::send_node::is_plain_send(node, context) {
@@ -25,7 +48,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(parent_class) = exception_reference(node, context) else {
             continue;
         };
-        if node.kind_str() == "class" && shadowed_by_a_sibling_definition(node, parent_class, context) {
+        if node.kind_str() == "class"
+            && shadowed_by_a_sibling_definition(node, parent_class, context)
+        {
             continue;
         }
         offenses.push(
@@ -46,10 +71,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 
 /// The `Exception` a definition inherits from, either as a superclass or as the one argument of a
 /// `Class.new`.
-fn exception_reference<'tree>(
-    node: Node<'tree>,
-    context: &RuleContext<'_>,
-) -> Option<Node<'tree>> {
+fn exception_reference<'tree>(node: Node<'tree>, context: &RuleContext<'_>) -> Option<Node<'tree>> {
     match node.kind_str() {
         "class" => {
             let parent_class = node.field("superclass")?.named_child(0)?;
@@ -65,7 +87,8 @@ fn exception_reference<'tree>(
                 return None;
             }
             let arguments = node.field("arguments")?;
-            let argument = (arguments.named_child_count() == 1).then(|| arguments.named_child(0))??;
+            let argument =
+                (arguments.named_child_count() == 1).then(|| arguments.named_child(0))??;
             (top_level_name(argument, context).is_some() && is_exception(argument, context))
                 .then_some(argument)
         }

@@ -223,4 +223,22 @@ class RunnerTest < Minitest::Test
     assert_includes output, 'could not be started'
     assert_includes output, 'gem install sonicop --platform ruby'
   end
+
+  def test_passes_the_ruby_interpreter_only_when_bundler_is_loaded
+    skip 'relies on POSIX exec' if Gem.win_platform?
+
+    binary = File.join(@root, 'bundle-env')
+    File.write(binary, "#!/bin/sh\nprintf '%s' \"${SONICOP_BUNDLER_RUBY-unset}\"\n")
+    FileUtils.chmod(0o755, binary)
+    [false, true].each do |bundler_loaded|
+      bootstrap = bundler_loaded ? 'module Bundler; end; ' : ''
+      output = IO.popen(
+        [{ 'SONICOP_BINARY' => binary, 'SONICOP_BUNDLER_RUBY' => 'stale' },
+         RbConfig.ruby, '-I', File.join(ROOT, 'lib'), '-rsonicop', '-e',
+         "#{bootstrap}Sonicop::Runner.run([])"], err: [:child, :out], &:read
+      )
+      assert_predicate $CHILD_STATUS, :success?, output
+      assert_equal bundler_loaded ? RbConfig.ruby : 'unset', output
+    end
+  end
 end

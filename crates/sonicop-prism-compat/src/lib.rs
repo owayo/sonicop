@@ -19,6 +19,7 @@ unsafe extern "C" {
         version: *const c_char,
         version_length: usize,
         binary: bool,
+        main_script: bool,
         callback: Callback,
         data: *mut c_void,
     ) -> c_int;
@@ -46,6 +47,20 @@ unsafe extern "C" fn collect(
 }
 
 pub fn parse(source: &[u8], version: &str, binary: bool) -> Result<Vec<Diagnostic>, &'static str> {
+    parse_with_options(source, version, binary, false)
+}
+
+/// 書き戻し前の検査は部分式ではなく、Ruby が起動するスクリプトとして解析する。
+pub fn parse_script(source: &[u8], version: &str) -> Result<Vec<Diagnostic>, &'static str> {
+    parse_with_options(source, version, false, true)
+}
+
+fn parse_with_options(
+    source: &[u8],
+    version: &str,
+    binary: bool,
+    main_script: bool,
+) -> Result<Vec<Diagnostic>, &'static str> {
     let mut diagnostics = Vec::<Diagnostic>::new();
     // pm_options_version_set の latest 分岐は終端の NUL まで比較する。
     let version = CString::new(version).map_err(|_| "invalid Prism target Ruby version")?;
@@ -57,6 +72,7 @@ pub fn parse(source: &[u8], version: &str, binary: bool) -> Result<Vec<Diagnosti
             version.as_ptr(),
             version.as_bytes().len(),
             binary,
+            main_script,
             collect,
             (&mut diagnostics as *mut Vec<Diagnostic>).cast(),
         )

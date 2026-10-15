@@ -84,6 +84,16 @@ fn stateful_parent(node: Node<'_>, context: &RuleContext<'_>, allowed: &[String]
     let Some(class) = ancestor(node, &["class"]) else {
         return false;
     };
+    if context.project_index().is_some_and(|project| {
+        project.with(|index| {
+            class
+                .field("name")
+                .and_then(|name| super::project_index_help::resolve_constant(index, name, context))
+                .is_some_and(|owner| index.stateless_ancestry(owner))
+        })
+    }) {
+        return false;
+    }
     class
         .field("superclass")
         .and_then(|superclass| superclass.named_child(0))
@@ -95,7 +105,9 @@ fn class_new_superclass<'tree>(
     block: Node<'tree>,
     context: &RuleContext<'_>,
 ) -> Option<Node<'tree>> {
-    let call = block.parent().filter(|parent| parent.kind_str() == "call")?;
+    let call = block
+        .parent()
+        .filter(|parent| parent.kind_str() == "call")?;
     if context.source.node_text(call.field("method")?) != "new"
         || !top_level_class(call.field("receiver")?, context)
     {

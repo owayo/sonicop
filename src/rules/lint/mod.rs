@@ -33,6 +33,7 @@ mod nil_receiver;
 pub(crate) mod node_equality;
 mod parameters;
 mod percent_literal;
+pub(crate) mod project_index_help;
 mod ranges;
 mod regexp;
 /// What the four regexp-reading cops get handed in place of a `RegexpNode`.

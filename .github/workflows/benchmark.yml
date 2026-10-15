@@ -1,0 +1,40 @@
+name: Benchmark
+
+on:
+  # 構文保護の変更後も、固定したコミットの通常検査を計測する。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    # 大きな Ruby コーパスの基準実行と反復計測を途中で打ち切らない。
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: make release
+      # オラクル 1.89.0 は互換性の仕様として維持し、速度比較だけを現在の安定版で行う。
+      - run: gem install rubocop -v 1.92.0 --no-document
+      - run: make test-ruby
+      - run: make benchmark ARGS="--output tmp/benchmark --repeats 2"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: benchmark
+          # コーパスの複製やキャッシュは添付せず、条件と出力・終了コードを残す。
+          path: |
+            tmp/benchmark/results.json
+            tmp/benchmark/*-cops.yml
+            tmp/benchmark/*/*.json
+            tmp/benchmark/*/*.txt
+            tmp/benchmark/*/*.out
+            tmp/benchmark/*/*.err

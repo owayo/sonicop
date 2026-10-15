@@ -11,6 +11,8 @@ mod support;
 use std::fs;
 use std::process::Command;
 
+use serde_yaml_ng as serde_yaml;
+
 use support::project::{
     assert_offenses, command, lint_stdin, offense_tuples, offenses, project, project_with_ruby,
     project_without_pinned_ruby, report,
@@ -2248,6 +2250,437 @@ fn prism_frees_deep_left_associative_trees_on_parallel_workers() {
     assert_eq!(found.summary.offense_count, 0);
 }
 
+/// 診断が旧パーサの設定でも、最後にスクリプトとして壊れた出力はディスクへ書かない。
+fn assert_legacy_autocorrect_rollback(cop: &str, source: &str) {
+    for version in ["2.7", "3.3"] {
+        for mode in ["-a", "-A"] {
+            let directory = project_with_ruby(
+                &[("example.rb", source), ("other.rb", "puts :ok\n")],
+                version,
+            );
+            let before = command(directory.path())
+                .args(["--only", cop, "-f", "json", "example.rb"])
+                .assert()
+                .code(1)
+                .get_output()
+                .stdout
+                .clone();
+            for _ in 0..2 {
+                let output = command(directory.path())
+                    .args(["--only", cop, mode, "-f", "json", "example.rb", "other.rb"])
+                    .assert()
+                    .code(2)
+                    .get_output()
+                    .clone();
+                assert!(String::from_utf8_lossy(&output.stderr).contains(
+                    "Autocorrection was not written to example.rb because it introduced a syntax error."
+                ));
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    source.as_bytes()
+                );
+                let before: serde_json::Value = serde_json::from_slice(&before).unwrap();
+                let after: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(before["files"][0], after["files"][0]);
+                assert_eq!(after["summary"]["inspected_file_count"], 2);
+            }
+        }
+    }
+}
+
+#[test]
+fn multiple_assignment_conditions_are_not_written_without_required_parentheses() {
+    assert_legacy_autocorrect_rollback(
+        "Style/Semicolon,Style/ParenthesesAroundCondition",
+        "until (parent, base = File.split(path); parent == path or parent == \".\")\n  puts base\nend\n",
+    );
+}
+
+#[test]
+fn block_parameter_reflow_does_not_write_an_invalid_trailing_comma() {
+    assert_legacy_autocorrect_rollback(
+        "Layout/MultilineBlockLayout",
+        "[1].each do\n  |b, e = \"end\", pre = nil, post = nil|\n  puts b, e, pre, post\nend\n",
+    );
+}
+
+#[test]
+fn defined_expressions_keep_the_begin_required_by_a_modifier_loop() {
+    assert_legacy_autocorrect_rollback(
+        "Style/RedundantBegin",
+        "defined?(begin\n  value while condition\nend)\n",
+    );
+}
+
+#[test]
+fn removing_a_false_post_loop_does_not_leave_a_top_level_break() {
+    assert_legacy_autocorrect_rollback(
+        "Lint/LiteralAsCondition",
+        "begin\n  if now\n    break if year\n    year = now.year\n  end\nend while false\n",
+    );
+}
+
+#[test]
+fn comment_spacing_preserves_the_ruby_entry_point_of_a_polyglot_script() {
+    assert_legacy_autocorrect_rollback(
+        "Layout/LeadingCommentSpace",
+        "#!/bin/sh\n# -*- ruby -*-\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nputs :ok\n",
+    );
+}
+
+#[test]
+fn the_upstream_correction_limit_reports_partial_progress_on_disk() {
+    // RuboCop 1.89.0 の実測値。200 パスで終了しても、それまでの補正は書き戻す。
+    // 収束した成功と区別できるよう、診断・終了コード・次回実行の実バイトを合わせて確認する。
+    let before = format!("{}value\n{}", "run do\n".repeat(205), "end\n".repeat(205));
+    let directory = project_with_ruby(&[("example.rb", &before)], "2.7");
+    let path = directory.path().join("example.rb");
+    let run = || {
+        command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Layout/IndentationWidth,Layout/BlockAlignment",
+                "-A",
+                "example.rb",
+            ])
+            .output()
+            .unwrap()
+    };
+    let first = run();
+    assert_eq!(first.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&first.stderr).contains("Infinite loop"));
+    assert_eq!(fs::read(&path).unwrap().len(), 86_261);
+
+    let mut expected = String::new();
+    for depth in 0..205 {
+        expected.push_str(&format!("{}run do\n", "  ".repeat(depth)));
+    }
+    expected.push_str(&format!("{}value\n", "  ".repeat(205)));
+    for depth in (0..205).rev() {
+        expected.push_str(&format!("{}end\n", "  ".repeat(depth)));
+    }
+    for _ in 0..2 {
+        let output = run();
+        assert_eq!(output.status.code(), Some(0));
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
+        assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+    }
+}
+
+#[test]
+fn bom_frozen_comments_match_recorded_upstream_fields_and_bytes() {
+    let cases: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/frozen_string_bom_cases.json")).unwrap();
+    for case in cases.as_array().unwrap() {
+        let before = case["before"].as_str().unwrap();
+        let after = case["after"].as_str().unwrap();
+        let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\nStyle/FrozenStringLiteralComment:\n  EnforcedStyle: {}\n",
+                case["style"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Style/FrozenStringLiteralComment",
+                "-f",
+                "json",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(json["files"][0]["offenses"], case["offenses"], "{case}");
+        let expected_exit = i32::try_from(case["exit"].as_i64().unwrap()).unwrap();
+        for _ in 0..2 {
+            command(directory.path())
+                .args([
+                    "--only",
+                    "Style/FrozenStringLiteralComment",
+                    "-A",
+                    "example.rb",
+                ])
+                .assert()
+                .code(expected_exit);
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                after.as_bytes()
+            );
+        }
+    }
+}
+
+#[test]
+fn frozen_comment_insertion_uses_the_decoded_first_token() {
+    let cases: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/frozen_string_token_cases.json")).unwrap();
+    for case in cases.as_array().unwrap() {
+        let before = case["before"].as_str().unwrap();
+        let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["config"].to_string(),
+        )
+        .unwrap();
+        // 本家もこの形では 200 パスで停止する。補正の収束と互換性を混同しない。
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Style/FrozenStringLiteralComment",
+                "-A",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{}", case["name"]);
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            case["after"].as_str().unwrap().as_bytes(),
+            "{}",
+            case["name"]
+        );
+    }
+}
+
+#[test]
+fn a_frozen_comment_after_bom_encoding_converges_on_disk() {
+    for header in [
+        "\u{feff}# encoding: utf-8",
+        "\u{feff}#!/usr/bin/env ruby\n# encoding: utf-8",
+    ] {
+        for ending in ["\n", "\r\n"] {
+            for mode in ["-a", "-A"] {
+                let before = format!("{header}\nputs 'hello'\n").replace('\n', ending);
+                let corrected = format!("{header}\n# frozen_string_literal: true\nputs 'hello'\n")
+                    .replace('\n', ending);
+                let expected = if mode == "-A" { &corrected } else { &before };
+                let directory = project_with_ruby(&[("example.rb", &before)], "2.7");
+                let path = directory.path().join("example.rb");
+                for _ in 0..2 {
+                    command(directory.path())
+                        .args([
+                            "--only",
+                            "Style/FrozenStringLiteralComment",
+                            mode,
+                            "example.rb",
+                        ])
+                        .assert()
+                        .code(if mode == "-A" { 0 } else { 1 });
+                    assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn empty_interpolation_cannot_mix_source_encodings() {
+    for header in [
+        "# coding: US-ASCII",
+        "# coding: Shift_JIS",
+        "# coding: EUC-JP",
+        "# coding: ISO-8859-1",
+        "# coding: Windows-31J",
+        "# coding: binary",
+        "\u{feff}# coding: US-ASCII",
+        "  # coding: US-ASCII",
+        "# vim: set fileencoding=us-ascii :",
+        "# -*- encoding: US-ASCII -*-",
+        "#!/usr/bin/env ruby\n# coding: US-ASCII",
+    ] {
+        assert_legacy_autocorrect_rollback(
+            "Lint/EmptyInterpolation",
+            &format!("{header}\n\"/\\u1234#{{ }}\\x80/\"\n"),
+        );
+    }
+    assert_legacy_autocorrect_rollback(
+        "Lint/EmptyInterpolation",
+        "# coding: 646\r\n\"/\\u1234#{ }\\x80/\"\r\n",
+    );
+}
+
+#[test]
+fn encoded_source_rollback_keeps_raw_disk_and_stdin_bytes() {
+    let source = "# coding: Shift_JIS\ntext = \"日本語\"\n\"/\\u1234#{ }\\x80/\"\n";
+    let (bytes, _, invalid) = encoding_rs::SHIFT_JIS.encode(source);
+    assert!(!invalid);
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(&[], "2.7");
+        let path = directory.path().join("example.rb");
+        fs::write(&path, &bytes).unwrap();
+        command(directory.path())
+            .args(["--only", "Lint/EmptyInterpolation", mode, "example.rb"])
+            .assert()
+            .code(2);
+        assert_eq!(fs::read(&path).unwrap(), bytes.as_ref());
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Lint/EmptyInterpolation",
+                mode,
+                "--stdin",
+                "example.rb",
+                "-f",
+                "simple",
+            ])
+            .write_stdin(bytes.as_ref())
+            .assert()
+            .code(2)
+            .get_output()
+            .stdout
+            .clone();
+        assert!(output.ends_with(bytes.as_ref()));
+        assert_eq!(fs::read(&path).unwrap(), bytes.as_ref());
+    }
+}
+
+#[test]
+fn percent_quoted_byte_escapes_preserve_the_literal_value_on_disk() {
+    let source = "# coding: US-ASCII\n%{/\\u1234#{%q\"\\x80\"}/}\n";
+    let expected = "# coding: US-ASCII\n%{/\\u1234\\\\x80/}\n";
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Lint/LiteralInInterpolation", mode, "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn legacy_script_validation_rejects_broken_lambdas_and_operator_calls() {
+    assert_legacy_autocorrect_rollback("Style/Lambda", "a = lambda { || 1 }\n");
+    assert_legacy_autocorrect_rollback("Style/OperatorMethodCall", "a + b.+(c)\n");
+}
+
+#[test]
+fn empty_regexp_correction_is_withheld_only_in_unsafe_mode() {
+    let source = "/#{[]}/\n";
+    let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+    command(directory.path())
+        .args(["--only", "Lint/ArrayLiteralInRegexp", "-a", "example.rb"])
+        .assert()
+        .code(1);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
+    command(directory.path())
+        .args(["--only", "Lint/ArrayLiteralInRegexp", "-A", "example.rb"])
+        .assert()
+        .code(2);
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
+}
+
+#[test]
+fn legacy_syntax_rollback_returns_the_original_stdin_buffer() {
+    let source = "begin\n  break\nend while false\n";
+    let directory = project_with_ruby(&[], "2.7");
+    let output = command(directory.path())
+        .args([
+            "--only",
+            "Lint/LiteralAsCondition",
+            "-a",
+            "--stdin",
+            "example.rb",
+            "-f",
+            "simple",
+        ])
+        .write_stdin(source)
+        .assert()
+        .code(2)
+        .get_output()
+        .clone();
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .ends_with(&format!("====================\n{source}"))
+    );
+    assert!(!directory.path().join("example.rb").exists());
+}
+
+#[test]
+fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
+    let source =
+        "#!/bin/sh\nexec \"${RUBY-ruby}\" \"-x\" \"$0\" \"$@\" && [ ] if false\n#!ruby\nvalue=1\n";
+    for newline in ["\n", "\r\n"] {
+        let source = source.replace('\n', newline);
+        let expected = source.replace("value=1", "value = 1");
+        let directory = project_with_ruby(&[("example.rb", &source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Layout/SpaceAroundOperators", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+        let source = format!(
+            "#!/bin/sh{newline}# comment {newline}exec ruby -x \"$0\" \"$@\" if false{newline}#!ruby{newline}puts :ok{newline}"
+        );
+        let expected = source.replace("# comment ", "# comment");
+        fs::write(directory.path().join("example.rb"), &source).unwrap();
+        command(directory.path())
+            .args(["--only", "Layout/TrailingWhitespace", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+        let source = format!(
+            "#!/bin/sh{newline}# example: <<EOF{newline}  exec \"${{RUBY-ruby}}\" \"-x\" \"$0\" \"$@\" && [ ] if false{newline}#!ruby{newline}puts :ok{newline}"
+        );
+        let expected = source.replace("  exec", "exec");
+        fs::write(directory.path().join("example.rb"), &source).unwrap();
+        command(directory.path())
+            .args(["--only", "Layout/InitialIndentation", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
+#[test]
+fn a_semicolon_in_a_heredoc_name_is_not_a_line_break() {
+    let source = "module Example\n  class Test\n    def run\n      items.each do\n        assert_in_out_err([\"-W0\", *ARGV], <<-\"end;\", [\"[1, 1, 1, 400, nil, nil, nil, nil, nil, nil, nil]\"], [], bug13305)\n          puts :ok\n        end;\n      end\n    end\n  end\nend\n";
+    // 本家の Layout/LineLength 単独の補正は、終端名の前で折って heredoc を保つ。
+    let expected = source.replacen("<<-", "\n<<-", 1);
+    for newline in ["\n", "\r\n"] {
+        let source = source.replace('\n', newline);
+        let expected = expected.replace('\n', newline);
+        let directory = project_with_ruby(&[("example.rb", &source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Layout/LineLength", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
 #[test]
 fn prism_frees_deep_trees_discarded_during_error_recovery() {
     // 不正な代入先は pm_parse の途中で破棄されるので、最後の解放だけを直してもここで落ちる。
@@ -2973,5 +3406,71 @@ fn later_conditional_corrections_preserve_character_provenance() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn show_cops_descriptions_remain_loadable_yaml() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let listing: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+    assert_eq!(listing.as_mapping().unwrap().len(), 609);
+    // RuboCop 1.89.0 の --show-cops が返す文字列を保持する。
+    assert_eq!(
+        listing["Lint/BigDecimalNew"]["Description"].as_str(),
+        Some("`BigDecimal.new()` is deprecated. Use `BigDecimal()` instead.")
+    );
+    for description in [
+        "plain text",
+        "no",
+        "yes",
+        "on",
+        "value: with # punctuation",
+        "quote ' and \"",
+        "control \0 byte",
+        "line\u{85}break",
+        "line\u{2028}break",
+        "control\u{7f}byte",
+        "control\u{9f}byte",
+        "text\u{fffe}byte",
+        "文字 😀",
+    ] {
+        let config = format!(
+            "Lint/BigDecimalNew:\n  Description: !!str {}",
+            serde_yaml::to_string(description).unwrap()
+        );
+        std::fs::write(directory.path().join(".rubocop.yml"), config).unwrap();
+        let output = command(directory.path())
+            .args(["--show-cops=Lint/BigDecimalNew"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let listing: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+        assert_eq!(
+            listing["Lint/BigDecimalNew"]["Description"].as_str(),
+            Some(description)
+        );
+        // 再読込にも Ruby の YAML 1.1 と同じスカラ解釈を使わせる。
+        std::fs::write(directory.path().join(".rubocop.yml"), &output).unwrap();
+        let repeated = command(directory.path())
+            .args(["--show-cops=Lint/BigDecimalNew"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let repeated: serde_yaml::Value = serde_yaml::from_slice(&repeated).unwrap();
+        assert_eq!(
+            repeated["Lint/BigDecimalNew"]["Description"].as_str(),
+            Some(description)
+        );
     }
 }

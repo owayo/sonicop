@@ -1,0 +1,8 @@
+Inputs: minimal filename-dependent examples for Bundler/GemFilename and
+Lint/RequireRelativeSelfPath, which do not fire in the ordinary spec CLI sweep.
+Expected reports: RuboCop 1.89.0 CLI, with each cop explicitly enabled.
+Absolute temporary paths in messages are represented by {root}; the test expands
+that placeholder to the canonical temporary directory before comparing all fields.
+
+Regenerate with make project-index-fixtures. The same command also refreshes
+the project-index recording; see project_index_cases.json.PROVENANCE.

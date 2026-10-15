@@ -45,6 +45,7 @@ mod bundler;
 mod gemspec;
 mod layout;
 mod lint;
+mod literal;
 mod metrics;
 mod migration;
 mod naming;
@@ -152,6 +153,7 @@ pub(crate) struct RuleContext<'a> {
     /// enabled cop in it and `--except` takes its cops out. The engine settles it once for the run
     /// instead of every cop working it out from the configuration alone.
     disabled_cops: &'a [&'static str],
+    project_index: Option<&'a crate::ProjectIndex>,
 }
 
 /// What `Lint/RedundantCopDisableDirective` is given instead of a walk over the syntax tree.
@@ -189,6 +191,7 @@ impl<'a> RuleContext<'a> {
             metric_locals: OnceCell::new(),
             layout_tokens: OnceCell::new(),
             disabled_cops: &[],
+            project_index: None,
         }
     }
 
@@ -196,6 +199,15 @@ impl<'a> RuleContext<'a> {
     pub(crate) fn with_disabled_cops(mut self, names: &'a [&'static str]) -> Self {
         self.disabled_cops = names;
         self
+    }
+
+    pub(crate) fn with_project_index(mut self, index: Option<&'a crate::ProjectIndex>) -> Self {
+        self.project_index = index;
+        self
+    }
+
+    pub(in crate::rules) fn project_index(&self) -> Option<&'a crate::ProjectIndex> {
+        self.project_index
     }
 
     /// Points the context at the next cop of the same file, keeping everything the file's cops

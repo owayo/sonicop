@@ -27,6 +27,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if defining_parent(node, context).is_some_and(|parent| defines_module(parent, context)) {
             continue;
         }
+        if context.project_index().is_some_and(|project| {
+            project.with(|index| {
+                let scopes = super::project_index_help::nesting(node, context);
+                let relative = index.resolve_constant(name, &scopes);
+                let absolute = index.resolve_constant(name, &[]);
+                relative.is_none() || absolute.is_none() || relative == absolute
+            })
+        }) {
+            continue;
+        }
         offenses.push(context.offense(
             "Fully qualify this constant to avoid possibly ambiguous resolution.",
             node.byte_range(),
@@ -38,9 +48,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 fn written_as_a_parameter_default(list: Node<'_>, context: &RuleContext<'_>) -> bool {
     list.parent_of(context)
         .and_then(|assignment| assignment.parent_of(context))
-        .is_some_and(|outer| {
-            matches!(outer.kind_str(), "optional_parameter" | "keyword_parameter")
-        })
+        .is_some_and(|outer| matches!(outer.kind_str(), "optional_parameter" | "keyword_parameter"))
 }
 
 fn is_unqualified_read(node: Node<'_>, context: &RuleContext<'_>) -> bool {

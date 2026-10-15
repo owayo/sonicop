@@ -39,6 +39,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         let Some(name) = node.field("name") else {
             continue;
         };
+        if context.project_index().is_some_and(|project| {
+            project.with(|index| {
+                crate::rules::lint::project_index_help::resolve_constant(index, name, context)
+                    .is_some_and(|owner| {
+                        index.namespace_kind(owner) == Some("class") && index.has_descendants(owner)
+                    })
+            })
+        }) {
+            continue;
+        }
         let mut edits = vec![
             // `corrector.replace(class_node.loc.keyword, 'module')`.
             Edit {

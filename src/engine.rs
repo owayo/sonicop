@@ -65,6 +65,23 @@ pub struct Selection {
     /// The environment variable does the same thing but reaches the whole process, so it cannot
     /// be used by a harness that runs cases in parallel. **This is the per-case form.**
     pub skip_syntax_guard: bool,
+    /// 検査対象外のファイルも含め、実行開始時に構築した本家互換の索引を全パスで共有する。
+    #[serde(skip)]
+    pub project_index: Option<Arc<crate::ProjectIndex>>,
+}
+
+impl Selection {
+    pub(crate) fn with_project_index(
+        &self,
+        paths: &[PathBuf],
+        configs: &ConfigStore,
+    ) -> Result<Self> {
+        let mut selection = self.clone();
+        if selection.project_index.is_none() && crate::ProjectIndex::enabled(configs.root()) {
+            selection.project_index = Some(Arc::new(crate::ProjectIndex::build(paths, configs)?));
+        }
+        Ok(selection)
+    }
 }
 
 /// 4: the stat a report is keyed on records the file's permission bits as well as its size and
@@ -973,6 +990,14 @@ pub fn inspect_source(
     config: &Config,
     selection: &Selection,
 ) -> Result<FileReport> {
+    let path = path.into();
+    let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
+        let configs = ConfigStore::new(config.clone(), false, false);
+        Some(selection.with_project_index(std::slice::from_ref(&path), &configs)?)
+    } else {
+        None
+    };
+    let selection = indexed.as_ref().unwrap_or(selection);
     inspect_planned(
         path,
         text,
@@ -1146,7 +1171,8 @@ fn inspect_registered_rules<'a>(
     )
     // `registry.disabled_names(config)`: the cops the run switches off, which is what an
     // `# rubocop:enable` has to undo. The standby list is that set already.
-    .with_disabled_cops(&plan.standby_names);
+    .with_disabled_cops(&plan.standby_names)
+    .with_project_index(selection.project_index.as_deref());
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
@@ -1212,6 +1238,10 @@ pub(crate) fn inspect_files_with_store_cached(
     parallel: bool,
     cache: Option<&ResultCache>,
 ) -> Result<Vec<FileReport>> {
+    let indexed = selection.with_project_index(paths, configs)?;
+    let selection = &indexed;
+    // 他ファイルの追加・削除も診断を変える。索引の永続化を導入するまでは古い結果を使わない。
+    let cache = cache.filter(|_| selection.project_index.is_none());
     // Most runs resolve every file to the store's root configuration, so the plan for it is worth
     // building once. A file that a nested `.rubocop.yml` gives a different configuration falls back
     // to building its own, which costs no more than resolving the cops inline would have.
@@ -2685,12 +2715,45 @@ impl CorrectionLog {
         self.cops_by_pass.push(cops);
     }
 
-    fn root_cause(&self, loop_start: usize) -> String {
+    fn root_cause(
+        &self,
+        loop_start: usize,
+        last: &[Offense],
+        mode: CorrectMode,
+        config: &Config,
+        selection: &Selection,
+    ) -> String {
+        // 本家は次の反復へ入るときに前回の未補正 offense を落とす。
+        // 上限・循環で止まった最後の反復だけは、補正できなかったものも原因に残る。
+        let last_cops: Vec<_> = last
+            .iter()
+            .filter(|offense| {
+                cop_autocorrect_metadata(offense.cop_name).is_some_and(|(_, support)| support)
+                    && config.rule_autocorrect_enabled(offense.cop_name, selection.editor_mode)
+                    && (mode == CorrectMode::All
+                        || (config.rule_safe(offense.cop_name)
+                            && config.rule_safe_autocorrect(offense.cop_name)))
+            })
+            .map(|offense| offense.cop_name)
+            .collect();
         self.cops_by_pass
             .get(loop_start..)
             .unwrap_or_default()
             .iter()
-            .map(|cops| cops.join(", "))
+            .enumerate()
+            .map(|(offset, cops)| {
+                let mut cops = if loop_start + offset + 1 == self.cops_by_pass.len() {
+                    last_cops.clone()
+                } else {
+                    cops.clone()
+                };
+                // Commissioner の結果は位置順ではなく、cop の登録順に連結される。
+                cops.sort_unstable_by_key(|cop| {
+                    cop_autocorrect_metadata(cop).map_or(usize::MAX, |(rank, _)| rank)
+                });
+                cops.dedup();
+                cops.join(", ")
+            })
             .collect::<Vec<_>>()
             .join(" -> ")
     }
@@ -2716,6 +2779,21 @@ impl CorrectionLog {
     }
 }
 
+fn cop_autocorrect_metadata(cop: &str) -> Option<(usize, bool)> {
+    // offense ごとの correctable とは別の、本家クラスの補正機能と実際の登録順。
+    static METADATA: std::sync::LazyLock<std::collections::BTreeMap<&'static str, (usize, bool)>> =
+        std::sync::LazyLock::new(|| {
+            let cops: Vec<(&str, bool)> =
+                serde_json::from_str(include_str!("../config/autocorrect_support.json"))
+                    .expect("vendored autocorrect metadata must be valid");
+            cops.into_iter()
+                .enumerate()
+                .map(|(rank, (name, support))| (name, (rank, support)))
+                .collect()
+        });
+    METADATA.get(cop).copied()
+}
+
 /// 補正が収束するまで反復した結果と、書き戻しの成否。
 pub struct CorrectionOutcome {
     pub report: FileReport,
@@ -2734,13 +2812,12 @@ pub struct CorrectionOutcome {
     pub rollback: Option<String>,
 }
 
-/// Switches off the guard below. **Measurement only** -- see `withhold_unparsable`.
+/// 下の構文保護を外す測定専用の設定。`withhold_unparsable` を参照。
 ///
-/// It is read from the environment rather than the configuration on purpose: `.rubocop.yml` is
-/// committed and shared, so a project could turn the guard off for everyone who checks it out.
+/// 共有される .rubocop.yml で全利用者の保護を無効にできないよう、環境変数に限る。
 pub const NO_SYNTAX_GUARD: &str = "SONICOP_NO_SYNTAX_GUARD";
 
-/// Whether a report carries the fatal `Lint/Syntax` offense that says the source did not parse.
+/// 解析不能を示す fatal の Lint/Syntax が報告されているか。
 fn holds_fatal_syntax(report: &FileReport) -> bool {
     report
         .offenses
@@ -2754,9 +2831,9 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
 /// バイト一致だけでは両者が同じように壊れた場合を見逃すため、補正後も検査する。
 /// 最初から無効だった入力には発火せず、警告だけでも補正を止めない。
 ///
-/// Lint/Syntax と同じパーサ設定を使い、Ruby 3.3 以降の既定ではネイティブ Prism の
-/// 診断で判定する。旧版の Whitequark 設定では補助規則と tree-sitter の検査なので、
-/// 文法が受理しすぎる構文には保護が届かない。補正の安全性全般を保証するものではない。
+/// Lint/Syntax の判定に加え、ネイティブ Prism でスクリプトとしての構文も比較する。
+/// 旧版の診断には tree-sitter が受理しすぎる構文があるため、診断の互換性とは分ける。
+/// 構文が通ったまま値や制御の意味が変わる補正までは検出できない。
 ///
 /// ディスクには原本が残るため、適用されていない補正を corrected として報告しない。
 /// SONICOP_NO_SYNTAX_GUARD は、保護が止めた出力を本家と比較して誤拒否を測るためだけに
@@ -2764,15 +2841,34 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
 fn withhold_unparsable(
     outcome: CorrectionOutcome,
     original: &str,
+    original_bytes: Option<&[u8]>,
     started_valid: bool,
     config: &Config,
     selection: &Selection,
     plan: &RulePlan,
 ) -> Result<CorrectionOutcome> {
-    if !started_valid || !outcome.rewritten || !holds_fatal_syntax(&outcome.report) {
+    if !started_valid || !outcome.rewritten {
         return Ok(outcome);
     }
     if selection.skip_syntax_guard || std::env::var_os(NO_SYNTAX_GUARD).is_some() {
+        return Ok(outcome);
+    }
+    // CLI は入力バイト列を渡す。メモリ上の公開 API では宣言に従って原本を再構成する。
+    let reconstructed = original_bytes.is_none().then(|| {
+        output_bytes(original, declared_label(original.as_bytes()).as_deref())
+            .unwrap_or_else(|_| original.as_bytes().to_vec())
+    });
+    let original_bytes = original_bytes.unwrap_or_else(|| reconstructed.as_deref().unwrap());
+    // 符号化できない出力は書き戻し処理が別の理由で拒否する。構文破壊とは取り違えない。
+    let invalid_script = correction_bytes(
+        &outcome.text,
+        original_bytes,
+        Some(outcome.introduced_non_ascii),
+    )
+    .is_ok_and(|bytes| {
+        crate::prism::would_invalidate(original_bytes, &bytes, config.target_ruby_version())
+    });
+    if !holds_fatal_syntax(&outcome.report) && !invalid_script {
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
@@ -2823,11 +2919,29 @@ fn restore_crlf(mut outcome: CorrectionOutcome, preserve_crlf: bool) -> Correcti
 }
 
 pub fn correct_file(
-    mut report: FileReport,
+    report: FileReport,
     mode: CorrectMode,
     config: &Config,
     selection: &Selection,
 ) -> Result<CorrectionOutcome> {
+    correct_file_with_original(report, mode, config, selection, None)
+}
+
+/// stdin とディスクの補正は、復号前と書き戻し予定のバイト列で構文を比較する。
+pub(crate) fn correct_file_with_original(
+    mut report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+    original_bytes: Option<&[u8]>,
+) -> Result<CorrectionOutcome> {
+    let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
+        let configs = ConfigStore::new(config.clone(), false, false);
+        Some(selection.with_project_index(std::slice::from_ref(&report.path), &configs)?)
+    } else {
+        None
+    };
+    let selection = indexed.as_ref().unwrap_or(selection);
     let mut text = report.source.text().to_owned();
     if mode == CorrectMode::None {
         return Ok(CorrectionOutcome {
@@ -2880,24 +2994,27 @@ pub fn correct_file(
         if count == 0 {
             let (report, corrected_count) = log.merge_into(report);
             return withhold_unparsable(
-                CorrectionOutcome {
-                    report,
-                    text,
-                    corrected_count,
-                    rewritten,
-                    introduced_non_ascii: provenance
-                        .as_ref()
-                        .is_some_and(|positions| !positions.is_empty()),
-                    infinite_loop: None,
-                    rollback: None,
-                },
+                restore_crlf(
+                    CorrectionOutcome {
+                        report,
+                        text,
+                        corrected_count,
+                        rewritten,
+                        introduced_non_ascii: provenance
+                            .as_ref()
+                            .is_some_and(|positions| !positions.is_empty()),
+                        infinite_loop: None,
+                        rollback: None,
+                    },
+                    preserve_crlf,
+                ),
                 &original,
+                original_bytes,
                 started_valid,
                 config,
                 selection,
                 &plan,
-            )
-            .map(|outcome| restore_crlf(outcome, preserve_crlf));
+            );
         }
         log.record_pass(&mut report, directive_pass);
         // 本家の SourceBuffer は再検査時に CRLF を LF に正規化する。
@@ -2927,30 +3044,33 @@ pub fn correct_file(
         let repeated = sources.iter().position(|seen| *seen == corrected_digest);
         if pass + 1 == MAX_CORRECTION_PASSES || repeated.is_some() {
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
-            let root_cause = log.root_cause(loop_start);
+            let root_cause = log.root_cause(loop_start, &report.offenses, mode, config, selection);
             let (report, corrected_count) = log.merge_into(report);
             return withhold_unparsable(
-                CorrectionOutcome {
-                    report,
-                    text: corrected,
-                    corrected_count,
-                    rewritten,
-                    introduced_non_ascii: provenance
-                        .as_ref()
-                        .is_some_and(|positions| !positions.is_empty()),
-                    infinite_loop: Some(format!(
-                        "Infinite loop detected in {} and caused by {root_cause}",
-                        path.display()
-                    )),
-                    rollback: None,
-                },
+                restore_crlf(
+                    CorrectionOutcome {
+                        report,
+                        text: corrected,
+                        corrected_count,
+                        rewritten,
+                        introduced_non_ascii: provenance
+                            .as_ref()
+                            .is_some_and(|positions| !positions.is_empty()),
+                        infinite_loop: Some(format!(
+                            "Infinite loop detected in {} and caused by {root_cause}",
+                            path.display()
+                        )),
+                        rollback: None,
+                    },
+                    preserve_crlf,
+                ),
                 &original,
+                original_bytes,
                 started_valid,
                 config,
                 selection,
                 &plan,
-            )
-            .map(|outcome| restore_crlf(outcome, preserve_crlf));
+            );
         }
 
         sources.push(corrected_digest);
@@ -3725,6 +3845,90 @@ mod tests {
         assert!(!old.exists());
         assert!(!super::cache_index_summary_path(&old).exists());
         assert!(current.exists());
+    }
+
+    #[test]
+    fn indentation_and_trailing_whitespace_merge_in_the_same_pass() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec![
+                "Layout/IndentationWidth".to_owned(),
+                "Layout/TrailingWhitespace".to_owned(),
+            ],
+            correcting: true,
+            ..Selection::default()
+        };
+        let mut report = inspect_source(
+            directory.path().join("example.rb"),
+            "  foo do\nx  \n  end\n".to_owned(),
+            &config,
+            &selection,
+        )
+        .unwrap();
+        // 本家 Runner#inspect_iteration の最初の結果。最終結果だけでは見送りを見抜けない。
+        let (text, _) = corrected_text(&mut report, CorrectMode::Safe, Correcting::Everything);
+        assert_eq!(text, "  foo do\n    x\n  end\n");
+    }
+
+    #[test]
+    fn autocorrect_support_covers_the_complete_registered_cop_set() {
+        let support: Vec<(String, bool)> =
+            serde_json::from_str(include_str!("../config/autocorrect_support.json")).unwrap();
+        let names: std::collections::BTreeSet<_> =
+            crate::rules::rules().map(|rule| rule.name).collect();
+        assert_eq!(support.len(), names.len());
+        assert_eq!(
+            support
+                .iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<std::collections::BTreeSet<_>>(),
+            names
+        );
+    }
+
+    #[test]
+    fn a_loop_names_uncorrected_cops_only_in_its_last_iteration() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let mut report = FileReport {
+            path: "example.rb".into(),
+            source: SourceFile::new("example.rb", "x\n".to_owned()),
+            offenses: [
+                ("Layout/IndentationWidth", true),
+                ("Metrics/BlockNesting", false),
+                ("Layout/BlockAlignment", true),
+                ("Layout/LineLength", false),
+                ("Layout/EmptyLines", true),
+                ("Layout/EmptyLinesAroundModuleBody", true),
+            ]
+            .into_iter()
+            .map(|(cop, corrected)| {
+                let mut offense = Offense::new(cop, Severity::Convention, "test", 0, 1);
+                offense.corrected = corrected;
+                offense
+            })
+            .collect(),
+        };
+        let mut log = super::CorrectionLog::default();
+        log.record_pass(&mut report, false);
+        log.record_pass(&mut report, false);
+        // 本家は cop の登録順。最後だけ、補正機能を持つ LineLength の未補正 offense も残る。
+        assert_eq!(
+            log.root_cause(0, &report.offenses, CorrectMode::All, &config, &selection),
+            "Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth -> Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth, Layout/LineLength"
+        );
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "Layout/LineLength:\n  AutoCorrect: false\n",
+        )
+        .unwrap();
+        let disabled = Config::load(None, directory.path()).unwrap();
+        assert_eq!(
+            log.root_cause(1, &report.offenses, CorrectMode::All, &disabled, &selection),
+            "Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth"
+        );
     }
 
     /// Runs `corrected_text` over synthetic offenses, so that the composition rules can be pinned

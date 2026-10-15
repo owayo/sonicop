@@ -8,6 +8,14 @@ The Rakefile holds only the gem packaging and version tasks, and `make` calls th
 
 `make cop-coverage` counts the cops the hand-written tests reach. `make spec-capture` and `make spec-fixtures` re-record upstream's spec cases and their expectations; they need an upstream checkout and tools outside this repository, described in the comments of the Makefile.
 
+## Corpus gates and benchmarks
+
+`make corpus-check CORPUS=<name>` compares safe and unsafe correction on independent copies, checks the divergence manifest's paths and output hashes, checks Ruby syntax, and verifies a second `-A` leaves the tree unchanged. Set `GATE_CORPUS_ROOT`, `GATE_ORACLE_ROOT`, `OUT_DIR` and `SONICOP` to explicit paths. Use `MISE_ENV=conformance` for the optional Python toolchain in `mise.conformance.toml`. The **Corpus conformance** workflow prepares the pinned public inputs and RuboCop 1.89.0 automatically. Ruby's full corpus is not included in that correction matrix because the reference aborts; its lint comparison needs the chunked reference described in [CONFORMANCE.md](../CONFORMANCE.md).
+
+`syntaxcheck.py <corpus> --candidate-only` checks a complete Sonicop correction report against valid original `.rb` files without claiming reference equality. The workflow runs this separate safety check on the full pinned Ruby corpus, where RuboCop cannot complete. Normal two-tool syntax classification requires complete, nonempty reports and equal path sets; an interrupted reference tree is never classified as a fully corrected one.
+
+`make benchmark ARGS="--output tmp/benchmark --repeats 2"` measures the five pinned public corpora against RuboCop 1.92.0. Inputs live outside the project so a parent gemspec cannot change their target Ruby version; CLI probes verify both tools resolve the pinned corpus's expected version. The **Benchmark** workflow runs it on a separate runner and publishes the conditions, raw JSON, exit codes and timing results as artifacts. Every timed run must inspect the complete target set and reproduce its own baseline's full offense records. The newer gem is a timing reference; behavioral compatibility remains pinned to 1.89.0. Timing output includes offense counts because the two versions do different work.
+
 ## Adding a cop
 
 A cop is one file under `src/rules/<department>/<cop>.rs` exposing a single `check(context, offenses)`, plus one line in that department's `mod.rs`:
@@ -35,4 +43,4 @@ Prefer `context.nodes_of("kind")` over walking every node: each cop runs on ever
 
 ## Dependencies
 
-Dependencies are updated with `depup --install`. The Ruby grammar dependency is pinned to an exact fork commit in `Cargo.toml` for reproducible builds.
+Dependencies are updated with `depup --install --include-pinned`. Parser and project-index dependencies are pinned to exact versions or fork commits in `Cargo.toml` for reproducible builds. Compare behavioral changes against the pinned RuboCop before accepting an update.

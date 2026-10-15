@@ -1,0 +1,163 @@
+name: Corpus conformance
+
+on:
+  # 長時間の測定は対象コミットを明示して起動し、結果を文書へ記録する。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MISE_ENV: conformance
+
+jobs:
+  corpus:
+    name: Corpus (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: rubocop_rubocop
+            repository: rubocop/rubocop
+            revision: f009b338048ea0ade9d6d88cf358111092c8f12c
+          - name: rails_rails
+            repository: rails/rails
+            revision: 62b545861ef3edf472149504d92631ff7f88804f
+          - name: mastodon_mastodon
+            repository: mastodon/mastodon
+            revision: fad36853ce17045829040f8f76506dfb51d773f2
+          - name: Homebrew_brew
+            repository: Homebrew/brew
+            revision: 38ee3253f5920e4a533c8f956bedb3ae96b12a9c
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: make release
+      - run: gem install rubocop -v 1.89.0 --no-document
+      - run: python3 -m unittest discover -s scripts/conformance -p 'test_*.py'
+      - name: Prepare pinned corpus and oracle version
+        env:
+          CORPUS: ${{ matrix.name }}
+          REPOSITORY: ${{ matrix.repository }}
+          REVISION: ${{ matrix.revision }}
+        run: |
+          source="$RUNNER_TEMP/corpora/$CORPUS"
+          mkdir -p "$source" "$RUNNER_TEMP/oracle/rubocop_rubocop/lib/rubocop"
+          git -C "$source" init -q
+          git -C "$source" fetch -q --depth=1 "https://github.com/$REPOSITORY.git" "$REVISION"
+          git -C "$source" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$source" rev-parse HEAD)" = "$REVISION"
+          version_file=$(ruby -e 'gem "rubocop", "1.89.0"; puts Gem::Specification.find_by_name("rubocop", "1.89.0").full_gem_path + "/lib/rubocop/version.rb"')
+          cp "$version_file" "$RUNNER_TEMP/oracle/rubocop_rubocop/lib/rubocop/version.rb"
+      - name: Compare correction bytes, syntax and idempotence
+        env:
+          CORPUS: ${{ matrix.name }}
+          GATE_CORPUS_ROOT: ${{ runner.temp }}/corpora
+          GATE_ORACLE_ROOT: ${{ runner.temp }}/oracle
+          OUT_DIR: ${{ runner.temp }}/corpus-check
+          SONICOP: ${{ github.workspace }}/target/release/sonicop
+        run: make corpus-check CORPUS="$CORPUS"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: corpus-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/corpus-check/*.json
+            ${{ runner.temp }}/corpus-check/*.txt
+            ${{ runner.temp }}/corpus-check/*.err
+            ${{ runner.temp }}/corpus-check/*.log
+            ${{ runner.temp }}/corpus-check/*.exit
+            ${{ runner.temp }}/corpus-check/*/*.log
+            ${{ runner.temp }}/corpus-check/*/*.exit
+            ${{ runner.temp }}/corpus-check/*/*.txt
+            ${{ runner.temp }}/corpus-check/*/*.json
+            ${{ runner.temp }}/corpus-check/*/*.err
+
+  ruby-safety:
+    name: Ruby corpus candidate safety (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [safe, unsafe]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: make release
+      - name: Prepare pinned Ruby corpus
+        run: |
+          source="$RUNNER_TEMP/corpora/ruby_ruby"
+          mkdir -p "$source"
+          git -C "$source" init -q
+          git -C "$source" fetch -q --depth=1 https://github.com/ruby/ruby.git 3349f4107d268658fdf8cc6b979fbb1c923e597f
+          git -C "$source" checkout -q --detach FETCH_HEAD
+      - name: Check candidate corrections independently of an incomplete reference run
+        env:
+          SONICOP: ${{ github.workspace }}/target/release/sonicop
+          CORPUS_ROOT: ${{ runner.temp }}/corpora
+          SAFETY_OUTPUT: ${{ runner.temp }}/ruby-safety
+          CORRECTION_MODE: ${{ matrix.mode }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, shutil, subprocess, sys
+          sys.path.insert(0, "scripts/conformance")
+          import guards, syntaxcheck
+          binary = os.environ["SONICOP"]
+          print(guards.fingerprint(binary), flush=True)
+          source = pathlib.Path(os.environ["CORPUS_ROOT"]) / "ruby_ruby"
+          root = pathlib.Path(os.environ["SAFETY_OUTPUT"])
+          def hashes(tree):
+              return {str(p.relative_to(tree)): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in tree.rglob("*") if p.is_file() and not p.is_symlink()}
+          mode = os.environ["CORRECTION_MODE"]
+          for mode, flag in [(mode, "-a" if mode == "safe" else "-A")]:
+              output = root / mode
+              output.mkdir(parents=True)
+              work = output / "ff-port-ruby_ruby"
+              shutil.copytree(source, work, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+              def run_correction(suffix, option):
+                  with (output / (suffix + ".json")).open("wb") as out, (output / (suffix + ".err")).open("wb") as err:
+                      result = subprocess.run([binary, "--force-default-config", "--cache", "false", option, "-f", "json", "."], cwd=work, stdout=out, stderr=err)
+                  (output / (suffix + ".exit")).write_text(str(result.returncode) + "\n")
+                  assert result.returncode in (0, 1, 2), result.returncode
+                  paths = syntaxcheck.complete_paths(output / (suffix + ".json"))
+                  assert len(paths) == 7466, len(paths)
+                  print(mode, suffix, result.returncode, len(paths), flush=True)
+              run_correction("ff-sc-ruby_ruby", flag)
+              env = dict(os.environ, OUT_DIR=str(output))
+              subprocess.run([sys.executable, "scripts/conformance/syntaxcheck.py", "ruby_ruby", "--candidate-only"], env=env, check=True)
+              if mode == "unsafe":
+                  before = hashes(work)
+                  run_correction("second-pass", "-A")
+                  after = hashes(work)
+                  changed = sorted(path for path in before.keys() | after.keys()
+                                   if before.get(path) != after.get(path))
+                  (output / "idempotence.json").write_text(json.dumps({
+                      "changed": [{"path": path, "before": before.get(path), "after": after.get(path)}
+                                  for path in changed]
+                  }, indent=2))
+                  assert not changed, f"二度目の補正でファイルが変わった: {changed}"
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ruby-candidate-safety-${{ matrix.mode }}
+          path: |
+            ${{ runner.temp }}/ruby-safety/*/*.json
+            ${{ runner.temp }}/ruby-safety/*/*.err
+            ${{ runner.temp }}/ruby-safety/*/*.exit

@@ -27,7 +27,27 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if node.field("scope").is_some() {
             continue;
         }
-        if nesting_ancestors(node).next().is_some() {
+        if nesting_ancestors(node).next().is_some()
+            && !context.project_index().is_some_and(|project| {
+                project.with(|index| {
+                    let helper = crate::rules::lint::project_index_help::constant_name;
+                    let Some(segment) = node.field("name").and_then(|name| helper(name, context))
+                    else {
+                        return false;
+                    };
+                    let mut scopes: Vec<_> = nesting_ancestors(node)
+                        .filter_map(|ancestor| {
+                            ancestor
+                                .field("name")
+                                .and_then(|name| helper(name, context))
+                        })
+                        .collect();
+                    scopes.reverse();
+                    let relative = index.resolve_constant(&segment, &scopes);
+                    relative.is_some() && relative == index.resolve_constant(&segment, &[])
+                })
+            })
+        {
             continue;
         }
         let range = node.start_byte()..node.start_byte() + CBASE_LENGTH;

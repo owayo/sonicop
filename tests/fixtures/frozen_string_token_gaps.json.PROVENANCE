@@ -1,0 +1,21 @@
+RuboCop 1.89.0 / Ruby 4.0.7 / parser 3.3.12.0、2026-10-16 に実トークン列を記録。
+
+入力は通常文字列 "#!ruby"、gap、# encoding: utf-8 を連結したもの。
+末尾改行の有無を各条件で切り替える。
+gap は空文字・空白・タブ・改ページ・単独 CR の 5 通りと、次の 6 要素を
+1〜4 個連結した重複なし 1,554 通りの計 1,559 通りを用意し、縦タブ・単独 CR・空白終端・CRLF の行継続を含む
+12 通りを加えた計 1,571 通り。
+要素: LF、空白+LF、タブ+LF、改ページ+LF、CRLF、バックスラッシュ+LF。
+
+RuboCop::ProcessedSource.new(source, target_ruby, parser_engine: engine) を使い、
+Style::FrozenStringLiteralComment の last_special_comment を呼び出した。
+comment_precedes_newline は tokens[1].type == :tCOMMENT かつ、返されたトークンと
+同一オブジェクトである場合だけ true。行番号の一致では判定しない。
+
+TargetRubyVersion 2.3 / parser_whitequark、3.3 / parser_whitequark、
+3.3 / parser_prism と末尾改行の有無の 6 条件で計 9,426 ケース。
+conditions の順に各入力の comment_precedes_newline を格納する。
+期待値は Sonicop から生成していない。
+
+whitequark の leading_dot の根拠:
+https://github.com/whitequark/parser/blob/v3.3.12.0/lib/parser/lexer.rl

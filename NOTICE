@@ -44,6 +44,14 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       rubocop gem, which the test run itself does not)
       Read by tests/spec_fixtures.rs
 
+  tests/fixtures/project_index_cases.json
+      Project-index examples captured by running upstream's specs, plus
+      constructed regression controls. The complete CLI reports are recorded
+      with RuboCop 1.89.0 and rubydex 0.4.1, not inferred from the spec text.
+      Regenerate: make project-index-fixtures
+      Source details: tests/fixtures/project_index_cases.json.PROVENANCE
+      Read by tests/project_index.rs
+
 Ruby on Rails -- https://github.com/rails/rails -- MIT
   Copyright (c) David Heinemeier Hansson
 
@@ -93,6 +101,22 @@ Prism -- https://github.com/ruby/prism -- MIT
       executable. Both carry the complete licences in licenses/PRISM.txt,
       including the UTF-8 state transition table by Bjoern Hoehrmann.
       Source and acquisition details: crates/sonicop-prism-compat/PROVENANCE.md
+
+Rubydex -- https://github.com/Shopify/rubydex -- MIT
+  Copyright (c) 2025-present, Shopify Inc.
+
+  Linked as a dependency at the commit for rubydex 0.4.1, using its Rust core
+  and Prism 1.9.0 for project-wide indexing. The compatibility parser above
+  retains its separate version and exported symbols.
+  Full text: licenses/RUBYDEX.txt
+
+DidYouMean -- https://github.com/ruby/did_you_mean -- MIT
+  Copyright (c) 2014-2016 Yuki Nishijima
+
+  src/rules/lint/name_typo.rs
+      The suggestion ranking mirrors DidYouMean 2.0.0's SpellChecker,
+      JaroWinkler and Levenshtein algorithms used by the reference Ruby.
+      Full text: licenses/DID_YOU_MEAN.txt
 
 ================================================================================
 MIT License -- applies to RuboCop and to Ruby on Rails
