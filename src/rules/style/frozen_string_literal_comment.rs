@@ -133,23 +133,19 @@ fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
     let mut special = None;
     let candidate = if token_text(first, context).starts_with(b"#!") {
         special = Some(first.line);
-        // 直後のコメントは保留中の tNL より先に返るが、途中の空行では tNL が確定する。
         tokens.next().filter(|next| {
+            if first.is_comment() {
+                return true;
+            }
+            let gap = context.source.slice(first.range.end..next.range.start);
             let prism = match context.setting_of::<String>("AllCops", "ParserEngine").as_deref() {
                 Some("parser_whitequark") => false,
                 Some("parser_prism") => true,
                 _ => context.target_ruby_version() >= RubyVersion::new(3, 3),
             };
-            let mut newlines = 0;
-            for part in context.source.slice(first.range.end..next.range.start).split_inclusive('\n') {
-                if part.ends_with('\n') && !part.ends_with("\\\n") && !part.ends_with("\\\r\n")
-                    && (prism || newlines == 0 || matches!(part, "\n" | "\r\n"))
-                {
-                    // whitequark は空白のある空行を読み飛ばすが、Prism はその改行も返す。
-                    newlines += 1;
-                }
-            }
-            first.is_comment() || newlines == 0 || (next.is_comment() && newlines == 1)
+            let tail = &context.source.text()[next.range.end..];
+            let terminated = tail.starts_with('\n') || tail.starts_with("\r\n");
+            token_precedes_newline(gap, next.is_comment(), prism, terminated)
         })
     } else {
         Some(first)
@@ -160,6 +156,41 @@ fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
         special = Some(token.line);
     }
     special
+}
+
+/// 次のトークンが tNL より先に返る条件を、本家の字句器に合わせる。
+fn token_precedes_newline(gap: &str, comment: bool, prism: bool, terminated: bool) -> bool {
+    use std::sync::LazyLock;
+
+    static PREFIX: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]|\\\n)*").expect("token whitespace pattern must compile")
+    });
+    static WHITEQUARK: LazyLock<regex::Regex> = LazyLock::new(|| {
+        // parser の lexer.rl: (c_space* w_space_comment '\n')+。行継続にはもう一つ改行が要る。
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]*(?:[ \t\r\x0c\x0b]+|\\\n)\n)*[ \t\r\x0c\x0b]*\z")
+            .expect("whitequark lookahead pattern must compile")
+    });
+    static PRISM: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"\A(?:[ \t\r\x0c\x0b]|\\\n)*\z").expect("Prism lookahead pattern must compile")
+    });
+    // 本家の source buffer は CRLF を正規化してから字句器へ渡す。
+    let normalized = match gap.contains("\r\n") {
+        true => std::borrow::Cow::Owned(gap.replace("\r\n", "\n")),
+        false => std::borrow::Cow::Borrowed(gap),
+    };
+    let start = PREFIX.find(&normalized).expect("empty prefix always matches").end();
+    if start == normalized.len() {
+        return true;
+    }
+    let Some(tail) = normalized[start..].strip_prefix('\n') else {
+        return false;
+    };
+    // whitequark は EOF で閉じるコメントを、保留中の改行より後に返す。
+    comment && (prism || terminated) && if prism {
+        PRISM.is_match(tail)
+    } else {
+        WHITEQUARK.is_match(tail)
+    }
 }
 
 fn token_text<'a>(token: &Token, context: &'a RuleContext<'_>) -> std::borrow::Cow<'a, [u8]> {
@@ -272,5 +303,29 @@ fn enabled_form(comment: &str) -> String {
     match MagicComment::parse(comment) {
         MagicComment::Emacs(_) => "# -*- frozen_string_literal: true -*-".to_owned(),
         _ => "# frozen_string_literal: true".to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn lookahead_matches_recorded_native_token_order() {
+        let cases: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/frozen_string_token_gaps.json"
+        )).unwrap();
+        for case in cases["cases"].as_array().unwrap() {
+            for (index, condition) in cases["conditions"].as_array().unwrap().iter().enumerate() {
+                assert_eq!(
+                    super::token_precedes_newline(
+                        case["gap"].as_str().unwrap(),
+                        true,
+                        condition["engine"] == "parser_prism",
+                        condition["terminated"].as_bool().unwrap(),
+                    ),
+                    case["comment_precedes_newline"][index].as_bool().unwrap(),
+                    "{case} / {condition}"
+                );
+            }
+        }
     }
 }

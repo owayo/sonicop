@@ -1,13 +1,13 @@
-RuboCop 1.89.0 / Ruby 4.0.7、2026-10-15 に CLI の実ファイル出力を記録。
+RuboCop 1.89.0 / Ruby 4.0.7、2026-10-16 に CLI の実ファイル出力を記録。
 
-先頭の通常文字列トークンが符号化宣言や shebang のテキストを持つ 15 入力を検査する。
+先頭の通常文字列トークンが符号化宣言や shebang のテキストを持つ 19 入力を検査する。
 引用符の種類、エスケープ、BOM、後続トークンと改行・行継続を組み合わせた。
 本家も 200 パスで非収束を報告して停止するため、収束する入力とは別に検査する。
 
 rubocop _1.89.0_ --cache false --config config.yml --only Style/FrozenStringLiteralComment -A --format json example.rb
 
 config.yml は AllCops/NewCops: disable と各ケースの config を指定する。
-TargetRubyVersion 2.7 / 3.3 と、3.3 の parser_whitequark 明示指定で計 45 ケース。
+TargetRubyVersion 2.7 / 3.3 と、3.3 の parser_whitequark 明示指定で計 57 ケース。
 whitequark と Prism は空白のある空行の tNL の順序が異なるため、両方を実測する。
 終了コード 1、stderr の Infinite loop、検査数 1 / 1 を確認した。
 before は原本、after は上限で停止した直後の実ファイルの UTF-8 バイトを文字列として保持する。
