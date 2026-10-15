@@ -23,7 +23,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: make release
       # オラクル 1.89.0 は互換性の仕様として維持し、速度比較だけを現在の安定版で行う。
-      - run: gem install rubocop -v 1.91.0 --no-document
+      - run: gem install rubocop -v 1.92.0 --no-document
       - run: make test-ruby
       - run: make benchmark ARGS="--output tmp/benchmark --repeats 2"
       - uses: actions/upload-artifact@v7
