@@ -2715,12 +2715,45 @@ impl CorrectionLog {
         self.cops_by_pass.push(cops);
     }
 
-    fn root_cause(&self, loop_start: usize) -> String {
+    fn root_cause(
+        &self,
+        loop_start: usize,
+        last: &[Offense],
+        mode: CorrectMode,
+        config: &Config,
+        selection: &Selection,
+    ) -> String {
+        // 本家は次の反復へ入るときに前回の未補正 offense を落とす。
+        // 上限・循環で止まった最後の反復だけは、補正できなかったものも原因に残る。
+        let last_cops: Vec<_> = last
+            .iter()
+            .filter(|offense| {
+                cop_autocorrect_metadata(offense.cop_name).is_some_and(|(_, support)| support)
+                    && config.rule_autocorrect_enabled(offense.cop_name, selection.editor_mode)
+                    && (mode == CorrectMode::All
+                        || (config.rule_safe(offense.cop_name)
+                            && config.rule_safe_autocorrect(offense.cop_name)))
+            })
+            .map(|offense| offense.cop_name)
+            .collect();
         self.cops_by_pass
             .get(loop_start..)
             .unwrap_or_default()
             .iter()
-            .map(|cops| cops.join(", "))
+            .enumerate()
+            .map(|(offset, cops)| {
+                let mut cops = if loop_start + offset + 1 == self.cops_by_pass.len() {
+                    last_cops.clone()
+                } else {
+                    cops.clone()
+                };
+                // Commissioner の結果は位置順ではなく、cop の登録順に連結される。
+                cops.sort_unstable_by_key(|cop| {
+                    cop_autocorrect_metadata(cop).map_or(usize::MAX, |(rank, _)| rank)
+                });
+                cops.dedup();
+                cops.join(", ")
+            })
             .collect::<Vec<_>>()
             .join(" -> ")
     }
@@ -2744,6 +2777,21 @@ impl CorrectionLog {
         report.offenses = offenses;
         (report, corrected_count)
     }
+}
+
+fn cop_autocorrect_metadata(cop: &str) -> Option<(usize, bool)> {
+    // offense ごとの correctable とは別の、本家クラスの補正機能と実際の登録順。
+    static METADATA: std::sync::LazyLock<std::collections::BTreeMap<&'static str, (usize, bool)>> =
+        std::sync::LazyLock::new(|| {
+            let cops: Vec<(&str, bool)> =
+                serde_json::from_str(include_str!("../config/autocorrect_support.json"))
+                    .expect("vendored autocorrect metadata must be valid");
+            cops.into_iter()
+                .enumerate()
+                .map(|(rank, (name, support))| (name, (rank, support)))
+                .collect()
+        });
+    METADATA.get(cop).copied()
 }
 
 /// 補正が収束するまで反復した結果と、書き戻しの成否。
@@ -2996,7 +3044,7 @@ pub(crate) fn correct_file_with_original(
         let repeated = sources.iter().position(|seen| *seen == corrected_digest);
         if pass + 1 == MAX_CORRECTION_PASSES || repeated.is_some() {
             let loop_start = repeated.unwrap_or_else(|| log.cops_by_pass.len().saturating_sub(1));
-            let root_cause = log.root_cause(loop_start);
+            let root_cause = log.root_cause(loop_start, &report.offenses, mode, config, selection);
             let (report, corrected_count) = log.merge_into(report);
             return withhold_unparsable(
                 restore_crlf(
@@ -3797,6 +3845,90 @@ mod tests {
         assert!(!old.exists());
         assert!(!super::cache_index_summary_path(&old).exists());
         assert!(current.exists());
+    }
+
+    #[test]
+    fn indentation_and_trailing_whitespace_merge_in_the_same_pass() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec![
+                "Layout/IndentationWidth".to_owned(),
+                "Layout/TrailingWhitespace".to_owned(),
+            ],
+            correcting: true,
+            ..Selection::default()
+        };
+        let mut report = inspect_source(
+            directory.path().join("example.rb"),
+            "  foo do\nx  \n  end\n".to_owned(),
+            &config,
+            &selection,
+        )
+        .unwrap();
+        // 本家 Runner#inspect_iteration の最初の結果。最終結果だけでは見送りを見抜けない。
+        let (text, _) = corrected_text(&mut report, CorrectMode::Safe, Correcting::Everything);
+        assert_eq!(text, "  foo do\n    x\n  end\n");
+    }
+
+    #[test]
+    fn autocorrect_support_covers_the_complete_registered_cop_set() {
+        let support: Vec<(String, bool)> =
+            serde_json::from_str(include_str!("../config/autocorrect_support.json")).unwrap();
+        let names: std::collections::BTreeSet<_> =
+            crate::rules::rules().map(|rule| rule.name).collect();
+        assert_eq!(support.len(), names.len());
+        assert_eq!(
+            support
+                .iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<std::collections::BTreeSet<_>>(),
+            names
+        );
+    }
+
+    #[test]
+    fn a_loop_names_uncorrected_cops_only_in_its_last_iteration() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection::default();
+        let mut report = FileReport {
+            path: "example.rb".into(),
+            source: SourceFile::new("example.rb", "x\n".to_owned()),
+            offenses: [
+                ("Layout/IndentationWidth", true),
+                ("Metrics/BlockNesting", false),
+                ("Layout/BlockAlignment", true),
+                ("Layout/LineLength", false),
+                ("Layout/EmptyLines", true),
+                ("Layout/EmptyLinesAroundModuleBody", true),
+            ]
+            .into_iter()
+            .map(|(cop, corrected)| {
+                let mut offense = Offense::new(cop, Severity::Convention, "test", 0, 1);
+                offense.corrected = corrected;
+                offense
+            })
+            .collect(),
+        };
+        let mut log = super::CorrectionLog::default();
+        log.record_pass(&mut report, false);
+        log.record_pass(&mut report, false);
+        // 本家は cop の登録順。最後だけ、補正機能を持つ LineLength の未補正 offense も残る。
+        assert_eq!(
+            log.root_cause(0, &report.offenses, CorrectMode::All, &config, &selection),
+            "Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth -> Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth, Layout/LineLength"
+        );
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            "Layout/LineLength:\n  AutoCorrect: false\n",
+        )
+        .unwrap();
+        let disabled = Config::load(None, directory.path()).unwrap();
+        assert_eq!(
+            log.root_cause(1, &report.offenses, CorrectMode::All, &disabled, &selection),
+            "Layout/BlockAlignment, Layout/EmptyLinesAroundModuleBody, Layout/EmptyLines, Layout/IndentationWidth"
+        );
     }
 
     /// Runs `corrected_text` over synthetic offenses, so that the composition rules can be pinned

@@ -450,7 +450,7 @@ impl Checker<'_, '_> {
         style: &str,
         offenses: &mut Vec<Offense>,
     ) {
-        // Only the first statement of a body is moved, not the whole run.
+        // 本家が動かすのは本体の最初の文だけで、文の並び全体ではない。
         let target = if body.is_begin && !body.parenthesized {
             body.statements
                 .first()
@@ -459,8 +459,8 @@ impl Checker<'_, '_> {
             body.range.clone()
         };
         let start = target.start;
-        // `begin_pos - indentation` counts characters upstream, and the text a negative
-        // indentation runs into is the body itself, which can hold multibyte characters.
+        // 本家の `begin_pos - indentation` は文字数。負の字下げで進む先は本体なので、
+        // マルチバイト文字をまたいでも UTF-8 の途中を範囲の端にしない。
         let text = self.context.source.text();
         let range = if indentation >= 0 {
             let width = usize::try_from(indentation).unwrap_or(0);
@@ -476,16 +476,16 @@ impl Checker<'_, '_> {
             "Use {} (not {indentation}) spaces for{style} indentation.",
             self.width
         );
+        let insertion_anchor = range.start..range.start;
         let mut offense = self.context.offense(message, range);
         if !self.other_offense_in_same_range(&target) && !holds_block_comment(self.context, &target)
         {
             let taboo = string_interiors(self.context, &target);
-            offense = offense.corrected_by_all(alignment_corrections(
-                self.context,
-                target,
-                delta,
-                &taboo,
-            ));
+            // AlignmentCorrector の挿入は空範囲。診断範囲に結ぶと、別 cop の削除と
+            // 交差したと誤認して、この cop の補正全体を次のパスへ送ってしまう。
+            offense = offense
+                .corrected_by_all(alignment_corrections(self.context, target, delta, &taboo))
+                .corrections_anchored_at(insertion_anchor);
         }
         offenses.push(offense);
     }

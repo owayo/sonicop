@@ -4,6 +4,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::magic_comment::MagicComment;
 use crate::ruby_version::RubyVersion;
 use crate::rules::RuleContext;
+use crate::rules::layout::tokens::{Token, TokenKind};
 
 const MSG_MISSING: &str = "Missing frozen string literal comment.";
 const MSG_MISSING_TRUE: &str = "Missing magic comment `# frozen_string_literal: true`.";
@@ -65,7 +66,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                         .corrected_by(Edit {
                             start: replacement_range.start,
                             end: replacement_range.end,
-                            // 本家はコメントの書式を保ちつつ行全体を置換するため、BOM や字下げは残さない。
+                            // 本家は定型コメントで行全体を置換するため、BOM や字下げは残さない。
                             replacement: enabled_form(context.source.slice(comment.clone())),
                             safe: false,
                         })
@@ -125,37 +126,63 @@ fn missing_offense(context: &RuleContext<'_>, message: &str) -> Offense {
         .corrections_anchored_at(anchor)
 }
 
-/// 本家の先頭トークンに合わせ、BOM の直後の shebang と UTF-8 宣言も挿入先に数える。
+/// 本家はコメントに限定せず、先頭トークンの値で挿入先を決める。
 fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
-    let first = (1..=context.source.line_count()).find(|line_number| {
-        !without_initial_bom(context.source.line(*line_number), *line_number)
-            .trim()
-            .is_empty()
-    })?;
-
+    let mut tokens = context.layout_tokens().iter();
+    let first = tokens.next()?;
     let mut special = None;
-    let mut candidate = first;
-    if without_initial_bom(context.source.line(first), first)
-        .trim_start()
-        .starts_with("#!")
+    let candidate = if token_text(first, context).starts_with(b"#!") {
+        special = Some(first.line);
+        // 本家は後続コメントを tNL より先に返す。次がコードなら文字列後の改行で区切る。
+        tokens.next().filter(|next| {
+            first.is_comment()
+                || next.is_comment()
+                || !context.source.slice(first.range.end..next.range.start)
+                    .split_inclusive('\n')
+                    .any(|part| part.ends_with('\n') && !part.ends_with("\\\n") && !part.ends_with("\\\r\n"))
+        })
+    } else {
+        Some(first)
+    };
+    if let Some(token) = candidate
+        && is_utf8_encoding_comment(&token_text(token, context))
     {
-        special = Some(first);
-        candidate = first + 1;
-    }
-    if candidate <= context.source.line_count()
-        && is_utf8_encoding_comment(context.source.line(candidate))
-    {
-        special = Some(candidate);
+        special = Some(token.line);
     }
     special
 }
 
-fn is_utf8_encoding_comment(line: &str) -> bool {
+fn token_text<'a>(token: &Token, context: &'a RuleContext<'_>) -> std::borrow::Cow<'a, [u8]> {
+    // tSTRING の text は引用符を含まず、エスケープも解決済み。
+    // %q や補間付きリテラルの開始トークンは文字列全体とは区別する。
+    let raw = context.source.slice(token.range.clone());
+    if (token.kind == TokenKind::String
+        || (token.kind == TokenKind::Other && raw.starts_with('%')))
+        && let Some(node) = context
+            .nodes_of("string")
+            .find(|node| node.byte_range() == token.range)
+    {
+        if token.kind == TokenKind::String {
+            return crate::rules::literal::node_bytes(context, node)
+                .unwrap_or_else(|| raw.as_bytes().to_vec())
+                .into();
+        }
+        // 共有列は percent 文字列を一つの Other にまとめる場合があるが、
+        // 本家の先頭トークンは %q{ などの開始区切りだけを持つ。
+        if let Some(opener) = context.children(node).and_then(|mut children| children.next()) {
+            return context.source.node_text(opener).as_bytes().into();
+        }
+    }
+    raw.as_bytes().into()
+}
+
+fn is_utf8_encoding_comment(text: &[u8]) -> bool {
     static PATTERN: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(r"#.*coding(?-u:\s)?[:=](?-u:\s)?(?:UTF|utf)-8")
             .expect("encoding comment pattern must compile")
     });
-    PATTERN.is_match(line)
+    // 本家の Token#text.valid_encoding? を保つ。\xFF を Unicode の文字に変換しない。
+    std::str::from_utf8(text).is_ok_and(|line| PATTERN.is_match(line))
 }
 
 /// 本家の `line_range` と同じく、改行の手前で範囲を止める。
@@ -217,7 +244,8 @@ fn specified_comment(context: &RuleContext<'_>) -> Option<Range<usize>> {
     (1..=context.source.line_count()).find_map(|line_number| {
         let line = context.source.line(line_number);
         let token_line = without_initial_bom(line, line_number);
-        let trimmed = token_line.trim();
+        // コメントトークンは末尾の空白も含むため、診断範囲から削ってはいけない。
+        let trimmed = token_line.trim_start().trim_end_matches(['\r', '\n']);
         if !trimmed.starts_with('#')
             || !MagicComment::parse(trimmed).frozen_string_literal_specified()
         {
@@ -229,27 +257,10 @@ fn specified_comment(context: &RuleContext<'_>) -> Option<Range<usize>> {
     })
 }
 
-/// 本家の `MagicComment#new_frozen_string_literal(true)` と同じく、値以外の書式を保つ。
+/// 本家の new_frozen_string_literal は、Emacs / 通常コメントそれぞれの定型へ置き換える。
 fn enabled_form(comment: &str) -> String {
-    let mut out = String::with_capacity(comment.len());
-    let mut rest = comment;
-    while let Some(index) = rest.find("frozen_string_literal") {
-        let (before, after) = rest.split_at(index + "frozen_string_literal".len());
-        out.push_str(before);
-        let value_start = after
-            .find(|character: char| character != ':' && character != ' ' && character != '=')
-            .unwrap_or(after.len());
-        out.push_str(&after[..value_start]);
-        let tail = &after[value_start..];
-        let value_end = tail
-            .find(|character: char| !character.is_ascii_alphanumeric())
-            .unwrap_or(tail.len());
-        out.push_str("true");
-        rest = &tail[value_end..];
-    }
-    out.push_str(rest);
-    match out.is_empty() {
-        true => "# frozen_string_literal: true".to_owned(),
-        false => out,
+    match MagicComment::parse(comment) {
+        MagicComment::Emacs(_) => "# -*- frozen_string_literal: true -*-".to_owned(),
+        _ => "# frozen_string_literal: true".to_owned(),
     }
 }

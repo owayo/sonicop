@@ -2417,6 +2417,36 @@ fn bom_frozen_comments_match_recorded_upstream_fields_and_bytes() {
 }
 
 #[test]
+fn frozen_comment_insertion_uses_the_decoded_first_token() {
+    let cases: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/frozen_string_token_cases.json")).unwrap();
+    for case in cases.as_array().unwrap() {
+        let before = case["before"].as_str().unwrap();
+        let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        // 本家もこの形では 200 パスで停止する。補正の収束と互換性を混同しない。
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Style/FrozenStringLiteralComment",
+                "-A",
+                "example.rb",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{}", case["name"]);
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Infinite loop"));
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            case["after"].as_str().unwrap().as_bytes(),
+            "{}",
+            case["name"]
+        );
+    }
+}
+
+#[test]
 fn a_frozen_comment_after_bom_encoding_converges_on_disk() {
     for header in [
         "\u{feff}# encoding: utf-8",

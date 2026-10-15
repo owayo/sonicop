@@ -23,9 +23,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
-    // The commit marker changes only with git. The embedded cache fingerprint, however, must move
-    // with every input that can change diagnostics so a development build never accepts reports
-    // from different code merely because the package version stayed put.
+    // 版番号が同じ開発ビルドでも、診断に影響する入力が違えばキャッシュを共有しない。
+    // コミット識別子だけでは、未コミットの実装や埋め込みデータの変更を区別できない。
     println!("cargo:rerun-if-changed=.git/HEAD");
     println!("cargo:rerun-if-changed=.git/refs");
     for input in [
@@ -33,6 +32,7 @@ fn main() {
         "Cargo.lock",
         "build.rs",
         "config/default.yml",
+        "config/autocorrect_support.json",
         "crates",
         "src",
     ] {
@@ -55,12 +55,9 @@ fn main() {
     );
 }
 
-/// Stable identity of everything that can affect the executable's lint result.
-///
-/// Hashing this once while compiling replaces reading and hashing the entire executable at every
-/// startup. Besides source and embedded configuration, the lockfile covers dependency revisions;
-/// compiler/target/cfg inputs cover builds whose source tree is byte-identical but semantics are
-/// not. Test and documentation files are intentionally absent because they never enter the binary.
+/// 起動のたびに実行ファイル全体を読む代わりに、ビルド時に意味のある入力を識別する。
+/// ソース・埋め込みデータ・依存版に加え、同じソースの意味を変えうるコンパイラや対象も含む。
+/// テストと文書は実行ファイルに入らないため対象外にする。
 fn build_fingerprint() -> io::Result<blake3::Hash> {
     let mut fingerprint = blake3::Hasher::new();
     for input in [
@@ -68,6 +65,7 @@ fn build_fingerprint() -> io::Result<blake3::Hash> {
         "Cargo.lock",
         "build.rs",
         "config/default.yml",
+        "config/autocorrect_support.json",
         "crates",
         "src",
     ] {
