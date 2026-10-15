@@ -83,4 +83,34 @@ class BenchmarkTest < Minitest::Test
       end
     end
   end
+
+  def probe_command(version)
+    report = document
+    offense = report.fetch('files').first.fetch('offenses').first
+    offense['cop_name'] = 'Lint/Syntax'
+    offense['message'] = "Syntax error (Using Ruby #{version} parser)"
+    [RbConfig.ruby, '-e', 'STDIN.read; puts ARGV.fetch(0); exit 1', JSON.generate(report), '--']
+  end
+
+  def test_parent_version_is_rejected_even_when_both_tools_agree
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      # 親 gemspec で両者とも2.6になった実測を再現する。同じ値であるだけでは足りない。
+      commands = { 'reference' => probe_command('2.6'), 'candidate' => probe_command('2.6') }
+      error = assert_raises(RuntimeError) { runner.target_versions('mastodon', root, commands) }
+      assert_includes error.message, 'expected 4.0'
+    end
+  end
+
+  def test_target_probe_requires_a_parseable_pinned_version
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      commands = { 'reference' => probe_command('4.0'), 'candidate' => probe_command('4.0') }
+      assert_equal({ 'reference' => '4.0', 'candidate' => '4.0' }, runner.target_versions('mastodon', root, commands))
+      commands['candidate'] = probe_command('unknown')
+      assert_raises(RuntimeError) { runner.target_versions('mastodon', root, commands) }
+    end
+  end
 end

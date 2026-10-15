@@ -14,7 +14,8 @@ permissions:
 jobs:
   benchmark:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # 大きな Ruby コーパスの基準実行と反復計測を途中で打ち切らない。
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
         with:

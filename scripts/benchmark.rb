@@ -9,6 +9,7 @@ require 'open3'
 require 'optparse'
 require 'rbconfig'
 require 'time'
+require 'tmpdir'
 
 module SonicopBenchmark
   # CONFORMANCE.md と同じ木を使い、コーパス側の更新を性能変化へ混ぜない。
@@ -21,6 +22,9 @@ module SonicopBenchmark
   }.freeze
   RUBY_EXCLUSIONS = %w[test/ruby/test_regexp.rb test/ruby/test_file_exhaustive.rb].freeze
   REFERENCE_VERSION = '1.91.0'
+  # 固定コーパスを親 gemspec の無い場所で実行した本家 CLI の実効値。
+  TARGET_RUBY_VERSIONS = { 'rails' => '3.3', 'rubocop' => '2.7', 'mastodon' => '4.0',
+                           'homebrew' => '2.7', 'ruby' => '2.7' }.freeze
 
   class Report
     attr_reader :paths, :counts, :offenses
@@ -151,6 +155,30 @@ module SonicopBenchmark
         'report_sha256' => Digest::SHA256.file(path).hexdigest }
     end
 
+    def target_versions(name, tree, commands)
+      versions = commands.to_h do |side, command|
+        stdout, stderr, status = Open3.capture3(
+          @environment, *command, '--stdin', 'sonicop-target-ruby-probe.rb', '-f', 'json',
+          stdin_data: "def probe(\n", chdir: tree, unsetenv_others: true
+        )
+        raise "target-version probe failed: #{side}\n#{stderr}" unless status.exitstatus == 1
+
+        report = Report.new(JSON.parse(stdout))
+        # 診断の source/version は独自推定せず、実際のパーサのメッセージから取る。
+        message = report.offenses.keys.find { |entry| entry[1] == 'Lint/Syntax' }&.[](3)
+        version = message&.match(/Using Ruby ([\d.]+) parser/)&.captures&.first
+        raise "unreadable target-version probe: #{side}" unless version
+
+        [side, version]
+      end
+      expected = TARGET_RUBY_VERSIONS.fetch(name)
+      unless versions.values.all? { |version| version == expected }
+        raise "unexpected TargetRubyVersion for #{name}: expected #{expected}, got #{versions.inspect}"
+      end
+
+      versions
+    end
+
     def run
       reference_version = capture(@reference, '--version')
       unless reference_version == REFERENCE_VERSION
@@ -193,8 +221,10 @@ module SonicopBenchmark
         command.concat(['--except', excluded.join(',')]) unless excluded.empty?
       end
       persist(document)
+      # 出力をリポジトリ内に保存しても、入力が親の sonicop.gemspec を継承しないようにする。
+      source_root = Dir.mktmpdir('sonicop-benchmark-', ENV.fetch('RUNNER_TEMP', Dir.tmpdir))
       CORPORA.each do |name, (repository, sha)|
-        tree = File.join(@output, 'sources', name)
+        tree = File.join(source_root, name)
         FileUtils.mkdir_p(tree)
         capture('git', 'init', '--quiet', tree)
         capture('git', '-C', tree, 'fetch', '--quiet', '--depth=1', "https://github.com/#{repository}.git", sha)
@@ -216,6 +246,7 @@ module SonicopBenchmark
     def measure(name, tree, commands)
       out = File.join(@output, name)
       FileUtils.mkdir_p(out)
+      versions = target_versions(name, tree, commands)
       paths = commands.to_h do |side, command|
         path = File.join(out, "#{side}-paths.txt")
         process(command + ['--cache', 'false', '-L', '.'], tree, path)
@@ -233,6 +264,7 @@ module SonicopBenchmark
         [side, report]
       end
       row = { 'name' => name, 'files' => paths.values.first.length,
+              'target_ruby_versions' => versions,
               'diagnostic_difference' => reports.fetch('reference').compare(reports.fetch('candidate')),
               'offenses' => reports.transform_values { |report| { 'total' => report.counts.values.sum, 'by_cop' => report.counts } },
               'conditions' => {} }
