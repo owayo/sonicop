@@ -41,7 +41,8 @@ for mode in safe unsafe; do
     echo '片側だけのファイルがある' >&2
     exit 1
   fi
-  if grep -Eq 'An error occurred while|[0-9]+ errors? occurred' "$out/ff-rc-$corpus.log"; then
+  # 標準出力にはソース行も載るため、同じ文言を持つ正常な入力をエラーと誤認しない。
+  if grep -Eq 'An error occurred while|[0-9]+ errors? occurred' "$out/ff-rc-$corpus.err"; then
     echo '本家 cop の内部エラーで検証が不完全' >&2
     exit 2
   fi
@@ -87,9 +88,14 @@ PY
 hash_tree "$ported" > "$output_root/before-idempotence.json"
 result=0
 (cd "$ported" && "$binary" --force-default-config --cache false -A) \
-  > "$output_root/idempotence.log" 2>&1 || result=$?
+  > "$output_root/idempotence.log" 2> "$output_root/idempotence.err" || result=$?
 echo "$result" > "$output_root/idempotence.exit"
-[ "$result" -le 1 ] || exit 2
+if [ "$result" -gt 1 ]; then
+  [ "$result" = 2 ] || exit 2
+  # 原本のまま保護されたファイルは二度目も同じ拒否を返す。終了2と理由を残して照合する。
+  python3 "$script_root/rollbacks.py" "$output_root/idempotence.err" "$ported" "$manifest" "$corpus" unsafe \
+    > "$output_root/idempotence-rollbacks.json" || exit 2
+fi
 hash_tree "$ported" > "$output_root/after-idempotence.json"
 cmp "$output_root/before-idempotence.json" "$output_root/after-idempotence.json"
 echo '安全性: 移植版だけの構文破壊 0 / 両者の構文破壊 0 / 二度目の変更 0'

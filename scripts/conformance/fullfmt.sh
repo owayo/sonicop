@@ -166,7 +166,7 @@ fi
 # `git reset --hard` は必ず -C で名指しする。裸で打つと cwd 依存で移植版のリポジトリを巻き戻す。
 git -C "$WORK" reset --hard -q 2>/dev/null || exit 2
 ( cd "$WORK" && $RUBOCOP --force-default-config --cache false --no-color "$MODE" ) \
-  > "$OUT_DIR/ff-rc-$LABEL.log" 2>&1
+  > "$OUT_DIR/ff-rc-$LABEL.log" 2> "$OUT_DIR/ff-rc-$LABEL.err"
 rc_status=$?
 echo "$rc_status" > "$OUT_DIR/ff-rc-$LABEL.exit"
 echo "  rubocop: $(grep -E 'files inspected' "$OUT_DIR/ff-rc-$LABEL.log" | tail -1)"

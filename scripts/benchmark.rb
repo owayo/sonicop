@@ -112,7 +112,7 @@ module SonicopBenchmark
     def load_average
       if File.file?('/proc/loadavg')
         File.read('/proc/loadavg').split.first(3).map(&:to_f)
-      else
+      elsif RbConfig::CONFIG.fetch('host_os').include?('darwin')
         capture('sysctl', '-n', 'vm.loadavg').scan(/[\d.]+/).map(&:to_f)
       end
     end
