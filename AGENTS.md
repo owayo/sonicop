@@ -172,6 +172,44 @@ path most users are on and the one a `--cache false` comparison never measures. 
 cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
 test that inspects the file on disk afterwards, not just the reported offenses.
 
+**補正後は部分式ではなくスクリプトとして検査する。** 診断用 Prism の partial_script は、
+トップレベルの break 等も受理する。診断設定は互換性のため維持し、書き戻す最終出力を
+main_script で別に検査する。同じ設定で原本が有効な場合だけ新しい破壊と判断する。
+対象版を使い、Prism の下限より古い対象には 3.3 を使う。この下限を元の対象版を検証した
+証拠にしてはいけない。CRLF はディスクへ出す形式に戻してから比較する。
+
+検査には復号前の原本と、実際に書き出す予定のバイト列を渡す。復号済み UTF-8 を
+固定すると、US-ASCII 等で Unicode とバイトのエスケープが混在する構文破壊を見逃す。
+宣言・BOM・別名は Prism 自身に解釈させ、診断用の encoding lock と分ける。
+stdin も同じバイト列の検査を使い、拒否したときは元の入力を返す。
+
+**単一引用のバイトエスケープは文字列のまま。** Lint/LiteralInInterpolation で
+`'\x80'` や `%q(\201)` を二重引用と同じように復号すると、ASCII の値を
+不正な UTF-8 と誤認する。本家が展開する値と、ディスク上の補正後の値を両方確認する。
+
+本家が構文を壊す補正は Claude の判定と最小の実出力を差分マニフェストへ登録する。
+ファイル単位で拒否し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+非 Ruby の shebang から次の Ruby shebang までにある独立した exec 行の消去も防ぐ。
+任意のシェル式や、exec 行の内容が変わった場合の意味保存を保証するものではない。
+コメント・通常の空白・本文だけの無害な補正は拒否せず、LF/CRLF の陰性対照を保つ。
+
+**heredoc の終端名はセミコロンの折り位置ではない。** Layout/LineLength の字句除外には
+heredoc_beginning も必要で、文字列の名前に含まれる ; を分割すると Ruby を壊す。
+本家が有効な補正を返す場合、安全網による拒否で代用せず cop の補正を直す。
+
+**BOM の行分類とマジックコメントの解釈を分ける。** FrozenStringLiteralComment の
+本家実装は、非コメントトークンの位置で先頭コメントを区切り、判定には元の行を渡す。
+BOM 付き符号化宣言で区切ってしまうと、後続の frozen コメントを毎パス挿入し続ける。
+一方、判定時にも BOM を除くと、本家が認識しない先頭の frozen コメントまで認識してしまう。
+always_true はコメント行全体を置換するが、never はコメントの前の BOM・字下げを保つ。
+36 件の本家実出力を、診断全項目・ディスク上の補正バイト・再実行で検査する。
+
+**200 パス到達は収束ではない。** 本家も上限到達時は途中の補正を書き戻し、次回実行で
+さらに補正することがある。205 段の入れ子で、本家と同じ終了 1・Infinite loop 診断・
+途中の 86,261 バイト、次回の 86,311 バイトを確認した。無断で上限を増やしたり、
+上限到達を安全性ゲートの成功へ読み替えたりしない。Ruby コーパス全体の冪等性は未達で、
+本家側の非冪等性だけを根拠に、候補の出力差を互換一致として扱ってはいけない。
+
 **`Style/CaseLikeIf` has an unsafe upstream correction.** For an `if`/`elsif` chain whose `else`
 contains another `if`, `unless`, or a modifier form of either, RuboCop reports an offense but
 rewrites the inner keyword to `when` after the `else`. Ruby rejects the result. The grammar
@@ -222,11 +260,11 @@ positions to original UTF-8 bytes. At a CRLF line's end it returns the boundary 
 not between `\r` and `\n`; otherwise only `last_column` changes while counts, start positions
 and length still match. Keep LF/CRLF, endless-method and tab-crossing controls together.
 
-**Registration is not exercised coverage.** The full-field CLI sweep is documented in
-`docs/cop-conformance.md`. The three project-index cops currently have no indexed implementation.
-Do not count their index-disabled silence as an exact match. Generate README tables through
-`scripts/conformance_table.rb`; it compares complete nonempty runs, path sets and offense
-multisets with all fields and keeps differences in separate runs separate.
+**登録数と発火数を混同しない。** 全項目の CLI 掃引は `docs/cop-conformance.md` に記録する。
+プロジェクト索引を必要とする 3 cop も索引を有効にして測る。索引を無効にした沈黙を
+完全一致に数えない。README の表は `scripts/conformance_table.rb` で生成する。
+このスクリプトは正の完了件数、対象パス集合、診断全項目の多重集合を比較し、
+別々の入力で生じた過剰と不足を打ち消さない。
 
 ## Adding a cop test
 
@@ -387,12 +425,63 @@ on disk after both correction modes.
 
 ## Conformance measurement
 
+2026-10-15 の CLI 掃引は **登録 609 / 発火 609 / 全項目一致 609**。
+測定可能な 42,433 入力・1,543 設定群に、索引 174 ケースとファイル名依存 2 ケースを加えた。
+本家 CLI が設定を拒む 6 設定群・161 入力は未測定として分ける。
+テスト関数は Rust 2,312・Ruby 77・検証ツール 15 の計 2,404 件。
+このメンテナンスで追加したものは 58 件で、fixture 内の入力数とは分けて数える。
+実コードの既知差分まで解消したという意味ではない。固定 SHA と数値の正本は
+`CONFORMANCE.md` とし、README のテーブルは必ず計測結果から生成する。
+
+**プロジェクト索引は実行全体で共有する。** `AllCops/UseProjectIndex` が有効なとき、
+`src/project_index.rs` が検査対象と設定ルート配下の Ruby ソースを索引化する。
+`Lint/DeprecatedReference`・`Lint/NameTypo`・`Lint/UnusedPrivateMethod` と既存 12 cop が使う。
+別ファイルの変更でも診断が変わるため、索引を使う実行ではファイル単位の結果キャッシュを
+利用しない。`ProjectIndexIncludesGems` の gem ソース取得は Ruby ラッパーが渡す Bundler
+環境がある場合だけ行い、通常のネイティブ実行は Ruby を起動せず完結させる。
+
+索引の回帰は `tests/project_index.rs` と、本家 RuboCop 1.89.0 / rubydex 0.4.1 の CLI から
+記録した 174 ケースで検査する。`make project-index-fixtures` で期待値を再録できる。
+索引の名前解決を cop 側の AST の意味へ広げる前に、本家が実際にどの名前と lexical scope を
+索引へ渡しているかを確認する。例として `Lint/InheritException` の未解決定数名は末尾の
+名前だけであり、見た目の完全修飾名へ変えると検出が変わる。
+
 **Conformance tools must reject incomplete evidence.** `scripts/conformance_table.rb` compares
 offense multisets, including `length`, and includes the run identity in each key: a missing offense
 in one input must not cancel an extra offense in another. Both table and diff scripts require
 complete nonzero inspections and identical target path sets before comparing offenses. An
 unexercised cop is not exact. The table exits 0 only when every listed cop fired and matched,
 1 for differences or unexercised cops, and 2 when the measurement is incomplete.
+
+**CRLF 掃引も全項目で比較する。** cop ごとの件数が一致しても `last_column` だけの
+退行は検出できない。`crlf_probe.sh` は `compare_reports.py` で検査完了・対象パスと
+診断の全フィールドを多重集合として比較する。差分は終了コード 1、未測定は 2 とし、
+JSON・stderr・終了コードを `OUT_DIR` に残す。比較処理を変えたら、一致する正例に加え、
+`last_column` だけを変えた陰性対照が必ず失敗することを確認する。
+
+**補正ゲートは `make corpus-check` で再現する。** `scripts/conformance/` が
+`safe` / `unsafe` 別の複製でパス集合、補正バイト列、構文、冪等性を検査する。
+終了 2 はそのまま記録する。登録済みパスの構文保護メッセージだけが出ている場合に限り
+比較を続け、マニフェストの両出力ハッシュと件数まで照合する。無条件には許容しない。
+構文検査ツールの I/O 例外は終了 2 とし、本家だけが壊れる分類結果の終了 1 と混ぜない。
+本家の内部エラーは stderr で判定する。stdout のソース行には同じ文言が現れ得る。
+補正した実行から progress と JSON を両方保存し、構文の分類にも正の完了件数と同じ対象パス集合を要求する。
+出力先は複製へ移動する前に実パスへ正規化する。呼び出し元の Ruby を別の導入先で上書きしない。途中停止した本家の複製を
+補正済み全体と見なすと、未検査の原本と比較して候補側だけの破壊と誤分類する。
+本家が完走しない場合は --candidate-only で候補の安全性を分けて測り、互換性は主張しない。
+
+2026-10-15 の速度表は専用実行 `38730861317` の結果から生成した。
+Ruby 4.0.7 / RuboCop 1.91.0 と共通393 copで測り、挙動の仕様版は1.89.0のままにする。
+CPU・コーパスSHA・全計測の終了コードと診断数は `docs/benchmarks/2026-10-15.json` が正本。
+検出内容が違う新版との時間を、同じ仕事での速度倍率として説明しない。
+
+**速度は `make benchmark` と専用の Benchmark ワークフローで測る。**
+新しい本家との比較でも挙動のオラクルは変えない。計測する全実行で検査完了と全診断の
+基準 JSON 一致を確認し、時間・CPU 時間・終了コード・負荷・検出数を残す。
+入力の複製はプロジェクトの外に置く。出力配下へ clone すると親の gemspec の
+Ruby 2.6 指定を拾うことがあり、両ツールが同じ誤った版でも比較が成立して見える。
+構文エラーの stdin から実効版を両 CLI に答えさせ、固定コーパスで確認した値
+（Rails 3.3、Mastodon 4.0、残り 2.7）と照合する。読めない場合も測定を止める。
 
 `CONFORMANCE.md` records offense-by-offense comparisons against five pinned corpora (18,251 files).
 The commits are pinned because the numbers move with them. Anything that changes file discovery or
@@ -405,4 +494,4 @@ corpus by absolute path. Keep the guard enabled and record the gem version and c
 ## Versioning
 
 `Cargo.toml` and `lib/sonicop/version.rb` must agree; `make version-check` enforces it and CI fails
-otherwise. Use `rake version:set VERSION=x.y.z` rather than editing either by hand.
+otherwise. 公開版の番号は Release ワークフローが自動採番する。Cargo.toml と Ruby の版を手で変更しない。
