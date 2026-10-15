@@ -1,0 +1,6168 @@
+[
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:120",
+    "files": {
+      "lib/sub.rb": "class SubService < Service\nend\n",
+      "lib/current.rb": "class Service\n  def call\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:145",
+    "files": {
+      "lib/current.rb": "class Service\n  class << self\n    private\n\n    def helper\n    end\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:62",
+    "files": {
+      "lib/current.rb": "class Service\n  def call\n    helper\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:34",
+    "files": {
+      "lib/current.rb": "class Service\n  def call\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 7,
+              "start_column": 3,
+              "last_line": 7,
+              "last_column": 12,
+              "length": 10,
+              "line": 7,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:88",
+    "files": {
+      "lib/current.rb": "class Service\n  before_action :helper\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:197",
+    "files": {
+      "lib/config.rb": "HOOKS = [:helper].freeze\n",
+      "lib/current.rb": "class Service\n  def call\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 7,
+              "start_column": 3,
+              "last_line": 7,
+              "last_column": 12,
+              "length": 10,
+              "line": 7,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:178",
+    "files": {
+      "lib/current.rb": "class Service\n  PATTERN = '(send nil? :require #helper)'\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:161",
+    "files": {
+      "lib/current.rb": "class Child < Base\n  private\n\n  def hook\n  end\nend\n",
+      "lib/base.rb": "class Base\n  private\n\n  def hook\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:51",
+    "files": {
+      "lib/current.rb": "class Service\n  def call\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:80",
+    "files": {
+      "lib/other.rb": "class Other\n  def go(service)\n    service.helper\n  end\nend\n",
+      "lib/current.rb": "class Service\n  def call\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:128",
+    "files": {
+      "lib/current.rb": "class Service\n  private\n\n  def initialize\n  end\n\n  def respond_to_missing?(name, include_private = false)\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "spec/rubocop/cop/lint/unused_private_method_spec.rb:104",
+    "files": {
+      "lib/current.rb": "class Service\n  alias_method :run, :helper\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:162",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def timeout\n    Api::OLD_TIMEOUT\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Api::OLD_TIMEOUT` is deprecated: Use `NEW_TIMEOUT` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 20,
+              "length": 16,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:186",
+    "files": {
+      "lib/legacy.rb": "# @deprecated\nclass Legacy\nend\n",
+      "lib/current.rb": "# @deprecated\nclass Legacy\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:200",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def timeout\n    Api\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:175",
+    "files": {
+      "lib/legacy.rb": "# @deprecated Use `Modern` instead.\nclass Legacy\nend\n",
+      "lib/current.rb": "Legacy.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Legacy` is deprecated: Use `Modern` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 6,
+              "length": 6,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:259",
+    "files": {
+      "lib/api_a.rb": "class Api\n  def old_method\n  end\nend\n",
+      "lib/api_b.rb": "class Api\n  # @deprecated\n  def old_method\n  end\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:228",
+    "files": {
+      "lib/api_a.rb": "class Api\n  # @deprecated\n  def old_method\n  end\nend\n",
+      "lib/api_b.rb": "class Api\n  # @deprecated\n  def old_method\n  end\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `old_method` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 14,
+              "length": 10,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:274",
+    "files": {
+      "lib/legacy_a.rb": "# @deprecated\nclass Legacy\nend\n",
+      "lib/legacy_b.rb": "# @deprecated\nclass Legacy\nend\n",
+      "lib/current.rb": "Legacy.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Legacy` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 6,
+              "length": 6,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:286",
+    "files": {
+      "lib/legacy_a.rb": "# @deprecated\nclass Legacy\nend\n",
+      "lib/legacy_b.rb": "class Legacy\nend\n",
+      "lib/current.rb": "Legacy.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:244",
+    "files": {
+      "lib/api_a.rb": "class Api\n  # @deprecated\n  def old_method\n  end\nend\n",
+      "lib/api_b.rb": "class Api\n  def old_method\n  end\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:137",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  # @deprecated Use `#modern_call` instead.\n  def call\n    old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:113",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    new_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:54",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `old_method` is deprecated: Use `#new_method` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 14,
+              "length": 10,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:67",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    self.old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `old_method` is deprecated: Use `#new_method` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 10,
+              "last_line": 3,
+              "last_column": 19,
+              "length": 10,
+              "line": 3,
+              "column": 10
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:102",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  legacy_build\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `legacy_build` is deprecated: Use `.modern_build` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 2,
+              "last_column": 14,
+              "length": 12,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:93",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "Api.legacy_build\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `legacy_build` is deprecated: Use `.modern_build` instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 16,
+              "length": 12,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:80",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call\n    bare_deprecation\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `bare_deprecation` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 20,
+              "length": 16,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "spec/rubocop/cop/lint/deprecated_reference_spec.rb:125",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def call(api)\n    api.old_method\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:47",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::Middleware.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:34",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCraetor::Params.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `UserCraetor` is not defined in `Services`. Did you mean `UserCreator`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 11,
+              "last_line": 1,
+              "last_column": 21,
+              "length": 11,
+              "line": 1,
+              "column": 11
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:65",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "class Services::UserRestorer; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:53",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:27",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `UserCraetor` is not defined in `Services`. Did you mean `UserCreator`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 11,
+              "last_line": 1,
+              "last_column": 21,
+              "length": 11,
+              "line": 1,
+              "column": 11
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:77",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "stub_const('Services::UserCraetor', Class.new)\nServices::UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:59",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "External::UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:41",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCreator.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:71",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "defined?(Services::UserCraetor)\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:97",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true,
+        "AllowedNames": [
+          "UserCraetor"
+        ]
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:87",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCraetor.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true,
+        "CheckConstants": false
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:137",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Formatting.indent_txet('foo')\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Formatting` does not respond to `indent_txet`. Did you mean `indent_text`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 22,
+              "length": 11,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:150",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Formatting.indent_text('foo')\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:168",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "report.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:162",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "External.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:123",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Report` does not respond to `generate_sumary`. Did you mean `generate_summary`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 22,
+              "length": 15,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:174",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "defined?(Report.generate_sumary)\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:180",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.define_singleton_method(:generate_sumary) { nil }\nReport.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:130",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report&.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Report` does not respond to `generate_sumary`. Did you mean `generate_summary`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 23,
+              "length": 15,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:144",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.generate_summary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:156",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.download\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:245",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true,
+        "AllowedNames": [
+          "generate_sumary"
+        ]
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:235",
+    "files": {
+      "report.rb": "class Report\n  def self.generate_summary; end\n  def self.generate_details; end\nend\n\nmodule Formatting\n  module_function\n\n  def indent_text(text); end\nend\n",
+      "(string)": "Report.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true,
+        "CheckMethods": false
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:225",
+    "files": {
+      "report.rb": "class Report < External::Base\n  def self.generate_summary; end\nend\n",
+      "(string)": "Report.generate_sumary\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:200",
+    "files": {
+      "config.rb": "class Config\n  class << self\n    attr_accessor :debug_mode\n  end\nend\n",
+      "(string)": "Config.debug_mode = true\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "spec/rubocop/cop/lint/name_typo_spec.rb:206",
+    "files": {
+      "config.rb": "class Config\n  class << self\n    attr_accessor :debug_mode\n  end\nend\n",
+      "(string)": "Config.debug_mdoe = true\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Config` does not respond to `debug_mdoe=`. Did you mean `debug_mode=`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 17,
+              "length": 10,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/explicit-setter-typo",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary=(123)\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Report` does not respond to `generate_sumary=`. Did you mean `generate_summary=`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 22,
+              "length": 15,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/explicit-setter-control",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_summary=(123)\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/assignment-setter-typo",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary = 123\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Report` does not respond to `generate_sumary=`. Did you mean `generate_summary=`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 22,
+              "length": 15,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/escaped-string-literal",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary\n\"\\x67enerate_sumary\"\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/interpolated-escaped-literal",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary\n\"#{token}\\x67enerate_sumary\"\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/escaped-word-literal",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary\n%w[generate\\_sumary]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Report` does not respond to `generate_sumary`. Did you mean `generate_summary`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 22,
+              "length": 15,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/symbol-word-literal",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary\n%i[generate_sumary]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/heredoc-literal",
+    "files": {
+      "lib/definitions.rb": "class Report\n  def self.generate_summary; end\n  def self.title=(value); end\nend\n",
+      "lib/current.rb": "Report.generate_sumary\n<<~TEXT\ngenerate_sumary\nTEXT\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/cache-unreferenced",
+    "files": {
+      "lib/current.rb": "class Service\n  private\n  def helper; end\nend\n",
+      "lib/reference.rb": "nil\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 3,
+              "last_line": 3,
+              "last_column": 12,
+              "length": 10,
+              "line": 3,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/cache-referenced",
+    "files": {
+      "lib/current.rb": "class Service\n  private\n  def helper; end\nend\n",
+      "lib/reference.rb": "object.helper\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/stdin-adds-reference",
+    "files": {
+      "lib/current.rb": "class Service\n  private\n  def helper; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 12,
+              "length": 10,
+              "line": 4,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "stdin": "class Service\n  def call; helper; end\n  private\n  def helper; end\nend\n"
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/stdin-removes-reference",
+    "files": {
+      "lib/current.rb": "class Service\n  def call; helper; end\n  private\n  def helper; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "3.3",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ],
+    "stdin": "class Service\n  private\n  def helper; end\nend\n"
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/index-disabled/DeprecatedReference",
+    "files": {
+      "lib/api.rb": "class Api\n  # @deprecated Use `#new_method` instead.\n  def old_method\n  end\n\n  def new_method\n  end\n\n  # @deprecated\n  def bare_deprecation\n  end\n\n  # @deprecated Use `.modern_build` instead.\n  def self.legacy_build\n  end\n\n  # @deprecated Use `NEW_TIMEOUT` instead.\n  OLD_TIMEOUT = 10\nend\n",
+      "lib/current.rb": "class Client < Api\n  def timeout\n    Api::OLD_TIMEOUT\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/index-disabled/NameTypo",
+    "files": {
+      "services.rb": "module Services\n  class UserCreator\n    class Params; end\n  end\n\n  class UserDeleter; end\nend\n",
+      "(string)": "Services::UserCraetor::Params.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/index-disabled/UnusedPrivateMethod",
+    "files": {
+      "lib/current.rb": "class Service\n  def call\n  end\n\n  private\n\n  def helper\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/index-file-gemspec",
+    "files": {
+      "definitions.gemspec": "# @deprecated Use NewThing instead.\nclass OldThing\nend\n",
+      "current.rb": "OldThing\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "NewCops": "disable",
+        "TargetRubyVersion": 3.3,
+        "Exclude": [],
+        "Include": [
+          "**/*.rb",
+          "**/*.gemspec"
+        ]
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/index-file-excluded",
+    "files": {
+      "node_modules/definitions.rb": "# @deprecated Use NewThing instead.\nclass OldThing\nend\n",
+      "current.rb": "OldThing\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "NewCops": "disable",
+        "TargetRubyVersion": 3.3,
+        "Exclude": [],
+        "Include": [
+          "**/*.rb",
+          "**/*.gemspec"
+        ]
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `OldThing` is deprecated: Use NewThing instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 8,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/index-file-control",
+    "files": {
+      "definitions.rb": "# @deprecated Use NewThing instead.\nclass OldThing\nend\n",
+      "current.rb": "OldThing\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "NewCops": "disable",
+        "TargetRubyVersion": 3.3,
+        "Exclude": [],
+        "Include": [
+          "**/*.rb",
+          "**/*.gemspec"
+        ]
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `OldThing` is deprecated: Use NewThing instead.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 8,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantResolution",
+    "origin": "spec/rubocop/cop/lint/constant_resolution_spec.rb:175",
+    "files": {
+      "current.rb": "module App\n  def self.parse(json)\n    JSON.parse(json)\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/ConstantResolution": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantResolution",
+    "origin": "spec/rubocop/cop/lint/constant_resolution_spec.rb:160",
+    "files": {
+      "config.rb": "class Config\nend\n",
+      "current.rb": "module App\n  def self.load\n    Config.load\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/ConstantResolution": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantResolution",
+    "origin": "spec/rubocop/cop/lint/constant_resolution_spec.rb:136",
+    "files": {
+      "config.rb": "class Config\nend\n",
+      "app_config.rb": "module App\n  class Config\n  end\nend\n",
+      "current.rb": "module App\n  def self.load\n    Config.load\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/ConstantResolution": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Fully qualify this constant to avoid possibly ambiguous resolution.",
+            "cop_name": "Lint/ConstantResolution",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 10,
+              "length": 6,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Naming/PredicatePrefix",
+    "origin": "spec/rubocop/cop/naming/predicate_prefix_spec.rb:228",
+    "files": {
+      "current.rb": "class Child < Base\n  def is_ready\n    true\n  end\nend\n",
+      "base.rb": "class Base\n  def is_ready\n    false\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Naming/PredicatePrefix": {
+        "Enabled": true,
+        "ForbiddenPrefixes": [
+          "is_"
+        ],
+        "NamePrefix": [
+          "is_"
+        ]
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Naming/PredicatePrefix",
+    "origin": "spec/rubocop/cop/naming/predicate_prefix_spec.rb:244",
+    "files": {
+      "current.rb": "class Child < Base\n  def is_ready\n    true\n  end\nend\n",
+      "base.rb": "class Base\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Naming/PredicatePrefix": {
+        "Enabled": true,
+        "ForbiddenPrefixes": [
+          "is_"
+        ],
+        "NamePrefix": [
+          "is_"
+        ]
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Rename `is_ready` to `ready?`.",
+            "cop_name": "Naming/PredicatePrefix",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 7,
+              "last_line": 2,
+              "last_column": 14,
+              "length": 8,
+              "line": 2,
+              "column": 7
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "spec/rubocop/cop/lint/inherit_exception_spec.rb:266",
+    "files": {
+      "current.rb": "class MyError < SomeGemError\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true,
+        "EnforcedStyle": "standard_error"
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "spec/rubocop/cop/lint/inherit_exception_spec.rb:254",
+    "files": {
+      "base.rb": "class BaseError < SomeGemError\nend\n",
+      "current.rb": "class MyError < BaseError\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true,
+        "EnforcedStyle": "standard_error"
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "spec/rubocop/cop/lint/inherit_exception_spec.rb:242",
+    "files": {
+      "base.rb": "class BaseError < StandardError\nend\n",
+      "current.rb": "class MyError < BaseError\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true,
+        "EnforcedStyle": "standard_error"
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "spec/rubocop/cop/lint/inherit_exception_spec.rb:206",
+    "files": {
+      "base.rb": "class BaseError < Exception\nend\n",
+      "current.rb": "class MyError < BaseError\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true,
+        "EnforcedStyle": "standard_error"
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Inherit from `StandardError` instead of `Exception` (inherited via `BaseError`).",
+            "cop_name": "Lint/InheritException",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 17,
+              "last_line": 1,
+              "last_column": 25,
+              "length": 9,
+              "line": 1,
+              "column": 17
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "spec/rubocop/cop/lint/inherit_exception_spec.rb:224",
+    "files": {
+      "mid.rb": "class MidError < BaseError\nend\n",
+      "base.rb": "class BaseError < Exception\nend\n",
+      "current.rb": "class MyError < MidError\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true,
+        "EnforcedStyle": "standard_error"
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Inherit from `StandardError` instead of `Exception` (inherited via `BaseError`).",
+            "cop_name": "Lint/InheritException",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 17,
+              "last_line": 1,
+              "last_column": 24,
+              "length": 8,
+              "line": 1,
+              "column": 17
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:330",
+    "files": {
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:358",
+    "files": {
+      "lib/parent.rb": "class Parent\n  include SomeGemModule\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:277",
+    "files": {
+      "lib/parent.rb": "class Parent\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:381",
+    "files": {
+      "lib/current.rb": "module Wrap\n  class Child < Parent\n    def initialize\n      @foo = 1\n    end\n  end\nend\n",
+      "lib/parent.rb": "module Wrap\n  class Parent\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:283",
+    "files": {
+      "lib/parent.rb": "class Parent\n  def initialize\n  end\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:298",
+    "files": {
+      "lib/parent.rb": "class Parent < GrandParent\nend\n",
+      "lib/grand_parent.rb": "class GrandParent\n  def initialize\n  end\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:373",
+    "files": {
+      "lib/parent.rb": "class Parent\n  extend SomeGemModule\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:343",
+    "files": {
+      "lib/parent.rb": "class Parent < SomeGemClass\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/MissingSuper",
+    "origin": "spec/rubocop/cop/lint/missing_super_spec.rb:314",
+    "files": {
+      "lib/parent.rb": "class Parent\n  include Initializable\nend\n",
+      "lib/initializable.rb": "module Initializable\n  def initialize\n  end\nend\n",
+      "lib/current.rb": "class Child < Parent\n  def initialize\n    @foo = 1\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Lint/MissingSuper": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Call `super` to initialize state of the parent class.",
+            "cop_name": "Lint/MissingSuper",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 33,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/RedundantConstantBase",
+    "origin": "spec/rubocop/cop/style/redundant_constant_base_spec.rb:118",
+    "files": {
+      "config.rb": "class Config\nend\n",
+      "current.rb": "module App\n  def self.load\n    ::Config.load\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/RedundantConstantBase": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Remove redundant `::`.",
+            "cop_name": "Style/RedundantConstantBase",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 5,
+              "last_line": 3,
+              "last_column": 6,
+              "length": 2,
+              "line": 3,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/RedundantConstantBase",
+    "origin": "spec/rubocop/cop/style/redundant_constant_base_spec.rb:118",
+    "files": {
+      "config.rb": "class Config\nend\n",
+      "current.rb": "module App\n  def self.load\n    Config.load\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/RedundantConstantBase": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/RedundantConstantBase",
+    "origin": "spec/rubocop/cop/style/redundant_constant_base_spec.rb:165",
+    "files": {
+      "current.rb": "module App\n  def self.parse(json)\n    ::JSON.parse(json)\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/RedundantConstantBase": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/RedundantConstantBase",
+    "origin": "spec/rubocop/cop/style/redundant_constant_base_spec.rb:148",
+    "files": {
+      "config.rb": "class Config\nend\n",
+      "app_config.rb": "module App\n  class Config\n  end\nend\n",
+      "current.rb": "module App\n  def self.load\n    ::Config.load\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/RedundantConstantBase": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Naming/AccessorMethodName",
+    "origin": "spec/rubocop/cop/naming/accessor_method_name_spec.rb:205",
+    "files": {
+      "current.rb": "class Child < Base\n  def get_value\n    @value\n  end\nend\n",
+      "base.rb": "class Base\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Naming/AccessorMethodName": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not prefix reader method names with `get_`.",
+            "cop_name": "Naming/AccessorMethodName",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 7,
+              "last_line": 2,
+              "last_column": 15,
+              "length": 9,
+              "line": 2,
+              "column": 7
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Naming/AccessorMethodName",
+    "origin": "spec/rubocop/cop/naming/accessor_method_name_spec.rb:189",
+    "files": {
+      "current.rb": "class Child < Base\n  def get_value\n    @value\n  end\nend\n",
+      "base.rb": "class Base\n  def get_value\n    nil\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Naming/AccessorMethodName": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:185",
+    "files": {
+      "other.rb": "class Other\n  def respond_to_missing?(name, include_private = false)\n    true\n  end\nend\n",
+      "current.rb": "class Tool\n  def method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "When using `method_missing`, define `respond_to_missing?`.",
+            "cop_name": "Style/MissingRespondToMissing",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 47,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:244",
+    "files": {
+      "other.rb": "class Tool\n  def self.respond_to_missing?(name, include_private = false)\n    true\n  end\nend\n",
+      "current.rb": "class Tool\n  def self.method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:267",
+    "files": {
+      "other.rb": "class Tool\n  def respond_to_missing?(name, include_private = false)\n    true\n  end\nend\n",
+      "current.rb": "class Tool\n  def self.method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "When using `method_missing`, define `respond_to_missing?`.",
+            "cop_name": "Style/MissingRespondToMissing",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 52,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:214",
+    "files": {
+      "base.rb": "class Base\n  def respond_to_missing?(name, include_private = false)\n    true\n  end\nend\n",
+      "current.rb": "class Tool < Base\n  def method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "When using `method_missing`, define `respond_to_missing?`.",
+            "cop_name": "Style/MissingRespondToMissing",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 47,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:165",
+    "files": {
+      "other.rb": "class Tool\nend\n",
+      "current.rb": "class Tool\n  def method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "When using `method_missing`, define `respond_to_missing?`.",
+            "cop_name": "Style/MissingRespondToMissing",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 5,
+              "length": 47,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/MissingRespondToMissing",
+    "origin": "spec/rubocop/cop/style/missing_respond_to_missing_spec.rb:143",
+    "files": {
+      "other.rb": "class Tool\n  def respond_to_missing?(name, include_private = false)\n    true\n  end\nend\n",
+      "current.rb": "class Tool\n  def method_missing(name, *args)\n    super\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/MissingRespondToMissing": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/StaticClass",
+    "origin": "spec/rubocop/cop/style/static_class_spec.rb:160",
+    "files": {
+      "sub.rb": "class PowerTools < Tools\nend\n",
+      "current.rb": "class Tools\n  def self.hammer\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/StaticClass": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/StaticClass",
+    "origin": "spec/rubocop/cop/style/static_class_spec.rb:174",
+    "files": {
+      "other.rb": "class Unrelated\nend\n",
+      "current.rb": "class Tools\n  def self.hammer\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/StaticClass": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Prefer modules to classes with only class methods.",
+            "cop_name": "Style/StaticClass",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 4,
+              "last_column": 3,
+              "length": 39,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/StaticClass",
+    "origin": "spec/rubocop/cop/style/static_class_spec.rb:194",
+    "files": {
+      "mid.rb": "class GardenTools < Tools\nend\n",
+      "sub.rb": "class PowerTools < GardenTools\nend\n",
+      "current.rb": "class Tools\n  def self.hammer\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/StaticClass": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:982",
+    "files": {
+      "lib/unrelated.rb": "class Unrelated\nend\n",
+      "(string)": "class FooClass::BarClass\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use nested module/class definitions instead of compact style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 7,
+              "last_line": 1,
+              "last_column": 24,
+              "length": 18,
+              "line": 1,
+              "column": 7
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:982",
+    "files": {
+      "lib/unrelated.rb": "class Unrelated\nend\n",
+      "(string)": "module FooClass\n  class BarClass\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:921",
+    "files": {
+      "lib/foo_class.rb": "class FooClass\nend\n",
+      "(string)": "class FooClass::BarClass\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use nested module/class definitions instead of compact style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 7,
+              "last_line": 1,
+              "last_column": 24,
+              "length": 18,
+              "line": 1,
+              "column": 7
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:921",
+    "files": {
+      "lib/foo_class.rb": "class FooClass\nend\n",
+      "(string)": "class FooClass\n  class BarClass\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:955",
+    "files": {
+      "lib/wrap.rb": "module Wrap\n  class FooClass\n  end\nend\n",
+      "(string)": "module Wrap\n  class Other\n  end\n  class FooClass::BarClass\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use nested module/class definitions instead of compact style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 9,
+              "last_line": 4,
+              "last_column": 26,
+              "length": 18,
+              "line": 4,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:955",
+    "files": {
+      "lib/wrap.rb": "module Wrap\n  class FooClass\n  end\nend\n",
+      "(string)": "module Wrap\n  class Other\n  end\n  class FooClass\n      class BarClass\n      end\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:938",
+    "files": {
+      "lib/foo_mod.rb": "module FooModule\nend\n",
+      "(string)": "module FooModule::BarModule\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use nested module/class definitions instead of compact style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 27,
+              "length": 20,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:938",
+    "files": {
+      "lib/foo_mod.rb": "module FooModule\nend\n",
+      "(string)": "module FooModule\n  module BarModule\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "nested"
+      }
+    },
+    "targets": [
+      "(string)"
+    ],
+    "expected": [
+      {
+        "path": "(string)",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:1059",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module FooModule\nend\n\nmodule FooModule\n  module BarModule\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "compact"
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use compact module/class definition instead of nested style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 8,
+              "last_line": 4,
+              "last_column": 16,
+              "length": 9,
+              "line": 4,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:1059",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module FooModule\nend\n\nmodule FooModule::BarModule\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "compact"
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:1033",
+    "files": {
+      "lib/current.rb": "module FooModule\n  module BarModule\n  end\nend\n",
+      "lib/other.rb": "module FooModule\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module FooModule\n  module BarModule\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "compact"
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use compact module/class definition instead of nested style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 16,
+              "length": 9,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:1033",
+    "files": {
+      "lib/current.rb": "module FooModule\n  module BarModule\n  end\nend\n",
+      "lib/other.rb": "module FooModule\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module FooModule::BarModule\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "compact"
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/ClassAndModuleChildren",
+    "origin": "spec/rubocop/cop/style/class_and_module_children_spec.rb:1013",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module FooModule\n  module BarModule\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/ClassAndModuleChildren": {
+        "Enabled": true,
+        "EnforcedStyle": "compact"
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use compact module/class definition instead of nested style.",
+            "cop_name": "Style/ClassAndModuleChildren",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 16,
+              "length": 9,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:579",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/other.rb": "# Description of Person.\nclass Person\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "class Person\n  def foo; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:661",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/other.rb": "# Top-level Person.\nclass Person\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module Outer\n  class Person\n    def foo; end\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing top-level documentation comment for `class Outer::Person`.",
+            "cop_name": "Style/Documentation",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 3,
+              "last_line": 2,
+              "last_column": 14,
+              "length": 12,
+              "line": 2,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:645",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/other.rb": "module Outer\n  # Documented here.\n  class Person\n  end\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "module Outer\n  class Person\n    def foo; end\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:625",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/other.rb": "# rubocop:disable Style/ClassVars\nclass Person\nend\n# rubocop:enable Style/ClassVars\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "class Person\n  def foo; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing top-level documentation comment for `class Person`.",
+            "cop_name": "Style/Documentation",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 12,
+              "length": 12,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:607",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/other.rb": "class Person\nend\n",
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "class Person\n  def foo; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing top-level documentation comment for `class Person`.",
+            "cop_name": "Style/Documentation",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 12,
+              "length": 12,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Style/Documentation",
+    "origin": "spec/rubocop/cop/style/documentation_spec.rb:592",
+    "files": {
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb": "# Description of Person.\nclass Person\nend\n\nclass Person\n  def foo; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": "2.7",
+        "NewCops": "disable"
+      },
+      "Style/Documentation": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "Users/owa/tmp/conf-pinned/rubocop_rubocop/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-superclass",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Child < OldBase; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-superclass",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Sub < Foo::Thinh; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-absolute",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "::Api::OLD\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Api::OLD` is deprecated: Prefer NEW.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 10,
+              "length": 10,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-absolute",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "::Foo::Thinh\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Thinh` is not defined in `Foo`. Did you mean `Thing`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 12,
+              "length": 5,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-class-tail",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Client\n  def call\n    Api::OLD\n  end\n  # @deprecated\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-method-tail",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Client\n  def call\n    Api::OLD\n    # @deprecated\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-decorating-end",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Client\n  def call\n    Api::OLD\n  end # @deprecated\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-two-expressions-tail",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "class Client\n  def call\n    Api::OLD\n    puts :value\n    # @deprecated\n  end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-call-shapes",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "Api.level = 1\nApi.level, Api.color = 1, 2\nApi[:x]\nApi[:x] = 1\nApi + 1\n-Api\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `level=` is deprecated: Prefer next.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 5,
+              "line": 1,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `level=` is deprecated: Prefer next.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 5,
+              "last_line": 2,
+              "last_column": 9,
+              "length": 5,
+              "line": 2,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `[]` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 4,
+              "last_line": 3,
+              "last_column": 7,
+              "length": 4,
+              "line": 3,
+              "column": 4
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `[]=` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 7,
+              "length": 4,
+              "line": 4,
+              "column": 4
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `+` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 5,
+              "start_column": 5,
+              "last_line": 5,
+              "last_column": 5,
+              "length": 1,
+              "line": 5,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `-@` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 6,
+              "start_column": 1,
+              "last_line": 6,
+              "last_column": 1,
+              "length": 1,
+              "line": 6,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-multiple-setters",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "Api.level, Api.colr = 1, 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-defined-binary",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "x = defined?(Zzz) && Foo.baz\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Foo` does not respond to `baz`. Did you mean `bar`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 26,
+              "last_line": 1,
+              "last_column": 28,
+              "length": 3,
+              "line": 1,
+              "column": 26
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-defined-program",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "defined?(Zzz)\nFoo.baz\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Foo` does not respond to `baz`. Did you mean `bar`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 5,
+              "last_line": 2,
+              "last_column": 7,
+              "length": 3,
+              "line": 2,
+              "column": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/edge-defined-control",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "defined?(Foo.baz)\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-casgn-class",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "OldBase::Thing = Class.new\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/edge-casgn-value",
+    "files": {
+      "definitions.rb": "# @deprecated Prefer NewBase.\nclass OldBase; end\nclass Api\n  # @deprecated Prefer NEW.\n  OLD = 1\n  # @deprecated Prefer next.\n  def self.level=(value); end\n  def self.color=(value); end\n  # @deprecated\n  def self.[](key); end\n  # @deprecated\n  def self.[]=(key, value); end\n  # @deprecated\n  def self.+(other); end\n  # @deprecated\n  def self.-@; end\nend\nmodule Foo\n  class Thing; end\n  def self.bar; end\nend\n",
+      "current.rb": "OldBase::VALUE = 1\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `OldBase` is deprecated: Prefer NewBase.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 7,
+              "length": 7,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-constant",
+    "files": {
+      "lib/other.rb": "VALUE = 1\n",
+      "lib/current.rb": "VALUE = 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `VALUE` is already assigned in `{root}/lib/other.rb`.",
+            "cop_name": "Lint/ConstantReassignment",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 9,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-class",
+    "files": {
+      "lib/other.rb": "class Value; end\n",
+      "lib/current.rb": "Value = 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Value` is already assigned in `{root}/lib/other.rb`.",
+            "cop_name": "Lint/ConstantReassignment",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 9,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-namespaced",
+    "files": {
+      "lib/other.rb": "module Api; VALUE = 1; end\n",
+      "lib/current.rb": "module Api; VALUE = 2; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `VALUE` is already assigned in `{root}/lib/other.rb`.",
+            "cop_name": "Lint/ConstantReassignment",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 13,
+              "last_line": 1,
+              "last_column": 21,
+              "length": 9,
+              "line": 1,
+              "column": 13
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-absolute",
+    "files": {
+      "lib/other.rb": "module Api; VALUE = 1; end\n",
+      "lib/current.rb": "::Api::VALUE = 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `Api::VALUE` is already assigned in `{root}/lib/other.rb`.",
+            "cop_name": "Lint/ConstantReassignment",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 16,
+              "length": 16,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-different",
+    "files": {
+      "lib/other.rb": "module Other; VALUE = 1; end\n",
+      "lib/current.rb": "module Api; VALUE = 2; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-same-file",
+    "files": {
+      "lib/other.rb": "OTHER = 1\n",
+      "lib/current.rb": "VALUE = 1\nVALUE = 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Constant `VALUE` is already assigned in this namespace.",
+            "cop_name": "Lint/ConstantReassignment",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 9,
+              "length": 9,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/ConstantReassignment",
+    "origin": "constructed/cross-file-conditional",
+    "files": {
+      "lib/other.rb": "VALUE = 1\n",
+      "lib/current.rb": "VALUE ||= 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/ConstantReassignment": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-instance",
+    "files": {
+      "lib/other.rb": "class Api; def call; end; end\n",
+      "lib/current.rb": "class Api; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api#call` is defined at both lib/other.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 19,
+              "length": 8,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-singleton",
+    "files": {
+      "lib/other.rb": "class Api; def self.call; end; end\n",
+      "lib/current.rb": "class Api; def self.call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api.call` is defined at both lib/other.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 24,
+              "length": 13,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-reader",
+    "files": {
+      "lib/other.rb": "class Api; attr_reader :value; end\n",
+      "lib/current.rb": "class Api; def value; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api#value` is defined at both lib/other.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 20,
+              "length": 9,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-writer",
+    "files": {
+      "lib/other.rb": "class Api; attr_writer :value; end\n",
+      "lib/current.rb": "class Api; def value=(x); end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api#value=` is defined at both lib/other.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 21,
+              "length": 10,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-writer-reader-control",
+    "files": {
+      "lib/other.rb": "class Api; attr_writer :value; end\n",
+      "lib/current.rb": "class Api; def value; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-accessor-writer",
+    "files": {
+      "lib/other.rb": "class Api; attr_accessor :value; end\n",
+      "lib/current.rb": "class Api; def value=(x); end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api#value=` is defined at both lib/other.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 12,
+              "last_line": 1,
+              "last_column": 21,
+              "length": 10,
+              "line": 1,
+              "column": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-alias-only",
+    "files": {
+      "lib/other.rb": "class Api; alias call old_call; end\n",
+      "lib/current.rb": "class Api; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-alias-and-definition",
+    "files": {
+      "lib/other.rb": "class Api; def call; end; alias call call; end\n",
+      "lib/current.rb": "class Api; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-local-alias",
+    "files": {
+      "lib/other.rb": "class Api; def call; end; end\n",
+      "lib/current.rb": "class Api; alias call call; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-different-owner",
+    "files": {
+      "lib/other.rb": "class Other; def call; end; end\n",
+      "lib/current.rb": "class Api; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-nested-def",
+    "files": {
+      "lib/other.rb": "class Api; def call; end; end\n",
+      "lib/current.rb": "class Api; def outer; def call; end; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-conditional-def",
+    "files": {
+      "lib/other.rb": "class Api; def call; end; end\n",
+      "lib/current.rb": "class Api; if feature; def call; end; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DuplicateMethods",
+    "origin": "constructed/cross-file-same-file-method",
+    "files": {
+      "lib/other.rb": "class Api; def other; end; end\n",
+      "lib/current.rb": "class Api; def call; end; def call; end; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DuplicateMethods": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "lib/current.rb"
+    ],
+    "expected": [
+      {
+        "path": "lib/current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `Api#call` is defined at both lib/current.rb:1 and lib/current.rb:1.",
+            "cop_name": "Lint/DuplicateMethods",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 27,
+              "last_line": 1,
+              "last_column": 34,
+              "length": 8,
+              "line": 1,
+              "column": 27
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "constructed/qualified-exception",
+    "files": {
+      "other.rb": "module Custom; end\nclass BaseError < Custom::Exception; end\n",
+      "current.rb": "class ChildError < BaseError; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Inherit from `StandardError` instead of `Exception` (inherited via `BaseError`).",
+            "cop_name": "Lint/InheritException",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 20,
+              "last_line": 1,
+              "last_column": 28,
+              "length": 9,
+              "line": 1,
+              "column": 20
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/InheritException",
+    "origin": "constructed/absolute-exception",
+    "files": {
+      "other.rb": "class BaseError < ::Exception; end\n",
+      "current.rb": "class ChildError < BaseError; end\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/InheritException": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Inherit from `StandardError` instead of `Exception` (inherited via `BaseError`).",
+            "cop_name": "Lint/InheritException",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 20,
+              "last_line": 1,
+              "last_column": 28,
+              "length": 9,
+              "line": 1,
+              "column": 20
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/NameTypo",
+    "origin": "constructed/accessor-multiple-setters",
+    "files": {
+      "other.rb": "class Api; class << self; attr_accessor :level, :color; end; end\n",
+      "current.rb": "Api.level, Api.colr = 1, 2\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/NameTypo": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Possible typo: `Api` does not respond to `colr=`. Did you mean `color=`?",
+            "cop_name": "Lint/NameTypo",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 16,
+              "last_line": 1,
+              "last_column": 19,
+              "length": 4,
+              "line": 1,
+              "column": 16
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/bare-binary-left",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  # @deprecated\n  def old_value; 1; end\n  def value; old_value + 1; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `old_value` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 4,
+              "start_column": 14,
+              "last_line": 4,
+              "last_column": 22,
+              "length": 9,
+              "line": 4,
+              "column": 14
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/DeprecatedReference",
+    "origin": "constructed/bare-default-arguments",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  # @deprecated\n  def old_value; 1; end\n  def value(arg = old_value, key: old_value); arg; end\nend\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/DeprecatedReference": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Method `old_value` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 4,
+              "start_column": 19,
+              "last_line": 4,
+              "last_column": 27,
+              "length": 9,
+              "line": 4,
+              "column": 19
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "Method `old_value` is deprecated.",
+            "cop_name": "Lint/DeprecatedReference",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 4,
+              "start_column": 35,
+              "last_line": 4,
+              "last_column": 43,
+              "length": 9,
+              "line": 4,
+              "column": 35
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/escaped-word-array",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n%W[\\x68elper]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/literal-word-array",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n%w[\\x68elper]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 3,
+              "last_line": 3,
+              "last_column": 12,
+              "length": 10,
+              "line": 3,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/escaped-symbol-array",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n%I[\\x68elper]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/literal-symbol-array",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n%i[\\x68elper]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 3,
+              "last_line": 3,
+              "last_column": 12,
+              "length": 10,
+              "line": 3,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/interpolated-word-fragments",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def hel; end\n  def per; end\n  def helper; end\nend\n%W[hel#{value}per]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 5,
+              "start_column": 3,
+              "last_line": 5,
+              "last_column": 12,
+              "length": 10,
+              "line": 5,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/interpolated-symbol-fragments",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def hel; end\n  def per; end\n  def helper; end\nend\n%I[hel#{value}per]\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 5,
+              "start_column": 3,
+              "last_line": 5,
+              "last_column": 12,
+              "length": 10,
+              "line": 5,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/escaped-heredoc",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n<<~TEXT\n  \\x68elper\nTEXT\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": []
+      }
+    ]
+  },
+  {
+    "cop": "Lint/UnusedPrivateMethod",
+    "origin": "constructed/literal-heredoc",
+    "files": {
+      "other.rb": "",
+      "current.rb": "class Example\n  private\n  def helper; end\nend\n<<~'TEXT'\n  \\x68elper\nTEXT\n"
+    },
+    "config": {
+      "AllCops": {
+        "UseProjectIndex": true,
+        "TargetRubyVersion": 3.3,
+        "NewCops": "disable"
+      },
+      "Lint/UnusedPrivateMethod": {
+        "Enabled": true
+      }
+    },
+    "targets": [
+      "current.rb"
+    ],
+    "expected": [
+      {
+        "path": "current.rb",
+        "offenses": [
+          {
+            "severity": "warning",
+            "message": "Private method `helper` appears to be unused.",
+            "cop_name": "Lint/UnusedPrivateMethod",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 3,
+              "start_column": 3,
+              "last_line": 3,
+              "last_column": 12,
+              "length": 10,
+              "line": 3,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

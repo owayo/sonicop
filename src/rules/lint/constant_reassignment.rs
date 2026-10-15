@@ -5,26 +5,24 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node::named_children_of;
 use crate::rules::send_node::{arguments, named_children, string_text, symbol_name};
 use crate::rules::support::spurious_assignment_list;
-use crate::rules::send_node::named_children_of;
 
-/// The parts of a constant path, as `each_path` walks them.
+/// 本家の each_path が列挙する定数パスの構成要素。
 struct ConstantPath {
-    /// `constant_namespaces`: the `const` links of the path, which is what the message names.
+    /// constant_namespaces がメッセージに使う定数パス。
     namespaces: Vec<String>,
-    /// `node.absolute?`: the path opens with a `::`.
+    /// 先頭の :: を本家の absolute? と同じ意味で保持する。
     absolute: bool,
-    /// The namespace written directly in front of the name of an absolute path, as
-    /// `node.namespace.source` spells it.
+    /// 絶対パスの名前の直前に書かれた namespace.source の表記。
     absolute_namespace: Option<String>,
     name: String,
 }
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let mut definitions: HashSet<String> = HashSet::new();
-    // The commissioner visits nodes in depth-first pre-order, which is what decides whether a
-    // definition was already seen when an assignment is reached.
+    // 本家の Commissioner と同じ先行順で訪問し、代入より前に現れた定義を記録する。
     let mut stack = vec![(context.root_node(), Vec::<String>::new())];
     let mut order = Vec::new();
     while let Some((node, namespaces)) = stack.pop() {
@@ -36,9 +34,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 Some(path) => {
                     let mut inner = namespaces.clone();
-                    // `ancestor_namespaces` asks each enclosing declaration only for its
-                    // `identifier.short_name`. A compact or absolute namespace therefore
-                    // contributes its final component without replacing the lexical ancestors.
+                    // ancestor_namespaces は外側の宣言の short_name だけを使う。
+                    // 絶対・修飾パスでも字句上の外側を置き換えず、末尾の名前を足す。
                     inner.push(path.name.clone());
                     inner
                 }
@@ -72,10 +69,22 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     };
                     let qualified = qualified_name(&path, &namespaces);
                     let display = display_name(&path);
-                    if !definitions.insert(qualified) {
+                    if !definitions.insert(qualified.clone()) {
                         offenses.push(context.offense(
                             format!("Constant `{display}` is already assigned in this namespace."),
                             range.clone(),
+                        ));
+                    } else if let Some(path) = context.project_index().and_then(|index| {
+                        index.with(|index| {
+                            index.constant_in_other_file(&qualified, context.source.path())
+                        })
+                    }) {
+                        offenses.push(context.offense(
+                            format!(
+                                "Constant `{display}` is already assigned in `{}`.",
+                                path.to_string_lossy().replace('\\', "/")
+                            ),
+                            range,
                         ));
                     }
                 }

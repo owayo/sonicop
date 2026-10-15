@@ -8,7 +8,7 @@ mod frozen_string;
 mod hash_subset;
 mod hash_transform;
 mod line_length_help;
-mod literal;
+use super::literal;
 mod map_chain;
 mod method_preference;
 mod nodes;

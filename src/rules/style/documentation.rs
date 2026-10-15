@@ -47,6 +47,20 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .any(|entry| entry == short_name(context, name))
             || nodoc_self_or_outer_module(context, node, name)
             || include_statement_only(context, &body)
+            || context.project_index().is_some_and(|project| {
+                project.with(|index| {
+                    crate::rules::lint::project_index_help::resolve_constant(index, name, context)
+                        .is_some_and(|owner| {
+                            index.namespace(owner)
+                                && index.defined_elsewhere(
+                                    owner,
+                                    context.source.path(),
+                                    context.source.line_column(node.start_byte()).0,
+                                    true,
+                                )
+                        })
+                })
+            })
         {
             continue;
         }
@@ -321,11 +335,9 @@ fn qualify(context: &RuleContext<'_>, node: Node<'_>) -> String {
     if node.kind_str() != "scope_resolution" {
         return context.source.node_text(node).to_owned();
     }
-    let name = node
-        .field("name")
-        .map_or_else(String::new, |part| {
-            context.source.node_text(part).to_owned()
-        });
+    let name = node.field("name").map_or_else(String::new, |part| {
+        context.source.node_text(part).to_owned()
+    });
     match node.field("scope") {
         Some(scope) => format!("{}::{name}", qualify(context, scope)),
         // A leading `::` is a part of its own upstream, so the join puts a separator on both sides.

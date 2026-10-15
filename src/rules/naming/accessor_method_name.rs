@@ -14,6 +14,9 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         let name = context.source.node_text(name_node);
+        if crate::rules::lint::project_index_help::overrides_inherited_method(node, context) {
+            continue;
+        }
         // A method whose name already ends in `!`, `?` or `=` is not the accessor this cop is
         // about. A `setter` node carries the `=`, so the text alone answers all three.
         if name.ends_with(['!', '?', '=']) {
@@ -35,7 +38,5 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 }
 
 fn arguments<'tree>(node: Node<'tree>) -> Vec<Parameter<'tree>> {
-    node.field("parameters")
-        .map(parameters)
-        .unwrap_or_default()
+    node.field("parameters").map(parameters).unwrap_or_default()
 }

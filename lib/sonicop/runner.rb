@@ -21,7 +21,13 @@ module Sonicop
         # あればまるごと /bin/sh に渡すため、binary のパス次第で ENOENT や exit 127 になる。
         # パスの出所は SONICOP_BINARY と gem の install 先で、どちらもメタ文字を含まない保証がない。
         # argv0 は multi-arg 形式が既定で入れるものと同じ値を明示している。
-        exec([binary, binary], *arguments)
+        # Bundler の照会は索引と gem の取り込みが両方有効なときだけネイティブ側から行う。
+        # 一覧を環境へ詰めると、大きい bundle で exec 自体が引数長の上限を超えてしまう。
+        bundle_environment = {
+          'SONICOP_BUNDLER_RUBY' => defined?(Bundler) ? RbConfig.ruby : nil,
+          'SONICOP_BUNDLER_VERSION' => defined?(Bundler) ? Gem.loaded_specs['bundler']&.version&.to_s : nil
+        }
+        exec(bundle_environment, [binary, binary], *arguments)
       rescue SystemCallError => error
         # 実行できない典型は「platform gem は入ったが実行環境と ABI が違う」ケース
         # (musl 環境に glibc ビルドが入るなど)。素の errno だけでは原因が読めない。
@@ -67,7 +73,7 @@ module Sonicop
     def installed_specification
       Gem::Specification.find_by_name('sonicop', Sonicop::VERSION)
     rescue Gem::LoadError
-      nil # Running from a source checkout.
+      nil # ソースのチェックアウトから起動した場合。
     end
   end
 end

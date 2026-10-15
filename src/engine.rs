@@ -65,6 +65,23 @@ pub struct Selection {
     /// The environment variable does the same thing but reaches the whole process, so it cannot
     /// be used by a harness that runs cases in parallel. **This is the per-case form.**
     pub skip_syntax_guard: bool,
+    /// 検査対象外のファイルも含め、実行開始時に構築した本家互換の索引を全パスで共有する。
+    #[serde(skip)]
+    pub project_index: Option<Arc<crate::ProjectIndex>>,
+}
+
+impl Selection {
+    pub(crate) fn with_project_index(
+        &self,
+        paths: &[PathBuf],
+        configs: &ConfigStore,
+    ) -> Result<Self> {
+        let mut selection = self.clone();
+        if selection.project_index.is_none() && crate::ProjectIndex::enabled(configs.root()) {
+            selection.project_index = Some(Arc::new(crate::ProjectIndex::build(paths, configs)?));
+        }
+        Ok(selection)
+    }
 }
 
 /// 4: the stat a report is keyed on records the file's permission bits as well as its size and
@@ -973,6 +990,14 @@ pub fn inspect_source(
     config: &Config,
     selection: &Selection,
 ) -> Result<FileReport> {
+    let path = path.into();
+    let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
+        let configs = ConfigStore::new(config.clone(), false, false);
+        Some(selection.with_project_index(std::slice::from_ref(&path), &configs)?)
+    } else {
+        None
+    };
+    let selection = indexed.as_ref().unwrap_or(selection);
     inspect_planned(
         path,
         text,
@@ -1146,7 +1171,8 @@ fn inspect_registered_rules<'a>(
     )
     // `registry.disabled_names(config)`: the cops the run switches off, which is what an
     // `# rubocop:enable` has to undo. The standby list is that set already.
-    .with_disabled_cops(&plan.standby_names);
+    .with_disabled_cops(&plan.standby_names)
+    .with_project_index(selection.project_index.as_deref());
     for planned in plan.entries.iter().chain(opted_in.iter().copied()) {
         let rule = planned.rule;
         // `Cop::Base#relevant_file?`: a cop applies to a file its own `Include` reaches and its own
@@ -1212,6 +1238,10 @@ pub(crate) fn inspect_files_with_store_cached(
     parallel: bool,
     cache: Option<&ResultCache>,
 ) -> Result<Vec<FileReport>> {
+    let indexed = selection.with_project_index(paths, configs)?;
+    let selection = &indexed;
+    // 他ファイルの追加・削除も診断を変える。索引の永続化を導入するまでは古い結果を使わない。
+    let cache = cache.filter(|_| selection.project_index.is_none());
     // Most runs resolve every file to the store's root configuration, so the plan for it is worth
     // building once. A file that a nested `.rubocop.yml` gives a different configuration falls back
     // to building its own, which costs no more than resolving the cops inline would have.
@@ -2828,6 +2858,13 @@ pub fn correct_file(
     config: &Config,
     selection: &Selection,
 ) -> Result<CorrectionOutcome> {
+    let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
+        let configs = ConfigStore::new(config.clone(), false, false);
+        Some(selection.with_project_index(std::slice::from_ref(&report.path), &configs)?)
+    } else {
+        None
+    };
+    let selection = indexed.as_ref().unwrap_or(selection);
     let mut text = report.source.text().to_owned();
     if mode == CorrectMode::None {
         return Ok(CorrectionOutcome {

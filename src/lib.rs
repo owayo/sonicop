@@ -17,6 +17,7 @@ mod nul_bytes;
 mod parser;
 mod prism;
 mod profile;
+mod project_index;
 mod ruby_version;
 pub mod rules;
 pub mod source;
@@ -30,6 +31,7 @@ pub const RUBOCOP_COMPAT_FULL_VERSION: &str = "1.89.0";
 pub const RUBOCOP_COMPAT_VERSION: &str = "1.89";
 
 pub use cli::run;
+pub use project_index::ProjectIndex;
 /// Re-exported because [`config::Config::target_ruby_version`] hands it out.
 pub use ruby_version::RubyVersion;
 

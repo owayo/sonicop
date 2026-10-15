@@ -256,6 +256,10 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         scope_id: Option<String>,
         offenses: &mut Vec<Offense>,
     ) {
+        let cross_file = scope_id.is_none()
+            && rescue_scope(node).is_none()
+            && enclosing_def(node).is_none()
+            && !self.self_aliased.contains(method_name);
         // A definition nested inside another method only takes effect when that method runs, so it
         // is tracked under the enclosing method's name.
         let mut key = match enclosing_def(node) {
@@ -272,6 +276,20 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
         let line = self.context.source.line_column(node.start_byte()).0;
         let Some(&first) = self.definitions.get(&key) else {
             self.definitions.insert(key, line);
+            if cross_file
+                && let Some((prior, first)) = self.context.project_index().and_then(|index| {
+                    index.with(|index| {
+                        index.method_in_other_file(method_name, self.context.source.path())
+                    })
+                })
+            {
+                let prior = crate::formatter::smart_path(&prior, self.context.config.cwd());
+                let path = self.context.display_path();
+                offenses.push(self.context.offense(
+                    format!("Method `{method_name}` is defined at both {prior}:{first} and {path}:{line}."),
+                    offense_range(node),
+                ));
+            }
             return;
         };
         if let Some(scope) = rescue_scope(node)
@@ -303,8 +321,8 @@ impl<'a, 'tree> Tracker<'a, 'tree> {
     }
 
     fn lookup_constant(&self, node: Node<'_>, const_name: &str) -> Option<String> {
-        // Deliberately imperfect, exactly as upstream: resolving a constant properly would need an
-        // index of the whole project, so only the enclosing definitions are consulted.
+        // 本家の lookup_constant は索引が有効でも字句上の外側の定義だけを調べる。
+        // 定数解決で置き換えると、明示的な定数 receiver の追跡範囲まで変わってしまう。
         let mut current = node;
         while let Some(parent) = current.parent_of(self.context) {
             if let Some(defined) = defined_module_name(self.context, parent) {

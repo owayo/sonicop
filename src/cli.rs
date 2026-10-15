@@ -401,7 +401,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     }
 
     let correct_mode = cli.correct_mode();
-    let selection = build_selection(&cli, &config, correct_mode)?;
+    let mut selection = build_selection(&cli, &config, correct_mode)?;
     let result_cache = result_cache(&cli, &cwd, &selection, &config)?;
     if !cli.list_target_files {
         warn_unimplemented_enabled(&config, &selection);
@@ -412,7 +412,7 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         &cli,
         &cwd,
         &configs,
-        &selection,
+        &mut selection,
         parallel,
         result_cache.as_ref(),
     )?;
@@ -515,6 +515,7 @@ fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Res
         // **No flag turns this on from the command line.** The guard is switched off for tests
         // only, and even then per case; a run reaches the environment variable or nothing.
         skip_syntax_guard: false,
+        project_index: None,
     })
 }
 
@@ -529,6 +530,7 @@ fn result_cache(
     // gets measured at all.
     let profiling = std::env::var_os("SONICOP_PROFILE").is_some();
     let enabled = cli.cache.as_deref() != Some("false")
+        && !crate::ProjectIndex::enabled(config)
         && !selection.correcting
         && cli.stdin.is_none()
         && !cli.profile
@@ -580,7 +582,7 @@ fn inspect_inputs(
     cli: &Cli,
     cwd: &Path,
     configs: &ConfigStore,
-    selection: &Selection,
+    selection: &mut Selection,
     parallel: bool,
     cache: Option<&ResultCache>,
 ) -> Result<Inspection> {
@@ -592,6 +594,7 @@ fn inspect_inputs(
             cli.force_exclusion,
             cli.only_recognized_file_types,
         )?;
+        *selection = selection.with_project_index(&targets, configs)?;
         if cli.list_target_files {
             for path in targets {
                 println!("{}", smart_path(&path, cwd));
@@ -623,6 +626,7 @@ fn inspect_inputs(
     if !cli.paths.is_empty() {
         bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
     }
+    *selection = selection.with_project_index(std::slice::from_ref(stdin_path), configs)?;
     // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
     let mut bytes = Vec::new();
     io::stdin()

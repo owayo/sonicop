@@ -55,6 +55,11 @@ SPEC_CAPTURE_HOOK ?=
 SPEC_FIXTURE_GEN ?=
 SPEC_CAPTURE_OUT ?= tests/fixtures/upstream_spec_capture.jsonl
 
+.PHONY: project-index-fixtures
+
+project-index-fixtures: ## Record index and filename-dependent expectations using RuboCop 1.89.0 and rubydex 0.4.1
+	$(RUN) ruby scripts/refresh_project_index_fixtures.rb
+
 .PHONY: help setup build release run test test-ruby lint fmt fmt-check check ci version-sync version-check gem gem-check gem-platform cop-coverage spec-capture spec-fixtures install uninstall clean
 
 ## Setup

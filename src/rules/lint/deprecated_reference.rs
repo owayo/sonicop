@@ -1,17 +1,63 @@
-//! `Lint/DeprecatedReference`.
-//!
-//! Every handler of this cop opens with `return unless project_index`, and the index is built only
-//! when `AllCops: UseProjectIndex` is switched on *and* the `rubydex` gem is installed -- neither
-//! of which is the default. Without it the cop reports nothing, whatever the file holds, because
-//! the `@deprecated` tags it looks for live in the *declarations* the index resolves to rather
-//! than in the file being inspected.
-//!
-//! sonicop indexes nothing across files, so it stands where upstream stands with the switch off.
-//! Reproducing the other half means resolving a method or a constant to its definition anywhere in
-//! the project and reading the comments above it, which is a whole-project index rather than a
-//! cop.
+//! 定義の YARD タグと参照を、本家と共通のプロジェクト索引で結び付ける。
 
+use super::project_index_help as help;
 use crate::diagnostic::Offense;
 use crate::rules::RuleContext;
+use crate::rules::node_ext::NodeExt;
 
-pub(super) fn check(_context: &RuleContext<'_>, _offenses: &mut Vec<Offense>) {}
+pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
+    let Some(project) = context.project_index() else {
+        return;
+    };
+    project.with(|index| {
+        for node in context.nodes_of_any(&["constant", "scope_resolution"]) {
+            if !help::constant_reference(node, context)
+                || help::within_deprecated_definition(node, context)
+            {
+                continue;
+            }
+            let Some(declaration) = help::resolve_constant(index, node, context) else {
+                continue;
+            };
+            if let Some(detail) = index.deprecated_detail(declaration)
+                && let Some(name) = help::constant_name(node, context)
+            {
+                offenses.push(context.offense(
+                    format!("Constant `{name}` is deprecated{detail}"),
+                    node.byte_range(),
+                ));
+            }
+        }
+        for node in
+            context.nodes_of_any(&["call", "identifier", "element_reference", "binary", "unary"])
+        {
+            let Some(call) = help::method_call(node, context) else {
+                continue;
+            };
+            let name = call.name;
+            let member = format!("{name}()");
+            let declaration = match call.receiver {
+                Some(receiver) if receiver.kind_str() != "self" => {
+                    help::resolve_constant(index, receiver, context)
+                        .and_then(|owner| index.singleton_member(owner, &member))
+                }
+                _ => help::enclosing_namespace(index, node, context).and_then(|owner| {
+                    if help::singleton_context(node, context) {
+                        index.singleton_member(owner, &member)
+                    } else {
+                        index.find_member(owner, &member)
+                    }
+                }),
+            };
+            if let Some(declaration) = declaration
+                && let Some(detail) = index.deprecated_detail(declaration)
+                && !help::within_deprecated_definition(node, context)
+            {
+                offenses.push(context.offense(
+                    format!("Method `{name}` is deprecated{detail}"),
+                    call.selector,
+                ));
+            }
+        }
+    });
+}

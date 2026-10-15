@@ -20,12 +20,45 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if context.source.node_text(name) != "method_missing" {
             continue;
         }
-        // `respond_to_missing_elsewhere?` needs a project index, which a plain run never builds.
-        if implements_respond_to_missing(context, node) {
+        if implements_respond_to_missing(context, node)
+            || respond_to_missing_elsewhere(context, node)
+        {
             continue;
         }
         offenses.push(context.offense(MSG, node.byte_range()));
     }
+}
+
+fn respond_to_missing_elsewhere(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let Some(project) = context.project_index() else {
+        return false;
+    };
+    let ancestors = crate::rules::lint::project_index_help::ancestors(node, context);
+    let Some(namespace) = ancestors
+        .iter()
+        .find(|node| matches!(node.kind_str(), "class" | "module"))
+    else {
+        return false;
+    };
+    project.with(|index| {
+        let Some(mut owner) = namespace.field("name").and_then(|name| {
+            crate::rules::lint::project_index_help::resolve_constant(index, name, context)
+        }) else {
+            return false;
+        };
+        let singleton = node.kind_str() == "singleton_method"
+            || ancestors
+                .iter()
+                .find(|node| SCOPES.contains(&node.kind_str()))
+                .is_some_and(|scope| scope.kind_str() == "singleton_class");
+        if singleton {
+            let Some(scope) = index.singleton(owner) else {
+                return false;
+            };
+            owner = scope;
+        }
+        index.member(owner, "respond_to_missing?()").is_some()
+    })
 }
 
 /// `implements_respond_to_missing?`: a definition of the same kind, in the same scope.
