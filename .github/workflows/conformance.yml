@@ -1,7 +1,7 @@
 name: Corpus conformance
 
 on:
-  # リリース前は同じコミットの補正とスクリプト検査をまとめて実行する。
+  # 起動行の消去と無害な補正の対照を含め、同じコミットの補正を検証する。
   workflow_dispatch:
   pull_request:
     paths:

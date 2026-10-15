@@ -2409,6 +2409,19 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             fs::read(directory.path().join("example.rb")).unwrap(),
             expected.as_bytes()
         );
+        let source = format!(
+            "#!/bin/sh{newline}# example: <<EOF{newline}  exec \"${{RUBY-ruby}}\" \"-x\" \"$0\" \"$@\" && [ ] if false{newline}#!ruby{newline}puts :ok{newline}"
+        );
+        let expected = source.replace("  exec", "exec");
+        fs::write(directory.path().join("example.rb"), &source).unwrap();
+        command(directory.path())
+            .args(["--only", "Layout/InitialIndentation", "-a", "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
     }
 }
 

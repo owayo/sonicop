@@ -162,10 +162,9 @@ pub(crate) fn would_invalidate(original: &str, corrected: &str, target: RubyVers
     // latest では対象版で合法な構文まで拒み得る。3.3 未満は Prism の対応下限を使い、
     // 原本を同じ設定で受理できた場合だけ、出力のエラーを新しい破壊と判断する。
     let version = parser_version(target.max(RubyVersion::new(3, 3)));
-    let prefix_changed = ruby_script_launcher(original)
-        .is_some_and(|launcher| Some(launcher) != ruby_script_launcher(corrected));
-    (prefix_changed || script_has_errors(corrected, version))
-        && !script_has_errors(original, version)
+    let broken = script_has_errors(corrected, version)
+        || polyglot_launcher_count(corrected) < polyglot_launcher_count(original);
+    broken && !script_has_errors(original, version)
 }
 
 fn script_has_errors(source: &str, version: &str) -> bool {
@@ -192,37 +191,18 @@ fn ruby_script_prefix(source: &str) -> Option<&str> {
     None
 }
 
-/// コメントの補正は許すが、カーネルの起動行・シェルの実行行・Ruby の開始行を保つ。
-fn ruby_script_launcher(source: &str) -> Option<Vec<&str>> {
-    let prefix = ruby_script_prefix(source)?;
-    let lines: Vec<_> = prefix.lines().collect();
-    // シェルの <<- の終端では、行頭のタブと空白が等価ではない。
-    let heredoc = prefix.contains("<<");
-    Some(
-        lines
-            .iter()
-            .enumerate()
-            .filter(|(position, line)| {
-                *position == 0
-                    || *position + 1 == lines.len()
-                    || (!line.trim().is_empty() && !line.trim_start().starts_with('#'))
+/// Ruby が無視する起動用 exec の消去も防ぐ。シェル全体の意味を検証するものではない。
+fn polyglot_launcher_count(source: &str) -> usize {
+    ruby_script_prefix(source).map_or(0, |prefix| {
+        prefix
+            .lines()
+            .filter(|line| {
+                line.trim_start_matches([' ', '\t'])
+                    .strip_prefix("exec")
+                    .is_some_and(|rest| rest.starts_with([' ', '\t']))
             })
-            .map(|(position, line)| {
-                let line = if !heredoc && position > 0 && position + 1 < lines.len() {
-                    line.trim_start_matches([' ', '\t'])
-                } else {
-                    *line
-                };
-                let trimmed = line.trim_end_matches([' ', '\t']);
-                // バックスラッシュの後の空白を消すと、シェルでは行継続へ変わる。
-                if trimmed.ends_with('\\') {
-                    line
-                } else {
-                    trimmed
-                }
-            })
-            .collect(),
-    )
+            .count()
+    })
 }
 
 /// Prism 1.8.1 の Translation::Parser#error_diagnostic と parser gem の MESSAGES。
@@ -309,12 +289,14 @@ mod tests {
         let prefix = "#!/bin/sh\nexec ruby -x \"$0\" \"$@\" if false\n#!ruby -w\n";
         let original = format!("{prefix}puts(1)\n");
         let body_only = format!("{prefix}puts 1\n");
-        let commented = original.replacen("exec", "# comment\n\n  exec", 1);
+        let commented = original.replacen("exec", "# example: <<EOF\n\n  exec", 1);
         assert!(!would_invalidate(
             &original,
             &commented,
             RubyVersion::new(2, 7)
         ));
+        let twice = original.replacen("exec", "exec first if false\nexec", 1);
+        assert!(would_invalidate(&twice, &original, RubyVersion::new(2, 7)));
         let lost_launcher = "#!/bin/sh\n#!ruby -w\nputs 1\n";
         let lost_entry = "#!/bin/sh\n# !ruby -w\nputs 1\n";
         assert_eq!(ruby_script_prefix(&original), Some(prefix));
