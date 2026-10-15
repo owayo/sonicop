@@ -11,9 +11,9 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
-    discover_targets_with_store, inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop,
-    offense_count, write_corrected,
+    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
+    correction_bytes, discover_targets_with_store, inspect_files, inspect_files_with_store_cached,
+    inspect_stdin, is_mandatory_cop, offense_count, write_correction,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -419,11 +419,12 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
     if let Some(cache) = &result_cache {
         cache.prune();
     }
-    let (mut reports, target_count) = match inspection {
+    let (mut reports, target_count, stdin_original) = match inspection {
         Inspection::Reports {
             reports,
             target_count,
-        } => (reports, target_count),
+            stdin_original,
+        } => (reports, target_count, stdin_original),
         Inspection::ListedTargets => return Ok(0),
     };
 
@@ -445,10 +446,17 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         corrected_count,
         stdin_corrected,
         had_errors,
-    } = apply_corrections(reports, &cli, &configs, correct_mode, &selection)?;
+        had_write_failures,
+    } = apply_corrections(
+        reports,
+        stdin_original.as_deref(),
+        &configs,
+        correct_mode,
+        &selection,
+    )?;
     reports = corrected_reports;
 
-    // A file RuboCop could not finish counts as a failed run even when nothing else offended.
+    // 検査や補正を完了できないファイルがあれば、通常の違反がなくても失敗になる。
     let failing = fail_level.failing(&reports) || had_errors;
 
     filter_displayed_offenses(&mut reports, &cli, fail_level);
@@ -469,7 +477,12 @@ fn try_run(cli: Cli, outputs: &[Option<PathBuf>]) -> Result<i32> {
         print_corrected_stdin(&cli, &corrected)?;
     }
 
-    Ok(i32::from(failing))
+    // 構文や符号化を壊すため書き戻せなかった失敗は、残った通常の違反と区別する。
+    Ok(if had_write_failures {
+        2
+    } else {
+        i32::from(failing)
+    })
 }
 
 fn build_selection(cli: &Cli, config: &Config, correct_mode: CorrectMode) -> Result<Selection> {
@@ -558,6 +571,7 @@ enum Inspection {
         /// `inspected_file_count` from `finished(inspected_files)`, so the two are separate counts
         /// and only a run that inspects everything it found makes them equal.
         target_count: usize,
+        stdin_original: Option<Vec<u8>>,
     },
     ListedTargets,
 }
@@ -602,40 +616,40 @@ fn inspect_inputs(
         return Ok(Inspection::Reports {
             reports,
             target_count: targets.len(),
+            stdin_original: None,
         });
     };
 
     if !cli.paths.is_empty() {
         bail!("--stdin requires exactly one path supplied as its argument and no file arguments");
     }
-    // Read as bytes, not as text: `$stdin.binmode.read` (`options.rb:46`) is what RuboCop reads,
-    // and a source that is not valid UTF-8 is an offense to report rather than a run to abort.
+    // 本家の stdin.binmode.read と同じくバイトで読み、拒否や未補正時の原本も保持する。
     let mut bytes = Vec::new();
     io::stdin()
         .read_to_end(&mut bytes)
         .context("failed to read source from stdin")?;
     let target_config = configs.for_path(stdin_path)?;
-    let report = inspect_stdin(stdin_path.clone(), bytes, &target_config, selection)?;
+    let report = inspect_stdin(stdin_path.clone(), bytes.clone(), &target_config, selection)?;
     Ok(Inspection::Reports {
         reports: vec![report],
         target_count: 1,
+        stdin_original: Some(bytes),
     })
 }
 
 struct CorrectionRun {
     reports: Vec<FileReport>,
     corrected_count: usize,
-    /// The buffer `--stdin` is left holding, which is `@options[:stdin]` after the run: the
-    /// corrected source when a cop rewrote it, and the source that was read when none did.
-    /// `Team#autocorrect` (`cop/team.rb:175-178`) only assigns it on a rewrite, so the unchanged
-    /// case is not an absence -- it is the original buffer, and upstream prints that too.
-    stdin_corrected: Option<String>,
+    /// Team#autocorrect は書き換え時だけ stdin バッファを更新するため、
+    /// 補正がなければ本家と同じく読み込んだ元のバッファを出力する。
+    stdin_corrected: Option<Vec<u8>>,
     had_errors: bool,
+    had_write_failures: bool,
 }
 
 fn apply_corrections(
     reports: Vec<FileReport>,
-    cli: &Cli,
+    stdin_original: Option<&[u8]>,
     configs: &ConfigStore,
     correct_mode: CorrectMode,
     selection: &Selection,
@@ -643,32 +657,68 @@ fn apply_corrections(
     let mut corrected_count = 0;
     let mut stdin_corrected = None;
     let mut had_errors = false;
+    let mut had_write_failures = false;
     let mut corrected_reports = Vec::with_capacity(reports.len());
 
     for report in reports {
+        let original_stdin_report = stdin_original.map(|_| report.clone());
         let path = report.path.clone();
         let target_config = configs.for_path(&path)?;
         let outcome = correct_file(report, correct_mode, &target_config, selection)?;
-        corrected_count += outcome.corrected_count;
-        if let Some(message) = outcome.infinite_loop {
-            // RuboCop keeps the run going and still writes what it managed to correct.
+        if let Some(message) = &outcome.infinite_loop {
+            // 本家は反復が収束しないファイルでも最後の補正を書き、残りの処理を続ける。
             eprintln!("{message}");
             had_errors = true;
         }
-        // Not an offense: the file on disk parses, so a reader told to look for a syntax error
-        // would find none. It is an autocorrect failure, and it has to reach the exit code --
-        // a `-A` run that silently declined to correct must not look like a clean one to CI.
-        if let Some(message) = outcome.rollback {
+        // ディスクに残る原本は有効な Ruby なので、存在しない構文違反を報告しない。
+        // 補正失敗を終了コードへ伝え、書き戻さなかった実行を CI の成功にしない。
+        if let Some(message) = &outcome.rollback {
             eprintln!("{message}");
             had_errors = true;
+            had_write_failures = true;
         }
-        if cli.stdin.is_some() {
+        if let Some(original) = stdin_original {
             if correct_mode != CorrectMode::None {
-                stdin_corrected = Some(outcome.text);
+                if outcome.rewritten {
+                    match correction_bytes(
+                        &outcome.text,
+                        original,
+                        Some(outcome.introduced_non_ascii),
+                    ) {
+                        Ok(bytes) => stdin_corrected = Some(bytes),
+                        Err(error) => {
+                            eprintln!("refusing to rewrite {}: {error:#}", path.display());
+                            had_errors = true;
+                            had_write_failures = true;
+                            stdin_corrected = Some(original.to_vec());
+                            corrected_reports.extend(original_stdin_report);
+                            continue;
+                        }
+                    }
+                } else {
+                    stdin_corrected = Some(original.to_vec());
+                }
             }
-        } else if outcome.rewritten {
-            write_corrected(&path, &outcome.text)?;
+        } else if outcome.rewritten
+            && let Err(error) = write_correction(&path, &outcome)
+        {
+            if !error.is::<CorrectionEncodingError>() {
+                return Err(error);
+            }
+            // 符号化の拒否は書き込み前なので、原本を再検査して未適用の診断を返せる。
+            // I/O エラーをここで扱うと、途中まで書いた内容を原本と誤認する。
+            eprintln!("{error:#}");
+            had_errors = true;
+            had_write_failures = true;
+            corrected_reports.extend(inspect_files(
+                std::slice::from_ref(&path),
+                &target_config,
+                selection,
+                false,
+            )?);
+            continue;
         }
+        corrected_count += outcome.corrected_count;
         corrected_reports.push(outcome.report);
     }
 
@@ -677,6 +727,7 @@ fn apply_corrections(
         corrected_count,
         stdin_corrected,
         had_errors,
+        had_write_failures,
     })
 }
 
@@ -1190,7 +1241,7 @@ const INTEGRATION_FORMATTERS: [&str; 6] = ["h", "html", "j", "json", "ju", "juni
 /// decides -- `-f json -f simple` appends. And `--stderr` moves the separator but not the source:
 /// upstream picks the stream for the `puts` and then `print`s to `$stdout` unconditionally, by
 /// which point the redirect around the runner has already been undone.
-fn print_corrected_stdin(cli: &Cli, corrected: &str) -> Result<()> {
+fn print_corrected_stdin(cli: &Cli, corrected: &[u8]) -> Result<()> {
     if cli
         .formats
         .last()
@@ -1204,7 +1255,7 @@ fn print_corrected_stdin(cli: &Cli, corrected: &str) -> Result<()> {
     } else {
         io::stdout().write_all(separator.as_bytes())?;
     }
-    io::stdout().write_all(corrected.as_bytes())?;
+    io::stdout().write_all(corrected)?;
     io::stdout().flush()?;
     Ok(())
 }

@@ -132,6 +132,17 @@ impl Config {
         let configured_target = configured_target_ruby(&raw)?;
         let target_ruby = resolve_target_ruby(configured_target, path_base)?;
         validate_supported(target_ruby.version)?;
+        if all_cops_mapping(&raw)
+            .and_then(|mapping| mapping.get(Value::String("ParserEngine".to_owned())))
+            .and_then(Value::as_str)
+            == Some("parser_prism")
+            && target_ruby.version < RubyVersion::new(3, 3)
+        {
+            bail!(
+                "RuboCop supports target Ruby versions 3.3 and above with Prism. Specified target Ruby version: {}",
+                target_ruby.version
+            );
+        }
 
         let includes = cop_patterns(&raw, "AllCops", "Include").unwrap_or_default();
         let excludes = compile_excludes(&raw);

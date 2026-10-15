@@ -1,0 +1,10 @@
+[package]
+name = "sonicop-prism-compat"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+links = "sonicop_prism_1_8_1"
+
+[build-dependencies]
+cc = "1.4.7"

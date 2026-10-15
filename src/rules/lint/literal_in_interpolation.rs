@@ -35,8 +35,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         }
         let expanded = regexp_slashes(interpolation, value(literal, context), context);
-        // `%W[]` and `%I[]` split their contents into words before the interpolation is expanded,
-        // so a value holding a space would become more than the one word it stands for.
+        // %W / %I は補間前に単語へ分けるため、空白を含む値へ展開すると要素数が変わる。
         if in_array_percent_literal(interpolation)
             && (expanded.is_empty() || expanded.chars().any(char::is_whitespace))
         {
@@ -50,13 +49,14 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                     end: interpolation.end_byte(),
                     replacement: expanded,
                     safe: true,
-                }),
+                })
+                // 先行文は評価結果に使われない。符号化の由来にも使ってはならない。
+                .correction_characters_from(literal.byte_range()),
         );
     }
 }
 
-/// The value of the interpolation: the last thing written in it, since the ones before it are
-/// evaluated and thrown away.
+/// 補間の値を決める最後の式。先行文の評価結果は捨てられるため、文字の由来にも使わない。
 fn last_statement<'tree>(interpolation: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = interpolation.walk();
     interpolation.named_children(&mut cursor)

@@ -28846,6 +28846,9 @@ mod style_it_block_parameter {
         .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n")
         .without_offense_check()
         // 外側の補正が内側の読みまで `it` に変えるので、内側の引数はそのまま残る。
+        // 本家の出力を ruby -c が拒否するため、cop の Edit だけを比較する。
+        // 実ファイルと stdin の書き戻し拒否は CLI テストで別に検証する。
+        .without_syntax_guard()
         .corrected("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n")
         .run();
     }

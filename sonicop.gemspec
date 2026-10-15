@@ -60,7 +60,11 @@ Gem::Specification.new do |spec|
   # build script が無いと環境変数が定義されず
   # `environment variable ... not defined at compile time` でコンパイルごと落ちる。
   # ルート直下のファイルは glob の対象外になりやすいので、明示して落とさない。
-  source_build_files = %w[Cargo.lock Cargo.toml build.rs ext/**/* src/**/*.rs]
+  source_build_files = %w[
+    Cargo.lock Cargo.toml build.rs ext/**/* src/**/*.rs
+    crates/*/{Cargo.toml,build.rs,*.c,*.h,LICENSE.md,PROVENANCE.md}
+    crates/*/src/**/*.rs crates/*/vendor/**/*
+  ]
   patterns = shared_files + (prebuilt_binary ? ['libexec/*'] : source_build_files)
 
   spec.files = Dir.glob(patterns, base: root).select { |path| File.file?(File.join(root, path)) }.sort

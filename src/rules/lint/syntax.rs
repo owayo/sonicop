@@ -64,6 +64,17 @@ struct Diagnostic {
 /// この段階で追加の処理は不要（`crate::nul_bytes` を参照）。
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let target = context.target_ruby_version();
+    if let Some(mut diagnostics) = crate::prism::diagnostics(context) {
+        diagnostics.sort_by_key(|diagnostic| (diagnostic.range.start, diagnostic.range.end));
+        // Base#add_offense は表示用に広げたレンジをキーにし、同じレンジの最初の診断を残す。
+        diagnostics.dedup_by(|left, right| left.range == right.range);
+        for diagnostic in diagnostics {
+            offenses.push(
+                context.offense(syntax_message(&diagnostic.reason, target), diagnostic.range),
+            );
+        }
+        return;
+    }
     let mut diagnostics = Vec::new();
     if context.root_node().has_error() {
         parse_errors(context, &mut diagnostics);
@@ -72,9 +83,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let command_stops = spaced_index_assignment_to_command(context, &mut command_errors);
     let version_stop = version_gated_syntax(context, target, &mut diagnostics);
     // 本家は本体の次の文から復帰するが、トップレベル・通常ブロック・右辺欠落では打ち切る。
-    diagnostics.retain(|diagnostic| !command_stops.iter().any(|range| range.contains(&diagnostic.range.start)));
+    diagnostics.retain(|diagnostic| {
+        !command_stops
+            .iter()
+            .any(|range| range.contains(&diagnostic.range.start))
+    });
     diagnostics.extend(command_errors.into_iter().filter(|diagnostic| {
-        !command_stops.iter().any(|range| range.contains(&diagnostic.range.start))
+        !command_stops
+            .iter()
+            .any(|range| range.contains(&diagnostic.range.start))
             && version_stop.is_none_or(|position| diagnostic.range.start <= position)
     }));
     diagnostics.sort_by(|left, right| {
@@ -194,9 +211,25 @@ fn command_abandons_file<'a>(mut node: Node<'a>, context: &'a RuleContext<'_>) -
     while let Some(parent) = node.parent_of(context) {
         match parent.kind_str() {
             "block" | "do_block" => {
-                return !parent.parent_of(context).is_some_and(|owner| owner.kind_str() == "lambda");
+                return !parent
+                    .parent_of(context)
+                    .is_some_and(|owner| owner.kind_str() == "lambda");
             }
-            "lambda" | "method" | "singleton_method" | "class" | "singleton_class" | "module" | "begin" | "if" | "unless" | "while" | "until" | "for" | "case" | "case_match" | "parenthesized_statements" => return false,
+            "lambda"
+            | "method"
+            | "singleton_method"
+            | "class"
+            | "singleton_class"
+            | "module"
+            | "begin"
+            | "if"
+            | "unless"
+            | "while"
+            | "until"
+            | "for"
+            | "case"
+            | "case_match"
+            | "parenthesized_statements" => return false,
             _ => node = parent,
         }
     }

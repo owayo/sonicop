@@ -1,0 +1,7 @@
+構文診断の CLI 回帰ケース。
+RuboCop 1.89.0 / Ruby 4.0.7 / Prism 1.8.1 で各ソースと YAML をそのまま保存し、
+rubocop --cache false --only Lint/Syntax --format json . の実出力を記録した。
+Ruby 3.3 / 3.4 / 4.0 / 4.1 の既定パーサ、明示した parser_prism、
+Ruby 2.7 の既定パーサと Ruby 3.3 の parser_whitequark の 189 入力を含む。
+診断の全項目を保存し、空ファイル・有効なソース・UTF-8・ASCII-8BIT・CRLF も対象にした。
+parser_prism と TargetRubyVersion: 3.2 の組み合わせは本家が検査前に中断したため記録していない。

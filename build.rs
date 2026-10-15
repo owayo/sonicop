@@ -33,6 +33,7 @@ fn main() {
         "Cargo.lock",
         "build.rs",
         "config/default.yml",
+        "crates",
         "src",
     ] {
         println!("cargo:rerun-if-changed={input}");
@@ -67,6 +68,7 @@ fn build_fingerprint() -> io::Result<blake3::Hash> {
         "Cargo.lock",
         "build.rs",
         "config/default.yml",
+        "crates",
         "src",
     ] {
         hash_path(Path::new(input), &mut fingerprint)?;

@@ -838,11 +838,19 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "shell-words",
+ "sonicop-prism-compat",
  "tempfile",
  "tree-sitter",
  "tree-sitter-ruby",
  "unsafe-libyaml",
  "ureq",
+]
+
+[[package]]
+name = "sonicop-prism-compat"
+version = "0.1.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
