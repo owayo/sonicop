@@ -11,9 +11,10 @@ use crate::config::{Config, ConfigStore};
 use crate::cop_name::{self, selector_matches};
 use crate::diagnostic::{FileReport, Offense, Severity};
 use crate::engine::{
-    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection, correct_file,
-    correction_bytes, discover_targets_with_store, inspect_files, inspect_files_with_store_cached,
-    inspect_stdin, is_mandatory_cop, offense_count, write_correction,
+    CorrectMode, CorrectionEncodingError, NO_SYNTAX_GUARD, ResultCache, Selection,
+    correct_file_with_original, correction_bytes, discover_targets_with_store, inspect_files,
+    inspect_files_with_store_cached, inspect_stdin, is_mandatory_cop, offense_count,
+    write_correction,
 };
 use crate::formatter::{
     Format, FormatOptions, offenses_by_cop, render, smart_path, yaml_single_quoted,
@@ -668,7 +669,19 @@ fn apply_corrections(
         let original_stdin_report = stdin_original.map(|_| report.clone());
         let path = report.path.clone();
         let target_config = configs.for_path(&path)?;
-        let outcome = correct_file(report, correct_mode, &target_config, selection)?;
+        // 通常の lint は再読込しない。補正だけ、Ruby が実際に読む符号化を保護に渡す。
+        let disk_original = if stdin_original.is_none() && correct_mode != CorrectMode::None {
+            Some(fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?)
+        } else {
+            None
+        };
+        let outcome = correct_file_with_original(
+            report,
+            correct_mode,
+            &target_config,
+            selection,
+            stdin_original.or(disk_original.as_deref()),
+        )?;
         if let Some(message) = &outcome.infinite_loop {
             // 本家は反復が収束しないファイルでも最後の補正を書き、残りの処理を続ける。
             eprintln!("{message}");

@@ -1458,3 +1458,237 @@ divergences:
       ファイル全体の構文エラーへ変わるため、この補正の書き戻しを拒否する判断を支持した。
       二項演算子の右辺が括弧なしコマンド呼び出しに変わる。構文が有効な対照は拒否しない。
       診断用パーサは変えず、同じ設定で原本が有効な場合だけ出力の破壊を判断する。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_ascii_interpolation_safe
+    kind: correction
+    upstream: "# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_ascii_interpolation_unsafe
+    kind: correction
+    upstream: "# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_sjis_safe
+    kind: correction
+    upstream: "# coding: Shift_JIS\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: Shift_JIS\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_sjis_unsafe
+    kind: correction
+    upstream: "# coding: Shift_JIS\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: Shift_JIS\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_eucjp_safe
+    kind: correction
+    upstream: "# coding: EUC-JP\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: EUC-JP\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_eucjp_unsafe
+    kind: correction
+    upstream: "# coding: EUC-JP\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: EUC-JP\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_latin1_safe
+    kind: correction
+    upstream: "# coding: ISO-8859-1\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: ISO-8859-1\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_latin1_unsafe
+    kind: correction
+    upstream: "# coding: ISO-8859-1\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: ISO-8859-1\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_cp932_safe
+    kind: correction
+    upstream: "# coding: Windows-31J\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: Windows-31J\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_cp932_unsafe
+    kind: correction
+    upstream: "# coding: Windows-31J\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: Windows-31J\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_binary_safe
+    kind: correction
+    upstream: "# coding: binary\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: binary\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      binary は TargetRubyVersion 3.3 で本家が補正後の Lint/Syntax を出し終了 1。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_binary_unsafe
+    kind: correction
+    upstream: "# coding: binary\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# coding: binary\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      binary は TargetRubyVersion 3.3 で本家が補正後の Lint/Syntax を出し終了 1。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_bom_safe
+    kind: correction
+    upstream: "﻿# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "﻿# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_bom_unsafe
+    kind: correction
+    upstream: "﻿# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "﻿# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_leading_safe
+    kind: correction
+    upstream: "  # coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "  # coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_leading_unsafe
+    kind: correction
+    upstream: "  # coding: US-ASCII\n\"/\\u1234\\x80/\"\n"
+    sonicop: "  # coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_vim_safe
+    kind: correction
+    upstream: "# vim: set fileencoding=us-ascii :\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# vim: set fileencoding=us-ascii :\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。
+  - cop: Lint/EmptyInterpolation
+    case: syntax_guard_encoding_vim_unsafe
+    kind: correction
+    upstream: "# vim: set fileencoding=us-ascii :\n\"/\\u1234\\x80/\"\n"
+    sonicop: "# vim: set fileencoding=us-ascii :\n\"/\\u1234#{ }\\x80/\"\n"
+    note: >-
+      本家 1.89.0 の Lint/EmptyInterpolation は空の補間を消し、Unicode と非 ASCII バイトのエスケープを同じ文字列へ混在させる。
+      原本は Ruby 4.0.7 の ruby -c が受理し、補正後は符号化の混在として拒否する。
+      TargetRubyVersion 2.7 の本家は構文が壊れても終了 0。
+      2026-10-15 の ai-second-opinion / Claude は、ドロップイン互換でもファイル全体を読み込み不能にする書き込みを拒否する判断を支持した。
+      診断の解析条件は維持し、原本と書き出し予定の実バイト列を同じ版の Prism で検査する。
+      宣言、BOM、別名は Prism が解釈する。
+      原本が有効で出力だけが無効な場合は全補正を戻し、元のバイト列と未補正の診断、stderr の理由、終了 2 を返す。

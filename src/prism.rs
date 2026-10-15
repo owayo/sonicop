@@ -158,18 +158,24 @@ fn parser_version(target: RubyVersion) -> &'static str {
 }
 
 /// 診断用パーサが受理しすぎても、有効な原本を実行不能なファイルへ上書きしない。
-pub(crate) fn would_invalidate(original: &str, corrected: &str, target: RubyVersion) -> bool {
+pub(crate) fn would_invalidate(
+    original: impl AsRef<[u8]>,
+    corrected: impl AsRef<[u8]>,
+    target: RubyVersion,
+) -> bool {
+    let original = original.as_ref();
+    let corrected = corrected.as_ref();
     // latest では対象版で合法な構文まで拒み得る。3.3 未満は Prism の対応下限を使い、
     // 原本を同じ設定で受理できた場合だけ、出力のエラーを新しい破壊と判断する。
     let version = parser_version(target.max(RubyVersion::new(3, 3)));
     let broken = script_has_errors(corrected, version)
-        || polyglot_launcher_count(corrected) < polyglot_launcher_count(original);
+        || polyglot_launcher_count(&String::from_utf8_lossy(corrected))
+            < polyglot_launcher_count(&String::from_utf8_lossy(original));
     broken && !script_has_errors(original, version)
 }
 
-fn script_has_errors(source: &str, version: &str) -> bool {
-    let input = Input::new(source);
-    !sonicop_prism_compat::parse_script(&input.bytes, version, input.binary)
+fn script_has_errors(source: impl AsRef<[u8]>, version: &str) -> bool {
+    !sonicop_prism_compat::parse_script(source.as_ref(), version)
         .expect("Prism supports every configured Ruby version")
         .is_empty()
 }
@@ -282,6 +288,61 @@ mod tests {
                 .is_empty()
         );
         assert!(script_has_errors("break\n", "3.3.1"));
+    }
+
+    #[test]
+    fn script_validation_preserves_ascii_literal_encoding_without_changing_diagnostics() {
+        for header in [
+            "# coding: Shift_JIS",
+            "# coding: EUC-JP",
+            "# coding: ISO-8859-1",
+            "# coding: binary",
+            "\u{feff}# coding: US-ASCII",
+            "  # coding: US-ASCII",
+            "# vim: set fileencoding=us-ascii :",
+            "# coding: 646",
+            "# coding: ANSI_X3.4-1968",
+        ] {
+            for newline in ["\n", "\r\n"] {
+                let original = format!("{header}{newline}\"/\\u1234#{{ }}\\x80/\"{newline}");
+                assert!(
+                    would_invalidate(
+                        &original,
+                        original.replace("#{ }", ""),
+                        RubyVersion::new(2, 7)
+                    ),
+                    "{header}"
+                );
+            }
+        }
+        let original = "# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n";
+        let corrected = original.replace("#{ }", "");
+        assert!(would_invalidate(
+            original,
+            &corrected,
+            RubyVersion::new(2, 7)
+        ));
+        assert!(would_invalidate(
+            original,
+            &corrected,
+            RubyVersion::new(3, 3)
+        ));
+        // UTF-8 なら混在ではない。診断用の復号済み入力も、従来の設定で解析する。
+        let utf8 = original.replace("US-ASCII", "UTF-8");
+        assert!(!would_invalidate(
+            &utf8,
+            utf8.replace("#{ }", ""),
+            RubyVersion::new(2, 7)
+        ));
+        assert!(
+            sonicop_prism_compat::parse(corrected.as_bytes(), "3.3.1", false)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(!script_has_errors(
+            "# coding: US-ASCII\n\"\\x80\"\n",
+            "3.3.1"
+        ));
     }
 
     #[test]

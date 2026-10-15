@@ -2793,6 +2793,7 @@ fn holds_fatal_syntax(report: &FileReport) -> bool {
 fn withhold_unparsable(
     outcome: CorrectionOutcome,
     original: &str,
+    original_bytes: Option<&[u8]>,
     started_valid: bool,
     config: &Config,
     selection: &Selection,
@@ -2804,9 +2805,22 @@ fn withhold_unparsable(
     if selection.skip_syntax_guard || std::env::var_os(NO_SYNTAX_GUARD).is_some() {
         return Ok(outcome);
     }
-    if !holds_fatal_syntax(&outcome.report)
-        && !crate::prism::would_invalidate(original, &outcome.text, config.target_ruby_version())
-    {
+    // CLI は入力バイト列を渡す。メモリ上の公開 API では宣言に従って原本を再構成する。
+    let reconstructed = original_bytes.is_none().then(|| {
+        output_bytes(original, declared_label(original.as_bytes()).as_deref())
+            .unwrap_or_else(|_| original.as_bytes().to_vec())
+    });
+    let original_bytes = original_bytes.unwrap_or_else(|| reconstructed.as_deref().unwrap());
+    // 符号化できない出力は書き戻し処理が別の理由で拒否する。構文破壊とは取り違えない。
+    let invalid_script = correction_bytes(
+        &outcome.text,
+        original_bytes,
+        Some(outcome.introduced_non_ascii),
+    )
+    .is_ok_and(|bytes| {
+        crate::prism::would_invalidate(original_bytes, &bytes, config.target_ruby_version())
+    });
+    if !holds_fatal_syntax(&outcome.report) && !invalid_script {
         return Ok(outcome);
     }
     let path = outcome.report.path.clone();
@@ -2857,10 +2871,21 @@ fn restore_crlf(mut outcome: CorrectionOutcome, preserve_crlf: bool) -> Correcti
 }
 
 pub fn correct_file(
+    report: FileReport,
+    mode: CorrectMode,
+    config: &Config,
+    selection: &Selection,
+) -> Result<CorrectionOutcome> {
+    correct_file_with_original(report, mode, config, selection, None)
+}
+
+/// stdin とディスクの補正は、復号前と書き戻し予定のバイト列で構文を比較する。
+pub(crate) fn correct_file_with_original(
     mut report: FileReport,
     mode: CorrectMode,
     config: &Config,
     selection: &Selection,
+    original_bytes: Option<&[u8]>,
 ) -> Result<CorrectionOutcome> {
     let indexed = if selection.project_index.is_none() && crate::ProjectIndex::enabled(config) {
         let configs = ConfigStore::new(config.clone(), false, false);
@@ -2936,6 +2961,7 @@ pub fn correct_file(
                     preserve_crlf,
                 ),
                 &original,
+                original_bytes,
                 started_valid,
                 config,
                 selection,
@@ -2991,6 +3017,7 @@ pub fn correct_file(
                     preserve_crlf,
                 ),
                 &original,
+                original_bytes,
                 started_valid,
                 config,
                 selection,

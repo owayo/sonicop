@@ -51,12 +51,8 @@ pub fn parse(source: &[u8], version: &str, binary: bool) -> Result<Vec<Diagnosti
 }
 
 /// 書き戻し前の検査は部分式ではなく、Ruby が起動するスクリプトとして解析する。
-pub fn parse_script(
-    source: &[u8],
-    version: &str,
-    binary: bool,
-) -> Result<Vec<Diagnostic>, &'static str> {
-    parse_with_options(source, version, binary, true)
+pub fn parse_script(source: &[u8], version: &str) -> Result<Vec<Diagnostic>, &'static str> {
+    parse_with_options(source, version, false, true)
 }
 
 fn parse_with_options(

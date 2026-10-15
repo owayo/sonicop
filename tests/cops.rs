@@ -9492,6 +9492,18 @@ mod literal_in_interpolation {
 
     const COP: &str = "Lint/LiteralInInterpolation";
 
+    #[test]
+    fn single_quoted_byte_escapes_are_interpolated_as_ascii_text() {
+        for (before, after) in [
+            (r##"%{/\u1234#{%q"\x80"}/}"##, r##"%{/\u1234\\x80/}"##),
+            (r##""#{'\x80'}""##, r##""\\x80""##),
+            (r##""#{%q(\201)}""##, r##""\\201""##),
+        ] {
+            // 期待値は本家 1.89.0 の --only / -a の出力。単一引用ではバイトへ復号しない。
+            expect_correction(COP, &format!("{before}\n"), &format!("{after}\n"));
+        }
+    }
+
     /// `literal_in_interpolation_spec.rb:588`. `Lint/ArrayLiteralInRegexp` owns this shape.
     ///
     /// The guard was written for `array` alone, but `%w[]` and `%i[]` reach upstream as an `array`

@@ -59,7 +59,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
 /// 補間の値を決める最後の式。先行文の評価結果は捨てられるため、文字の由来にも使わない。
 fn last_statement<'tree>(interpolation: Node<'tree>) -> Option<Node<'tree>> {
     let mut cursor = interpolation.walk();
-    interpolation.named_children(&mut cursor)
+    interpolation
+        .named_children(&mut cursor)
         .filter(|child| {
             !matches!(
                 child.kind_str(),
@@ -226,14 +227,14 @@ fn value(node: Node<'_>, context: &RuleContext<'_>) -> String {
     }
 }
 
-/// `node.value.valid_encoding?`: whether the bytes the literal's escapes stand for form valid
-/// UTF-8.
-///
-/// Ruby resolves `\201` and `\x81` to single bytes, so a literal can name a byte sequence that is
-/// no string at all. Rust cannot hold one in a `String`, which is why the check works on the bytes
-/// rather than on the decoded value.
+/// 本家の `node.value.valid_encoding?`。二重引用の `\201` や `\x81` は単一バイトに
+/// なるため、Rust の String に入れる前に UTF-8 として有効かをバイトで確かめる。
 fn decodes_to_utf8(node: Node<'_>, context: &RuleContext<'_>) -> bool {
     let source = context.source.node_text(node);
+    // 単一引用の \\xNN はバイトではなく文字列のまま。本家の値も有効な ASCII になる。
+    if source.starts_with('\'') || source.starts_with("%q") {
+        return true;
+    }
     let bytes = source.as_bytes();
     let mut decoded: Vec<u8> = Vec::with_capacity(bytes.len());
     let mut index = 0;
@@ -268,8 +269,7 @@ fn decodes_to_utf8(node: Node<'_>, context: &RuleContext<'_>) -> bool {
                     decoded.push(value);
                 }
             }
-            // Every other escape either stands for an ASCII character or names a code point, and
-            // neither can produce a byte sequence that is not valid on its own.
+            // 他のエスケープは ASCII 文字か Unicode コードポイントで、単独でも有効になる。
             _ => {}
         }
     }

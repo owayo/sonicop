@@ -2327,6 +2327,78 @@ fn comment_spacing_preserves_the_ruby_entry_point_of_a_polyglot_script() {
 }
 
 #[test]
+fn empty_interpolation_cannot_mix_source_encodings() {
+    for header in [
+        "# coding: US-ASCII",
+        "# coding: Shift_JIS",
+        "# coding: EUC-JP",
+        "# coding: ISO-8859-1",
+        "# coding: Windows-31J",
+        "# coding: binary",
+        "\u{feff}# coding: US-ASCII",
+        "  # coding: US-ASCII",
+        "# vim: set fileencoding=us-ascii :",
+    ] {
+        assert_legacy_autocorrect_rollback(
+            "Lint/EmptyInterpolation",
+            &format!("{header}\n\"/\\u1234#{{ }}\\x80/\"\n"),
+        );
+    }
+}
+
+#[test]
+fn encoded_source_rollback_keeps_raw_disk_and_stdin_bytes() {
+    let source = "# coding: Shift_JIS\ntext = \"日本語\"\n\"/\\u1234#{ }\\x80/\"\n";
+    let (bytes, _, invalid) = encoding_rs::SHIFT_JIS.encode(source);
+    assert!(!invalid);
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(&[], "2.7");
+        let path = directory.path().join("example.rb");
+        fs::write(&path, &bytes).unwrap();
+        command(directory.path())
+            .args(["--only", "Lint/EmptyInterpolation", mode, "example.rb"])
+            .assert()
+            .code(2);
+        assert_eq!(fs::read(&path).unwrap(), bytes.as_ref());
+        let output = command(directory.path())
+            .args([
+                "--only",
+                "Lint/EmptyInterpolation",
+                mode,
+                "--stdin",
+                "example.rb",
+                "-f",
+                "simple",
+            ])
+            .write_stdin(bytes.as_ref())
+            .assert()
+            .code(2)
+            .get_output()
+            .stdout
+            .clone();
+        assert!(output.ends_with(bytes.as_ref()));
+        assert_eq!(fs::read(&path).unwrap(), bytes.as_ref());
+    }
+}
+
+#[test]
+fn percent_quoted_byte_escapes_preserve_the_literal_value_on_disk() {
+    let source = "# coding: US-ASCII\n%{/\\u1234#{%q\"\\x80\"}/}\n";
+    let expected = "# coding: US-ASCII\n%{/\\u1234\\\\x80/}\n";
+    for mode in ["-a", "-A"] {
+        let directory = project_with_ruby(&[("example.rb", source)], "2.7");
+        command(directory.path())
+            .args(["--only", "Lint/LiteralInInterpolation", mode, "example.rb"])
+            .assert()
+            .code(0);
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            expected.as_bytes()
+        );
+    }
+}
+
+#[test]
 fn legacy_script_validation_rejects_broken_lambdas_and_operator_calls() {
     assert_legacy_autocorrect_rollback("Style/Lambda", "a = lambda { || 1 }\n");
     assert_legacy_autocorrect_rollback("Style/OperatorMethodCall", "a + b.+(c)\n");

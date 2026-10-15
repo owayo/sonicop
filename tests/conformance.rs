@@ -33,7 +33,19 @@ const OMIT_PARENTHESES: &str =
     "Style/MethodCallWithArgsParentheses:\n  EnforcedStyle: omit_parentheses\n";
 
 fn catalogue() -> Vec<CopCase> {
-    vec![
+    let mut cases = vec![
+        CopCase::annotated("Lint/EmptyInterpolation", "# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n        ^^^^ Empty interpolation detected.\n")
+            .id("syntax_guard_ascii_interpolation_safe")
+            .target_ruby("2.7")
+            .severity(Severity::Warning)
+            .correct_mode(sonicop::engine::CorrectMode::Safe)
+            .corrected_verbatim("# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"),
+        CopCase::annotated("Lint/EmptyInterpolation", "# coding: US-ASCII\n\"/\\u1234#{ }\\x80/\"\n        ^^^^ Empty interpolation detected.\n")
+            .id("syntax_guard_ascii_interpolation_unsafe")
+            .target_ruby("2.7")
+            .severity(Severity::Warning)
+            .correct_mode(sonicop::engine::CorrectMode::All)
+            .corrected_verbatim("# coding: US-ASCII\n\"/\\u1234\\x80/\"\n"),
         CopCase::annotated("Style/Lambda", "a = lambda { || 1 }\n    ^^^^^^ Use the `-> { ... }` lambda literal syntax for single line lambdas.\n")
             .id("syntax_guard_legacy_lambda_safe")
             .target_ruby("2.7")
@@ -6724,7 +6736,31 @@ fn catalogue() -> Vec<CopCase> {
         .config("Style/ItBlockParameter:\n  EnforcedStyle: always\n  Enabled: true\n")
         .correctable(true)
         .corrected_verbatim("outer do \n  real = it\n  inner do |transaction|\n    save = it\n  end\nend\n"),
-    ]
+    ];
+    // 本家 CLI と ruby -c で確認した各符号化・宣言形式を、補正モードごとに監視する。
+    for (name, header, version) in [
+        ("sjis", "# coding: Shift_JIS", "2.7"),
+        ("eucjp", "# coding: EUC-JP", "2.7"),
+        ("latin1", "# coding: ISO-8859-1", "2.7"),
+        ("cp932", "# coding: Windows-31J", "2.7"),
+        ("binary", "# coding: binary", "3.3"),
+        ("bom", "\u{feff}# coding: US-ASCII", "2.7"),
+        ("leading", "  # coding: US-ASCII", "2.7"),
+        ("vim", "# vim: set fileencoding=us-ascii :", "2.7"),
+    ] {
+        for (mode, correction) in [
+            ("safe", sonicop::engine::CorrectMode::Safe),
+            ("unsafe", sonicop::engine::CorrectMode::All),
+        ] {
+            cases.push(CopCase::annotated("Lint/EmptyInterpolation", &format!("{header}\n\"/\\u1234#{{ }}\\x80/\"\n        ^^^^ Empty interpolation detected.\n"))
+                .id(&format!("syntax_guard_encoding_{name}_{mode}"))
+                .target_ruby(version)
+                .severity(Severity::Warning)
+                .correct_mode(correction)
+                .corrected_verbatim(&format!("{header}\n\"/\\u1234\\x80/\"\n")));
+        }
+    }
+    cases
 }
 
 /// `Lint/Syntax` が付ける版の注記。

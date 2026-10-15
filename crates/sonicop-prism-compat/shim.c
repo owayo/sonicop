@@ -17,7 +17,8 @@ int sonicop_prism_compat_parse(const uint8_t *source, size_t length,
     pm_options_partial_script_set(&options, !main_script);
     pm_options_main_script_set(&options, main_script);
     /* Translation::Parser の encoding:false は、復号済み UTF-8 の宣言を再解釈しない。 */
-    if (!binary) {
+    /* スクリプト検査は実際の入出力バイト列を読み、宣言と BOM を Prism 自身に解釈させる。 */
+    if (!binary && !main_script) {
         pm_options_encoding_set(&options, "UTF-8");
         pm_options_encoding_locked_set(&options, true);
     }

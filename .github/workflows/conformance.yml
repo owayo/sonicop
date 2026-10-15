@@ -87,9 +87,13 @@ jobs:
             ${{ runner.temp }}/corpus-check/*/*.err
 
   ruby-safety:
-    name: Ruby corpus candidate safety
+    name: Ruby corpus candidate safety (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [safe, unsafe]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -112,6 +116,7 @@ jobs:
           SONICOP: ${{ github.workspace }}/target/release/sonicop
           CORPUS_ROOT: ${{ runner.temp }}/corpora
           SAFETY_OUTPUT: ${{ runner.temp }}/ruby-safety
+          CORRECTION_MODE: ${{ matrix.mode }}
         run: |
           python3 - <<'PY'
           import hashlib, json, os, pathlib, shutil, subprocess, sys
@@ -124,7 +129,8 @@ jobs:
           def hashes(tree):
               return {str(p.relative_to(tree)): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in tree.rglob("*") if p.is_file() and not p.is_symlink()}
-          for mode, flag in [("safe", "-a"), ("unsafe", "-A")]:
+          mode = os.environ["CORRECTION_MODE"]
+          for mode, flag in [(mode, "-a" if mode == "safe" else "-A")]:
               output = root / mode
               output.mkdir(parents=True)
               work = output / "ff-port-ruby_ruby"
@@ -148,7 +154,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ruby-candidate-safety
+          name: ruby-candidate-safety-${{ matrix.mode }}
           path: |
             ${{ runner.temp }}/ruby-safety/*/*.json
             ${{ runner.temp }}/ruby-safety/*/*.err
