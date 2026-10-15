@@ -1,15 +1,15 @@
 {
-  "measured_at": "2026-10-15T12:04:38Z",
+  "measured_at": "2026-10-15T14:00:09Z",
   "ruby": "ruby 4.0.7 (2026-09-15 revision 229531a6cf) +PRISM [x86_64-linux]",
-  "reference": "1.91.0",
+  "reference": "1.92.0",
   "candidate": "26.9.102",
-  "binary_sha256": "d8f37a0ae2621b2f72ea03ecfd8df3c52afb7720d4c7e0963d4f6efc88ead68e",
-  "revision": "2ae1ec7ad5cce62c8ac93d30f8d8fc4aea27d04c",
+  "binary_sha256": "1605a206fbb739ec3b93b00e537e382935e419b3af9af19071ba48dae5bb2a95",
+  "revision": "6b3e85081e13030166e39dbaad397c4d6dd5aedf",
   "host": "x86_64-pc-linux",
-  "cpu": "AMD EPYC 7763 64-Core Processor",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
   "cores": 4,
   "rubyopt": "--yjit",
-  "runner_image": "20261012.334.1",
+  "runner_image": "20261004.327.1",
   "runs": [
     {
       "name": "rails",
@@ -19,19 +19,19 @@
         "candidate": "3.3"
       },
       "diagnostic_difference": {
-        "reference_only": 9328,
-        "candidate_only": 9189
+        "reference_only": 9350,
+        "candidate_only": 9221
       },
       "offenses": {
         "reference": {
-          "total": 167899,
+          "total": 167889,
           "by_cop": {
             "Style/StringLiterals": 104885,
             "Bundler/OrderedGems": 21,
             "Style/SymbolArray": 1216,
             "Style/SpecialGlobalVars": 117,
             "Style/SignalException": 26,
-            "Style/PercentLiteralDelimiters": 1850,
+            "Style/PercentLiteralDelimiters": 1840,
             "Metrics/BlockLength": 328,
             "Lint/UnusedBlockArgument": 445,
             "Layout/LineLength": 5289,
@@ -46,12 +46,12 @@
             "Metrics/ClassLength": 718,
             "Layout/EmptyLinesAroundAttributeAccessor": 96,
             "Layout/EmptyLinesAroundAccessModifier": 1716,
-            "Layout/IndentationWidth": 6138,
+            "Layout/IndentationWidth": 6140,
             "Layout/IndentationConsistency": 6015,
             "Style/CommentedKeyword": 220,
             "Lint/UselessMethodDefinition": 15,
             "Layout/EmptyLineAfterGuardClause": 491,
-            "Style/NumericPredicate": 251,
+            "Style/NumericPredicate": 249,
             "Lint/RescueException": 46,
             "Naming/RescuedExceptionsVariableName": 133,
             "Style/GuardClause": 582,
@@ -563,61 +563,61 @@
       "conditions": {
         "parallel-reference": [
           {
-            "real": 57.655040977,
-            "user": 205.15878,
-            "system": 19.241604,
+            "real": 47.01167481499999,
+            "user": 166.256796,
+            "system": 15.111235,
             "exit": 1,
             "load_before": [
-              1.59,
-              1.26,
-              0.7
+              1.33,
+              0.83,
+              0.39
             ],
             "load_after": [
-              3.35,
-              1.8,
-              0.92
+              3.49,
+              1.48,
+              0.63
             ],
             "inspected_files": 3551,
-            "offenses": 167899,
-            "report_sha256": "d1799903224cd558e6607ae0ff62b6aaed0dc9f1857eb9bac56b286f6e89e045",
+            "offenses": 167889,
+            "report_sha256": "6aa23940c544d6cdbe45e91e833cd71265a35ee08210c1484e4049a27c920daf",
             "cache_files": 3551
           },
           {
-            "real": 57.536974610000016,
-            "user": 204.61956800000002,
-            "system": 19.145249,
+            "real": 46.258948714999974,
+            "user": 163.80716700000005,
+            "system": 14.895881000000003,
             "exit": 1,
             "load_before": [
-              3.44,
-              1.98,
-              1.01
+              4.18,
+              1.77,
+              0.74
             ],
             "load_after": [
-              4.34,
-              2.5,
-              1.24
+              4.45,
+              2.21,
+              0.95
             ],
             "inspected_files": 3551,
-            "offenses": 167899,
-            "report_sha256": "d1799903224cd558e6607ae0ff62b6aaed0dc9f1857eb9bac56b286f6e89e045",
+            "offenses": 167889,
+            "report_sha256": "6aa23940c544d6cdbe45e91e833cd71265a35ee08210c1484e4049a27c920daf",
             "cache_files": 3551
           }
         ],
         "parallel-candidate": [
           {
-            "real": 10.952134169999908,
-            "user": 41.57824099999999,
-            "system": 0.4172399999999996,
+            "real": 8.782821112000022,
+            "user": 31.224230999999975,
+            "system": 0.34343099999999893,
             "exit": 1,
             "load_before": [
-              3.16,
-              1.79,
-              0.92
+              3.49,
+              1.48,
+              0.63
             ],
             "load_after": [
-              3.59,
-              1.93,
-              0.97
+              3.95,
+              1.64,
+              0.69
             ],
             "inspected_files": 3551,
             "offenses": 167760,
@@ -625,19 +625,19 @@
             "cache_files": 2
           },
           {
-            "real": 10.924526971000091,
-            "user": 41.50230400000004,
-            "system": 0.37235700000000094,
+            "real": 8.74524229900004,
+            "user": 31.40943900000002,
+            "system": 0.33446200000000204,
             "exit": 1,
             "load_before": [
-              3.59,
-              1.93,
-              0.97
+              3.95,
+              1.64,
+              0.69
             ],
             "load_after": [
-              3.66,
-              2.0,
-              1.01
+              4.18,
+              1.77,
+              0.74
             ],
             "inspected_files": 3551,
             "offenses": 167760,
@@ -647,78 +647,78 @@
         ],
         "single-reference": [
           {
-            "real": 101.89135913899997,
-            "user": 98.58904999999993,
-            "system": 3.2369660000000025,
+            "real": 87.06340824400002,
+            "user": 84.09177599999998,
+            "system": 2.894513999999994,
             "exit": 1,
             "load_before": [
-              4.34,
-              2.5,
-              1.24
+              4.45,
+              2.21,
+              0.95
             ],
             "load_after": [
-              1.58,
-              2.05,
-              1.21
+              1.83,
+              1.91,
+              0.96
             ],
             "inspected_files": 3551,
-            "offenses": 167899,
-            "report_sha256": "d1799903224cd558e6607ae0ff62b6aaed0dc9f1857eb9bac56b286f6e89e045"
+            "offenses": 167889,
+            "report_sha256": "6aa23940c544d6cdbe45e91e833cd71265a35ee08210c1484e4049a27c920daf"
           },
           {
-            "real": 101.76942046999989,
-            "user": 98.596273,
-            "system": 3.105992999999998,
+            "real": 88.86216642500005,
+            "user": 85.836408,
+            "system": 2.9484720000000024,
             "exit": 1,
             "load_before": [
-              1.23,
-              1.87,
-              1.2
+              1.39,
+              1.78,
+              0.96
             ],
             "load_after": [
-              1.06,
-              1.63,
-              1.18
+              1.08,
+              1.57,
+              0.97
             ],
             "inspected_files": 3551,
-            "offenses": 167899,
-            "report_sha256": "d1799903224cd558e6607ae0ff62b6aaed0dc9f1857eb9bac56b286f6e89e045"
+            "offenses": 167889,
+            "report_sha256": "6aa23940c544d6cdbe45e91e833cd71265a35ee08210c1484e4049a27c920daf"
           }
         ],
         "single-candidate": [
           {
-            "real": 26.078206021000028,
-            "user": 25.85183900000004,
-            "system": 0.22398099999999488,
+            "real": 21.08304061399997,
+            "user": 20.873609999999985,
+            "system": 0.20695700000000272,
             "exit": 1,
             "load_before": [
-              1.58,
-              2.05,
-              1.21
+              1.76,
+              1.89,
+              0.96
             ],
             "load_after": [
-              1.38,
-              1.96,
-              1.2
+              1.55,
+              1.83,
+              0.96
             ],
             "inspected_files": 3551,
             "offenses": 167760,
             "report_sha256": "5d19e4b8af9aaa7ad3e7c50b03e54e9f38302afc20fe659157d876e0d2197fc4"
           },
           {
-            "real": 26.029951385999993,
-            "user": 25.808460999999966,
-            "system": 0.21895300000000617,
+            "real": 20.92470989000003,
+            "user": 20.714476999999988,
+            "system": 0.20798500000000075,
             "exit": 1,
             "load_before": [
-              1.38,
-              1.96,
-              1.2
+              1.55,
+              1.83,
+              0.96
             ],
             "load_after": [
-              1.23,
-              1.87,
-              1.2
+              1.39,
+              1.78,
+              0.96
             ],
             "inspected_files": 3551,
             "offenses": 167760,
@@ -817,61 +817,61 @@
       "conditions": {
         "parallel-reference": [
           {
-            "real": 31.45834376200014,
-            "user": 108.08431100000007,
-            "system": 14.125618000000003,
+            "real": 24.220590700999992,
+            "user": 83.31071999999995,
+            "system": 10.314743999999997,
             "exit": 1,
             "load_before": [
-              1.23,
-              1.55,
-              1.17
+              1.0,
+              1.47,
+              0.97
             ],
             "load_after": [
-              2.4,
-              1.8,
-              1.27
+              2.71,
+              1.83,
+              1.1
             ],
             "inspected_files": 1765,
             "offenses": 5501,
-            "report_sha256": "1803769c841179e7cd91a5225de38d1044c58033a641387a6ba7a4888075022d",
+            "report_sha256": "49601d77458fb31198574733d55524e8d84974a45b69ebf3a032a7803ddb524b",
             "cache_files": 1765
           },
           {
-            "real": 31.420571922999898,
-            "user": 108.32451800000013,
-            "system": 13.646152999999998,
+            "real": 24.08152595499996,
+            "user": 82.54422,
+            "system": 10.451596000000002,
             "exit": 1,
             "load_before": [
-              2.72,
-              1.89,
-              1.31
+              2.57,
+              1.82,
+              1.1
             ],
             "load_after": [
-              3.55,
-              2.17,
-              1.42
+              3.53,
+              2.11,
+              1.22
             ],
             "inspected_files": 1765,
             "offenses": 5501,
-            "report_sha256": "1803769c841179e7cd91a5225de38d1044c58033a641387a6ba7a4888075022d",
+            "report_sha256": "49601d77458fb31198574733d55524e8d84974a45b69ebf3a032a7803ddb524b",
             "cache_files": 1765
           }
         ],
         "parallel-candidate": [
           {
-            "real": 3.7576316430001953,
-            "user": 14.620059999999967,
-            "system": 0.07685299999999984,
+            "real": 2.8432516730000543,
+            "user": 11.02505700000006,
+            "system": 0.07389299999999821,
             "exit": 1,
             "load_before": [
-              2.4,
-              1.8,
-              1.27
+              2.71,
+              1.83,
+              1.1
             ],
             "load_after": [
-              2.61,
-              1.86,
-              1.29
+              2.71,
+              1.83,
+              1.1
             ],
             "inspected_files": 1765,
             "offenses": 5766,
@@ -879,19 +879,19 @@
             "cache_files": 2
           },
           {
-            "real": 3.755955103000133,
-            "user": 14.646377999999913,
-            "system": 0.08183999999999969,
+            "real": 3.056648911000025,
+            "user": 11.021391999999992,
+            "system": 0.06888400000000416,
             "exit": 1,
             "load_before": [
-              2.61,
-              1.86,
-              1.29
+              2.57,
+              1.82,
+              1.1
             ],
             "load_after": [
-              2.72,
-              1.89,
-              1.31
+              2.57,
+              1.82,
+              1.1
             ],
             "inspected_files": 1765,
             "offenses": 5766,
@@ -901,78 +901,78 @@
         ],
         "single-reference": [
           {
-            "real": 51.65860401600003,
-            "user": 49.32923199999982,
-            "system": 2.2797920000000005,
+            "real": 40.41244122400008,
+            "user": 38.47883999999999,
+            "system": 1.8785019999999975,
             "exit": 1,
             "load_before": [
-              3.55,
-              2.17,
-              1.42
+              3.53,
+              2.11,
+              1.22
             ],
             "load_after": [
-              2.02,
+              2.3,
               1.97,
-              1.39
+              1.21
             ],
             "inspected_files": 1765,
             "offenses": 5501,
-            "report_sha256": "1803769c841179e7cd91a5225de38d1044c58033a641387a6ba7a4888075022d"
+            "report_sha256": "49601d77458fb31198574733d55524e8d84974a45b69ebf3a032a7803ddb524b"
           },
           {
-            "real": 51.262375853000094,
-            "user": 48.96704100000011,
-            "system": 2.246890999999991,
+            "real": 43.81270340900005,
+            "user": 41.7862990000001,
+            "system": 1.9653800000000103,
             "exit": 1,
             "load_before": [
-              1.79,
-              1.93,
-              1.39
+              2.01,
+              1.92,
+              1.2
             ],
             "load_after": [
-              1.31,
-              1.77,
-              1.36
+              1.47,
+              1.79,
+              1.19
             ],
             "inspected_files": 1765,
             "offenses": 5501,
-            "report_sha256": "1803769c841179e7cd91a5225de38d1044c58033a641387a6ba7a4888075022d"
+            "report_sha256": "49601d77458fb31198574733d55524e8d84974a45b69ebf3a032a7803ddb524b"
           }
         ],
         "single-candidate": [
           {
-            "real": 9.125094396999884,
-            "user": 9.075386000000208,
-            "system": 0.04899699999999996,
+            "real": 7.359590774000026,
+            "user": 7.3059050000000525,
+            "system": 0.05299200000000326,
             "exit": 1,
             "load_before": [
-              2.02,
+              2.3,
               1.97,
-              1.39
+              1.21
             ],
             "load_after": [
+              2.1,
               1.93,
-              1.96,
-              1.39
+              1.2
             ],
             "inspected_files": 1765,
             "offenses": 5766,
             "report_sha256": "66a828820fbd9705edd53328189ec7f127f36a59f2dd0efeca69cca09c4ca433"
           },
           {
-            "real": 9.161350272000163,
-            "user": 9.117787999999791,
-            "system": 0.042994000000007304,
+            "real": 7.329404919000012,
+            "user": 7.269564999999943,
+            "system": 0.05899699999999086,
             "exit": 1,
             "load_before": [
+              2.1,
               1.93,
-              1.96,
-              1.39
+              1.2
             ],
             "load_after": [
-              1.79,
-              1.93,
-              1.39
+              2.01,
+              1.92,
+              1.2
             ],
             "inspected_files": 1765,
             "offenses": 5766,
@@ -992,8 +992,8 @@
         "candidate": "4.0"
       },
       "diagnostic_difference": {
-        "reference_only": 3584,
-        "candidate_only": 3578
+        "reference_only": 3597,
+        "candidate_only": 3591
       },
       "offenses": {
         "reference": {
@@ -1149,61 +1149,61 @@
       "conditions": {
         "parallel-reference": [
           {
-            "real": 27.814214800000173,
-            "user": 92.40613600000006,
-            "system": 13.214055000000002,
+            "real": 22.906684128999927,
+            "user": 76.63695499999994,
+            "system": 10.220692,
             "exit": 1,
             "load_before": [
-              1.13,
-              1.65,
-              1.34
+              1.22,
+              1.68,
+              1.18
             ],
             "load_after": [
-              2.65,
-              1.96,
-              1.45
+              2.28,
+              1.88,
+              1.26
             ],
             "inspected_files": 3290,
             "offenses": 15292,
-            "report_sha256": "271ee45c6829a380b5579fba5b17ef6799cac043f52b08f66dca07b82c28d5c6",
+            "report_sha256": "c33a541290301feec16eb0f1aadac303ad9f0dd93054f2537427481139165632",
             "cache_files": 3290
           },
           {
-            "real": 27.671596244000057,
-            "user": 91.65491399999996,
-            "system": 13.63004500000001,
+            "real": 22.673663890999933,
+            "user": 76.10953100000006,
+            "system": 9.912430999999998,
             "exit": 1,
             "load_before": [
-              3.17,
-              2.09,
-              1.5
+              2.17,
+              1.87,
+              1.26
             ],
             "load_after": [
-              3.58,
-              2.28,
-              1.58
+              3.2,
+              2.13,
+              1.36
             ],
             "inspected_files": 3290,
             "offenses": 15292,
-            "report_sha256": "271ee45c6829a380b5579fba5b17ef6799cac043f52b08f66dca07b82c28d5c6",
+            "report_sha256": "c33a541290301feec16eb0f1aadac303ad9f0dd93054f2537427481139165632",
             "cache_files": 3290
           }
         ],
         "parallel-candidate": [
           {
-            "real": 4.007257628999923,
-            "user": 15.396490000000085,
-            "system": 0.13874299999999096,
+            "real": 3.09292467399996,
+            "user": 11.627722000000176,
+            "system": 0.10881899999999689,
             "exit": 1,
             "load_before": [
-              2.65,
-              1.96,
-              1.45
+              2.28,
+              1.88,
+              1.26
             ],
             "load_after": [
-              2.92,
-              2.02,
-              1.48
+              2.17,
+              1.87,
+              1.26
             ],
             "inspected_files": 3290,
             "offenses": 15286,
@@ -1211,19 +1211,19 @@
             "cache_files": 2
           },
           {
-            "real": 4.00666945099988,
-            "user": 15.40584899999999,
-            "system": 0.1337299999999999,
+            "real": 3.2116982430000007,
+            "user": 11.62181899999996,
+            "system": 0.12080100000000016,
             "exit": 1,
             "load_before": [
-              2.92,
-              2.02,
-              1.48
+              2.17,
+              1.87,
+              1.26
             ],
             "load_after": [
-              3.17,
-              2.09,
-              1.5
+              2.17,
+              1.87,
+              1.26
             ],
             "inspected_files": 3290,
             "offenses": 15286,
@@ -1233,78 +1233,78 @@
         ],
         "single-reference": [
           {
-            "real": 43.548471359999894,
-            "user": 41.278757999999925,
-            "system": 2.2196209999999894,
+            "real": 38.38138759799995,
+            "user": 36.36642599999982,
+            "system": 1.9539600000000092,
             "exit": 1,
             "load_before": [
-              3.58,
-              2.28,
-              1.58
+              3.2,
+              2.13,
+              1.36
             ],
             "load_after": [
-              2.21,
-              2.1,
-              1.55
+              2.35,
+              2.04,
+              1.36
             ],
             "inspected_files": 3290,
             "offenses": 15292,
-            "report_sha256": "271ee45c6829a380b5579fba5b17ef6799cac043f52b08f66dca07b82c28d5c6"
+            "report_sha256": "c33a541290301feec16eb0f1aadac303ad9f0dd93054f2537427481139165632"
           },
           {
-            "real": 43.82638528999996,
-            "user": 41.533777999999984,
-            "system": 2.244556000000003,
+            "real": 40.89244225099992,
+            "user": 38.73292500000002,
+            "system": 2.0852270000000033,
             "exit": 1,
             "load_before": [
-              1.87,
-              2.02,
-              1.54
+              1.96,
+              1.97,
+              1.35
             ],
             "load_after": [
-              1.41,
-              1.88,
-              1.51
+              1.49,
+              1.85,
+              1.34
             ],
             "inspected_files": 3290,
             "offenses": 15292,
-            "report_sha256": "271ee45c6829a380b5579fba5b17ef6799cac043f52b08f66dca07b82c28d5c6"
+            "report_sha256": "c33a541290301feec16eb0f1aadac303ad9f0dd93054f2537427481139165632"
           }
         ],
         "single-candidate": [
           {
-            "real": 9.773664761000191,
-            "user": 9.68609400000014,
-            "system": 0.08700100000000077,
+            "real": 8.003613260999828,
+            "user": 7.919738000000052,
+            "system": 0.08299799999998925,
             "exit": 1,
             "load_before": [
-              2.21,
-              2.1,
-              1.55
+              2.35,
+              2.04,
+              1.36
             ],
             "load_after": [
-              2.03,
-              2.06,
-              1.54
+              2.14,
+              2.01,
+              1.36
             ],
             "inspected_files": 3290,
             "offenses": 15286,
             "report_sha256": "5a719c357dff590db8626f9a1015500cee4832620e8d6618d717d96cfd264c5c"
           },
           {
-            "real": 9.731420108999828,
-            "user": 9.646796999999879,
-            "system": 0.08399000000000001,
+            "real": 8.040129550999836,
+            "user": 7.962939000000006,
+            "system": 0.07599900000001014,
             "exit": 1,
             "load_before": [
-              2.03,
-              2.06,
-              1.54
+              2.14,
+              2.01,
+              1.36
             ],
             "load_after": [
-              1.87,
-              2.02,
-              1.54
+              1.96,
+              1.97,
+              1.35
             ],
             "inspected_files": 3290,
             "offenses": 15286,
@@ -1325,11 +1325,11 @@
       },
       "diagnostic_difference": {
         "reference_only": 4040,
-        "candidate_only": 3440
+        "candidate_only": 3445
       },
       "offenses": {
         "reference": {
-          "total": 49926,
+          "total": 49921,
           "by_cop": {
             "Style/StringLiterals": 30651,
             "Metrics/BlockLength": 1060,
@@ -1395,7 +1395,7 @@
             "Style/OptionalBooleanParameter": 33,
             "Style/ClassVars": 3,
             "Style/EmptyLiteral": 2,
-            "Style/NumericPredicate": 63,
+            "Style/NumericPredicate": 58,
             "Style/ZeroLengthPredicate": 10,
             "Style/NonNilCheck": 3,
             "Style/EmptyElse": 11,
@@ -1738,61 +1738,61 @@
       "conditions": {
         "parallel-reference": [
           {
-            "real": 30.23508915499997,
-            "user": 101.08458999999993,
-            "system": 15.581319999999991,
+            "real": 23.220678683000187,
+            "user": 76.98003599999993,
+            "system": 12.050446999999991,
             "exit": 1,
             "load_before": [
-              1.72,
-              1.85,
-              1.52
+              1.63,
+              1.81,
+              1.35
             ],
             "load_after": [
-              3.24,
-              2.2,
-              1.64
+              2.56,
+              2.02,
+              1.43
             ],
             "inspected_files": 2179,
-            "offenses": 49926,
-            "report_sha256": "8d0a69a10a1138c5ab32946d3dcd13df137f9b021b685618eda72df88c51669f",
+            "offenses": 49921,
+            "report_sha256": "d0f57f79a956e617ac621416d075436e2fa85096f433c3b76e3747ba1a759915",
             "cache_files": 2179
           },
           {
-            "real": 30.449925013999973,
-            "user": 101.58377500000006,
-            "system": 15.86210299999999,
+            "real": 23.618546423999987,
+            "user": 78.77574499999992,
+            "system": 11.800571000000005,
             "exit": 1,
             "load_before": [
-              3.67,
-              2.32,
-              1.69
+              2.68,
+              2.05,
+              1.44
             ],
             "load_after": [
-              4.44,
-              2.64,
-              1.82
+              3.33,
+              2.26,
+              1.53
             ],
             "inspected_files": 2179,
-            "offenses": 49926,
-            "report_sha256": "8d0a69a10a1138c5ab32946d3dcd13df137f9b021b685618eda72df88c51669f",
+            "offenses": 49921,
+            "report_sha256": "d0f57f79a956e617ac621416d075436e2fa85096f433c3b76e3747ba1a759915",
             "cache_files": 2179
           }
         ],
         "parallel-candidate": [
           {
-            "real": 3.6020691720000286,
-            "user": 13.465238999999883,
-            "system": 0.15677000000002295,
+            "real": 2.8658332099998916,
+            "user": 10.076561999999967,
+            "system": 0.14979999999999905,
             "exit": 1,
             "load_before": [
-              3.24,
-              2.2,
-              1.64
+              2.56,
+              2.02,
+              1.43
             ],
             "load_after": [
-              3.46,
-              2.26,
-              1.67
+              2.56,
+              2.02,
+              1.43
             ],
             "inspected_files": 2179,
             "offenses": 49326,
@@ -1800,19 +1800,19 @@
             "cache_files": 2
           },
           {
-            "real": 3.5722851929999706,
-            "user": 13.486137999999983,
-            "system": 0.16976199999999153,
+            "real": 2.9176234750000276,
+            "user": 10.107713000000103,
+            "system": 0.13873499999999694,
             "exit": 1,
             "load_before": [
-              3.46,
-              2.26,
-              1.67
+              2.56,
+              2.02,
+              1.43
             ],
             "load_after": [
-              3.67,
-              2.32,
-              1.69
+              2.68,
+              2.05,
+              1.44
             ],
             "inspected_files": 2179,
             "offenses": 49326,
@@ -1822,78 +1822,78 @@
         ],
         "single-reference": [
           {
-            "real": 47.74219637200008,
-            "user": 45.03232600000001,
-            "system": 2.650722000000002,
+            "real": 40.77367941499983,
+            "user": 38.34458700000005,
+            "system": 2.3600349999999963,
             "exit": 1,
             "load_before": [
-              4.44,
-              2.64,
-              1.82
+              3.33,
+              2.26,
+              1.53
             ],
             "load_after": [
-              2.53,
-              2.4,
-              1.78
+              2.2,
+              2.1,
+              1.5
             ],
             "inspected_files": 2179,
-            "offenses": 49926,
-            "report_sha256": "8d0a69a10a1138c5ab32946d3dcd13df137f9b021b685618eda72df88c51669f"
+            "offenses": 49921,
+            "report_sha256": "d0f57f79a956e617ac621416d075436e2fa85096f433c3b76e3747ba1a759915"
           },
           {
-            "real": 47.51208280700007,
-            "user": 44.78531600000019,
-            "system": 2.6657450000000154,
+            "real": 42.04307923400006,
+            "user": 39.55366200000003,
+            "system": 2.411651000000006,
             "exit": 1,
             "load_before": [
-              2.19,
-              2.33,
-              1.77
+              1.93,
+              2.04,
+              1.5
             ],
             "load_after": [
-              1.51,
-              2.12,
-              1.72
+              1.47,
+              1.91,
+              1.47
             ],
             "inspected_files": 2179,
-            "offenses": 49926,
-            "report_sha256": "8d0a69a10a1138c5ab32946d3dcd13df137f9b021b685618eda72df88c51669f"
+            "offenses": 49921,
+            "report_sha256": "d0f57f79a956e617ac621416d075436e2fa85096f433c3b76e3747ba1a759915"
           }
         ],
         "single-candidate": [
           {
-            "real": 8.402191441000014,
-            "user": 8.319617000000108,
-            "system": 0.08199700000000121,
+            "real": 6.797798463999925,
+            "user": 6.715065999999979,
+            "system": 0.0819890000000072,
             "exit": 1,
             "load_before": [
-              2.53,
-              2.4,
-              1.78
+              2.2,
+              2.1,
+              1.5
             ],
             "load_after": [
-              2.41,
-              2.38,
-              1.78
+              2.1,
+              2.08,
+              1.5
             ],
             "inspected_files": 2179,
             "offenses": 49326,
             "report_sha256": "c97b84236679f9a5f3df0c159725f4b8ade775fa58b60396e49ec5053a353c58"
           },
           {
-            "real": 8.411180583000032,
-            "user": 8.324727999999823,
-            "system": 0.08599699999999189,
+            "real": 6.811293317000036,
+            "user": 6.714330999999902,
+            "system": 0.09599000000000046,
             "exit": 1,
             "load_before": [
-              2.41,
-              2.38,
-              1.78
+              2.01,
+              2.06,
+              1.5
             ],
             "load_after": [
-              2.19,
-              2.33,
-              1.77
+              1.93,
+              2.04,
+              1.5
             ],
             "inspected_files": 2179,
             "offenses": 49326,
@@ -1913,12 +1913,12 @@
         "candidate": "2.7"
       },
       "diagnostic_difference": {
-        "reference_only": 22569,
-        "candidate_only": 20569
+        "reference_only": 22647,
+        "candidate_only": 20701
       },
       "offenses": {
         "reference": {
-          "total": 763186,
+          "total": 763132,
           "by_cop": {
             "Naming/FileName": 136,
             "Style/FrozenStringLiteralComment": 5385,
@@ -1938,7 +1938,7 @@
             "Layout/EmptyLinesAroundModuleBody": 120,
             "Layout/LineLength": 2612,
             "Layout/EmptyLinesAroundClassBody": 255,
-            "Layout/IndentationWidth": 877,
+            "Layout/IndentationWidth": 878,
             "Layout/SpaceInsideRangeLiteral": 62,
             "Style/EmptyElse": 35,
             "Metrics/AbcSize": 4330,
@@ -1949,7 +1949,7 @@
             "Style/AndOr": 792,
             "Lint/AssignmentInCondition": 486,
             "Style/StringConcatenation": 1235,
-            "Style/PercentLiteralDelimiters": 2973,
+            "Style/PercentLiteralDelimiters": 2947,
             "Style/GlobalVars": 2363,
             "Layout/SpaceAroundOperators": 14331,
             "Style/PerlBackrefs": 1175,
@@ -1973,7 +1973,7 @@
             "Lint/DuplicateMethods": 278,
             "Lint/AmbiguousOperator": 32,
             "Style/RedundantReturn": 851,
-            "Style/MethodCallWithoutArgsParentheses": 629,
+            "Style/MethodCallWithoutArgsParentheses": 628,
             "Style/Lambda": 2008,
             "Style/YodaCondition": 137,
             "Layout/SpaceBeforeBlockBraces": 2231,
@@ -1983,7 +1983,7 @@
             "Layout/EmptyLines": 196,
             "Style/ParallelAssignment": 394,
             "Lint/UnreachableLoop": 244,
-            "Style/BlockDelimiters": 3690,
+            "Style/BlockDelimiters": 3689,
             "Lint/BinaryOperatorWithIdenticalOperands": 210,
             "Style/OneLineConditional": 19,
             "Style/RedundantConditional": 7,
@@ -1992,7 +1992,7 @@
             "Security/Open": 255,
             "Style/ClassCheck": 129,
             "Style/For": 114,
-            "Style/NumericPredicate": 578,
+            "Style/NumericPredicate": 547,
             "Style/WhileUntilModifier": 104,
             "Lint/UnreachableCode": 77,
             "Style/InfiniteLoop": 93,
@@ -2023,7 +2023,7 @@
             "Style/FormatString": 900,
             "Style/NumericLiterals": 6728,
             "Style/ParenthesesAroundCondition": 78,
-            "Lint/UselessAssignment": 471,
+            "Lint/UselessAssignment": 481,
             "Style/SelfAssignment": 33,
             "Lint/ImplicitStringConcatenation": 268,
             "Lint/LiteralInInterpolation": 39,
@@ -2148,7 +2148,7 @@
             "Style/RedundantFreeze": 39,
             "Style/OrAssignment": 20,
             "Style/WhileUntilDo": 43,
-            "Style/AccessModifierDeclarations": 96,
+            "Style/AccessModifierDeclarations": 90,
             "Naming/VariableNumber": 1021,
             "Style/RedundantAssignment": 11,
             "Style/TrailingUnderscoreVariable": 130,
@@ -2631,61 +2631,61 @@
       "conditions": {
         "parallel-reference": [
           {
-            "real": 131.83280362100004,
-            "user": 485.6497260000001,
-            "system": 26.494281,
+            "real": 112.82645658700017,
+            "user": 410.6958669999997,
+            "system": 20.870280999999977,
             "exit": 1,
             "load_before": [
-              1.8,
-              1.62,
-              1.58
+              1.69,
+              1.55,
+              1.41
             ],
             "load_after": [
-              4.26,
-              2.7,
-              2.0
+              4.73,
+              2.77,
+              1.87
             ],
             "inspected_files": 7464,
-            "offenses": 763186,
-            "report_sha256": "fa14627a56a508695ea6f07f260a0b7807f09c1cacbe98a2bdfbed601d5ce9a4",
+            "offenses": 763132,
+            "report_sha256": "3a884fc6e9e0f7c9fda9252dea2535e6e03a304bb1a128722e5b55e016001425",
             "cache_files": 7464
           },
           {
-            "real": 132.21314028200004,
-            "user": 487.72426799999994,
-            "system": 26.855789999999985,
+            "real": 108.1375581750001,
+            "user": 392.797642,
+            "system": 20.670074,
             "exit": 1,
             "load_before": [
-              3.73,
-              2.84,
-              2.09
+              3.91,
+              2.89,
+              1.97
             ],
             "load_after": [
-              5.18,
-              3.78,
-              2.54
+              4.74,
+              3.51,
+              2.29
             ],
             "inspected_files": 7464,
-            "offenses": 763186,
-            "report_sha256": "fa14627a56a508695ea6f07f260a0b7807f09c1cacbe98a2bdfbed601d5ce9a4",
+            "offenses": 763132,
+            "report_sha256": "3a884fc6e9e0f7c9fda9252dea2535e6e03a304bb1a128722e5b55e016001425",
             "cache_files": 7464
           }
         ],
         "parallel-candidate": [
           {
-            "real": 22.448657953000293,
-            "user": 78.55463700000018,
-            "system": 1.526252999999997,
+            "real": 19.966398729000048,
+            "user": 66.37997600000017,
+            "system": 1.3612930000000176,
             "exit": 1,
             "load_before": [
-              4.0,
-              2.67,
-              1.99
+              4.43,
+              2.74,
+              1.87
             ],
             "load_after": [
-              4.19,
-              2.81,
-              2.05
+              4.5,
+              2.87,
+              1.93
             ],
             "inspected_files": 7464,
             "offenses": 761186,
@@ -2693,19 +2693,19 @@
             "cache_files": 2
           },
           {
-            "real": 23.106274858000234,
-            "user": 76.64392899999984,
-            "system": 1.5372110000000134,
+            "real": 19.899636039000143,
+            "user": 66.38297999999986,
+            "system": 1.4182219999999859,
             "exit": 1,
             "load_before": [
-              3.7,
-              2.75,
-              2.04
+              4.22,
+              2.84,
+              1.93
             ],
             "load_after": [
-              3.96,
-              2.88,
-              2.1
+              4.16,
+              2.92,
+              1.97
             ],
             "inspected_files": 7464,
             "offenses": 761186,
@@ -2715,78 +2715,78 @@
         ],
         "single-reference": [
           {
-            "real": 248.03362736300005,
-            "user": 242.64506200000005,
-            "system": 5.2899519999999995,
+            "real": 230.06841634299985,
+            "user": 225.00124000000005,
+            "system": 4.934242000000012,
             "exit": 1,
             "load_before": [
-              4.85,
-              3.74,
-              2.54
+              4.44,
+              3.46,
+              2.29
             ],
             "load_after": [
-              1.06,
-              2.18,
-              2.16
+              1.07,
+              2.14,
+              2.0
             ],
             "inspected_files": 7464,
-            "offenses": 763186,
-            "report_sha256": "fa14627a56a508695ea6f07f260a0b7807f09c1cacbe98a2bdfbed601d5ce9a4"
+            "offenses": 763132,
+            "report_sha256": "3a884fc6e9e0f7c9fda9252dea2535e6e03a304bb1a128722e5b55e016001425"
           },
           {
-            "real": 248.80115147000015,
-            "user": 243.59207800000058,
-            "system": 5.115090999999978,
+            "real": 239.96827903500025,
+            "user": 234.41305899999998,
+            "system": 5.402636999999999,
             "exit": 1,
             "load_before": [
               1.01,
-              1.8,
-              2.02
+              1.78,
+              1.88
             ],
             "load_after": [
-              1.0,
-              1.34,
-              1.77
+              1.01,
+              1.37,
+              1.69
             ],
             "inspected_files": 7464,
-            "offenses": 763186,
-            "report_sha256": "fa14627a56a508695ea6f07f260a0b7807f09c1cacbe98a2bdfbed601d5ce9a4"
+            "offenses": 763132,
+            "report_sha256": "3a884fc6e9e0f7c9fda9252dea2535e6e03a304bb1a128722e5b55e016001425"
           }
         ],
         "single-candidate": [
           {
-            "real": 49.90718598500007,
-            "user": 49.164306000000124,
-            "system": 0.7379300000000057,
+            "real": 47.01454540600025,
+            "user": 46.21410900000001,
+            "system": 0.7918479999999875,
             "exit": 1,
             "load_before": [
-              1.05,
-              2.16,
-              2.16
+              1.06,
+              2.1,
+              1.99
             ],
             "load_after": [
-              1.02,
-              1.98,
-              2.09
+              1.03,
+              1.95,
+              1.94
             ],
             "inspected_files": 7464,
             "offenses": 761186,
             "report_sha256": "f063c46ae826cbf5c4f0fe7d7330ca120f4ae0696e894a0fd2d750e6745e10d5"
           },
           {
-            "real": 50.19894516700015,
-            "user": 49.433866999999736,
-            "system": 0.7599360000000104,
+            "real": 45.82891911300021,
+            "user": 45.04757000000018,
+            "system": 0.771821000000017,
             "exit": 1,
             "load_before": [
               1.02,
-              1.96,
-              2.09
+              1.93,
+              1.93
             ],
             "load_after": [
               1.01,
-              1.81,
-              2.03
+              1.8,
+              1.89
             ],
             "inspected_files": 7464,
             "offenses": 761186,
@@ -2820,7 +2820,7 @@
     "ruby-progressbar": "1.13.0",
     "unicode-emoji": "4.3.0",
     "unicode-display_width": "3.3.0",
-    "rubocop": "1.91.0",
+    "rubocop": "1.92.0",
     "english": "0.8.1",
     "fileutils": "1.8.0",
     "stringio": "3.2.0",
@@ -2841,11 +2841,6 @@
     "ipaddr": "1.2.8",
     "securerandom": "0.4.1",
     "optparse": "0.8.1",
-    "net-http": "0.9.1",
-    "timeout": "0.6.0",
-    "net-protocol": "0.2.2",
-    "io-wait": "0.4.0",
-    "resolv": "0.7.2",
     "time": "0.4.2"
   },
   "enabled_cops": [

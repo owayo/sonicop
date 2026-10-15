@@ -49,7 +49,7 @@ sonicop --show-cops
 
 ### Cop conformance
 
-Measured on 2026-10-15 against RuboCop 1.89.0: **42,433 inputs in 1,543 configuration groups** from the upstream spec capture, plus **174 project-index cases and two filename-dependent cases**. The sweep preserves each group's `TargetRubyVersion`, filename type and Ruby configuration values. A cop counts as an **exact match** only when all offense records agree, including start and end positions, length, message, severity, correctability and duplicate records. Comparisons are kept separate for each run.
+Measured on 2026-10-16 against RuboCop 1.89.0: **42,433 inputs in 1,543 configuration groups** from the upstream spec capture, plus **174 project-index cases and two filename-dependent cases**. The sweep preserves each group's `TargetRubyVersion`, filename type and Ruby configuration values. A cop counts as an **exact match** only when all offense records agree, including start and end positions, length, message, severity, correctability and duplicate records. Comparisons are kept separate for each run.
 
 Six other configuration groups (161 inputs) are unmeasured: RuboCop's CLI rejects their null `EnforcedStyle` settings, although its spec helpers accept them. The table describes the measurable inputs, not every possible configuration.
 
@@ -179,37 +179,37 @@ The full Ruby corpus has not passed the idempotence gate. Like RuboCop, Sonicop 
 
 ## Performance
 
-Measured on 2026-10-15 in a [dedicated GitHub Actions run](https://github.com/owayo/sonicop/actions/runs/38730861317) with Ruby 4.0.7 (`RUBYOPT=--yjit`), RuboCop 1.91.0 and Sonicop revision `2ae1ec7`. Hardware: AMD EPYC 7763 64-Core Processor (4 logical CPUs), x86_64-pc-linux, runner image `20261012.334.1`. [Conformance](#conformance) remains pinned to RuboCop 1.89.0. The newer gem has 613 cops; Sonicop implements 609. Each defaults to 394 enabled cops, with one different name. Timing excludes RuboCop's `Lint/CopDirectiveSyntax` and Sonicop's `Style/DoubleCopDisableDirective`, leaving **393 shared cop names**.
+Measured on 2026-10-15 in a [dedicated GitHub Actions run](https://github.com/owayo/sonicop/actions/runs/38747062010) with Ruby 4.0.7 (`RUBYOPT=--yjit`), RuboCop 1.92.0 and Sonicop revision `6b3e850`. Hardware: AMD EPYC 9V74 80-Core Processor (4 logical CPUs), x86_64-pc-linux, runner image `20261004.327.1`. [Conformance](#conformance) remains pinned to RuboCop 1.89.0. The newer gem has 613 cops; Sonicop implements 609. Each defaults to 394 enabled cops, with one different name. Timing excludes RuboCop's `Lint/CopDirectiveSyntax` and Sonicop's `Style/DoubleCopDisableDirective`, leaving **393 shared cop names**.
 
 Input copies live outside project directories. CLI probes require target Ruby 3.3 for Rails (`RAILS_VERSION=8.2.0.alpha`), 4.0 for Mastodon and 2.7 for the other corpora on both tools. Both use `--force-default-config` and the **JSON formatter**. Every timed run checks complete inspection, target path sets and all offense fields against its own baseline. Ruby's two files that abort the reference are omitted from both timing copies: 7,464 of 7,466 targets are measured. Times are **fastest / median**, in seconds, from two runs in alternating tool order. Parallel runs use all available logical CPUs, `--cache true` and a fresh real-path cache root. Single-process runs use `--cache false`, with `--no-parallel` on Sonicop. Every timed run exited 1 after reporting offenses. Cache-file counts are retained in the results; no warm-cache timings are claimed.
 
 | Corpus | Revision | Files | RuboCop offenses | Sonicop offenses | RuboCop parallel | Sonicop parallel | RuboCop single | Sonicop single |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| rails/rails | `62b5458` | 3,551 | 167,899 | 167,760 | 57.54 / 57.60 | 10.92 / 10.94 | 101.77 / 101.83 | 26.03 / 26.05 |
-| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 31.42 / 31.44 | 3.76 / 3.76 | 51.26 / 51.46 | 9.13 / 9.14 |
-| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 27.67 / 27.74 | 4.01 / 4.01 | 43.55 / 43.69 | 9.73 / 9.75 |
-| Homebrew/brew | `38ee325` | 2,179 | 49,926 | 49,326 | 30.24 / 30.34 | 3.57 / 3.59 | 47.51 / 47.63 | 8.40 / 8.41 |
-| ruby/ruby | `3349f41` | 7,464 | 763,186 | 761,186 | 131.83 / 132.02 | 22.45 / 22.78 | 248.03 / 248.42 | 49.91 / 50.05 |
+| rails/rails | `62b5458` | 3,551 | 167,889 | 167,760 | 46.26 / 46.64 | 8.75 / 8.76 | 87.06 / 87.96 | 20.92 / 21.00 |
+| rubocop/rubocop | `f009b33` | 1,765 | 5,501 | 5,766 | 24.08 / 24.15 | 2.84 / 2.95 | 40.41 / 42.11 | 7.33 / 7.34 |
+| mastodon/mastodon | `fad3685` | 3,290 | 15,292 | 15,286 | 22.67 / 22.79 | 3.09 / 3.15 | 38.38 / 39.64 | 8.00 / 8.02 |
+| Homebrew/brew | `38ee325` | 2,179 | 49,921 | 49,326 | 23.22 / 23.42 | 2.87 / 2.89 | 40.77 / 41.41 | 6.80 / 6.80 |
+| ruby/ruby | `3349f41` | 7,464 | 763,132 | 761,186 | 108.14 / 110.48 | 19.90 / 19.93 | 230.07 / 235.02 | 45.83 / 46.42 |
 
 The newer reference performs different work, as the offense counts show. These times do not establish equivalent-work speed ratios or improvement over a previous Sonicop build. Single-process CPU times use the same fastest / median format:
 
 | Corpus | RuboCop user CPU | Sonicop user CPU | RuboCop system CPU | Sonicop system CPU |
 | --- | ---: | ---: | ---: | ---: |
-| rails/rails | 98.59 / 98.59 | 25.81 / 25.83 | 3.11 / 3.17 | 0.22 / 0.22 |
-| rubocop/rubocop | 48.97 / 49.15 | 9.08 / 9.10 | 2.25 / 2.26 | 0.04 / 0.05 |
-| mastodon/mastodon | 41.28 / 41.41 | 9.65 / 9.67 | 2.22 / 2.23 | 0.08 / 0.09 |
-| Homebrew/brew | 44.79 / 44.91 | 8.32 / 8.32 | 2.65 / 2.66 | 0.08 / 0.08 |
-| ruby/ruby | 242.65 / 243.12 | 49.16 / 49.30 | 5.12 / 5.20 | 0.74 / 0.75 |
+| rails/rails | 84.09 / 84.96 | 20.71 / 20.79 | 2.89 / 2.92 | 0.21 / 0.21 |
+| rubocop/rubocop | 38.48 / 40.13 | 7.27 / 7.29 | 1.88 / 1.92 | 0.05 / 0.06 |
+| mastodon/mastodon | 36.37 / 37.55 | 7.92 / 7.94 | 1.95 / 2.02 | 0.08 / 0.08 |
+| Homebrew/brew | 38.34 / 38.95 | 6.71 / 6.71 | 2.36 / 2.39 | 0.08 / 0.09 |
+| ruby/ruby | 225.00 / 229.71 | 45.05 / 45.63 | 4.93 / 5.17 | 0.77 / 0.78 |
 
 One-minute load averages at the first and last timed run, and the highest recorded sample:
 
 | Corpus | First | Last | Highest sample |
 | --- | ---: | ---: | ---: |
-| rails/rails | 1.59 | 1.06 | 4.34 |
-| rubocop/rubocop | 1.23 | 1.31 | 3.55 |
-| mastodon/mastodon | 1.13 | 1.41 | 3.58 |
-| Homebrew/brew | 1.72 | 1.51 | 4.44 |
-| ruby/ruby | 1.80 | 1.00 | 5.18 |
+| rails/rails | 1.33 | 1.08 | 4.45 |
+| rubocop/rubocop | 1.00 | 1.47 | 3.53 |
+| mastodon/mastodon | 1.22 | 1.49 | 3.20 |
+| Homebrew/brew | 1.63 | 1.47 | 3.33 |
+| ruby/ruby | 1.69 | 1.01 | 4.74 |
 
 The [recorded results](docs/benchmarks/2026-10-15.json) include cop counts, diagnostic differences, exit codes, CPU time, cache-file counts and runtime versions. Reproduce with `make benchmark`; see [development notes](docs/development.md#corpus-gates-and-benchmarks).
 

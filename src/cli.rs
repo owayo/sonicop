@@ -1054,12 +1054,32 @@ fn show_cops(filter: &str, config: &Config) {
         if let Some(description) = config.description(name) {
             println!(
                 "  Description: {}",
-                description.lines().next().unwrap_or("")
+                quoted_yaml_description(description.lines().next().unwrap_or(""))
             );
         }
         println!("  Enabled: {}", config.rule_enabled(name));
         println!("  Implemented: {}", implemented.contains(name));
     }
+}
+
+fn quoted_yaml_description(description: &str) -> String {
+    use std::fmt::Write as _;
+
+    // JSON の引用で no などの暗黙変換を防ぎ、YAML 1.1 が拒否・正規化する文字も逃がす。
+    let quoted = serde_json::to_string(description).expect("string descriptions must serialize");
+    let mut escaped = String::with_capacity(quoted.len());
+    for character in quoted.chars() {
+        if matches!(
+            character,
+            '\u{7f}'..='\u{9f}' | '\u{2028}' | '\u{2029}' | '\u{fffe}' | '\u{ffff}'
+        ) {
+            write!(&mut escaped, "\\u{:04X}", u32::from(character))
+                .expect("writing to a string cannot fail");
+        } else {
+            escaped.push(character);
+        }
+    }
+    escaped
 }
 
 fn show_docs_urls(filter: &str, config: &Config) {

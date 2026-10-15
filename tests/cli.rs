@@ -11,6 +11,8 @@ mod support;
 use std::fs;
 use std::process::Command;
 
+use serde_yaml_ng as serde_yaml;
+
 use support::project::{
     assert_offenses, command, lint_stdin, offense_tuples, offenses, project, project_with_ruby,
     project_without_pinned_ruby, report,
@@ -3404,5 +3406,71 @@ fn later_conditional_corrections_preserve_character_provenance() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn show_cops_descriptions_remain_loadable_yaml() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let listing: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+    assert_eq!(listing.as_mapping().unwrap().len(), 609);
+    // RuboCop 1.89.0 の --show-cops が返す文字列を保持する。
+    assert_eq!(
+        listing["Lint/BigDecimalNew"]["Description"].as_str(),
+        Some("`BigDecimal.new()` is deprecated. Use `BigDecimal()` instead.")
+    );
+    for description in [
+        "plain text",
+        "no",
+        "yes",
+        "on",
+        "value: with # punctuation",
+        "quote ' and \"",
+        "control \0 byte",
+        "line\u{85}break",
+        "line\u{2028}break",
+        "control\u{7f}byte",
+        "control\u{9f}byte",
+        "text\u{fffe}byte",
+        "文字 😀",
+    ] {
+        let config = format!(
+            "Lint/BigDecimalNew:\n  Description: !!str {}",
+            serde_yaml::to_string(description).unwrap()
+        );
+        std::fs::write(directory.path().join(".rubocop.yml"), config).unwrap();
+        let output = command(directory.path())
+            .args(["--show-cops=Lint/BigDecimalNew"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let listing: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+        assert_eq!(
+            listing["Lint/BigDecimalNew"]["Description"].as_str(),
+            Some(description)
+        );
+        // 再読込にも Ruby の YAML 1.1 と同じスカラ解釈を使わせる。
+        std::fs::write(directory.path().join(".rubocop.yml"), &output).unwrap();
+        let repeated = command(directory.path())
+            .args(["--show-cops=Lint/BigDecimalNew"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let repeated: serde_yaml::Value = serde_yaml::from_slice(&repeated).unwrap();
+        assert_eq!(
+            repeated["Lint/BigDecimalNew"]["Description"].as_str(),
+            Some(description)
+        );
     }
 }
