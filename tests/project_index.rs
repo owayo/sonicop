@@ -30,19 +30,27 @@ fn check_recorded_cases(cop: &str, count: usize) {
         .unwrap();
         let mut expected = case["expected"].clone();
         // 本家のメッセージに含まれる絶対パスだけを実行先に合わせる。
-        let root = directory
+        let canonical = directory
             .path()
             .canonicalize()
             .unwrap()
             .to_string_lossy()
             .replace('\\', "/");
+        // Windows の canonicalize が付ける拡張長接頭辞は、索引の表示パスに含まれない。
+        let root = canonical.strip_prefix("//?/").unwrap_or(&canonical);
         for file in expected.as_array_mut().unwrap() {
             for offense in file["offenses"].as_array_mut().unwrap() {
-                offense["message"] = offense["message"]
-                    .as_str()
-                    .unwrap()
-                    .replace("{root}", &root)
-                    .into();
+                let mut message = offense["message"].as_str().unwrap().to_owned();
+                if cfg!(windows) && cop == "Bundler/GemFilename" {
+                    // この cop は索引の正規化パスではなく、呼び出し元のファイルパスを表示する。
+                    for name in files.keys() {
+                        message = message.replace(
+                            &format!("{{root}}/{name}"),
+                            &directory.path().join(name).to_string_lossy(),
+                        );
+                    }
+                }
+                offense["message"] = message.replace("{root}", root).into();
             }
         }
         let expected = expected.as_array().unwrap();
