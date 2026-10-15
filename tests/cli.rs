@@ -2223,6 +2223,70 @@ fn a_deeply_nested_loop_condition_does_not_overflow_the_stack() {
     );
 }
 
+#[test]
+fn prism_frees_deep_left_associative_trees_on_parallel_workers() {
+    let source = format!("{}\n", vec!["1"; 300_000].join("+"));
+    let directory = project_with_ruby(&[("first.rb", &source), ("second.rb", &source)], "3.3");
+    let output = command(directory.path())
+        .args([
+            "--cache",
+            "false",
+            "--only",
+            "Lint/Syntax",
+            "-f",
+            "json",
+            ".",
+        ])
+        .assert()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    let found = report(&output);
+    assert_eq!(found.summary.target_file_count, 2);
+    assert_eq!(found.summary.inspected_file_count, 2);
+    assert_eq!(found.summary.offense_count, 0);
+}
+
+#[test]
+fn prism_frees_deep_trees_discarded_during_error_recovery() {
+    // 不正な代入先は pm_parse の途中で破棄されるので、最後の解放だけを直してもここで落ちる。
+    let source = format!("({}) = 2\n", vec!["1"; 300_000].join("+"));
+    let directory = project_with_ruby(&[("invalid.rb", &source), ("control.rb", "1\n")], "3.3");
+    let output = command(directory.path())
+        .args([
+            "--cache",
+            "false",
+            "--only",
+            "Lint/Syntax",
+            "-f",
+            "json",
+            ".",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    let found = report(&output);
+    assert_eq!(found.summary.target_file_count, 2);
+    assert_eq!(found.summary.inspected_file_count, 2);
+    assert!(found.summary.offense_count > 0);
+    assert!(
+        found
+            .files
+            .iter()
+            .find(|file| file.path == "control.rb")
+            .unwrap()
+            .offenses
+            .is_empty()
+    );
+    assert_eq!(
+        fs::read(directory.path().join("invalid.rb")).unwrap(),
+        source.as_bytes()
+    );
+}
+
 /// 本家は def・class・begin・括弧の閉じ位置で復帰する。ブロック内や右辺欠落では後続を捨てる。
 #[test]
 fn command_assignment_errors_resume_only_at_upstream_recovery_boundaries() {
