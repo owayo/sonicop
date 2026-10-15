@@ -2423,6 +2423,11 @@ fn frozen_comment_insertion_uses_the_decoded_first_token() {
     for case in cases.as_array().unwrap() {
         let before = case["before"].as_str().unwrap();
         let directory = project_with_ruby(&[("example.rb", before)], "2.7");
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            case["config"].to_string(),
+        )
+        .unwrap();
         // 本家もこの形では 200 パスで停止する。補正の収束と互換性を混同しない。
         let output = command(directory.path())
             .args([

@@ -133,13 +133,23 @@ fn last_special_comment_line(context: &RuleContext<'_>) -> Option<usize> {
     let mut special = None;
     let candidate = if token_text(first, context).starts_with(b"#!") {
         special = Some(first.line);
-        // 本家は後続コメントを tNL より先に返す。次がコードなら文字列後の改行で区切る。
+        // 直後のコメントは保留中の tNL より先に返るが、途中の空行では tNL が確定する。
         tokens.next().filter(|next| {
-            first.is_comment()
-                || next.is_comment()
-                || !context.source.slice(first.range.end..next.range.start)
-                    .split_inclusive('\n')
-                    .any(|part| part.ends_with('\n') && !part.ends_with("\\\n") && !part.ends_with("\\\r\n"))
+            let prism = match context.setting_of::<String>("AllCops", "ParserEngine").as_deref() {
+                Some("parser_whitequark") => false,
+                Some("parser_prism") => true,
+                _ => context.target_ruby_version() >= RubyVersion::new(3, 3),
+            };
+            let mut newlines = 0;
+            for part in context.source.slice(first.range.end..next.range.start).split_inclusive('\n') {
+                if part.ends_with('\n') && !part.ends_with("\\\n") && !part.ends_with("\\\r\n")
+                    && (prism || newlines == 0 || matches!(part, "\n" | "\r\n"))
+                {
+                    // whitequark は空白のある空行を読み飛ばすが、Prism はその改行も返す。
+                    newlines += 1;
+                }
+            }
+            first.is_comment() || newlines == 0 || (next.is_comment() && newlines == 1)
         })
     } else {
         Some(first)
