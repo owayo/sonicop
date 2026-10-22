@@ -5,4 +5,8 @@
 # GitHub Actions のランナー (minimal) では cargo fmt が無いと言われて落ちる
 rust = { version = "1.99.1", profile = "minimal", components = ["rustfmt", "clippy"] }
 # gem のラッパーとテスト (rake test:ruby)、gem の組み立て (rake gem / gem:platform) に使う
-ruby = "4.0.8"
+# RubyInstaller に 4.0.8 がまだないため、Windows は配布済みの 4.0.7 で検査する。
+ruby = [
+  { version = "4.0.8", os = ["linux", "macos"] },
+  { version = "4.0.7", os = ["windows"] },
+]
