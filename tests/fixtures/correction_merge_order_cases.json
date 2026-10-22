@@ -4,6 +4,8 @@
     "after": "# frozen_string_literal: true\n\nif !!a && b\n  foo\n  bar\nend\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-a",
@@ -126,6 +128,8 @@
     "after": "# frozen_string_literal: true\n\nif !a.nil? && b\n  foo\n  bar\nend\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-A",
@@ -248,6 +252,8 @@
     "after": "# frozen_string_literal: true\n\nif !a && b\n    foo\n    bar\n  end\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-a",
@@ -308,6 +314,8 @@
     "after": "# frozen_string_literal: true\n\nif !a && b\n    foo\n    bar\n  end\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-A",
@@ -368,6 +376,8 @@
     "after": "# frozen_string_literal: true\n\nif a && b\n  foo\n  bar\nend\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-a",
@@ -458,6 +468,8 @@
     "after": "# frozen_string_literal: true\n\nif a && b\n  foo\n  bar\nend\n",
     "args": [
       "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
       "--cache",
       "false",
       "-A",

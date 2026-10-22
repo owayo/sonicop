@@ -1050,17 +1050,20 @@ fn expanded(path: &Path, cwd: &Path) -> PathBuf {
     })
 }
 
-/// The path as RuboCop prints it (`PathUtil.smart_path`, `path_util.rb:50-62`): relative to the
-/// run's directory when it lies inside, and left absolute when it does not.
-///
-/// Separators are forced to `/` on every platform. Ruby normalizes them, so a Windows run that
-/// emitted `lib\a.rb` would match neither upstream output nor the `Include`/`Exclude` patterns
-/// users copy out of it.
+/// 本家 PathUtil.smart_path と同じく、起動位置の配下だけを相対パスで表示する。
+/// 区切りは Ruby と同じ / に統一する。Windows の正規化済み cwd は拡張長接頭辞を
+/// 持つため、通常形式の stdin 絶対パスと比較するときだけ安全に簡略化する。
 pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
     let target = expanded(path, cwd);
     let base = normalize(cwd);
-    target
-        .strip_prefix(&base)
+    let relative = target.strip_prefix(&base).ok();
+    #[cfg(windows)]
+    let relative = relative.or_else(|| {
+        dunce::simplified(&target)
+            .strip_prefix(dunce::simplified(&base))
+            .ok()
+    });
+    relative
         .unwrap_or(&target)
         .to_string_lossy()
         .replace('\\', "/")
@@ -2211,10 +2214,8 @@ mod tests {
         assert_eq!(by_cop["Style/FrozenStringLiteralComment"].offense_count, 1);
     }
 
-    /// A target typed as `./a.rb` reaches RuboCop's formatters as `/project/a.rb`, because file
-    /// discovery expands it before inspection, and so reports as `a.rb`. Leaving the `./` on would
-    /// change the path in every formatter that shortens one -- `simple`, `clang`, `tap`, `github`
-    /// and `json` among them.
+    /// 本家は探索時に絶対パスへ展開してから表示を短縮する。./ を残すと simple・clang・
+    /// tap・github・json などで表示が変わるため、存在しないパスでも字句的に検査する。
     #[test]
     fn smart_path_expands_a_target_before_shortening_it() {
         let cwd = Path::new("/project");
@@ -2223,8 +2224,31 @@ mod tests {
         assert_eq!(smart_path(Path::new("./sub/./a.rb"), cwd), "sub/a.rb");
         assert_eq!(smart_path(Path::new("a.rb"), cwd), "a.rb");
         assert_eq!(smart_path(Path::new("/project/a.rb"), cwd), "a.rb");
-        // Outside the run's directory RuboCop stops shortening and prints the expanded path.
+        // 起動位置の外は短縮せず、展開した絶対パスのまま表示する。
         assert_eq!(smart_path(Path::new("../other/a.rb"), cwd), "/other/a.rb");
+
+        #[cfg(windows)]
+        {
+            // stdin の通常形式と、canonicalize が返す拡張長形式を両方向で照合する。
+            for (target, cwd) in [
+                (r"C:\project\sub\a.rb", r"\\?\C:\project"),
+                (r"\\?\C:\project\sub\a.rb", r"C:\project"),
+                (
+                    r"\\server\share\project\sub\a.rb",
+                    r"\\?\UNC\server\share\project",
+                ),
+                (
+                    r"\\?\UNC\server\share\project\sub\a.rb",
+                    r"\\server\share\project",
+                ),
+            ] {
+                assert_eq!(smart_path(Path::new(target), Path::new(cwd)), "sub/a.rb");
+            }
+            assert_eq!(
+                smart_path(Path::new(r"C:\other\a.rb"), Path::new(r"\\?\C:\project")),
+                "C:/other/a.rb"
+            );
+        }
     }
 
     #[test]
