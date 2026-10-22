@@ -1050,56 +1050,20 @@ fn expanded(path: &Path, cwd: &Path) -> PathBuf {
     })
 }
 
-/// 本家 PathUtil.smart_path と同じく、起動位置の配下だけを相対パスで表示する。
-/// 区切りは Ruby と同じ / に統一する。Windows の正規化済み cwd は拡張長接頭辞を
-/// 持つため、通常形式の stdin 絶対パスと比較するときだけ安全に簡略化する。
+/// The path as RuboCop prints it (`PathUtil.smart_path`, `path_util.rb:50-62`): relative to the
+/// run's directory when it lies inside, and left absolute when it does not.
+///
+/// Separators are forced to `/` on every platform. Ruby normalizes them, so a Windows run that
+/// emitted `lib\a.rb` would match neither upstream output nor the `Include`/`Exclude` patterns
+/// users copy out of it.
 pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
     let target = expanded(path, cwd);
     let base = normalize(cwd);
-    let relative = target.strip_prefix(&base).ok();
-    #[cfg(windows)]
-    let relative = relative.or_else(|| {
-        dunce::simplified(&target)
-            .strip_prefix(dunce::simplified(&base))
-            .ok()
-            .or_else(|| strip_windows_unc_root(&target, &base))
-    });
-    relative
+    target
+        .strip_prefix(&base)
         .unwrap_or(&target)
         .to_string_lossy()
         .replace('\\', "/")
-}
-
-// dunce はドライブ形式だけを簡略化する。UNC はサーバーと共有名が同じときだけ
-// 接頭辞を同一視し、残りのコンポーネントをそのまま比較する。symlink や共有へアクセスしない。
-#[cfg(windows)]
-fn strip_windows_unc_root<'a>(target: &'a Path, base: &Path) -> Option<&'a Path> {
-    use std::path::Prefix;
-
-    let mut target_parts = target.components();
-    let mut base_parts = base.components();
-    let (Component::Prefix(target_prefix), Component::Prefix(base_prefix)) =
-        (target_parts.next()?, base_parts.next()?)
-    else {
-        return None;
-    };
-    let (target_server, target_share) = match target_prefix.kind() {
-        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => (server, share),
-        _ => return None,
-    };
-    let (base_server, base_share) = match base_prefix.kind() {
-        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => (server, share),
-        _ => return None,
-    };
-    if target_server != base_server || target_share != base_share {
-        return None;
-    }
-    for part in base_parts {
-        if Some(part) != target_parts.next() {
-            return None;
-        }
-    }
-    Some(target_parts.as_path())
 }
 
 /// The path RuboCop opened the file under: file discovery expands every target, so the absolute
@@ -2247,8 +2211,10 @@ mod tests {
         assert_eq!(by_cop["Style/FrozenStringLiteralComment"].offense_count, 1);
     }
 
-    /// 本家は探索時に絶対パスへ展開してから表示を短縮する。./ を残すと simple・clang・
-    /// tap・github・json などで表示が変わるため、存在しないパスでも字句的に検査する。
+    /// A target typed as `./a.rb` reaches RuboCop's formatters as `/project/a.rb`, because file
+    /// discovery expands it before inspection, and so reports as `a.rb`. Leaving the `./` on would
+    /// change the path in every formatter that shortens one -- `simple`, `clang`, `tap`, `github`
+    /// and `json` among them.
     #[test]
     fn smart_path_expands_a_target_before_shortening_it() {
         let cwd = Path::new("/project");
@@ -2257,38 +2223,8 @@ mod tests {
         assert_eq!(smart_path(Path::new("./sub/./a.rb"), cwd), "sub/a.rb");
         assert_eq!(smart_path(Path::new("a.rb"), cwd), "a.rb");
         assert_eq!(smart_path(Path::new("/project/a.rb"), cwd), "a.rb");
-        // 起動位置の外は短縮せず、展開した絶対パスのまま表示する。
+        // Outside the run's directory RuboCop stops shortening and prints the expanded path.
         assert_eq!(smart_path(Path::new("../other/a.rb"), cwd), "/other/a.rb");
-
-        #[cfg(windows)]
-        {
-            // stdin の通常形式と、canonicalize が返す拡張長形式を両方向で照合する。
-            for (target, cwd) in [
-                (r"C:\project\sub\a.rb", r"\\?\C:\project"),
-                (r"\\?\C:\project\sub\a.rb", r"C:\project"),
-                (
-                    r"\\server\share\project\sub\a.rb",
-                    r"\\?\UNC\server\share\project",
-                ),
-                (
-                    r"\\?\UNC\server\share\project\sub\a.rb",
-                    r"\\server\share\project",
-                ),
-            ] {
-                assert_eq!(smart_path(Path::new(target), Path::new(cwd)), "sub/a.rb");
-            }
-            assert_eq!(
-                smart_path(Path::new(r"C:\other\a.rb"), Path::new(r"\\?\C:\project")),
-                "C:/other/a.rb"
-            );
-            assert_eq!(
-                smart_path(
-                    Path::new(r"\\server\other\project\a.rb"),
-                    Path::new(r"\\?\UNC\server\share\project")
-                ),
-                "//server/other/project/a.rb"
-            );
-        }
     }
 
     #[test]

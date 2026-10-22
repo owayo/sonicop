@@ -2075,10 +2075,12 @@ fn nested_configuration_keeps_the_process_directory_in_diagnostic_paths() {
         .replace('\\', "/");
     // Windows の拡張長接頭辞は、エディタが渡す通常の絶対パスには含まれない。
     let root = canonical.strip_prefix("//?/").unwrap_or(&canonical);
+    // 本家も短縮名と長い名前の表記が違えば絶対表示を保つ。cwd と入力を揃え、
+    // 設定探索による cwd のすり替えだけを検査する。
     let absolute = std::path::Path::new(root).join("nested/lib/probe.rb");
     let relative = std::path::Path::new("nested/lib/probe.rb");
     for target in [absolute.as_path(), relative] {
-        let output = command(directory.path())
+        let output = command(std::path::Path::new(root))
             .args([
                 "--cache",
                 "false",
@@ -2101,7 +2103,7 @@ fn nested_configuration_keeps_the_process_directory_in_diagnostic_paths() {
         );
     }
     // 引数を省いた探索も絶対パスを渡すため、stdin 以外の経路を別に確かめる。
-    let output = command(directory.path())
+    let output = command(std::path::Path::new(root))
         .args([
             "--cache",
             "false",
@@ -3575,4 +3577,37 @@ fn show_cops_descriptions_remain_loadable_yaml() {
             Some(description)
         );
     }
+}
+
+#[test]
+fn parser_updates_do_not_add_a_star_error_to_valid_percent_literals() {
+    let source = include_str!("fixtures/percent_literal_recovery.rb");
+    let directory = project(&[("example.rb", source)]);
+    let output = command(directory.path())
+        .args([
+            "--force-default-config",
+            "--cache",
+            "false",
+            "--only",
+            "Lint/Syntax",
+            "-f",
+            "json",
+            "example.rb",
+        ])
+        .output()
+        .unwrap();
+    assert!(matches!(output.status.code(), Some(0 | 1)));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["summary"]["inspected_file_count"], 1);
+    assert_eq!(report["summary"]["target_file_count"], 1);
+    // 本家は構文診断0件。既知の EOF 回復差を正解へ固定せず、追加された誤診断を監視する。
+    assert!(
+        offenses(&output.stdout)
+            .iter()
+            .all(|offense| { !offense.message.starts_with("unexpected token tSTAR\n") })
+    );
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
 }

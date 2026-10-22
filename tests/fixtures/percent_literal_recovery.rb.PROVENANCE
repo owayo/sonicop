@@ -1,0 +1,10 @@
+Ruby コーパスの有効な入力から縮小した36バイト。末尾の改行はない。
+RuboCop 1.89.0 / Ruby 4.0.7 / rubocop-ast 1.50.0 / Prism 1.8.1。
+独立したディレクトリで --force-default-config --cache false --only Lint/Syntax -f json example.rb
+を実行すると、終了0、検査1、offense0となる。ソースは実行せず構文だけを検査した。
+
+tree-sitter 0.27.0 は EOF の既知の誤診断を残す。0.27.1 ではさらに tSTAR が増える。
+回帰テストは既知の EOF を期待値へ固定せず、本家が出さない tSTAR の追加だけを拒む。
+全診断項目の互換性は別の CLI 掃引と固定コーパスでも検査する。
+Ruby 4.0.8 / Prism 1.8.2 でも同じ0件を確認した。文法側の課題は
+https://github.com/owayo/tree-sitter-ruby/issues/6 で追跡する。
