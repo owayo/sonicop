@@ -5,14 +5,15 @@ const MSG: &str = "More than one disable comment on one line.";
 const DIRECTIVES: [&str; 2] = ["# rubocop:disable", "# rubocop:todo"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    for node in context.nodes_of("comment") {
-        let text = context.source.node_text(node);
+    // 本家のコメント範囲は CRLF の CR を含まない。診断と編集を同じ索引の範囲へ向ける。
+    for range in context.comment_ranges() {
+        let text = context.source.slice(range.clone());
         if count_directives(text) < 2 {
             continue;
         }
-        offenses.push(context.offense(MSG, node.byte_range()).corrected_by(Edit {
-            start: node.start_byte(),
-            end: node.end_byte(),
+        offenses.push(context.offense(MSG, range.clone()).corrected_by(Edit {
+            start: range.start,
+            end: range.end,
             replacement: joined(text),
             safe: true,
         }));
