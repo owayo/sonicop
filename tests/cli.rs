@@ -2025,6 +2025,98 @@ fn stdin_autocorrect_appends_the_corrected_buffer_to_the_report() {
     );
 }
 
+#[test]
+fn correction_merge_order_matches_recorded_upstream_on_disk() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/correction_merge_order_cases.json")).unwrap();
+    for (index, case) in cases.iter().enumerate() {
+        let directory = project(&[("example.rb", case["before"].as_str().unwrap())]);
+        let args: Vec<_> = case["args"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap())
+            .collect();
+        let output = command(directory.path())
+            .args(&args)
+            .assert()
+            .code(case["exit"].as_i64().unwrap() as i32)
+            .get_output()
+            .stdout
+            .clone();
+        let actual: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_eq!(actual["files"], case["expected"], "case {index}: {args:?}");
+        assert_eq!(actual["summary"], case["summary"], "case {index}: {args:?}");
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            case["after"].as_str().unwrap().as_bytes(),
+            "case {index}: {args:?}"
+        );
+    }
+}
+
+#[test]
+fn nested_configuration_keeps_the_process_directory_in_diagnostic_paths() {
+    let directory = project(&[
+        (
+            "nested/.rubocop.yml",
+            "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+        ),
+        (
+            "nested/lib/probe.rb",
+            "class Foo\n  def bar; end\n\n  def bar; end\nend\n",
+        ),
+    ]);
+    let absolute = directory
+        .path()
+        .join("nested/lib/probe.rb")
+        .canonicalize()
+        .unwrap();
+    let relative = std::path::Path::new("nested/lib/probe.rb");
+    for target in [absolute.as_path(), relative] {
+        let output = command(directory.path())
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Lint/DuplicateMethods",
+                "-f",
+                "json",
+                "--stdin",
+            ])
+            .arg(target)
+            .write_stdin("class Foo\n  def bar; end\n\n  def bar; end\nend\n")
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        assert_eq!(
+            offenses(&output)[0].message,
+            "Method `Foo#bar` is defined at both nested/lib/probe.rb:2 and nested/lib/probe.rb:4."
+        );
+    }
+    // 引数を省いた探索も絶対パスを渡すため、stdin 以外の経路を別に確かめる。
+    let output = command(directory.path())
+        .args([
+            "--cache",
+            "false",
+            "--only",
+            "Lint/DuplicateMethods",
+            "-f",
+            "json",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(
+        offenses(&output)[0].message,
+        "Method `Foo#bar` is defined at both nested/lib/probe.rb:2 and nested/lib/probe.rb:4."
+    );
+}
+
 /// `--format json` などの統合向け formatter には何も足さない。
 ///
 /// `INTEGRATION_FORMATTERS` に載る形式は出力全体を機械が読むので、生の Ruby を継ぎ足すと

@@ -46,9 +46,7 @@ impl ConfigStore {
                 .filter(|parent| !parent.as_os_str().is_empty())
                 .unwrap_or(Path::new("."))
         };
-        // `find_config` canonicalizes and stats every ancestor directory, so keying only
-        // the resolved configuration path made every file pay that cost again. Directories
-        // are far fewer than the files below them, so memoize on the directory itself.
+        // 設定探索で各祖先を canonicalize/stat する費用を、ファイルより少ないディレクトリで共有する。
         if let Some(config) = cached(&self.directories, start)? {
             return Ok(config);
         }
@@ -63,7 +61,12 @@ impl ConfigStore {
             match cached(&self.cache, &key)? {
                 Some(config) => config,
                 None => {
-                    let config = Arc::new(Config::load(discovered.as_deref(), start)?);
+                    // 探索の始点と診断のパス表示の基準を分ける。後者は常に実行時の cwd。
+                    let config = Arc::new(Config::load_with_options(
+                        discovered.as_deref(),
+                        self.root.cwd(),
+                        discovered.is_none(),
+                    )?);
                     if !self.ignore_unrecognized && !config.unrecognized_cop_names().is_empty() {
                         bail!(
                             "unrecognized cop(s): {}",
@@ -127,6 +130,7 @@ mod tests {
 
         assert!(root_config.rule_enabled("Layout/TrailingWhitespace"));
         assert!(!nested_config.rule_enabled("Layout/TrailingWhitespace"));
+        assert_eq!(nested_config.cwd(), root_config.cwd());
         assert_eq!(
             nested_config.config_path(),
             Some(

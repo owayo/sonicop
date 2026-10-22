@@ -2191,13 +2191,13 @@ struct Family {
     contained: Option<Vec<Action>>,
 }
 
-/// Where a cop's corrections sit in the run's merge order.
-///
-/// RuboCop gives every cop its own corrector and merges them into the run's one at a time, in the
-/// order the registry lists them: departments in the order `rubocop.rb` requires them, then the
-/// cops of a department in the order they register, which is alphabetical bar a handful loaded
-/// ahead of their alphabetical place so that a base class is defined before its subclass.
+/// Team#each_corrector は名前順ではなく、依存クラスの先行読込も含む実際の登録順でマージする。
+/// 無限ループの原因一覧と同じ記録を使い、補正の競合と非互換宣言の優先順を揃える。
 fn cop_merge_order(cop_name: &str) -> (usize, &str) {
+    if let Some((rank, _)) = cop_autocorrect_metadata(cop_name) {
+        return (rank, cop_name);
+    }
+    // テスト用の架空名は組込み cop の後へ置き、部門と名前による順序を保つ。
     const DEPARTMENTS: [&str; 9] = [
         "Bundler",
         "Gemspec",
@@ -2214,7 +2214,7 @@ fn cop_merge_order(cop_name: &str) -> (usize, &str) {
         .iter()
         .position(|name| *name == department)
         .unwrap_or(DEPARTMENTS.len());
-    (index, cop_name)
+    (crate::formatter::COP_REGISTRY_ORDER.len() + index, cop_name)
 }
 
 /// `Cop::Base.autocorrect_incompatible_with`: the cops whose corrections are dropped for the rest
@@ -4524,9 +4524,14 @@ mod tests {
 
     #[test]
     fn cops_merge_in_registry_order() {
-        // Departments merge in the order `rubocop.rb` requires them and cops alphabetically within
-        // one, so the insertion RuboCop schedules first is the one that ends up innermost -- and a
-        // replacement reaching over an insertion loses to whichever was scheduled first.
+        // 名前順から先行するクラスも含め、全 cop が本家の登録順へ戻ることを確かめる。
+        let mut names = crate::formatter::COP_REGISTRY_ORDER.to_vec();
+        names.reverse();
+        names.sort_by(|left, right| {
+            super::cop_merge_order(left).cmp(&super::cop_merge_order(right))
+        });
+        assert_eq!(names, crate::formatter::COP_REGISTRY_ORDER);
+        // 先にマージする挿入ほど内側になる。架空名による補正ツリーの対照も保つ。
         assert_eq!(
             composed(
                 "abcdefghij",

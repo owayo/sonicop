@@ -1,0 +1,8 @@
+RuboCop 1.89.0 / Ruby 4.0.7 / rubocop-ast 1.50.0 / Prism 1.8.1。
+TargetRubyVersion 2.7 の独立したディレクトリで、実際の CLI 出力を記録した。
+
+unless !a、if !a、if a の外側条件に if b を入れ子にした6ケース。
+safe/unsafe 補正の終了コード、JSON の files/summary 全体、ディスク上の補正後バイトを保持する。
+args は各実行へ渡した引数そのもの。既定設定では --only を付けず、
+限定した2ケースだけ NegatedIf/SoleNestedConditional の組み合わせを指定する。
+本家の Registry の順序が名前順と異なる場合の補正マージと非互換宣言を検査する。
