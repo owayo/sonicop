@@ -192,7 +192,7 @@ jobs:
         shell: bash
         env:
           SONICOP_BINARY: target/debug/sonicop.exe
-        run: SONICOP_BINARY="$(pwd)/$SONICOP_BINARY" ruby scripts/record_windows_paths.rb > windows-paths.json
+        run: ruby scripts/record_windows_paths.rb > windows-paths.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
