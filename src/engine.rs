@@ -4976,9 +4976,8 @@ mod tests {
         );
     }
 
-    /// Every name on an inode is the file. Unlinking it to put another in its place leaves the
-    /// other names on text the run has already reported as corrected.
-    #[cfg(unix)]
+    /// 同じファイルの別名を残したまま置換すると、補正済みと報告した本文が別名へ届かない。
+    #[cfg(any(unix, windows))]
     #[test]
     fn write_corrected_keeps_a_hard_linked_inode_shared() {
         let directory = tempdir().unwrap();
@@ -4989,15 +4988,20 @@ mod tests {
 
         write_corrected(&first, "y = 2\n").unwrap();
 
+        assert!(
+            same_file::is_same_file(&first, &second).unwrap(),
+            "補正でハードリンクの共有が失われた"
+        );
+        #[cfg(unix)]
         assert_eq!(
             std::os::unix::fs::MetadataExt::nlink(&std::fs::metadata(&first).unwrap()),
             2,
-            "the inode was unlinked and the second name left behind"
+            "補正で元の inode へのリンクが失われた"
         );
         assert_eq!(
             std::fs::read_to_string(&second).unwrap(),
             "y = 2\n",
-            "the other name for the same file still holds the old text"
+            "同じファイルの別名に補正前の本文が残った"
         );
     }
 
