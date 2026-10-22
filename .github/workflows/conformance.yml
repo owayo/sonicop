@@ -185,11 +185,16 @@ jobs:
         with:
           minimum_release_age: 14d
           cache: false
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --locked
       - run: gem install rubocop -v 1.89.0 --no-document
       - name: Record upstream paths and negative controls
         shell: bash
-        run: ruby scripts/record_windows_paths.rb > windows-paths.json
+        env:
+          SONICOP_BINARY: target/debug/sonicop.exe
+        run: SONICOP_BINARY="$(pwd)/$SONICOP_BINARY" ruby scripts/record_windows_paths.rb > windows-paths.json
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: windows-path-reference
           path: windows-paths.json
