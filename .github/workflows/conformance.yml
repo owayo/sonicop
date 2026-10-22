@@ -3,6 +3,11 @@ name: Corpus conformance
 on:
   # 長時間の測定は対象コミットを明示して起動し、結果を文書へ記録する。
   workflow_dispatch:
+    inputs:
+      windows_reference_only:
+        description: Record Windows path behavior using the reference CLI only
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,6 +17,7 @@ env:
 
 jobs:
   corpus:
+    if: ${{ inputs.windows_reference_only != true }}
     name: Corpus (${{ matrix.name }})
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -82,6 +88,7 @@ jobs:
             ${{ runner.temp }}/corpus-check/*/*.err
 
   ruby-safety:
+    if: ${{ inputs.windows_reference_only != true }}
     name: Ruby corpus candidate safety (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -161,3 +168,28 @@ jobs:
             ${{ runner.temp }}/ruby-safety/*/*.json
             ${{ runner.temp }}/ruby-safety/*/*.err
             ${{ runner.temp }}/ruby-safety/*/*.exit
+
+  windows-reference:
+    if: ${{ inputs.windows_reference_only == true }}
+    runs-on: windows-2025
+    timeout-minutes: 15
+    env:
+      MISE_ENV: ""
+    steps:
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@v4
+        with:
+          minimum_release_age: 14d
+          cache: false
+      - run: gem install rubocop -v 1.89.0 --no-document
+      - name: Record upstream paths and negative controls
+        shell: bash
+        run: ruby scripts/record_windows_paths.rb > windows-paths.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-path-reference
+          path: windows-paths.json
