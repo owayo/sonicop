@@ -2067,11 +2067,15 @@ fn nested_configuration_keeps_the_process_directory_in_diagnostic_paths() {
             "class Foo\n  def bar; end\n\n  def bar; end\nend\n",
         ),
     ]);
-    let absolute = directory
+    let canonical = directory
         .path()
-        .join("nested/lib/probe.rb")
         .canonicalize()
-        .unwrap();
+        .unwrap()
+        .to_string_lossy()
+        .replace('\\', "/");
+    // Windows の拡張長接頭辞は、エディタが渡す通常の絶対パスには含まれない。
+    let root = canonical.strip_prefix("//?/").unwrap_or(&canonical);
+    let absolute = std::path::Path::new(root).join("nested/lib/probe.rb");
     let relative = std::path::Path::new("nested/lib/probe.rb");
     for target in [absolute.as_path(), relative] {
         let output = command(directory.path())

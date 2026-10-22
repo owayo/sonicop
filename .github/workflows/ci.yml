@@ -46,6 +46,18 @@ jobs:
       - run: make setup
       - run: make ci
 
+      - name: Check foreign ownership under root
+        shell: bash
+        run: |
+          # File.write は所有者を変えない。root が補正する場合も実ファイルで検査する。
+          binary=$(cargo test --locked --lib --no-run --message-format=json | ruby -rjson -e '
+            STDIN.each_line do |line|
+              row = JSON.parse(line)
+              puts row["executable"] if row["reason"] == "compiler-artifact" && row.dig("target", "name") == "sonicop" && row["executable"]
+            end')
+          test -n "$binary"
+          sudo -n "$binary" --exact engine::tests::write_corrected_keeps_foreign_ownership_when_running_as_root --nocapture
+
       # make ci の gem-check が作った source gem
       - uses: actions/upload-artifact@v7
         with:
