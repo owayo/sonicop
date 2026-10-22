@@ -1,6 +1,6 @@
 # Cop conformance
 
-The [README table](../README.md#cop-conformance) was regenerated on 2026-10-15 from full-field CLI comparisons against RuboCop 1.89.0 on Ruby 4.0.7, with rubydex 0.4.1 as the project-index reference. It records **609 cop names, 609 exercised cops and 609 exact matches**. Registration, coverage and correctness are separate measurements. Real-project results are in [CONFORMANCE.md](../CONFORMANCE.md).
+The [README table](../README.md#cop-conformance) was regenerated on 2026-10-22 from full-field CLI comparisons against RuboCop 1.89.0 on Ruby 4.0.8, with rubydex 0.4.1 as the project-index reference. It records **609 cop names, 609 exercised cops and 609 exact matches**. Registration, coverage and correctness are separate measurements. Real-project results are in [CONFORMANCE.md](../CONFORMANCE.md).
 
 ## Inputs and comparison
 

@@ -93,12 +93,12 @@ ruby scripts/dump_display_width.rb > src/display_width_table.rs
 `tests/fixtures/regexp_trees.jsonl` follows the same pattern; its provenance is in the neighbouring
 `.PROVENANCE` file.
 
-**The result cache must never serve a stale verdict.** Everything a cop's answer depends on has to
-be part of the cache identity or the per-file stat: the build fingerprint, the configuration digest,
-the cop selection, and the file's size, modification time *and* permission bits — `Lint/ScriptPermission`
-reads the mode, which `chmod` changes without touching the bytes. The stat is taken **before** the
-file is read; taken afterwards, a rewrite landing in between pairs the old report with the new stat
-and the next run accepts it as fresh. Bump `RESULT_CACHE_SCHEMA` when the stored shape changes.
+**結果キャッシュは本文も照合する。** ビルドの fingerprint、設定の digest、cop 選択、
+ファイルのサイズ・更新時刻・権限を検査する。権限は `Lint/ScriptPermission` が使う。
+同じサイズの書き換え後に mtime を戻すこともできるため、stat の一致だけでは再利用しない。
+保存済みの復号本文 digest も毎回確認し、I/O の前に索引の read lock を解放する。
+stat は本文を読む前に取得し、digest は NUL 処理前の本文から作る。
+保存形式を変えた場合は `RESULT_CACHE_SCHEMA` を上げる。
 
 **Remote inherited configurations are bounded.** Network operations time out after 30 seconds and
 each response may contain at most 5 MiB. `ureq` rejects a body whose length equals the value passed
@@ -168,9 +168,43 @@ blocked in the kernel while `user` time stayed flat. A default run has the cache
 path most users are on and the one a `--cache false` comparison never measures. Keep the
 `BufWriter` in `persist_cache_index`, and record `real` beside `user` when timing this path.
 
-**Autocorrect writes to real source files.** Corrections go through a temp file so a killed writer
-cannot leave a truncated file, and permissions are preserved. Anything touching that path needs a
-test that inspects the file on disk afterwards, not just the reported offenses.
+**補正は原本の書き込み可否と属性を守る。** 読み取り専用の原本を親への rename 権限だけで
+変更してはいけない。まず truncate せず書き込み用に開き、OS の判定に従う。通常は一時
+ファイルを使うが、symlink・hardlink・Unix の所有者や拡張属性・macOS ACL を失う場合は
+同じファイルへ書く。親へ一時ファイルを作れない場合も、原本に書ければ本家と同じ経路を使う。
+この経路の書き込みは原子的ではない。Windows のリンク数はファイル情報 API で取得し、
+失敗時は書き込まずエラーにする。診断だけでなくディスク上の本文・リンク・属性を検査する。
+
+**補正の結合順は Registry の実順序を使う。** `config/autocorrect_support.json` は
+単純な名前順と異なる本家の登録順を記録したものでもある。
+結合順と無限ループの cop 表示順は同じ記録へ向ける。`unless !a` と入れ子 if の組み合わせは、
+名前順へ戻すと `-a` と `-A` の両方で出力が変わる。6 件の本家 CLI 記録をディスクで照合する。
+
+**検査結果は対象ファイルの順を保つ。** 本家はディレクトリ内を文字列順に展開し、
+明示引数は指定された順に検査する。検査後に Path の構成要素で並べ直すと、
+`foo/bar.rb` が `foo.rb` より先になり、引数の順も失われる。
+rayon の indexed collect と逐次の collect が保った入力順をそのまま使う。
+並列・単一、キャッシュの有無と再実行、ディレクトリ・正順・逆順の引数を一緒に検査する。
+
+**入れ子設定の探索位置とプロセスの cwd は別物。** サブディレクトリの設定を読み込んでも
+診断中のパスは起動位置を基準にする。絶対パスの stdin・相対パスの stdin・ディスク探索を
+一緒に確認し、設定ファイルのディレクトリで cwd を上書きしない。
+Windows の短縮名と長い名前を、表示のために無条件で同一視しない。本家は cwd との
+文字列の一致で短縮するため、同じファイルでも入力の表記によって絶対表示を保つ。
+`conformance.yml` の `windows_reference_only` は3形式の stdin と通常探索を実測する。
+Ruby の `File.realpath` は Windows の短縮名を保持し、Rust の canonicalize と同じ文字列に
+なるとは限らない。比較用入力の長い名前は Windows API で取得し、実際の cwd と両者の
+JSON を保存する。パスの同一性だけを根拠に表示の互換性を変更しない。
+
+**依存更新も構文診断を変える。** tree-sitter 0.27.1 は、同じ grammar でも有効な
+percent literal の回復を変え、既知の EOF 診断に誤った `tSTAR` を追加した。
+本家が受理する最小入力を保存し、0.27.0 を維持する。回帰テストは新たな誤診断を拒むが、
+既知の EOF 誤診断を期待値へ固定しない。将来の修正で両方消えることを妨げない。
+
+**source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
+`build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。
+`cargo metadata` の `target_directory` を使い、取得失敗時は Makefile の生成前に止める。
+通常・絶対・相対・設定ファイルの各指定を、小さな実ビルドから導入・起動まで検査する。
 
 **補正後は部分式ではなくスクリプトとして検査する。** 診断用 Prism の partial_script は、
 トップレベルの break 等も受理する。診断設定は互換性のため維持し、書き戻す最終出力を
@@ -441,11 +475,11 @@ whitequark と Prism は空行・行継続・EOF のコメントに対する `tN
 
 ## Conformance measurement
 
-2026-10-16 の CLI 掃引は **登録 609 / 発火 609 / 全項目一致 609**。
+2026-10-22 の CLI 掃引は **登録 609 / 発火 609 / 全項目一致 609**。
 測定可能な 42,433 入力・1,543 設定群に、索引 174 ケースとファイル名依存 2 ケースを加えた。
 本家 CLI が設定を拒む 6 設定群・161 入力は未測定として分ける。
-テスト関数は Rust 2,318・Ruby 77・検証ツール 15 の計 2,410 件。
-このメンテナンスで追加したものは 64 件で、fixture 内の入力数とは分けて数える。
+テスト関数は Rust 2,328・Ruby 82・検証ツール 15 の計 2,425 件。
+このメンテナンスで追加したものは 15 件で、fixture 内の入力数とは分けて数える。
 実コードの既知差分まで解消したという意味ではない。固定 SHA と数値の正本は
 `CONFORMANCE.md` とし、README のテーブルは必ず計測結果から生成する。
 
@@ -490,9 +524,9 @@ JSON・stderr・終了コードを `OUT_DIR` に残す。比較処理を変え�
 補正済み全体と見なすと、未検査の原本と比較して候補側だけの破壊と誤分類する。
 本家が完走しない場合は --candidate-only で候補の安全性を分けて測り、互換性は主張しない。
 
-2026-10-15 の速度表は専用実行 `38747062010` の結果から生成した。
-Ruby 4.0.7 / RuboCop 1.92.0 と共通393 copで測り、挙動の仕様版は1.89.0のままにする。
-CPU・コーパスSHA・全計測の終了コードと診断数は `docs/benchmarks/2026-10-15.json` が正本。
+2026-10-22 の速度表は専用実行 `39778331289` の結果から生成した。
+Ruby 4.0.8 / RuboCop 1.92.1 と共通393 copで測り、挙動の仕様版は1.89.0のままにする。
+CPU・コーパスSHA・全計測の終了コードと診断数は `docs/benchmarks/2026-10-22.json` が正本。
 検出内容が違う新版との時間を、同じ仕事での速度倍率として説明しない。
 
 **速度は `make benchmark` と専用の Benchmark ワークフローで測る。**

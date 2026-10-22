@@ -1,6 +1,6 @@
 # Cop 別の一致状況
 
-[README の表](../README.ja.md#cop-別の一致状況)は、2026-10-15 に Ruby 4.0.7 上の RuboCop 1.89.0 と CLI 出力を全項目で比較して再生成しました。索引の参照実装は rubydex 0.4.1 です。**登録 609 Cop、発火 609 Cop、完全一致 609 Cop** です。登録・被覆・正確性を分けて測っています。実プロジェクトの結果は [CONFORMANCE.md](../CONFORMANCE.md) に記録しています。
+[README の表](../README.ja.md#cop-別の一致状況)は、2026-10-22 に Ruby 4.0.8 上の RuboCop 1.89.0 と CLI 出力を全項目で比較して再生成しました。索引の参照実装は rubydex 0.4.1 です。**登録 609 Cop、発火 609 Cop、完全一致 609 Cop** です。登録・被覆・正確性を分けて測っています。実プロジェクトの結果は [CONFORMANCE.md](../CONFORMANCE.md) に記録しています。
 
 ## 入力と比較
 
