@@ -27,17 +27,19 @@ rayon = "1.12.0"
 regex = "1.13.1"
 # RuboCop 1.89.0 が利用する rubydex 0.4.1 と同じ索引・パーサを固定する。
 rubydex = { git = "https://github.com/Shopify/rubydex.git", rev = "43926a2999b8693d1fa1d7b8bead58cb1b0a3f6f" }
+# 固定した rubydex は Prism 1.9 を使う。2.x は同じ links 名の native library と競合する。
 ruby-prism = "=1.9.0"
 same-file = "1.0.6"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+serde_json = "1.0.154"
 serde_yaml_ng = "0.10"
 shell-words = "1.1.1"
 sonicop-prism-compat = { path = "crates/sonicop-prism-compat" }
 tempfile = "3.27.0"
-tree-sitter = "0.27.0"
+# 0.27.1 の回復木は有効なリテラルに tSTAR を追加する。文法側の修正まで退行を防ぐ (owayo/tree-sitter-ruby#6)。
+tree-sitter = "=0.27.0"
 tree-sitter-ruby = { git = "https://github.com/owayo/tree-sitter-ruby.git", tag = "v26.10.101" }
-ureq = { version = "3.4.2", default-features = false, features = ["native-tls"] }
+ureq = { version = "3.5.0", default-features = false, features = ["native-tls"] }
 unsafe-libyaml = "0.2.11"
 
 [dev-dependencies]
@@ -45,6 +47,15 @@ assert_cmd = "2.2.2"
 
 [build-dependencies]
 blake3 = "1.8.7"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[target.'cfg(unix)'.dependencies]
+xattr = "1.6.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+exacl = { version = "0.13.0", default-features = false }
 
 [profile.release]
 lto = true

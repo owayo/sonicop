@@ -26,6 +26,64 @@ fn syntax_message(reason: &str, target_ruby: &str) -> String {
 }
 
 #[test]
+fn reports_keep_the_reference_file_and_argument_order() {
+    let cases: [(&[&str], &[&str]); 3] = [
+        (&["."], &["foo.rb", "foo/bar.rb"]),
+        (&["foo/bar.rb", "foo.rb"], &["foo/bar.rb", "foo.rb"]),
+        (&["foo.rb", "foo/bar.rb"], &["foo.rb", "foo/bar.rb"]),
+    ];
+    // 本家 1.89.0 はディレクトリ内を文字列順に展開し、引数間の順番は保持する。
+    for cache in ["false", "true"] {
+        for parallel in [false, true] {
+            let directory = project(&[("foo.rb", "puts 1\n"), ("foo/bar.rb", "puts 2\n")]);
+            for (arguments, expected) in cases {
+                for _ in 0..if cache == "true" { 2 } else { 1 } {
+                    let mut invocation = command(directory.path());
+                    invocation.args([
+                        "--force-default-config",
+                        "--cache",
+                        cache,
+                        "--only",
+                        "Lint/Syntax",
+                        "-f",
+                        "json",
+                    ]);
+                    if cache == "true" {
+                        invocation
+                            .arg("--cache-root")
+                            .arg(fs::canonicalize(directory.path()).unwrap().join("cache"));
+                    }
+                    if !parallel {
+                        invocation.arg("--no-parallel");
+                    }
+                    let output = invocation
+                        .args(arguments)
+                        .assert()
+                        .success()
+                        .get_output()
+                        .stdout
+                        .clone();
+                    let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                    assert_eq!(found["summary"]["inspected_file_count"], 2);
+                    assert_eq!(found["summary"]["target_file_count"], 2);
+                    assert_eq!(found["summary"]["offense_count"], 0);
+                    let paths: Vec<_> = found["files"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|file| file["path"].as_str().unwrap())
+                        .collect();
+                    assert_eq!(
+                        paths, expected,
+                        "{arguments:?}, cache={cache}, parallel={parallel}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn reports_json_using_rubocop_shape() {
     let directory = project(&[]);
     let output = lint_stdin(
@@ -1867,9 +1925,10 @@ fn autocorrect_writes_through_a_symlink_and_leaves_it_a_symlink() {
 ///
 /// rename は inode を unlink するので link 数が 1 に落ち、同じ inode を指していたもう一方の
 /// 名前は古い本文のまま取り残される。どちらも警告なしに起きるので、link 数と本文の両方を見る。
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
 fn autocorrect_keeps_a_hard_linked_file_shared() {
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
 
     let directory = project(&[("one.rb", "y  = 2\nputs y\n")]);
@@ -1881,6 +1940,11 @@ fn autocorrect_keeps_a_hard_linked_file_shared() {
         .assert()
         .code(0);
 
+    assert!(
+        same_file::is_same_file(directory.path().join("one.rb"), &other).unwrap(),
+        "-A が hard link の共有を失わせた"
+    );
+    #[cfg(unix)]
     assert_eq!(
         fs::metadata(&other).unwrap().nlink(),
         2,
@@ -2016,6 +2080,104 @@ fn stdin_autocorrect_appends_the_corrected_buffer_to_the_report() {
     assert!(
         stdout.ends_with("====================\ny = 2\n"),
         "区切りと修正後ソースが末尾に無い:\n{stdout}"
+    );
+}
+
+#[test]
+fn correction_merge_order_matches_recorded_upstream_on_disk() {
+    let cases: Vec<serde_json::Value> =
+        serde_json::from_str(include_str!("fixtures/correction_merge_order_cases.json")).unwrap();
+    for (index, case) in cases.iter().enumerate() {
+        let directory = project(&[("example.rb", case["before"].as_str().unwrap())]);
+        let args: Vec<_> = case["args"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|arg| arg.as_str().unwrap())
+            .collect();
+        let output = command(directory.path())
+            .args(&args)
+            .assert()
+            .code(case["exit"].as_i64().unwrap() as i32)
+            .get_output()
+            .stdout
+            .clone();
+        let actual: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_eq!(actual["files"], case["expected"], "case {index}: {args:?}");
+        assert_eq!(actual["summary"], case["summary"], "case {index}: {args:?}");
+        assert_eq!(
+            fs::read(directory.path().join("example.rb")).unwrap(),
+            case["after"].as_str().unwrap().as_bytes(),
+            "case {index}: {args:?}"
+        );
+    }
+}
+
+#[test]
+fn nested_configuration_keeps_the_process_directory_in_diagnostic_paths() {
+    let directory = project(&[
+        (
+            "nested/.rubocop.yml",
+            "AllCops:\n  NewCops: disable\n  TargetRubyVersion: 2.7\n",
+        ),
+        (
+            "nested/lib/probe.rb",
+            "class Foo\n  def bar; end\n\n  def bar; end\nend\n",
+        ),
+    ]);
+    let canonical = directory
+        .path()
+        .canonicalize()
+        .unwrap()
+        .to_string_lossy()
+        .replace('\\', "/");
+    // Windows の拡張長接頭辞は、エディタが渡す通常の絶対パスには含まれない。
+    let root = canonical.strip_prefix("//?/").unwrap_or(&canonical);
+    // 本家も短縮名と長い名前の表記が違えば絶対表示を保つ。cwd と入力を揃え、
+    // 設定探索による cwd のすり替えだけを検査する。
+    let absolute = std::path::Path::new(root).join("nested/lib/probe.rb");
+    let relative = std::path::Path::new("nested/lib/probe.rb");
+    for target in [absolute.as_path(), relative] {
+        let output = command(std::path::Path::new(root))
+            .args([
+                "--cache",
+                "false",
+                "--only",
+                "Lint/DuplicateMethods",
+                "-f",
+                "json",
+                "--stdin",
+            ])
+            .arg(target)
+            .write_stdin("class Foo\n  def bar; end\n\n  def bar; end\nend\n")
+            .assert()
+            .code(1)
+            .get_output()
+            .stdout
+            .clone();
+        assert_eq!(
+            offenses(&output)[0].message,
+            "Method `Foo#bar` is defined at both nested/lib/probe.rb:2 and nested/lib/probe.rb:4."
+        );
+    }
+    // 引数を省いた探索も絶対パスを渡すため、stdin 以外の経路を別に確かめる。
+    let output = command(std::path::Path::new(root))
+        .args([
+            "--cache",
+            "false",
+            "--only",
+            "Lint/DuplicateMethods",
+            "-f",
+            "json",
+        ])
+        .assert()
+        .code(1)
+        .get_output()
+        .stdout
+        .clone();
+    assert_eq!(
+        offenses(&output)[0].message,
+        "Method `Foo#bar` is defined at both nested/lib/probe.rb:2 and nested/lib/probe.rb:4."
     );
 }
 
@@ -3473,4 +3635,37 @@ fn show_cops_descriptions_remain_loadable_yaml() {
             Some(description)
         );
     }
+}
+
+#[test]
+fn parser_updates_do_not_add_a_star_error_to_valid_percent_literals() {
+    let source = include_str!("fixtures/percent_literal_recovery.rb");
+    let directory = project(&[("example.rb", source)]);
+    let output = command(directory.path())
+        .args([
+            "--force-default-config",
+            "--cache",
+            "false",
+            "--only",
+            "Lint/Syntax",
+            "-f",
+            "json",
+            "example.rb",
+        ])
+        .output()
+        .unwrap();
+    assert!(matches!(output.status.code(), Some(0 | 1)));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["summary"]["inspected_file_count"], 1);
+    assert_eq!(report["summary"]["target_file_count"], 1);
+    // 本家は構文診断0件。既知の EOF 回復差を正解へ固定せず、追加された誤診断を監視する。
+    assert!(
+        offenses(&output.stdout)
+            .iter()
+            .all(|offense| { !offense.message.starts_with("unexpected token tSTAR\n") })
+    );
+    assert_eq!(
+        fs::read(directory.path().join("example.rb")).unwrap(),
+        source.as_bytes()
+    );
 }

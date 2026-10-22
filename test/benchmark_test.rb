@@ -84,6 +84,46 @@ class BenchmarkTest < Minitest::Test
     end
   end
 
+  def test_source_text_that_mentions_an_internal_error_is_allowed
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      # 正常なソース行に同じ文言があっても、stderr の内部エラーと混同しない。
+      result = runner.process([RbConfig.ruby, '-e', 'puts "An error occurred while"; exit 1'],
+                              root, File.join(root, 'report.json'))
+      assert_equal 1, result.fetch('exit')
+    end
+  end
+
+  def test_timed_report_rejects_a_field_change_without_a_count_change
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      path = File.join(root, 'report.json')
+      expected = SonicopBenchmark::Report.new(document)
+      File.write(path, JSON.generate(document))
+      assert_equal 1, runner.verify_run(path, expected).fetch('offenses')
+
+      # 事前検査が正しくても、時間を測った実行で終端座標だけが変われば採用しない。
+      changed = document
+      changed.fetch('files').first.fetch('offenses').first.fetch('location')['last_column'] += 1
+      File.write(path, JSON.generate(changed))
+      assert_raises(RuntimeError) { runner.verify_run(path, expected) }
+    end
+  end
+
+  def test_timed_report_rejects_a_truncated_inspection
+    Dir.mktmpdir do |root|
+      runner = SonicopBenchmark::Runner.new(candidate: RbConfig.ruby, reference: RbConfig.ruby,
+                                           output: File.join(root, 'out'), repeats: 2)
+      changed = document
+      changed.fetch('summary')['target_file_count'] = 2
+      path = File.join(root, 'report.json')
+      File.write(path, JSON.generate(changed))
+      assert_raises(ArgumentError) { runner.verify_run(path, SonicopBenchmark::Report.new(document)) }
+    end
+  end
+
   def probe_command(version)
     report = document
     offense = report.fetch('files').first.fetch('offenses').first

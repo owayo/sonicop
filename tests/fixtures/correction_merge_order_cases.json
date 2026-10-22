@@ -1,0 +1,558 @@
+[
+  {
+    "before": "# frozen_string_literal: true\n\nunless !a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif !!a && b\n  foo\n  bar\nend\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-a",
+      "--format",
+      "json",
+      "example.rb"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Favor `if` over `unless` for negative conditions.",
+            "cop_name": "Style/NegatedUnless",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 1,
+              "last_line": 8,
+              "last_column": 3,
+              "length": 42,
+              "line": 3,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Avoid the use of double negation (`!!`).",
+            "cop_name": "Style/DoubleNegation",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 4,
+              "last_line": 3,
+              "last_column": 4,
+              "length": 1,
+              "line": 3,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Use 2 (not 4) spaces for indentation.",
+            "cop_name": "Layout/IndentationWidth",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 1,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 4,
+              "line": 4,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `unless` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Inconsistent indentation detected.",
+            "cop_name": "Layout/IndentationConsistency",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 5,
+              "start_column": 5,
+              "last_line": 5,
+              "last_column": 7,
+              "length": 3,
+              "line": 5,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "`end` at 6, 2 is not aligned with `if` at 3, 0.",
+            "cop_name": "Layout/EndAlignment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 6,
+              "start_column": 3,
+              "last_line": 6,
+              "last_column": 5,
+              "length": 3,
+              "line": 6,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 6,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 1
+  },
+  {
+    "before": "# frozen_string_literal: true\n\nunless !a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif !a.nil? && b\n  foo\n  bar\nend\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-A",
+      "--format",
+      "json",
+      "example.rb"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Favor `if` over `unless` for negative conditions.",
+            "cop_name": "Style/NegatedUnless",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 1,
+              "last_line": 8,
+              "last_column": 3,
+              "length": 42,
+              "line": 3,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Avoid the use of double negation (`!!`).",
+            "cop_name": "Style/DoubleNegation",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 4,
+              "last_line": 3,
+              "last_column": 4,
+              "length": 1,
+              "line": 3,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Use 2 (not 4) spaces for indentation.",
+            "cop_name": "Layout/IndentationWidth",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 1,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 4,
+              "line": 4,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `unless` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Inconsistent indentation detected.",
+            "cop_name": "Layout/IndentationConsistency",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 5,
+              "start_column": 5,
+              "last_line": 5,
+              "last_column": 7,
+              "length": 3,
+              "line": 5,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "`end` at 6, 2 is not aligned with `if` at 3, 0.",
+            "cop_name": "Layout/EndAlignment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 6,
+              "start_column": 3,
+              "last_line": 6,
+              "last_column": 5,
+              "length": 3,
+              "line": 6,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 6,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 0
+  },
+  {
+    "before": "# frozen_string_literal: true\n\nif !a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif !a && b\n    foo\n    bar\n  end\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-a",
+      "--format",
+      "json",
+      "example.rb",
+      "--only",
+      "Style/NegatedIf,Style/SoleNestedConditional"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Favor `unless` over `if` for negative conditions.",
+            "cop_name": "Style/NegatedIf",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 1,
+              "last_line": 8,
+              "last_column": 3,
+              "length": 38,
+              "line": 3,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `if` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 2,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 0
+  },
+  {
+    "before": "# frozen_string_literal: true\n\nif !a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif !a && b\n    foo\n    bar\n  end\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-A",
+      "--format",
+      "json",
+      "example.rb",
+      "--only",
+      "Style/NegatedIf,Style/SoleNestedConditional"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Favor `unless` over `if` for negative conditions.",
+            "cop_name": "Style/NegatedIf",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 3,
+              "start_column": 1,
+              "last_line": 8,
+              "last_column": 3,
+              "length": 38,
+              "line": 3,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `if` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 2,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 0
+  },
+  {
+    "before": "# frozen_string_literal: true\n\nif a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif a && b\n  foo\n  bar\nend\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-a",
+      "--format",
+      "json",
+      "example.rb"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use 2 (not 4) spaces for indentation.",
+            "cop_name": "Layout/IndentationWidth",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 1,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 4,
+              "line": 4,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `if` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Inconsistent indentation detected.",
+            "cop_name": "Layout/IndentationConsistency",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 5,
+              "start_column": 5,
+              "last_line": 5,
+              "last_column": 7,
+              "length": 3,
+              "line": 5,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "`end` at 6, 2 is not aligned with `if` at 3, 0.",
+            "cop_name": "Layout/EndAlignment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 6,
+              "start_column": 3,
+              "last_line": 6,
+              "last_column": 5,
+              "length": 3,
+              "line": 6,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 4,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 0
+  },
+  {
+    "before": "# frozen_string_literal: true\n\nif a\n  if b\n    foo\n    bar\n  end\nend\n",
+    "after": "# frozen_string_literal: true\n\nif a && b\n  foo\n  bar\nend\n",
+    "args": [
+      "--force-default-config",
+      "--except",
+      "Layout/EndOfLine",
+      "--cache",
+      "false",
+      "-A",
+      "--format",
+      "json",
+      "example.rb"
+    ],
+    "expected": [
+      {
+        "path": "example.rb",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Use 2 (not 4) spaces for indentation.",
+            "cop_name": "Layout/IndentationWidth",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 1,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 4,
+              "line": 4,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Consider merging nested conditions into outer `if` conditions.",
+            "cop_name": "Style/SoleNestedConditional",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 3,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 2,
+              "line": 4,
+              "column": 3
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Inconsistent indentation detected.",
+            "cop_name": "Layout/IndentationConsistency",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 5,
+              "start_column": 5,
+              "last_line": 5,
+              "last_column": 7,
+              "length": 3,
+              "line": 5,
+              "column": 5
+            }
+          },
+          {
+            "severity": "warning",
+            "message": "`end` at 6, 2 is not aligned with `if` at 3, 0.",
+            "cop_name": "Layout/EndAlignment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 6,
+              "start_column": 3,
+              "last_line": 6,
+              "last_column": 5,
+              "length": 3,
+              "line": 6,
+              "column": 3
+            }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "offense_count": 4,
+      "target_file_count": 1,
+      "inspected_file_count": 1
+    },
+    "exit": 0
+  }
+]

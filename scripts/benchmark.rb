@@ -21,7 +21,7 @@ module SonicopBenchmark
     'ruby' => ['ruby/ruby', '3349f4107d268658fdf8cc6b979fbb1c923e597f']
   }.freeze
   RUBY_EXCLUSIONS = %w[test/ruby/test_regexp.rb test/ruby/test_file_exhaustive.rb].freeze
-  REFERENCE_VERSION = '1.92.0'
+  REFERENCE_VERSION = '1.92.1'
   # 固定コーパスを親 gemspec の無い場所で実行した本家 CLI の実効値。
   TARGET_RUBY_VERSIONS = { 'rails' => '3.3', 'rubocop' => '2.7', 'mastodon' => '4.0',
                            'homebrew' => '2.7', 'ruby' => '2.7' }.freeze

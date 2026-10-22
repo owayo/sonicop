@@ -124,9 +124,7 @@ pub(crate) struct ResultCache {
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct CachedReport {
     schema: u32,
-    /// What the file measured when the report was made. A run that finds all three unchanged serves
-    /// the report without opening the file, which is the whole point of keying on the path rather
-    /// than on the text.
+    /// 診断時の stat。mtime は復元できるため、値が同じでも本文の digest を検証する。
     size: u64,
     modified: Option<(u64, u32)>,
     /// The permission bits, which `Lint/ScriptPermission` reads from the file itself. `chmod` moves
@@ -301,13 +299,7 @@ impl ResultCache {
         let _ = self.prepared.set(load);
     }
 
-    /// Where a file's report lives, which depends on the file's name and the configuration but not
-    /// on its contents.
-    ///
-    /// Keying on the text instead would mean hashing every file before its report could even be
-    /// looked for -- and worse, reading every file to have something to hash. The entry carries the
-    /// text's digest so a stale one is still recognized; what the path key buys is the chance to
-    /// recognize a *fresh* one from the directory entry alone.
+    /// パスと設定で索引を引き、保存済みの本文 digest と照合する。未登録のファイルは一度だけ読む。
     fn key(&self, path: &Path, config: &Config) -> Option<blake3::Hash> {
         let path = path.to_str()?;
         let config = config.cache_digest().ok()?;
@@ -335,10 +327,7 @@ impl ResultCache {
         }
     }
 
-    /// The stored report for `path`, if there is one, together with what still has to be checked
-    /// before it can be trusted.
-    ///
-    /// The caller has not read the file at this point, and a `Fresh` answer means it never has to.
+    /// stat と本文を確認した報告か、再検査の要否を決める保存済み報告を返す。
     pub(crate) fn load(&self, path: &Path, config: &Config) -> Option<Cached> {
         if self.prepared.get() != Some(&true) {
             return None;
@@ -347,18 +336,21 @@ impl ResultCache {
             self.key(path, config).map(|key| key.to_hex().to_string())
         })?;
         crate::profile::phase(crate::profile::Phase::CacheLoad, || {
-            let entries = self.entries.read().ok()?;
-            let cached = entries.as_ref()?.get(&key)?.report.clone();
+            let cached = {
+                let entries = self.entries.read().ok()?;
+                entries.as_ref()?.get(&key)?.report.clone()
+            };
             if cached.schema != RESULT_CACHE_SCHEMA {
                 return None;
             }
             let stat = fs::metadata(path).ok().as_ref().map(Self::stat)?;
-            // A missing modification time never matches a stored one, so such a file always goes on
-            // to be read and digested rather than being trusted on its size alone.
+            // 同じサイズで書き換えて mtime を戻しても、古い診断を返してはいけない。
             if cached.size == stat.size
                 && stat.modified.is_some()
                 && cached.modified == stat.modified
                 && cached.mode == stat.mode
+                && let Decoded::Text(text) = decoded_source(path).ok()?
+                && cached.matches(&text)
             {
                 return Some(Cached::Fresh(cached.into_report(path.to_path_buf(), None)?));
             }
@@ -372,18 +364,12 @@ impl ResultCache {
         })
     }
 
-    /// Records `report` under the stat and digest the file had **when the run read it**.
+    /// 読み込み前の stat と、そのとき読んだ本文の digest を記録する。
     ///
-    /// Both are the caller's to supply, and neither can be recovered here. The stat has to be the
-    /// one taken *before* the read: taking it afterwards pairs the report of the old bytes with the
-    /// stat of the new ones whenever a rewrite lands in between, and the next run then accepts that
-    /// as fresh on the stat alone without ever reaching the digest. Taken before, such a rewrite
-    /// leaves a stat the next run rejects, and the digest settles it from there.
-    ///
-    /// The digest likewise belongs to the bytes on disk. `report.source` has been through
-    /// [`crate::nul_bytes::as_ruby_reads_it`], which rewrites the text; hashing that would make two
-    /// different files share a digest and would defeat the guard below, since the rewrite is what
-    /// removes the NUL.
+    /// 読み込み後の stat は、途中の書き換えによって古い診断と新しい属性を組にする。
+    /// 本文も毎回照合するが、再検査の判断に使う属性も診断と同じ入力へ対応させる。
+    /// digest は NUL 処理より前の復号済み本文から計算する。処理後の report.source では
+    /// 異なる原本が同じ値になり、キャッシュの入力同一性を失う。
     pub(crate) fn store(
         &self,
         report: &FileReport,
@@ -418,8 +404,7 @@ impl ResultCache {
                     correctable: offense.correctable,
                     suppressed: offense.suppressed,
                     justification: offense.justification.clone(),
-                    // Resolved here, where the text is still at hand, because a run served from a
-                    // stat match has no text to resolve it against.
+                    // キャッシュから返す診断は本文を持たないため、位置と行を検査時に確定する。
                     location: offense.location(&report.source),
                     source_line: offense.source_line(&report.source).to_owned(),
                 })
@@ -1248,8 +1233,7 @@ pub(crate) fn inspect_files_with_store_cached(
     let root_plan = RulePlan::build(configs.root(), selection);
     let inspect = |path: &PathBuf| -> Result<FileReport> {
         let config = configs.for_path(path)?;
-        // Asked before the file is read, because the answer decides whether it has to be. A cached
-        // report whose file has not moved stands on the directory entry alone.
+        // 有効なキャッシュは load が本文を照合済み。その他は読み込んだ本文で再検査する。
         let stale = match cache.and_then(|cache| cache.load(path, &config)) {
             Some(Cached::Fresh(report)) => return Ok(report),
             Some(Cached::Stale(cached)) => Some(cached),
@@ -1301,16 +1285,14 @@ pub(crate) fn inspect_files_with_store_cached(
         }
         Ok(report)
     };
-    // Collecting every outcome rather than short-circuiting keeps the surfaced error the first one
-    // in path order instead of whichever thread rayon happened to finish first.
+    // 全結果を入力順に集め、並列処理の完了順ではなく最初の入力のエラーを返す。
+    // 本家は引数順を保持する。Path で並べ直すと foo/bar.rb が foo.rb より前になる。
     let inspected: Vec<Result<FileReport>> = if parallel && paths.len() > 1 {
         paths.par_iter().map(inspect).collect()
     } else {
         paths.iter().map(inspect).collect()
     };
-    let mut reports = inspected.into_iter().collect::<Result<Vec<_>>>()?;
-    reports.sort_by(|left, right| left.path.cmp(&right.path));
-    Ok(reports)
+    inspected.into_iter().collect()
 }
 
 /// What reading a file produced.
@@ -2191,13 +2173,13 @@ struct Family {
     contained: Option<Vec<Action>>,
 }
 
-/// Where a cop's corrections sit in the run's merge order.
-///
-/// RuboCop gives every cop its own corrector and merges them into the run's one at a time, in the
-/// order the registry lists them: departments in the order `rubocop.rb` requires them, then the
-/// cops of a department in the order they register, which is alphabetical bar a handful loaded
-/// ahead of their alphabetical place so that a base class is defined before its subclass.
+/// Team#each_corrector は名前順ではなく、依存クラスの先行読込も含む実際の登録順でマージする。
+/// 無限ループの原因一覧と同じ記録を使い、補正の競合と非互換宣言の優先順を揃える。
 fn cop_merge_order(cop_name: &str) -> (usize, &str) {
+    if let Some((rank, _)) = cop_autocorrect_metadata(cop_name) {
+        return (rank, cop_name);
+    }
+    // テスト用の架空名は組込み cop の後へ置き、部門と名前による順序を保つ。
     const DEPARTMENTS: [&str; 9] = [
         "Bundler",
         "Gemspec",
@@ -2214,7 +2196,7 @@ fn cop_merge_order(cop_name: &str) -> (usize, &str) {
         .iter()
         .position(|name| *name == department)
         .unwrap_or(DEPARTMENTS.len());
-    (index, cop_name)
+    (crate::formatter::COP_REGISTRY_ORDER.len() + index, cop_name)
 }
 
 /// `Cop::Base.autocorrect_incompatible_with`: the cops whose corrections are dropped for the rest
@@ -3235,15 +3217,34 @@ fn write_corrected_with_provenance(
     let original = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
     let bytes = correction_bytes(contents, &original, introduced_non_ascii)
         .with_context(|| format!("refusing to rewrite {}", path.display()))?;
-    if rename_would_lose_the_file(path) {
+    // rename の権限は親ディレクトリで決まるため、原本へ書けることを先に確認する。
+    // truncate は付けず、拒否されたファイルの本文には触れない。
+    OpenOptions::new()
+        .write(true)
+        .open(path)
+        .with_context(|| format!("failed to open {} for rewriting", path.display()))?;
+    if rename_would_lose_the_file(path)? {
         return write_in_place(path, &bytes);
     }
     let parent = path.parent().unwrap_or(Path::new("."));
-    let permissions = fs::metadata(path)
-        .ok()
-        .map(|metadata| metadata.permissions());
-    let mut temporary = NamedTempFile::new_in(parent)
-        .with_context(|| format!("failed to create temporary file beside {}", path.display()))?;
+    let metadata = fs::metadata(path)
+        .with_context(|| format!("failed to read metadata for {}", path.display()))?;
+    let mut temporary = match NamedTempFile::new_in(parent) {
+        Ok(temporary) => temporary,
+        // ファイルには書けるが親に作成できない場合、本家の File.write は成功する。
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            return write_in_place(path, &bytes);
+        }
+        Err(error) => {
+            return Err(error).with_context(|| {
+                format!("failed to create temporary file beside {}", path.display())
+            });
+        }
+    };
+    #[cfg(unix)]
+    if replacement_loses_unix_metadata(path, &metadata, temporary.as_file())? {
+        return write_in_place(path, &bytes);
+    }
     temporary
         .write_all(&bytes)
         .with_context(|| format!("failed to write corrected contents for {}", path.display()))?;
@@ -3251,12 +3252,10 @@ fn write_corrected_with_provenance(
         .as_file_mut()
         .sync_all()
         .with_context(|| format!("failed to flush corrected contents for {}", path.display()))?;
-    if let Some(permissions) = permissions {
-        temporary
-            .as_file()
-            .set_permissions(permissions)
-            .with_context(|| format!("failed to preserve permissions for {}", path.display()))?;
-    }
+    temporary
+        .as_file()
+        .set_permissions(metadata.permissions())
+        .with_context(|| format!("failed to preserve permissions for {}", path.display()))?;
     temporary
         .persist(path)
         .map_err(|error| error.error)
@@ -3264,35 +3263,82 @@ fn write_corrected_with_provenance(
     Ok(())
 }
 
-/// Whether replacing `path`'s directory entry would destroy something the entry does not own: the
-/// symlink itself, or the other names sharing its inode.
-///
-/// `symlink_metadata` is what asks the first question -- `metadata` follows the link and would
-/// report on the target, which is exactly the file a rename does *not* touch. A read that fails
-/// answers no, which routes the write through the atomic path; it then reports the same IO failure
-/// with a message of its own rather than this deciding anything on a guess.
-fn rename_would_lose_the_file(path: &Path) -> bool {
-    let Ok(metadata) = fs::symlink_metadata(path) else {
-        return false;
-    };
-    metadata.file_type().is_symlink() || link_count(&metadata) > 1
+/// 所有者・属性・ACL を落とす置換を避け、本家の File.write による保持を優先する。
+#[cfg(unix)]
+fn replacement_loses_unix_metadata(
+    path: &Path,
+    original: &fs::Metadata,
+    replacement: &fs::File,
+) -> Result<bool> {
+    use std::os::unix::fs::MetadataExt;
+
+    let replacement = replacement.metadata()?;
+    if original.uid() != replacement.uid()
+        || original.gid() != replacement.gid()
+        // setuid/setgid の扱いも、実際の書き込みを行うカーネルへ任せる。
+        || original.mode() & 0o6000 != 0
+        || xattr::list(path).map_or(true, |mut attributes| attributes.next().is_some())
+    {
+        return Ok(true);
+    }
+    #[cfg(target_os = "macos")]
+    if exacl::getfacl(path, None).map_or(true, |entries| !entries.is_empty()) {
+        return Ok(true);
+    }
+    Ok(false)
 }
 
-/// How many names the file has. Windows keeps hard links too but exposes no count through `std`,
-/// so it answers 1 and every write there takes the atomic path -- which is what it did before this
-/// distinction existed.
+/// rename で symlink や同じファイルの別名を切り離してしまう経路を見分ける。
+/// metadata はリンク先を辿るため、リンク自体の判定には symlink_metadata が必要になる。
+fn rename_would_lose_the_file(path: &Path) -> Result<bool> {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return Ok(false);
+    };
+    if metadata.file_type().is_symlink() {
+        return Ok(true);
+    }
+    #[cfg(windows)]
+    {
+        windows_link_count(path).map(|count| count > 1)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(link_count(&metadata) > 1)
+    }
+}
+
+/// Windows の std のリンク数取得は不安定 API のため、安定した Win32 API を使う。
+#[cfg(windows)]
+fn windows_link_count(path: &Path) -> Result<u64> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{
+        BY_HANDLE_FILE_INFORMATION, GetFileInformationByHandle,
+    };
+
+    let file = fs::File::open(path)
+        .with_context(|| format!("failed to read link information for {}", path.display()))?;
+    let mut information = std::mem::MaybeUninit::<BY_HANDLE_FILE_INFORMATION>::uninit();
+    // File が生存する間はハンドルが有効で、出力先は構造体全体を書ける領域を持つ。
+    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) } == 0 {
+        return Err(std::io::Error::last_os_error())
+            .with_context(|| format!("failed to read link information for {}", path.display()));
+    }
+    // 成功時だけ Win32 が構造体全体を初期化したことを保証する。
+    let information = unsafe { information.assume_init() };
+    Ok(u64::from(information.nNumberOfLinks))
+}
+
 #[cfg(unix)]
 fn link_count(metadata: &fs::Metadata) -> u64 {
     std::os::unix::fs::MetadataExt::nlink(metadata)
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn link_count(_metadata: &fs::Metadata) -> u64 {
     1
 }
 
-/// `File.write(path, ...)`: truncate what the path resolves to and write the corrected bytes into
-/// it, keeping the inode and following any symlink on the way.
+/// 本家の File.write と同じく、リンク先の inode を保って本文だけを書き換える。
 fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
@@ -4502,9 +4548,14 @@ mod tests {
 
     #[test]
     fn cops_merge_in_registry_order() {
-        // Departments merge in the order `rubocop.rb` requires them and cops alphabetically within
-        // one, so the insertion RuboCop schedules first is the one that ends up innermost -- and a
-        // replacement reaching over an insertion loses to whichever was scheduled first.
+        // 名前順から先行するクラスも含め、全 cop が本家の登録順へ戻ることを確かめる。
+        let mut names = crate::formatter::COP_REGISTRY_ORDER.to_vec();
+        names.reverse();
+        names.sort_by(|left, right| {
+            super::cop_merge_order(left).cmp(&super::cop_merge_order(right))
+        });
+        assert_eq!(names, crate::formatter::COP_REGISTRY_ORDER);
+        // 先にマージする挿入ほど内側になる。架空名による補正ツリーの対照も保つ。
         assert_eq!(
             composed(
                 "abcdefghij",
@@ -4976,9 +5027,8 @@ mod tests {
         );
     }
 
-    /// Every name on an inode is the file. Unlinking it to put another in its place leaves the
-    /// other names on text the run has already reported as corrected.
-    #[cfg(unix)]
+    /// 同じファイルの別名を残したまま置換すると、補正済みと報告した本文が別名へ届かない。
+    #[cfg(any(unix, windows))]
     #[test]
     fn write_corrected_keeps_a_hard_linked_inode_shared() {
         let directory = tempdir().unwrap();
@@ -4989,15 +5039,20 @@ mod tests {
 
         write_corrected(&first, "y = 2\n").unwrap();
 
+        assert!(
+            same_file::is_same_file(&first, &second).unwrap(),
+            "補正でハードリンクの共有が失われた"
+        );
+        #[cfg(unix)]
         assert_eq!(
             std::os::unix::fs::MetadataExt::nlink(&std::fs::metadata(&first).unwrap()),
             2,
-            "the inode was unlinked and the second name left behind"
+            "補正で元の inode へのリンクが失われた"
         );
         assert_eq!(
             std::fs::read_to_string(&second).unwrap(),
             "y = 2\n",
-            "the other name for the same file still holds the old text"
+            "同じファイルの別名に補正前の本文が残った"
         );
     }
 
@@ -5020,6 +5075,154 @@ mod tests {
             0o600,
             "the temporary file was persisted without the original's permissions"
         );
+    }
+
+    #[test]
+    fn write_corrected_checks_the_files_write_access_before_replacement() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("readonly.rb");
+        fs::write(&path, "y  = 2\n").unwrap();
+        let original_permissions = fs::metadata(&path).unwrap().permissions();
+        let mut readonly = original_permissions.clone();
+        readonly.set_readonly(true);
+        fs::set_permissions(&path, readonly).unwrap();
+        // root 等で許されるかどうかも含め、実際の OS のアクセス判定に合わせる。
+        let writable = fs::OpenOptions::new().write(true).open(&path).is_ok();
+        let result = write_corrected(&path, "y = 2\n");
+        fs::set_permissions(&path, original_permissions).unwrap();
+        assert_eq!(result.is_ok(), writable);
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            if writable { "y = 2\n" } else { "y  = 2\n" }
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_corrected_can_write_a_file_in_a_readonly_directory() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        fs::write(&path, "y  = 2\n").unwrap();
+        let permissions = fs::metadata(directory.path()).unwrap().permissions();
+        let mut readonly = permissions.clone();
+        readonly.set_readonly(true);
+        fs::set_permissions(directory.path(), readonly).unwrap();
+        let result = write_corrected(&path, "y = 2\n");
+        fs::set_permissions(directory.path(), permissions).unwrap();
+        result.unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "y = 2\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_corrected_keeps_extended_attributes() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        fs::write(&path, "y  = 2\n").unwrap();
+        xattr::set(&path, "user.sonicop_test", b"retained").unwrap();
+        write_corrected(&path, "y = 2\n").unwrap();
+        assert_eq!(
+            xattr::get(&path, "user.sonicop_test").unwrap(),
+            Some(b"retained".to_vec())
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), "y = 2\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_corrected_keeps_foreign_ownership_when_running_as_root() {
+        use std::os::unix::fs::MetadataExt;
+
+        let directory = tempdir().unwrap();
+        if fs::metadata(directory.path()).unwrap().uid() != 0 {
+            return;
+        }
+        // 通常のテストに加え、CI ではこのケースを特権ユーザーで別に実行する。
+        let path = directory.path().join("example.rb");
+        fs::write(&path, "y  = 2\n").unwrap();
+        std::os::unix::fs::chown(&path, Some(65534), Some(65534)).unwrap();
+        write_corrected(&path, "y = 2\n").unwrap();
+        let metadata = fs::metadata(&path).unwrap();
+        assert_eq!((metadata.uid(), metadata.gid()), (65534, 65534));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "y = 2\n");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn write_corrected_keeps_a_macos_acl() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("example.rb");
+        fs::write(&path, "y  = 2\n").unwrap();
+        let mut entries = exacl::getfacl(&path, None).unwrap();
+        entries.push(exacl::AclEntry::allow_group(
+            "everyone",
+            exacl::Perm::READ,
+            None,
+        ));
+        exacl::setfacl(&[&path], &entries, None).unwrap();
+        let before = exacl::getfacl(&path, None).unwrap();
+        assert!(!before.is_empty());
+        write_corrected(&path, "y = 2\n").unwrap();
+        assert_eq!(exacl::getfacl(&path, None).unwrap(), before);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "y = 2\n");
+    }
+
+    #[test]
+    fn result_cache_rechecks_content_when_size_and_mtime_are_restored() {
+        for (original, replacement, expected) in
+            [("puts 1 \n", "puts 10\n", 0), ("puts 10\n", "puts 1 \n", 1)]
+        {
+            let directory = tempdir().unwrap();
+            let path = directory.path().join("example.rb");
+            fs::write(&path, original).unwrap();
+            let before = fs::metadata(&path).unwrap();
+            let config = Config::load(None, directory.path()).unwrap();
+            let selection = Selection {
+                only: vec!["Layout/TrailingWhitespace".to_owned()],
+                ..Selection::default()
+            };
+            let configs = super::ConfigStore::new(config.clone(), false, false);
+            let cache = ResultCache::new(
+                directory.path().join("cache"),
+                config.path_base(),
+                &selection,
+                100,
+            )
+            .unwrap();
+            cache.prepare(1);
+            let paths = vec![path.clone()];
+            let first = super::inspect_files_with_store_cached(
+                &paths,
+                &configs,
+                &selection,
+                false,
+                Some(&cache),
+            )
+            .unwrap();
+            assert_eq!(first[0].offenses.len(), 1 - expected);
+            assert!(matches!(cache.load(&path, &config), Some(Cached::Fresh(_))));
+
+            fs::write(&path, replacement).unwrap();
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_times(fs::FileTimes::new().set_modified(before.modified().unwrap()))
+                .unwrap();
+            assert_eq!(
+                ResultCache::stat(&fs::metadata(&path).unwrap()),
+                ResultCache::stat(&before)
+            );
+            let second = super::inspect_files_with_store_cached(
+                &paths,
+                &configs,
+                &selection,
+                false,
+                Some(&cache),
+            )
+            .unwrap();
+            assert_eq!(second[0].offenses.len(), expected);
+        }
     }
 
     #[test]
