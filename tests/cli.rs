@@ -1867,9 +1867,10 @@ fn autocorrect_writes_through_a_symlink_and_leaves_it_a_symlink() {
 ///
 /// rename は inode を unlink するので link 数が 1 に落ち、同じ inode を指していたもう一方の
 /// 名前は古い本文のまま取り残される。どちらも警告なしに起きるので、link 数と本文の両方を見る。
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
 fn autocorrect_keeps_a_hard_linked_file_shared() {
+    #[cfg(unix)]
     use std::os::unix::fs::MetadataExt;
 
     let directory = project(&[("one.rb", "y  = 2\nputs y\n")]);
@@ -1881,6 +1882,11 @@ fn autocorrect_keeps_a_hard_linked_file_shared() {
         .assert()
         .code(0);
 
+    assert!(
+        same_file::is_same_file(directory.path().join("one.rb"), &other).unwrap(),
+        "-A が hard link の共有を失わせた"
+    );
+    #[cfg(unix)]
     assert_eq!(
         fs::metadata(&other).unwrap().nlink(),
         2,

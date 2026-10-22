@@ -1226,6 +1226,7 @@ dependencies = [
  "tree-sitter-ruby",
  "unsafe-libyaml",
  "ureq",
+ "windows-sys",
 ]
 
 [[package]]

@@ -47,6 +47,9 @@ assert_cmd = "2.2.2"
 [build-dependencies]
 blake3 = "1.8.7"
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [profile.release]
 lto = true
 codegen-units = 1

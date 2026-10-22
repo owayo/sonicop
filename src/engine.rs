@@ -3235,7 +3235,7 @@ fn write_corrected_with_provenance(
     let original = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
     let bytes = correction_bytes(contents, &original, introduced_non_ascii)
         .with_context(|| format!("refusing to rewrite {}", path.display()))?;
-    if rename_would_lose_the_file(path) {
+    if rename_would_lose_the_file(path)? {
         return write_in_place(path, &bytes);
     }
     let parent = path.parent().unwrap_or(Path::new("."));
@@ -3264,35 +3264,57 @@ fn write_corrected_with_provenance(
     Ok(())
 }
 
-/// Whether replacing `path`'s directory entry would destroy something the entry does not own: the
-/// symlink itself, or the other names sharing its inode.
-///
-/// `symlink_metadata` is what asks the first question -- `metadata` follows the link and would
-/// report on the target, which is exactly the file a rename does *not* touch. A read that fails
-/// answers no, which routes the write through the atomic path; it then reports the same IO failure
-/// with a message of its own rather than this deciding anything on a guess.
-fn rename_would_lose_the_file(path: &Path) -> bool {
+/// rename で symlink や同じファイルの別名を切り離してしまう経路を見分ける。
+/// metadata はリンク先を辿るため、リンク自体の判定には symlink_metadata が必要になる。
+fn rename_would_lose_the_file(path: &Path) -> Result<bool> {
     let Ok(metadata) = fs::symlink_metadata(path) else {
-        return false;
+        return Ok(false);
     };
-    metadata.file_type().is_symlink() || link_count(&metadata) > 1
+    if metadata.file_type().is_symlink() {
+        return Ok(true);
+    }
+    #[cfg(windows)]
+    {
+        windows_link_count(path).map(|count| count > 1)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(link_count(&metadata) > 1)
+    }
 }
 
-/// How many names the file has. Windows keeps hard links too but exposes no count through `std`,
-/// so it answers 1 and every write there takes the atomic path -- which is what it did before this
-/// distinction existed.
+/// Windows の std のリンク数取得は不安定 API のため、安定した Win32 API を使う。
+#[cfg(windows)]
+fn windows_link_count(path: &Path) -> Result<u64> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{
+        BY_HANDLE_FILE_INFORMATION, GetFileInformationByHandle,
+    };
+
+    let file = fs::File::open(path)
+        .with_context(|| format!("failed to read link information for {}", path.display()))?;
+    let mut information = std::mem::MaybeUninit::<BY_HANDLE_FILE_INFORMATION>::uninit();
+    // File が生存する間はハンドルが有効で、出力先は構造体全体を書ける領域を持つ。
+    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) } == 0 {
+        return Err(std::io::Error::last_os_error())
+            .with_context(|| format!("failed to read link information for {}", path.display()));
+    }
+    // 成功時だけ Win32 が構造体全体を初期化したことを保証する。
+    let information = unsafe { information.assume_init() };
+    Ok(u64::from(information.nNumberOfLinks))
+}
+
 #[cfg(unix)]
 fn link_count(metadata: &fs::Metadata) -> u64 {
     std::os::unix::fs::MetadataExt::nlink(metadata)
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn link_count(_metadata: &fs::Metadata) -> u64 {
     1
 }
 
-/// `File.write(path, ...)`: truncate what the path resolves to and write the corrected bytes into
-/// it, keeping the inode and following any symlink on the way.
+/// 本家の File.write と同じく、リンク先の inode を保って本文だけを書き換える。
 fn write_in_place(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
