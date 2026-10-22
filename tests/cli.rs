@@ -26,6 +26,64 @@ fn syntax_message(reason: &str, target_ruby: &str) -> String {
 }
 
 #[test]
+fn reports_keep_the_reference_file_and_argument_order() {
+    let cases: [(&[&str], &[&str]); 3] = [
+        (&["."], &["foo.rb", "foo/bar.rb"]),
+        (&["foo/bar.rb", "foo.rb"], &["foo/bar.rb", "foo.rb"]),
+        (&["foo.rb", "foo/bar.rb"], &["foo.rb", "foo/bar.rb"]),
+    ];
+    // 本家 1.89.0 はディレクトリ内を文字列順に展開し、引数間の順番は保持する。
+    for cache in ["false", "true"] {
+        for parallel in [false, true] {
+            let directory = project(&[("foo.rb", "puts 1\n"), ("foo/bar.rb", "puts 2\n")]);
+            for (arguments, expected) in cases {
+                for _ in 0..if cache == "true" { 2 } else { 1 } {
+                    let mut invocation = command(directory.path());
+                    invocation.args([
+                        "--force-default-config",
+                        "--cache",
+                        cache,
+                        "--only",
+                        "Lint/Syntax",
+                        "-f",
+                        "json",
+                    ]);
+                    if cache == "true" {
+                        invocation
+                            .arg("--cache-root")
+                            .arg(fs::canonicalize(directory.path()).unwrap().join("cache"));
+                    }
+                    if !parallel {
+                        invocation.arg("--no-parallel");
+                    }
+                    let output = invocation
+                        .args(arguments)
+                        .assert()
+                        .success()
+                        .get_output()
+                        .stdout
+                        .clone();
+                    let found: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                    assert_eq!(found["summary"]["inspected_file_count"], 2);
+                    assert_eq!(found["summary"]["target_file_count"], 2);
+                    assert_eq!(found["summary"]["offense_count"], 0);
+                    let paths: Vec<_> = found["files"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|file| file["path"].as_str().unwrap())
+                        .collect();
+                    assert_eq!(
+                        paths, expected,
+                        "{arguments:?}, cache={cache}, parallel={parallel}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn reports_json_using_rubocop_shape() {
     let directory = project(&[]);
     let output = lint_stdin(

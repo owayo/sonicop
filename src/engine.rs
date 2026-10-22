@@ -1285,16 +1285,14 @@ pub(crate) fn inspect_files_with_store_cached(
         }
         Ok(report)
     };
-    // Collecting every outcome rather than short-circuiting keeps the surfaced error the first one
-    // in path order instead of whichever thread rayon happened to finish first.
+    // 全結果を入力順に集め、並列処理の完了順ではなく最初の入力のエラーを返す。
+    // 本家は引数順を保持する。Path で並べ直すと foo/bar.rb が foo.rb より前になる。
     let inspected: Vec<Result<FileReport>> = if parallel && paths.len() > 1 {
         paths.par_iter().map(inspect).collect()
     } else {
         paths.iter().map(inspect).collect()
     };
-    let mut reports = inspected.into_iter().collect::<Result<Vec<_>>>()?;
-    reports.sort_by(|left, right| left.path.cmp(&right.path));
-    Ok(reports)
+    inspected.into_iter().collect()
 }
 
 /// What reading a file produced.
