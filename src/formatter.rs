@@ -1062,11 +1062,44 @@ pub(crate) fn smart_path(path: &Path, cwd: &Path) -> String {
         dunce::simplified(&target)
             .strip_prefix(dunce::simplified(&base))
             .ok()
+            .or_else(|| strip_windows_unc_root(&target, &base))
     });
     relative
         .unwrap_or(&target)
         .to_string_lossy()
         .replace('\\', "/")
+}
+
+// dunce はドライブ形式だけを簡略化する。UNC はサーバーと共有名が同じときだけ
+// 接頭辞を同一視し、残りのコンポーネントをそのまま比較する。symlink や共有へアクセスしない。
+#[cfg(windows)]
+fn strip_windows_unc_root<'a>(target: &'a Path, base: &Path) -> Option<&'a Path> {
+    use std::path::Prefix;
+
+    let mut target_parts = target.components();
+    let mut base_parts = base.components();
+    let (Component::Prefix(target_prefix), Component::Prefix(base_prefix)) =
+        (target_parts.next()?, base_parts.next()?)
+    else {
+        return None;
+    };
+    let (target_server, target_share) = match target_prefix.kind() {
+        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => (server, share),
+        _ => return None,
+    };
+    let (base_server, base_share) = match base_prefix.kind() {
+        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => (server, share),
+        _ => return None,
+    };
+    if target_server != base_server || target_share != base_share {
+        return None;
+    }
+    for part in base_parts {
+        if Some(part) != target_parts.next() {
+            return None;
+        }
+    }
+    Some(target_parts.as_path())
 }
 
 /// The path RuboCop opened the file under: file discovery expands every target, so the absolute
@@ -2247,6 +2280,13 @@ mod tests {
             assert_eq!(
                 smart_path(Path::new(r"C:\other\a.rb"), Path::new(r"\\?\C:\project")),
                 "C:/other/a.rb"
+            );
+            assert_eq!(
+                smart_path(
+                    Path::new(r"\\server\other\project\a.rb"),
+                    Path::new(r"\\?\UNC\server\share\project")
+                ),
+                "//server/other/project/a.rb"
             );
         }
     }
