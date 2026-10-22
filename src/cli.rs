@@ -1057,7 +1057,17 @@ fn show_cops(filter: &str, config: &Config) {
                 quoted_yaml_description(description.lines().next().unwrap_or(""))
             );
         }
-        println!("  Enabled: {}", config.rule_enabled(name));
+        // NewCops による実行時の選択と、カタログの pending は別物。
+        // pending の解決だけを切り替え、部門や EnabledByDefault の上書きは保持する。
+        let enabled = match (
+            config.rule_enabled_with_pending(name, true, false),
+            config.rule_enabled_with_pending(name, false, true),
+        ) {
+            (true, false) => "pending",
+            (true, true) => "true",
+            _ => "false",
+        };
+        println!("  Enabled: {enabled}");
         println!("  Implemented: {}", implemented.contains(name));
     }
 }

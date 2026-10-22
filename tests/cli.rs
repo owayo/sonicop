@@ -3572,6 +3572,87 @@ fn later_conditional_corrections_preserve_character_provenance() {
 }
 
 #[test]
+fn show_cops_preserves_the_upstream_enabled_catalog() {
+    let directory = project(&[]);
+    let output = command(directory.path())
+        .args(["--force-default-config", "--show-cops"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let actual: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+    let expected: serde_yaml::Value =
+        serde_yaml::from_str(include_str!("../config/default.yml")).unwrap();
+    let catalog = |value: &serde_yaml::Value| {
+        value
+            .as_mapping()
+            .unwrap()
+            .iter()
+            .filter_map(|(name, config)| {
+                let name = name.as_str()?;
+                name.contains('/')
+                    .then(|| (name.to_owned(), config["Enabled"].clone()))
+            })
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    // 本家 1.89.0 の CLI で確認した名前集合と true 394 / pending 159 / false 56 を保つ。
+    let actual = catalog(&actual);
+    let expected = catalog(&expected);
+    assert!(
+        actual.keys().eq(expected.keys()),
+        "本家の cop 名集合と異なる"
+    );
+    for (name, enabled) in expected {
+        assert_eq!(actual[&name], enabled, "{name}");
+    }
+}
+
+#[test]
+fn show_cops_separates_pending_settings_from_runtime_selection() {
+    for (config, expected) in [
+        ("{}\n", "pending"),
+        ("AllCops:\n  NewCops: enable\n", "pending"),
+        ("AllCops:\n  NewCops: disable\n", "pending"),
+        ("AllCops:\n  EnabledByDefault: true\n", "true"),
+        ("AllCops:\n  DisabledByDefault: true\n", "false"),
+        ("Style:\n  Enabled: true\n", "pending"),
+        ("Style:\n  Enabled: false\n", "false"),
+        ("Style/MapToSet:\n  Enabled: true\n", "true"),
+        ("Style/MapToSet:\n  Enabled: false\n", "false"),
+        (
+            "AllCops:\n  DisabledByDefault: true\nStyle/MapToSet:\n  Enabled: pending\n",
+            "pending",
+        ),
+        (
+            "AllCops:\n  EnabledByDefault: true\nStyle/MapToSet:\n  Enabled: pending\n",
+            "pending",
+        ),
+        (
+            "Style:\n  Enabled: false\nStyle/MapToSet:\n  Enabled: true\n",
+            "true",
+        ),
+        (
+            "Style:\n  Enabled: false\nStyle/MapToSet:\n  Enabled: pending\n",
+            "false",
+        ),
+    ] {
+        let directory = project(&[(".rubocop.yml", config)]);
+        let output = command(directory.path())
+            .args(["--show-cops=Style/MapToSet"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let listing: serde_yaml::Value = serde_yaml::from_slice(&output).unwrap();
+        let expected: serde_yaml::Value = serde_yaml::from_str(expected).unwrap();
+        // 期待値は NewCops と部門・個別指定を変えた本家 CLI の実出力。
+        assert_eq!(listing["Style/MapToSet"]["Enabled"], expected, "{config}");
+    }
+}
+
+#[test]
 fn show_cops_descriptions_remain_loadable_yaml() {
     let directory = project(&[]);
     let output = command(directory.path())
