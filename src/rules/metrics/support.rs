@@ -1,4 +1,4 @@
-//! Line counting shared by the length cops.
+//! 行数と複雑度の計測で共有する構文の扱い。
 
 use std::collections::{HashMap, HashSet};
 
@@ -7,6 +7,21 @@ use tree_sitter::Node;
 use crate::diagnostic::Offense;
 use crate::rules::node_ext::NodeExt;
 use crate::rules::{RuleContext, push_named_children, walk_named};
+
+/// 本文の配置に左右されず、補間を heredoc 引数の位置で処理するための対応表。
+pub(super) fn heredoc_bodies<'a>(
+    index: &'a super::super::AstIndex<'a>,
+) -> crate::rules::IdKeyed<Node<'a>> {
+    let mut beginnings: Vec<_> = index.nodes_of_kind("heredoc_beginning").collect();
+    let mut bodies: Vec<_> = index.nodes_of_kind("heredoc_body").collect();
+    beginnings.sort_by_key(Node::start_byte);
+    bodies.sort_by_key(Node::start_byte);
+    beginnings
+        .into_iter()
+        .zip(bodies)
+        .map(|(beginning, body)| (beginning.id(), body))
+        .collect()
+}
 
 /// What kind of construct a length cop measures. The variants differ in how the body is counted
 /// and in which node RuboCop handed `check_code_length`, since that node fixes both the offense

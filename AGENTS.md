@@ -201,6 +201,13 @@ percent literal の回復を変え、既知の EOF 診断に誤った `tSTAR` �
 本家が受理する最小入力を保存し、0.27.0 を維持する。回帰テストは新たな誤診断を拒むが、
 既知の EOF 誤診断を期待値へ固定しない。将来の修正で両方消えることを妨げない。
 
+**heredoc の補間は引数の位置で計測する。** 終端の後からチェーンを続けると、本文が外側の
+call の直下へ移る。receiver と arguments だけの走査では補間を落とす。開始と本文の対応表で
+引数の位置から処理し、本文の本来の位置では二重に数えない。ローカル変数の宣言と safe navigation
+の割引も同じ順序を使う。同じ開始行の後続引数と、終端後のチェーンの引数を両方検査する。
+複数の heredoc と入れ子が重なる構文には、終端を失う既知の grammar の制約が残る
+(owayo/tree-sitter-ruby#8)。この場合の EOF に伸びた位置を本家の期待値へ固定しない。
+
 **source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
 `build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。
 `cargo metadata` の `target_directory` を使い、取得失敗時は Makefile の生成前に止める。

@@ -32,6 +32,7 @@ impl Locals {
             source: context.source,
             target_ruby: context.target_ruby_version(),
             index: context.ast_index(),
+            heredocs: super::support::heredoc_bodies(context.ast_index()),
             fragments,
             stack: vec![Frame::new(false)],
             lvars: crate::rules::IdSet::default(),
@@ -70,6 +71,7 @@ struct Walker<'a> {
     /// The file's node index: `is_variable_read` asks for a parent on every identifier, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
+    heredocs: crate::rules::IdKeyed<Node<'a>>,
     fragments: &'a Fragments,
     stack: Vec<Frame<'a>>,
     lvars: crate::rules::IdSet,
@@ -128,6 +130,13 @@ impl<'a> Walker<'a> {
             return;
         }
         match node.kind_str() {
+            // 補間の宣言は、同じ開始行の後続引数を分類する前に反映する。
+            "heredoc_beginning" => {
+                if let Some(body) = self.heredocs.get(&node.id()).copied() {
+                    self.visit_children(body);
+                }
+            }
+            "heredoc_body" if self.index.knows(node) => {}
             "assignment" => self.visit_assignment(node),
             "operator_assignment" => self.visit_operator_assignment(node),
             "identifier" => self.visit_identifier(node),
