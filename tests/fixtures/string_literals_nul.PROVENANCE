@@ -1,0 +1,22 @@
+この JSON は scripts/record_string_literals_nul.py が実行した RuboCop 1.89.0 CLI の記録。
+期待値を Sonicop の出力から生成していない。
+
+再生成: mise exec -- python3 scripts/record_string_literals_nul.py --ruby27 /path/to/ruby-2.7.8/miniruby
+
+対象: TargetRubyVersion/ParserEngine の 7 組、引用符 2 種、ConsistentQuotesInMultiline 2 種、LF/CRLF。
+通常 29 入力 × 168 CLI = 4,872 条件は inspect/-a/-A を記録。
+ASCII-8BIT は whitequark 2.7 / Prism 3.4 の 5 入力 × 16 CLI = 80 条件で inspect のみ。
+合計 184 CLI / 4,952 条件。うちIssue #54 の既存 CRLF 復号差 12 条件は string_literals_nul_pending.json に
+本家生記録を残し、診断を検査するが補正 bytes の一致には数えない。4,940 条件が完全比較の対象。
+raw NUL の位置、連続、実エスケープ、隣接 literal、補間、
+heredoc、コメント、SOH、タブ、ESC、多バイト文字を含む。
+
+全条件を実 MRI 2.7.8 で本家補正の前後に実行し、String の bytes と encoding の一致を確認。
+この実行結果は 3.3 / 3.4 処理系の実行互換性を検証した主張ではない。
+raw_reference_after_hex は本家の実ディスク bytes。after_hex は既知の CRLF 保持差だけを
+Sonicop の保存形式へ戻した比較用 bytes。
+
+ASCII-8BIT の制御文字補正で本家が \xNN、Sonicop が \uNNNN を使う既存差は Issue #53 で別途追跡する。
+この 80 条件は診断比較だけであり、補正の一致件数へ数えない。
+
+SHA256: 2d581d07ea5e3ed45dc628d7b652d99105c990cd5cd625b4f4700ac14d4e8c16

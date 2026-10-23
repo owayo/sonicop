@@ -2,7 +2,7 @@ use crate::diagnostic::{Edit, Offense};
 use crate::rules::RuleContext;
 
 use super::string_literals::{
-    corrected_literal, has_interpolation, inside_interpolation, is_dstr, quoted_label_key,
+    corrected_literal, has_interpolation, inside_interpolation, is_parser_dstr, quoted_label_key,
     wrong_quotes,
 };
 
@@ -27,7 +27,7 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         // so a literal interpolated into a regexp is checked rather than ignored.
         if source.len() < 2
             || has_interpolation(node)
-            || is_dstr(source)
+            || is_parser_dstr(source, context)
             || quoted_label_key(node, context)
             || !inside_interpolation(node, context)
             || !wrong_quotes(source, single_quotes)
