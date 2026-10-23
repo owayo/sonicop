@@ -4146,3 +4146,79 @@ fn parser_updates_do_not_add_a_star_error_to_valid_percent_literals() {
         source.as_bytes()
     );
 }
+
+#[test]
+fn numeric_predicate_keeps_the_original_when_upstream_writes_invalid_ruby() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["numeric_predicate_syntax_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 3);
+    for case in cases {
+        let before = case["source"].as_str().unwrap();
+        let target = case["target_ruby"].as_str().unwrap();
+        // 本家の実出力には新しい fatal があり、候補は元の診断だけを返す。
+        assert_eq!(case["upstream"]["exit"].as_i64(), Some(1));
+        assert_ne!(case["upstream"]["source"].as_str().unwrap(), before);
+        assert!(
+            case["upstream"]["offenses"]
+                .as_sequence()
+                .unwrap()
+                .iter()
+                .any(|offense| offense["cop_name"].as_str() == Some("Lint/Syntax"))
+        );
+        assert_eq!(case["sonicop"]["source"].as_str().unwrap(), before);
+        for ending in ["\n", "\r\n"] {
+            for correction in [None, Some("-a"), Some("-A")] {
+                let original = before.replace('\n', ending);
+                let directory = project_with_ruby(&[("example.rb", &original)], target);
+                let mut run = command(directory.path());
+                run.args([
+                    "--cache",
+                    "false",
+                    "--only",
+                    case["cop"].as_str().unwrap(),
+                    "--format",
+                    "json",
+                ]);
+                if let Some(flag) = correction {
+                    run.arg(flag);
+                }
+                let unsafe_correction = correction == Some("-A");
+                let expected_exit = if unsafe_correction {
+                    case["sonicop"]["exit"].as_i64().unwrap() as i32
+                } else {
+                    1
+                };
+                let output = run
+                    .arg("example.rb")
+                    .assert()
+                    .code(expected_exit)
+                    .get_output()
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["files"].as_array().unwrap().len(), 1);
+                assert_eq!(report["summary"]["inspected_file_count"], 1);
+                assert_eq!(report["summary"]["offense_count"], 1);
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::to_value(&case["sonicop"]["offenses"]).unwrap(),
+                    "{} {ending:?} {correction:?}",
+                    case["id"].as_str().unwrap()
+                );
+                // 拒否時も検査と安全補正の陰性対照も、実際の原本バイトを守る。
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    original.as_bytes()
+                );
+                let expected_stderr = if unsafe_correction {
+                    case["sonicop"]["stderr"].as_str().unwrap()
+                } else {
+                    ""
+                };
+                assert_eq!(output.stderr, expected_stderr.as_bytes());
+            }
+        }
+    }
+}

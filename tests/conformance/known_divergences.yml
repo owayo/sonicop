@@ -543,6 +543,71 @@ blind_spots:
 # 直すなら `final_pos` をループにする側の変更になるので、**実データで壊れている例を先に見つけること。**
 # 見つからないうちは、構造差を抱える理由がない。
 
+# 本家 1.89.0 が NumericPredicate の -A で新しい構文エラーを書き出す最小入力。
+# 既存のスクリプト構文保護は原本・未補正の診断・拒否理由・終了 2 を返す。
+# LF/CRLF と検査・-a の陰性対照も tests/cli.rs が検査する。
+numeric_predicate_syntax_divergences:
+  - id: numeric-predicate-splat
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    source: "0.<(*a)\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "*a.positive?\n"
+      offenses: [{"severity": "convention", "message": "Use `*a.positive?` instead of `0.<(*a)`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 7, "length": 7, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tNL\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 13, "last_line": 2, "last_column": 1, "length": 1, "line": 1, "column": 13}}]
+    sonicop:
+      exit: 2
+      source: "0.<(*a)\n"
+      offenses: [{"severity": "convention", "message": "Use `*a.positive?` instead of `0.<(*a)`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 7, "length": 7, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本の受理と補正後の構文診断を実測した。
+      Claude の設計レビューはこの構文保護を括弧の互換修正から分けて維持すると判断した。
+      Sonicop は既存の main_script 検査でファイル単位に拒否し、原本と初期診断を返す。
+      製品の拒否条件は変更せず、本家の構文破壊を再現しない差をここに明示する。
+  - id: numeric-predicate-block-pass
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    source: "0.<(&a)\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "&a.positive?\n"
+      offenses: [{"severity": "fatal", "message": "unexpected token tAMPER\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 1, "length": 1, "line": 1, "column": 1}}, {"severity": "convention", "message": "Use `&a.positive?` instead of `0.<(&a)`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 7, "length": 7, "line": 1, "column": 1}}]
+    sonicop:
+      exit: 2
+      source: "0.<(&a)\n"
+      offenses: [{"severity": "convention", "message": "Use `&a.positive?` instead of `0.<(&a)`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 7, "length": 7, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本の受理と補正後の構文診断を実測した。
+      Claude の設計レビューはこの構文保護を括弧の互換修正から分けて維持すると判断した。
+      Sonicop は既存の main_script 検査でファイル単位に拒否し、原本と初期診断を返す。
+      製品の拒否条件は変更せず、本家の構文破壊を再現しない差をここに明示する。
+  - id: numeric-predicate-hash
+    cop: Style/NumericPredicate
+    target_ruby: "2.7"
+    source: "0.<(b: 1)\n"
+    endings: [lf, crlf]
+    modes: [unsafe]
+    upstream:
+      exit: 1
+      source: "b: 1.positive?\n"
+      offenses: [{"severity": "convention", "message": "Use `b: 1.positive?` instead of `0.<(b: 1)`.", "cop_name": "Style/NumericPredicate", "corrected": true, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}, {"severity": "fatal", "message": "unexpected token tCOLON\n(Using Ruby 2.7 parser; configure using `TargetRubyVersion` parameter, under `AllCops`)", "cop_name": "Lint/Syntax", "corrected": false, "correctable": false, "location": {"start_line": 1, "start_column": 2, "last_line": 1, "last_column": 2, "length": 1, "line": 1, "column": 2}}]
+    sonicop:
+      exit: 2
+      source: "0.<(b: 1)\n"
+      offenses: [{"severity": "convention", "message": "Use `b: 1.positive?` instead of `0.<(b: 1)`.", "cop_name": "Style/NumericPredicate", "corrected": false, "correctable": true, "location": {"start_line": 1, "start_column": 1, "last_line": 1, "last_column": 9, "length": 9, "line": 1, "column": 1}}]
+      stderr: "Autocorrection was not written to example.rb because it introduced a syntax error.\n"
+    note: >-
+      2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 で原本の受理と補正後の構文診断を実測した。
+      Claude の設計レビューはこの構文保護を括弧の互換修正から分けて維持すると判断した。
+      Sonicop は既存の main_script 検査でファイル単位に拒否し、原本と初期診断を返す。
+      製品の拒否条件は変更せず、本家の構文破壊を再現しない差をここに明示する。
+
 # 符号化宣言と矛盾する本家の補正を再現しない。tests/cli.rs が全入力を両モードで検査する。
 # 本家の出力は RuboCop 1.89.0 / Ruby 4.0.7 の実測から記録し、原本の保持と失敗報告を監視する。
 encoding_writeback_divergences:

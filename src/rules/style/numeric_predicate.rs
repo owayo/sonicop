@@ -10,6 +10,10 @@ use crate::rules::send_node;
 const PREDICATES_SINCE: crate::ruby_version::RubyVersion =
     crate::ruby_version::RubyVersion::new(2, 3);
 
+/// 式展開を含む正規表現リテラルを、構文解析の時点で組み立てなくなる版。
+const DYNAMIC_INTERPOLATION_SINCE: crate::ruby_version::RubyVersion =
+    crate::ruby_version::RubyVersion::new(3, 3);
+
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let predicate_style = context
         .setting::<String>("EnforcedStyle")
@@ -182,8 +186,7 @@ fn is_zero(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     !digits.is_empty() && digits.chars().all(|digit| digit == '0')
 }
 
-/// `parenthesized_source`: an operator call written without parentheses has to gain some before a
-/// predicate can hang off it.
+/// `parenthesized_source`: 括弧の無い演算子の呼び出しは、述語を繋ぐ前に括弧で包む。
 fn parenthesized_source(context: &RuleContext<'_>, node: Node<'_>) -> String {
     let source = context.source.node_text(node);
     match require_parentheses(context, node) {
@@ -192,25 +195,150 @@ fn parenthesized_source(context: &RuleContext<'_>, node: Node<'_>) -> String {
     }
 }
 
+/// `require_parentheses?`: `node.send_type? && node.binary_operation? && !node.parenthesized?`。
+/// 本家の send のうち、演算子の selector が受け手の後ろにあり、呼び出し自身の括弧を持たないもの。
 fn require_parentheses(context: &RuleContext<'_>, node: Node<'_>) -> bool {
     match node.kind_str() {
-        // `&&` and `||` are not sends upstream, so they are not binary operations either.
+        // `&&` と `||` は本家では send ではないので、二項演算でもない。読む時点で組み立てられる
+        // 正規表現リテラルを左に書いた `=~` も `match_with_lvasgn` で、send ではない。
         "binary" => node.field("operator").is_some_and(|operator| {
-            super::nodes::is_operator_method(context.source.node_text(operator))
+            let operator = context.source.node_text(operator);
+            super::nodes::is_operator_method(operator)
+                && !(operator == "=~"
+                    && node
+                        .field("left")
+                        .is_some_and(|left| is_static_regexp(context, left)))
         }),
-        // `a[b]` is a call to `:[]`, and its `loc.begin` is a bracket rather than a parenthesis.
+        // `a[b]` は `:[]` の send で、`loc.begin` は括弧ではなく角括弧。
         "element_reference" => true,
+        // `a[b] = c` は `:[]=` の send で、selector は同じ角括弧。属性代入 `a.b = c` の `b=` は
+        // 演算子メソッドではなく、自己代入 `a[b] += c` は `op_asgn` で send ではない。
+        "assignment" => node
+            .field("left")
+            .is_some_and(|left| left.kind_str() == "element_reference"),
+        // `&.` の呼び出しは csend、ブロック付きの呼び出しは block ノードで、どちらも send ではない。
         "call" => {
-            node.field("receiver").is_some()
+            send_node::is_plain_send(node, context)
+                && node.field("block").is_none()
+                && node.field("receiver").is_some()
                 && node.field("method").is_some_and(|method| {
                     super::nodes::is_operator_method(context.source.node_text(method))
                 })
-                && !node
-                    .field("arguments")
-                    .is_some_and(|arguments| context.source.node_text(arguments).starts_with('('))
+                && !has_own_parentheses(context, node)
         }
         _ => false,
     }
+}
+
+/// `parenthesized?`: `loc.end` が呼び出し自身の `)` であること。その `(` はメソッド名の直後に
+/// 書かれる。空白を挟んだ `a.+ (b)` の `(b)` は引数の begin で、呼び出しは括弧を持たない。
+fn has_own_parentheses(context: &RuleContext<'_>, call: Node<'_>) -> bool {
+    match (call.field("method"), call.field("arguments")) {
+        (Some(method), Some(arguments)) => {
+            arguments.start_byte() == method.end_byte()
+                && context.source.node_text(arguments).starts_with('(')
+        }
+        _ => false,
+    }
+}
+
+/// `static_regexp_node`: 読む時点で組み立てられる正規表現リテラル。そうでないものを左に書いた
+/// `=~` は send のまま。
+///
+/// 3.3 より前の parser は、文字列リテラルだけからなる式展開も組み立てる (`static_string` が
+/// begin を辿る)。3.3 からは式展開を含むものを組み立てない。parser の `version >= 33` の分岐と、
+/// 既定で使う Prism の翻訳が式展開のある正規表現を `match_op` に渡さないことの両方による。
+fn is_static_regexp(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    node.kind_str() == "regex"
+        && super::nodes::children_in(node, context)
+            .into_iter()
+            .filter(|part| part.kind_str() == "interpolation")
+            .all(|interpolation| {
+                context.target_ruby_version() < DYNAMIC_INTERPOLATION_SINCE
+                    && is_static_string(context, interpolation)
+            })
+}
+
+/// `static_string`: `str` と、それだけを並べた begin。
+///
+/// parser は文字列の本文を 1 行ずつの `str` に切るので、改行をまたぐ文字列リテラルは `dstr` に
+/// なる。heredoc も同じ。
+fn is_static_string(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let mut stack = vec![node];
+    while let Some(current) = stack.pop() {
+        match current.kind_str() {
+            "interpolation" | "parenthesized_statements" => {
+                stack.extend(super::nodes::children_in(current, context));
+            }
+            "heredoc_beginning" if is_str_heredoc(context, current) => {}
+            _ if send_node::is_string(current, context) && !is_dstr(context, current) => {}
+            _ => return false,
+        }
+    }
+    true
+}
+
+/// 改行をまたいで `dstr` に切られる文字列リテラル。本家は CRLF を LF に正規化してから読むので、
+/// CRLF のファイルでも `\` + 改行は行継続になる。
+fn is_dstr(context: &RuleContext<'_>, node: Node<'_>) -> bool {
+    let text = context.source.node_text(node);
+    match text.contains("\r\n") {
+        true => super::string_literals::is_dstr(&text.replace("\r\n", "\n")),
+        false => super::string_literals::is_dstr(text),
+    }
+}
+
+/// heredoc が `str` になるのは、本文がちょうど 1 行で式展開を含まないときだけ。空の本文と
+/// 2 行以上の本文は `dstr`、バッククォートの heredoc は `xstr` になる。
+fn is_str_heredoc(context: &RuleContext<'_>, beginning: Node<'_>) -> bool {
+    let quote = context
+        .source
+        .node_text(beginning)
+        .trim_start_matches("<<")
+        .trim_start_matches(['~', '-'])
+        .chars()
+        .next();
+    if quote == Some('`') {
+        return false;
+    }
+    let Some(body) = send_node::heredoc_body(beginning, context) else {
+        return false;
+    };
+    let parts = super::nodes::children_in(body, context);
+    if parts.iter().any(|part| part.kind_str() == "interpolation") {
+        return false;
+    }
+    let end = parts
+        .iter()
+        .find(|part| part.kind_str() == "heredoc_end")
+        .map_or(body.end_byte(), |terminator| terminator.start_byte());
+    let text = &context.source.text()[body.start_byte()..end];
+    // 本文は、開始を書いた行を閉じる改行から始まる。
+    let content = text
+        .strip_prefix("\r\n")
+        .or_else(|| text.strip_prefix('\n'))
+        .unwrap_or(text);
+    line_breaks(content, quote == Some('\'')) == 1
+}
+
+/// 本文の改行のうち、行末の `\` がつながないもの。単一引用符の heredoc の `\` は何もつながない。
+fn line_breaks(content: &str, single_quoted: bool) -> usize {
+    let bytes = content.as_bytes();
+    let mut breaks = 0;
+    let mut index = 0;
+    while index < bytes.len() {
+        match bytes[index] {
+            // CRLF のファイルでは、`\` がつなぐ改行が 2 バイトになる。
+            b'\\' if !single_quoted && bytes[index + 1..].starts_with(b"\r\n") => index += 3,
+            b'\\' if !single_quoted => index += 2,
+            b'\n' => {
+                breaks += 1;
+                index += 1;
+            }
+            _ => index += 1,
+        }
+    }
+    breaks
 }
 
 /// `negated?`: the comparison this cop is about to write sits under a `!`.
