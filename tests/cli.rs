@@ -891,6 +891,37 @@ fn local_variable_before_plus_is_not_an_ambiguous_call() {
         .success();
 }
 
+/// ブロック付きの呼び出しは本家では `send` ではなく `block` ノードなので、括弧付きの引数の中に
+/// あっても `Style/NestedParenthesizedCalls` の入れ子にならない。TargetRubyVersion 2.7 では本家が
+/// この本文を構文エラーにする (#22) ので、3.4 で比べる。本家 1.89.0 はどの cop も報告しない。
+#[test]
+fn a_nested_call_with_a_do_block_is_not_a_nested_parenthesized_call() {
+    let source = "# frozen_string_literal: true\n\nputs(foo bar do\n  1\nend)\n";
+    for source in [source.to_owned(), source.replace('\n', "\r\n")] {
+        for correction in [None, Some("-A")] {
+            let directory = project(&[
+                (".rubocop.yml", "AllCops:\n  TargetRubyVersion: 3.4\n"),
+                ("example.rb", &source),
+            ]);
+            let mut run = command(directory.path());
+            run.args([
+                "--only",
+                "Style/NestedParenthesizedCalls",
+                "--cache",
+                "false",
+            ]);
+            if let Some(flag) = correction {
+                run.arg(flag);
+            }
+            run.arg("example.rb").assert().success();
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                source.as_bytes()
+            );
+        }
+    }
+}
+
 #[test]
 fn modifier_body_does_not_use_a_variable_first_assigned_in_its_condition() {
     let directory = project(&[(

@@ -416,6 +416,7 @@ cop, and the second time is always in a cop whose author had read the first fix:
 | a `def`'s body | `body_statement` between the two | the body hangs off the `def` directly |
 | the top level | `program` is a parent | `node.parent` is **nil** |
 | `_1`, `it` | `block` | `numblock` / `itblock` |
+| `foo 1 do … end` | one `call` whose `block` field holds the block | `block` around the `send` -- `each_child_node(:send)` does not see it |
 
 **Print the corrections too, when a correction does not land.** A cop can build a perfectly good
 set of edits and still leave the file untouched: the edit applier drops what falls outside the
