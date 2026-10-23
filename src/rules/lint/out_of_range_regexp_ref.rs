@@ -91,8 +91,9 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
         }
         // `/(?<a>x)/ =~ str` is a `match_with_lvasgn`, whose first child is the literal.
         "binary" if is_match_with_lvasgn(node, context) => {
-            if let Some(left) = node.field("left") {
-                walk.valid_ref = capture_count(left, context);
+            if let Some(left) = node.field("left")
+                && let Some(count) = capture_count(left, context) {
+                walk.valid_ref = Some(count);
             }
         }
         _ => {}
@@ -115,7 +116,7 @@ fn visit(node: Node<'_>, walk: &mut Walk, context: &RuleContext<'_>, offenses: &
         }
         visit(*child, walk, context, offenses);
     }
-    if is_capture_call(node, context) {
+    if is_capture_call(node, context) && !is_match_with_lvasgn(node, context) {
         walk.valid_ref = None;
         if let Some(regexp) = regexp_operand(node, context) {
             walk.valid_ref = capture_count(regexp, context);
@@ -234,7 +235,7 @@ fn is_match_with_lvasgn(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         .is_some_and(|operator| context.source.node_text(operator) == "=~")
         && node
             .field("left")
-            .is_some_and(|left| left.kind_str() == "regex")
+            .is_some_and(|left| context.static_regexp(left))
 }
 
 /// `$1` through `$9`, the references the parser spells as `nth_ref`.

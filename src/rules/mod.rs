@@ -62,7 +62,7 @@ mod style;
 pub(crate) mod support;
 mod visibility;
 
-pub(crate) use lint::literal_named_groups;
+pub(crate) use lint::{decode_regexp_fragment, literal_named_groups};
 pub(crate) use support::{push_named_children, push_named_children_in, walk_named};
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that
@@ -229,7 +229,7 @@ impl<'a> RuleContext<'a> {
     pub(in crate::rules) fn variable_analysis(&self) -> &Analysis<'a> {
         self.analysis.get_or_init(|| {
             crate::profile::phase(crate::profile::Phase::Variables, || {
-                Analysis::run(self.ast, self.source)
+                Analysis::run(self.ast, self.source, self.regexp_semantics())
             })
         })
     }
@@ -299,6 +299,18 @@ impl<'a> RuleContext<'a> {
     /// disabled nothing itself.
     pub fn disabled_cops(&self) -> &[&'static str] {
         self.disabled_cops
+    }
+
+    /// parse 前の束縛判定と、cop の AST 分類に同じ engine と版を渡す。
+    pub(crate) fn regexp_semantics(&self) -> crate::regexp_ast::Semantics {
+        crate::regexp_ast::Semantics::from_config(self.config)
+    }
+
+    pub(crate) fn static_regexp(&self, regex: Node<'_>) -> bool {
+        self.regexp_semantics()
+            .is_static(regex, self.source.text(), |beginning| {
+                self.ast.heredoc_body(beginning)
+            })
     }
 
     /// The Ruby version the run analyzes as, which version-gated cops compare against.

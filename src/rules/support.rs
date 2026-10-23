@@ -231,7 +231,7 @@ pub(crate) fn correction_parses(context: &RuleContext<'_>, edits: &[Edit]) -> bo
     let Some(corrected) = apply_edits(context.source.text(), edits) else {
         return false;
     };
-    parses(&corrected)
+    parses(&corrected, context.regexp_semantics())
 }
 
 /// Names a cop whose own edits overlap each other.
@@ -314,12 +314,12 @@ fn apply_edits(text: &str, edits: &[Edit]) -> Option<String> {
 }
 
 /// `ProcessedSource#valid_syntax?` for a source the run did not start from.
-fn parses(text: &str) -> bool {
-    parse(text).is_some()
+fn parses(text: &str, semantics: crate::regexp_ast::Semantics) -> bool {
+    parse(text, semantics).is_some()
 }
 
-fn parse(text: &str) -> Option<tree_sitter::Tree> {
-    let tree = crate::parser::parse(text)?;
+fn parse(text: &str, semantics: crate::regexp_ast::Semantics) -> Option<tree_sitter::Tree> {
+    let tree = crate::parser::parse_configured(text, semantics)?;
     if tree.root_node().has_error() || accepts_more_than_ruby(tree.root_node(), text) {
         return None;
     }
@@ -434,7 +434,15 @@ pub(crate) fn verified_by_reparse<T>(
         }
         let original = normalized(scope.unwrap_or(root), text, verification);
         if group.len() > 1
-            && corrections_verify(text, scope, &original, &group, &edits_of, verification)
+            && corrections_verify(
+                text,
+                scope,
+                &original,
+                &group,
+                &edits_of,
+                verification,
+                context.regexp_semantics(),
+            )
         {
             verified.extend(group);
             continue;
@@ -447,6 +455,7 @@ pub(crate) fn verified_by_reparse<T>(
                 std::slice::from_ref(item),
                 &edits_of,
                 verification,
+                context.regexp_semantics(),
             )
         }));
     }
@@ -485,6 +494,7 @@ fn corrections_verify<T>(
     items: &[T],
     edits_of: &impl Fn(&T) -> Vec<Edit>,
     verification: Verification,
+    semantics: crate::regexp_ast::Semantics,
 ) -> bool {
     let edits: Vec<Edit> = items.iter().flat_map(edits_of).collect();
     let Some(corrected) = apply_edits(text, &edits) else {
@@ -502,7 +512,7 @@ fn corrections_verify<T>(
         }
         None => corrected.as_str(),
     };
-    parse(fragment)
+    parse(fragment, semantics)
         .is_some_and(|tree| &normalized(tree.root_node(), fragment, verification) == original)
 }
 

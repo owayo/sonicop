@@ -135,7 +135,7 @@ fn is_match_with_lvasgn(node: Node<'_>, context: &RuleContext<'_>) -> bool {
         && test_method(node, context) == Some("=~")
         && node
             .field("left")
-            .is_some_and(|left| left.kind_str() == "regex")
+            .is_some_and(|left| context.static_regexp(left))
 }
 
 /// `inner.receiver.lvar_type? && (block is implicit || receiver.source == block param)`.

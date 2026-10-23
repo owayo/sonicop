@@ -217,11 +217,13 @@ impl<'tree> Analysis<'tree> {
     pub(in crate::rules) fn run(
         index: &'tree super::super::AstIndex<'tree>,
         source: &SourceFile,
+        semantics: crate::regexp_ast::Semantics,
     ) -> Self {
         let root = index.root_node();
         let mut force = Force {
             index,
             source,
+            semantics,
             scopes: Vec::new(),
             variables: Vec::new(),
             stack: Vec::new(),
@@ -274,6 +276,7 @@ struct Frame<'tree> {
 struct Force<'tree, 'a> {
     index: &'tree super::super::AstIndex<'tree>,
     source: &'a SourceFile,
+    semantics: crate::regexp_ast::Semantics,
     scopes: Vec<Scope<'tree>>,
     variables: Vec<Variable<'tree>>,
     stack: Vec<Frame<'tree>>,
@@ -1201,25 +1204,28 @@ impl<'tree> Force<'tree, '_> {
         }
     }
 
-    /// `/(?<name>…)/ =~ text` declares one local per named capture. Any other binary operator is
-    /// just an expression.
+    /// 本家が宣言し、実 Ruby の畳み込みでも残る名前付き capture の束縛を記録する。
     fn process_binary(&mut self, node: Node<'tree>) {
         let (Some(left), Some(right)) = (node.field("left"), node.field("right")) else {
             self.process_children(node);
             return;
         };
-        // Only a regexp the parser can compile becomes a `match_with_lvasgn`; one holding an
-        // interpolation stays an ordinary `=~` call and creates no local at all.
+        // cop の AST 分類と変数宣言を分け、空 begin 等の架空 capture を増やさない。
         if operator(node) != Some("=~")
-            || left.kind_str() != "regex"
-            || named_children(left)
-                .iter()
-                .any(|part| part.kind_str() == "interpolation")
+            || !self
+                .semantics
+                .is_static(left, self.source.text(), |beginning| {
+                    self.heredocs.get(&beginning.id()).copied()
+                })
         {
             self.process_children(node);
             return;
         }
-        let names = super::literal_named_groups(self.text(left));
+        let names = self
+            .semantics
+            .named_groups(left, self.source.text(), |beginning| {
+                self.heredocs.get(&beginning.id()).copied()
+            });
         if names.is_empty() {
             self.process_children(node);
             return;

@@ -45,8 +45,13 @@ fn literal_pattern(literal: &str) -> Option<(String, bool)> {
     if end < open || !literal[end..].starts_with(close) {
         return None;
     }
-    let body: Vec<char> = literal[open..end].chars().collect();
-    let mut pattern = String::with_capacity(end - open);
+    Some((decode_regexp_fragment(&literal[open..end], close), extended))
+}
+
+/// リテラルの区切り文字と行継続だけを Ruby と同じように復号する。
+pub(crate) fn decode_regexp_fragment(fragment: &str, close: char) -> String {
+    let body: Vec<char> = fragment.chars().collect();
+    let mut pattern = String::with_capacity(fragment.len());
     let mut index = 0;
     while index < body.len() {
         if body[index] != '\\' {
@@ -77,7 +82,7 @@ fn literal_pattern(literal: &str) -> Option<(String, bool)> {
             }
         }
     }
-    Some((pattern, extended))
+    pattern
 }
 
 /// Ruby の `read_escape` が、`\` の後ろの `c`・`C-`・`M-` (位置 `at`) から読み終える位置。

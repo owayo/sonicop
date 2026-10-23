@@ -22,6 +22,7 @@ mod parser;
 mod prism;
 mod profile;
 mod project_index;
+mod regexp_ast;
 mod regexp_names;
 mod ruby_version;
 pub mod rules;

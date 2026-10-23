@@ -2172,3 +2172,68 @@ divergences:
     sonicop: "# frozen_string_literal: true\n\ndef run\n  puts(<<~A, <<~B)\n    #{puts(<<~C)}\n      #{y = 2}\n    C\n  A\n    #{y}\n  B\nend\nrun\n"
     note: >-
       意図的な差 (#20)。whitequark/parser の同一範囲の架空の再代入が、実際に後続 heredoc から読む y を未使用と誤認させる。本家 -a/-A は宣言を消し、後続の y をメソッド呼び出しへ変える。Ruby 4.0.8 で原本の実行は成功し、本家補正は Syntax OK のまま NameError になることを実測した。Sonicop は物理ソースの束縛に従ってこの診断と削除を行わず、本文を保持する。構文安全網による拒否ではない。
+# whitequark の架空 capture 宣言は、有効な Ruby 2.7 の呼び出しまで空白補正で壊す。
+# AST の cop dispatch は本家に合わせるが、束縛には本家と実 Ruby がともに宣言する名前だけを使う。
+# tests/regexp_semantics.rs が元の実出力との不一致と、Prism の物理束縛での実出力との一致を両方検査する。
+regexp_binding_divergences:
+  - case: empty
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: >-
+      空の補間は Ruby 2.7 の new_evstr が EVSTR に残すため、名前付き capture を宣言しない。
+      whitequark は空 begin を空文字列へ連結して架空の変数を宣言する。本家の空白補正後は、
+      実 Ruby 2.7.8 でも y(+1) が y() + 1 へ変わり、引数不足の ArgumentError になる。
+  - case: leading_empty
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: >-
+      先行する空文は Ruby 2.7 の NODE_BEGIN を残し、単一の文字列と同じには畳み込まれない。
+      whitequark の架空 capture による呼び出しの再解釈を防ぐ。末尾だけの区切りと空文字列は除外しない。
+  - case: leading_empty_paren
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: 同上。括弧の中に先行する空文がある場合も、空文を削って静的宣言に変えてはいけない。
+  - case: discarded_capture
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: >-
+      whitequark は複文の全 str を連結するが、Ruby 2.7 は値を使わない先行 str を捨てる。
+      捨てた str にしかない capture 名を新たに宣言すると、後続のメソッド呼び出しを誤って変数として補正する。
+      実 Ruby 側にしかある捕捉名を追加する方針ではなく、両方が宣言する名前の積集合に限定する。
+  - case: middle_empty_paren
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: >-
+      Ruby 2.7 の block_append は、先行 str を捨てた後に現れる空括弧も NODE_BEGIN として残す。
+      その後に str があっても NODE_BLOCK は静的文字列へ戻らず、new_evstr が EVSTR に保つ。
+      本家の架空 capture に従う空白補正は、実 Ruby 2.7.8 でも有効な y(+1) を ArgumentError に変える。
+      中間のセミコロンだけの空文は別の構造なので、正当な宣言を除外しない。
+  - case: first_empty_paren
+    targets: [2.7/default, 3.2/parser_whitequark]
+    reference: 3.3/default
+    reason: 同上。先頭の空括弧を、後続の str だけを選ぶ簡略化で失ってはいけない。
+# 無効な character の既存境界。正常 CLI 一致と安全 binding の 72 条件へ混ぜない。
+regexp_character_boundary_divergences:
+  - case: truncated_hex_escape
+    target: 2.7/default
+    effective_engine: parser_whitequark
+    only: Layout/SpaceAroundOperators,Lint/Syntax
+    modes: [-a, -A]
+    endings: [lf, crlf]
+    reference_fixture: tests/fixtures/regexp_character_boundary.json
+    original: "def y(value)\n  value\nend\n/#{?\\C-\\x}(?<y>.)/ =~ 'a'\np y +1\n"
+    reference: >-
+      RuboCop 1.89.0 / TargetRubyVersion 2.7 / default (parser_whitequark) は原本を受理し、
+      5行5列の + に Layout/SpaceAroundOperators の補正済み診断1件を報告して終了0。
+      -a / -A は p y + 1 へ書き換える。CRLF原本もLFへ書く。
+      4条件の実診断全項目・終了値・原本・実書き込みbytesはreference_fixtureに保持する。
+    candidate_exit: 0
+    candidate_offenses: 0
+    candidate_preserves_source: true
+    mri27: >-
+      実 MRI 2.7.8p225 は、原本と本家の補正後をともに invalid hex escape / 終了1で拒否する。
+      したがって有効入力の補正安全性や意味保存が成立した条件へ数えない。
+    reason: >-
+      物理lexerで無効なcharacterのため原本を静的literalとして分類できない。
+      切れたescapeと周囲のERRORを静的値へ読み替えず、既存の原本保持を維持する。
+      この4条件は変更前のparser-backend baselineでも全診断・終了値・補正bytesが同じで、今回の新退行ではない。

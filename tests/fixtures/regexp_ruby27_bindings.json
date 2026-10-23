@@ -1,0 +1,7499 @@
+{
+  "ruby": {
+    "engine": "ruby",
+    "version": "2.7.8",
+    "patchlevel": 225,
+    "revision": "1f4d4558484b370999954f3ede7e3aa3a3a01ef3",
+    "description": "ruby 2.7.8p225 (2023-03-30 revision 1f4d455848) [x86_64-linux]"
+  },
+  "cases": [
+    {
+      "source": "/(?<y>.)#{}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{;}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(;)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((;))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; }/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; )}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ;}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ;)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ;))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{'a'; (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('a'; (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('a'; (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; 'a'; (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'a'; (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'a'; (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{''; (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(''; (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((''; (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ''; (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ''; (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ''; (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": true
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{('b'); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(('b'); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((('b'); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; ('b'); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; ('b'); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; ('b'); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); 'a'; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); 'a'; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); 'a'; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ''; (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ''; (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ''; (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); ('b'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); ('b'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); ('b'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); 'a'}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); 'a')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); 'a'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); 'a';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); 'a';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); 'a';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); ''}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); '')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); ''))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); '';}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); '';)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); '';))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); ()}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); ())}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); ()))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); ();}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); ();)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); ();))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); ('b')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); ('b'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); ('b')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); ('b');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); ('b');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); ('b');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; 'c'); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; 'c'); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(((; 'c'); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); (; 'c')}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); (; 'c'))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); (; 'c')))}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{; (; 'c'); (; 'c'); (; 'c');}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{(; (; 'c'); (; 'c'); (; 'c');)}/ =~ 'a'\n",
+      "declares_y": false
+    },
+    {
+      "source": "/(?<y>.)#{((; (; 'c'); (; 'c'); (; 'c');))}/ =~ 'a'\n",
+      "declares_y": false
+    }
+  ]
+}

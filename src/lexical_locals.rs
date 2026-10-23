@@ -32,7 +32,12 @@ use crate::rules::support::{scope_kind, spurious_assignment_list};
 /// grammar がすでに二項演算として読んでいるので、直前の名前がその字句の位置でいまもローカル変数に
 /// 束縛されているときだけ結果に残す。読み直しで束縛が消えた手がかり (heredoc だった本文がコメントに
 /// 変わった、など) は落ちる。
-pub(crate) fn binary_operator_hints(root: Node<'_>, text: &str, hinted: &[Hint]) -> Vec<Hint> {
+pub(crate) fn binary_operator_hints(
+    root: Node<'_>,
+    text: &str,
+    hinted: &[Hint],
+    semantics: crate::regexp_ast::Semantics,
+) -> Vec<Hint> {
     let (beginnings, bodies) = heredoc_nodes(root);
     let heredocs: HashMap<usize, Node<'_>> = crate::heredocs::pair(beginnings, bodies, text)
         .into_iter()
@@ -41,6 +46,7 @@ pub(crate) fn binary_operator_hints(root: Node<'_>, text: &str, hinted: &[Hint])
     let mut walk = Walk {
         text,
         hinted,
+        semantics,
         frames: vec![Frame::new(false)],
         heredocs,
         cursor: root.walk(),
@@ -102,6 +108,7 @@ enum Step<'tree> {
 
 struct Walk<'a, 'tree> {
     text: &'a str,
+    semantics: crate::regexp_ast::Semantics,
     /// いまの木を読むときに置き換え・挿入した手がかり (原文の位置の昇順)。
     hinted: &'a [Hint],
     frames: Vec<Frame<'a>>,
@@ -127,8 +134,9 @@ impl<'a, 'tree> Walk<'a, 'tree> {
                 Step::Target(target) => self.target(target, &mut stack),
                 Step::Pattern(node) => self.pattern(node, &mut stack),
                 Step::Captures(regex) => {
-                    let literal = &self.text[regex.byte_range()];
-                    for name in crate::rules::literal_named_groups(literal) {
+                    for name in self.semantics.named_groups(regex, self.text, |beginning| {
+                        self.heredocs.get(&beginning.id()).copied()
+                    }) {
                         self.declare_name(Cow::Owned(name));
                     }
                 }
@@ -443,7 +451,7 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         }
     }
 
-    /// `/(?<name>…)/ =~ text`: 補間を含まない正規表現リテラルの名前付きキャプチャが変数になる。
+    /// 本家が静的に読む regexp だけを宣言候補にし、名前抽出で架空の束縛を除く。
     fn declares_captures(&self, node: Node<'tree>) -> bool {
         let Some(left) = node.child_by_field_name("left") else {
             return false;
@@ -451,7 +459,10 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         let operator = node
             .child_by_field_name("operator")
             .map(|operator| &self.text[operator.byte_range()]);
-        operator == Some("=~") && left.kind() == "regex" && !has_interpolation(left)
+        operator == Some("=~")
+            && self.semantics.is_static(left, self.text, |beginning| {
+                self.heredocs.get(&beginning.id()).copied()
+            })
     }
 }
 
@@ -537,13 +548,6 @@ fn mislexed_match_operator(node: Node<'_>, text: &str) -> bool {
     })
 }
 
-fn has_interpolation(regex: Node<'_>) -> bool {
-    let mut cursor = regex.walk();
-    regex
-        .named_children(&mut cursor)
-        .any(|part| part.kind() == "interpolation")
-}
-
 fn heredoc_nodes(root: Node<'_>) -> (Vec<Node<'_>>, Vec<Node<'_>>) {
     let mut beginnings = Vec::new();
     let mut bodies = Vec::new();
@@ -582,19 +586,24 @@ mod tests {
     /// 手がかりを置く空白ごとに、直前の識別子から演算子の 1 文字目までを返す (`"count +"`)。
     fn hinted(source: &str) -> Vec<String> {
         let tree = tree(source);
-        binary_operator_hints(tree.root_node(), source, &[])
-            .into_iter()
-            .map(|hint| {
-                let position = hint.position();
-                let before = source[..position].trim_end_matches([' ', '\t', '\n', '\r', '\\']);
-                let start = before
-                    .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
-                    .map_or(0, |index| index + 1);
-                let after = source[position + usize::from(matches!(hint, Hint::Replace(_)))..]
-                    .trim_start_matches(['\\', '\r', '\n']);
-                format!("{} {}", &before[start..], &after[..1])
-            })
-            .collect()
+        binary_operator_hints(
+            tree.root_node(),
+            source,
+            &[],
+            crate::regexp_ast::Semantics::default(),
+        )
+        .into_iter()
+        .map(|hint| {
+            let position = hint.position();
+            let before = source[..position].trim_end_matches([' ', '\t', '\n', '\r', '\\']);
+            let start = before
+                .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .map_or(0, |index| index + 1);
+            let after = source[position + usize::from(matches!(hint, Hint::Replace(_)))..]
+                .trim_start_matches(['\\', '\r', '\n']);
+            format!("{} {}", &before[start..], &after[..1])
+        })
+        .collect()
     }
 
     /// 仮引数・代入・多重代入・`for`・`rescue`・パターン・名前付きキャプチャ・番号付き引数の
@@ -734,7 +743,12 @@ mod tests {
         ] {
             let tree = tree(source);
             let position = source.find('\x0c').unwrap();
-            let hints = binary_operator_hints(tree.root_node(), source, &[Hint::Replace(position)]);
+            let hints = binary_operator_hints(
+                tree.root_node(),
+                source,
+                &[Hint::Replace(position)],
+                crate::regexp_ast::Semantics::default(),
+            );
             assert_eq!(
                 hints.contains(&Hint::Replace(position)),
                 kept,
@@ -753,7 +767,12 @@ mod tests {
             ("x = 1\r\nx\\\r\n\\\n+1\n", true),
         ] {
             let tree = tree(source);
-            let hints = binary_operator_hints(tree.root_node(), source, &[]);
+            let hints = binary_operator_hints(
+                tree.root_node(),
+                source,
+                &[],
+                crate::regexp_ast::Semantics::default(),
+            );
             assert_eq!(hints.len(), 1, "{source:?} {hints:?}");
             assert_eq!(matches!(hints[0], Hint::Insert(_)), insert, "{source:?}");
         }

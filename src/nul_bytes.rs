@@ -43,12 +43,23 @@ const STAND_IN: u8 = 0x01;
 
 /// The source as Ruby's lexer would have read it, or `None` when there is no NUL to account for --
 /// which is every ordinary file, so this costs one scan and nothing else.
+#[cfg(test)]
 pub fn as_ruby_reads_it(text: &str) -> Option<String> {
+    as_ruby_reads_it_configured(text, crate::regexp_ast::Semantics::default())
+}
+
+/// NUL の字句分類にも本体の parse と同じ束縛を使う。旧版で除算の中にある NUL を、
+/// 未束縛の呼び出しの regexp の中だと読むと、本来の EOF より後まで検査してしまう。
+pub(crate) fn as_ruby_reads_it_configured(
+    text: &str,
+    semantics: crate::regexp_ast::Semantics,
+) -> Option<String> {
     if !text.as_bytes().contains(&0) {
         return None;
     }
     let mut text = text.to_owned();
-    let (mut comment_ends, mut literals) = parse(&text).map(|tree| ranges(tree.root_node()))?;
+    let (mut comment_ends, mut literals) =
+        parse(&text, semantics).map(|tree| ranges(tree.root_node()))?;
     // Where to look for the next NUL. A NUL left in place has to be stepped over, or the scan finds
     // the same byte forever. It only ever moves forward, which is also what stops a re-parse -- one
     // that can turn up a comment behind it -- from sending the walk back over a byte it has already
@@ -123,7 +134,7 @@ pub fn as_ruby_reads_it(text: &str) -> Option<String> {
             text.truncate(offset);
             return Some(text);
         }
-        let Some(tree) = parse(&text) else {
+        let Some(tree) = parse(&text, semantics) else {
             return Some(text);
         };
         (comment_ends, literals) = ranges(tree.root_node());
@@ -141,10 +152,10 @@ thread_local! {
     static PARSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-fn parse(text: &str) -> Option<tree_sitter::Tree> {
+fn parse(text: &str, semantics: crate::regexp_ast::Semantics) -> Option<tree_sitter::Tree> {
     #[cfg(test)]
     PARSES.with(|parses| parses.set(parses.get() + 1));
-    crate::parser::parse(text)
+    crate::parser::parse_configured(text, semantics)
 }
 
 /// The nodes that hold the text of a literal. `%w` and `%i` wrap theirs in a `bare_string` or a
@@ -308,7 +319,8 @@ mod tests {
         }
         let mut text = text.to_owned();
         let (mut comment_ends, mut literals) =
-            super::parse(&text).map(|tree| super::ranges(tree.root_node()))?;
+            super::parse(&text, crate::regexp_ast::Semantics::default())
+                .map(|tree| super::ranges(tree.root_node()))?;
         let mut from = 0;
         loop {
             let Some(offset) = text.as_bytes()[from..]
@@ -340,7 +352,7 @@ mod tests {
             }
             text = String::from_utf8(bytes).expect("a one-byte character replaced another");
             from = line_end;
-            let Some(tree) = super::parse(&text) else {
+            let Some(tree) = super::parse(&text, crate::regexp_ast::Semantics::default()) else {
                 return Some(text);
             };
             (comment_ends, literals) = super::ranges(tree.root_node());
