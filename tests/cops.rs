@@ -1587,12 +1587,13 @@ mod lint {
         .run();
     }
 
-    /// 2.6 以降は構文エラーになるので、cop 自体が組み立てられない。
+    /// rescue を伴う else は有効な構文で、この cop の対象にならない。
+    /// rescue の無い旧入力は専用 CLI の Lint/Syntax 記録で検査する。
     #[test]
-    fn useless_else_without_rescue_is_off_for_newer_rubies() {
+    fn an_else_with_rescue_is_valid_for_newer_rubies() {
         expect_no_offenses(
             "Lint/UselessElseWithoutRescue",
-            "begin\n  do_something\nelse\n  handle\nend\n",
+            "begin\n  do_something\nrescue\n  retry\nelse\n  handle\nend\n",
         );
     }
 
@@ -2893,8 +2894,8 @@ mod metrics_constant_definitions {
 /// offense しか出ない。
 ///
 /// 加えて本家は parser gem を `TargetRubyVersion` で動かすため、その版に無い
-/// 構文はすべて構文エラーになる。tree-sitter は版に関係なく最新構文を受理する
-/// ので、版ごとのゲートは手で持つしかない。
+/// 構文はすべて構文エラーになる。tree-sitter の ERROR から推測するのではなく、
+/// parser gem の対象版の状態機械で診断する。
 ///
 /// 期待値はすべて rubocop 1.89.0 の `--only Lint/Syntax --format json` 実測。
 mod syntax {
@@ -3110,11 +3111,15 @@ mod syntax {
     fn an_expression_pin_needs_ruby_3_1() {
         at_3_0(
             "case a\nin ^(1 + 1)\n  1\nend\nbaz\n",
-            vec![unexpected_at("3.0", 2, 5, 1, "tLPAREN")],
+            vec![
+                unexpected_at("3.0", 2, 5, 1, "tLPAREN"),
+                unexpected_at("3.0", 4, 1, 3, "kEND"),
+            ],
         )
         .run();
         accepted("case a\nin ^(1 + 1)\n  1\nend\n", "3.1").run();
-        accepted("case a\nin ^x\n  1\nend\n", "3.0").run();
+        // pin の変数は、その位置までに宣言されている必要がある。
+        accepted("x = 1\ncase a\nin ^x\n  1\nend\n", "3.0").run();
     }
 
     /// 1 行の `in` にはあとに続く節も `end` も無いので、**ここでは本家も 1 件しか出さない** —
@@ -14281,7 +14286,7 @@ mod layout_comments_and_indentation {
         .run();
         expect_no_offenses(COP, "y = !foo\n");
         expect_no_offenses(COP, "y = !(foo)\n");
-        expect_no_offenses(COP, "y = not foo\n");
+        expect_no_offenses(COP, "y = (not foo)\n");
     }
 
     /// 既定は spaces なので、行頭のタブを報告して空白へ直す。文字列リテラルの中は対象外だが、
@@ -14557,8 +14562,8 @@ mod layout_punctuation_spacing {
         .corrected("h = [1, 2]\n")
         .run();
         expect_no_offenses(COP, "h = [1, 2]\n");
-        // 行頭のカンマは直前のトークンが別行なので対象外。
-        expect_no_offenses(COP, "h = [1\n, 2]\n");
+        // 行継続後のカンマは直前のトークンが別行なので対象外。
+        expect_no_offenses(COP, "h = [1 \\\n, 2]\n");
         expect_no_offenses(COP, "x = \"a , b\"\n");
     }
 
@@ -23097,7 +23102,7 @@ mod style_inverse_methods {
             "k = foo.select { |x| x != 1 }\n",
             "k = foo.reject { |x| x == 1 }\n",
         );
-        expect_correction(COP, "r = not foo.any?\n", "r = foo.none?\n");
+        expect_correction(COP, "not foo.any?\n", "foo.none?\n");
     }
 }
 
@@ -30270,15 +30275,16 @@ mod lint_or_assignment_to_constant {
         );
     }
 
-    /// メソッドの中の定数代入は呼び出しごとに走るので、報告はしても補正しない。
+    /// メソッド内でも有効な修飾付き定数代入は、報告はしても補正しない。
+    /// 修飾の無い定数代入の構文エラーは専用 CLI に残す。
     #[test]
     fn a_constant_inside_a_method_is_reported_but_not_corrected() {
         CopCase::annotated(
             COP,
             r#"
             def m
-              CONST ||= 1
-                    ^^^ Avoid using or-assignment with constants.
+              Foo::CONST ||= 1
+                         ^^^ Avoid using or-assignment with constants.
             end
             "#,
         )
@@ -38385,15 +38391,12 @@ mod style_redundant_line_continuation {
         );
     }
 
-    /// The one thing a blank line does not make redundant, because the backslash is what carries
-    /// the chain across it: Ruby joins a leading-dot line to the one above, but a blank line breaks
-    /// that (`ruby` says `unexpected '.', ignoring it`), so removing the `\` changes the program.
+    /// 空行 1 つなら行継続がチェーンを保つので、その削除は構文を壊す。
+    /// 空行 2 つの元入力は本家自体が拒否するため、専用 CLI の構文回帰へ残す。
     #[test]
     fn a_continuation_carrying_a_chain_across_a_blank_line_stays() {
         expect_no_offenses(COP, "r = foo \\\n\n  .bar\n");
-        // However many blank lines sit in between.
-        expect_no_offenses(COP, "r = foo \\\n\n\n  .bar\n");
-        // A non-chain line after the blank is redundant again, which is the pair to the case above.
+        // チェーンでない行なら、本家も継続記号を削除する。
         expect_correction(COP, "foo \\\n\n  bar\n", "foo \n\n  bar\n");
     }
 

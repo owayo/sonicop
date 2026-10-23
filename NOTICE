@@ -2,8 +2,8 @@ NOTICE
 
 sonicop is distributed under the MIT License (see LICENSE). It also carries
 material generated from, or copied verbatim out of, the projects listed below.
-Each is redistributed under its own licence, reproduced in full at the end of
-this file.
+Each is redistributed under its own licence, reproduced in full below or in
+the referenced licenses/ file.
 
 This file is an inventory as much as an attribution: it records **what is taken,
 from where, and how to regenerate it**. Keeping it current is what makes the
@@ -51,6 +51,13 @@ RuboCop -- https://github.com/rubocop/rubocop -- MIT
       Regenerate: make project-index-fixtures
       Source details: tests/fixtures/project_index_cases.json.PROVENANCE
       Read by tests/project_index.rs
+
+  tests/fixtures/legacy_syntax_reports.json
+      Constructed regression inputs paired with complete offense fields,
+      exit codes and correction bytes recorded from RuboCop 1.89.0's CLI.
+      Covers parser-gem recovery and engine/version selection without requiring
+      Ruby to be available during the native regression test.
+      Source metadata is stored in the JSON file.
 
 Ruby on Rails -- https://github.com/rails/rails -- MIT
   Copyright (c) David Heinemeier Hansson
@@ -109,6 +116,37 @@ Rubydex -- https://github.com/Shopify/rubydex -- MIT
   and Prism 1.9.0 for project-wide indexing. The compatibility parser above
   retains its separate version and exported symbols.
   Full text: licenses/RUBYDEX.txt
+
+parser -- https://github.com/whitequark/parser -- MIT
+  Copyright (c) 2013-2024 parser project contributors
+  Copyright (c) 2013-2016 Catherine <whitequark@whitequark.org>
+  Parts derived from ruby_parser: Copyright (c) Ryan Davis, seattle.rb
+
+  src/legacy_parser/
+  scripts/legacy_parser/
+      Rust port of parser 3.3.12.0's lexer, grammar actions and diagnostic
+      builder. LALR and Ragel tables and lexer execution actions are generated
+      directly from the installed gem, with source hashes and action hashes.
+      Regenerate: ruby scripts/legacy_parser/generate.rb
+      Source inventory: src/legacy_parser/PROVENANCE.md
+      Complete licence: licenses/PARSER.txt
+
+RuboCop AST -- https://github.com/rubocop/rubocop-ast -- MIT
+  Copyright (c) 2012-20 Bozhidar Batsov
+
+  src/legacy_parser/builder.rs
+      Follows RuboCop AST 1.50.0's Builder overrides in addition to parser's
+      default builder, including acceptance of raw string values whose bytes
+      are not valid UTF-8. Complete licence: licenses/RUBOCOP_AST.txt
+
+Racc -- https://github.com/ruby/racc -- 2-clause BSDL
+  Copyright (c) 1999-2006 Minero Aoki
+  Copyright (C) 1993-2013 Yukihiro Matsumoto
+
+  src/legacy_parser/parser.rs
+      Rust port of racc 1.8.1's C cparse driver and error recovery. Racc's
+      bundled BSDL is reproduced in licenses/RACC.txt (and below for Ruby).
+      Source inventory: src/legacy_parser/PROVENANCE.md
 
 DidYouMean -- https://github.com/ruby/did_you_mean -- MIT
   Copyright (c) 2014-2016 Yuki Nishijima

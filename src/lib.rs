@@ -13,6 +13,8 @@ mod display_width_table;
 pub mod engine;
 mod formatter;
 mod heredocs;
+#[doc(hidden)]
+pub mod legacy_parser;
 mod lexical_locals;
 mod magic_comment;
 mod nul_bytes;

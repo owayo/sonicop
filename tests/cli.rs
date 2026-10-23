@@ -911,10 +911,7 @@ fn a_nested_call_with_a_do_block_is_not_a_nested_parenthesized_call() {
     let source = "# frozen_string_literal: true\n\nputs(foo bar do\n  1\nend)\n";
     for source in [source.to_owned(), source.replace('\n', "\r\n")] {
         for correction in [None, Some("-A")] {
-            let directory = project(&[
-                (".rubocop.yml", "AllCops:\n  TargetRubyVersion: 3.4\n"),
-                ("example.rb", &source),
-            ]);
+            let directory = project_with_ruby(&[("example.rb", &source)], "3.4");
             let mut run = command(directory.path());
             run.args([
                 "--only",
@@ -3334,8 +3331,10 @@ fn polyglot_ruby_body_corrections_preserve_a_crlf_launcher() {
             fs::read(directory.path().join("example.rb")).unwrap(),
             expected.as_bytes()
         );
+        // 引用の無い exec ruby -x は本家 parser も拒否する。Ruby と shell の両方で
+        // 有効な launcher を使い、コメントだけの補正を安全ゲートが許すことを確認する。
         let source = format!(
-            "#!/bin/sh{newline}# comment {newline}exec ruby -x \"$0\" \"$@\" if false{newline}#!ruby{newline}puts :ok{newline}"
+            "#!/bin/sh{newline}# comment {newline}exec \"${{RUBY-ruby}}\" \"-x\" \"$0\" \"$@\" && [ ] if false{newline}#!ruby{newline}puts :ok{newline}"
         );
         let expected = source.replace("# comment ", "# comment");
         fs::write(directory.path().join("example.rb"), &source).unwrap();

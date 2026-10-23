@@ -34,7 +34,18 @@ Ruby's reference was assembled in chunks. RuboCop raises an invalid UTF-8 error 
 
 Homebrew has the same **569 syntax-error files** on both sides. The different `Lint/Syntax` positions are produced after error recovery; they do not represent different accepted-file sets there. Ruby has both parser and cop residue. Ruby's four shared-position differences are two `correctable` flags, one range length, and one syntax message. The full-record multiset has 169 Sonicop-only records and 562 RuboCop-only records after including those four differing positions. These differences remain open and are not described as exact matches.
 
-Command-style receivers in spaced index assignments are now diagnosed at their assignment operator, including constants and argumentless calls. Recovery follows the reference's scope: ordinary blocks and a missing right-hand side stop the remaining diagnostics, while recoverable method, class, conditional and lambda bodies still report later errors. These constructed cases are tested against actual RuboCop output; the broader parser recovery gap remains open.
+For the reference-supported legacy targets (2.7–3.2, plus 3.3/3.4 when `ParserEngine: parser_whitequark` is selected), syntax diagnostics now come from a Rust port of parser 3.3.12.0's lexer and grammar actions driven by Racc 1.8.1's C recovery rules. This replaces construct-specific recovery guesses. The 112 recorded CLI cases compare every offense field, LF/CRLF input bytes, exit codes and disk output under both correction modes, applying only the already documented CRLF-retention difference. Default targets 3.3 and later continue to use the compatibility Prism backend. Sonicop's existing 2.0–2.6 behavior remains in a separate compatibility path because those targets are outside RuboCop 1.89.0's supported range. Static regexp compilation errors remain a pre-existing gap tracked in [issue #30](https://github.com/owayo/sonicop/issues/30). The corpus figures above predate this backend change and are not a claim that all parser residue is resolved.
+
+The parser-token comparison separately checked 67,042 file/version pairs against parser 3.3.12.0 with the RuboCop AST 1.50.0 builder. Exactly 67,000 pairs matched every token type/range and every Error/Fatal diagnostic. The remaining 42 were excluded from the success count: 30 explicit non-UTF-8 skips, six upstream `ArgumentError` results, and six instances of the pre-existing regexp-validation gap (#30). There were no subprocess failures or additional differences. Ruby's corpus was checked under all six grammars; the other four corpora were additionally checked under the new 3.3/3.4 grammars. Earlier measurements of an older candidate are not included in these counts.
+
+| Corpus revision | Grammars | Requested pairs | Exact pairs |
+|---|---|---:|---:|
+| ruby/ruby `0d83a93784090400ce38f0852ae11bc103765810` | 2.7, 3.0–3.4 | 44,976 | 44,934 |
+| Homebrew/brew `17a9eaaf09c861178803b15bbed4595cdb8219d2` | 3.3, 3.4 | 4,790 | 4,790 |
+| rubocop/rubocop `8e4747746f8536ca3324df42ec77bc27883ee3b1` | 3.3, 3.4 | 3,588 | 3,588 |
+| rails/rails `33748f4f60e68eeeed0d48ac566d345415dc78f4` | 3.3, 3.4 | 7,040 | 7,040 |
+| mastodon/mastodon `c4ca1bbbc5505372f22e69d6f97855b48f2a84ab` | 3.3, 3.4 | 6,648 | 6,648 |
+
 
 A separate CRLF probe prepared 1,749 `.rb` files and converted **1,748 files with line endings** in a copy of the pinned `rubocop/rubocop` revision `f009b33`. Both tools inspected the same 1,765 target paths. The full-record comparison covers **7,514 offenses**, including range ends, length, message, severity and correctability. The current candidate matches all 7,514 full records. On 2026-10-08 this gate caught a 405-record end-column regression before publication; counts alone would have missed it.
 
