@@ -17091,6 +17091,14 @@ mod double_cop_disable_directive {
     const COP: &str = "Style/DoubleCopDisableDirective";
 
     #[test]
+    fn literal_text_is_not_a_directive_comment() {
+        expect_no_offenses(
+            COP,
+            "marker = 'ok'\nvalue = <<~TEXT\n  #{marker}# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize\nTEXT\n",
+        );
+    }
+
+    #[test]
     fn the_second_directive_becomes_a_comma() {
         expect_correction(
             COP,

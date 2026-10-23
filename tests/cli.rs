@@ -3653,6 +3653,65 @@ fn show_cops_separates_pending_settings_from_runtime_selection() {
 }
 
 #[test]
+fn double_directive_locations_exclude_cr_and_corrections_preserve_line_endings() {
+    for ending in ["\n", "\r\n"] {
+        for correction in [None, Some("-a"), Some("-A")] {
+            let original = format!(
+                "text = '日本語' # rubocop:disable Style/For # rubocop:disable Metrics/AbcSize{ending}"
+            );
+            let directory = project(&[("example.rb", &original)]);
+            let mut run = command(directory.path());
+            run.args([
+                "--force-default-config",
+                "--cache",
+                "false",
+                "--only",
+                "Style/DoubleCopDisableDirective",
+                "--format",
+                "json",
+            ]);
+            if let Some(flag) = correction {
+                run.arg(flag);
+            }
+            let output = run
+                .arg("example.rb")
+                .assert()
+                .code(if correction.is_some() { 0 } else { 1 })
+                .get_output()
+                .stdout
+                .clone();
+            let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            // 全項目は本家 1.89.0 の LF / CRLF と検査・-a・-A の実出力から取得した。
+            assert_eq!(
+                report["files"][0]["offenses"],
+                serde_json::json!([{
+                    "severity": "convention",
+                    "message": "More than one disable comment on one line.",
+                    "cop_name": "Style/DoubleCopDisableDirective",
+                    "corrected": correction.is_some(),
+                    "correctable": true,
+                    "location": {
+                        "start_line": 1, "start_column": 14,
+                        "last_line": 1, "last_column": 74,
+                        "length": 61, "line": 1, "column": 14
+                    }
+                }])
+            );
+            let expected = if correction.is_some() {
+                format!("text = '日本語' # rubocop:disable Style/For, Metrics/AbcSize{ending}")
+            } else {
+                original
+            };
+            // CRLF の保持は既存の意図的差分。二重 CR も、原本の LF 化も許さない。
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                expected.as_bytes()
+            );
+        }
+    }
+}
+
+#[test]
 fn show_cops_descriptions_remain_loadable_yaml() {
     let directory = project(&[]);
     let output = command(directory.path())
