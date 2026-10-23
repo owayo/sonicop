@@ -1,0 +1,14 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI 記録。
+
+10入力 × whitequark 2.7 / Prism 3.4 × 検査/-a/-A の60条件。
+firstは原本に対する本家の診断全項目と終了値、reference_after_hexはその生出力である。
+本家は補正後のCRLFを全てLFへ書くが、Sonicopはcopy区間のCRLFとDATA値を保持する。
+after_hexは本家のfrozen comment挿入を採用し、未変更原本を全bytes維持した意図差である。
+CRLFだけの原本では既存方針どおり挿入行もCRLF、mixedの挿入行はLFにする。
+reference_repeatedは本家が生after bytesを書いた後の通常の再実行結果である。
+repeatedはSonicopの書出し予定bytesを実際に本家CLIへ再入力した診断・終了値であり、
+物理CRLFが再びEndOfLineに見える場合を成功一致へ混ぜない。補正が無ければbytesを変えない。
+DATAの実行値は別途Rubyで原本・本家補正・候補を測定し、CLI回帰もDATA本文を全bytes照合する。
+
+再生成:
+  mise exec -- python3 scripts/record_mixed_reinspection.py tests/fixtures/mixed_reinspection.json

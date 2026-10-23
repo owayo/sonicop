@@ -1,0 +1,16 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLIとRuby DATA.read実行値。
+
+6 mixed入力 × whitequark 2.7 / Prism 3.4 × 検査/-a/-Aの36条件と再実行。
+FSLコメント挿入とEmptyLineAfterMagicCommentの空行挿入が異なるpassで発生し、
+本家の両corrected診断・終了値・生afterを固定する。元bare CR＋CRLFの連続、3連続、
+2箇所、通常pair、離れたbare CR、bare CRだけを含む。DATA以外の2挿入で元DATAを変えない。
+after_hexは本家の先頭2挿入を採用して原本全bytesをcopyした意図差で、候補出力は参照しない。
+original_runtime_hexとreference_runtime_hexは実Rubyのstdout bytes。元値が保存予定bytesで
+変わらないことを本家のphysical再実行前にも実行し、repeatedを記録する。
+reference_repeatedは本家の通常書出し後の再実行を別記録している。
+
+pureCRLF内の同じ連続CRで元DATAを失う既存差は、本修正前baseでも再現する別件として
+正常gateから分離している。本fixtureはmixedの新規退行6条件と陰性対照を検査する。
+
+再生成:
+  mise exec -- python3 scripts/record_mixed_bare_cr.py tests/fixtures/mixed_bare_cr.json

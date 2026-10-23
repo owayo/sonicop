@@ -339,6 +339,16 @@ before writeback. The intentional byte difference is recorded in the divergence 
 The tree-sitter comment node includes the `\r` in CRLF, while RuboCop's comment token excludes it.
 Trim that byte from indexed comment ranges before cops calculate offense locations or source text.
 
+混在改行も補正後の解析viewはLFとし、書出しは元CRLFのcopy由来を別に追跡する。
+CR/LFの両byteが同じ未変更区間に残ったpairだけを初回の由来とし、置換・挿入のLFへ
+同じ文字だからという理由で由来を与えない。解析で隠したCRの復元位置と、まだ可視の元単独CRを
+別に移す。連続CRが次passでLFに接した場合は可視の元CRを復元位置へ移し、同じLFに複数の
+復元位置を許す。LFを削除・置換した場合はその隠れたCRも脱落させる。初回physicalだけが
+両byteの同区間copyを必要とする。最終のbyte安全検査より前に元CRを復元し、mixedの新規LFと
+DATA内の元LF・単独CRを一律に変えず、元がCRLFのみの既存方針は維持する。
+物理CRLFを再入力した際のEndOfLine再診断は、
+LF解析view上の初回補正結果との一致へ混ぜず別に実測する。
+
 `Layout/EndOfLine` の検査終点は物理的な最終行ではなく、本家の `tokens.last.line` に合わせる。
 末尾コメントや heredoc 本文を読み終えてから返る `tNL` は、直前の文の行番号へ戻る。
 終端改行の無い通常コメントは whitequark では `tNL` より後、Prism では前となる。
