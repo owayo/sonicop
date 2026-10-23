@@ -4,9 +4,14 @@
 //! その例外の文言を `invalid_regexp` の診断にする。`=~` の左辺なら名前付きキャプチャを
 //! ローカル変数として宣言する。
 
-/// 名前付きキャプチャの名前 (`Regexp#names`: 出現順、重複なし)。
-pub(crate) fn names(source: &str, flags: &str) -> Vec<String> {
-    crate::regexp_names::named_groups(source, flags.contains('x'))
+/// Regexp#names は、ソースの識別子と同じ Symbol になる名前だけが参照できる。
+pub(crate) fn names(
+    source: &[u8],
+    encoding: crate::engine::LiteralEncoding,
+    flags: &str,
+    identifier_encoding: crate::engine::LiteralEncoding,
+) -> Option<Vec<String>> {
+    crate::regexp_validation::named_groups(source, encoding, flags, identifier_encoding)
 }
 
 /// Regexp.new の符号化変換・前処理・Onigmo コンパイルを共通層へ渡す。
@@ -20,7 +25,10 @@ pub(crate) fn validate(
 
 #[cfg(test)]
 mod tests {
-    use super::names;
+    fn names(source: &str, flags: &str) -> Vec<String> {
+        let encoding = crate::engine::LiteralEncoding::Text;
+        super::names(source.as_bytes(), encoding, flags, encoding).unwrap_or_default()
+    }
 
     #[test]
     fn named_captures_are_read_outside_classes_and_escapes() {

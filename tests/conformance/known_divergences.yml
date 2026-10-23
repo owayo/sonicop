@@ -2541,3 +2541,53 @@ regexp_character_boundary_divergences:
       物理lexerで無効なcharacterのため原本を静的literalとして分類できない。
       切れたescapeと周囲のERRORを静的値へ読み替えず、既存の原本保持を維持する。
       この4条件は変更前のparser-backend baselineでも全診断・終了値・補正bytesが同じで、今回の新退行ではない。
+
+# #42: 診断用 Buffer の Symbol と物理ソースの Symbol が異なる境界。
+# 本家が構文を壊す補正に必要なClaude判定は未取得。判定後に根拠を追記する。
+regexp_capture_encoding_divergences:
+  review_status: pending_external_judgment
+  target: 2.7/parser_whitequark
+  modes: [inspect, -a, -A]
+  endings: [lf, crlf]
+  reference_fixture: tests/fixtures/capture_parentheses_reports.json
+  parenthesis_guard:
+    cases: [unsafe_euc_plus, unsafe_31j_plus, unsafe_euc_division, unsafe_31j_division, spacing_clash]
+    candidate: 原本 byte と最初の未補正診断を保ち、理由を stderr に出して終了 2。
+    reason: >-
+      本家は UTF-8 Buffer の識別子と一致しない EUC-JP/Windows-31J 捕捉 Symbol を local と読まない。
+      物理 MRI 2.7.8 では local であるため、実際の括弧補正で method call に変えてはいけない。
+      本家の生の書き戻しは SyntaxError、元符号化へ厳密に戻しても plus 例は NoMethodError。
+      先行空白補正との衝突で次 pass に回る場合も、最終 Action に残った括弧だけを検査して
+      ファイル全体を最初の原本へ戻す。通常の空白・明示 call 等の無害な補正は保持する。
+  physical_intersection:
+    cases: [reverse_euc_literal, reverse_31j_literal, reverse_euc_interpolation, reverse_31j_interpolation]
+    candidate: 元 method を架空の capture local として束縛せず、無害な引数の括弧を許可する。
+    reason: >-
+      Unicode escape の捕捉 Symbol は UTF-8、元ソースの識別子は EUC-JP/Windows-31J なので別名である。
+      本家の架空 local に従う空白補正は、定義済み method の引数を消す。実 MRI 2.7.8 の原本は
+      Integer 1、元符号化復元後の本家補正は ArgumentError(given0, expected1)。
+      既存 #31 の積集合安全契約を保ち、有効と確認した物理 literal に限って Symbol の同一性を追加する。
+      無効・未対応・判定不能の原本の意味保存や、全 cop の一般的な意味保存を保証する差分ではない。
+
+# 元の regexp_semantics.json 3768 条件は書き換えず、旧72条件とも分ける。
+regexp_capture_fold_guard_divergences:
+  issue: 59
+  issue_url: https://github.com/owayo/sonicop/issues/59
+  review_status: pending_external_judgment
+  only: Layout/SpaceAroundOperators,Lint/AmbiguousOperator
+  targets: [2.7/default, 3.2/parser_whitequark]
+  modes: [-a, -A]
+  endings: [lf, crlf]
+  cases: [discarded_extended, encoding_meta_hex_True, encoding_meta_octal_True]
+  reference_fixture: tests/fixtures/regexp_semantics.json
+  runtime_fixture: tests/fixtures/regexp_capture_fold_safety.json
+  candidate_exit: 2
+  candidate_preserves_source: true
+  reason: >-
+    実 MRI は、捨てられる先行 str の extended flag や meta escape の異なる復号値に影響されず
+    後続の local を宣言する。本家と親版の括弧補正は、それを明示 method call へ変える。
+    matched +空文字列の自作対照は実 MRI 2.7.8 の原本 String byte78、本家/親補正は NoMethodError。
+    24 条件は原本と最初の未補正診断、理由、終了2を保持する独立安全差であり、旧72へ合算しない。
+    fold 値の一致を拒否の前提にすると、この危険を再許可するためその制約は置かない。
+    Target3.2は公式MRI3.2.0でも別に144実行と直接最小18条件を確認した。
+    元/rollback String byte78、本家/親補正 NoMethodError。2.7の実行証拠とは分けて保存する。

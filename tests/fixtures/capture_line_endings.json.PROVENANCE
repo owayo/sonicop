@@ -1,0 +1,9 @@
+実RuboCop 1.89.0のCLIから記録した6原本×inspect/-a/-Aの18記録。
+生成: mise exec -- python3 scripts/capture_encoding/record_line_endings.py
+取得源ではなく、既存#42の所有最小入力から構成したEUC-JP/Windows-31Jの入力。
+mixed初回opening、mixed元bare CRの後続pass、pure CRLF元bare CRの後続passを含む。
+各形に別method scopeの同名captureを持つ無害な実括弧補正対照を置く。
+元の本家診断・終了値・書いた全byteはupstream_*にそのまま保持する。
+expected_safe_hexは危険側の原本、または本家が実編集したcodeを元符号化/元code改行へ復元し、
+親49/60の明示安全方針で元DATA byteを保持したもの。候補の出力から生成しない。
+CLI回帰は原本inspect6、-a/-Aのdisk/stdin24補正呼出し、無害なdisk再実行6を確認する。

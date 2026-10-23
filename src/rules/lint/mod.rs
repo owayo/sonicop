@@ -26,7 +26,7 @@ pub(crate) mod locals;
 /// 名前付きキャプチャが作るローカル変数の名前は、構文解析の束縛判定 ([`crate::lexical_locals`]) も
 /// 同じものを使う。
 mod named_captures;
-pub(crate) use named_captures::{decode_regexp_fragment, literal_named_groups};
+pub(crate) use named_captures::{decode_regexp_compile_fragment, literal_named_groups};
 /// Reachable from `style` too: `Style/SafeNavigation` measures a chained call against the same
 /// `nil.methods` list that the `NilMethods` mixin gives the Lint cops.
 pub(crate) mod nil_methods;

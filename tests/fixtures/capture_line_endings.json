@@ -1,0 +1,966 @@
+{
+  "rubocop_version": "1.89.0",
+  "ruby_version": "ruby 4.0.8 (2026-10-22 revision 60c3d71bfb) +PRISM [x86_64-linux]",
+  "records": [
+    {
+      "id": "mixed_initial_guard",
+      "shape": "mixed_initial",
+      "danger": true,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 3,
+            "last_line": 3,
+            "last_column": 3,
+            "length": 1,
+            "line": 3,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a"
+    },
+    {
+      "id": "mixed_initial_guard",
+      "shape": "mixed_initial",
+      "danger": true,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 3,
+            "last_line": 3,
+            "last_column": 3,
+            "length": 1,
+            "line": 3,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500a2f283f3ce381823e78292f65203d7e202778270ae38182282b2727290a5f5f454e445f5f0a610a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a"
+    },
+    {
+      "id": "mixed_initial_guard",
+      "shape": "mixed_initial",
+      "danger": true,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 3,
+            "last_line": 3,
+            "last_column": 3,
+            "length": 1,
+            "line": 3,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500a2f283f3ce381823e78292f65203d7e202778270ae38182282b2727290a5f5f454e445f5f0a610a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a2f283f3ca4a23e78292f65203d7e202778270aa4a2202b27270d0a5f5f454e445f5f0a610d0a620a"
+    },
+    {
+      "id": "mixed_initial_control",
+      "shape": "mixed_initial",
+      "danger": false,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a"
+    },
+    {
+      "id": "mixed_initial_control",
+      "shape": "mixed_initial",
+      "danger": false,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f65203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182282b2727290a5f5f454e445f5f0a610a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+    },
+    {
+      "id": "mixed_initial_control",
+      "shape": "mixed_initial",
+      "danger": false,
+      "encoding": "EUC-JP",
+      "codec": "euc_jp",
+      "source_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2202b27270a5f5f454e445f5f0d0a610d0a620a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\xe3\" followed by \"\\x81\" on euc-jp.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 3,
+            "last_line": 8,
+            "last_column": 3,
+            "length": 1,
+            "line": 8,
+            "column": 3
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a204555432d4a500a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f65203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182282b2727290a5f5f454e445f5f0a610a620a",
+      "expected_safe_hex": "2320656e636f64696e673a204555432d4a500d0a646566206c6f63616c5f73636f70650a20202f283f3ca4a23e78292f65203d7e202778270d0a656e640a64656620a4a22876616c7565290d0a202076616c75650a656e640d0aa4a2282b2727290a5f5f454e445f5f0d0a610d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_guard",
+      "shape": "mixed_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_guard",
+      "shape": "mixed_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3ce381823e78292f73203d7e202778270ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_guard",
+      "shape": "mixed_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3ce381823e78292f73203d7e202778270ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270a82a0202020202b27270d0a5f5f454e445f5f0a610d0d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_control",
+      "shape": "mixed_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_control",
+      "shape": "mixed_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f73203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a"
+    },
+    {
+      "id": "mixed_bare_later_control",
+      "shape": "mixed_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202020202b27270a5f5f454e445f5f0d0a610d0d0a620a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f73203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650a20202f283f3c82a03e78292f73203d7e202778270d0a656e640a6465662082a02876616c7565290d0a202076616c75650a656e640d0a82a0202b27270a5f5f454e445f5f0d0a610d0d0a620a"
+    },
+    {
+      "id": "pure_bare_later_guard",
+      "shape": "pure_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    },
+    {
+      "id": "pure_bare_later_guard",
+      "shape": "pure_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3ce381823e78292f73203d7e202778270ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    },
+    {
+      "id": "pure_bare_later_guard",
+      "shape": "pure_bare_later",
+      "danger": true,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 2,
+            "last_line": 3,
+            "last_column": 5,
+            "length": 4,
+            "line": 3,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 6,
+            "last_line": 3,
+            "last_column": 6,
+            "length": 1,
+            "line": 3,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a2f283f3ce381823e78292f73203d7e202778270ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a2f283f3c82a03e78292f73203d7e202778270d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    },
+    {
+      "id": "pure_bare_later_control",
+      "shape": "pure_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "inspect",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    },
+    {
+      "id": "pure_bare_later_control",
+      "shape": "pure_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "-a",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f73203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    },
+    {
+      "id": "pure_bare_later_control",
+      "shape": "pure_bare_later",
+      "danger": false,
+      "encoding": "Windows-31J",
+      "codec": "cp932",
+      "source_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202020202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a",
+      "mode": "-A",
+      "only": "Layout/SpaceBeforeFirstArg,Lint/AmbiguousOperator,Lint/AmbiguousRegexpLiteral",
+      "config": "AllCops:\n  TargetRubyVersion: 2.7\n  ParserEngine: parser_whitequark\n",
+      "upstream_exit": 1,
+      "upstream_offenses": [
+        {
+          "severity": "fatal",
+          "message": "\"\\x82\" followed by \">\" on windows-31j.",
+          "cop_name": "Lint/Syntax",
+          "corrected": false,
+          "correctable": false,
+          "location": {
+            "start_line": 1,
+            "start_column": 1,
+            "last_line": 1,
+            "last_column": 1,
+            "length": 0,
+            "line": 1,
+            "column": 1
+          }
+        },
+        {
+          "severity": "convention",
+          "message": "Put one space between the method name and the first argument.",
+          "cop_name": "Layout/SpaceBeforeFirstArg",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 2,
+            "last_line": 8,
+            "last_column": 5,
+            "length": 4,
+            "line": 8,
+            "column": 2
+          }
+        },
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 8,
+            "start_column": 6,
+            "last_line": 8,
+            "last_column": 6,
+            "length": 1,
+            "line": 8,
+            "column": 6
+          }
+        }
+      ],
+      "upstream_written_hex": "2320656e636f64696e673a2057696e646f77732d33314a0a646566206c6f63616c5f73636f70650a20202f283f3ce381823e78292f73203d7e202778270a656e640a64656620e381822876616c7565290a202076616c75650a656e640ae38182202b27270a5f5f454e445f5f0a610d0a620a",
+      "expected_safe_hex": "2320656e636f64696e673a2057696e646f77732d33314a0d0a646566206c6f63616c5f73636f70650d0a20202f283f3c82a03e78292f73203d7e202778270d0a656e640d0a6465662082a02876616c7565290d0a202076616c75650d0a656e640d0a82a0202b27270d0a5f5f454e445f5f0d0a610d0d0a620d0a"
+    }
+  ]
+}

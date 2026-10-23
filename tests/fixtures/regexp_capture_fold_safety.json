@@ -1,0 +1,623 @@
+{
+  "rubocop_version": "1.89.0",
+  "ruby_version": "4.0.8",
+  "mri_version": "2.7.8p225",
+  "target": "2.7/parser_whitequark",
+  "cases": [
+    {
+      "case": "discarded_extended.rb",
+      "mode": "inspect",
+      "source": "/#{'(?x)'; '#(?<y>.)'}/ =~ '#x'\ny +''\n",
+      "source_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79202b27270a",
+      "written_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79202b27270a",
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "id": "discarded_extended",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      }
+    },
+    {
+      "case": "meta_hex.rb",
+      "mode": "inspect",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\x43\\M-\\x29>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9202b27270a",
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_hex_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      }
+    },
+    {
+      "case": "meta_octal.rb",
+      "mode": "inspect",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\103\\M-\\051>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9202b27270a",
+      "exit": 1,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": false,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_octal_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      }
+    },
+    {
+      "case": "discarded_extended.rb",
+      "mode": "safe",
+      "source": "/#{'(?x)'; '#(?<y>.)'}/ =~ '#x'\ny +''\n",
+      "source_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79202b27270a",
+      "written_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "id": "discarded_extended",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "US-ASCII",
+          "bytes": [
+            121
+          ]
+        }
+      }
+    },
+    {
+      "case": "meta_hex.rb",
+      "mode": "safe",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\x43\\M-\\x29>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_hex_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "ASCII-8BIT",
+          "bytes": [
+            195,
+            169
+          ]
+        }
+      }
+    },
+    {
+      "case": "meta_octal.rb",
+      "mode": "safe",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\103\\M-\\051>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_octal_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "ASCII-8BIT",
+          "bytes": [
+            195,
+            169
+          ]
+        }
+      }
+    },
+    {
+      "case": "discarded_extended.rb",
+      "mode": "unsafe",
+      "source": "/#{'(?x)'; '#(?<y>.)'}/ =~ '#x'\ny +''\n",
+      "source_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79202b27270a",
+      "written_hex": "2f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20272378270a79282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 2,
+            "start_column": 3,
+            "last_line": 2,
+            "last_column": 3,
+            "length": 1,
+            "line": 2,
+            "column": 3
+          }
+        }
+      ],
+      "id": "discarded_extended",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "US-ASCII",
+          "bytes": [
+            121
+          ]
+        }
+      }
+    },
+    {
+      "case": "meta_hex.rb",
+      "mode": "unsafe",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\x43\\M-\\x29>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e202278220ac3a9282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_hex_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "ASCII-8BIT",
+          "bytes": [
+            195,
+            169
+          ]
+        }
+      }
+    },
+    {
+      "case": "meta_octal.rb",
+      "mode": "unsafe",
+      "source": "# encoding: ASCII-8BIT\n/#{\"(?<\\M-\\103\\M-\\051>x)\"}/ =~ \"x\"\né +''\n",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9202b27270a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e202278220ac3a9282b2727290a",
+      "exit": 0,
+      "offenses": [
+        {
+          "severity": "warning",
+          "message": "Ambiguous positive number operator. Parenthesize the method arguments if it's surely a positive number operator, or add a whitespace to the right of the `+` if it should be an addition.",
+          "cop_name": "Lint/AmbiguousOperator",
+          "corrected": true,
+          "correctable": true,
+          "location": {
+            "start_line": 3,
+            "start_column": 4,
+            "last_line": 3,
+            "last_column": 4,
+            "length": 1,
+            "line": 3,
+            "column": 4
+          }
+        }
+      ],
+      "id": "encoding_meta_octal_True",
+      "mri_original": {
+        "status": "ok",
+        "class": "String",
+        "encoding": "ASCII-8BIT",
+        "bytes": [
+          120
+        ]
+      },
+      "mri_written": {
+        "status": "NoMethodError",
+        "name": {
+          "encoding": "ASCII-8BIT",
+          "bytes": [
+            195,
+            169
+          ]
+        }
+      }
+    }
+  ],
+  "separate_mri32_process_observations": [
+    {
+      "id": "discarded_extended",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079202b27270a656e640a70206f70657261746f722827237827290a",
+      "written_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079202b27270a656e640a70206f70657261746f722827237827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "discarded_extended",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079202b27270a656e640a70206f70657261746f722827237827290a",
+      "written_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079282b2727290a656e640a70206f70657261746f722827237827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "discarded_extended",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079202b27270a656e640a70206f70657261746f722827237827290a",
+      "written_hex": "646566206f70657261746f722874657874290a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740a202079202b27270a656e640a70206f70657261746f722827237827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "discarded_extended",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079202b27270d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "written_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079202b27270d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "discarded_extended",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079202b27270d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "written_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079282b2727290d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "discarded_extended",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079202b27270d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "written_hex": "646566206f70657261746f722874657874290d0a20202f237b27283f7829273b202723283f3c793e2e29277d2f203d7e20746578740d0a202079202b27270d0a656e640d0a70206f70657261746f722827237827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9282b2727290a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9282b2727290d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "encoding_meta_hex_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c7834335c4d2d5c7832393e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9282b2727290a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "LF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540a646566206f70657261746f722874657874290a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740a2020c3a9202b27270a656e640a70206f70657261746f7228277827290a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "original",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "parent191",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9282b2727290d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 1,
+      "stdout_hex": "",
+      "exception_class": "NoMethodError"
+    },
+    {
+      "id": "encoding_meta_octal_True",
+      "ending": "CRLF",
+      "target": "3.2",
+      "variant": "guard42",
+      "source_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "written_hex": "2320656e636f64696e673a2041534349492d384249540d0a646566206f70657261746f722874657874290d0a20202f237b22283f3c5c4d2d5c3130335c4d2d5c3035313e7829227d2f203d7e20746578740d0a2020c3a9202b27270d0a656e640d0a70206f70657261746f7228277827290d0a",
+      "ruby": "ruby 3.2.0 (2022-12-25 revision a528908271) [x86_64-linux]",
+      "process_exit": 0,
+      "stdout_hex": "2278220a",
+      "exception_class": null
+    }
+  ]
+}

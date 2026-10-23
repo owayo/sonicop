@@ -407,6 +407,10 @@ and length still match. Keep LF/CRLF, endless-method and tab-crossing controls t
 明示した parser_whitequark の 3.3/3.4 は、tree-sitter の ERROR の有無に関係なく全ファイルを通す。
 error の合成 shift ではトークンを消費せず errstatus を減らさない。回復で失われた def の
 文脈も正常な終了動作が走るまで戻さない。構文ごとの手書きゲートや後続診断を追加しない。
+捕捉名は scanner の文字列だけで宣言せず、ネイティブの前処理・コンパイル後の byte と符号化を使う。
+`/e`・`/s` の非 ASCII 名は UTF-8 化された Source::Buffer の識別子と異なる一方、
+Unicode escape が compiled encoding を UTF-8 に固定することもある。ASCII 名は US-ASCII
+Symbol として一致する。元ソースの符号化を保持する MRI の物理束縛と、whitequark の診断状態を混同しない。
 `tables` は `ruby scripts/legacy_parser/generate.rb` で再生成し、固定版・入力ハッシュ・ライセンスは
 `src/legacy_parser/PROVENANCE.md` を参照する。Ruby 版 Racc の結果を C 版の代用にしない。
 LF/CRLF、文字単位の EOF 範囲、同範囲で先の診断を残す順序、-a/-A が原本を変更しないことを
@@ -419,6 +423,16 @@ LF/CRLF、文字単位の EOF 範囲、同範囲で先の診断を残す順序�
 架空の宣言に追従すると、空白補正だけで y(+1) を y() + 1 へ変えて実行を壊す。
 一方、普通の単一 str 補間は実 Ruby 2.7 でも宣言するため、Ruby 4 の実行を根拠に拒否しない。
 版・engine 別の実 CLI、旧 Ruby 本体での実行と陰性対照は `docs/regexp-semantics.md` に記録する。
+非補間でも Unicode capture Symbol と元ソースの識別子は異なる。物理 literal が有効なときは
+compiled byte/encoding が元識別子と一致する名前だけを通常束縛へ残す。無効と未対応を区別し、
+判定不能を正常な空集合にしない。診断 state まで安全な名前へ置換してはいけない。
+曖昧引数の括弧補正は、最終 Action に残った置換だけを全文の物理変数解析で照合する。
+捕捉 local を method へ変える場合は、複数 pass 後でも最初の原本・未補正診断・理由・終了 2 へ戻す。
+衝突で捨てた補正の corrected フラグを適用の証拠にしない。無害な補正と LF/CRLF の対照を保つ。
+物理側だけに local がある補間では、fold 値の一致を保護の前提にすると危険を再許可する。
+先行 extended-mode 文字列の破棄や meta escape 復号の差も、実 MRI の local と実適用括弧で判断する。
+元の本家記録を改変せず、既存72安全差分と追加24拒否の件数・版・実行環境を分けて残す。
+
 
 ## Adding a cop test
 

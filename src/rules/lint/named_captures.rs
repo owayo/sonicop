@@ -50,6 +50,15 @@ fn literal_pattern(literal: &str) -> Option<(String, bool)> {
 
 /// リテラルの区切り文字と行継続だけを Ruby と同じように復号する。
 pub(crate) fn decode_regexp_fragment(fragment: &str, close: char) -> String {
+    decode_fragment(fragment, close, false)
+}
+
+/// native 前処理へ渡す本文では、制御 escape の実 byte を 00 の仮値へ置き換えない。
+pub(crate) fn decode_regexp_compile_fragment(fragment: &str, close: char) -> String {
+    decode_fragment(fragment, close, true)
+}
+
+fn decode_fragment(fragment: &str, close: char, native: bool) -> String {
     let body: Vec<char> = fragment.chars().collect();
     let mut pattern = String::with_capacity(fragment.len());
     let mut index = 0;
@@ -68,8 +77,13 @@ pub(crate) fn decode_regexp_fragment(fragment: &str, close: char) -> String {
             }
             // 値は名前の取り出しに関わらないので、どの文字でも同じ置き換えにする。
             Some('c' | 'C' | 'M') => {
-                pattern.push_str("\\x00");
-                index = control_escape_end(&body, index + 1);
+                let end = control_escape_end(&body, index + 1);
+                if native {
+                    pattern.extend(&body[index..end]);
+                } else {
+                    pattern.push_str("\\x00");
+                }
+                index = end;
             }
             Some(&escaped) => {
                 pattern.push('\\');

@@ -1,0 +1,13 @@
+RuboCop1.89.0 / rubocop-ast1.50.0 / parser3.3.12.0、Ruby4.0.7 x64-mingw-ucrt。
+TargetRubyVersion2.7、parser_whitequark。MRI2.7 runtimeの代替測定ではない。
+再記録: python scripts/capture_encoding/record_line_endings_safe.py
+既存capture_line_endings.jsonの18raw記録は変更しない。
+その無害な3原本×-a/-Aの6chainを、16回の実補正CLIと各回の実inspectで記録した。
+Windows File.writeのLF→CRLF展開前の推測bytesをrawへ上書きせず、written_hexに実出力を保持。
+次入力は本家が編集したcodeを元codec/最初のcode EOLへ戻し、DATAは最初の原本を保持する。
+元codecでinspect受理することを各回で確認し、既存18rawと同じ既知のencoding fatalだけを
+連鎖全体の期待診断から除く。各passの全report/exit/元byte/書込byte/復元byteはstepsに残す。
+診断は実Offense::COMPARISON_ATTRIBUTESで最初の記録を保持して重複除去・順序付けする。
+初回の衝突でcorrected=trueとなった未適用の診断も残すため、passの単純連結ではない。
+6chainすべて実括弧の増分1、最後の実CLIは1target/1inspected/exit0/診断0/bytes不変。
+最終期待値は候補Sonicopを実行せずに生成した。危険側は最初の原本/inspect診断へrollbackする。

@@ -89,6 +89,57 @@ LF/CRLF と `-a`/`-A` の 4 条件は変更前の parser-backend baseline でも
 理由と候補の原本保持方針は manifest の `regexp_character_boundary_divergences` に記録する。
 この 4 条件は通常の 3,768 条件にも安全 binding の 72 条件にも加算しない。
 再記録は `python3 scripts/record_regexp_semantics.py --character-boundary-only`。
+## 捕捉名の符号化と物理的な参照
+
+捕捉名は、表示上の文字列だけでなく compiled regexp の byte と effective encoding で比較する。
+本家の Buffer は Binary 以外を UTF-8 にするが、元 EUC-JP の `/e` や Windows-31J の `/s` は
+その符号化の捕捉 Symbol を作る。後ろの識別子は本家では method、物理 MRI では local になり得る。
+逆に `(?<\u3042>x)` は UTF-8 の捕捉 Symbol を作るため、元 EUC-JP/Windows-31J の識別子は
+物理 MRI では別 Symbol の method、本家では同じ UTF-8 local になり得る。
+ASCII の名前は US-ASCII Symbol として両方に一致する。flag だけから名前の符号化を決めない。
+
+旧構文診断は `String#encode`→`Regexp.new` の本家状態を保持する。cop の通常束縛は従来の
+#31 の畳み込み積集合を保ち、物理 literal が有効と確かめられたときだけ、元符号化の実際の
+捕捉 Symbol にも存在する名前へ絞る。非補間にもこの同一性検査が必要である。
+物理的に無効、未対応の符号化、値の復号・資源不足による判定不能を区別し、後二者を
+「正常にコンパイルして名前が無かった」と扱わない。これらでは既存診断の fallback を保ち、
+無効・未対応入力の意味保存を新たに保証しない。AST の cop dispatch は引き続き本家の条件で決める。
+
+`Lint/AmbiguousOperator` / `Lint/AmbiguousRegexpLiteral` が実際に適用する括弧の開始置換だけを、
+全文・scope・宣言順を保った物理変数解析で検査する。capture の符号化差で実 local だった参照を
+method に変える場合は、ファイル全体を最初の原本 byte と未補正診断へ戻し、理由と終了 2 を返す。
+`corrected` は衝突で捨てた編集にも立つため、最終 Action 木に残った置換だけを使う。
+先行する空白補正の次の pass で初めて括弧が残る場合も、最初の原本まで戻す。
+receiver、明示 call、宣言前、別 method scope、block 引数、先行する通常代入を区別し、
+無害な空白・コメントの補正をファイルの符号化だけで拒否しない。一般の全 cop の意味保存を保証する機能ではない。
+
+実 MRI 2.7.8 の Symbol と whitequark 宣言を 280 条件で別記録し、物理 regexp の直接検査は
+そのうち非補間 190 条件を使う。`capture_parentheses_reports.json` は実本家の 174 条件を保持する。
+36 危険/衝突条件、90 無害対照、48 逆方向 Symbol 条件であり、LF/CRLF と inspect/-a/-A を含む。
+危険原本の評価は String x、本家の元符号化復元後は NoMethodError、逆方向の自作 method 対照は
+原本 Integer 1、本家の元符号化復元後は ArgumentError になる。取得ソースのコードは実行していない。
+実行時の意味保存証拠は使用した MRI の版に限る。特に 3.3 以上の補間を MRI 2.7 の宣言規則で
+評価した結果を、その新しい対象版の破壊の証明へ読み替えない。
+
+## 既存 gate が覆っていた物理側だけの捕捉 local
+
+この安全性漏れは [Issue #59](https://github.com/owayo/sonicop/issues/59) で追跡する。
+
+`discarded_extended`、`encoding_meta_hex_True`、`encoding_meta_octal_True` は、本家に捕捉名がなく
+物理 MRI にだけ local がある逆向きの差である。前者の実 pattern は `#(?<y>.)` で、
+本家が全 str をつなぐ `(?x)#(?<y>.)` とは異なる。後二者の実捕捉名は Binary byte C3A9。
+本家と親版の `y(+1)` / `é(+1)` は明示 method call であり、この guard の正しい拒否対象になる。
+元の `+1` は match すると String+Integer の TypeError なので、`+''` の自作対照でも検査した。
+実 MRI2.7.8 では原本 String byte78、本家/親の補正後 NoMethodError になる。
+fold bytes の一致を guard の条件にするとこの危険を再許可するため、その制約は置かない。
+
+元の 3,768 条件の本家 raw 記録は改変しない。旧 #31 の72条件とは別に、3 IDs ×
+Target2.7/3.2 × LF/CRLF × -a/-A の24条件だけを専用 metadata で登録し、最初の inspect 診断と
+原本 byte、拒否理由、終了2を検査する。これらを除く通常本家一致は3,672条件となる。
+Target3.2 は公式 MRI3.2.0（revision a528908271）でも独立に144実行と直接最小18条件を確認し、
+原本/rollback String byte78・旧補正 NoMethodError が再現した。MRI2.7の測定とは別に保存する。
+最小の実本家出力と各環境の実行値は `regexp_capture_fold_safety.json` に保持する。
+
 ## 再現
 
 ```sh
@@ -126,7 +177,7 @@ ASCII-8BIT の有効入力はこの gate で比較し、無効な UTF-8 regexp �
 別の regexp validation gate の責務として明示する。元の 3,456 条件から 48 条件を分け、character の回復を 360 条件追加した 3,768 条件を検査する。
 このうち 72 条件の安全な束縛の意図差分は通常一致件数へ含めない。
 regexp 全体を Onigmo と同じようにコンパイルして妥当性を判定する機能は、この判定の役割ではない。
-非 ASCII capture 名と `/e`・`/s` の符号化による宣言差は、[別の境界として追跡する](https://github.com/owayo/sonicop/issues/42)。
+非 ASCII capture 名と `/e`・`/s` の符号化による宣言差は、上記の目的別 API と専用 fixture で検査する。
 記録器は `--raise-cop-error` を使い、内部例外を JSON 内の 0 診断へ読み替えない。
 本家自身の VariableForce 例外や、互換しない符号化を連結した際の内部例外も、通常の診断一致には数えない。
 
@@ -134,3 +185,19 @@ regexp 全体を Onigmo と同じようにコンパイルして妥当性を判�
 
 - [parser 3.3.12.0 の static_regexp_node / static_string](https://github.com/whitequark/parser/blob/v3.3.12.0/lib/parser/builders/default.rb)
 - [Ruby 2.7.8 の parse.y](https://github.com/ruby/ruby/blob/v2_7_8/parse.y)
+## 混在改行と補正前の物理本文
+
+括弧の適用位置と全文scopeの照合は、そのpassの解析用UTF-8 byte位置を使う。
+CR復元や元符号化のbyte位置へそのoffsetを移さない。初回のscript検査は復号前原本を使い、
+後続passではcurrentの改行由来を最終書出しと同じ私有helperで復元してから再符号化する。
+nextの位置表で旧本文を復元せず、pureのdefault CRと追加元bare CR、mixedのcopyしたCRを分ける。
+本家の24安全差や174条件を維持し、追加のmixed/pure元bare CRのdisk/stdin対照を実CLI記録で検査する。
+
+`capture_line_endings.json` の18 raw記録では、本家がUTF-8を書いた後に元codecで再読込し、
+無害対照も符号化fatalで途中停止する。この途中結果を、完成した括弧補正や再実行の期待値にはしない。
+同じ元codecへ戻した次入力を本家へ渡す6chainを `capture_line_endings_safe.json` に別記録する。
+Ruby4.0.7 Windows上のRuboCop1.89.0/rubocop-ast1.50.0/parser3.3.12.0で、16回の実補正と
+各回の実inspectを記録した。Windowsの実書込byteも保持し、codeの元EOLと最初のDATAを復元する。
+各次入力のSyntax受理、6件すべての実括弧増分1、最後の実CLIのexit0/診断0/byte不変を確認する。
+全passを単純連結せず、実Offenseの比較属性で最初の診断を保持する。これは本家のCLI記録であり、
+実MRI2.7のruntime証明をWindows Rubyへ置き換えるものではない。

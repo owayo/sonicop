@@ -1,6 +1,9 @@
 //! 本家 Ruby の Onigmo を、Ruby VM と OS 共有ライブラリなしで利用する。
-use std::sync::{OnceLock, mpsc};
-#[derive(Clone, Copy, Debug)]
+use std::{
+    ffi::c_void,
+    sync::{OnceLock, mpsc},
+};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Encoding {
     Utf8 = 0,
@@ -9,6 +12,14 @@ pub enum Encoding {
     EucJp = 3,
     Windows31J = 4,
 }
+
+/// Regexp#names の byte と符号化。ASCII 名の Symbol は呼出し側で US-ASCII として比較する。
+#[derive(Debug, PartialEq, Eq)]
+pub struct CompiledRegexp {
+    pub encoding: Encoding,
+    pub names: Vec<Vec<u8>>,
+}
+type NameCallback = unsafe extern "C" fn(*const u8, usize, i32, *mut c_void);
 unsafe extern "C" {
     fn sonicop_onigmo_init();
     fn sonicop_onigmo_check(
@@ -27,29 +38,51 @@ unsafe extern "C" {
         error: *mut u8,
         capacity: usize,
     ) -> i32;
+    fn sonicop_onigmo_compile(
+        pattern: *const u8,
+        length: usize,
+        encoding: i32,
+        extended: i32,
+        error: *mut u8,
+        capacity: usize,
+        compiled_encoding: *mut i32,
+        callback: Option<NameCallback>,
+        context: *mut c_void,
+    ) -> i32;
 }
 pub fn validate(pattern: &[u8], encoding: Encoding, extended: bool) -> Result<(), Vec<u8>> {
-    validate_with(pattern, encoding, extended, false)
+    request(pattern, encoding, extended, Operation::Validate).map(|_| ())
 }
-
 pub fn check(pattern: &[u8], encoding: Encoding, extended: bool) -> Result<(), Vec<u8>> {
-    validate_with(pattern, encoding, extended, true)
+    request(pattern, encoding, extended, Operation::Check).map(|_| ())
 }
-
+/// 前処理後にコンパイルした名前を返す。Unicode escape による UTF-8 固定も Onigmo に任せる。
+pub fn compile(
+    pattern: &[u8],
+    encoding: Encoding,
+    extended: bool,
+) -> Result<CompiledRegexp, Vec<u8>> {
+    request(pattern, encoding, extended, Operation::Names)
+}
+#[derive(Clone, Copy)]
+enum Operation {
+    Validate,
+    Check,
+    Names,
+}
 struct Job {
     pattern: Vec<u8>,
     encoding: Encoding,
     extended: bool,
-    ruby: bool,
-    reply: mpsc::SyncSender<Result<(), Vec<u8>>>,
+    operation: Operation,
+    reply: mpsc::SyncSender<Result<CompiledRegexp, Vec<u8>>>,
 }
-
-fn validate_with(
+fn request(
     pattern: &[u8],
     encoding: Encoding,
     extended: bool,
-    ruby: bool,
-) -> Result<(), Vec<u8>> {
+    operation: Operation,
+) -> Result<CompiledRegexp, Vec<u8>> {
     static ENGINE: OnceLock<mpsc::SyncSender<Job>> = OnceLock::new();
     let engine = ENGINE.get_or_init(|| {
         let (sender, receiver) = mpsc::sync_channel::<Job>(1);
@@ -59,10 +92,10 @@ fn validate_with(
             .name("sonicop-onigmo".into())
             .stack_size(32 * 1024 * 1024)
             .spawn(move || {
-                // process-global な初期化・警告設定・byte buffer arena も同じ thread だけが触る。
+                // process-global な初期化・警告設定・byte buffer arena は名前取得も同じ thread だけが触る。
                 unsafe { sonicop_onigmo_init() };
                 while let Ok(job) = receiver.recv() {
-                    let result = native(&job.pattern, job.encoding, job.extended, job.ruby);
+                    let result = native(&job.pattern, job.encoding, job.extended, job.operation);
                     let _ = job.reply.send(result);
                 }
             })
@@ -75,7 +108,7 @@ fn validate_with(
             pattern: pattern.to_vec(),
             encoding,
             extended,
-            ruby,
+            operation,
             reply,
         })
         .expect("regexp compiler worker stopped");
@@ -83,15 +116,24 @@ fn validate_with(
         .recv()
         .expect("regexp compiler worker did not return")
 }
-
-fn native(pattern: &[u8], encoding: Encoding, extended: bool, ruby: bool) -> Result<(), Vec<u8>> {
+unsafe extern "C" fn collect_name(
+    name: *const u8,
+    length: usize,
+    first_group: i32,
+    context: *mut c_void,
+) {
+    // C は onig_foreach_name の同期呼出し中だけ、解放前の名前と生存中の Vec を渡す。
+    let names = unsafe { &mut *context.cast::<Vec<(i32, Vec<u8>)>>() };
+    let bytes = unsafe { std::slice::from_raw_parts(name, length) };
+    names.push((first_group, bytes.to_vec()));
+}
+fn native(
+    pattern: &[u8],
+    encoding: Encoding,
+    extended: bool,
+    operation: Operation,
+) -> Result<CompiledRegexp, Vec<u8>> {
     let mut error = vec![0u8; pattern.len().saturating_mul(6).saturating_add(2048)];
-    // 入出力は呼出し中に生存し、C 側は指定した長さ以内だけを参照する。
-    let function = if ruby {
-        sonicop_onigmo_check
-    } else {
-        sonicop_onigmo_validate
-    };
     // 長さ 0 でも C の範囲演算へ実在する配列の pointer を渡す。
     static EMPTY: [u8; 1] = [0];
     let pointer = if pattern.is_empty() {
@@ -99,27 +141,62 @@ fn native(pattern: &[u8], encoding: Encoding, extended: bool, ruby: bool) -> Res
     } else {
         pattern.as_ptr()
     };
+    let mut names: Vec<(i32, Vec<u8>)> = Vec::new();
+    let mut compiled_encoding = encoding as i32;
+    // 入出力は呼出し中に生存し、callback もこの worker 上で同期的に完了する。
     let result = unsafe {
-        function(
-            pointer,
-            pattern.len(),
-            encoding as i32,
-            i32::from(extended),
-            error.as_mut_ptr(),
-            error.len(),
-        )
+        match operation {
+            Operation::Names => sonicop_onigmo_compile(
+                pointer,
+                pattern.len(),
+                encoding as i32,
+                i32::from(extended),
+                error.as_mut_ptr(),
+                error.len(),
+                &mut compiled_encoding,
+                Some(collect_name),
+                (&mut names as *mut Vec<(i32, Vec<u8>)>).cast(),
+            ),
+            Operation::Check => sonicop_onigmo_check(
+                pointer,
+                pattern.len(),
+                encoding as i32,
+                i32::from(extended),
+                error.as_mut_ptr(),
+                error.len(),
+            ),
+            Operation::Validate => sonicop_onigmo_validate(
+                pointer,
+                pattern.len(),
+                encoding as i32,
+                i32::from(extended),
+                error.as_mut_ptr(),
+                error.len(),
+            ),
+        }
     };
-    if result == 0 {
-        Ok(())
-    } else {
+    if result != 0 {
         let length = error
             .iter()
             .position(|byte| *byte == 0)
             .unwrap_or(error.len());
-        Err(error[..length].to_vec())
+        return Err(error[..length].to_vec());
     }
+    let encoding = match compiled_encoding {
+        0 => Encoding::Utf8,
+        1 => Encoding::Binary,
+        2 => Encoding::UsAscii,
+        3 => Encoding::EucJp,
+        4 => Encoding::Windows31J,
+        _ => return Err(b"unsupported regexp encoding".to_vec()),
+    };
+    // Onigmo の名前表の列挙順には依存せず、最初の capture 番号で Regexp#names の順にする。
+    names.sort_unstable_by_key(|(first_group, _)| *first_group);
+    Ok(CompiledRegexp {
+        encoding,
+        names: names.into_iter().map(|(_, name)| name).collect(),
+    })
 }
-
 #[cfg(test)]
 mod tests {
     use super::{Encoding, check, validate};
@@ -194,5 +271,46 @@ mod tests {
             .join()
             .unwrap();
         assert_eq!(result, Ok(()));
+    }
+
+    #[test]
+    fn compiled_names_keep_the_native_encoding_and_first_capture_order() {
+        use super::compile;
+        assert_eq!(
+            compile(br"(?<z>x)(?<a>y)(?<z>z)", Encoding::Utf8, false).unwrap(),
+            super::CompiledRegexp {
+                encoding: Encoding::UsAscii,
+                names: vec![b"z".to_vec(), b"a".to_vec()]
+            }
+        );
+        assert_eq!(
+            compile(b"(?<\xa4\xa2>x)(?<ascii>y)", Encoding::EucJp, false).unwrap(),
+            super::CompiledRegexp {
+                encoding: Encoding::EucJp,
+                names: vec![vec![0xa4, 0xa2], b"ascii".to_vec()]
+            }
+        );
+        for encoding in [Encoding::Binary, Encoding::EucJp, Encoding::Windows31J] {
+            assert_eq!(
+                compile(br"(?<\u3042>x)", encoding, false).unwrap(),
+                super::CompiledRegexp {
+                    encoding: Encoding::Utf8,
+                    names: vec!["あ".as_bytes().to_vec()]
+                }
+            );
+        }
+        assert_eq!(
+            compile(b"(?<ascii>\xa4\xa2)", Encoding::EucJp, false)
+                .unwrap()
+                .names,
+            vec![b"ascii".to_vec()]
+        );
+        assert!(compile(b"(", Encoding::Utf8, false).is_err());
+        assert!(
+            compile(b"", Encoding::Utf8, false)
+                .unwrap()
+                .names
+                .is_empty()
+        );
     }
 }
