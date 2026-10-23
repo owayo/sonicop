@@ -27,7 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             continue;
         };
         // `space_missing?`: the next token opens in the very next column.
-        if next.is_ascii_whitespace() {
+        // コード中NULは次tokenではなくRuby字句器のEOFで、原本を見ても空白を足さない。
+        if next.is_ascii_whitespace() || *next == 0 {
             continue;
         }
         // `semicolon_sequence?`, then `allowed_type?`.

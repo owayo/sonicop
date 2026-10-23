@@ -8,9 +8,9 @@ pub struct SourceFile {
     path: PathBuf,
     text: String,
     line_starts: Vec<usize>,
-    /// How long the file was before a NUL in code cut `text` short. RuboCop's buffer holds every
-    /// byte of the file even past the point Ruby's lexer stopped reading, so a cop that asks about
-    /// the file rather than about the program has to ask about this.
+    /// 読み込んだ原本のバイト数。通常はtextが原本全体を保持し、この値と長さが一致する。
+    /// 解析用のNUL投影はSourceFileへ保存せず、字句器のEOF後もcopと補正へ渡す。
+    /// 外部で短縮した本文を渡す互換APIでは、ここに短縮前の長さを記録できる。
     length_as_read: usize,
 }
 
@@ -34,7 +34,8 @@ impl SourceFile {
         }
     }
 
-    /// Records that the file was longer than `text` before a NUL in code cut it short.
+    /// 呼び出し元で本文を短縮した場合に、原本の長さを記録する互換API。
+    /// 通常の検査では原本全体を保持するため、NUL投影のためにこのAPIを呼ばない。
     pub fn read_as_long_as(mut self, length: usize) -> Self {
         self.length_as_read = length;
         self

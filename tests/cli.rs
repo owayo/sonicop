@@ -5186,3 +5186,391 @@ fn vertical_tab_reports_and_corrections_match_recorded_upstream() {
         "Lint/Syntax,Layout/SpaceAroundOperators,Style/BlockDelimiters",
     );
 }
+
+#[test]
+fn nul_parse_projection_does_not_change_the_corrected_file_bytes() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/nul_writeback_cli.json")).unwrap();
+    let groups = fixture["groups"].as_array().unwrap();
+    assert_eq!(groups.len(), 36);
+    for group in groups {
+        let label = format!(
+            "{} / {} / {} / {} / {}",
+            group["ruby"], group["engine"], group["eol"], group["mode"], group["selection"]
+        );
+        let ruby = group["ruby"].as_str().unwrap();
+        let directory = project_with_ruby(&[], ruby);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {ruby}\n  ParserEngine: {}\n",
+                group["engine"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let cases = group["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 34);
+        let decode = |hex: &str| {
+            (0..hex.len())
+                .step_by(2)
+                .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+                .collect::<Vec<_>>()
+        };
+        for (index, case) in cases.iter().enumerate() {
+            fs::write(
+                directory.path().join(format!("input_{index:03}.rb")),
+                decode(case["source_hex"].as_str().unwrap()),
+            )
+            .unwrap();
+        }
+        let only = if group["selection"] == "operator" {
+            "Layout/SpaceAroundOperators"
+        } else {
+            "Layout/SpaceAroundOperators,Layout/TrailingWhitespace,Layout/TrailingEmptyLines,Layout/LineLength,Lint/EmptyFile"
+        };
+        let mut run = command(directory.path());
+        run.args([
+            "--config",
+            ".rubocop.yml",
+            "--cache",
+            "false",
+            "--format",
+            "json",
+            "--only",
+            only,
+        ]);
+        if group["mode"] != "inspect" {
+            run.arg(group["mode"].as_str().unwrap());
+        }
+        let output = run
+            .arg(".")
+            .assert()
+            .code(group["exit"].as_i64().unwrap() as i32)
+            .get_output()
+            .stdout
+            .clone();
+        let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_eq!(report["summary"]["target_file_count"], cases.len());
+        assert_eq!(report["summary"]["inspected_file_count"], cases.len());
+        let files = report["files"].as_array().unwrap();
+        assert_eq!(files.len(), cases.len());
+        let paths: std::collections::BTreeSet<_> = files
+            .iter()
+            .map(|file| file["path"].as_str().unwrap())
+            .collect();
+        assert_eq!(paths.len(), cases.len());
+        for (index, case) in cases.iter().enumerate() {
+            let filename = format!("input_{index:03}.rb");
+            let file = files.iter().find(|file| file["path"] == filename).unwrap();
+            assert_eq!(
+                file["offenses"], case["offenses"],
+                "{label} / {}",
+                case["name"]
+            );
+            let expected = decode(case["after_hex"].as_str().unwrap());
+            // 本家の書き戻しはLFへ正規化するが、Sonicopは原本のCRLFを保つ。
+            let expected = if decode(case["source_hex"].as_str().unwrap())
+                .windows(2)
+                .any(|pair| pair == b"\r\n")
+            {
+                String::from_utf8(expected)
+                    .unwrap()
+                    .replace("\r\n", "\n")
+                    .replace('\n', "\r\n")
+                    .into_bytes()
+            } else {
+                expected
+            };
+            assert_eq!(
+                fs::read(directory.path().join(&filename)).unwrap(),
+                expected,
+                "{label} / {}",
+                case["name"]
+            );
+        }
+    }
+}
+
+#[test]
+fn nul_parse_projection_preserves_the_stdin_buffer() {
+    let records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/nul_writeback_stdin.json")).unwrap();
+    let records = records.as_array().unwrap();
+    assert_eq!(records.len(), 252);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for case in records {
+        let label = format!(
+            "{} / {} / {} / {}",
+            case["ruby"], case["eol"], case["mode"], case["name"]
+        );
+        let ruby = case["ruby"].as_str().unwrap();
+        let directory = project_with_ruby(&[], ruby);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {ruby}\n  ParserEngine: {}\n",
+                case["engine"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let source = decode(case["source_hex"].as_str().unwrap());
+        for formatter in ["json", "simple"] {
+            let mut run = command(directory.path());
+            run.args(["--config", ".rubocop.yml", "--cache", "false", "--only", "Layout/SpaceAroundOperators,Layout/TrailingWhitespace,Layout/TrailingEmptyLines,Layout/LineLength,Lint/EmptyFile", "--stdin", "example.rb", "-f", formatter]);
+            if case["mode"] != "inspect" {
+                run.arg(case["mode"].as_str().unwrap());
+            }
+            let output = run
+                .write_stdin(source.clone())
+                .assert()
+                .code(case["exit"].as_i64().unwrap() as i32)
+                .get_output()
+                .clone();
+            assert!(output.stderr.is_empty(), "{label}: {:?}", output.stderr);
+            if formatter == "json" {
+                let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+                assert_eq!(report["summary"]["target_file_count"], 1, "{label}");
+                assert_eq!(report["summary"]["inspected_file_count"], 1, "{label}");
+                let files = report["files"].as_array().unwrap();
+                assert_eq!(files.len(), 1, "{label}");
+                assert_eq!(files[0]["path"], "example.rb", "{label}");
+                assert_eq!(files[0]["offenses"], case["offenses"], "{label}");
+            } else {
+                let separator = b"====================\n";
+                let position = output
+                    .stdout
+                    .windows(separator.len())
+                    .position(|bytes| bytes == separator);
+                if let Some(expected) = case["after_hex"].as_str() {
+                    let expected = decode(expected);
+                    // 原本にCRLFがある場合だけ、既存方針の改行保持を反映する。
+                    let expected = if source.windows(2).any(|bytes| bytes == b"\r\n") {
+                        String::from_utf8(expected)
+                            .unwrap()
+                            .replace("\r\n", "\n")
+                            .replace('\n', "\r\n")
+                            .into_bytes()
+                    } else {
+                        expected
+                    };
+                    let start = position.unwrap_or_else(|| panic!("{label}: missing stdin buffer"))
+                        + separator.len();
+                    assert_eq!(&output.stdout[start..], expected, "{label}");
+                } else {
+                    assert!(position.is_none(), "{label}");
+                }
+            }
+            assert!(!directory.path().join("example.rb").exists(), "{label}");
+        }
+    }
+}
+
+#[test]
+fn nul_truncated_tokens_limit_the_line_ending_inspection() {
+    let records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/nul_line_endings.json")).unwrap();
+    let groups = records.as_array().unwrap();
+    assert_eq!(groups.len(), 9);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for group in groups {
+        let label = format!(
+            "{} / {} / {}",
+            group["ruby"], group["engine"], group["mode"]
+        );
+        let ruby = group["ruby"].as_str().unwrap();
+        let directory = project_with_ruby(&[], ruby);
+        fs::write(directory.path().join(".rubocop.yml"), format!(
+            "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {ruby}\n  ParserEngine: {}\nLayout/EndOfLine:\n  EnforcedStyle: lf\n", group["engine"].as_str().unwrap()
+        )).unwrap();
+        let cases = group["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 10);
+        for (index, case) in cases.iter().enumerate() {
+            fs::write(
+                directory.path().join(format!("input_{index:03}.rb")),
+                decode(case["source_hex"].as_str().unwrap()),
+            )
+            .unwrap();
+        }
+        let mut run = command(directory.path());
+        run.args([
+            "--config",
+            ".rubocop.yml",
+            "--cache",
+            "false",
+            "--only",
+            "Layout/SpaceAroundOperators,Layout/EndOfLine,Style/FrozenStringLiteralComment,Layout/SpaceAfterSemicolon",
+            "-f",
+            "json",
+        ]);
+        if group["mode"] != "inspect" {
+            run.arg(group["mode"].as_str().unwrap());
+        }
+        let output = run
+            .arg(".")
+            .assert()
+            .code(group["exit"].as_i64().unwrap() as i32)
+            .get_output()
+            .clone();
+        assert!(output.stderr.is_empty(), "{label}");
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["summary"]["target_file_count"], cases.len());
+        assert_eq!(report["summary"]["inspected_file_count"], cases.len());
+        let files = report["files"].as_array().unwrap();
+        assert_eq!(files.len(), cases.len());
+        let paths: std::collections::BTreeSet<_> = files
+            .iter()
+            .map(|file| file["path"].as_str().unwrap())
+            .collect();
+        assert_eq!(paths.len(), cases.len());
+        for (index, case) in cases.iter().enumerate() {
+            let filename = format!("input_{index:03}.rb");
+            let file = files.iter().find(|file| file["path"] == filename).unwrap();
+            assert_eq!(
+                file["offenses"], case["offenses"],
+                "{label} / {}",
+                case["name"]
+            );
+            // 既存のCRLF保持方針はmixed入力の未変更行にも適用する。
+            // 本家の生after_hexは残し、原本でCRLFだった同じ本文の行だけを戻す。
+            let original = String::from_utf8(decode(case["source_hex"].as_str().unwrap())).unwrap();
+            let crlf_lines: std::collections::BTreeSet<_> = original
+                .split_inclusive('\n')
+                .filter_map(|line| line.strip_suffix("\r\n"))
+                .collect();
+            let reference = String::from_utf8(decode(case["after_hex"].as_str().unwrap())).unwrap();
+            let mut expected: String = reference
+                .split_inclusive('\n')
+                .map(|line| {
+                    let content = line
+                        .strip_suffix("\r\n")
+                        .or_else(|| line.strip_suffix('\n'))
+                        .unwrap_or(line);
+                    if line.ends_with('\n') && crlf_lines.contains(content) {
+                        format!("{content}\r\n")
+                    } else {
+                        line.to_owned()
+                    }
+                })
+                .collect();
+            if original.contains("\r\n") && !original.replace("\r\n", "").contains('\n') {
+                // CRLFだけの原本では、新しく挿入された改行も同じ形式へ戻す。
+                expected = expected.replace("\r\n", "\n").replace('\n', "\r\n");
+            }
+            assert_eq!(
+                fs::read(directory.path().join(filename)).unwrap(),
+                expected.as_bytes(),
+                "{label} / {}",
+                case["name"]
+            );
+        }
+    }
+}
+
+#[test]
+fn nul_truncated_tokens_bound_the_semicolon_scan() {
+    let records: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/nul_semicolon_cli.json")).unwrap();
+    let groups = records.as_array().unwrap();
+    assert_eq!(groups.len(), 18);
+    let decode = |hex: &str| {
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).unwrap())
+            .collect::<Vec<_>>()
+    };
+    for group in groups {
+        let label = format!(
+            "{} / {} / {} / {}",
+            group["ruby"], group["engine"], group["eol"], group["mode"]
+        );
+        let ruby = group["ruby"].as_str().unwrap();
+        let directory = project_with_ruby(&[], ruby);
+        fs::write(
+            directory.path().join(".rubocop.yml"),
+            format!(
+                "AllCops:\n  NewCops: disable\n  TargetRubyVersion: {ruby}\n  ParserEngine: {}\n",
+                group["engine"].as_str().unwrap()
+            ),
+        )
+        .unwrap();
+        let cases = group["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 16);
+        for (index, case) in cases.iter().enumerate() {
+            fs::write(
+                directory.path().join(format!("input_{index:03}.rb")),
+                decode(case["source_hex"].as_str().unwrap()),
+            )
+            .unwrap();
+        }
+        let mut run = command(directory.path());
+        run.args([
+            "--config",
+            ".rubocop.yml",
+            "--cache",
+            "false",
+            "--only",
+            "Style/Semicolon",
+            "--format",
+            "json",
+        ]);
+        if group["mode"] != "inspect" {
+            run.arg(group["mode"].as_str().unwrap());
+        }
+        let output = run
+            .arg(".")
+            .assert()
+            .code(group["exit"].as_i64().unwrap() as i32)
+            .get_output()
+            .clone();
+        assert!(output.stderr.is_empty(), "{label}");
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["summary"]["target_file_count"], cases.len());
+        assert_eq!(report["summary"]["inspected_file_count"], cases.len());
+        let files = report["files"].as_array().unwrap();
+        assert_eq!(files.len(), cases.len());
+        let paths: std::collections::BTreeSet<_> = files
+            .iter()
+            .map(|file| file["path"].as_str().unwrap())
+            .collect();
+        assert_eq!(paths.len(), cases.len());
+        for (index, case) in cases.iter().enumerate() {
+            let filename = format!("input_{index:03}.rb");
+            let file = files.iter().find(|file| file["path"] == filename).unwrap();
+            assert_eq!(
+                file["offenses"], case["offenses"],
+                "{label} / {}",
+                case["name"]
+            );
+            let original = decode(case["source_hex"].as_str().unwrap());
+            let reference = decode(case["after_hex"].as_str().unwrap());
+            // 本家の生期待は残し、均一CRLF原本の補正だけ既存の保存方針を適用する。
+            let expected = if group["mode"] != "inspect"
+                && original.windows(2).any(|bytes| bytes == b"\r\n")
+            {
+                String::from_utf8(reference)
+                    .unwrap()
+                    .replace("\r\n", "\n")
+                    .replace('\n', "\r\n")
+                    .into_bytes()
+            } else {
+                reference
+            };
+            assert_eq!(
+                fs::read(directory.path().join(filename)).unwrap(),
+                expected,
+                "{label} / {}",
+                case["name"]
+            );
+        }
+    }
+}

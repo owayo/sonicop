@@ -1,0 +1,7 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLI実行で記録。
+再生成: mise exec -- python3 scripts/record_nul_writeback.py tests/fixtures/nul_semicolon_cli.json --semicolons-only
+16入力 × Ruby/ParserEngine 3組 × LF/CRLF × 検査/-a/-A = 288条件。
+原本/補正後は実bytesのhex、期待offensesは本家JSONの全項目、exitは実プロセス値。
+code NUL前の最終有効semicolon、後続行/同一行の無視されるsemicolon、複数NUL、
+文字列/heredoc/comment中のNUL、元のSOH、日本語、通常のsemicolonを含む。
+本家のafter_hexはLF化も含む生出力。均一CRLF保存は既存の差分登録に従いテストで戻す。

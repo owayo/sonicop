@@ -1008,13 +1008,14 @@ fn inspect_planned(
     plan: &RulePlan,
     check_directives: bool,
 ) -> Result<FileReport> {
-    // NUL の分類にも本体の parse と同じ束縛を使い、すべての cop に同じ本文を渡す。
-    let length_as_read = text.len();
+    // NULの代替と打ち切りはtree-sitter用の投影だけに適用する。原本をcopと補正へ渡し、
+    // コメントのNULや字句器が読まない後続本文を無関係な補正で変えない。
+    // NUL分類と本体parseには同じ対象Ruby・パーサーの束縛を使う。
     let semantics = crate::regexp_ast::Semantics::from_config(config);
-    let text = crate::nul_bytes::as_ruby_reads_it_configured(&text, semantics).unwrap_or(text);
-    let source = SourceFile::new(path, text).read_as_long_as(length_as_read);
+    let parsed_text = crate::nul_bytes::as_ruby_reads_it_configured(&text, semantics);
+    let source = SourceFile::new(path, text);
     let tree = crate::profile::phase(crate::profile::Phase::Parse, || {
-        crate::parser::parse_configured(source.text(), semantics)
+        crate::parser::parse_configured(parsed_text.as_deref().unwrap_or(source.text()), semantics)
     })
     .context("Ruby parser returned no syntax tree")?;
     let ast = crate::profile::phase(crate::profile::Phase::Index, || {
@@ -3470,6 +3471,60 @@ mod tests {
         let stat = ResultCache::stat(&fs::metadata(&report.path).unwrap());
         let digest = *blake3::hash(&fs::read(&report.path).unwrap()).as_bytes();
         cache.store(report, stat, &digest, config);
+    }
+
+    #[test]
+    fn code_nul_projection_keeps_tree_end_in_original_byte_coordinates() {
+        // Semicolonのtoken走査上限に使うprogram末尾は原文のbyte座標である必要がある。
+        // コメントのstand-inと文字列のNULが先行しても、最後のcode NULの位置を保つ。
+        for source in [
+            "a=1;\0kept;\n",
+            "名前=1;\0kept;\n",
+            "a=1;\n\0kept;\n",
+            "# \0 kept\na=1;\0kept;\n",
+            "a=\"x\0y\";\0kept;\n",
+        ] {
+            for source in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let semantics = crate::regexp_ast::Semantics::default();
+                let projected =
+                    crate::nul_bytes::as_ruby_reads_it_configured(&source, semantics).unwrap();
+                let tree = crate::parser::parse_configured(&projected, semantics).unwrap();
+                let code_nul = source.rfind('\0').unwrap();
+                assert_eq!(tree.root_node().byte_range(), 0..code_nul, "{source:?}");
+                assert_eq!(projected.len(), code_nul, "{source:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn inspection_keeps_the_original_nul_and_the_unparsed_tail() {
+        let directory = tempdir().unwrap();
+        let config = Config::load(None, directory.path()).unwrap();
+        let selection = Selection {
+            only: vec!["Layout/SpaceAroundOperators".to_owned()],
+            ..Selection::default()
+        };
+        // SOHを逆変換せず、copが参照する本文と字句器のEOF後も原本のまま保つ。
+        for source in [
+            "a=1\n# \0\u{1}\0 kept\n",
+            "a=1\0unparsed ) tail\n# \u{1}\0\n",
+            "a=1\n__END__\n\0\u{1}\0 data\n",
+        ] {
+            let report = inspect_source(
+                directory.path().join("example.rb"),
+                source.to_owned(),
+                &config,
+                &selection,
+            )
+            .unwrap();
+            assert_eq!(report.source.text().as_bytes(), source.as_bytes());
+            assert!(
+                report
+                    .offenses
+                    .iter()
+                    .any(|offense| offense.cop_name == "Layout/SpaceAroundOperators")
+            );
+        }
     }
 
     #[test]

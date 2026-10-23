@@ -1,0 +1,5852 @@
+[
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d313b006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d313b000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079273b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d313b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d313b006b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d313b000d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079273b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d313b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d313b006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d313b000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079273b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d313b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "LF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d313b006b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d313b000d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079273b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d313b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "eol": "CRLF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "LF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d313b006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d313b000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079273b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d313b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79223b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "LF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "LF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000a6b6570743b0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0a",
+        "after_hex": "0069676e6f7265643b0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780a5f5f454e445f5f0a6b6570743b0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0a",
+        "after_hex": "613d313b20232000206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0a",
+        "after_hex": "613d313b20232001206b6570743b0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540a78003b790a5458540a623d323b0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "CRLF",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d313b006b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d313b000d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079273b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d313b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79223b0d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "CRLF",
+    "mode": "-a",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "eol": "CRLF",
+    "mode": "-A",
+    "exit": 0,
+    "cases": [
+      {
+        "name": "same-line-tail",
+        "source_hex": "613d313b006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "later-line-tail",
+        "source_hex": "613d313b000d0a6b6570743b0d0a",
+        "after_hex": "613d31000a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "tail-only-semicolon",
+        "source_hex": "613d31006b6570743b0d0a",
+        "after_hex": "613d31006b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "tokenless-tail",
+        "source_hex": "0069676e6f7265643b0d0a",
+        "after_hex": "0069676e6f7265643b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "multiple-nuls",
+        "source_hex": "613d313b006b6570743b007461696c3b0d0a",
+        "after_hex": "613d31006b6570743b007461696c3b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-before-data",
+        "source_hex": "613d313b00780d0a5f5f454e445f5f0d0a6b6570743b0d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0a6b6570743b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "double-quoted-nul",
+        "source_hex": "613d22780079223b0d0a",
+        "after_hex": "613d22780079220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "single-quoted-nul",
+        "source_hex": "613d27780079273b0d0a",
+        "after_hex": "613d27780079270a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-nul",
+        "source_hex": "613d313b20232000206b6570743b0d0a",
+        "after_hex": "613d313b20232000206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "original-soh-literal",
+        "source_hex": "613d22780179223b0d0a",
+        "after_hex": "613d22780179220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "original-soh-comment",
+        "source_hex": "613d313b20232001206b6570743b0d0a",
+        "after_hex": "613d313b20232001206b6570743b0d0a",
+        "offenses": []
+      },
+      {
+        "name": "expression-separators",
+        "source_hex": "613d313b623d323b0069676e6f7265643b0d0a",
+        "after_hex": "613d310a623d320069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 8,
+              "last_line": 1,
+              "last_column": 8,
+              "length": 1,
+              "line": 1,
+              "column": 8
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-nul",
+        "source_hex": "613d3c3c7e5458540d0a78003b790d0a5458540d0a623d323b0d0a",
+        "after_hex": "613d3c3c7e5458540a78003b790a5458540a623d320a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 4,
+              "start_column": 4,
+              "last_line": 4,
+              "last_column": 4,
+              "length": 1,
+              "line": 4,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "unicode-before-nul",
+        "source_hex": "e5908de5898d3d313b0069676e6f7265643b0d0a",
+        "after_hex": "e5908de5898d3d310069676e6f7265643b0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 5,
+              "last_line": 1,
+              "last_column": 5,
+              "length": 1,
+              "line": 1,
+              "column": 5
+            }
+          }
+        ]
+      },
+      {
+        "name": "ordinary-semicolon",
+        "source_hex": "613d313b0d0a",
+        "after_hex": "613d310a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 4,
+              "last_line": 1,
+              "last_column": 4,
+              "length": 1,
+              "line": 1,
+              "column": 4
+            }
+          }
+        ]
+      },
+      {
+        "name": "literal-semicolon",
+        "source_hex": "613d2278003b79223b0d0a",
+        "after_hex": "613d2278003b79220a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Do not use semicolons to terminate expressions.",
+            "cop_name": "Style/Semicolon",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 9,
+              "last_line": 1,
+              "last_column": 9,
+              "length": 1,
+              "line": 1,
+              "column": 9
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

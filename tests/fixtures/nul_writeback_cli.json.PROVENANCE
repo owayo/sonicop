@@ -1,0 +1,20 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI 診断と補正後バイト列。
+
+34入力を TargetRubyVersion 2.7/parser_whitequark、3.3/parser_whitequark、
+3.4/parser_prism × LF/CRLF × 検査/-a/-A × 2 cop 選択で測定した1224条件。
+全実行で正の完了数34・同じ対象パス集合・診断全フィールドと実ファイルを確認した。
+
+operator は Layout/SpaceAroundOperators、file-cops は同copに
+Layout/TrailingWhitespace、Layout/TrailingEmptyLines、Layout/LineLength、
+Lint/EmptyFile を加える。各条件の source_hex/after_hex は変換前の実バイト列。
+CRLFの書き戻しはSonicop既存方針の差なので、CLI回帰では同じ内容をCRLFへ戻す。
+NUL00と元からあるSOH01、コメント・literal・コード中のNUL後本文・__END__を区別する。
+
+再生成:
+  mise exec -- python3 scripts/record_nul_writeback.py tests/fixtures/nul_writeback_cli.json
+
+コードNUL後のDATA、token無し・空白/escaped改行・BOM・comment・空文、
+文字列/heredoc/コメント内の偽markerと、末尾空白付きmarkerも陽性・陰性で記録する。
+
+heredoc直後のcode NULでは、本家の末尾tNLがheredoc開始行に戻る。
+そのため本家linesが本文内markerで切れる条件も、実測どおりに記録している。

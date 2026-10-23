@@ -34,13 +34,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         true => rbs_annotation_lines(context),
         false => HashSet::new(),
     };
-    // RuboCop drops the `__END__` line and the data section behind it from the lines it walks, so
-    // a long line down there is not a long line of code.
-    let data_line = context
-        .nodes_of("uninterpreted")
-        .next()
-        .map_or(usize::MAX, |node| node.start_position().row + 1);
-    let last_line = context.source.line_count().min(data_line.saturating_sub(1));
+    // 本家のlinesと同じ境界を使い、NUL後のDATAも補正対象にしない。
+    let last_line = crate::rules::support::last_code_line(context);
 
     // Building autocorrections walks a large part of the AST, and every break it finds is filed
     // under a line. Only the lines that are over the limit are ever looked up again, so the lines

@@ -6717,6 +6717,14 @@ fn catalogue() -> Vec<CopCase> {
         .id("crlf_autocorrect_preserves_line_endings")
         .without_offense_check()
         .corrected_verbatim("x = 1\n"),
+        CopCase::new(
+            "Layout/SpaceAroundOperators",
+            "a=1\0ignored\ntrailing\r\n",
+            Vec::new(),
+        )
+        .id("nul_truncated_tokens_limit_the_line_ending_inspection")
+        .without_offense_check()
+        .corrected_verbatim("a = 1\0ignored\ntrailing\n"),
         CopCase::annotated(
             "Style/ItBlockParameter",
             "outer do |transaction|\n  real = transaction\n         ^^^^^^^^^^^ Use `it` block parameter.\n  inner do |transaction|\n    save = transaction\n           ^^^^^^^^^^^ Use `it` block parameter.\n  end\nend\n",

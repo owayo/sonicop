@@ -1,0 +1,10 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLI記録。
+
+nul_writeback_cliの14入力を3組のTargetRubyVersion/ParserEngine × LF/CRLF ×
+検査/-a/-Aで標準入力から渡した252条件。JSONの診断全項目とsimple formatterの
+補正後本文を別々の実行で記録し、終了値・正の完了数1・対象パスを確認した。
+stdout_hexはsimple formatterの原出力、after_hexは補正後バッファ（検査時はnull）。
+SonicopのCRLF保持はディスク回帰と同じ既存の意図的差分として扱う。
+
+再生成（ディスク記録と同じ実入力を使う）:
+  mise exec -- python3 scripts/record_nul_writeback.py tests/fixtures/nul_writeback_cli.json --stdin-output tests/fixtures/nul_writeback_stdin.json
