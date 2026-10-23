@@ -410,8 +410,8 @@ impl Parser {
         options: Value,
     ) -> ActionResult<Value> {
         let mut parts = parts.into_list();
-        if let Some(source) = Self::static_string(&parts)
-            && let Err(message) = regexp::validate(&source, &Self::regexp_flags(&options))
+        if let Some((source, encoding)) = Self::static_string_bytes(&parts)
+            && let Err(message) = regexp::validate(&source, encoding, &Self::regexp_flags(&options))
         {
             self.builder_error(message, join_opt(begin_t.loc(), end_t.loc()))?;
         }
@@ -447,7 +447,8 @@ impl Parser {
     /// 静的な文字列部品のバイトと符号化を連結する。補間の begin も反復走査する。
     fn static_string_bytes(nodes: &[Value]) -> Option<(Vec<u8>, LiteralEncoding)> {
         let mut out = Vec::new();
-        let mut encoding = LiteralEncoding::Text;
+        let mut encoding = LiteralEncoding::SevenBit;
+        let mut first = true;
         let mut ascii = true;
         let mut pending: Vec<_> = nodes.iter().rev().collect();
         while let Some(value) = pending.pop() {
@@ -459,6 +460,11 @@ impl Parser {
                         Some(Value::Literal { bytes, encoding }) => (bytes.as_ref(), *encoding),
                         _ => continue,
                     };
+                    // Array#join は、全 ASCII の場合も先頭部品の符号化を保つ。
+                    if first {
+                        encoding = part_encoding;
+                        first = false;
+                    }
                     let part_ascii = bytes.is_ascii();
                     // Ruby の String#<< は ASCII だけの接頭部から最初の非 ASCII 部品の
                     // 符号化へ移る。Unicode escape の UTF-8 を Binary へ戻してはいけない。
@@ -471,7 +477,14 @@ impl Parser {
                     ascii &= part_ascii;
                     out.extend_from_slice(bytes);
                 }
-                "begin" => pending.extend(node.children.iter().rev()),
+                "begin" => {
+                    // static_string([]) の結果も Array#join の先頭部品になる。
+                    if node.children.is_empty() && first {
+                        encoding = LiteralEncoding::SevenBit;
+                        first = false;
+                    }
+                    pending.extend(node.children.iter().rev());
+                }
                 _ => return None,
             }
         }
@@ -1285,6 +1298,7 @@ impl Parser {
             return None;
         }
         let (bytes, encoding) = Self::static_string_bytes(parts)?;
+        regexp::validate(&bytes, encoding, &Self::regexp_flags(options)).ok()?;
         // binary の source_pts は各バイトを1文字として保持するので、名前も同じ表現へ戻す。
         // メタ文字は ASCII のままで、不正 UTF-8 バイトを動的補間と取り違えない。
         let source = if encoding == LiteralEncoding::Binary {
@@ -1292,7 +1306,6 @@ impl Parser {
         } else {
             String::from_utf8(bytes).ok()?
         };
-        regexp::validate(&source, &Self::regexp_flags(options)).ok()?;
         Some(regexp::names(&source, &Self::regexp_flags(options)))
     }
 

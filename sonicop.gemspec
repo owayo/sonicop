@@ -61,9 +61,9 @@ Gem::Specification.new do |spec|
   # `environment variable ... not defined at compile time` でコンパイルごと落ちる。
   # ルート直下のファイルは glob の対象外になりやすいので、明示して落とさない。
   source_build_files = %w[
-    Cargo.lock Cargo.toml build.rs ext/**/* src/**/*.rs src/legacy_parser/PROVENANCE.md
-    crates/*/{Cargo.toml,build.rs,*.c,*.h,LICENSE.md,PROVENANCE.md}
-    crates/*/src/**/*.rs crates/*/vendor/**/*
+    Cargo.lock Cargo.toml build.rs ext/**/* src/**/*.rs src/legacy_parser/PROVENANCE.md src/regexp_encoding_tables.rs.PROVENANCE
+    crates/*/{Cargo.toml,build.rs,*.c,*.h,LICENSE.md,PROVENANCE.md,PROVENANCE.json}
+    crates/*/src/**/*.rs crates/*/vendor/**/* crates/*/standalone/**/*
   ]
   patterns = shared_files + (prebuilt_binary ? ['libexec/*'] : source_build_files)
 

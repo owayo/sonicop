@@ -109,6 +109,33 @@ Prism -- https://github.com/ruby/prism -- MIT
       including the UTF-8 state transition table by Bjoern Hoehrmann.
       Source and acquisition details: crates/sonicop-prism-compat/PROVENANCE.md
 
+Ruby Onigmo -- https://github.com/ruby/ruby -- BSD 2-Clause
+  Copyright (c) 2002-2018 K.Kosako
+  Copyright (c) 2011-2019 K.Takata
+
+  crates/sonicop-onigmo-compat/vendor/
+      The Ruby 4.0.8 fork of Onigmo, including Unicode 17.0 data and five
+      encodings, plus unmodified re.c/string.c used to extract preprocessing
+      and error rendering. The small standalone adapter has no Ruby VM or
+      external process dependency. Public-domain st.c/st.h come from the
+      independent Onigmo project. Fixed commits and each source SHA-256:
+      crates/sonicop-onigmo-compat/PROVENANCE.json and PROVENANCE.md.
+      Complete licences: licenses/ONIGMO.txt, licenses/RUBY_BSDL.txt,
+      licenses/RUBY_COPYING.txt, licenses/RUBY_LEGAL.txt; additional copyright
+      notices: licenses/RUBY_REGEXP_COPYRIGHTS.txt. These accompany both
+      the source and native platform gems.
+
+  src/regexp_encoding_tables.rs
+      Strict EUC-JP and Windows-31J conversion data generated using Ruby
+      4.0.8's String#encode, including its canonical reverse conversion.
+      Regenerate: ruby scripts/regexp_validation/generate_encoding_tables.rb
+
+  tests/fixtures/regexp_validation.json
+      Constructed static regexp inputs with complete reports, exit status and
+      correction bytes recorded from the real RuboCop 1.89.0 CLI on Ruby 4.0.8.
+      Input source and generation metadata accompany the JSON. Regenerate:
+      ruby scripts/regexp_validation/record.rb
+
 Rubydex -- https://github.com/Shopify/rubydex -- MIT
   Copyright (c) 2025-present, Shopify Inc.
 

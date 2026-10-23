@@ -1,0 +1,22 @@
+{
+  "unicode-escaped-surrogate": {
+    "source_hex": "2f5c75443830302f0a",
+    "reason": "whitequark の parser lexer は Integer#chr の RangeError で実 CLI が診断前に終了 2。Prism は invalid Unicode escape を診断する。エンジンごとの差を known_divergences.yml の regexp_internal_error_divergences に記録し、正常完了の比較へ数えない。"
+  },
+  "invalid-transcode": {
+    "source_hex": "2f237b225c783830227d2f6e0a",
+    "reason": "String#encode の InvalidByteSequenceError を両 builder が rescue せず実 CLI が診断前に終了 2。既知差マニフェストに両 engine の代表条件を記録し、正常完了の比較へ数えない。"
+  },
+  "regexp-mixed-unicode-then-binary-parser_whitequark": {
+    "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b225c7530306539227d237b225c783830227d2f0a",
+    "reason": "whitequark の Array#join が Encoding::CompatibilityError で診断前に終了 2。両順序の例外と同じ source の Prism 受理を既知差マニフェストに記録し、正常完了した全 engine 比較へ数えない。"
+  },
+  "regexp-mixed-binary-then-unicode-parser_whitequark": {
+    "source_hex": "2320656e636f64696e673a2041534349492d384249540a2f237b225c783830227d237b225c7530306539227d2f0a",
+    "reason": "whitequark の Array#join が Encoding::CompatibilityError で診断前に終了 2。両順序の例外と同じ source の Prism 受理を既知差マニフェストに記録し、正常完了した全 engine 比較へ数えない。"
+  },
+  "modifier-invalid-utf8-ord": {
+    "source_hex": "2f5c4d2d5c7846462f0a",
+    "reason": "2026-10-23 に RuboCop 1.89.0 / Ruby 4.0.8 の実 CLI で全モード・LF/CRLFを確認。whitequark lexer の modifier escape 復号が String#ord の ArgumentError で診断前に終了 2。Sonicop は VM の内部例外を再現せず、Regexp.new の invalid multibyte escape 診断を返して原本を保持する。本家の内部例外は正常完了した一致へ数えない。"
+  }
+}

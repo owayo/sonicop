@@ -24,6 +24,7 @@ mod profile;
 mod project_index;
 mod regexp_ast;
 mod regexp_names;
+mod regexp_validation;
 mod ruby_version;
 pub mod rules;
 pub mod source;

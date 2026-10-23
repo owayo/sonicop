@@ -108,8 +108,48 @@ pub(crate) fn diagnostics(context: &RuleContext<'_>) -> Option<Vec<Diagnostic>> 
     debug_assert_eq!(sonicop_prism_compat::version(), "1.8.1");
     let source = context.source.text();
     let input = Input::new(source);
-    let native = sonicop_prism_compat::parse(&input.bytes, version, input.binary)
+    let parsed = sonicop_prism_compat::parse_detailed(&input.bytes, version, input.binary)
         .expect("Prism supports every configured Ruby version");
+    let mut native = parsed.diagnostics;
+    if native.is_empty() {
+        for regexp in parsed.regexps {
+            let mut bytes = Vec::new();
+            let mut encoding = LiteralEncoding::SevenBit;
+            let mut first = true;
+            let mut ascii = true;
+            let mut compatible = true;
+            for part in regexp.parts {
+                let part_encoding = match part.encoding {
+                    sonicop_prism_compat::StringEncoding::Binary => LiteralEncoding::Binary,
+                    sonicop_prism_compat::StringEncoding::UsAscii => LiteralEncoding::SevenBit,
+                    sonicop_prism_compat::StringEncoding::Utf8 => LiteralEncoding::Text,
+                };
+                let part_ascii = part.bytes.is_ascii();
+                if first {
+                    encoding = part_encoding;
+                    first = false;
+                }
+                if ascii && !part_ascii {
+                    encoding = part_encoding;
+                } else if !ascii && !part_ascii && encoding != part_encoding {
+                    compatible = false;
+                    break;
+                }
+                ascii &= part_ascii;
+                bytes.extend_from_slice(&part.bytes);
+            }
+            if compatible
+                && let Err(message) =
+                    crate::regexp_validation::validate(&bytes, encoding, &regexp.flags)
+            {
+                native.push(sonicop_prism_compat::Diagnostic {
+                    range: regexp.range,
+                    kind: "invalid_regexp".into(),
+                    message,
+                });
+            }
+        }
+    }
     Some(
         native
             .into_iter()

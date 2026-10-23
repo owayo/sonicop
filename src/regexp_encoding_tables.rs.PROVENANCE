@@ -1,0 +1,10 @@
+Ruby String#encode conversion tables
+===================================
+Ruby: 4.0.8 (60c3d71bfbf9790229c682e26f8ec968f078c7da)
+Source: https://github.com/ruby/ruby/tree/60c3d71bfbf9790229c682e26f8ec968f078c7da/enc/trans
+License: Ruby 2-clause BSDL (licenses/RUBY_BSDL.txt)
+Generated: ruby scripts/regexp_validation/generate_encoding_tables.rb
+Coverage: Unicode BMP scalars excluding surrogates; EUC-JP / Windows-31J;
+strict encoding plus canonical decoding of every emitted non-ASCII sequence.
+Runtime/build-time Ruby and external codec libraries are not required.
+SHA256: 20d5bcb4ff46d3b0fc6ee7f0fd581abb65c0be830d8873ab8207719830a4669a
