@@ -1,0 +1,14 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLI、stdoutのDATA.read値。
+
+pure8入力とmixed8対照 × whitequark2.7/Prism3.4 × FSLのみ/EmptyLineAfterMagicComment併用
+× 検査/-a/-Aの192条件と再実行。2copは異なるpassで先頭コメントと空行を挿入する。
+全対象のmetadata版・正のtarget/inspected件数・path集合/重複・診断総数・終了値を検査する。
+
+first/reference_after_hexは本家の生診断/生bytes、reference_repeatedは本家通常再実行。
+after_hexは本家が挿入するprefixと元sourceのcopyを組み合わせた保持方針の期待値で、
+候補出力は使わない。pureは新prefixもCRLF、mixedはprefix LFと原本の各byteを保持する。
+repeatedはこの保存予定bytesを本家へ再入力した実診断。元source・本家生after・保存予定
+bytesを実Rubyで実行し、DATA値の保持を原本と照合してから記録する。
+
+再生成:
+  mise exec -- python3 scripts/record_pure_cr_preservation.py tests/fixtures/pure_cr_preservation.json

@@ -349,6 +349,11 @@ DATA内の元LF・単独CRを一律に変えず、元がCRLFのみの既存方�
 物理CRLFを再入力した際のEndOfLine再診断は、
 LF解析view上の初回補正結果との一致へ混ぜず別に実測する。
 
+全CRLFでも、元pairの前の単独CRを正規化で消してはいけない。元pairは全LFへ付ける
+既存のdefault CRで復元し、追加markerは元単独CRだけを表す。最後の書出し前の正規化も
+可視の元単独CRをmarkerへ移してから行い、追加元CRを復元した後にCRLFを再除去しない。
+1回だけの補正と複数passの両方でDATAの原本値、全LFのCRLF化、片側編集を確認する。
+
 `Layout/EndOfLine` の検査終点は物理的な最終行ではなく、本家の `tokens.last.line` に合わせる。
 末尾コメントや heredoc 本文を読み終えてから返る `tNL` は、直前の文の行番号へ戻る。
 終端改行の無い通常コメントは whitequark では `tNL` より後、Prism では前となる。

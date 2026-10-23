@@ -3063,13 +3063,20 @@ fn uses_crlf_only(text: &str) -> bool {
 fn restore_crlf(
     mut outcome: CorrectionOutcome,
     preserve_crlf: bool,
-    retained_crlf: Option<&[usize]>,
+    retained_crlf: Option<&LineEndingProvenance>,
 ) -> CorrectionOutcome {
     if outcome.rewritten && outcome.rollback.is_none() {
         if preserve_crlf {
-            outcome.text = outcome.text.replace("\r\n", "\n").replace('\n', "\r\n");
-        } else if let Some(positions) = retained_crlf {
-            outcome.text = restore_copied_crlf(&outcome.text, positions);
+            // 旧書出し前の正規化でも、解析viewに残る元bare CRを捨てない。
+            // 元pairのCRは全LFへ付ける既存方針で戻し、markerは追加の元CRだけを表す。
+            let mut retained_crlf = retained_crlf.cloned();
+            normalize_corrected_line_endings(&mut outcome.text, &mut None, &mut retained_crlf);
+            if let Some(state) = retained_crlf {
+                outcome.text = restore_copied_crlf(&outcome.text, &state.hidden_cr);
+            }
+            outcome.text = outcome.text.replace('\n', "\r\n");
+        } else if let Some(state) = retained_crlf {
+            outcome.text = restore_copied_crlf(&outcome.text, &state.hidden_cr);
         }
     }
     outcome
@@ -3177,9 +3184,21 @@ pub(crate) fn correct_file_with_original(
 
     let original = text.clone();
     let preserve_crlf = uses_crlf_only(&original);
-    // LFだけの通常入力には由来表を作らない。元bare CRが後からLFへ接する場合も追跡する。
-    let mut retained_crlf =
-        (!preserve_crlf && original.contains('\r')).then(|| LineEndingProvenance::new(&original));
+    // 全CRLFでも元bare CRだけは追跡する。元pairは書出しのdefault CRへ任せて二重計数しない。
+    let track_line_endings = if preserve_crlf {
+        original
+            .match_indices('\r')
+            .any(|(position, _)| original.as_bytes().get(position + 1) != Some(&b'\n'))
+    } else {
+        original.contains('\r')
+    };
+    let mut retained_crlf = track_line_endings.then(|| {
+        let mut state = LineEndingProvenance::new(&original);
+        if preserve_crlf {
+            state.hidden_cr.clear();
+        }
+        state
+    });
     // 本家は無効な入力も補正するため、元から有効だったファイルだけを保護する。
     let started_valid = !holds_fatal_syntax(&report);
     let path = report.path.clone();
@@ -3234,9 +3253,7 @@ pub(crate) fn correct_file_with_original(
                         rollback: None,
                     },
                     preserve_crlf,
-                    retained_crlf
-                        .as_ref()
-                        .map(|state| state.hidden_cr.as_slice()),
+                    retained_crlf.as_ref(),
                 ),
                 &original,
                 original_bytes,
@@ -3282,9 +3299,7 @@ pub(crate) fn correct_file_with_original(
                         rollback: None,
                     },
                     preserve_crlf,
-                    retained_crlf
-                        .as_ref()
-                        .map(|state| state.hidden_cr.as_slice()),
+                    retained_crlf.as_ref(),
                 ),
                 &original,
                 original_bytes,
@@ -4536,6 +4551,101 @@ mod tests {
         assert_eq!(applied, 4096);
         // 本家はチームの衝突で捨てた cop も corrected のまま報告する。
         assert!(report.offenses.iter().all(|offense| offense.corrected));
+    }
+
+    #[test]
+    fn pure_crlf_restores_original_bare_cr_at_pass_and_writeback_boundaries() {
+        for original in ["x\r\r\ny\r\n", "x\r\r\r\ny\r\n", "x\rZ\r\ny\r"] {
+            for passes in [1, 2] {
+                let mut retained = super::LineEndingProvenance::new(original);
+                retained.hidden_cr.clear();
+                let mut retained = Some(retained);
+                let mut text = original.to_owned();
+                let mut introduced = None;
+                for _ in 0..passes {
+                    let action = super::Action::from_edit(
+                        &Edit {
+                            start: 0,
+                            end: 0,
+                            replacement: "a\n".to_owned(),
+                            safe: true,
+                        },
+                        (0, 0),
+                    );
+                    (text, introduced) = action.rewrite_with_line_endings(
+                        &text,
+                        introduced.as_deref(),
+                        retained.as_mut(),
+                    );
+                    super::normalize_corrected_line_endings(
+                        &mut text,
+                        &mut introduced,
+                        &mut retained,
+                    );
+                }
+                let outcome = super::CorrectionOutcome {
+                    report: FileReport {
+                        path: "test.rb".into(),
+                        source: SourceFile::new("test.rb", text.clone()),
+                        offenses: Vec::new(),
+                    },
+                    text,
+                    corrected_count: passes,
+                    rewritten: true,
+                    introduced_non_ascii: false,
+                    infinite_loop: None,
+                    rollback: None,
+                };
+                let actual = super::restore_crlf(outcome, true, retained.as_ref());
+                assert_eq!(actual.text, format!("{}{original}", "a\r\n".repeat(passes)));
+            }
+        }
+    }
+
+    #[test]
+    fn pure_crlf_keeps_only_surviving_original_bare_cr_without_pair_double_counting() {
+        // 置換の同じCRへ由来を渡さず、元pairのLFだけの置換でbare CRまで消さない。
+        for (start, end, replacement, expected) in [
+            (1, 2, "", "x\r\ny\r\n"),
+            (1, 2, "\r", "x\r\ny\r\n"),
+            (3, 4, "", "x\r\ry\r\n"),
+            (3, 4, "\n", "x\r\r\ny\r\n"),
+            (0, 0, "\n", "\r\nx\r\r\ny\r\n"),
+        ] {
+            let original = "x\r\r\ny\r\n";
+            let mut retained = super::LineEndingProvenance::new(original);
+            retained.hidden_cr.clear();
+            let action = super::Action::from_edit(
+                &Edit {
+                    start,
+                    end,
+                    replacement: replacement.to_owned(),
+                    safe: true,
+                },
+                (start, end),
+            );
+            let (mut text, mut introduced) =
+                action.rewrite_with_line_endings(original, None, Some(&mut retained));
+            let mut retained = Some(retained);
+            super::normalize_corrected_line_endings(&mut text, &mut introduced, &mut retained);
+            let outcome = super::CorrectionOutcome {
+                report: FileReport {
+                    path: "test.rb".into(),
+                    source: SourceFile::new("test.rb", text.clone()),
+                    offenses: Vec::new(),
+                },
+                text,
+                corrected_count: 1,
+                rewritten: true,
+                introduced_non_ascii: false,
+                infinite_loop: None,
+                rollback: None,
+            };
+            assert_eq!(
+                super::restore_crlf(outcome, true, retained.as_ref()).text,
+                expected
+            );
+        }
     }
 
     #[test]
