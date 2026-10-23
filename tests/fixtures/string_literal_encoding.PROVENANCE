@@ -1,0 +1,20 @@
+期待値は scripts/record_string_literal_encoding.py が実行した RuboCop 1.89.0 CLI の記録。
+再生成: mise exec -- python3 scripts/record_string_literal_encoding.py --ruby27 /path/to/ruby-2.7.8/miniruby
+
+参照 Ruby: ruby 4.0.8 (2026-10-22 revision 60c3d71bfb) +PRISM [x86_64-linux]
+参照時の Encoding.default_external: UTF-8（実コマンドで採取し、再記録器でもこの条件を検査する）。
+本家 Util#to_string_literal はこの符号化での valid_encoding? も引用符選択に使う。
+
+2 cop（StringLiterals / StringLiteralsInInterpolation）、2 target/engine（2.7 whitequark / 3.4 Prism）、
+引用符設定 2 種、LF/CRLF、inspect/-a/-A の 48 CLI / 8,880 完了ファイル条件。
+各 group は 185 入力で、7 種の header（BINARY/ASCII-8BIT/別名/US-ASCII/UTF-8/非宣言コメント）を含む。
+NUL 末尾・SOH・他 C0・DEL・短 escape・元 escape・引用符・多バイト・raw invalid bytes と有効 UTF8 の混在、
+非 ASCII の Unicode escape による値の encoding の切替を陰性対照にする。
+
+全条件で本家補正の前後を実 MRI 2.7.8p225 で実行し、String の bytes と encoding の不変を確認。
+この実行を 3.4 処理系の実行互換性の証拠とはしない。
+raw_reference_after_hex は本家の実ディスク bytes。after_hex は既知の CRLF 保持差だけを
+候補の保存形式へ戻した比較用 bytes。Issue #54 の物理改行を含む literal の復号は別件で、
+この採取対象の literal 内には物理 LF を入れない。
+
+SHA256: 83c28f5ce0eb0633bde8c6dce8e2f9f47450d045277c3dee71e8a73f78ed8b06

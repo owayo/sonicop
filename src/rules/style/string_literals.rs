@@ -3,7 +3,8 @@ use std::ops::Range;
 use tree_sitter::Node;
 
 use crate::diagnostic::{Edit, Offense};
-use crate::rules::RuleContext;
+use crate::engine::{LiteralEncoding, declared_literal_encoding};
+use crate::rules::{ParserEngine, RuleContext};
 use crate::rules::node_ext::NodeExt;
 
 const SINGLE_QUOTES_MESSAGE: &str =
@@ -56,7 +57,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .corrected_by(Edit {
                     start: node.start_byte(),
                     end: node.end_byte(),
-                    replacement: corrected_literal(source, single_quotes),
+                    replacement: corrected_literal(
+                        source,
+                        single_quotes,
+                        declared_literal_encoding(context.source.text()),
+                        context.parser_engine(),
+                    ),
                     safe: true,
                 }),
         );
@@ -397,15 +403,35 @@ fn single_quotes_required(source: &str) -> bool {
     false
 }
 
-/// RuboCop's `StringLiteralCorrector`: the literal is rebuilt from its *value*, so escapes that
-/// only existed to satisfy the old delimiter disappear.
-pub(super) fn corrected_literal(source: &str, single_quotes: bool) -> String {
-    // Only `"` and `'` reach here -- `%`-literals never offend -- so the delimiters are one byte.
+/// 本家の StringLiteralCorrector は値から書き直し、旧引用符のためだけの escape を取り除く。
+pub(super) fn corrected_literal(
+    source: &str,
+    single_quotes: bool,
+    encoding: LiteralEncoding,
+    parser_engine: ParserEngine,
+) -> String {
+    // percent literal は診断対象外なので、引用符は両端の各 1 byte だけ。
     let inner = &source[1..source.len() - 1];
-    if single_quotes {
-        to_string_literal(&decode_double_quoted(inner))
+    let value = if single_quotes {
+        decode_double_quoted(inner)
     } else {
-        format!("\"{}\"", inspect_body(&decode_single_quoted(inner)))
+        decode_single_quoted(inner)
+    };
+    // Prism の改行部品は UTF-8 の空文字へ結合され、ASCII 値はその符号化を保つ。
+    // 原本の ASCII 表記と値の ASCII bytes は違うため、報告対象の復号値で判定する。
+    let encoding = if encoding == LiteralEncoding::Binary
+        && parser_engine == ParserEngine::Prism
+        && inner.contains('\n')
+        && value.is_ascii()
+    {
+        LiteralEncoding::Text
+    } else {
+        encoding
+    };
+    if single_quotes {
+        to_string_literal(&value, encoding)
+    } else {
+        format!("\"{}\"", inspect_body(&value, encoding))
     }
 }
 
@@ -440,26 +466,32 @@ fn unescape(inner: &str, escapable: &[char]) -> String {
     out
 }
 
-/// RuboCop's `Util#to_string_literal`. A value that Ruby would have to escape -- a raw tab, say --
-/// cannot be written single-quoted at all, so upstream falls back to `String#inspect` and keeps
-/// the double quotes.
-fn to_string_literal(value: &str) -> String {
-    if double_quotes_required(&escape_string(value)) {
-        return format!("\"{}\"", inspect_body(value));
+/// Util#to_string_literal は escape の必要性と外部符号化の互換性の両方で引用符を選ぶ。
+fn to_string_literal(value: &str, encoding: LiteralEncoding) -> String {
+    // 本家は既定外部符号化で読めない Binary 値を単一引用へ戻す。inspect が必要でも条件は別。
+    let compatible_external = encoding != LiteralEncoding::Binary
+        || value.is_ascii()
+        || binary_value_bytes(value).is_some_and(|bytes| std::str::from_utf8(&bytes).is_ok());
+    if compatible_external && double_quotes_required(&escape_string(value, encoding)) {
+        return format!("\"{}\"", inspect_body(value, encoding));
     }
     format!("'{}'", value.replace('\\', "\\\\").replace("\\\"", "\""))
 }
 
-/// RuboCop's `Util#escape_string`: `String#inspect` without the delimiters and with `\"` folded
-/// back to `"`, so that the leftover backslashes are exactly the ones the value itself needs.
-fn escape_string(value: &str) -> String {
-    inspect_body(value).replace("\\\"", "\"")
+/// Util#escape_string は inspect の引用符と不要な \" を除き、値そのものに必要な escape を残す。
+fn escape_string(value: &str, encoding: LiteralEncoding) -> String {
+    inspect_body(value, encoding).replace("\\\"", "\"")
 }
 
-/// The body of Ruby's `String#inspect` for a valid UTF-8 string: control characters become their
-/// named escape or `\uXXXX`, `"` and `\` are escaped, and a `#` that would start an interpolation
-/// is neutralised. Everything else, non-ASCII included, is printable to Ruby and stays put.
-fn inspect_body(value: &str) -> String {
+/// 本家の String#inspect は Binary の制御文字と非 ASCII bytes を \xNN で表す。
+/// Text / 7bit の str は本家の source buffer が UTF-8 化するため既存の \uNNNN を維持する。
+/// 短い escape は両符号化で共通なので、generic escape より先に扱う。
+fn inspect_body(value: &str, encoding: LiteralEncoding) -> String {
+    if encoding == LiteralEncoding::Binary
+        && let Some(bytes) = binary_value_bytes(value)
+    {
+        return super::super::literal::inspect_bytes(&bytes, true);
+    }
     let mut out = String::with_capacity(value.len());
     let mut characters = value.chars().peekable();
     while let Some(character) = characters.next() {
@@ -484,8 +516,15 @@ fn inspect_body(value: &str) -> String {
     out
 }
 
+/// engine の Binary SourceFile は元の各 byte を同値の Unicode 点へ転写する。
+/// 原本 bytes へ逆写像し、コードポイントを可変桁の \x escape として書かない。
+fn binary_value_bytes(value: &str) -> Option<Vec<u8>> {
+    value.chars().map(|character| u8::try_from(character as u32).ok()).collect()
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::engine::LiteralEncoding;
     use super::{
         body_parts, double_quotes_required, is_dstr, opening_delimiter, single_quotes_required,
         to_string_literal,
@@ -557,8 +596,8 @@ mod tests {
 
     #[test]
     fn corrections_rebuild_the_literal_from_its_value() {
-        assert_eq!(to_string_literal(r#"{"k":"v"}"#), r#"'{"k":"v"}'"#);
-        assert_eq!(to_string_literal(r"\x34"), r"'\\x34'");
-        assert_eq!(to_string_literal("a\tb"), r#""a\tb""#);
+        assert_eq!(to_string_literal(r#"{"k":"v"}"#, LiteralEncoding::Text), r#"'{"k":"v"}'"#);
+        assert_eq!(to_string_literal(r"\x34", LiteralEncoding::Text), r"'\\x34'");
+        assert_eq!(to_string_literal("a\tb", LiteralEncoding::Text), r#""a\tb""#);
     }
 }
