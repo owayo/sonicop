@@ -1455,14 +1455,15 @@ fn is_binary_label(label: &str) -> bool {
     )
 }
 
-/// Resolves an encoding name the way Ruby spells it. `encoding_rs` answers to the WHATWG label
-/// registry, which covers the names a browser sees but not the code page names Ruby also accepts,
-/// so those are mapped onto the equivalent registry label first.
+/// Ruby の別名と WHATWG のラベルは一致しないため、Ruby の追加名は明示的に対応させる。
 fn encoding_for_ruby_label(label: &str) -> Option<&'static encoding_rs::Encoding> {
     if let Some(encoding) = encoding_rs::Encoding::for_label(label.as_bytes()) {
-        return Some(encoding);
+        // 本家は x-euc-jp 等を拒否する。EUC-JP の別名は下の Ruby 用対応表だけで補う。
+        return (encoding != encoding_rs::EUC_JP || label.eq_ignore_ascii_case("euc-jp"))
+            .then_some(encoding);
     }
     let alias = match label.to_ascii_lowercase().as_str() {
+        "eucjp" => "euc-jp",
         "cp932" => "windows-31j",
         "cp51932" | "eucjp-ms" | "euc-jp-ms" => "euc-jp",
         "cp936" => "gbk",
@@ -5179,6 +5180,46 @@ mod tests {
         assert_eq!(report.offenses.len(), 1);
         let location = report.offenses[0].location(&report.source);
         assert_eq!((location.line, location.column, location.length), (2, 5, 4));
+    }
+
+    #[test]
+    fn ruby_euc_jp_aliases_decode_and_preserve_original_bytes() {
+        // 実 Ruby が認める大小文字の別名でも、復号と再符号化を同じ解決へ向ける。
+        for label in ["EUC-JP", "eucJP", "EUCJP", "eucjp", "EucJp"] {
+            for ending in ["\n", "\r\n"] {
+                let decoded = format!("# encoding: {label}{ending}puts(\"あ\"){ending}");
+                let mut original = format!("# encoding: {label}{ending}puts(\"").into_bytes();
+                original.extend_from_slice(b"\xa4\xa2");
+                original.extend_from_slice(format!("\"){ending}").as_bytes());
+                let Decoded::Text(found) = super::decoded_bytes(original.clone()) else {
+                    panic!("Ruby の EUC-JP alias を拒否した: {label}");
+                };
+                assert_eq!(found, decoded);
+                assert_eq!(output_bytes(&decoded, Some(label)).unwrap(), original);
+            }
+        }
+    }
+
+    #[test]
+    fn browser_only_euc_jp_labels_remain_unknown_to_ruby() {
+        // 記号の除去や WHATWG の別名を流用すると、本家の構文エラーまで受理してしまう。
+        for label in [
+            "x-euc-jp",
+            "cseucpkdfmtjapanese",
+            "EUC_JP",
+            "EUCJPP",
+            "XEUCJP",
+            "EUCJP_",
+        ] {
+            let original = format!("# encoding: {label}\nputs 1\n").into_bytes();
+            let Decoded::Undecodable(message) = super::decoded_bytes(original) else {
+                panic!("Ruby が拒むラベルを受理した: {label}");
+            };
+            assert_eq!(
+                message,
+                format!("Unknown encoding name - {}.", label.to_ascii_lowercase())
+            );
+        }
     }
 
     #[test]

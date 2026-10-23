@@ -5846,3 +5846,84 @@ fn control_syntax_reports_match_recorded_upstream() {
         "Lint/Syntax",
     );
 }
+
+/// 宣言名だけを変えた実 EUC-JP バイトで、SourceFile と構文 backend の双方を通す。
+#[test]
+fn euc_jp_alias_reports_and_raw_bytes_match_recorded_upstream() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/euc_jp_alias_reports.json")).unwrap();
+    let decode_hex = |hex: &str| -> Vec<u8> {
+        assert_eq!(hex.len() % 2, 0);
+        (0..hex.len())
+            .step_by(2)
+            .map(|at| u8::from_str_radix(&hex[at..at + 2], 16).unwrap())
+            .collect()
+    };
+    for case in fixture["records"].as_array().unwrap() {
+        let directory =
+            project_without_pinned_ruby(&[(".rubocop.yml", case["yaml"].as_str().unwrap())]);
+        fs::write(
+            directory.path().join("example.rb"),
+            decode_hex(case["source_hex"].as_str().unwrap()),
+        )
+        .unwrap();
+        for attempt in 0..2 {
+            let reference = if attempt == 1 && !case["rerun_reference"].is_null() {
+                &case["rerun_reference"]
+            } else {
+                &case["reference"]
+            };
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                "Layout/SpaceAroundOperators,Lint/Syntax",
+                "--format",
+                "json",
+            ]);
+            if let Some(mode) = case["mode"].as_str() {
+                run.arg(mode);
+            }
+            let output = run.arg("example.rb").output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                reference["exit"].as_i64().map(|code| code as i32),
+                "{case} / {attempt}"
+            );
+            assert_eq!(
+                String::from_utf8(output.stderr).unwrap(),
+                reference["stderr"].as_str().unwrap(),
+                "{case} / {attempt}"
+            );
+            let mut report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            report.as_object_mut().unwrap().remove("metadata");
+            assert_eq!(report, reference["report"], "{case} / {attempt}");
+            let mut expected = decode_hex(reference["after_hex"].as_str().unwrap());
+            // 本家の CRLF→LF 書戻しとは既存の意図的差分。生の本家 byte も記録に残す。
+            if case["ending"] == "crlf"
+                && !case["mode"].is_null()
+                && case["reference"]["after_hex"] != case["source_hex"]
+            {
+                assert!(!expected.contains(&b'\r'));
+                expected = expected
+                    .into_iter()
+                    .flat_map(|byte| {
+                        if byte == b'\n' {
+                            vec![b'\r', b'\n']
+                        } else {
+                            vec![byte]
+                        }
+                    })
+                    .collect();
+            }
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                expected,
+                "{case} / {attempt}"
+            );
+        }
+    }
+}
