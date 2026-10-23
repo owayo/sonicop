@@ -339,6 +339,14 @@ before writeback. The intentional byte difference is recorded in the divergence 
 The tree-sitter comment node includes the `\r` in CRLF, while RuboCop's comment token excludes it.
 Trim that byte from indexed comment ranges before cops calculate offense locations or source text.
 
+`Layout/EndOfLine` の検査終点は物理的な最終行ではなく、本家の `tokens.last.line` に合わせる。
+末尾コメントや heredoc 本文を読み終えてから返る `tNL` は、直前の文の行番号へ戻る。
+終端改行の無い通常コメントは whitequark では `tNL` より後、Prism では前となる。
+終端なしの `=begin` コメントは両 engine で後となるため、EOF と NUL 投影を区別する。
+トークンが無い場合だけ生の行数を使うため、`__END__` だけの入力も除外しない。
+NUL 限定の DATA 探索と通常ファイルの終点判定を分け、LF/CRLF/mixed・コメント・継続・
+heredoc・空文・トークン無しを、診断全項目と非補正の実バイトで本家と照合する。
+
 **ブロックコメントの範囲は行末まで含む。** `=begin` のコメントは `=end` の後の改行までが
 1 トークンで、whitequark で末尾改行のない EOF に閉じると報告範囲はさらに 2 文字先へ伸びる。
 読み取り・編集用の範囲は本文内に保ち、報告用の範囲と長さだけを分ける。Prism は EOF で止まる。

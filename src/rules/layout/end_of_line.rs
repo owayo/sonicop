@@ -12,18 +12,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         .unwrap_or_else(|| "native".to_owned());
     let crlf_expected = style == "crlf" || (style == "native" && cfg!(windows));
 
-    // DATAの改行は本文の一部なので、NUL後も共通の検査行境界を使う。
-    let line_count = context.source.line_count();
-    let last_line = crate::rules::support::last_code_line(context);
-    // コードNULで切った後続行はlinesには残るが、tokens.lastより後を本家は調べない。
-    // token無しの場合だけlinesの長さへ戻す。commentと空文の終端もtokenに含める。
-    let last_line = if context.source.text().as_bytes().get(context.root_node().end_byte()) == Some(&0) {
-        crate::rules::support::last_token_line_before_nul(context)
-            .unwrap_or(last_line)
-            .min(last_line)
-    } else {
-        last_line
-    };
+    // 本家は末尾tokenの論理行までを検査する。commentやheredoc後のtNLは前の行へ戻る。
+    // token無しの場合だけ生の行数へ戻り、__END__だけの入力も本家どおり検査する。
+    let last_line = crate::rules::support::last_token_line(context)
+        .unwrap_or_else(|| context.source.line_count());
     for line_number in 1..=last_line {
         let line = context.source.line(line_number);
         let has_crlf = line.ends_with("\r\n");
@@ -35,8 +27,8 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if !offending {
             continue;
         }
-        // A last line with no line terminator at all cannot be missing a carriage return.
-        if crlf_expected && line_number == line_count && !line.ends_with('\n') {
+        // 検査対象の最終行に改行自体が無い場合、本家もCRの欠落とは数えない。
+        if crlf_expected && line_number == last_line && !line.ends_with('\n') {
             continue;
         }
         let message = if crlf_expected {

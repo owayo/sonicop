@@ -1446,14 +1446,20 @@ pub(crate) fn data_marker_start(context: &RuleContext<'_>) -> Option<usize> {
     })
 }
 
-/// コードNULで終了したtoken列の末尾行。通常ファイルのtoken再構築には使わない。
-/// heredoc本文は開始位置で先に読み、最後のtNLは本文の物理位置から開始行へ戻る。
-/// commentは複数行でも開始行の1token、空文の`;`もtokenとして数える。
+/// NUL後のDATA探索だけは、通常ファイルの境界を再解釈しない。
 pub(crate) fn last_token_line_before_nul(context: &RuleContext<'_>) -> Option<usize> {
     let root = context.root_node();
     if context.source.text().as_bytes().get(root.end_byte()) != Some(&0) {
         return None;
     }
+    last_token_line(context)
+}
+
+/// 本家のtokens.last.line。末尾comment後のtNLは直前の文の行番号へ戻る。
+/// heredoc本文は開始位置で先に読み、最後のtNLは本文の物理位置から開始行へ戻る。
+/// commentは複数行でも開始行の1token、空文の`;`もtokenとして数える。
+pub(crate) fn last_token_line(context: &RuleContext<'_>) -> Option<usize> {
+    let root = context.root_node();
     let mut last = None;
     let mut last_code = None;
     for node in context.children(root)? {
@@ -1464,6 +1470,18 @@ pub(crate) fn last_token_line_before_nul(context: &RuleContext<'_>) -> Option<us
         if node.kind_str() != "comment" {
             last_code = Some(node);
         }
+    }
+    // 通常EOFの終端なしcommentは、白lexerではtNLより後に返る。
+    // Prismも=beginは同順だが、通常の#commentは最後にtNLを返す。実token列で確認した差。
+    // NUL投影は原本の後続bytesを持つため、この通常EOF特例へ混ぜない。
+    if root.end_byte() == context.source.text().len()
+        && let Some(comment) = last
+        && comment.kind_str() == "comment"
+        && comment.end_byte() == root.end_byte()
+        && (context.parser_engine() == crate::rules::ParserEngine::Whitequark
+            || context.source.text()[comment.byte_range()].starts_with("=begin"))
+    {
+        return Some(comment.start_position().row + 1);
     }
     if let Some(code) = last_code
         && !matches!(code.kind_str(), ";" | "empty_statement")
