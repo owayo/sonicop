@@ -14631,6 +14631,18 @@ mod layout_punctuation_spacing {
         expect_no_offenses(COP, "#\tcomment\nx = 1\n");
     }
 
+    /// 本家のtokensが空なら、行継続やコードNULの原本を空programの範囲として報告しない。
+    #[test]
+    fn leading_empty_lines_requires_a_real_token() {
+        const COP: &str = "Layout/LeadingEmptyLines";
+        for source in ["\\\n\0", "\n\0", "\\\n", "\n__END__\ndata\n"] {
+            expect_no_offenses(COP, source);
+        }
+        expect_correction(COP, "\\\n# comment\n", "# comment\n");
+        expect_correction(COP, "\\\nputs 1\n", "puts 1\n");
+        expect_correction(COP, "\n;\n", ";\n");
+    }
+
     #[test]
     fn leading_empty_lines() {
         const COP: &str = "Layout/LeadingEmptyLines";
