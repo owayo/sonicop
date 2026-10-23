@@ -1353,6 +1353,98 @@ fn crlf_inside_cop_messages_matches_rubocop() {
     }
 }
 
+/// 本家 1.89.0 の CLI で検査・-a・-A の診断全項目と補正後の本文を記録した。
+/// 表示の CRLF だけを LF にし、単独 CR・エスケープ文字・原本の改行形式は保つ。
+#[test]
+fn nested_call_messages_normalize_crlf_without_changing_disk_bytes() {
+    let cop = "Style/NestedParenthesizedCalls";
+    let cases = [
+        (
+            "puts(foo bar { |x|\n  x\n})\n",
+            "puts(foo(bar { |x|\n  x\n}))\n",
+            "foo bar { |x|\n  x\n}",
+            (3, 1, 19),
+        ),
+        (
+            "puts(foo bar { |猫|\n  猫\n})\n",
+            "puts(foo(bar { |猫|\n  猫\n}))\n",
+            "foo bar { |猫|\n  猫\n}",
+            (3, 1, 19),
+        ),
+        (
+            "puts(foo \"a\nb\")\n",
+            "puts(foo(\"a\nb\"))\n",
+            "foo \"a\nb\"",
+            (2, 2, 9),
+        ),
+        (
+            "puts(foo bar { 1 })\n",
+            "puts(foo(bar { 1 }))\n",
+            "foo bar { 1 }",
+            (1, 18, 13),
+        ),
+        (
+            "puts(foo \"a\rb\")\n",
+            "puts(foo(\"a\rb\"))\n",
+            "foo \"a\rb\"",
+            (1, 14, 9),
+        ),
+        (
+            "puts(foo \"a\\r\\nb\")\n",
+            "puts(foo(\"a\\r\\nb\"))\n",
+            "foo \"a\\r\\nb\"",
+            (1, 17, 12),
+        ),
+    ];
+    for (source, corrected, nested, (last_line, last_column, length)) in cases {
+        for newline in ["\n", "\r\n"] {
+            let source = source.replace('\n', newline);
+            for mode in [None, Some("-a"), Some("-A")] {
+                let directory = project(&[("example.rb", &source)]);
+                let mut invocation = command(directory.path());
+                invocation.args(["--cache", "false", "--only", cop, "--format", "json"]);
+                if let Some(mode) = mode {
+                    invocation.arg(mode);
+                }
+                let output = invocation
+                    .arg("example.rb")
+                    .assert()
+                    .code(if mode.is_some() { 0 } else { 1 })
+                    .get_output()
+                    .stdout
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::json!([{
+                        "severity": "convention",
+                        "message": format!("Add parentheses to nested method call `{nested}`."),
+                        "cop_name": cop,
+                        "corrected": mode.is_some(),
+                        "correctable": true,
+                        "location": {
+                            "start_line": 1, "start_column": 6,
+                            "last_line": last_line, "last_column": last_column,
+                            "length": length, "line": 1, "column": 6
+                        }
+                    }]),
+                    "{source:?} {mode:?}"
+                );
+                let expected = if mode.is_some() {
+                    corrected.replace('\n', newline)
+                } else {
+                    source.clone()
+                };
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected.as_bytes(),
+                    "{source:?} {mode:?}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn autocorrect_preserves_crlf_in_the_data_section() {
     let source = b"x=1\r\nputs DATA.read.bytes.join(',')\r\n__END__\r\na\r\nb\r\n";

@@ -96,9 +96,11 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             else {
                 continue;
             };
+            // 本家の SourceBuffer は CRLF を LF にしてから node.source を返す。
+            // 表示する断片だけをそろえ、原本の範囲と補正のバイト列は維持する。
             let message = format!(
                 "Add parentheses to nested method call `{}`.",
-                context.source.node_text(nested)
+                context.source.node_text(nested).replace("\r\n", "\n")
             );
             offenses.push(
                 context
