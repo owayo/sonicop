@@ -41,7 +41,7 @@ const NON_STATEMENT_KINDS: &[&str] = &["comment", "empty_statement", "rescue", "
 const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "delimited_symbol"];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let text = context.source.text();
+    let text = parsed_text(context);
     if !text.contains(';') {
         return;
     }
@@ -166,7 +166,19 @@ fn endless_range_before(
         .map(|node| node.byte_range())
 }
 
-/// Every semicolon that is code rather than text, as `(line, byte offset)`.
+/// code NULでRubyの字句器が終了した場合だけ、tokenが存在する原文のprefixを返す。
+/// 補正原本は全文を保つが、投影のprogram末尾より後ろのsemicolonはtokenではない。
+fn parsed_text<'source>(context: &RuleContext<'source>) -> &'source str {
+    let text = context.source.text();
+    let parsed_end = context.ast.root.end_byte();
+    if text.as_bytes().get(parsed_end) == Some(&0) {
+        &text[..parsed_end]
+    } else {
+        text
+    }
+}
+
+/// 本文ではなくRubyのコードに属するsemicolonを`(行, byte位置)`で返す。
 fn semicolon_offsets(context: &RuleContext<'_>) -> Vec<(usize, usize)> {
     let ranges = context.protected_ranges();
     let tokens: Vec<std::ops::Range<usize>> = context
@@ -174,7 +186,7 @@ fn semicolon_offsets(context: &RuleContext<'_>) -> Vec<(usize, usize)> {
         .map(|node| node.byte_range())
         .collect();
     let interpolations = Interpolations::new(context);
-    let text = context.source.text();
+    let text = parsed_text(context);
     text.bytes()
         .enumerate()
         .filter(|(offset, byte)| {
@@ -248,17 +260,21 @@ fn closes_an_interpolation(context: &RuleContext<'_>, semicolon: usize) -> bool 
             .any(|node| node.end_byte() == brace + 1)
 }
 
-/// The byte range of `line_number` with comments and surrounding whitespace removed.
+/// コメントと前後の空白を除いた行の範囲。code NUL後の保存本文はtoken範囲に含めない。
 fn code_range(context: &RuleContext<'_>, line_number: usize) -> Option<std::ops::Range<usize>> {
-    let text = context.source.text();
+    let text = parsed_text(context);
     let line = context.source.line_range(line_number);
+    let line_end = line.end.min(text.len());
+    if line.start >= line_end {
+        return None;
+    }
     let comment_start = context
         .comment_ranges()
         .iter()
-        .filter(|range| range.start >= line.start && range.start < line.end)
+        .filter(|range| range.start >= line.start && range.start < line_end)
         .map(|range| range.start)
         .min()
-        .unwrap_or(line.end);
+        .unwrap_or(line_end);
     let slice = &text[line.start..comment_start];
     let start = line.start + (slice.len() - slice.trim_start().len());
     let end = line.start + slice.trim_end().len();

@@ -1386,13 +1386,7 @@ pub(crate) fn contains_comment(context: &RuleContext<'_>, range: Range<usize>) -
 /// marker itself is no more a token than the data section it opens.
 pub(crate) fn code_before_data<'a>(context: &'a RuleContext<'_>) -> &'a str {
     let text = context.source.text();
-    match context.nodes_of("uninterpreted").next() {
-        Some(data) => {
-            let head = text[..data.start_byte()].trim_end();
-            head.strip_suffix("__END__").unwrap_or(head)
-        }
-        None => text,
-    }
+    data_marker_start(context).map_or(text, |start| &text[..start])
 }
 
 /// `processed_source.blank?`, which is `ast.nil?`: a file of nothing but comments and blank lines
@@ -1429,17 +1423,90 @@ pub(crate) fn allowed_methods(context: &RuleContext<'_>) -> Vec<String> {
     names
 }
 
-/// `ProcessedSource#lines`: the last line a cop walking the source should see.
-///
-/// `trim_lines_after_data_marker` drops the `__END__` line and everything behind it, so a cop that
-/// measures lines never sees the data section. The grammar hangs that section off an
-/// `uninterpreted` node.
+/// `ProcessedSource#trim_lines_after_data_marker`が除外する行の開始位置。
+/// 通常はgrammarが境界を持つが、コード中NULの投影はその後の`__END__`を読まない。
+/// 最後のtoken以降の完全一致行だけを調べ、tokenが無い場合は本家と同じく除外しない。
+pub(crate) fn data_marker_start(context: &RuleContext<'_>) -> Option<usize> {
+    if let Some(data) = context.nodes_of("uninterpreted").next() {
+        return Some(context.source.line_start(data.start_position().row + 1));
+    }
+    let root = context.root_node();
+    if context.source.text().as_bytes().get(root.end_byte()) != Some(&0) {
+        return None;
+    }
+    // tNLはheredoc本文の後で開始行へ戻る。本家linesもその論理的な末尾行を使う。
+    let first_line = last_token_line_before_nul(context)? + 1;
+    (first_line..=context.source.line_count()).find_map(|line_number| {
+        let line = context.source.line(line_number);
+        let content = line
+            .strip_suffix("\r\n")
+            .or_else(|| line.strip_suffix('\n'))
+            .unwrap_or(line);
+        (content == "__END__").then(|| context.source.line_start(line_number))
+    })
+}
+
+/// コードNULで終了したtoken列の末尾行。通常ファイルのtoken再構築には使わない。
+/// heredoc本文は開始位置で先に読み、最後のtNLは本文の物理位置から開始行へ戻る。
+/// commentは複数行でも開始行の1token、空文の`;`もtokenとして数える。
+pub(crate) fn last_token_line_before_nul(context: &RuleContext<'_>) -> Option<usize> {
+    let root = context.root_node();
+    if context.source.text().as_bytes().get(root.end_byte()) != Some(&0) {
+        return None;
+    }
+    let mut last = None;
+    let mut last_code = None;
+    for node in context.children(root)? {
+        if matches!(node.kind_str(), "heredoc_body" | "uninterpreted") {
+            continue;
+        }
+        last = Some(node);
+        if node.kind_str() != "comment" {
+            last_code = Some(node);
+        }
+    }
+    if let Some(code) = last_code
+        && !matches!(code.kind_str(), ";" | "empty_statement")
+    {
+        // Lexerは後続commentを先に返してから、文末のtNLを元の行番号で返す。
+        // heredoc本文より前の改行も同じ扱い。継続改行にはtNLがない。
+        let text = context.source.text();
+        for offset in code.end_byte()..root.end_byte() {
+            if text.as_bytes()[offset] != b'\n' {
+                continue;
+            }
+            let previous = if offset > 0 && text.as_bytes()[offset - 1] == b'\r' {
+                offset.saturating_sub(2)
+            } else {
+                offset.saturating_sub(1)
+            };
+            let continued = text.as_bytes()[previous] == b'\\'
+                && !context
+                    .comment_ranges()
+                    .iter()
+                    .any(|comment| comment.contains(&previous));
+            if !continued {
+                return Some(context.source.line_column(offset).0);
+            }
+        }
+    }
+    last.map(|node| {
+        if node.kind_str() == "comment" {
+            node.start_position().row + 1
+        } else {
+            context
+                .source
+                .line_column(node.end_byte().saturating_sub(1))
+                .0
+        }
+    })
+}
+
+/// 本家のlinesはmarker行とDATAを含めない。原本の全文保持と行の検査範囲を分ける。
 pub(crate) fn last_code_line(context: &RuleContext<'_>) -> usize {
-    let data_line = context
-        .nodes_of("uninterpreted")
-        .next()
-        .map_or(usize::MAX, |node| node.start_position().row + 1);
-    context.source.line_count().min(data_line.saturating_sub(1))
+    data_marker_start(context).map_or(context.source.line_count(), |start| {
+        context.source.line_column(start).0.saturating_sub(1)
+    })
 }
 
 #[cfg(test)]

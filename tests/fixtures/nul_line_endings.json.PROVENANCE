@@ -1,0 +1,13 @@
+RuboCop 1.89.0 / Ruby 4.0.8 の実CLI記録。
+
+code NUL後だけがCRLFとなるmixed入力、token無し・comment・空文・文字列・heredoc・
+DATA境界、NUL無しと元SOHの10入力を3組の対象Ruby/ParserEngine × 検査/-a/-Aで
+測定した90条件。Layout/EndOfLineはOSに依存しないlfを明示し、SpaceAroundOperators
+、FrozenStringLiteralComment、SpaceAfterSemicolonとの複数passでも診断全項目・終了値・実ファイルを確認する。
+本家EndOfLineはProcessedSource#lines全体ではなくtokens.last.lineを終点にする。
+
+再生成:
+  mise exec -- python3 scripts/record_nul_writeback.py tests/fixtures/nul_writeback_cli.json --stdin-output tests/fixtures/nul_writeback_stdin.json --endings-output tests/fixtures/nul_line_endings.json
+
+mixed原本の未変更行のCRLFも既存の保持方針に従い、原本の同じ行から期待値へ戻す。
+本家の生after_hexを保持し、最小実出力はknown_divergences.ymlへ明示登録する。

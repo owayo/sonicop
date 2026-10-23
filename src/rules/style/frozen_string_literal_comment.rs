@@ -18,6 +18,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     if context.target_ruby_version() < MINIMUM {
         return;
     }
+    // 原本にNUL後の本文があっても、字句器がtokenを返さなければ調べない。
+    if context.source.text().as_bytes().get(context.root_node().end_byte()) == Some(&0)
+        && crate::rules::support::last_token_line_before_nul(context).is_none()
+    {
+        return;
+    }
     // 本家はトークンのないファイルを調べない。BOM だけの入力やデータ節だけの入力も含む。
     if without_initial_bom(crate::rules::support::code_before_data(context), 1)
         .trim()

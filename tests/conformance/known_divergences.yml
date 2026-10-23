@@ -1565,6 +1565,17 @@ divergences:
       `DATA.read.bytes` を測ると、本家の -a 後は CR が消え、実行時の値まで変わる。
       移植版は変更範囲外のバイトを守るため CRLF を保つ。別プロバイダーの判定でも、
       本家の I/O の副作用によるデータ変更として、意図的乖離を支持した。
+  - cop: Layout/SpaceAroundOperators
+    case: nul_truncated_tokens_limit_the_line_ending_inspection
+    kind: correction
+    source: "a=1\0ignored\ntrailing\r\n"
+    upstream: "a = 1\0ignored\ntrailing\n"
+    sonicop: "a = 1\0ignored\ntrailing\r\n"
+    note: >-
+      既存のCRLF保持方針を、コードNULの後ろにあるmixed改行の未変更行でも保つ。
+      本家1.89.0の-a/-AはSourceBufferの正規化で無関係なCRを消すが、Sonicopは
+      原本のNULと後続本文を保持し、補正対象外のCRLFを変更しない。3組の対象Ruby/
+      ParserEngineで診断全項目・終了値と本家の生出力を記録し、CLIで原本の行と照合する。
   - cop: Style/CaseLikeIf
     case: style_case_like_if_nested_else_safety
     kind: correction

@@ -1,0 +1,2807 @@
+[
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "mode": "-a",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "2.7",
+    "engine": "parser_whitequark",
+    "mode": "-A",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f6d6d656e740a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a3b0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "mode": "-a",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.3",
+    "engine": "parser_whitequark",
+    "mode": "-A",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f6d6d656e740a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a3b0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "mode": "inspect",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "mode": "-a",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "3b0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 2,
+              "last_column": 1,
+              "length": 11,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": false,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ruby": "3.4",
+    "engine": "parser_prism",
+    "mode": "-A",
+    "exit": 1,
+    "cases": [
+      {
+        "name": "code-tail-crlf",
+        "source_hex": "613d310069676e6f7265640a747261696c696e670d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310069676e6f7265640a747261696c696e670a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "comment-tail-crlf",
+        "source_hex": "2320636f6d6d656e740a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a2320636f6d6d656e740a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "blank-tail-crlf",
+        "source_hex": "200a0069676e6f7265640d0a",
+        "after_hex": "200a0069676e6f7265640d0a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Carriage return character detected.",
+            "cop_name": "Layout/EndOfLine",
+            "corrected": false,
+            "correctable": false,
+            "location": {
+              "start_line": 2,
+              "start_column": 1,
+              "last_line": 3,
+              "last_column": 1,
+              "length": 10,
+              "line": 2,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "semi-tail-crlf",
+        "source_hex": "3b0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a3b0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "string-tail-crlf",
+        "source_hex": "613d226c696e650a5f5f454e445f5f0a220a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20226c696e650a5f5f454e445f5f0a220a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-tail-crlf",
+        "source_hex": "613d3c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a2320747261696c696e670a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "heredoc-body-crlf",
+        "source_hex": "613d3c3c7e5458540a780d0a5458540a0069676e6f7265640a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203c3c7e5458540a780a5458540a0069676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "real-data-crlf",
+        "source_hex": "613d3100780a5f5f454e445f5f0d0a69676e6f7265640d0a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d203100780a5f5f454e445f5f0a69676e6f7265640a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "severity": "convention",
+            "message": "Surrounding space missing for operator `=`.",
+            "cop_name": "Layout/SpaceAroundOperators",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 2,
+              "last_line": 1,
+              "last_column": 2,
+              "length": 1,
+              "line": 1,
+              "column": 2
+            }
+          }
+        ]
+      },
+      {
+        "name": "nul-only",
+        "source_hex": "00",
+        "after_hex": "00",
+        "offenses": []
+      },
+      {
+        "name": "soh-control",
+        "source_hex": "61203d20310a232001206b6570740a",
+        "after_hex": "232066726f7a656e5f737472696e675f6c69746572616c3a20747275650a61203d20310a232001206b6570740a",
+        "offenses": [
+          {
+            "severity": "convention",
+            "message": "Missing frozen string literal comment.",
+            "cop_name": "Style/FrozenStringLiteralComment",
+            "corrected": true,
+            "correctable": true,
+            "location": {
+              "start_line": 1,
+              "start_column": 1,
+              "last_line": 1,
+              "last_column": 1,
+              "length": 1,
+              "line": 1,
+              "column": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
