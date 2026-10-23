@@ -239,6 +239,19 @@ call の直下へ移る。receiver と arguments だけの走査では補間を�
 `ParserEngine` の明示値が優先し、既定は Ruby 2.7 で whitequark、3.3 以上で Prism。
 CLI 回帰は全フィールド・LF/CRLF の原本バイトと、2.7 + Prism の設定拒否を検査する。
 
+**ローカル変数の後の `?2` は三項演算子。** grammar の character は内部 lexer の最長一致なので、
+二項演算の改ページでは切り替わらない。名前のその位置の束縛と、直後の空白・行継続を確認し、
+`?` の直後へ仮想の空白を挿入する。`?foo` が引数の外の ERROR に回復される場合もあるため、
+call の arguments の開始だけで判定しない。仮想の空白も parse 直後の Tree::edit で消し、原文の
+byte 範囲と TSPoint を保つ。未宣言の名前や明示した receiver への `?2` などの単一文字引数と、
+名前に `?` が接するメソッド呼び出しを保つ。水平空白には VT と単独 CR も含め、CRLF の通常改行は
+越えない。`?foo` のように識別文字が 2 文字続く場合は未束縛でも三項になり、
+明示 receiver の後でも同じ。`?a`・`?2`・単一 Unicode 文字・escape の文字引数と分ける。
+設定のない parse は現 Ruby の物理的な規則を保つ。configured 入口は既存の Semantics 経由で
+実 engine を選び、whitequark の有効な `?あand false` を Unicode の三項へ変えない。
+`yield`・`super` も先頭 keyword から同じ複数識別文字の規則を調べる。読み直しで束縛が消えた
+手がかりは撤回する。colon 欠落は原本を読む backend で診断し、有効なコードへすり替えない。
+
 **source gem の出力先は Cargo に問い合わせる。** `CARGO_TARGET_DIR` や Cargo の
 `build.target-dir` があると、バイナリは gem 内の `target/release` にあるとは限らない。
 `cargo metadata` の `target_directory` を使い、取得失敗時は Makefile の生成前に止める。

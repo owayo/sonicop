@@ -11,7 +11,10 @@
 //! [`crate::lexical_locals`] が字句上の束縛から Ruby が二項演算として読む位置を探し、その直前の
 //! 空白を改ページに置き換えて読み直す。名前に行継続が接して空白が無い場合だけ、その直前へ仮想の
 //! 改ページを挿入し、parse の直後に Tree::edit で消す。返す木のバイト範囲と行・列は、どちらの
-//! 経路でも呼び出し側が持つ原文に対応する。
+//! 経路でも呼び出し側が持つ原文に対応する。`?2` を文字リテラルと誤認する位置には、`?` の
+//! 直後へ空白を挿入し、同じ座標の復元を使う。名前が未束縛でも `?foo` のように識別文字が
+//! 2 文字続く場合は三項演算子なので、同じ手がかりを置く。先頭 Unicode の複数字は
+//! Prism と whitequark で解釈が違うので、設定された engine の規則を使う。
 //!
 //! 改ページは grammar への手がかりなので、本文にもともとある改ページのうち、字句の空白にあるもの
 //! (Ruby も空白として読む) は空白に置き換えて読む。文字列・heredoc の終端語・コメントのように
@@ -42,7 +45,7 @@ pub(crate) fn parse(text: &str) -> Option<Tree> {
     parse_with_semantics(text, crate::regexp_ast::Semantics::default())
 }
 
-/// 検査と補正後の再検査では、選択した engine と版の正規表現の束縛規則を使う。
+/// 検査と補正後の再検査では、選択した engine と版の正規表現の束縛・文字リテラルの規則を使う。
 pub(crate) fn parse_configured(
     text: &str,
     semantics: crate::regexp_ast::Semantics,
@@ -108,7 +111,7 @@ fn settle<S: Clone + Eq, T>(mut state: S, mut step: impl FnMut(&S) -> Option<(T,
 struct State {
     /// 空白に置き換える、元の本文の改ページの位置。
     blanked: Vec<usize>,
-    /// 二項演算を伝える手がかり。置き換えは `blanked` と重なれば手がかりが勝つ。
+    /// 二項・三項演算を伝える手がかり。置き換えは `blanked` と重なれば手がかりが勝つ。
     hints: Vec<Hint>,
 }
 
@@ -135,7 +138,7 @@ impl State {
         let count = self
             .hints
             .iter()
-            .filter(|hint| matches!(hint, Hint::Insert(_)))
+            .filter(|hint| !matches!(hint, Hint::Replace(_)))
             .count();
         let mut deletions = Vec::with_capacity(count);
         let inserted = (count != 0).then(|| {
@@ -143,8 +146,10 @@ impl State {
             let mut from = 0;
             let mut point = Point::new(0, 0);
             for &hint in &self.hints {
-                let Hint::Insert(position) = hint else {
-                    continue;
+                let (position, marker) = match hint {
+                    Hint::Replace(_) => continue,
+                    Hint::Insert(position) => (position, '\x0c'),
+                    Hint::Ternary(position) => (position, ' '),
                 };
                 let part = &analysis[from..position];
                 readable.push_str(part);
@@ -158,7 +163,7 @@ impl State {
                     }
                 }
                 let start_byte = readable.len();
-                readable.push('\x0c');
+                readable.push(marker);
                 deletions.push(InputEdit {
                     start_byte,
                     old_end_byte: start_byte + 1,
@@ -195,7 +200,7 @@ impl Readable<'_> {
     }
 
     fn restore_coordinates(&self, tree: &mut Tree) {
-        // 末尾から消せば、まだ適用していない前の位置や列は変わらない。編集後に取り出すノードは
+        // 仮想の改ページも空白も、末尾から消せば前の位置や列は変わらない。編集後に取り出すノードは
         // すべて原文の座標を返す。以後の解析に、挿入した改ページの座標を持ち込まない。
         for deletion in self.deletions.iter().rev() {
             tree.edit(deletion);
@@ -661,5 +666,193 @@ mod tests {
         assert!(replaced.inserted.is_none());
         assert!(replaced.deletions.is_empty());
         assert_eq!(replaced.text().len(), text.len());
+    }
+
+    /// 三項演算子と文字リテラルの区別は、名前のその位置での束縛による。回復で `?f` が
+    /// arguments の外へ出る形や、入れ子で初めて見える三項演算子も読み直す。
+    #[test]
+    fn bound_questions_are_ternaries_and_unbound_questions_are_characters() {
+        for (source, conditionals, characters) in [
+            ("x = 1\nputs(x ?2:3)\n", 1, 0),
+            ("x = 1\nputs(x\x0b?2:3)\n", 1, 0),
+            ("x = 1\nputs(x\r?2:3)\n", 1, 0),
+            ("値 = 1\nputs(値 ?2:3)\n", 1, 0),
+            ("def m(🤔, 🏷)\n  puts(🤔 ?\"\":\"🚫 \")\nend\n", 1, 0),
+            ("x = 1\nputs(x ?foo : bar)\n", 1, 0),
+            ("x = 1\nputs(x ?x ?2:3 : 4)\n", 2, 0),
+            ("x = 1\nputs(x ?2:x ?3:4)\n", 2, 0),
+            ("x = 1\nputs(x ? ?a : ?b)\n", 1, 2),
+            ("x = 1\n[1].each { puts(x ?2:3) }\n", 1, 0),
+            ("def m(x)\n  puts(x ?2:3)\nend\n", 1, 0),
+            ("[1].map { |x| x ?2:3 }\n", 1, 0),
+            ("[1].map { _1 ?2:3 }\n", 1, 0),
+            ("x = 1\nputs(x\\\n?2:3)\n", 1, 0),
+            ("値 = 1\nputs(値 ?2 : 値\\\n+1 + 値 +1)\n", 1, 0),
+            ("x = 1\nputs(x\x0c?2:3)\n", 1, 0),
+            ("puts(missing ?foo : bar)\n", 1, 0),
+            ("puts(missing ?true : false)\n", 1, 0),
+            ("puts(missing ?12 : 3)\n", 1, 0),
+            ("puts(missing ?aあ : bar)\n", 1, 0),
+            ("puts(missing ?あい : bar)\n", 1, 0),
+            ("puts(obj.missing ?foo : bar)\n", 1, 0),
+            ("def m; puts(yield ?foo : bar); end\n", 1, 0),
+            ("def m; puts(super ?foo : bar); end\n", 1, 0),
+            ("puts(defined? missing ?foo : bar)\n", 1, 0),
+            ("puts(defined? missing ?a)\n", 0, 1),
+            ("def m; puts(yield ?あ); end\n", 0, 1),
+            ("def m; puts(super ?\\n); end\n", 0, 1),
+            ("puts(missing ?2)\n", 0, 1),
+            ("puts(missing ?a)\n", 0, 1),
+            ("puts(missing ?あ)\n", 0, 1),
+            ("puts(missing ?\\n)\n", 0, 1),
+            ("puts(obj.missing ?a)\n", 0, 1),
+            ("puts(x ?2)\nx = 1\n", 0, 1),
+            ("x = 1\nputs(obj.x ?2)\n", 0, 1),
+            ("x = 1\ndef m\n  puts(x ?2)\nend\n", 0, 1),
+            ("x = 1\nclass Foo\n  puts(x ?2)\nend\n", 0, 1),
+            ("[1].each { x = 1 }\nputs(x ?2)\n", 0, 1),
+            ("puts(missing\x0c?2)\n", 0, 1),
+            ("x = 1\nputs(x?2)\n", 0, 0),
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{text:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                let found = kinds(&tree);
+                assert_eq!(
+                    found.iter().filter(|kind| *kind == "conditional").count(),
+                    conditionals,
+                    "{text:?}: {found:?}"
+                );
+                assert_eq!(
+                    found.iter().filter(|kind| *kind == "character").count(),
+                    characters,
+                    "{text:?}: {found:?}"
+                );
+                assert_original_coordinates(&tree, &text);
+            }
+        }
+    }
+
+    /// `x ?2` のような colon の欠落を、有効な文字リテラルの引数へ戻して隠さない。
+    #[test]
+    fn a_ternary_hint_keeps_missing_colon_errors() {
+        for source in [
+            "x = 1\nputs(x ?2)\n",
+            "x = 1\nputs(x ?2,3)\n",
+            "puts(missing ?foo)\n",
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert!(
+                    tree.root_node().has_error(),
+                    "{text:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                assert_original_coordinates(&tree, &text);
+            }
+        }
+    }
+
+    /// シフトへ読み直した後で補間の代入が消えれば、同じ原文の位置にあった三項の手がかりも撤回する。
+    /// 元の改ページを空白にする判定も、挿入を消した座標の木を使う。
+    #[test]
+    fn a_ternary_hint_is_withdrawn_with_its_binding() {
+        for source in [
+            "x = []\nx <<EOS\n#{y = 1}\nEOS\nputs(y ?2)\n",
+            "x = []\nx <<EOS\n#{y = 1}\nEOS\nputs(y\x0c?2)\n",
+        ] {
+            for text in [source.to_owned(), source.replace('\n', "\r\n")] {
+                let tree = parse(&text).unwrap();
+                assert!(
+                    !tree.root_node().has_error(),
+                    "{text:?}: {}",
+                    tree.root_node().to_sexp()
+                );
+                let found = kinds(&tree);
+                assert!(
+                    !found.iter().any(|kind| kind == "conditional"),
+                    "{text:?}: {found:?}"
+                );
+                assert_eq!(
+                    found.iter().filter(|kind| *kind == "character").count(),
+                    1,
+                    "{text:?}: {found:?}"
+                );
+                assert_original_coordinates(&tree, &text);
+            }
+        }
+    }
+
+    /// 旧版で有効な文字引数＋and/修飾子を、現 Ruby の Unicode 規則へ変えて壊さない。
+    #[test]
+    fn unicode_question_literals_follow_the_selected_engine() {
+        for (target, engine, modern) in [
+            ("2.7", "default", false),
+            ("3.3", "default", true),
+            ("3.4", "default", true),
+            ("3.3", "parser_whitequark", false),
+            ("3.4", "parser_whitequark", false),
+            ("3.3", "parser_prism", true),
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            let path = directory.path().join(".rubocop.yml");
+            std::fs::write(
+                &path,
+                format!("AllCops:\n  TargetRubyVersion: {target}\n  ParserEngine: {engine}\n"),
+            )
+            .unwrap();
+            let config = crate::config::Config::load(Some(&path), directory.path()).unwrap();
+            let semantics = crate::regexp_ast::Semantics::from_config(&config);
+            for ending in ["\n", "\r\n"] {
+                for tail in [
+                    "and false",
+                    "or false",
+                    "rescue nil",
+                    "if true",
+                    "unless false",
+                    "while false",
+                    "until true",
+                ] {
+                    let source = format!("missing ?あ{tail}{ending}");
+                    let tree = super::parse_configured(&source, semantics).unwrap();
+                    assert_eq!(
+                        tree.root_node().has_error(),
+                        modern,
+                        "{target}/{engine} {source:?}: {}",
+                        tree.root_node().to_sexp()
+                    );
+                    let found = kinds(&tree);
+                    assert_eq!(
+                        found.iter().filter(|kind| *kind == "character").count(),
+                        usize::from(!modern),
+                        "{target}/{engine} {source:?}: {found:?}"
+                    );
+                    assert_original_coordinates(&tree, &source);
+                    // 設定のない入口は従来どおり現 Ruby の物理的な読み方を保つ。
+                    assert!(
+                        parse(&source).unwrap().root_node().has_error(),
+                        "{source:?}"
+                    );
+                }
+                for source in [
+                    "puts(missing ?foo : bar)\n",
+                    "puts(missing ?あ)\n",
+                    "puts(missing ?\\n)\n",
+                ] {
+                    let source = source.replace('\n', ending);
+                    let tree = super::parse_configured(&source, semantics).unwrap();
+                    assert!(
+                        !tree.root_node().has_error(),
+                        "{target}/{engine} {source:?}: {}",
+                        tree.root_node().to_sexp()
+                    );
+                    assert_original_coordinates(&tree, &source);
+                }
+            }
+        }
     }
 }
