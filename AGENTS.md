@@ -300,6 +300,14 @@ before writeback. The intentional byte difference is recorded in the divergence 
 The tree-sitter comment node includes the `\r` in CRLF, while RuboCop's comment token excludes it.
 Trim that byte from indexed comment ranges before cops calculate offense locations or source text.
 
+**ブロックコメントの範囲は行末まで含む。** `=begin` のコメントは `=end` の後の改行までが
+1 トークンで、whitequark で末尾改行のない EOF に閉じると報告範囲はさらに 2 文字先へ伸びる。
+読み取り・編集用の範囲は本文内に保ち、報告用の範囲と長さだけを分ける。Prism は EOF で止まる。
+`Style/BlockComments` の囲いは本家の正規化済み文字位置で測り、元の UTF-8 バイト境界へ戻す。
+バイト数で固定長を引くと `=end あいう` で panic し、CRLF では囲いの一部が残る。
+コメント全体を置換する cop は、whitequark の本文外の範囲で本家が診断の記録前に失敗する場合も
+照合する。LF / CRLF、末尾改行、パーサ、診断と実ファイルの補正バイトを合わせて検査する。
+
 **YAML scalar types must follow Ruby's YAML 1.1 loader.** Plain `yes`/`no`/`on`/`off`
 and case variants of `true`/`false` are booleans; quoted strings and explicit string tags keep
 string values. `src/config/yaml_booleans.rs` scans tokens before serde_yaml so scalar styles,

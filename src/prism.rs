@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use crate::engine::{LiteralEncoding, declared_literal_encoding};
 use crate::ruby_version::RubyVersion;
-use crate::rules::RuleContext;
+use crate::rules::{ParserEngine, RuleContext};
 
 pub(crate) struct Diagnostic {
     pub reason: String,
@@ -101,16 +101,10 @@ impl<'a> Input<'a> {
 }
 
 pub(crate) fn diagnostics(context: &RuleContext<'_>) -> Option<Vec<Diagnostic>> {
-    let target = context.target_ruby_version();
-    let engine = context
-        .setting_of::<String>("AllCops", "ParserEngine")
-        .unwrap_or_else(|| "default".to_owned());
-    if engine != "parser_prism"
-        && (engine == "parser_whitequark" || target < RubyVersion::new(3, 3))
-    {
+    if context.parser_engine() == ParserEngine::Whitequark {
         return None;
     }
-    let version = parser_version(target);
+    let version = parser_version(context.target_ruby_version());
     debug_assert_eq!(sonicop_prism_compat::version(), "1.8.1");
     let source = context.source.text();
     let input = Input::new(source);

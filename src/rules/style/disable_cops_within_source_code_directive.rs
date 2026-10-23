@@ -17,6 +17,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
         if disallowed.is_empty() {
             continue;
         }
+        // `corrector.replace(comment, …)` が本文の外へ届く範囲で落ちる。
+        if context.comment_runs_past_the_text(range) {
+            continue;
+        }
         let message = if allowed.is_empty() && disallowed_config.is_empty() {
             MSG.to_owned()
         } else {
@@ -25,13 +29,13 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 disallowed.join("`, `")
             )
         };
-        // A directive naming something the configuration still allows keeps its comment, minus the
-        // name that is not allowed; one naming nothing else goes away entirely.
+        // 設定が許す cop も挙げた指示は、許されない名前だけを除いて残る。ほかに何も挙げない指示は
+        // コメントごと消え、`=begin` のブロックは `=end` の行の改行まで消える。
         let replacement = match listed.len() == disallowed.len() {
             true => String::new(),
             false => without(text, &disallowed),
         };
-        offenses.push(context.offense(message, range.clone()).corrected_by(Edit {
+        offenses.push(context.comment_offense(message, range).corrected_by(Edit {
             start: range.start,
             end: range.end,
             replacement,

@@ -365,7 +365,7 @@ impl Offense {
 
 /// 本家が報告する文字単位の範囲長。CRLF は改行 1 文字として数える。
 /// 算術で求めたオフセットは文字の途中に落ち得るため、両端を文字境界まで戻す。
-fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
+pub(crate) fn character_length(source: &SourceFile, start: usize, end: usize) -> usize {
     let text = source.text();
     let mut start = start.min(text.len());
     let mut end = end.clamp(start, text.len());

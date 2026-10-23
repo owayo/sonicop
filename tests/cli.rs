@@ -4049,6 +4049,161 @@ fn double_directive_locations_exclude_cr_and_corrections_preserve_line_endings()
 }
 
 #[test]
+fn block_comment_directive_ranges_reach_the_newline_after_end() {
+    // (cop, メッセージ, 原本, 長さ, 補正後)。`{n}` は改行。CRLF の改行も 1 文字と数える。
+    let cases = [
+        (
+            "Style/DoubleCopDisableDirective",
+            "More than one disable comment on one line.",
+            "=begin{n}# rubocop:disable Style/For # rubocop:disable Metrics/AbcSize{n}=end{n}x = 1{n}",
+            74,
+            "=begin{n}# rubocop:disable Style/For, Metrics/AbcSize{n}=end{n}x = 1{n}",
+        ),
+        (
+            "Style/DisableCopsWithinSourceCodeDirective",
+            "RuboCop disable/enable directives are not permitted.",
+            "=begin{n}# rubocop:disable Layout/LineLength{n}=end{n}x = 1{n}",
+            48,
+            "x = 1{n}",
+        ),
+    ];
+    for (cop, message, source, length, corrected) in cases {
+        for ending in ["\n", "\r\n"] {
+            for correction in [None, Some("-a"), Some("-A")] {
+                let original = source.replace("{n}", ending);
+                let directory = project(&[("example.rb", &original)]);
+                let mut run = command(directory.path());
+                run.args([
+                    "--force-default-config",
+                    "--cache",
+                    "false",
+                    "--only",
+                    cop,
+                    "--format",
+                    "json",
+                ]);
+                if let Some(flag) = correction {
+                    run.arg(flag);
+                }
+                let output = run
+                    .arg("example.rb")
+                    .assert()
+                    .code(if correction.is_some() { 0 } else { 1 })
+                    .get_output()
+                    .stdout
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                // 全項目は本家 1.89.0 の LF / CRLF と検査・-a・-A の実出力から取得した。
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::json!([{
+                        "severity": "convention",
+                        "message": message,
+                        "cop_name": cop,
+                        "corrected": correction.is_some(),
+                        "correctable": true,
+                        "location": {
+                            "start_line": 1, "start_column": 1,
+                            "last_line": 4, "last_column": 1,
+                            "length": length, "line": 1, "column": 1
+                        }
+                    }]),
+                    "{cop} {ending:?} {correction:?}"
+                );
+                let expected = match correction {
+                    Some(_) => corrected.replace("{n}", ending),
+                    None => original,
+                };
+                // 本家は CRLF を LF で書き戻すが、CRLF を保つのは既存の意図的差分。
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected.as_bytes(),
+                    "{cop} {ending:?} {correction:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn block_comment_upstream_internal_errors_are_registered_cli_differences() {
+    let manifest: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(include_str!("conformance/known_divergences.yml")).unwrap();
+    let cases = manifest["block_comment_error_divergences"]
+        .as_sequence()
+        .unwrap();
+    assert_eq!(cases.len(), 3);
+    for case in cases {
+        let cop = case["cop"].as_str().unwrap();
+        let config = format!(
+            "AllCops:\n  TargetRubyVersion: {}\nStyle/DisableCopsWithinSourceCodeDirective:\n  Enabled: true\n",
+            case["target_ruby"].as_str().unwrap()
+        );
+        // 本家 1.89.0 の記録は内部例外の終了 1。架空の offense は追加しない。
+        assert_eq!(case["upstream"]["exit"].as_i64(), Some(1));
+        assert_eq!(case["sonicop"]["exit"].as_i64(), Some(0));
+        assert_eq!(case["upstream"]["offenses"], case["sonicop"]["offenses"]);
+        for ending in case["endings"].as_sequence().unwrap() {
+            let ending = match ending.as_str().unwrap() {
+                "lf" => "\n",
+                "crlf" => "\r\n",
+                other => panic!("未登録の改行: {other}"),
+            };
+            let original = case["source"].as_str().unwrap().replace('\n', ending);
+            let upstream_source = case["upstream"]["source"]
+                .as_str()
+                .unwrap()
+                .replace('\n', ending);
+            let expected_source = case["sonicop"]["source"]
+                .as_str()
+                .unwrap()
+                .replace('\n', ending);
+            assert_eq!(upstream_source, original);
+            assert_eq!(expected_source, original);
+            for mode in case["modes"].as_sequence().unwrap() {
+                // project() は対象版を 2.7 に戻すため、記録のパーサを明示して維持する。
+                let directory = project_with_ruby(
+                    &[(".rubocop.yml", &config), ("example.rb", &original)],
+                    case["target_ruby"].as_str().unwrap(),
+                );
+                let mut run = command(directory.path());
+                run.args(["--cache", "false", "--only", cop, "--format", "json"]);
+                match mode.as_str().unwrap() {
+                    "inspect" => {}
+                    "safe" => {
+                        run.arg("-a");
+                    }
+                    "unsafe" => {
+                        run.arg("-A");
+                    }
+                    other => panic!("未登録の補正モード: {other}"),
+                }
+                let output = run
+                    .arg("example.rb")
+                    .assert()
+                    .code(case["sonicop"]["exit"].as_i64().unwrap() as i32)
+                    .get_output()
+                    .stdout
+                    .clone();
+                let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                assert_eq!(report["files"].as_array().unwrap().len(), 1);
+                assert_eq!(
+                    report["files"][0]["offenses"],
+                    serde_json::to_value(&case["sonicop"]["offenses"]).unwrap(),
+                    "{cop} {ending:?} {mode:?}"
+                );
+                assert_eq!(report["summary"]["offense_count"], 0);
+                assert_eq!(
+                    fs::read(directory.path().join("example.rb")).unwrap(),
+                    expected_source.as_bytes(),
+                    "{cop} {ending:?} {mode:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn show_cops_descriptions_remain_loadable_yaml() {
     let directory = project(&[]);
     let output = command(directory.path())
