@@ -1,0 +1,11 @@
+実 RuboCop 1.89.0 CLI / Ruby 4.0.8、実行値は MRI 2.7.8p225 の記録。
+再生成: scripts/record_string_literal_encoding.py --multiline --ruby27 /path/to/miniruby
+
+24 CLI / 408 条件。Binary 宣言、whitequark 2.7 / Prism 3.4、両 cop / 両引用符設定、
+inspect/-a/-A。物理 LF と、LF のない対照、hex/Unicode escape、行継続、raw 高位 byte、
+妥当な UTF-8 bytes を区別する。診断がない入力も生記録として保ち、発火条件と区別して集計する。
+Prism translation の物理改行部品は UTF-8 の空文字へ結合され、ASCII の値は UTF-8 を保つ。
+宣言や原本の ASCII 表記だけでは、復号後の符号化を決められないことの対照。
+
+この追加記録の物理改行は LF。CRLF の値復号は Issue #54 の別修正とし、
+修正前の差を本家の期待値へ混ぜない。実本家の前後 bytes/encoding が同一か必ず検査する。

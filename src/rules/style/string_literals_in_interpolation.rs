@@ -1,4 +1,5 @@
 use crate::diagnostic::{Edit, Offense};
+use crate::engine::declared_literal_encoding;
 use crate::rules::RuleContext;
 
 use super::string_literals::{
@@ -40,7 +41,12 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 .corrected_by(Edit {
                     start: node.start_byte(),
                     end: node.end_byte(),
-                    replacement: corrected_literal(source, single_quotes),
+                    replacement: corrected_literal(
+                        source,
+                        single_quotes,
+                        declared_literal_encoding(context.source.text()),
+                        context.parser_engine(),
+                    ),
                     safe: true,
                 }),
         );
