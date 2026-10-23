@@ -13525,6 +13525,28 @@ mod numeric_predicate {
         );
     }
 
+    /// 本家の SourceBuffer は CRLF を LF に正規化してからメッセージへ埋め込む。複数行の受け手を
+    /// 写したメッセージにも `\r` は入らず、補正は CRLF のまま書き戻す。
+    #[test]
+    fn a_receiver_spanning_lines_is_quoted_with_lf() {
+        for ending in ["\n", "\r\n"] {
+            let report = CopCase::new(COP, format!("0 < b[0] ={ending}  c{ending}"), Vec::new())
+                .without_offense_check()
+                .corrected_verbatim(&format!("(b[0] ={ending}  c).positive?{ending}"))
+                .run();
+            let messages: Vec<&str> = report
+                .offenses
+                .iter()
+                .map(|offense| offense.message.as_str())
+                .collect();
+            assert_eq!(
+                messages,
+                ["Use `(b[0] =\n  c).positive?` instead of `0 < b[0] =\n  c`."],
+                "{ending:?}"
+            );
+        }
+    }
+
     /// 包むのは send の二項演算だけで、ほかの代入は本家も包まない。代入する値は変わるが、
     /// それが本家の補正なので揃える。
     #[test]

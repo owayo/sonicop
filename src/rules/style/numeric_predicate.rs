@@ -51,15 +51,15 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
                 false => format!("{} {} 0", context.source.node_text(numeric), operator),
             },
         };
+        // 本家の SourceBuffer は CRLF を LF に正規化してメッセージへ埋め込む。
+        let message = format!(
+            "Use `{replacement}` instead of `{}`.",
+            context.source.node_text(node)
+        )
+        .replace("\r\n", "\n");
         offenses.push(
             context
-                .offense(
-                    format!(
-                        "Use `{replacement}` instead of `{}`.",
-                        context.source.node_text(node)
-                    ),
-                    node.byte_range(),
-                )
+                .offense(message, node.byte_range())
                 .corrected_by(Edit {
                     start: node.start_byte(),
                     end: node.end_byte(),
