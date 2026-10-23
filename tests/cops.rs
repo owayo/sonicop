@@ -4475,6 +4475,17 @@ mod semicolon_shapes {
 
     const SEMICOLON: &str = "Style/Semicolon";
 
+    /// DATA は Ruby の式ではなく、コード側を補正しても本文のセミコロンを保持する。
+    #[test]
+    fn data_semicolons_are_not_code_tokens() {
+        expect_no_offenses(SEMICOLON, "puts 1\n__END__\nkept;\n;\n");
+        expect_correction(
+            SEMICOLON,
+            "puts 1;\n__END__\nkept;\n;\n",
+            "puts 1\n__END__\nkept;\n;\n",
+        );
+    }
+
     /// 本家の AST は空文・コメント・DATA を式として持たず、cop の入口で検査を終える。
     #[test]
     fn a_source_without_an_expression_keeps_its_empty_statements() {

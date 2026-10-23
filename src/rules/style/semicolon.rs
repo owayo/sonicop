@@ -36,9 +36,11 @@ const STATEMENT_SEQUENCE_KINDS: &[&str] = &[
 /// has a one-expression body rather than a two-expression one.
 const NON_STATEMENT_KINDS: &[&str] = &["comment", "empty_statement", "rescue", "else", "ensure"];
 
-/// Node kinds that spell a semicolon as part of a single token: `$;`, `?;` and `:";"`. RuboCop
-/// walks a token stream rather than the text, so none of these is a semicolon to it.
-const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "delimited_symbol"];
+/// 本家が歩く token 列では、`$;`・`?;`・`:";"` 内の文字はセミコロンではない。
+/// `__END__` 後の DATA も token 列に含まれず、消すと DATA.read の値を変えるため除外する。
+const SEMICOLON_BEARING_TOKENS: &[&str] = &[
+    "global_variable", "character", "delimited_symbol", "uninterpreted",
+];
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = parsed_text(context);
