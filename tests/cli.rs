@@ -5837,3 +5837,12 @@ fn semicolon_empty_sources_preserve_bytes_in_both_correction_modes() {
         }
     }
 }
+
+/// 同じ制御文字でも Buffer の encoding が診断の escape を変えるため、原文と実補正の記録で照合する。
+#[test]
+fn control_syntax_reports_match_recorded_upstream() {
+    assert_recorded_parser_reports(
+        include_str!("fixtures/control_syntax_reports.json"),
+        "Lint/Syntax",
+    );
+}

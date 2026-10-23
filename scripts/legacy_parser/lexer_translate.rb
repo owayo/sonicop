@@ -522,7 +522,7 @@ module LegacyLexerTranslate
       when "empty?"
         ["#{expr(receiver, :str)}.is_empty()", :bool]
       when "inspect"
-        ["ruby_inspect(&#{expr(receiver, :str)})", :str]
+        ["ruby_inspect(&#{expr(receiver, :str)}, self.encoding)", :str]
       when "=~"
         regexp = args[0]
         fail!(node, "=~ の右辺") unless regexp.is_a?(Prism::RegularExpressionNode)

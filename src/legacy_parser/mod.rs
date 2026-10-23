@@ -272,6 +272,57 @@ mod tests {
         );
     }
 
+    /// Buffer が UTF-8 へ復号した文字は Unicode escape、BINARY のままなら byte escape になる。
+    #[test]
+    fn unexpected_control_characters_follow_the_buffer_encoding() {
+        for version in [
+            Version::Ruby27,
+            Version::Ruby30,
+            Version::Ruby31,
+            Version::Ruby32,
+            Version::Ruby33,
+            Version::Ruby34,
+        ] {
+            for (prefix, escapes) in [
+                ("", ["\\u0001", "\\u000E", "\\u007F"]),
+                ("# encoding: UTF-8\n", ["\\u0001", "\\u000E", "\\u007F"]),
+                ("# encoding: US-ASCII\n", ["\\u0001", "\\u000E", "\\u007F"]),
+                ("# encoding: ASCII-8BIT\n", ["\\x01", "\\x0E", "\\x7F"]),
+                ("# encoding: BINARY\n", ["\\x01", "\\x0E", "\\x7F"]),
+            ] {
+                for (control, escaped) in ['\u{1}', '\u{e}', '\u{7f}'].into_iter().zip(escapes) {
+                    let source = format!("{prefix}a=1\n{control}# kept\n");
+                    let start = source.find(control).unwrap();
+                    let found = diagnostics(&source, version);
+                    assert_eq!(found.len(), 1, "{source:?} {version:?}");
+                    assert_eq!(found[0].message, format!("unexpected `{escaped}'"));
+                    assert_eq!(found[0].range, start..start + 1);
+                    assert_eq!(found[0].level, Level::Fatal);
+                }
+            }
+        }
+    }
+
+    /// Unicode の直後でも報告範囲は文字数でなく元 UTF-8 byte へ戻し、短い escape の綴りは保つ。
+    #[test]
+    fn unexpected_control_characters_keep_original_ranges_and_short_escapes() {
+        for ending in ["\n", "\r\n"] {
+            for (control, escaped) in [
+                ('\u{1}', "\\u0001"),
+                ('\u{7}', "\\a"),
+                ('\u{8}', "\\b"),
+                ('\u{1b}', "\\e"),
+            ] {
+                let source = format!("# encoding: UTF-8{ending}puts(\"あ\");{control}{ending}");
+                let start = source.find(control).unwrap();
+                let found = diagnostics(&source, Version::Ruby27);
+                assert_eq!(found.len(), 1, "{source:?}");
+                assert_eq!(found[0].message, format!("unexpected `{escaped}'"));
+                assert_eq!(found[0].range, start..start + 1);
+            }
+        }
+    }
+
     #[test]
     fn valid_code_draws_no_diagnostic() {
         for source in [
