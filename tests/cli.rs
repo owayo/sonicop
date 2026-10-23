@@ -5765,3 +5765,75 @@ fn leading_empty_lines_matches_recorded_real_tokens() {
         }
     }
 }
+
+/// 本家 1.89.0 は AST のない空文だけのファイルを補正せず、NUL 後や DATA も原本のまま返す。
+/// LF/CRLF と両 engine で全 JSON・終了値・disk bytes を照合し、再実行でも消さない。
+#[test]
+fn semicolon_empty_sources_preserve_bytes_in_both_correction_modes() {
+    let sources = [
+        ";",
+        ";;;\n",
+        " \t; \n",
+        ";\n;\n",
+        "; # note\n",
+        "# note\n;\n",
+        ";\n__END__\nkept;\n",
+        ";\0kept;\n",
+    ];
+    for (ruby, engine) in [("2.7", "parser_whitequark"), ("3.4", "parser_prism")] {
+        for ending in ["\n", "\r\n"] {
+            for mode in [None, Some("-a"), Some("-A")] {
+                let config = format!("AllCops:\n  ParserEngine: {engine}\n  NewCops: disable\n");
+                let directory = project_with_ruby(&[(".rubocop.yml", &config)], ruby);
+                let mut files = Vec::new();
+                let mut expected_files = Vec::new();
+                for (index, source) in sources.iter().enumerate() {
+                    let name = format!("input_{index}.rb");
+                    let bytes = source.replace('\n', ending).into_bytes();
+                    fs::write(directory.path().join(&name), &bytes).unwrap();
+                    expected_files.push(serde_json::json!({"path": name, "offenses": []}));
+                    files.push((name, bytes));
+                }
+                for _ in 0..2 {
+                    let mut invocation = command(directory.path());
+                    invocation.args([
+                        "--cache",
+                        "false",
+                        "--only",
+                        "Style/Semicolon",
+                        "--format",
+                        "json",
+                    ]);
+                    if let Some(mode) = mode {
+                        invocation.arg(mode);
+                    }
+                    let output = invocation
+                        .args(files.iter().map(|(name, _)| name))
+                        .assert()
+                        .success()
+                        .stderr("")
+                        .get_output()
+                        .stdout
+                        .clone();
+                    let mut actual: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                    actual.as_object_mut().unwrap().remove("metadata");
+                    assert_eq!(
+                        actual,
+                        serde_json::json!({
+                            "files": expected_files,
+                            "summary": {
+                                "offense_count": 0,
+                                "target_file_count": sources.len(),
+                                "inspected_file_count": sources.len(),
+                            },
+                        }),
+                        "{ruby}/{engine}/{ending:?}/{mode:?}",
+                    );
+                    for (name, bytes) in &files {
+                        assert_eq!(fs::read(directory.path().join(name)).unwrap(), *bytes);
+                    }
+                }
+            }
+        }
+    }
+}

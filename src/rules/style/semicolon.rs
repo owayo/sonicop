@@ -42,7 +42,13 @@ const SEMICOLON_BEARING_TOKENS: &[&str] = &["global_variable", "character", "del
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     let text = parsed_text(context);
-    if !text.contains(';') {
+    // 本家の processed_source.blank? は空文・コメント・DATA だけなら AST が無いとして抜ける。
+    // 空の括弧・begin・def も式なので、本体が空という理由では除外しない。
+    if !text.contains(';')
+        || !named_children_iter(context.root_node(), context).any(|node| {
+            !matches!(node.kind_str(), "comment" | "empty_statement" | "uninterpreted")
+        })
+    {
         return;
     }
     let allow_as_expression_separator: bool = context
