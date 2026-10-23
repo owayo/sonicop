@@ -113,6 +113,7 @@ pub(super) struct Walk<'a> {
     /// The file's node index. The walk asks for a parent on every identifier it meets, and
     /// `Node::parent` walks down from the root each time.
     index: &'a super::super::AstIndex<'a>,
+    heredocs: crate::rules::IdKeyed<Node<'a>>,
     locals: &'a Locals,
     fragments: &'a Fragments,
     order: Order,
@@ -129,6 +130,7 @@ impl<'a> Walk<'a> {
             source: context.source,
             target_ruby: context.target_ruby_version(),
             index: context.ast_index(),
+            heredocs: super::support::heredoc_bodies(context.ast_index()),
             locals,
             fragments,
             order,
@@ -183,6 +185,14 @@ impl<'a> Walk<'a> {
 
     fn visit<F: FnMut(Emit<'a>)>(&self, node: Node<'a>, sink: &mut F) {
         match node.kind_str() {
+            // 本文を終端や外側 call の位置で数えると、後続引数の割引を先に適用してしまう。
+            "heredoc_beginning" => {
+                if let Some(body) = self.heredocs.get(&node.id()) {
+                    self.children(*body, sink);
+                }
+            }
+            // 対応する開始ノードで処理済み。補助ツリーの本文は通常の走査に残す。
+            "heredoc_body" if self.index.knows(node) => {}
             "call" => self.visit_call(node, sink),
             "lambda" => self.visit_lambda(node, sink),
             // `a[i]` is a call to `[]` upstream, with the subscript as its argument.

@@ -7607,6 +7607,108 @@ mod style_rest {
 mod metrics_complexity {
     use super::*;
 
+    /// 本家 1.89.0 の実出力。終端後のチェーンは heredoc 本文を call の直下へ移す。
+    #[test]
+    fn metrics_count_interpolations_before_a_chain_after_a_heredoc() {
+        for (cop, message) in [
+            (
+                "Metrics/AbcSize",
+                "Assignment Branch Condition size for `example` is too high. [<1, 7, 2> 7.35/0]",
+            ),
+            (
+                "Metrics/CyclomaticComplexity",
+                "Cyclomatic complexity for `example` is too high. [3/0]",
+            ),
+            (
+                "Metrics/PerceivedComplexity",
+                "Perceived complexity for `example` is too high. [3/0]",
+            ),
+        ] {
+            CopCase::annotated(
+                cop,
+                &format!(
+                    "def example\n^^^^^^^^^^^ {message}\n  foo(<<~TEXT).bar\n    #{{items.map {{ |item| item.value if item.valid? }}}}\n  TEXT\n    .qux\nend\n"
+                ),
+            )
+            .config(&format!("{cop}:\n  Max: 0\n"))
+            .target_ruby("3.3")
+            .locations(&[(1, 1, 6, 3)])
+            .run();
+        }
+    }
+
+    /// 補間中の代入は後続の引数より先に、safe navigation の割引をリセットする。
+    #[test]
+    fn heredoc_interpolations_reset_the_discount_before_chain_arguments() {
+        for (call, chain) in [
+            ("recv(<<~TEXT).bar", ".qux(obj&.foo)"),
+            ("recv(<<~TEXT, obj&.foo).bar", ".qux"),
+        ] {
+            for (cop, message) in [
+                (
+                    "Metrics/AbcSize",
+                    "Assignment Branch Condition size for `example` is too high. [<1, 6, 2> 6.4/0]",
+                ),
+                (
+                    "Metrics/CyclomaticComplexity",
+                    "Cyclomatic complexity for `example` is too high. [3/0]",
+                ),
+            ] {
+                CopCase::annotated(
+                    cop,
+                    &format!(
+                        "def example(obj)\n^^^^^^^^^^^^^^^^ {message}\n  obj&.foo\n  {call}\n    #{{obj = other}}\n  TEXT\n    {chain}\nend\n"
+                    ),
+                )
+                .config(&format!("{cop}:\n  Max: 0\n"))
+                .target_ruby("3.3")
+                .locations(&[(1, 1, 7, 3)])
+                .run();
+            }
+        }
+    }
+
+    /// 本家の字句解析も、開始行の後続引数より先に補間の宣言を認識する。
+    #[test]
+    fn heredoc_interpolations_declare_locals_before_same_line_arguments() {
+        CopCase::annotated(
+            "Metrics/AbcSize",
+            r#"
+            def example
+            ^^^^^^^^^^^ Assignment Branch Condition size for `example` is too high. [<1, 4, 0> 4.12/0]
+              foo(<<~TEXT, value).bar
+                #{value = fetch}
+              TEXT
+                .qux(value)
+            end
+            "#,
+        )
+        .config("Metrics/AbcSize:\n  Max: 0\n")
+        .target_ruby("3.3")
+        .locations(&[(1, 1, 6, 3)])
+        .run();
+    }
+
+    /// 補間のない本文は呼び出しを増やさず、補間で宣言した変数も呼び出しに数えない。
+    #[test]
+    fn heredoc_chains_preserve_literal_text_and_interpolated_locals() {
+        for (body, arguments, vector) in [
+            ("plain text", "", "<0, 3, 0> 3"),
+            ("#{value = fetch}", "(value)", "<1, 4, 0> 4.12"),
+        ] {
+            CopCase::annotated(
+                "Metrics/AbcSize",
+                &format!(
+                    "def example\n^^^^^^^^^^^ Assignment Branch Condition size for `example` is too high. [{vector}/0]\n  foo(<<~TEXT).bar\n    {body}\n  TEXT\n    .qux{arguments}\nend\n"
+                ),
+            )
+            .config("Metrics/AbcSize:\n  Max: 0\n")
+            .target_ruby("3.3")
+            .locations(&[(1, 1, 6, 3)])
+            .run();
+        }
+    }
+
     /// Ruby 3.4 より前の `it` は暗黙の引数ではなくメソッド呼び出し。
     #[test]
     fn abc_size_counts_it_by_target_ruby_version() {
