@@ -889,18 +889,11 @@ pub(super) fn end_keyword_alignment(
 /// opener was written in -- but both appear in source order, so the nth of one belongs to the nth
 /// of the other.
 pub(super) fn heredoc_terminators(context: &RuleContext<'_>) -> Vec<(usize, Range<usize>)> {
-    let openers: Vec<usize> = context
-        .nodes_of("heredoc_beginning")
-        .map(|node| node.start_byte())
-        .collect();
-    if openers.is_empty() {
-        return Vec::new();
-    }
     context
-        .nodes_of("heredoc_body")
-        .enumerate()
-        .filter_map(|(index, body)| {
-            let opener = *openers.get(index)?;
+        .heredocs()
+        .iter()
+        .filter_map(|&(opener, body)| {
+            let opener = opener.start_byte();
             let _cursor = body.walk();
             let terminator = named_children_of(body, context)
                 .into_iter()

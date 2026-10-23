@@ -405,11 +405,10 @@ struct Heredocs {
 impl Heredocs {
     fn new(context: &RuleContext<'_>) -> Self {
         let mut plain = HashMap::new();
-        let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
-        for (index, marker) in context.nodes_of("heredoc_beginning").enumerate() {
-            let is_str = bodies
-                .get(index)
-                .is_some_and(|body| body_is_str(context, *body));
+        for marker in context.nodes_of("heredoc_beginning") {
+            let is_str = context
+                .heredoc_body(marker)
+                .is_some_and(|body| body_is_str(context, body));
             plain.insert(marker.id(), is_str);
         }
         Self { plain }

@@ -105,7 +105,6 @@ fn last_heredoc_argument(
     block: Node<'_>,
 ) -> Option<std::ops::Range<usize>> {
     let mut node = body_call(block)?;
-    let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
     let terminators = heredoc_terminators(context);
     loop {
         if let Some(list) = argument_list(node) {
@@ -113,7 +112,7 @@ fn last_heredoc_argument(
             let found = named_children_of(list, context)
                 .into_iter()
                 .filter(|child| child.kind_str() == "heredoc_beginning")
-                .filter_map(|child| plain_heredoc(context, &bodies, &terminators, child))
+                .filter_map(|child| plain_heredoc(context, &terminators, child))
                 .last();
             if found.is_some() {
                 return found;
@@ -149,15 +148,16 @@ fn argument_list<'tree>(call: Node<'tree>) -> Option<Node<'tree>> {
 
 fn plain_heredoc(
     context: &RuleContext<'_>,
-    bodies: &[Node<'_>],
     terminators: &[(usize, Range<usize>)],
     opener: Node<'_>,
 ) -> Option<Range<usize>> {
-    let index = terminators
+    let terminator = terminators
         .iter()
-        .position(|(offset, _)| *offset == opener.start_byte())?;
-    let terminator = terminators[index].1.clone();
-    let span = &context.source.text()[bodies.get(index)?.start_byte()..terminator.start];
+        .find(|(offset, _)| *offset == opener.start_byte())?
+        .1
+        .clone();
+    let body = context.heredoc_body(opener)?;
+    let span = &context.source.text()[body.start_byte()..terminator.start];
     // **The span is not the body.** It opens with the line break that ends the opener's line and
     // closes with the indentation the terminator sits behind, so counting its lines answers 3 where
     // the body has 1. Reading it directly is what sent every real heredoc down the other branch,

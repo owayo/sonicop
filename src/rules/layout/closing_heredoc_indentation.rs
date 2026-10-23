@@ -10,17 +10,10 @@ use crate::rules::node_ext::NodeExt;
 use crate::rules::send_node::named_children_of;
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
-    let openers: Vec<Node<'_>> = context.nodes_of("heredoc_beginning").collect();
-    if openers.is_empty() {
-        return;
-    }
     let text = context.source.text();
-    // The opener and the body sit far apart in the tree but both appear in source order, so the
-    // nth of one belongs to the nth of the other.
-    for (index, body) in context.nodes_of("heredoc_body").enumerate() {
-        let Some(opener) = openers.get(index).copied() else {
-            break;
-        };
+    // The opener and the body sit far apart in the tree, and a heredoc opened inside another one's
+    // interpolation is read before the next one on the outer line, so the index pairs them.
+    for &(opener, body) in context.heredocs() {
         // `SIMPLE_HEREDOC`: a `<<EOS` terminator has to sit at column 0 whatever the opener does.
         // An opener whose delimiter is empty matches nothing at all and so is not simple either.
         if heredoc_type(&text[opener.byte_range()]) == Some("<<") {

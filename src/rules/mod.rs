@@ -62,6 +62,7 @@ mod style;
 pub(crate) mod support;
 mod visibility;
 
+pub(crate) use lint::literal_named_groups;
 pub(crate) use support::{push_named_children, push_named_children_in, walk_named};
 
 /// A cop: its qualified name, the severity it reports at by default, and the function that
@@ -339,6 +340,16 @@ impl<'a> RuleContext<'a> {
         self.ast
     }
 
+    /// heredoc の開始と本文の組を、開始の位置の順に ([`AstIndex::heredocs`])。
+    pub(in crate::rules) fn heredocs(&self) -> &'a [(Node<'a>, Node<'a>)] {
+        self.ast.heredocs()
+    }
+
+    /// `beginning` が開いた heredoc の本文 ([`AstIndex::heredoc_body`])。
+    pub(in crate::rules) fn heredoc_body(&self, beginning: Node<'_>) -> Option<Node<'a>> {
+        self.ast.heredoc_body(beginning)
+    }
+
     /// `Node::children` for a node of this file, answered from the index. See
     /// [`AstIndex::children_of`].
     pub(in crate::rules) fn children<'node>(
@@ -558,6 +569,11 @@ pub(crate) struct AstIndex<'tree> {
     /// node itself sits and is this long -- which is what turns "every named node below this one"
     /// from a stack-driven walk into a slice.
     named_subtree: Vec<u32>,
+    /// heredoc の開始と本文の組を、開始の位置の順に。本文の補間で開いた heredoc があると、開始の
+    /// 順と本文の順は一致しないので、n 番目どうしでは組にできない ([`crate::heredocs::pair`])。
+    heredocs: Vec<(Node<'tree>, Node<'tree>)>,
+    /// 開始の id から、[`Self::heredocs`] の中の位置。
+    heredoc_of_beginning: IdKeyed<u32>,
 }
 
 /// One node's children, walked through the index's pre-order table. See
@@ -627,6 +643,8 @@ impl<'tree> AstIndex<'tree> {
             field_of: Vec::with_capacity(count),
             subtree_len: Vec::new(),
             named_subtree: Vec::new(),
+            heredocs: Vec::new(),
+            heredoc_of_beginning: IdKeyed::default(),
         };
         index.collect(root, source_text);
         index.index_children();
@@ -634,7 +652,28 @@ impl<'tree> AstIndex<'tree> {
         index.protected_ranges.sort_by_key(|range| range.start);
         merge_touching_ranges(&mut index.protected_ranges);
         index.heredoc_ranges.sort_by_key(|range| range.start);
+        index.heredocs = crate::heredocs::pair(
+            index.nodes_of_kind("heredoc_beginning"),
+            index.nodes_of_kind("heredoc_body"),
+            source_text,
+        );
+        for (position, (beginning, _)) in index.heredocs.iter().enumerate() {
+            index
+                .heredoc_of_beginning
+                .insert(beginning.id(), position as u32);
+        }
         index
+    }
+
+    /// heredoc の開始と本文の組を、開始の位置の順に。
+    pub(in crate::rules) fn heredocs(&self) -> &[(Node<'tree>, Node<'tree>)] {
+        &self.heredocs
+    }
+
+    /// `beginning` が開いた heredoc の本文。
+    pub(in crate::rules) fn heredoc_body(&self, beginning: Node<'_>) -> Option<Node<'tree>> {
+        let position = *self.heredoc_of_beginning.get(&beginning.id())?;
+        Some(self.heredocs[position as usize].1)
     }
 
     pub fn comment_ranges(&self) -> &[Range<usize>] {

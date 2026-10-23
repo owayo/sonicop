@@ -157,11 +157,8 @@ fn literals<'a>(context: &'a RuleContext<'_>) -> Vec<Literal<'a>> {
 
     // A heredoc's marker and its body are separate nodes here; upstream has one literal whose
     // `loc.expression` is the marker and whose contents are the body.
-    let markers: Vec<Node<'_>> = context.nodes_of("heredoc_beginning").collect();
-    for (index, node) in context.nodes_of("heredoc_body").enumerate() {
-        let Some(anchor) = markers.get(index) else {
-            continue;
-        };
+    for (anchor, node) in context.heredocs() {
+        let (anchor, node) = (anchor, *node);
         let end = node
             .child(node.child_count().saturating_sub(1))
             .filter(|child| child.kind_str() == "heredoc_end")

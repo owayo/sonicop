@@ -406,9 +406,9 @@ pub(super) fn within_deprecated_definition(node: Node<'_>, context: &RuleContext
 pub(super) fn literal_names(context: &RuleContext<'_>, setter: bool) -> HashSet<String> {
     let mut names = HashSet::new();
     let heredoc_quotes: HashMap<_, _> = context
-        .nodes_of("heredoc_body")
-        .zip(context.nodes_of("heredoc_beginning"))
-        .map(|(body, opener)| {
+        .heredocs()
+        .iter()
+        .map(|&(opener, body)| {
             (
                 body.id(),
                 context

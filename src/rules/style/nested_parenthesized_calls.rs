@@ -51,7 +51,10 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             .into_iter()
             .chain(outer_arguments.iter().copied());
         for nested in children {
-            if nested.kind_str() != "call" {
+            // ブロック付きの呼び出しは本家では `send` ではなく `block` ノードで、
+            // `each_child_node(:send)` に入らない (`update_git "bar" do … end.ref_for("HEAD")`)。
+            // `&blk` は引数側の block_argument なので、この `block` フィールドには現れない。
+            if nested.kind_str() != "call" || nested.field("block").is_some() {
                 continue;
             }
             let Some(nested_arguments) = nested.field("arguments") else {

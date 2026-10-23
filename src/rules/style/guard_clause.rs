@@ -513,11 +513,7 @@ impl Cop<'_, '_> {
     where
         Self: 't,
     {
-        let index = self
-            .context
-            .nodes_of("heredoc_beginning")
-            .position(|node| node.id() == beginning.id())?;
-        self.context.nodes_of("heredoc_body").nth(index)
+        self.context.heredoc_body(beginning)
     }
 }
 
@@ -633,10 +629,7 @@ fn reads_a_variable(node: Node<'_>) -> bool {
 /// The end of the heredoc terminator that `beginning` opened, which is where a moved branch is
 /// written back in.
 fn heredoc_end(context: &RuleContext<'_>, beginning: Node<'_>) -> Option<Range<usize>> {
-    let index = context
-        .nodes_of("heredoc_beginning")
-        .position(|node| node.id() == beginning.id())?;
-    let body = context.nodes_of("heredoc_body").nth(index)?;
+    let body = context.heredoc_body(beginning)?;
     let _cursor = body.walk();
     let terminator = named_children_of(body, context)
         .into_iter()

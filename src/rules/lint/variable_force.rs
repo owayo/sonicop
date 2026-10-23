@@ -1219,7 +1219,7 @@ impl<'tree> Force<'tree, '_> {
             self.process_children(node);
             return;
         }
-        let names = named_captures(self.text(left));
+        let names = super::literal_named_groups(self.text(left));
         if names.is_empty() {
             self.process_children(node);
             return;
@@ -1877,41 +1877,6 @@ fn collapse(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// The names a regexp literal captures, in the order they are written.
-fn named_captures(source: &str) -> Vec<String> {
-    let bytes = source.as_bytes();
-    let mut names = Vec::new();
-    let mut index = 0;
-    while index + 3 < bytes.len() {
-        if bytes[index] == b'\\' {
-            index += 2;
-            continue;
-        }
-        if bytes[index] == b'('
-            && bytes[index + 1] == b'?'
-            && matches!(bytes[index + 2], b'<' | b'\'')
-        {
-            let close = if bytes[index + 2] == b'<' {
-                b'>'
-            } else {
-                b'\''
-            };
-            // `(?<=` and `(?<!` are look-behind, not a capture.
-            if close == b'>' && matches!(bytes[index + 3], b'=' | b'!') {
-                index += 4;
-                continue;
-            }
-            if let Some(end) = source[index + 3..].find(close as char) {
-                names.push(source[index + 3..index + 3 + end].to_owned());
-                index += 3 + end + 1;
-                continue;
-            }
-        }
-        index += 1;
-    }
-    names
-}
-
 /// `in_modifier_conditional?`: 条件内の初回代入より左にある参照は、その値を読めない。
 fn in_modifier_conditional(
     assignment: Node<'_>,
@@ -1938,20 +1903,14 @@ fn covers(container: Node<'_>, node: Node<'_>) -> bool {
         || (container.start_byte() <= node.start_byte() && node.end_byte() <= container.end_byte())
 }
 
-/// Each heredoc's body, paired with the `<<~X` that opened it. Both appear in the same order in
-/// the file, which is what makes matching them by position sound.
+/// Each heredoc's body, paired with the `<<~X` that opened it, in the order Ruby reads the bodies
+/// in ([`crate::heredocs::pair`], computed once for the file's index).
 fn heredoc_bodies<'tree>(
     index: &super::super::AstIndex<'tree>,
 ) -> crate::rules::IdKeyed<Node<'tree>> {
-    // The index already groups the file's nodes by kind, so the recursive walk this used to make
-    // -- which allocated a vector of children at every node of the tree -- answers nothing new.
-    let mut beginnings: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_beginning").collect();
-    let mut bodies: Vec<Node<'tree>> = index.nodes_of_kind("heredoc_body").collect();
-    beginnings.sort_by_key(|node: &Node<'_>| node.start_byte());
-    bodies.sort_by_key(|node: &Node<'_>| node.start_byte());
-    beginnings
-        .into_iter()
-        .zip(bodies)
-        .map(|(beginning, body)| (beginning.id(), body))
+    index
+        .heredocs()
+        .iter()
+        .map(|&(beginning, body)| (beginning.id(), body))
         .collect()
 }

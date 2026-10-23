@@ -20,12 +20,9 @@ const CONDITIONALS: [&str; 5] = [
 
 pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
     // The grammar files a heredoc body next to the statement its opener was written in rather
-    // than inside it, so the two are matched up by the order they appear in.
-    let beginnings: Vec<_> = context.nodes_of("heredoc_beginning").collect();
-    let bodies: Vec<_> = context.nodes_of("heredoc_body").collect();
+    // than inside it, so the two are matched up in the order Ruby reads the bodies in.
     let heredocs = Heredocs {
-        beginnings: &beginnings,
-        bodies: &bodies,
+        pairs: context.heredocs(),
     };
     for node in context.nodes_of_any(&CONDITIONALS) {
         inspect(context, heredocs, node, offenses);
@@ -294,17 +291,15 @@ fn next_statement<'tree>(node: Node<'tree>) -> Option<(Node<'tree>, bool)> {
 /// Where the `<<~FOO` openers of the file sit, paired with the bodies that follow them.
 #[derive(Clone, Copy)]
 struct Heredocs<'a, 'tree> {
-    beginnings: &'a [Node<'tree>],
-    bodies: &'a [Node<'tree>],
+    pairs: &'a [(Node<'tree>, Node<'tree>)],
 }
 
 impl<'tree> Heredocs<'_, 'tree> {
     fn body_of(&self, beginning: Node<'_>) -> Option<Node<'tree>> {
-        let index = self
-            .beginnings
+        self.pairs
             .iter()
-            .position(|candidate| *candidate == beginning)?;
-        self.bodies.get(index).copied()
+            .find(|(candidate, _)| candidate.id() == beginning.id())
+            .map(|&(_, body)| body)
     }
 }
 

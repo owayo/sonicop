@@ -237,10 +237,5 @@ fn interpolation_ranges(node: Node<'_>) -> Vec<Range<usize>> {
 
 /// Every heredoc of the file, as its opener paired with its body.
 fn heredocs<'ctx, 'tree>(context: &'ctx RuleContext<'tree>) -> Vec<(Node<'ctx>, Node<'ctx>)> {
-    let openers: Vec<Node<'ctx>> = context.nodes_of("heredoc_beginning").collect();
-    context
-        .nodes_of("heredoc_body")
-        .enumerate()
-        .filter_map(|(index, body)| openers.get(index).map(|opener| (*opener, body)))
-        .collect()
+    context.heredocs().to_vec()
 }

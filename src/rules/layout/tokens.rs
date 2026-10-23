@@ -112,11 +112,8 @@ pub(crate) fn tokens<'context>(context: &'context RuleContext<'_>) -> &'context 
 }
 
 pub(in crate::rules) fn build(context: &RuleContext<'_>) -> Vec<Token> {
-    let bodies: Vec<Node<'_>> = context.nodes_of("heredoc_body").collect();
     let mut builder = Builder {
         context,
-        bodies,
-        openers: 0,
         tokens: Vec::new(),
     };
     builder.walk(context.root_node());
@@ -125,10 +122,6 @@ pub(in crate::rules) fn build(context: &RuleContext<'_>) -> Vec<Token> {
 
 struct Builder<'a, 'tree> {
     context: &'a RuleContext<'tree>,
-    /// The heredoc bodies of the file in source order, which is the order their openers appear in.
-    bodies: Vec<Node<'tree>>,
-    /// How many heredoc openers have been reached, which indexes into `bodies`.
-    openers: usize,
     tokens: Vec<Token>,
 }
 
@@ -137,9 +130,10 @@ impl Builder<'_, '_> {
         match node.kind_str() {
             "heredoc_beginning" => {
                 self.push(node);
-                let index = self.openers;
-                self.openers += 1;
-                if let Some(body) = self.bodies.get(index).copied() {
+                // The lexer reads a body right after its opener, in the order Ruby reads the
+                // bodies in -- which is not the order of the openers once one is opened inside
+                // another one's interpolation.
+                if let Some(body) = self.context.heredoc_body(node) {
                     // The grammar starts the body at the line break that ends the opener's line;
                     // the lexer leaves that break on the opener's line and starts the body's first
                     // content token below it. Keeping the break would put the body's first token

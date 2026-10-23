@@ -109,11 +109,10 @@ struct Heredoc {
 }
 
 fn heredocs(context: &RuleContext<'_>) -> Vec<Heredoc> {
-    let bodies: Vec<_> = context.nodes_of("heredoc_body").collect();
     context
-        .nodes_of("heredoc_beginning")
-        .zip(bodies)
-        .filter_map(|(beginning, body)| {
+        .heredocs()
+        .iter()
+        .filter_map(|&(beginning, body)| {
             // The body node starts on the newline terminating the opener. That physical opener
             // line is not string content and its trailing whitespace is removed normally.
             let first = context.source.line_column(body.start_byte()).0 + 1;
