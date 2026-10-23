@@ -1385,6 +1385,80 @@ fn autocorrect_inserts_crlf_in_a_crlf_file() {
     );
 }
 
+/// `puts(foo bar { 1 })` には Lint/AmbiguousBlockAssociation と Style/NestedParenthesizedCalls の
+/// 両方が括弧を足す。本家は後に結合する NestedParenthesizedCalls を衝突で捨て、
+/// `puts(foo(bar { 1 }))` を書いて両方を corrected と報告し、終了 0 になる。2 つの補正が合流して
+/// `)` が 2 つ入ると、構文の安全網が書き込みを止めて終了 2 になっていた。CRLF のファイルは CRLF の
+/// まま書く (本家は LF で書き戻す。既知の差)。期待値は本家 1.89.0 の実出力。
+#[test]
+fn a_nested_call_both_cops_parenthesize_is_written_with_one_pair() {
+    let only = "Lint/AmbiguousBlockAssociation,Style/NestedParenthesizedCalls";
+    for newline in ["\n", "\r\n"] {
+        let source =
+            "# frozen_string_literal: true\n\nputs(foo bar { 1 })\n".replace('\n', newline);
+        let corrected =
+            "# frozen_string_literal: true\n\nputs(foo(bar { 1 }))\n".replace('\n', newline);
+        for mode in ["-a", "-A"] {
+            let directory = project(&[("example.rb", &source)]);
+            let output = command(directory.path())
+                .args([mode, "--only", only, "--format", "json", "example.rb"])
+                .assert()
+                .code(0)
+                .get_output()
+                .stdout
+                .clone();
+            let reported: Vec<_> = offenses(&output)
+                .iter()
+                .map(|offense| {
+                    (
+                        offense.cop_name.clone(),
+                        offense.location.start_line,
+                        offense.location.start_column,
+                        offense.corrected,
+                    )
+                })
+                .collect();
+            assert_eq!(
+                reported,
+                [
+                    ("Lint/AmbiguousBlockAssociation".to_owned(), 3, 6, true),
+                    ("Style/NestedParenthesizedCalls".to_owned(), 3, 6, true),
+                ],
+                "{mode} {newline:?}"
+            );
+            let path = directory.path().join("example.rb");
+            assert_eq!(
+                fs::read_to_string(&path).unwrap(),
+                corrected,
+                "{mode} {newline:?}"
+            );
+            // 次の実行では何も報告せず、本文も変わらない。
+            command(directory.path())
+                .args(["--only", only, "example.rb"])
+                .assert()
+                .code(0);
+            assert_eq!(
+                fs::read_to_string(&path).unwrap(),
+                corrected,
+                "{mode} {newline:?}"
+            );
+        }
+    }
+    // Issue の再現を既定の cop で補正する。改行形式だけは native の OS 差を除く。
+    let directory = project(&[(
+        "example.rb",
+        "# frozen_string_literal: true\n\nputs(foo bar { 1 })\n",
+    )]);
+    command(directory.path())
+        .args(["-A", "--except", "Layout/EndOfLine", "example.rb"])
+        .assert()
+        .code(0);
+    assert_eq!(
+        fs::read_to_string(directory.path().join("example.rb")).unwrap(),
+        "# frozen_string_literal: true\n\nputs(foo(bar { 1 }))\n"
+    );
+}
+
 #[test]
 fn autocorrect_rechecks_crlf_as_rubocop_does() {
     let source = "x=1\r\n\r\n\r\n# header\r\nputs x\r\n";

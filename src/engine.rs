@@ -14,7 +14,8 @@ use tempfile::NamedTempFile;
 use crate::config::{Config, ConfigStore};
 use crate::cop_name::selector_matches;
 use crate::diagnostic::{
-    CorrectionCharacterSource, FileReport, Location, Offense, OffenseSnapshot, Severity,
+    CorrectionCharacterSource, Edit, FileReport, InsertionAnchor, Location, Offense,
+    OffenseSnapshot, Severity,
 };
 use crate::directives::{CommentConfig, CopRegistry, DirectiveState};
 use crate::magic_comment::MagicComment;
@@ -868,7 +869,7 @@ impl PlannedRule {
     fn settle_corrections(&self, reported: &mut [Offense]) {
         if !self.autocorrect {
             for offense in reported {
-                offense.corrections.clear();
+                offense.clear_corrections();
                 offense.correctable = false;
             }
             return;
@@ -1740,6 +1741,37 @@ impl Action {
         action
     }
 
+    /// cop が範囲と向きを指定した挿入。本家の `insert_before(range, text)` /
+    /// `insert_after(range, text)` そのもので、空の範囲への `insert_after` も向きを失わない。
+    ///
+    /// 挿入でない編集と、文字の位置がアンカーの向きの端にない編集は `None` を返す。前者は
+    /// 置換なのでアンカーが効かず、後者は cop の指定の誤りなので、どちらも
+    /// [`Action::from_edit`] の推定に任せる。
+    fn from_anchored_edit(edit: &Edit, anchor: &InsertionAnchor) -> Option<Self> {
+        let (range, after) = match anchor {
+            InsertionAnchor::Before(range) => (range, false),
+            InsertionAnchor::After(range) => (range, true),
+        };
+        let at = if after { range.end } else { range.start };
+        if edit.start != edit.end || edit.start != at || range.start > range.end {
+            return None;
+        }
+        let mut action = Self {
+            begin_pos: range.start,
+            end_pos: range.end,
+            insert_before: String::new(),
+            replacement: None,
+            characters_from: None,
+            insert_after: String::new(),
+            children: Vec::new(),
+        };
+        match after {
+            true => action.insert_after = edit.replacement.clone(),
+            false => action.insert_before = edit.replacement.clone(),
+        }
+        Some(action)
+    }
+
     fn is_empty(&self) -> bool {
         self.insert_before.is_empty()
             && self.insert_after.is_empty()
@@ -2278,6 +2310,19 @@ fn edits_are_addressable(offense: &Offense, source: &str) -> bool {
         .all(|edit| is_addressable(edit.start, edit.end, source))
 }
 
+/// `index` 番目の編集を、cop が corrector に渡した形の action にする。編集ごとのアンカーを
+/// 先に使い、無い編集と使えない編集は offense の範囲から推す。See [`Offense::edit_anchor`].
+fn edit_action(offense: &Offense, index: usize, edit: &Edit, source: &str) -> Action {
+    offense
+        .edit_anchor(index)
+        .filter(|anchor| {
+            let range = anchor.range();
+            is_addressable(range.start, range.end, source)
+        })
+        .and_then(|anchor| Action::from_anchored_edit(edit, anchor))
+        .unwrap_or_else(|| Action::from_edit(edit, anchor_range(offense, source)))
+}
+
 /// The range an insertion of this offense is taken to hang off. See [`Action::from_edit`].
 fn anchor_range(offense: &Offense, source: &str) -> (usize, usize) {
     let (start, end) = offense
@@ -2324,6 +2369,29 @@ mod trace {
         let (first_line, first_column) = position(source, start);
         let (last_line, last_column) = position(source, end);
         format!("{first_line}:{first_column}-{last_line}:{last_column}")
+    }
+
+    /// cop の corrector を、結合に渡す木の形で書き出す。
+    ///
+    /// 編集の範囲と文字だけでは、空白を `(` に置換する補正と、空白を消してその前に `(` を
+    /// 挿す補正が同じに見える。結合で衝突するかどうかを決めるのはその違いなので、置換の
+    /// `None` と `Some("")` を分け、挿入がどの範囲に掛かったかを子の字下げで出す。
+    pub(super) fn tree(source: &str, root: &super::Action) {
+        let mut stack: Vec<(&super::Action, usize)> =
+            root.children.iter().rev().map(|child| (child, 0)).collect();
+        while let Some((action, depth)) = stack.pop() {
+            eprintln!(
+                "      {}[{}..{}) {} before={:?} replace={:?} after={:?}",
+                "  ".repeat(depth),
+                action.begin_pos,
+                action.end_pos,
+                span(source, action.begin_pos, action.end_pos),
+                action.insert_before,
+                action.replacement,
+                action.insert_after,
+            );
+            stack.extend(action.children.iter().rev().map(|child| (child, depth + 1)));
+        }
     }
 
     /// Names a cop whose own edits cannot stand together, under `SONICOP_TRACE_OVERLAP`.
@@ -2431,6 +2499,10 @@ fn corrected_text_with_provenance(
         if cop.children.is_empty() {
             continue;
         }
+        if trace::enabled() {
+            eprintln!("    木:");
+            trace::tree(source, &cop);
+        }
         corrected.extend(&placed);
         // 本家はマージの前に互換性宣言を読み、編集が後で衝突しても非互換 cop を見送る。
         skips.extend(autocorrect_incompatible_with(cop_name));
@@ -2438,6 +2510,9 @@ fn corrected_text_with_provenance(
         // 先行 cop が非互換と宣言した補正は、次のパスへ回す。
         if skipped {
             trace_outcome("skip ", cop_name);
+            if trace::enabled() {
+                eprintln!("    見送り (非互換の宣言)");
+            }
             continue;
         }
         // Team#merge_corrector! と同じく、衝突した cop の補正はこのファイルで全件捨てる。
@@ -2517,16 +2592,15 @@ fn build_cop_corrector(report: &FileReport, group: &[usize], source: &str) -> (A
             }
         }
         // `Corrector#replace` と同様、何もしない編集を除く入口の `combine` を使う。
-        let anchor = anchor_range(&report.offenses[index], source);
-        let offense =
-            report.offenses[index]
-                .corrections
-                .iter()
-                .try_fold(Action::root(), |tree, edit| {
-                    let mut action = Action::from_edit(edit, anchor);
-                    action.characters_from = report.offenses[index].correction_characters_from;
-                    tree.combine(&action)
-                });
+        let reported = &report.offenses[index];
+        let offense = reported.corrections.iter().enumerate().try_fold(
+            Action::root(),
+            |tree, (position, edit)| {
+                let mut action = edit_action(reported, position, edit, source);
+                action.characters_from = reported.correction_characters_from;
+                tree.combine(&action)
+            },
+        );
         let Ok(offense) = offense else {
             if trace::enabled() {
                 eprintln!("      ★ この offense の中で衝突");
@@ -3371,7 +3445,7 @@ mod tests {
 
     use super::{Cached, Decoded, decoded_source, output_bytes};
     use crate::config::Config;
-    use crate::diagnostic::{Edit, FileReport, Offense, Severity};
+    use crate::diagnostic::{Edit, FileReport, InsertionAnchor, Offense, Severity};
     use crate::source::SourceFile;
 
     use super::{
@@ -4519,6 +4593,226 @@ mod tests {
             run(vec![insertion(13..16), fold()]),
             "if a\n  raise\nend\n\nb\n"
         );
+    }
+
+    /// 本家の corrector の呼び出しを、範囲と向きごと写した編集を組む。
+    fn edit(start: usize, end: usize, replacement: &str) -> Edit {
+        Edit {
+            start,
+            end,
+            replacement: replacement.to_owned(),
+            safe: true,
+        }
+    }
+
+    /// `corrected_text` に通す 1 件の offense。報告範囲は空にしておく (アンカーを指定しない編集は
+    /// この範囲から推すので、テストの編集はすべてアンカーか置換で書く)。
+    fn anchored(
+        cop: &'static str,
+        edits: impl IntoIterator<Item = (Edit, Option<InsertionAnchor>)>,
+    ) -> Offense {
+        Offense::new(cop, Severity::Convention, "test", 0, 0).corrected_by_all_anchored(edits)
+    }
+
+    fn apply_offenses(source: &str, offenses: Vec<Offense>) -> String {
+        let mut report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", source.to_owned()),
+            offenses,
+        };
+        corrected_text(&mut report, CorrectMode::All, Correcting::Everything).0
+    }
+
+    /// `Lint/AmbiguousBlockAssociation#wrap_in_parentheses` の 3 つの呼び出し:
+    /// `remove(空白)`、`insert_before(空白, '(')`、`insert_after(最後の引数, ')')`。
+    fn wrap_in_parentheses() -> Offense {
+        anchored(
+            "Lint/AmbiguousBlockAssociation",
+            [
+                (edit(3, 4, ""), None),
+                InsertionAnchor::Before(3..4).insert("("),
+                InsertionAnchor::After(4..13).insert(")"),
+            ],
+        )
+    }
+
+    /// `Style/NestedParenthesizedCalls#autocorrect`: `replace(空白, '(')` と
+    /// `insert_after(最後の引数, ')')`。
+    fn nested_parentheses() -> Offense {
+        anchored(
+            "Style/NestedParenthesizedCalls",
+            [
+                (edit(3, 4, "("), None),
+                InsertionAnchor::After(4..13).insert(")"),
+            ],
+        )
+    }
+
+    /// 同じ範囲の削除と `insert_before` は 1 つの action になり、置換は `""` のまま残る。
+    /// 本家の木と同じく `before="(" replace=Some("")` で、`(` を置換で持つ形ではない。
+    #[test]
+    fn a_removal_and_an_insertion_before_it_share_one_action() {
+        let source = "foo bar { 1 }";
+        let report = FileReport {
+            path: "test.rb".into(),
+            source: SourceFile::new("test.rb", source.to_owned()),
+            offenses: vec![wrap_in_parentheses()],
+        };
+        let (tree, placed) = super::build_cop_corrector(&report, &[0], source);
+        assert_eq!(placed, [0]);
+        let shape: Vec<_> = tree
+            .children
+            .iter()
+            .map(|action| {
+                (
+                    action.begin_pos..action.end_pos,
+                    action.insert_before.as_str(),
+                    action.replacement.as_deref(),
+                    action.insert_after.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            shape,
+            [(3..4, "(", Some(""), ""), (4..13, "", None, ")")],
+            "本家の木: [3...4] before=\"(\" replace=\"\" / [4...13] after=\")\""
+        );
+    }
+
+    /// 期待値はすべて、同じ呼び出しを本家の `RuboCop::Cop::Corrector` に積んで `merge!` した
+    /// 実出力 (衝突した cop は `Team#suppress_clobbering` と同じく丸ごと捨てる)。
+    ///
+    /// 空白の置換が `""` と `"("` で食い違うので、後に結合する NestedParenthesizedCalls は
+    /// 衝突してそのパスの編集を全部失う。`(` への置換 1 つに畳んだ形では同じ置換として合流し、
+    /// 両方の `)` が入る -- 本家でも畳めば `foo(bar { 1 }))` になる。
+    #[test]
+    fn a_removal_with_an_insertion_clobbers_a_replacement_of_the_same_range() {
+        let source = "foo bar { 1 }";
+        assert_eq!(
+            apply_offenses(source, vec![wrap_in_parentheses(), nested_parentheses()]),
+            "foo(bar { 1 })"
+        );
+        // 衝突しない別の箇所の編集も、衝突した cop と一緒に捨てられる。
+        let with_disjoint = anchored(
+            "Style/NestedParenthesizedCalls",
+            [
+                InsertionAnchor::Before(0..3).insert("!"),
+                (edit(3, 4, "("), None),
+                InsertionAnchor::After(4..13).insert(")"),
+            ],
+        );
+        assert_eq!(
+            apply_offenses(source, vec![wrap_in_parentheses(), with_disjoint]),
+            "foo(bar { 1 })"
+        );
+        // 陰性対照: 削除と挿入を `(` への置換に畳むと、閉じ括弧が 2 つ入る。
+        let folded = anchored(
+            "Lint/AmbiguousBlockAssociation",
+            [
+                (edit(3, 4, "("), None),
+                InsertionAnchor::After(4..13).insert(")"),
+            ],
+        );
+        assert_eq!(
+            apply_offenses(source, vec![folded, nested_parentheses()]),
+            "foo(bar { 1 }))"
+        );
+    }
+
+    /// 挿入が掛かる範囲が木の親子を決める。空白と引数をまとめて置換する後続の補正は、本家の
+    /// 木では挿入を飲み込むので衝突する。`(` と `)` を「空白から引数の末尾まで」の 1 つの wrap に
+    /// すると、置換と同じ範囲の合流になって通ってしまう (本家で同じ形を積むと `foo((x))`)。
+    #[test]
+    fn the_ranges_the_insertions_hang_off_decide_what_a_wider_replacement_swallows() {
+        let source = "foo bar { 1 }";
+        let wide = || anchored("Style/Wide", [(edit(3, 13, "(x)"), None)]);
+        assert_eq!(
+            apply_offenses(source, vec![wrap_in_parentheses(), wide()]),
+            "foo(bar { 1 })"
+        );
+        let one_wrap = anchored(
+            "Lint/AmbiguousBlockAssociation",
+            [
+                (edit(3, 4, ""), None),
+                InsertionAnchor::Before(3..13).insert("("),
+                InsertionAnchor::After(3..13).insert(")"),
+            ],
+        );
+        assert_eq!(apply_offenses(source, vec![one_wrap, wide()]), "foo((x))");
+
+        // キーワード引数の並びは本家では 1 つの hash。閉じ括弧をその全体に掛けると、hash を
+        // 置換する補正と同じ範囲で合流し、最後の pair に掛けると飲み込まれて衝突する。
+        let source = "foo a: 1, b: 2";
+        let hash = || anchored("Style/Hash", [(edit(4, 14, "h"), None)]);
+        let close = |anchor| {
+            anchored(
+                "Style/NestedParenthesizedCalls",
+                [
+                    (edit(3, 4, "("), None),
+                    InsertionAnchor::After(anchor).insert(")"),
+                ],
+            )
+        };
+        assert_eq!(apply_offenses(source, vec![close(4..14), hash()]), "foo(h)");
+        assert_eq!(
+            apply_offenses(source, vec![close(10..14), hash()]),
+            "foo(a: 1, b: 2)"
+        );
+    }
+
+    /// 空の範囲への挿入は向きで並びが変わる。`insert_after` は後から来たものが後ろ、
+    /// `insert_before` は前に付く。向きを持たない挿入は `insert_before` として扱われる。
+    #[test]
+    fn an_insertion_into_an_empty_range_keeps_its_side() {
+        let source = "abcdefghij";
+        let at = |cop, anchor: InsertionAnchor, text| anchored(cop, [anchor.insert(text)]);
+        assert_eq!(
+            apply_offenses(
+                source,
+                vec![
+                    at("Layout/A", InsertionAnchor::After(5..5), "A"),
+                    at("Layout/B", InsertionAnchor::After(5..5), "B"),
+                ]
+            ),
+            "abcdeABfghij"
+        );
+        assert_eq!(
+            apply_offenses(
+                source,
+                vec![
+                    at("Layout/A", InsertionAnchor::Before(5..5), "A"),
+                    at("Layout/B", InsertionAnchor::Before(5..5), "B"),
+                ]
+            ),
+            "abcdeBAfghij"
+        );
+        assert_eq!(
+            apply_offenses(
+                source,
+                vec![
+                    at("Layout/A", InsertionAnchor::After(5..5), "A"),
+                    at("Layout/B", InsertionAnchor::Before(5..5), "B"),
+                ]
+            ),
+            "abcdeBAfghij"
+        );
+    }
+
+    /// 位置がアンカーの向きの端にない挿入は cop の指定の誤りなので、アンカーを使わず従来の
+    /// 推定に戻す。置換にはアンカーが効かない。
+    #[test]
+    fn an_anchor_that_does_not_fit_its_edit_is_ignored() {
+        let source = "abcdefghij";
+        let misplaced = anchored(
+            "Layout/A",
+            [(edit(7, 7, "X"), Some(InsertionAnchor::After(2..5)))],
+        );
+        assert_eq!(apply_offenses(source, vec![misplaced]), "abcdefgXhij");
+        let replacement = anchored(
+            "Layout/A",
+            [(edit(2, 5, "R"), Some(InsertionAnchor::Before(2..5)))],
+        );
+        assert_eq!(apply_offenses(source, vec![replacement]), "abRfghij");
     }
 
     #[test]

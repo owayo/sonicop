@@ -1,6 +1,7 @@
-use crate::diagnostic::{Edit, Offense};
+use crate::diagnostic::{Edit, InsertionAnchor, Offense};
 use crate::rules::RuleContext;
 use crate::rules::node_ext::NodeExt;
+use crate::rules::send_node;
 
 /// `AllowedMethods`' default: the RSpec matchers whose argument reads better without parentheses.
 const DEFAULT_ALLOWED: &[&str] = &[
@@ -83,7 +84,16 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             {
                 continue;
             }
-            let (Some(first), Some(last)) = (inner.first(), inner.last()) else {
+            let Some(first) = inner.first() else {
+                continue;
+            };
+            // `insert_after(last_arg, ')')`: 閉じ括弧は最後の引数に掛ける。キーワード引数の並びは
+            // 本家では 1 つの hash なので、その全体が最後の引数になる。入れ子の呼び出し全体に
+            // 掛けると、最後の引数を覆う別 cop の編集との親子が本家と逆になる。
+            let Some(last_argument) = send_node::arguments(nested)
+                .last()
+                .map(send_node::Argument::range)
+            else {
                 continue;
             };
             let message = format!(
@@ -93,21 +103,19 @@ pub(super) fn check(context: &RuleContext<'_>, offenses: &mut Vec<Offense>) {
             offenses.push(
                 context
                     .offense(message, nested.byte_range())
-                    .corrected_by_all([
+                    .corrected_by_all_anchored([
                         // `range_with_surrounding_space(first_arg.begin, side: :left,
                         // whitespace: true, continuations: true)` becomes the opening parenthesis.
-                        Edit {
-                            start: leading_space(context, first.start_byte()),
-                            end: first.start_byte(),
-                            replacement: "(".to_owned(),
-                            safe: true,
-                        },
-                        Edit {
-                            start: last.end_byte(),
-                            end: last.end_byte(),
-                            replacement: ")".to_owned(),
-                            safe: true,
-                        },
+                        (
+                            Edit {
+                                start: leading_space(context, first.start_byte()),
+                                end: first.start_byte(),
+                                replacement: "(".to_owned(),
+                                safe: true,
+                            },
+                            None,
+                        ),
+                        InsertionAnchor::After(last_argument).insert(")"),
                     ]),
             );
         }

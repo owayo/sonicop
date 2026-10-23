@@ -14,7 +14,7 @@
 
 mod support;
 
-use sonicop::diagnostic::Severity;
+use sonicop::diagnostic::{InsertionAnchor, Severity};
 use support::annotation::Annotation;
 use support::case::{CopCase, expect_correction, expect_no_offenses, expect_offense};
 
@@ -6571,6 +6571,113 @@ mod ambiguous_block_association {
             "run_without_aborting (ADAPTERS - [\"test\"]).map { |a| a }\n",
             "run_without_aborting((ADAPTERS - [\"test\"]).map { |a| a })\n",
         );
+    }
+
+    /// 補正は本家の 3 つの呼び出しのまま: メソッド名の後ろの空白を消し (`(` への置換に畳まない)、
+    /// `(` はその空白の前、`)` は最後の引数の後ろに掛ける。
+    #[test]
+    fn the_parentheses_hang_off_the_space_and_the_last_argument() {
+        let report = CopCase::new(COP, "foo 1, bar { |x| x }\n", Vec::new()).inspect();
+        let offense = &report.offenses[0];
+        let edits: Vec<_> = offense
+            .corrections
+            .iter()
+            .enumerate()
+            .map(|(index, edit)| {
+                (
+                    edit.start..edit.end,
+                    edit.replacement.as_str(),
+                    offense.edit_anchor(index).cloned(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            edits,
+            [
+                (3..4, "", None),
+                (3..3, "(", Some(InsertionAnchor::Before(3..4))),
+                (20..20, ")", Some(InsertionAnchor::After(7..20))),
+            ]
+        );
+    }
+
+    /// `Style/NestedParenthesizedCalls` も同じ呼び出しに括弧を足す。本家では、こちらの
+    /// `remove` + `insert_before(空白, '(')` と向こうの `replace(空白, '(')` が同じ空白の異なる
+    /// 置換 (`""` と `"("`) になって衝突し、後に結合する向こうがそのパスの補正を丸ごと失う。
+    /// 括弧は 1 組だけ付き、次のパスでは向こうも報告しない。`puts(foo bar baz { 1 })` は 2 つの
+    /// `(` が別々の空白に入るので衝突せず、両方が同じパスで入る。
+    ///
+    /// 期待値は本家 1.89.0 で 2 つの cop だけを有効にして `-a` と `-A` で補正した実出力
+    /// (どちらも同じ)。
+    #[test]
+    fn a_call_both_cops_parenthesize_gets_one_pair() {
+        const NESTED: &str = "Style/NestedParenthesizedCalls";
+        for (source, corrected) in [
+            ("puts(foo bar { 1 })\n", "puts(foo(bar { 1 }))\n"),
+            ("puts(foo bar { |x| x })\n", "puts(foo(bar { |x| x }))\n"),
+            ("puts(foo bar { _1 })\n", "puts(foo(bar { _1 }))\n"),
+            ("puts(foo 1, bar { 1 })\n", "puts(foo(1, bar { 1 }))\n"),
+            (
+                "puts(foo 1, 2, bar { |x| x })\n",
+                "puts(foo(1, 2, bar { |x| x }))\n",
+            ),
+            (
+                "puts(foo bar { 1 }, baz { 2 })\n",
+                "puts(foo(bar { 1 }, baz { 2 }))\n",
+            ),
+            ("puts(foo bar baz { 1 })\n", "puts(foo(bar(baz { 1 })))\n"),
+            (
+                "puts(a(b(foo bar { 1 })))\n",
+                "puts(a(b(foo(bar { 1 }))))\n",
+            ),
+            (
+                "puts(a(foo bar { 1 }, b(baz qux { 2 })))\n",
+                "puts(a(foo(bar { 1 }, b(baz(qux { 2 })))))\n",
+            ),
+            (
+                "puts(foo bar { baz qux { 1 } })\n",
+                "puts(foo(bar { baz(qux { 1 }) }))\n",
+            ),
+            ("puts(foo  bar { 1 })\n", "puts(foo(bar { 1 }))\n"),
+            ("puts(foo \\\n  bar { 1 })\n", "puts(foo(bar { 1 }))\n"),
+            (
+                "puts(foo bar { |x|\n  x\n})\n",
+                "puts(foo(bar { |x|\n  x\n}))\n",
+            ),
+            (
+                "puts(foo 1,\n         bar { 1 })\n",
+                "puts(foo(1,\n         bar { 1 }))\n",
+            ),
+            (
+                "puts(foo bar { 1 }) do\n  2\nend\n",
+                "puts(foo(bar { 1 })) do\n  2\nend\n",
+            ),
+            (
+                "puts(foo bar { [1].each do |x|\n  x\nend })\n",
+                "puts(foo(bar { [1].each do |x|\n  x\nend }))\n",
+            ),
+            ("puts(a.foo bar { 1 })\n", "puts(a.foo(bar { 1 }))\n"),
+            ("puts(a&.foo bar { 1 })\n", "puts(a&.foo(bar { 1 }))\n"),
+            ("x.puts(foo bar { 1 })\n", "x.puts(foo(bar { 1 }))\n"),
+            (
+                "puts(foo bar { '日本語' })\n",
+                "puts(foo(bar { '日本語' }))\n",
+            ),
+        ] {
+            for mode in [
+                sonicop::engine::CorrectMode::Safe,
+                sonicop::engine::CorrectMode::All,
+            ] {
+                CopCase::new(COP, source, Vec::new())
+                    .id(source)
+                    .cops(&[COP, NESTED])
+                    .without_offense_check()
+                    .correctable(true)
+                    .correct_mode(mode)
+                    .corrected_verbatim(corrected)
+                    .run();
+            }
+        }
     }
 }
 
@@ -17419,6 +17526,31 @@ mod nested_parenthesized_calls {
         );
         // 括弧の直前に継続があるだけの形も同じ経路を通る。
         expect_correction(COP, "method1(method2 \\\narg)\n", "method1(method2(arg))\n");
+    }
+
+    /// 閉じ括弧は本家の `insert_after(last_arg, ')')` のとおり最後の引数に掛かる。キーワード引数の
+    /// 並びは本家では 1 つの hash なので、最後の pair ではなく並び全体が範囲になる。
+    #[test]
+    fn the_closing_parenthesis_hangs_off_the_last_argument() {
+        for (source, last_argument, corrected) in [
+            ("puts(foo bar)\n", 9..12, "puts(foo(bar))\n"),
+            (
+                "puts(foo 1, a: 1, b: 2)\n",
+                12..22,
+                "puts(foo(1, a: 1, b: 2))\n",
+            ),
+            ("puts(foo bar, &baz)\n", 14..18, "puts(foo(bar, &baz))\n"),
+        ] {
+            let report = CopCase::new(COP, source, Vec::new()).inspect();
+            let offense = &report.offenses[0];
+            assert_eq!(offense.edit_anchor(0), None, "{source}");
+            assert_eq!(
+                offense.edit_anchor(1),
+                Some(&InsertionAnchor::After(last_argument)),
+                "{source}"
+            );
+            expect_correction(COP, source, corrected);
+        }
     }
 
     /// 既に括弧つきのもの、引数のないもの、演算子、既定の許可メソッドは対象外。

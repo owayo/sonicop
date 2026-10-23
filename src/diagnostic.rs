@@ -68,6 +68,42 @@ pub struct Edit {
     pub safe: bool,
 }
 
+/// 本家の `insert_before(range, text)` / `insert_after(range, text)` に渡す範囲と向き。
+///
+/// 挿入が補正の木のどこに入るかは、文字が落ちる位置ではなく cop が渡した範囲で決まる。向きも
+/// 範囲からは決まらない。`Util#args_end` は空の範囲を返し、そこへの `insert_after` は、同じ
+/// 空の範囲への別の挿入と並ぶ順序が `insert_before` と逆になる。
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum InsertionAnchor {
+    Before(Range<usize>),
+    After(Range<usize>),
+}
+
+impl InsertionAnchor {
+    /// この範囲への挿入。文字は `Before` なら範囲の先頭、`After` なら末尾に落ちるので、
+    /// 位置とアンカーを別々に書いて食い違わせることがない。
+    pub fn insert(self, text: &str) -> (Edit, Option<InsertionAnchor>) {
+        let at = match &self {
+            Self::Before(range) => range.start,
+            Self::After(range) => range.end,
+        };
+        let edit = Edit {
+            start: at,
+            end: at,
+            replacement: text.to_owned(),
+            safe: true,
+        };
+        (edit, Some(self))
+    }
+
+    /// 挿入が掛かる範囲。
+    pub fn range(&self) -> &Range<usize> {
+        match self {
+            Self::Before(range) | Self::After(range) => range,
+        }
+    }
+}
+
 /// Position and source line captured from the text an offense was found in. An autocorrect pass
 /// rewrites that text, so a corrected offense carried into the final report can no longer resolve
 /// its byte offsets against the report it travels with.
@@ -119,6 +155,19 @@ pub struct Offense {
     /// `insert_before(processed_source.buffer.source_range, ...)`, so its insertion is the parent
     /// of everything else corrected in the file rather than a child of whatever covers the head.
     pub correction_anchor: Option<(usize, usize)>,
+    /// 編集ごとに cop が指定した挿入のアンカー。[`Offense::corrections`] と同じ添字で引き、列が
+    /// 短くて届かない編集と `None` の編集は [`Offense::correction_anchor`] に従う。
+    ///
+    /// 本家の cop は 1 回の補正の中で、`insert_before` と `insert_after` に別々の範囲を渡せる。
+    /// `Lint/AmbiguousBlockAssociation` はメソッド名の後ろの空白に `remove` と
+    /// `insert_before(空白, '(')` を、最後の引数に `insert_after(')')` を呼ぶ。空白への 2 つを
+    /// `(` への置換 1 つに畳むと、同じ空白を `(` に置換する `Style/NestedParenthesizedCalls` と
+    /// **同じ置換**になって衝突しなくなる。本家では置換が `""` と `"("` で食い違うので後の cop が
+    /// そのパスで捨てられるが、畳んだ形では両方の `)` が入って構文を壊していた。
+    ///
+    /// 列は [`Offense::corrections`] と揃っていなければならないので、builder と
+    /// [`Offense::clear_corrections`] でしか書き換えない。
+    edit_anchors: Vec<Option<InsertionAnchor>>,
     /// 置換後の文字が実際に由来するソース範囲。補間の先行文など、捨てる範囲を除く。
     pub(crate) correction_characters_from: Option<CorrectionCharacterSource>,
     /// Set for edits the cop scheduled outside `add_offense`, which is where `Cop::Base#correct`
@@ -157,6 +206,7 @@ impl Offense {
             justification: None,
             corrections: Vec::new(),
             correction_anchor: None,
+            edit_anchors: Vec::new(),
             correction_characters_from: None,
             corrections_detached: false,
             snapshot: None,
@@ -178,6 +228,36 @@ impl Offense {
     pub fn corrections_anchored_at(mut self, range: Range<usize>) -> Self {
         self.correction_anchor = Some((range.start, range.end.max(range.start)));
         self
+    }
+
+    /// 本家の corrector の呼び出しを 1 つずつ写して積む。挿入には [`InsertionAnchor::insert`] で
+    /// 範囲と向きを添え、置換と削除は `None` にする (空でない範囲は置換なので、アンカーは効かない)。
+    /// `None` の挿入は [`Offense::corrected_by_all`] で積んだものと同じ扱いになる。
+    /// See [`Offense::edit_anchors`].
+    pub fn corrected_by_all_anchored(
+        mut self,
+        edits: impl IntoIterator<Item = (Edit, Option<InsertionAnchor>)>,
+    ) -> Self {
+        for (edit, anchor) in edits {
+            // 通常の builder と交互に呼んでも添字がずれないよう、先に既存の編集数まで埋める。
+            self.edit_anchors.resize(self.corrections.len(), None);
+            self.edit_anchors.push(anchor);
+            self.corrections.push(edit);
+        }
+        self.correctable = !self.corrections.is_empty();
+        self
+    }
+
+    /// `index` 番目の編集に cop が指定したアンカー。指定が無ければ `None` で、その編集は
+    /// [`Offense::correction_anchor`] か報告した範囲に掛かる。
+    pub fn edit_anchor(&self, index: usize) -> Option<&InsertionAnchor> {
+        self.edit_anchors.get(index).and_then(Option::as_ref)
+    }
+
+    /// 編集を、それに添えたアンカーごと捨てる。
+    pub fn clear_corrections(&mut self) {
+        self.corrections.clear();
+        self.edit_anchors.clear();
     }
 
     /// 値を作る補正では、置換範囲と値の出典の範囲が一致しないことがある。
@@ -324,7 +404,7 @@ pub struct FileReport {
 
 #[cfg(test)]
 mod tests {
-    use super::{Edit, Offense, Severity, character_length};
+    use super::{Edit, InsertionAnchor, Offense, Severity, character_length};
     use crate::source::SourceFile;
 
     fn source(text: &str) -> SourceFile {
@@ -466,6 +546,58 @@ mod tests {
         assert_eq!(detached.corrections.len(), 1);
         assert!(detached.corrections_detached);
         assert!(!detached.is_correctable());
+    }
+
+    /// アンカーはそれを添えた編集にだけ効き、通常の builder と交互に積んでも添字がずれない。
+    #[test]
+    fn an_edit_anchor_belongs_to_its_own_edit() {
+        let anchored = offense(0, 9)
+            .corrected_by_all([edit(1, 2)])
+            .corrected_by_all_anchored([
+                (edit(2, 3), None),
+                InsertionAnchor::After(4..9).insert(")"),
+            ])
+            .corrected_by_all([edit(9, 9)])
+            .corrected_by_all_anchored([InsertionAnchor::Before(0..0).insert("(")]);
+        assert_eq!(anchored.corrections.len(), 5);
+        assert!(anchored.is_correctable());
+        assert_eq!(anchored.edit_anchor(0), None);
+        assert_eq!(anchored.edit_anchor(1), None);
+        assert_eq!(anchored.edit_anchor(2), Some(&InsertionAnchor::After(4..9)));
+        assert_eq!(anchored.edit_anchor(3), None);
+        assert_eq!(
+            anchored.edit_anchor(4),
+            Some(&InsertionAnchor::Before(0..0))
+        );
+        assert_eq!(anchored.edit_anchor(5), None);
+    }
+
+    /// 挿入の位置は向きで決まる。`After` は範囲の末尾、`Before` は先頭に落ちる。
+    #[test]
+    fn an_anchored_insertion_lands_where_its_side_says() {
+        let (after, _) = InsertionAnchor::After(4..9).insert(")");
+        assert_eq!(
+            (after.start, after.end, after.replacement.as_str()),
+            (9, 9, ")")
+        );
+        let (before, _) = InsertionAnchor::Before(4..9).insert("(");
+        assert_eq!(
+            (before.start, before.end, before.replacement.as_str()),
+            (4, 4, "(")
+        );
+        assert!(after.safe && before.safe);
+    }
+
+    /// 編集を捨てるときはアンカーも捨てる。後から積んだ編集が古いアンカーを引き継がない。
+    #[test]
+    fn clearing_the_corrections_drops_their_anchors() {
+        let mut anchored =
+            offense(0, 9).corrected_by_all_anchored([InsertionAnchor::After(4..9).insert(")")]);
+        anchored.clear_corrections();
+        assert!(anchored.corrections.is_empty());
+        assert_eq!(anchored.edit_anchor(0), None);
+        let anchored = anchored.corrected_by_all([edit(9, 9)]);
+        assert_eq!(anchored.edit_anchor(0), None);
     }
 
     /// 訂正で本文が置き換わっても、凍結した位置と行がそのまま報告に残らなければならない。
