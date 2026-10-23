@@ -1,0 +1,9 @@
+Oracle: RuboCop 1.89.0, Parser 3.3.12.0, Ruby 4.0.8.
+Runtime values: actual MRI 2.7.8p225 miniruby; bytes and encoding before/after must match.
+Generator: scripts/record_string_literal_crlf.py --ruby27 /path/to/ruby-2.7.8/miniruby
+2026-10-23: 72 real CLI groups / 4248 file conditions; 2 parser settings, 2 cops,
+2 quote styles, ConsistentQuotesInMultiline true/false for StringLiterals, LF/CRLF,
+inspection and both correction modes. Records retain all offense fields, summary,
+exit status, original bytes and raw upstream writeback bytes. after_hex restores
+only the source CRLF format, as the registered project divergence requires.
+Literal runtime bytes/encoding are from Ruby, never derived from candidate output.

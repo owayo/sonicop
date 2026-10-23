@@ -18,19 +18,6 @@ struct Case {
     after_value: Value,
 }
 #[derive(Deserialize)]
-struct PendingCase {
-    group: usize,
-    issue: usize,
-    target: String,
-    ending: String,
-    mode: String,
-    config: String,
-    id: String,
-    source_hex: String,
-    after_hex: String,
-    raw_reference_after_hex: String,
-}
-#[derive(Deserialize)]
 struct Group {
     target: String,
     ending: String,
@@ -60,20 +47,10 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
         groups.iter().map(|group| group.files.len()).sum::<usize>(),
         4952
     );
-    // 本家の正しい bytes は保存する。既存 CRLF 復号差 12 件は診断を検査し、補正一致へ数えない。
-    let pending: Vec<PendingCase> =
-        serde_json::from_str(include_str!("fixtures/string_literals_nul_pending.json")).unwrap();
-    assert_eq!(pending.len(), 12);
-    let pending: HashMap<_, _> = pending
-        .into_iter()
-        .map(|case| ((case.group, case.id.clone()), case))
-        .collect();
-    assert_eq!(pending.len(), 12);
-    let mut pending_checked = 0;
     let mut bytes_checked = 0;
     let mut failures = Vec::new();
     let mut targets = BTreeSet::new();
-    for (group_index, group) in groups.into_iter().enumerate() {
+    for group in groups {
         targets.insert(group.target.clone());
         let folder = tempfile::tempdir().unwrap();
         fs::write(folder.path().join(".rubocop.yml"), &group.config).unwrap();
@@ -135,26 +112,9 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
             actual.sort_by_cached_key(Value::to_string);
             let mut expected = case.offenses.clone();
             expected.sort_by_cached_key(Value::to_string);
-            let deferred = pending.get(&(group_index, case.id.clone()));
-            if let Some(reference) = deferred {
-                assert_eq!(reference.issue, 54);
-                assert_eq!(reference.target, group.target);
-                assert_eq!(reference.ending, group.ending);
-                assert_eq!(reference.mode, group.mode);
-                assert_eq!(reference.config, group.config);
-                assert_eq!(reference.source_hex, case.source_hex);
-                assert_eq!(reference.after_hex, case.after_hex);
-                assert_eq!(
-                    reference.raw_reference_after_hex,
-                    case.raw_reference_after_hex
-                );
-                pending_checked += 1;
-            } else {
-                bytes_checked += 1;
-            }
+            bytes_checked += 1;
             if actual != expected
-                || (deferred.is_none()
-                    && fs::read(folder.path().join(&case.path)).unwrap() != bytes(&case.after_hex))
+                || fs::read(folder.path().join(&case.path)).unwrap() != bytes(&case.after_hex)
             {
                 failures.push(format!(
                     "{label}/{}: offenses {} / {}, bytes {} / {}",
@@ -168,8 +128,7 @@ fn nul_string_literals_follow_the_real_parser_tokens() {
         }
     }
     assert_eq!(targets.len(), 7);
-    assert_eq!(bytes_checked, 4940);
-    assert_eq!(pending_checked, 12);
+    assert_eq!(bytes_checked, 4952);
     assert!(
         failures.is_empty(),
         "{} differences:\n{}",
