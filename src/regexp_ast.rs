@@ -1,4 +1,4 @@
-//! `match_with_lvasgn` の判定と、静的な正規表現の本文。
+//! 選択した parser の字句規則、`match_with_lvasgn` の判定、静的な正規表現の本文。
 //!
 //! whitequark の `static_regexp_node` は 3.3 未満では `str` と `begin` だけの補間を
 //! 連結する。Ruby の実行時評価と異なり、複文の最後だけでなく全 `str` を連結する。
@@ -10,20 +10,39 @@ use crate::config::Config;
 use crate::engine::{LiteralEncoding, declared_literal_encoding};
 use crate::ruby_version::RubyVersion;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Semantics {
     static_interpolation: bool,
+    prism_question_literals: bool,
+}
+
+impl Default for Semantics {
+    fn default() -> Self {
+        Self {
+            static_interpolation: false,
+            prism_question_literals: true,
+        }
+    }
 }
 
 impl Semantics {
     pub(crate) fn from_config(config: &Config) -> Self {
+        let engine = config.cop_value::<String>("AllCops", "ParserEngine");
+        let prism_question_literals = match engine.as_deref() {
+            Some("parser_prism") => true,
+            Some("parser_whitequark") => false,
+            _ => config.target_ruby_version() >= RubyVersion::new(3, 3),
+        };
         Self {
             static_interpolation: config.target_ruby_version() < RubyVersion::new(3, 3)
-                && config
-                    .cop_value::<String>("AllCops", "ParserEngine")
-                    .as_deref()
-                    != Some("parser_prism"),
+                && engine.as_deref() != Some("parser_prism"),
+            prism_question_literals,
         }
+    }
+
+    /// `?あい` を三項と読むのは Prism と現 Ruby。whitequark は最初の Unicode を文字として読む。
+    pub(crate) fn modern_question_literals(self) -> bool {
+        self.prism_question_literals
     }
 
     /// RuboCop が match_with_lvasgn として dispatch する条件。実行時の束縛とは別に使う。
@@ -799,6 +818,7 @@ mod tests {
     fn character_recovery_consumes_only_the_measured_lexeme() {
         let semantics = Semantics {
             static_interpolation: true,
+            ..Semantics::default()
         };
         for expression in [r"?\C-\x43", r"?\c\x43", r"((?\C-\x43))", r"?\C-\x43; 'a'"] {
             let source = format!("/#{{{expression}}}(?<y>.)/ =~ text\n");
@@ -939,6 +959,7 @@ mod tests {
         assert_eq!(character_cases.len(), 3132);
         let semantics = Semantics {
             static_interpolation: true,
+            ..Semantics::default()
         };
         let mut failures = Vec::new();
         for case in cases.iter().chain(character_cases) {
@@ -985,6 +1006,7 @@ mod tests {
             let regex = tree.root_node().named_child(0).unwrap();
             let semantics = Semantics {
                 static_interpolation: true,
+                ..Semantics::default()
             };
             assert!(semantics.is_static(regex, source, |_| None), "{source}");
             assert_eq!(

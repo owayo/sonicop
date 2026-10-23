@@ -5111,3 +5111,63 @@ fn ambiguous_arguments_keep_ruby_whitespace_and_reference_correction_bytes() {
         }
     }
 }
+
+/// 本家 1.89.0 の実 CLI で記録した三項演算子・文字リテラルの診断全項目と補正バイト。
+/// CRLF は既存の意図的差分に従ってディスクでも保つ。colon 欠落などは原本を読む診断 backend が
+/// 判定し、tree-sitter が回復した木を受理しても補正で原本を書き換えない。
+#[test]
+fn local_ternary_reports_and_corrections_match_recorded_upstream() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/local_ternary_reports.json")).unwrap();
+    let cases = fixture["cases"].as_array().unwrap();
+    assert!(!cases.is_empty());
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        for ending in ["\n", "\r\n"] {
+            let source = case["source"].as_str().unwrap().replace('\n', ending);
+            let directory = project_without_pinned_ruby(&[
+                ("example.rb", &source),
+                (".rubocop.yml", case["yaml"].as_str().unwrap()),
+            ]);
+            let mut run = command(directory.path());
+            run.args([
+                "--config",
+                ".rubocop.yml",
+                "--cache",
+                "false",
+                "--only",
+                "Layout/SpaceAroundOperators,Lint/Syntax",
+                "--format",
+                "json",
+            ]);
+            if let Some(mode) = case["mode"].as_str() {
+                run.arg(mode);
+            }
+            let output = run.arg("example.rb").output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                case["exit"].as_i64().map(|code| code as i32),
+                "{name} {ending:?}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let mut report: serde_json::Value = serde_json::from_slice(&output.stdout)
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "{name}: {error}: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    )
+                });
+            report.as_object_mut().unwrap().remove("metadata");
+            assert_eq!(report, case["report"], "{name} {ending:?}");
+            assert_eq!(
+                fs::read(directory.path().join("example.rb")).unwrap(),
+                case["after"]
+                    .as_str()
+                    .unwrap()
+                    .replace('\n', ending)
+                    .as_bytes(),
+                "{name} {ending:?}",
+            );
+        }
+    }
+}

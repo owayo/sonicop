@@ -7,7 +7,9 @@
 //! 使っていないと誤って報告し、`-A` が引数名を `_count` へ変えたり代入を消したりしたうえで
 //! `count(+1)` と括弧を足し、実行できないコードを書き戻す。grammar は演算子の直前の空白が
 //! 改ページ (U+000C) なら二項演算として読むので、その空白の位置を集めて
-//! [`crate::parser::parse`] が読み直す。
+//! [`crate::parser::parse`] が読み直す。`?2` と文字リテラルを誤認する位置も束縛で選び、
+//! `?` の直後へ仮想の空白を置いて三項演算子として読む。`?foo` のように識別文字が 2 文字続く
+//! 場合は、名前が未束縛でも三項になる。
 //!
 //! 束縛は評価の順ではなく字句の順に決まる。`x = 1 if x +1` の条件の `x` は本文の代入より後に
 //! 読まれるのでローカル変数で、`x +1 if x = 1` の本文の `x` はメソッド呼び出し。代入の左辺も
@@ -26,12 +28,12 @@ use tree_sitter::{Node, TreeCursor};
 
 use crate::rules::support::{scope_kind, spurious_assignment_list};
 
-/// 二項演算として読み直す手がかり。原文のバイト位置の昇順で重複しない。
+/// 二項・三項演算として読み直す手がかり。原文のバイト位置の昇順で重複しない。
 ///
 /// `hinted` は、`root` を読むときに置き換え・挿入した手がかり (原文の位置の昇順)。そこの演算子は
 /// grammar がすでに二項演算として読んでいるので、直前の名前がその字句の位置でいまもローカル変数に
 /// 束縛されているときだけ結果に残す。読み直しで束縛が消えた手がかり (heredoc だった本文がコメントに
-/// 変わった、など) は落ちる。
+/// 変わった、など) は落ちる。三項は原文の複数識別文字からの根拠も毎回計算し直す。
 pub(crate) fn binary_operator_hints(
     root: Node<'_>,
     text: &str,
@@ -59,17 +61,19 @@ pub(crate) fn binary_operator_hints(
     hints
 }
 
-/// 原文の座標で表す手がかり。空白が無い行継続だけ、直前へ仮想の改ページを挿入する。
+/// 原文の座標で表す手がかり。二項演算は改ページ、三項演算は `?` の直後の空白で伝える。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Hint {
     Replace(usize),
     Insert(usize),
+    /// character の最長一致を避けるため、`?` の直後へ空白を挿入する。
+    Ternary(usize),
 }
 
 impl Hint {
     pub(crate) fn position(self) -> usize {
         match self {
-            Self::Replace(position) | Self::Insert(position) => position,
+            Self::Replace(position) | Self::Insert(position) | Self::Ternary(position) => position,
         }
     }
 }
@@ -224,6 +228,16 @@ impl<'a, 'tree> Walk<'a, 'tree> {
                 self.push_children(node, stack, |_| true);
             }
             "identifier" => self.check_hinted(node),
+            // yield は引数も自身の範囲に含む。先頭の keyword token から同じ ? の規則を調べる。
+            "yield" | "super" => {
+                if let Some(keyword) = node.child(0)
+                    && !keyword.is_named()
+                    && keyword.kind() == kind
+                {
+                    self.check_hinted(keyword);
+                }
+                self.push_children(node, stack, |_| true);
+            }
             _ => self.push_children(node, stack, |_| true),
         }
     }
@@ -404,7 +418,7 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         };
         let available = match hint {
             Hint::Replace(position) => matches!(bytes[position], b' ' | b'\t'),
-            Hint::Insert(_) => true,
+            Hint::Insert(_) | Hint::Ternary(_) => true,
         };
         if available
             && operator_starts(bytes, start)
@@ -415,13 +429,34 @@ impl<'a, 'tree> Walk<'a, 'tree> {
     }
 
     /// 前に読んだときの手がかりで二項演算として読ませた位置を、いまの木で確かめ直す。直前の名前が
-    /// この字句の位置でまだローカル変数なら、手がかりを残す。
+    /// この字句の位置でまだローカル変数なら、手がかりを残す。三項演算子は文字リテラルの回復で
+    /// call の引数外へ移ることもあるため、名前の直後から探す。複数の識別文字に続く `?` は
+    /// 名前が未束縛でも三項になり、それ以外は毎回いまの束縛で判定する。
     fn check_hinted(&mut self, name: Node<'tree>) {
-        if self.hinted.is_empty() {
+        let bytes = self.text.as_bytes();
+        let start = gap_end(bytes, name.end_byte());
+        let ternary = start > name.end_byte()
+            && bytes.get(start) == Some(&b'?')
+            && bytes
+                .get(start + 1)
+                .is_some_and(|byte| !byte.is_ascii_whitespace());
+        // Prism と現 Ruby は Unicode 先頭も 2 識別文字なら三項、whitequark は ASCII 先頭だけ。
+        // byte 数で数えると単一 Unicode 文字まで三項になり、旧版の `?あand false` も壊す。
+        let multiple = ternary && {
+            let mut characters = self.text[start + 1..].chars();
+            let identifier = |character: char| {
+                character.is_ascii_alphanumeric() || character == '_' || !character.is_ascii()
+            };
+            characters.next().is_some_and(|first| {
+                identifier(first) && (first.is_ascii() || self.semantics.modern_question_literals())
+            }) && characters.next().is_some_and(identifier)
+        };
+        if !ternary && self.hinted.is_empty() {
             return;
         }
         // `obj.name +1` の `name` はメソッド名で、ローカル変数と同じ名前でも引数を取る。
-        if let Some(parent) = name.parent()
+        if !multiple
+            && let Some(parent) = name.parent()
             && parent.kind() == "call"
             && parent.child_by_field_name("receiver").is_some()
             && parent
@@ -430,25 +465,34 @@ impl<'a, 'tree> Walk<'a, 'tree> {
         {
             return;
         }
-        let bytes = self.text.as_bytes();
-        let start = gap_end(bytes, name.end_byte());
+        if ternary {
+            // `?foo` のように文字リテラルの回復が call の arguments より前へはみ出しても、
+            // 名前の直後の字句で判断する。読み直した後も同じ原文の字句と現在の束縛で確かめる。
+            if multiple || self.is_local(&self.text[name.byte_range()]) {
+                self.hints.push(Hint::Ternary(start + 1));
+            }
+            return;
+        }
         let Some(hint) = hint_slot(bytes, name.end_byte(), start) else {
             return;
         };
         let available = match hint {
             Hint::Replace(position) => bytes[position] == b'\x0c',
-            Hint::Insert(_) => true,
+            Hint::Insert(_) | Hint::Ternary(_) => true,
         };
         if available
-            && self
-                .hinted
-                .binary_search_by_key(&hint.position(), |hint| hint.position())
-                .is_ok_and(|index| self.hinted[index] == hint)
+            && self.was_hinted(hint)
             && operator_starts(bytes, start)
             && self.is_local(&self.text[name.byte_range()])
         {
             self.hints.push(hint);
         }
+    }
+
+    fn was_hinted(&self, hint: Hint) -> bool {
+        self.hinted
+            .binary_search_by_key(&hint.position(), |hint| hint.position())
+            .is_ok_and(|index| self.hinted[index] == hint)
     }
 
     /// 本家が静的に読む regexp だけを宣言候補にし、名前抽出で架空の束縛を除く。
@@ -501,11 +545,12 @@ fn hint_slot(bytes: &[u8], name_end: usize, operator: usize) -> Option<Hint> {
     }
 }
 
-/// `from` から空白・タブ・改ページと行継続を読み飛ばした位置。
+/// `from` から Ruby の水平空白と行継続を読み飛ばした位置。CRLF は改行なので越えない。
 fn gap_end(bytes: &[u8], mut from: usize) -> usize {
     while let Some(&byte) = bytes.get(from) {
         match byte {
-            b' ' | b'\t' | b'\x0c' => from += 1,
+            b' ' | b'\t' | b'\x0b' | b'\x0c' => from += 1,
+            b'\r' if bytes.get(from + 1) != Some(&b'\n') => from += 1,
             b'\\' if bytes.get(from + 1) == Some(&b'\n') => from += 2,
             b'\\' if bytes.get(from + 1) == Some(&b'\r') && bytes.get(from + 2) == Some(&b'\n') => {
                 from += 3;
@@ -594,13 +639,17 @@ mod tests {
         )
         .into_iter()
         .map(|hint| {
-            let position = hint.position();
-            let before = source[..position].trim_end_matches([' ', '\t', '\n', '\r', '\\']);
+            let (position, replaced) = match hint {
+                Hint::Replace(position) => (position, 1),
+                Hint::Insert(position) => (position, 0),
+                Hint::Ternary(position) => (position - 1, 0),
+            };
+            let before =
+                source[..position].trim_end_matches([' ', '\t', '\x0b', '\x0c', '\n', '\r', '\\']);
             let start = before
                 .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
                 .map_or(0, |index| index + 1);
-            let after = source[position + usize::from(matches!(hint, Hint::Replace(_)))..]
-                .trim_start_matches(['\\', '\r', '\n']);
+            let after = source[position + replaced..].trim_start_matches(['\\', '\r', '\n']);
             format!("{} {}", &before[start..], &after[..1])
         })
         .collect()
@@ -775,6 +824,44 @@ mod tests {
             );
             assert_eq!(hints.len(), 1, "{source:?} {hints:?}");
             assert_eq!(matches!(hints[0], Hint::Insert(_)), insert, "{source:?}");
+        }
+    }
+
+    /// 三項の手がかりも字句順と硬い・柔らかいスコープに従い、通常の文字リテラルは残す。
+    #[test]
+    fn ternary_hints_follow_the_binding_at_the_question() {
+        for (source, expected) in [
+            ("x = 1\nputs(x ?2:3)\n", vec!["x ?"]),
+            ("x = 1\nputs(x\x0b?2:3)\n", vec!["x ?"]),
+            ("x = 1\nputs(x\r?2:3)\n", vec!["x ?"]),
+            ("x = 1\nputs(x\n?2:3)\n", vec![]),
+            ("x = 1\nputs(x\r\n?2:3)\n", vec![]),
+            ("x = 1\nputs(x ?foo : bar)\n", vec!["x ?"]),
+            ("puts(missing ?foo : bar)\n", vec!["missing ?"]),
+            ("puts(missing ?true : false)\n", vec!["missing ?"]),
+            ("puts(missing ?aあ : bar)\n", vec!["missing ?"]),
+            ("puts(missing ?あい : bar)\n", vec!["missing ?"]),
+            ("puts(missing ?a_ : bar)\n", vec!["missing ?"]),
+            ("puts(missing ?1a : bar)\n", vec!["missing ?"]),
+            ("puts(missing ?foo)\n", vec!["missing ?"]),
+            ("puts(obj.missing ?foo : bar)\n", vec!["missing ?"]),
+            ("def m; puts(yield ?foo : bar); end\n", vec!["yield ?"]),
+            ("def m; puts(super ?foo : bar); end\n", vec!["super ?"]),
+            ("def m; puts(yield ?あ); end\n", vec![]),
+            ("def m; puts(super ?\\n); end\n", vec![]),
+            ("puts(missing ?あ)\n", vec![]),
+            ("puts(missing ?\\n)\n", vec![]),
+            ("puts(obj.missing ?a)\n", vec![]),
+            ("def m(x)\n  x ?2:3\nend\n", vec!["x ?"]),
+            ("[1].map { |値| 値 ?2:3 }\n", vec!["値 ?"]),
+            ("x = 1\n[1].map { x ?2:3 }\n", vec!["x ?"]),
+            ("x = 1\n-> { x ?2:3 }\n", vec!["x ?"]),
+            ("puts(x ?2)\nx = 1\n", vec![]),
+            ("x = 1\ndef m\n  puts(x ?2)\nend\n", vec![]),
+            ("x = 1\nputs(obj.x ?2)\n", vec![]),
+            ("x = 1\nputs(x?2)\n", vec![]),
+        ] {
+            assert_eq!(hinted(source), expected, "{source:?}");
         }
     }
 }
